@@ -21,7 +21,8 @@ module.exports = {
     },
     output: {
         filename: 'bundle.js',
-        path: path.resolve(__dirname, 'dist/client'),
+        path: path.resolve(__dirname, 'public'), // Gera bundle.js na pasta public
+        publicPath: '/'
     },
     mode: 'production',
     optimization: {
