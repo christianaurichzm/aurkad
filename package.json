@@ -6,7 +6,7 @@
     "build": "npm run build-client && npm run build-server",
     "build-dev": "npm run build-client-dev && npm run build-server",
     "start": "node dist/server/server.js",
-    "dev": "concurrently \"webpack --config webpack.dev.config.js --watch\" \"nodemon\""
+    "dev": "concurrently \"webpack serve --config webpack.dev.config.js\" \"nodemon\""
   },
   "dependencies": {
     "express": "^4.17.1",

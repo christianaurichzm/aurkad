@@ -21,11 +21,18 @@ module.exports = {
     },
     output: {
         filename: 'bundle.js',
-        path: path.resolve(__dirname, 'public'), // Gera bundle.js na pasta public
+        path: path.resolve(__dirname, 'public'),
         publicPath: '/'
     },
     mode: 'development',
-    watch: true,
+    devServer: {
+        static: path.join(__dirname, 'public'),
+        hot: true,
+        port: 3000,
+        proxy: {
+            '/': 'http://localhost:8080'
+        }
+    },
     optimization: {
         minimize: false,
     },
