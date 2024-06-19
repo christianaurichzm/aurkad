@@ -1,14 +1,10 @@
 {
+  "extends": "./tsconfig.json",
   "compilerOptions": {
-    "target": "es5",
     "module": "commonjs",
-    "outDir": "./dist/server",
-    "rootDir": "./src/server",
-    "strict": true,
-    "esModuleInterop": true,
-    "skipLibCheck": true,
-    "forceConsistentCasingInFileNames": true
+    "outDir": "./dist",
+    "rootDir": "./src",
+    "rootDirs": ["./src/server", "./src/shared"]
   },
-  "include": ["src/server/**/*"],
-  "exclude": ["node_modules", "dist"]
+  "include": ["src/server/**/*", "src/shared/**/*"]
 }

@@ -1,14 +1,9 @@
 {
+  "extends": "./tsconfig.json",
   "compilerOptions": {
-    "target": "es5",
     "module": "esnext",
-    "outDir": "./dist/client",
-    "rootDir": "./src/client",
-    "strict": true,
-    "esModuleInterop": true,
-    "skipLibCheck": true,
-    "forceConsistentCasingInFileNames": true
+    "rootDir": "./src",
+    "rootDirs": ["./src/client", "./src/shared"]
   },
-  "include": ["src/client/**/*"],
-  "exclude": ["node_modules", "dist"]
+  "include": ["src/client/**/*", "src/shared/**/*"]
 }
