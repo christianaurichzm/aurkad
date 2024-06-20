@@ -4,15 +4,15 @@ import { socket } from '../io/network';
 
 let _player: Player;
 
-export function setPlayer(player: Player) {
+export const setPlayer = (player: Player) => {
   _player = player;
-}
+};
 
-export function getPlayer(): Player {
+export const getPlayer = (): Player => {
   return _player;
-}
+};
 
-export function update(deltaTime: number) {
+export const update = (deltaTime: number) => {
   const player = getPlayer();
 
   if (player) {
@@ -43,4 +43,4 @@ export function update(deltaTime: number) {
       socket.send(JSON.stringify({ type: 'playerUpdate', player: player }));
     }
   }
-}
+};

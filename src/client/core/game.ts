@@ -4,7 +4,7 @@ import { getGameState } from './gameState';
 
 let lastTime = 0;
 
-export function gameLoop(timestamp: number) {
+export const gameLoop = (timestamp: number) => {
   const deltaTime = timestamp - lastTime;
   lastTime = timestamp;
 
@@ -13,4 +13,4 @@ export function gameLoop(timestamp: number) {
   render(players, enemies);
 
   requestAnimationFrame(gameLoop);
-}
+};

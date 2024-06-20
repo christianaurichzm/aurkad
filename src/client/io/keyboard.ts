@@ -1,11 +1,11 @@
 export const keys: { [key: string]: boolean } = {};
 
 export function handleInput() {
-  window.addEventListener('keydown', function (e) {
+  window.addEventListener('keydown', (e: KeyboardEvent) => {
     keys[e.key] = true;
   });
 
-  window.addEventListener('keyup', function (e) {
+  window.addEventListener('keyup', (e: KeyboardEvent) => {
     keys[e.key] = false;
   });
 }
