@@ -17,11 +17,11 @@ export const initializeWebSocketServer = (server: Server) => {
 
       if (data.type === MessageType.PLAYER_UPDATE && 'player' in data) {
         handlePlayerUpdate(data.player);
-        broadcastGameState(wss);
       } else if (data.type === MessageType.ATTACK && 'player' in data) {
         handleAttack(data.player.id);
-        broadcastGameState(wss);
       }
+
+      broadcastGameState(wss);
     });
 
     ws.on('close', () => {

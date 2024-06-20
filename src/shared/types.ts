@@ -15,12 +15,16 @@ export enum Key {
   Control = 'Control',
 }
 
-export interface Player {
+export interface Character {
   id: string;
   x: number;
   y: number;
   width: number;
   height: number;
+  color: string;
+}
+
+export interface Player extends Character {
   color: string;
   speed: number;
   attack: number;
@@ -30,13 +34,9 @@ export interface Player {
   attackRange: number;
 }
 
-export interface Enemy {
-  id: number;
-  x: number;
-  y: number;
-  width: number;
-  height: number;
-  color: string;
+export type PlayersMap = { [key: string]: Player };
+
+export interface Enemy extends Character {
   health: number;
   experienceValue: number;
 }

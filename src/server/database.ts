@@ -1,9 +1,9 @@
-import { Enemy, Player } from '../shared/types';
+import { Enemy, Player, PlayersMap } from '../shared/types';
 
-const players: { [key: string]: Player } = {};
+const players: PlayersMap = {};
 let enemies: Enemy[] = [
   {
-    id: 1,
+    id: '1',
     x: 200,
     y: 200,
     width: 50,
@@ -13,7 +13,7 @@ let enemies: Enemy[] = [
     experienceValue: 500,
   },
   {
-    id: 2,
+    id: '2',
     x: 400,
     y: 400,
     width: 50,

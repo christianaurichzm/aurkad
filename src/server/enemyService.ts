@@ -1,10 +1,5 @@
 import { Enemy } from '../shared/types';
-import {
-  getEnemies,
-  getPlayer,
-  levelUp,
-  respawnEnemy as respawn,
-} from './database';
+import { getEnemies, getPlayer, respawnEnemy as respawn } from './database';
 import { levelUpPlayer } from './playerService';
 
 export const respawnEnemy = (enemy: Enemy): void => {
