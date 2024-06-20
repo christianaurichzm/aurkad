@@ -4,7 +4,7 @@ import { handleAttack as attackService } from './enemyService';
 import { handlePlayerUpdates } from './playerService';
 
 export const handlePlayerUpdate = (player: Player): void => {
-    handlePlayerUpdates(player);
+  handlePlayerUpdates(player);
 };
 
 export const handleAttack = (playerId: string): void => {
@@ -14,5 +14,5 @@ export const handleAttack = (playerId: string): void => {
 export const getGameState = (): GameState => ({
   type: MessageType.GAME_STATE,
   players: getPlayers(),
-  enemies: getEnemies()
+  enemies: getEnemies(),
 });

@@ -33,14 +33,14 @@ export const initializeWebSocketServer = (server: Server) => {
       type: MessageType.INIT,
       playerId: newPlayer.id,
       players: getPlayers(),
-      enemies: getEnemies()
+      enemies: getEnemies(),
     };
     ws.send(JSON.stringify(initMessage));
   });
 
   const broadcastGameState = (wss: WebSocketServer) => {
     const gameState = getGameState();
-    wss.clients.forEach(client => {
+    wss.clients.forEach((client) => {
       if (client.readyState === WebSocket.OPEN) {
         client.send(JSON.stringify(gameState));
       }

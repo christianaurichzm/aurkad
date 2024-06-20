@@ -1,16 +1,16 @@
-import { getPlayer, update as updatePlayer } from './player';
+import { update as updatePlayer } from './player';
 import { render } from '../graphics/render';
 import { getGameState } from './gameState';
 
 let lastTime = 0;
 
 export function gameLoop(timestamp: number) {
-    const deltaTime = timestamp - lastTime;
-    lastTime = timestamp;
+  const deltaTime = timestamp - lastTime;
+  lastTime = timestamp;
 
-    updatePlayer(deltaTime);
-    const { players, enemies } = getGameState();
-    render(players, enemies);
+  updatePlayer(deltaTime);
+  const { players, enemies } = getGameState();
+  render(players, enemies);
 
-    requestAnimationFrame(gameLoop);
+  requestAnimationFrame(gameLoop);
 }

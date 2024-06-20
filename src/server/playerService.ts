@@ -1,5 +1,5 @@
-import { Player } from "../shared/types";
-import { addPlayer, getPlayer, updatePlayer } from "./database";
+import { Player } from '../shared/types';
+import { addPlayer, getPlayer, updatePlayer } from './database';
 
 export const createPlayer = (): Player => {
   const newPlayer: Player = {
@@ -14,9 +14,9 @@ export const createPlayer = (): Player => {
     level: 1,
     experience: 0,
     experienceToNextLevel: 100,
-    attackRange: 50
+    attackRange: 50,
   };
-  
+
   addPlayer(newPlayer);
   return newPlayer;
 };

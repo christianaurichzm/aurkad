@@ -1,27 +1,27 @@
-import { Enemy, Player } from "../shared/types";
+import { Enemy, Player } from '../shared/types';
 
-let players: { [key: string]: Player } = {};
+const players: { [key: string]: Player } = {};
 let enemies: Enemy[] = [
-    {
-        id: 1,
-        x: 200,
-        y: 200,
-        width: 50,
-        height: 50,
-        color: 'red',
-        health: 100,
-        experienceValue: 500
-    },
-    {
-        id: 2,
-        x: 400,
-        y: 400,
-        width: 50,
-        height: 50,
-        color: 'green',
-        health: 100,
-        experienceValue: 500
-    }
+  {
+    id: 1,
+    x: 200,
+    y: 200,
+    width: 50,
+    height: 50,
+    color: 'red',
+    health: 100,
+    experienceValue: 500,
+  },
+  {
+    id: 2,
+    x: 400,
+    y: 400,
+    width: 50,
+    height: 50,
+    color: 'green',
+    health: 100,
+    experienceValue: 500,
+  },
 ];
 
 export const addPlayer = (player: Player): void => {
@@ -37,14 +37,14 @@ export const getPlayer = (playerId: string): Player | undefined => {
 };
 
 export const updatePlayer = (player: Player): void => {
-  players[player.id].x = player.x
-  players[player.id].y = player.y
-  players[player.id].speed = player.speed
+  players[player.id].x = player.x;
+  players[player.id].y = player.y;
+  players[player.id].speed = player.speed;
 };
 
 export const levelUp = (player: Player): void => {
-    players[player.id].level = player.level
-}
+  players[player.id].level = player.level;
+};
 
 export const getPlayers = (): { [key: string]: Player } => {
   return players;
