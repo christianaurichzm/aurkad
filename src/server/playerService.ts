@@ -1,5 +1,5 @@
 import { Player } from '../shared/types';
-import { addPlayer, getPlayer, updatePlayer } from './database';
+import { addPlayer, getPlayer, levelUp, updatePlayer } from './database';
 
 export const createPlayer = (): Player => {
   const newPlayer: Player = {
@@ -19,6 +19,17 @@ export const createPlayer = (): Player => {
 
   addPlayer(newPlayer);
   return newPlayer;
+};
+
+export const levelUpPlayer = (player: Player): void => {
+  while (player.experience >= player.experienceToNextLevel) {
+    player.experience -= player.experienceToNextLevel;
+    player.level++;
+    player.experienceToNextLevel = Math.floor(
+      100 * Math.pow(1.5, player.level - 1),
+    );
+  }
+  levelUp(player);
 };
 
 export const handlePlayerUpdates = (player: Player): void => {

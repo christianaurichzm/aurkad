@@ -6,6 +6,15 @@ export enum MessageType {
   ATTACK = 'attack',
 }
 
+export enum Key {
+  ArrowUp = 'ArrowUp',
+  ArrowDown = 'ArrowDown',
+  ArrowLeft = 'ArrowLeft',
+  ArrowRight = 'ArrowRight',
+  Shift = 'Shift',
+  Control = 'Control',
+}
+
 export interface Player {
   id: string;
   x: number;

@@ -5,6 +5,7 @@ import {
   levelUp,
   respawnEnemy as respawn,
 } from './database';
+import { levelUpPlayer } from './playerService';
 
 export const respawnEnemy = (enemy: Enemy): void => {
   respawn(enemy);
@@ -12,7 +13,7 @@ export const respawnEnemy = (enemy: Enemy): void => {
 
 export const handleAttack = (playerId: string): void => {
   const player = getPlayer(playerId);
-  if (!player) return;
+  if (!player) throw new Error('Player not found');
 
   const enemies = getEnemies();
   enemies.forEach((enemy) => {
@@ -30,17 +31,9 @@ export const handleAttack = (playerId: string): void => {
         enemy.health = 0;
         player.experience += enemy.experienceValue;
 
-        while (player.experience >= player.experienceToNextLevel) {
-          player.experience -= player.experienceToNextLevel;
-          player.level++;
-          player.experienceToNextLevel = Math.floor(
-            100 * Math.pow(1.5, player.level - 1),
-          );
-        }
+        levelUpPlayer(player);
         respawnEnemy(enemy);
       }
-
-      levelUp(player);
     }
   });
 };

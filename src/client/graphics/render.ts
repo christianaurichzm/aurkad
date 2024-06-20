@@ -1,9 +1,12 @@
 import { ctx, canvas } from './canvas';
 import { Player, Enemy } from '../../shared/types';
-import { renderHUD } from '../ui/hud';
+import { renderHUD, renderHealthBar } from '../ui/hud';
 import { getPlayer } from '../core/player';
 
-export function render(players: { [key: string]: Player }, enemies: Enemy[]) {
+export const render = (
+  players: { [key: string]: Player },
+  enemies: Enemy[],
+) => {
   ctx.clearRect(0, 0, canvas.width, canvas.height);
 
   const player = players[getPlayer()?.id];
@@ -23,13 +26,7 @@ export function render(players: { [key: string]: Player }, enemies: Enemy[]) {
       otherPlayer.width,
       otherPlayer.height,
     );
-    ctx.fillStyle = 'black';
-    ctx.font = '14px Arial';
-    ctx.fillText(
-      `${otherPlayer.id} - Level: ${otherPlayer.level}`,
-      otherPlayer.x,
-      otherPlayer.y - 10,
-    );
+    renderHUD(otherPlayer);
   }
 
   enemies.forEach((enemy) => {
@@ -39,26 +36,4 @@ export function render(players: { [key: string]: Player }, enemies: Enemy[]) {
       renderHealthBar(enemy);
     }
   });
-}
-
-function renderHealthBar(enemy: Enemy) {
-  const barWidth = enemy.width;
-  const barHeight = 10;
-  const barX = enemy.x;
-  const barY = enemy.y - barHeight - 5;
-
-  const healthPercentage = enemy.health / 100;
-  let barColor = 'green';
-
-  if (healthPercentage <= 0.5 && healthPercentage > 0.2) {
-    barColor = 'yellow';
-  } else if (healthPercentage <= 0.2) {
-    barColor = 'red';
-  }
-
-  ctx.fillStyle = barColor;
-  ctx.fillRect(barX, barY, barWidth * healthPercentage, barHeight);
-
-  ctx.strokeStyle = 'black';
-  ctx.strokeRect(barX, barY, barWidth, barHeight);
-}
+};
