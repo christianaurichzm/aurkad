@@ -1,4 +1,9 @@
-import { MessageType, ServerMessage } from '../../shared/types';
+import {
+  AttackMessage,
+  MessageType,
+  PlayerUpdateMessage,
+  ServerMessage,
+} from '../../shared/types';
 import { gameLoop } from '../core/game';
 import { updateGameState } from '../core/gameState';
 
@@ -16,5 +21,13 @@ socket.onmessage = (event: MessageEvent) => {
     requestAnimationFrame(gameLoop);
   } else if (data.type === MessageType.GAME_STATE) {
     updateGameState(data.players, data.enemies, null);
+  }
+};
+
+export const sendPlayerMessage = (
+  message: PlayerUpdateMessage | AttackMessage,
+) => {
+  if (socket.readyState === WebSocket.OPEN) {
+    socket.send(JSON.stringify(message));
   }
 };

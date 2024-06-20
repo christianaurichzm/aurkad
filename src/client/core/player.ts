@@ -1,6 +1,6 @@
 import { Key, MessageType, Player } from '../../shared/types';
 import { keys, previousKeyState } from '../io/keyboard';
-import { socket } from '../io/network';
+import { sendPlayerMessage } from '../io/network';
 
 let _player: Player;
 
@@ -37,7 +37,7 @@ const handleBoost = (player: Player) => {
 
 const handleAttack = (player: Player) => {
   if (keys[Key.Control] && !previousKeyState[Key.Control]) {
-    socket.send(JSON.stringify({ type: MessageType.ATTACK, player }));
+    sendPlayerMessage({ type: MessageType.ATTACK, player });
     previousKeyState[Key.Control] = true;
   }
   if (!keys[Key.Control] && previousKeyState[Key.Control]) {
@@ -45,19 +45,13 @@ const handleAttack = (player: Player) => {
   }
 };
 
-const sendPlayerUpdate = (player: Player) => {
-  if (socket.readyState === WebSocket.OPEN) {
-    socket.send(JSON.stringify({ type: MessageType.PLAYER_UPDATE, player }));
-  }
-};
-
 export const update = (deltaTime: number) => {
   const player = getPlayer();
 
   if (player) {
-    updatePlayerPosition(player, deltaTime);
     handleBoost(player);
+    updatePlayerPosition(player, deltaTime);
+    sendPlayerMessage({ type: MessageType.PLAYER_UPDATE, player });
     handleAttack(player);
-    sendPlayerUpdate(player);
   }
 };

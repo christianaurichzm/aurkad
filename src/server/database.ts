@@ -46,7 +46,7 @@ export const levelUp = (player: Player): void => {
   players[player.id].level = player.level;
 };
 
-export const getPlayers = (): { [key: string]: Player } => {
+export const getPlayers = (): PlayersMap => {
   return players;
 };
 
@@ -56,10 +56,4 @@ export const setEnemies = (newEnemies: Enemy[]): void => {
 
 export const getEnemies = (): Enemy[] => {
   return enemies;
-};
-
-export const respawnEnemy = (enemy: Enemy): void => {
-  enemy.health = 100;
-  enemy.x = Math.random() * 750;
-  enemy.y = Math.random() * 550;
 };

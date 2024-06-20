@@ -8,7 +8,7 @@ let _enemies: Enemy[] = [];
 export const updateGameState = (
   players: PlayersMap,
   enemies: Enemy[],
-  playerId: string | null,
+  playerId?: string | null,
 ) => {
   _players = players;
   _enemies = enemies;
