@@ -18,7 +18,6 @@ socket.onmessage = (event: MessageEvent) => {
 
   if (data.type === MessageType.INIT) {
     updateGameState(data.players, data.enemies, data.playerId);
-    requestAnimationFrame(gameLoop);
   } else if (data.type === MessageType.GAME_STATE) {
     updateGameState(data.players, data.enemies, null);
   }
