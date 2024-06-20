@@ -1,5 +1,5 @@
 import { ctx, canvas } from './canvas';
-import { Player, Enemy } from '../../shared/types';
+import { Enemy, PlayersMap } from '../../shared/types';
 import { renderHUD, renderHealthBar } from '../ui/hud';
 
 const renderEntity = (entity: {
@@ -13,7 +13,7 @@ const renderEntity = (entity: {
   ctx.fillRect(entity.x, entity.y, entity.width, entity.height);
 };
 
-const renderPlayers = (players: { [key: string]: Player }) => {
+const renderPlayers = (players: PlayersMap) => {
   Object.values(players).forEach((player) => {
     renderEntity(player);
     renderHUD(player);
@@ -29,10 +29,7 @@ const renderEnemies = (enemies: Enemy[]) => {
   });
 };
 
-export const render = (
-  players: { [key: string]: Player },
-  enemies: Enemy[],
-) => {
+export const render = (players: PlayersMap, enemies: Enemy[]) => {
   ctx.clearRect(0, 0, canvas.width, canvas.height);
   renderPlayers(players);
   renderEnemies(enemies);

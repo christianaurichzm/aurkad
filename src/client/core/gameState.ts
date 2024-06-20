@@ -1,12 +1,12 @@
-import { Player, Enemy } from '../../shared/types';
+import { Enemy, PlayersMap } from '../../shared/types';
 import { setPlayer, getPlayer } from './player';
 import { render } from '../graphics/render';
 
-let _players: { [key: string]: Player } = {};
+let _players: PlayersMap = {};
 let _enemies: Enemy[] = [];
 
 export const updateGameState = (
-  players: { [key: string]: Player },
+  players: PlayersMap,
   enemies: Enemy[],
   playerId: string | null,
 ) => {

@@ -43,14 +43,14 @@ export interface Enemy extends Character {
 
 export interface GameState {
   type: MessageType.GAME_STATE;
-  players: { [key: string]: Player };
+  players: PlayersMap;
   enemies: Enemy[];
 }
 
 export interface InitMessage {
   type: MessageType.INIT;
   playerId: string;
-  players: { [key: string]: Player };
+  players: PlayersMap;
   enemies: Enemy[];
 }
 
