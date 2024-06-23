@@ -1,18 +1,15 @@
 import { GameMap } from '../../shared/types';
 import { getPlayer, setPlayer } from './player';
 
-const maps: { [key: string]: GameMap } = {};
+let gameMap: GameMap;
 
 export const updateGameState = (map: GameMap, playerId?: string | null) => {
-  maps[map?.id] = map;
+  gameMap = map;
   if (playerId) {
     setPlayer(map?.players[playerId]);
   }
 };
 
 export const getGameState = () => {
-  const player = getPlayer();
-  if (player) {
-    return maps[player.mapId];
-  }
+  return gameMap;
 };

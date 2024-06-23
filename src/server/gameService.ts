@@ -1,9 +1,20 @@
 import { GameState, MessageType, Player } from '../shared/types';
 import { getEnemies, getMap, getPlayer, getPlayers } from './database';
 import { respawnEnemy } from './enemyService';
-import { handlePlayerUpdates, levelUpPlayer } from './playerService';
+import {
+  createPlayer,
+  handlePlayerUpdates,
+  levelUpPlayer,
+} from './playerService';
 
 export const FIRST_GAME_MAP_ID = '1';
+
+export const login = (username: string) => {
+  return (
+    Object.values(getPlayers()).find((player) => player.name === username) ||
+    createPlayer(username)
+  );
+};
 
 export const handlePlayerUpdate = (player: Player): void => {
   handlePlayerUpdates(player);
@@ -36,9 +47,7 @@ export const handleAttack = (playerId: string): void => {
   });
 };
 
-export const getGameState = (player: Player): GameState => ({
+export const getGameState = (mapId: string): GameState => ({
   type: MessageType.GAME_STATE,
-  players: getPlayers(),
-  enemies: getEnemies(),
-  map: getMap(player.mapId),
+  map: getMap(mapId),
 });

@@ -1,6 +1,6 @@
 import { render } from '../graphics/render';
 import { getGameState } from './gameState';
-import { update as updatePlayer } from './player';
+import { getPlayer, update as updatePlayer } from './player';
 
 const FPS_LIMIT = 60;
 const FRAME_DURATION = 1000 / FPS_LIMIT;
@@ -17,8 +17,8 @@ export const gameLoop = (timestamp: number) => {
   if (timeSinceLastFrame >= FRAME_DURATION) {
     lastFrameTime = timestamp - (timeSinceLastFrame % FRAME_DURATION);
 
-    updatePlayer(deltaTime);
     render(getGameState());
+    updatePlayer(deltaTime);
   }
 
   requestAnimationFrame(gameLoop);

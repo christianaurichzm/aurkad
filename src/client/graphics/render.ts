@@ -1,4 +1,4 @@
-import { Enemy, GameMap, PlayersMap } from '../../shared/types';
+import { EnemiesMap, Enemy, GameMap, PlayersMap } from '../../shared/types';
 import { renderHealthBar, renderHUD } from '../ui/hud';
 import { canvas, ctx } from './canvas';
 
@@ -20,7 +20,7 @@ const renderPlayers = (players: PlayersMap) => {
   });
 };
 
-const renderEnemies = (enemies: { [key: string]: Enemy }) => {
+const renderEnemies = (enemies: EnemiesMap) => {
   Object.values(enemies).forEach((enemy) => {
     if (enemy?.health > 0) {
       renderEntity(enemy);

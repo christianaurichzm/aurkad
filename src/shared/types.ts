@@ -25,6 +25,7 @@ export interface Character {
 }
 
 export interface Player extends Character {
+  name: string;
   color: string;
   speed: number;
   attack: number;
@@ -46,8 +47,6 @@ export interface Enemy extends Character {
 
 export interface GameState {
   type: MessageType.GAME_STATE;
-  players: PlayersMap;
-  enemies: EnemiesMap;
   map: GameMap;
 }
 

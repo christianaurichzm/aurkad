@@ -2,9 +2,10 @@ import { Player } from '../shared/types';
 import { addPlayer, getPlayer, levelUp, updatePlayer } from './database';
 import { FIRST_GAME_MAP_ID } from './gameService';
 
-export const createPlayer = (): Player => {
+export const createPlayer = (username: string): Player => {
   const newPlayer: Player = {
     id: Math.random().toString(36).substring(2, 9),
+    name: username,
     x: Math.random() * 750,
     y: Math.random() * 550,
     width: 50,

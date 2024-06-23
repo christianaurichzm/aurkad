@@ -1,6 +1,6 @@
 import { Server } from 'http';
 import { WebSocketServer, WebSocket, RawData } from 'ws';
-import { removePlayer, getMap } from './database';
+import { removePlayer, getMap, getPlayers } from './database';
 import { createPlayer } from './playerService';
 import {
   ServerMessage,
@@ -14,8 +14,6 @@ export const initializeWebSocketServer = (server: Server) => {
   const wss = new WebSocketServer({ server });
 
   wss.on('connection', (ws: WebSocket) => {
-    const newPlayer = createPlayer();
-
     ws.on('message', (message: RawData) => {
       const data: ServerMessage = JSON.parse(message.toString());
 
@@ -29,21 +27,11 @@ export const initializeWebSocketServer = (server: Server) => {
       }
     });
 
-    ws.on('close', () => {
-      removePlayer(newPlayer.id);
-      broadcastGameState(wss, newPlayer);
-    });
-
-    const initMessage: InitMessage = {
-      type: MessageType.INIT,
-      playerId: newPlayer.id,
-      map: getMap(newPlayer.mapId),
-    };
-    ws.send(JSON.stringify(initMessage));
+    ws.on('close', () => {});
   });
 
   const broadcastGameState = (wss: WebSocketServer, player: Player) => {
-    const gameState = getGameState(player);
+    const gameState = getGameState(player.mapId);
     wss.clients.forEach((client) => {
       if (client.readyState === WebSocket.OPEN) {
         client.send(JSON.stringify(gameState));

@@ -48,10 +48,8 @@ const handleAttack = (player: Player) => {
 export const update = (deltaTime: number) => {
   const player = getPlayer();
 
-  if (player) {
-    handleBoost(player);
-    updatePlayerPosition(player, deltaTime);
-    sendPlayerMessage({ type: MessageType.PLAYER_UPDATE, player });
-    handleAttack(player);
-  }
+  handleBoost(player);
+  updatePlayerPosition(player, deltaTime);
+  sendPlayerMessage({ type: MessageType.PLAYER_UPDATE, player });
+  handleAttack(player);
 };

@@ -12,10 +12,12 @@
     "format": "prettier --write 'src/**/*.{ts,tsx,json,css}'"
   },
   "dependencies": {
+    "cors": "^2.8.5",
     "express": "^4.17.1",
     "ws": "^8.17.1"
   },
   "devDependencies": {
+    "@types/cors": "^2.8.17",
     "@types/express": "^4.17.13",
     "@types/ws": "^8.5.4",
     "@typescript-eslint/eslint-plugin": "^7.13.1",

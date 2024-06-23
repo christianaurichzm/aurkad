@@ -1,11 +1,24 @@
-<!DOCTYPE html>
+<!doctype html>
 <html>
   <head>
     <title>Engine</title>
     <link rel="stylesheet" type="text/css" href="styles.css" />
   </head>
   <body>
-    <canvas id="gameCanvas" width="800" height="600"></canvas>
+    <div class="container" id="loginContainer">
+      <h2>Login</h2>
+      <form id="loginForm">
+        <label for="username">Username:</label>
+        <input type="text" id="username" name="username" required />
+        <button type="submit">Login</button>
+      </form>
+      <p id="errorMessage" style="color: red; display: none">
+        Login failed. Please try again.
+      </p>
+    </div>
+    <div id="gameContainer" style="display: none">
+      <canvas id="gameCanvas" width="800" height="600"></canvas>
+    </div>
     <script src="/bundle.js"></script>
   </body>
 </html>

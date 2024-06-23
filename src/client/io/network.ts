@@ -15,9 +15,7 @@ socket.onopen = () => {
 socket.onmessage = (event: MessageEvent) => {
   const data: ServerMessage = JSON.parse(event.data);
 
-  if (data.type === MessageType.INIT) {
-    updateGameState(data.map, data.playerId);
-  } else if (data.type === MessageType.GAME_STATE) {
+  if (data.type === MessageType.GAME_STATE) {
     updateGameState(data.map, null);
   }
 };
