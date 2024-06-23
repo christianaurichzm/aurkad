@@ -2,6 +2,7 @@ import { gameLoop } from './core/game';
 import { updateGameState } from './core/gameState';
 import { getPlayer, setPlayer } from './core/player';
 import { handleInput } from './io/keyboard';
+import { initializeWebSocket, login } from './io/network';
 
 document.addEventListener('DOMContentLoaded', () => {
   const loginForm = document.getElementById('loginForm');
@@ -10,67 +11,68 @@ document.addEventListener('DOMContentLoaded', () => {
   const errorMessage = document.getElementById('errorMessage');
 
   if (loginForm && loginContainer && gameContainer && errorMessage) {
-    loginForm.addEventListener('submit', async function (event) {
+    loginForm.addEventListener('submit', async (event) => {
       event.preventDefault();
-
-      const usernameInput = document.getElementById(
-        'username',
-      ) as HTMLInputElement;
-
-      if (usernameInput) {
-        const username = usernameInput.value;
-
-        try {
-          const response = await fetch(`http://localhost:8080/login`, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({ username }),
-          });
-
-          if (!response.ok) {
-            throw new Error('Login failed');
-          }
-
-          const data = await response.json();
-
-          if (!data) {
-            throw new Error('Invalid response from server');
-          }
-
-          const { playerId, map } = data;
-
-          if (map && playerId) {
-            updateGameState(map, playerId);
-            loginContainer.style.display = 'none';
-            gameContainer.style.display = 'block';
-            initializeGame();
-          } else {
-            throw new Error('Invalid map or player ID');
-          }
-        } catch (error) {
-          if (error instanceof Error) {
-            errorMessage.style.display = 'block';
-            errorMessage.textContent = error.message;
-            console.error('Login error:', error);
-          } else {
-            errorMessage.style.display = 'block';
-            errorMessage.textContent = 'An unknown error occurred';
-            console.error('Unknown error:', error);
-          }
-        }
-      }
+      await handleLogin(loginContainer, gameContainer, errorMessage);
     });
   }
 });
 
-function initializeGame() {
-  const player = getPlayer();
-  if (player) {
-    handleInput();
-    requestAnimationFrame(gameLoop);
-  } else {
-    console.error('Player not found');
+async function handleLogin(
+  loginContainer: HTMLElement,
+  gameContainer: HTMLElement,
+  errorMessage: HTMLElement,
+) {
+  const usernameInput = document.getElementById('username') as HTMLInputElement;
+
+  if (usernameInput) {
+    const username = usernameInput.value;
+
+    try {
+      const data = await login(username);
+      validateResponse(data);
+
+      const { playerId, map } = data;
+
+      if (playerId) {
+        updateGameState(map, playerId);
+        toggleContainers(loginContainer, gameContainer);
+        initializeGame();
+        initializeWebSocket(playerId);
+      }
+    } catch (error) {
+      handleError(error, errorMessage);
+    }
   }
+}
+
+function validateResponse(data: any) {
+  if (!data || !data.map || !data.playerId) {
+    throw new Error('Invalid response from server');
+  }
+}
+
+function toggleContainers(
+  loginContainer: HTMLElement,
+  gameContainer: HTMLElement,
+) {
+  loginContainer.style.display = 'none';
+  gameContainer.style.display = 'block';
+}
+
+function handleError(error: unknown, errorMessage: HTMLElement) {
+  if (error instanceof Error) {
+    errorMessage.style.display = 'block';
+    errorMessage.textContent = error.message;
+    console.error('Login error:', error);
+  } else {
+    errorMessage.style.display = 'block';
+    errorMessage.textContent = 'An unknown error occurred';
+    console.error('Unknown error:', error);
+  }
+}
+
+function initializeGame() {
+  handleInput();
+  requestAnimationFrame(gameLoop);
 }

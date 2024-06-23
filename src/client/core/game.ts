@@ -17,8 +17,8 @@ export const gameLoop = (timestamp: number) => {
   if (timeSinceLastFrame >= FRAME_DURATION) {
     lastFrameTime = timestamp - (timeSinceLastFrame % FRAME_DURATION);
 
-    render(getGameState());
     updatePlayer(deltaTime);
+    render(getGameState());
   }
 
   requestAnimationFrame(gameLoop);

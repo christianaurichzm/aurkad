@@ -1,5 +1,12 @@
+import { update } from '../client/core/player';
 import { GameState, MessageType, Player } from '../shared/types';
-import { getEnemies, getMap, getPlayer, getPlayers } from './database';
+import {
+  getEnemies,
+  getMap,
+  getPlayer,
+  getPlayers,
+  updateMap,
+} from './database';
 import { respawnEnemy } from './enemyService';
 import {
   createPlayer,
@@ -20,9 +27,9 @@ export const handlePlayerUpdate = (player: Player): void => {
   handlePlayerUpdates(player);
 };
 
-export const handleAttack = (playerId: string): void => {
+export const handleAttack = (playerId?: string): void => {
+  if (!playerId) return;
   const player = getPlayer(playerId);
-  if (!player) return;
 
   const enemies = getEnemies();
   Object.values(enemies).forEach((enemy) => {
@@ -45,6 +52,15 @@ export const handleAttack = (playerId: string): void => {
       }
     }
   });
+};
+
+export const disconnectPlayer = (playerId: string) => {
+  const player = getPlayer(playerId);
+  const map = getMap(player.mapId);
+  console.log(map);
+  delete map.players[playerId];
+  console.log(map);
+  updateMap(map);
 };
 
 export const getGameState = (mapId: string): GameState => ({

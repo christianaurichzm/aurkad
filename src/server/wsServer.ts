@@ -1,41 +1,89 @@
 import { Server } from 'http';
 import { WebSocketServer, WebSocket, RawData } from 'ws';
-import { removePlayer, getMap, getPlayers } from './database';
+import { removePlayer, getMap, getPlayers, getPlayer } from './database';
 import { createPlayer } from './playerService';
+import { ServerMessage, MessageType, Player } from '../shared/types';
 import {
-  ServerMessage,
-  InitMessage,
-  MessageType,
-  Player,
-} from '../shared/types';
-import { getGameState, handleAttack, handlePlayerUpdate } from './gameService';
+  disconnectPlayer,
+  getGameState,
+  handleAttack,
+  handlePlayerUpdate,
+} from './gameService';
 
 export const initializeWebSocketServer = (server: Server) => {
   const wss = new WebSocketServer({ server });
+  const playerConnections = new Map<WebSocket, string>();
+  const messageQueue = new Map<WebSocket, ServerMessage[]>();
 
   wss.on('connection', (ws: WebSocket) => {
-    ws.on('message', (message: RawData) => {
+    ws.once('message', (message: RawData) => {
       const data: ServerMessage = JSON.parse(message.toString());
-
-      if ('player' in data) {
-        if (data.type === MessageType.PLAYER_UPDATE) {
-          handlePlayerUpdate(data.player);
-        } else if (data.type === MessageType.ATTACK) {
-          handleAttack(data.player.id);
+      if (data.type === MessageType.INIT && data.playerId) {
+        const player = getPlayer(data.playerId);
+        if (player) {
+          playerConnections.set(ws, player.id);
+          messageQueue.set(ws, []);
+          broadcastGameState(wss);
         }
-        broadcastGameState(wss, data.player);
       }
-    });
 
-    ws.on('close', () => {});
+      ws.on('message', (message: RawData) => {
+        const data: ServerMessage = JSON.parse(message.toString());
+        const queue = messageQueue.get(ws);
+        if (queue) {
+          queue.push(data);
+        }
+      });
+
+      ws.on('close', () => {
+        const playerId = playerConnections.get(ws);
+        if (playerId) {
+          disconnectPlayer(playerId);
+          playerConnections.delete(ws);
+          messageQueue.delete(ws);
+          broadcastGameState(wss);
+        }
+      });
+    });
   });
 
-  const broadcastGameState = (wss: WebSocketServer, player: Player) => {
-    const gameState = getGameState(player.mapId);
-    wss.clients.forEach((client) => {
-      if (client.readyState === WebSocket.OPEN) {
-        client.send(JSON.stringify(gameState));
+  const processMessageQueue = () => {
+    messageQueue.forEach((queue, ws) => {
+      while (queue.length > 0) {
+        const data = queue.shift();
+        if (data) {
+          if (data.type === MessageType.PLAYER_UPDATE) {
+            handlePlayerUpdate(data.player);
+          } else if (data.type === MessageType.ATTACK) {
+            const playerId = playerConnections.get(ws);
+            if (playerId) {
+              handleAttack(playerId);
+            }
+          }
+        }
+      }
+      broadcastGameState(wss);
+    });
+  };
+
+  setInterval(processMessageQueue, 50); // Processar a fila a cada 50ms
+
+  const broadcastGameState = (wss: WebSocketServer) => {
+    wss.clients.forEach((client: WebSocket) => {
+      const playerId = playerConnections.get(client);
+      if (playerId) {
+        const player = getPlayer(playerId);
+        if (player) {
+          sendGameStateToClient(client, player.mapId);
+        }
       }
     });
+  };
+
+  const sendGameStateToClient = (client: WebSocket, mapId: string) => {
+    const gameState = getGameState(mapId);
+    if (client.readyState === WebSocket.OPEN) {
+      client.send(JSON.stringify(gameState));
+    }
   };
 };

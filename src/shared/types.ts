@@ -60,7 +60,6 @@ export interface GameMap {
 export interface InitMessage {
   type: MessageType.INIT;
   playerId: string;
-  map: GameMap;
 }
 
 export interface PlayerUpdateMessage {
@@ -70,7 +69,6 @@ export interface PlayerUpdateMessage {
 
 export interface AttackMessage {
   type: MessageType.ATTACK;
-  player: Player;
 }
 
 export type ServerMessage =
@@ -78,3 +76,9 @@ export type ServerMessage =
   | GameState
   | PlayerUpdateMessage
   | AttackMessage;
+
+export interface HttpRequestOptions {
+  method: 'GET' | 'POST' | 'PUT' | 'DELETE';
+  headers?: Record<string, string>;
+  body?: any;
+}

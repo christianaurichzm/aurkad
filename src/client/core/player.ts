@@ -37,7 +37,7 @@ const handleBoost = (player: Player) => {
 
 const handleAttack = (player: Player) => {
   if (keys[Key.Control] && !previousKeyState[Key.Control]) {
-    sendPlayerMessage({ type: MessageType.ATTACK, player });
+    sendPlayerMessage({ type: MessageType.ATTACK });
     previousKeyState[Key.Control] = true;
   }
   if (!keys[Key.Control] && previousKeyState[Key.Control]) {
@@ -50,6 +50,6 @@ export const update = (deltaTime: number) => {
 
   handleBoost(player);
   updatePlayerPosition(player, deltaTime);
-  sendPlayerMessage({ type: MessageType.PLAYER_UPDATE, player });
+  sendPlayerMessage({ type: MessageType.PLAYER_UPDATE, player: player });
   handleAttack(player);
 };

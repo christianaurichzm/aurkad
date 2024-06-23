@@ -48,6 +48,8 @@ const maps: { [key: string]: GameMap } = {
 
 export const getMap = (mapId: string): GameMap => maps[mapId];
 
+export const updateMap = (map: GameMap) => (maps[map.id] = map);
+
 export const addPlayer = (player: Player): void => {
   players[player.id] = player;
 };
@@ -56,7 +58,7 @@ export const removePlayer = (playerId: string): void => {
   delete players[playerId];
 };
 
-export const getPlayer = (playerId: string): Player | undefined => {
+export const getPlayer = (playerId: string): Player => {
   return players[playerId];
 };
 
