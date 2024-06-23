@@ -34,14 +34,14 @@ const enemies: EnemiesMap = {
 const maps: { [key: string]: GameMap } = {
   '1': {
     id: '1',
-    players: players,
+    players: {},
     enemies: enemies,
     background: 'grey',
   },
   '2': {
     id: '2',
-    players: players,
-    enemies: enemies,
+    players: {},
+    enemies: {},
     background: 'blue',
   },
 };
@@ -77,13 +77,7 @@ export const getPlayers = (): PlayersMap => {
 };
 
 export const setEnemies = (newEnemies: Enemy[]): void => {
-  newEnemies.reduce(
-    (acc, enemy) => {
-      acc[enemy.id] = enemy;
-      return acc;
-    },
-    {} as { [key: string]: Enemy },
-  );
+  newEnemies.forEach((enemy) => (enemies[enemy.id] = enemy));
 };
 
 export const getEnemies = (): EnemiesMap => {

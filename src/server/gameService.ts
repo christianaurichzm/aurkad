@@ -54,12 +54,17 @@ export const handleAttack = (playerId?: string): void => {
   });
 };
 
+export const addPlayerOnMap = (playerId: string) => {
+  const player = getPlayer(playerId);
+  const map = getMap(player.mapId);
+  map.players[playerId] = player;
+  return updateMap(map);
+};
+
 export const disconnectPlayer = (playerId: string) => {
   const player = getPlayer(playerId);
   const map = getMap(player.mapId);
-  console.log(map);
   delete map.players[playerId];
-  console.log(map);
   updateMap(map);
 };
 

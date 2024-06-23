@@ -3,7 +3,7 @@ import { Request, Response } from 'express';
 
 import app from './app';
 import { initializeWebSocketServer } from './wsServer';
-import { getGameState, login } from './gameService';
+import { addPlayerOnMap, getGameState, login } from './gameService';
 import { getMap } from './database';
 
 const server = createServer(app);
@@ -15,7 +15,7 @@ app.post('/login', async (req: Request, res: Response) => {
   try {
     const player = login(req.body.username);
     if (player) {
-      const map = getMap(player.mapId);
+      const map = addPlayerOnMap(player.id);
       res.status(200).json({ map, playerId: player.id });
     } else {
       res.status(400).send('User not found');
