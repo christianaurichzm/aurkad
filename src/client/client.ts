@@ -1,6 +1,5 @@
 import { gameLoop } from './core/game';
 import { updateGameState } from './core/gameState';
-import { getPlayer, setPlayer } from './core/player';
 import { handleInput } from './io/keyboard';
 import { initializeWebSocket, login } from './io/network';
 
@@ -37,6 +36,7 @@ async function handleLogin(
       if (playerId) {
         updateGameState(map, playerId);
         toggleContainers(loginContainer, gameContainer);
+        handleInput();
         initializeGame();
         initializeWebSocket(playerId);
       }
@@ -72,7 +72,4 @@ function handleError(error: unknown, errorMessage: HTMLElement) {
   }
 }
 
-function initializeGame() {
-  handleInput();
-  requestAnimationFrame(gameLoop);
-}
+const initializeGame = () => requestAnimationFrame(gameLoop);

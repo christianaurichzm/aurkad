@@ -3,8 +3,7 @@ import { Request, Response } from 'express';
 
 import app from './app';
 import { initializeWebSocketServer } from './wsServer';
-import { addPlayerOnMap, getGameState, login } from './gameService';
-import { getMap } from './database';
+import { addPlayerOnMap, login } from './gameService';
 
 const server = createServer(app);
 const port = process.env.PORT || 8080;

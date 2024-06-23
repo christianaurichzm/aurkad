@@ -13,6 +13,7 @@ export enum Key {
   ArrowRight = 'ArrowRight',
   Shift = 'Shift',
   Control = 'Control',
+  z = 'z',
 }
 
 export interface Character {

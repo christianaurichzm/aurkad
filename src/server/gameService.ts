@@ -1,4 +1,3 @@
-import { update } from '../client/core/player';
 import { GameState, MessageType, Player } from '../shared/types';
 import {
   getEnemies,

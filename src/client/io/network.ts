@@ -1,6 +1,7 @@
 import {
   AttackMessage,
   GameMap,
+  GameState,
   HttpRequestOptions,
   InitMessage,
   MessageType,
@@ -45,17 +46,17 @@ const processMessageQueue = () => {
   setInterval(() => {
     while (messageQueue.length > 0) {
       const data = messageQueue.shift();
-      if (data && data.type === MessageType.GAME_STATE) {
+      if (data?.type === MessageType.GAME_STATE) {
         updateGameState(data.map, null);
       }
     }
-  }, 50); // Processar a fila a cada 50ms
+  }, 50);
 };
 
 export const sendPlayerMessage = (
-  message: PlayerUpdateMessage | AttackMessage | InitMessage,
+  message: PlayerUpdateMessage | AttackMessage | InitMessage | GameState,
 ) => {
-  if (socket && socket.readyState === WebSocket.OPEN) {
+  if (socket?.readyState === WebSocket.OPEN) {
     socket.send(JSON.stringify(message));
   } else {
     console.error('WebSocket is not open. Ready state:', socket?.readyState);

@@ -1,6 +1,6 @@
 import { render } from '../graphics/render';
 import { getGameState } from './gameState';
-import { getPlayer, update as updatePlayer } from './player';
+import { update as updatePlayer } from './player';
 
 const FPS_LIMIT = 60;
 const FRAME_DURATION = 1000 / FPS_LIMIT;

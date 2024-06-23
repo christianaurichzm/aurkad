@@ -2,6 +2,24 @@ canvas {
   border: 1px solid black;
 }
 
+#backgroundCanvas {
+  position: absolute;
+  top: 0;
+  left: 0;
+}
+
+#foregroundCanvas {
+  position: absolute;
+  top: 0;
+  left: 0;
+}
+
+#gameContainer {
+  position: relative;
+  width: 800px;
+  height: 640px;
+}
+
 body {
   font-family: Arial, sans-serif;
   display: flex;
@@ -44,4 +62,20 @@ button {
 
 button:hover {
   background-color: #45a049;
+}
+
+#tilesetContainer {
+  width: 512px;
+  height: 512px;
+  overflow: auto;
+  border: 1px solid black;
+  display: none;
+}
+#tilesetCanvas {
+  background-color: #fff;
+  border: 1px solid black;
+}
+#gameCanvas {
+  background-color: #eee;
+  border: 1px solid black;
 }

@@ -1,16 +1,7 @@
 import { Key, MessageType, Player } from '../../shared/types';
 import { keys, previousKeyState } from '../io/keyboard';
 import { sendPlayerMessage } from '../io/network';
-
-let _player: Player;
-
-export const setPlayer = (player: Player) => {
-  _player = player;
-};
-
-export const getPlayer = (): Player => {
-  return _player;
-};
+import { getPlayer } from './gameState';
 
 const BASE_SPEED = 50;
 const BOOST_MULTIPLIER = 4;
@@ -35,7 +26,7 @@ const handleBoost = (player: Player) => {
   }
 };
 
-const handleAttack = (player: Player) => {
+const handleAttack = () => {
   if (keys[Key.Control] && !previousKeyState[Key.Control]) {
     sendPlayerMessage({ type: MessageType.ATTACK });
     previousKeyState[Key.Control] = true;
@@ -51,5 +42,5 @@ export const update = (deltaTime: number) => {
   handleBoost(player);
   updatePlayerPosition(player, deltaTime);
   sendPlayerMessage({ type: MessageType.PLAYER_UPDATE, player: player });
-  handleAttack(player);
+  handleAttack();
 };

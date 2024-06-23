@@ -1,8 +1,7 @@
 import { Server } from 'http';
 import { WebSocketServer, WebSocket, RawData } from 'ws';
-import { removePlayer, getMap, getPlayers, getPlayer } from './database';
-import { createPlayer } from './playerService';
-import { ServerMessage, MessageType, Player } from '../shared/types';
+import { getPlayer } from './database';
+import { ServerMessage, MessageType } from '../shared/types';
 import {
   disconnectPlayer,
   getGameState,
@@ -66,7 +65,7 @@ export const initializeWebSocketServer = (server: Server) => {
     });
   };
 
-  setInterval(processMessageQueue, 50); // Processar a fila a cada 50ms
+  setInterval(processMessageQueue, 50);
 
   const broadcastGameState = (wss: WebSocketServer) => {
     wss.clients.forEach((client: WebSocket) => {
