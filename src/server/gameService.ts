@@ -1,7 +1,9 @@
 import { GameState, MessageType, Player } from '../shared/types';
-import { getEnemies, getPlayer, getPlayers } from './database';
+import { getEnemies, getMap, getPlayer, getPlayers } from './database';
 import { respawnEnemy } from './enemyService';
 import { handlePlayerUpdates, levelUpPlayer } from './playerService';
+
+export const FIRST_GAME_MAP_ID = '1';
 
 export const handlePlayerUpdate = (player: Player): void => {
   handlePlayerUpdates(player);
@@ -12,7 +14,7 @@ export const handleAttack = (playerId: string): void => {
   if (!player) return;
 
   const enemies = getEnemies();
-  enemies.forEach((enemy) => {
+  Object.values(enemies).forEach((enemy) => {
     const distanceX = Math.abs(player.x - enemy.x);
     const distanceY = Math.abs(player.y - enemy.y);
 
@@ -34,8 +36,9 @@ export const handleAttack = (playerId: string): void => {
   });
 };
 
-export const getGameState = (): GameState => ({
+export const getGameState = (player: Player): GameState => ({
   type: MessageType.GAME_STATE,
   players: getPlayers(),
   enemies: getEnemies(),
+  map: getMap(player.mapId),
 });

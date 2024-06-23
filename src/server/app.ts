@@ -1,6 +1,6 @@
 import express from 'express';
-import path from 'path';
 import { Request, Response } from 'express';
+import path from 'path';
 
 const app = express();
 const publicFolder = '../../public';

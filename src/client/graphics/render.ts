@@ -1,6 +1,6 @@
-import { ctx, canvas } from './canvas';
-import { Enemy, PlayersMap } from '../../shared/types';
-import { renderHUD, renderHealthBar } from '../ui/hud';
+import { Enemy, GameMap, PlayersMap } from '../../shared/types';
+import { renderHealthBar, renderHUD } from '../ui/hud';
+import { canvas, ctx } from './canvas';
 
 const renderEntity = (entity: {
   x: number;
@@ -20,17 +20,20 @@ const renderPlayers = (players: PlayersMap) => {
   });
 };
 
-const renderEnemies = (enemies: Enemy[]) => {
+const renderEnemies = (enemies: { [key: string]: Enemy }) => {
   Object.values(enemies).forEach((enemy) => {
-    if (enemy.health > 0) {
+    if (enemy?.health > 0) {
       renderEntity(enemy);
       renderHealthBar(enemy);
     }
   });
 };
 
-export const render = (players: PlayersMap, enemies: Enemy[]) => {
-  ctx.clearRect(0, 0, canvas.width, canvas.height);
-  renderPlayers(players);
-  renderEnemies(enemies);
+export const render = (map?: GameMap) => {
+  if (map) {
+    ctx.fillStyle = map.background;
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    renderPlayers(map.players);
+    renderEnemies(map.enemies);
+  }
 };

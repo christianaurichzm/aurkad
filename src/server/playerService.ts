@@ -1,5 +1,6 @@
 import { Player } from '../shared/types';
 import { addPlayer, getPlayer, levelUp, updatePlayer } from './database';
+import { FIRST_GAME_MAP_ID } from './gameService';
 
 export const createPlayer = (): Player => {
   const newPlayer: Player = {
@@ -15,6 +16,7 @@ export const createPlayer = (): Player => {
     experience: 0,
     experienceToNextLevel: 100,
     attackRange: 50,
+    mapId: FIRST_GAME_MAP_ID,
   };
 
   addPlayer(newPlayer);

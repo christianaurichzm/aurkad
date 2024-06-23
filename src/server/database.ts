@@ -1,8 +1,15 @@
-import { Enemy, Player, PlayersMap } from '../shared/types';
+import {
+  EnemiesMap,
+  Enemy,
+  GameMap,
+  Player,
+  PlayersMap,
+} from '../shared/types';
 
 const players: PlayersMap = {};
-let enemies: Enemy[] = [
-  {
+
+const enemies: EnemiesMap = {
+  '1': {
     id: '1',
     x: 200,
     y: 200,
@@ -12,7 +19,7 @@ let enemies: Enemy[] = [
     health: 100,
     experienceValue: 500,
   },
-  {
+  '2': {
     id: '2',
     x: 400,
     y: 400,
@@ -22,7 +29,24 @@ let enemies: Enemy[] = [
     health: 100,
     experienceValue: 500,
   },
-];
+};
+
+const maps: { [key: string]: GameMap } = {
+  '1': {
+    id: '1',
+    players: players,
+    enemies: enemies,
+    background: 'grey',
+  },
+  '2': {
+    id: '2',
+    players: players,
+    enemies: enemies,
+    background: 'blue',
+  },
+};
+
+export const getMap = (mapId: string): GameMap => maps[mapId];
 
 export const addPlayer = (player: Player): void => {
   players[player.id] = player;
@@ -51,9 +75,15 @@ export const getPlayers = (): PlayersMap => {
 };
 
 export const setEnemies = (newEnemies: Enemy[]): void => {
-  enemies = newEnemies;
+  newEnemies.reduce(
+    (acc, enemy) => {
+      acc[enemy.id] = enemy;
+      return acc;
+    },
+    {} as { [key: string]: Enemy },
+  );
 };
 
-export const getEnemies = (): Enemy[] => {
+export const getEnemies = (): EnemiesMap => {
   return enemies;
 };

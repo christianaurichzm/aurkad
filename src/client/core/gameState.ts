@@ -1,28 +1,18 @@
-import { Enemy, PlayersMap } from '../../shared/types';
-import { setPlayer, getPlayer } from './player';
-import { render } from '../graphics/render';
+import { GameMap } from '../../shared/types';
+import { getPlayer, setPlayer } from './player';
 
-let _players: PlayersMap = {};
-let _enemies: Enemy[] = [];
+const maps: { [key: string]: GameMap } = {};
 
-export const updateGameState = (
-  players: PlayersMap,
-  enemies: Enemy[],
-  playerId?: string | null,
-) => {
-  _players = players;
-  _enemies = enemies;
+export const updateGameState = (map: GameMap, playerId?: string | null) => {
+  maps[map?.id] = map;
   if (playerId) {
-    setPlayer(players[playerId]);
+    setPlayer(map?.players[playerId]);
   }
-
-  render(_players, _enemies);
 };
 
 export const getGameState = () => {
-  return {
-    player: getPlayer(),
-    players: _players,
-    enemies: _enemies,
-  };
+  const player = getPlayer();
+  if (player) {
+    return maps[player.mapId];
+  }
 };

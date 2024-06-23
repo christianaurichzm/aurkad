@@ -32,9 +32,12 @@ export interface Player extends Character {
   experience: number;
   experienceToNextLevel: number;
   attackRange: number;
+  mapId: GameMap['id'];
 }
 
 export type PlayersMap = { [key: string]: Player };
+
+export type EnemiesMap = { [key: string]: Enemy };
 
 export interface Enemy extends Character {
   health: number;
@@ -44,14 +47,21 @@ export interface Enemy extends Character {
 export interface GameState {
   type: MessageType.GAME_STATE;
   players: PlayersMap;
-  enemies: Enemy[];
+  enemies: EnemiesMap;
+  map: GameMap;
+}
+
+export interface GameMap {
+  id: string;
+  background: string;
+  players: PlayersMap;
+  enemies: EnemiesMap;
 }
 
 export interface InitMessage {
   type: MessageType.INIT;
   playerId: string;
-  players: PlayersMap;
-  enemies: Enemy[];
+  map: GameMap;
 }
 
 export interface PlayerUpdateMessage {

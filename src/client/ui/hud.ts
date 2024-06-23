@@ -1,5 +1,5 @@
-import { ctx } from '../graphics/canvas';
 import { Enemy, Player } from '../../shared/types';
+import { ctx } from '../graphics/canvas';
 
 export const renderHUD = (player: Player) => {
   ctx.fillStyle = 'black';
