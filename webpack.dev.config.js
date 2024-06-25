@@ -1,4 +1,5 @@
 const path = require('path');
+const Dotenv = require('dotenv-webpack');
 
 module.exports = {
     entry: './src/client/client.ts',
@@ -16,6 +17,11 @@ module.exports = {
             },
         ],
     },
+    plugins: [
+        new Dotenv({
+          path: './.env.development',
+        }),
+      ],
     resolve: {
         extensions: ['.ts', '.js'],
     },
@@ -30,8 +36,8 @@ module.exports = {
         hot: true,
         port: 3000,
         proxy: {
-            '/api': 'http://localhost:8080'
-        }
+            '/': 'http://localhost:8080',
+        },
     },
     optimization: {
         minimize: false,

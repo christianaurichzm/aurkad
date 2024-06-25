@@ -1,28 +1,29 @@
 {
   "scripts": {
-    "build-client": "webpack --config webpack.config.js",
-    "build-client-dev": "webpack --config webpack.dev.config.js",
+    "build-client": "NODE_ENV=production webpack --config webpack.config.js",
+    "build-client-dev": "NODE_ENV=development webpack --config webpack.dev.config.js",
     "build-server": "tsc --project tsconfig.server.json",
     "build": "npm run build-client && npm run build-server",
     "build-dev": "npm run build-client-dev && npm run build-server",
-    "start": "node dist/server/server.js",
-    "dev": "concurrently \"webpack serve --config webpack.dev.config.js\" \"nodemon\"",
+    "start": "NODE_ENV=production node dist/server/server.js",
+    "dev": "concurrently \"NODE_ENV=development webpack serve --config webpack.dev.config.js\" \"NODE_ENV=development nodemon dist/server/server.js\"",
     "lint": "eslint 'src/**/*.{ts,tsx}'",
     "lint:fix": "eslint 'src/**/*.{ts,tsx}' --fix",
     "format": "prettier --write 'src/**/*.{ts,tsx,json,css}'"
   },
   "dependencies": {
     "cors": "^2.8.5",
-    "express": "^4.17.1",
+    "express": "^4.19.2",
     "ws": "^8.17.1"
   },
   "devDependencies": {
     "@types/cors": "^2.8.17",
-    "@types/express": "^4.17.13",
+    "@types/express": "^4.17.21",
     "@types/ws": "^8.5.4",
     "@typescript-eslint/eslint-plugin": "^7.13.1",
     "@typescript-eslint/parser": "^7.13.1",
     "concurrently": "^7.0.0",
+    "dotenv-webpack": "^8.1.0",
     "eslint": "^8.57.0",
     "eslint-config-prettier": "^9.1.0",
     "eslint-plugin-prettier": "^5.1.3",
