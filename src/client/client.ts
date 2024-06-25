@@ -1,3 +1,4 @@
+import { getGameState } from '../server/gameService';
 import { gameLoop } from './core/game';
 import { updateGameState } from './core/gameState';
 import { handleInput } from './io/keyboard';
@@ -38,7 +39,7 @@ async function handleLogin(
         toggleContainers(loginContainer, gameContainer);
         handleInput();
         initializeGame();
-        initializeWebSocket(playerId);
+        initializeWebSocket();
       }
     } catch (error) {
       handleError(error, errorMessage);

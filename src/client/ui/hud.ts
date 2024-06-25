@@ -6,16 +6,16 @@ export const renderHUD = (player: Player) => {
   foregroundCtx.font = '14px Arial';
   foregroundCtx.fillText(
     `${player.name} - Level: ${player.level}`,
-    player.x,
-    player.y - 10,
+    player.position.x,
+    player.position.y - 10,
   );
 };
 
 export const renderHealthBar = (enemy: Enemy) => {
   const barWidth = enemy.width;
   const barHeight = 10;
-  const barX = enemy.x;
-  const barY = enemy.y - barHeight - 5;
+  const barX = enemy.position.x;
+  const barY = enemy.position.y - barHeight - 5;
 
   const healthPercentage = enemy.health / 100;
   let barColor = 'green';

@@ -1,46 +1,65 @@
-import { Key, MessageType, Player } from '../../shared/types';
-import { keys, previousKeyState } from '../io/keyboard';
-import { sendPlayerMessage } from '../io/network';
-import { getPlayer } from './gameState';
+import { Key, PlayerAction } from '../../shared/types';
+import { toggleTilesetEditor } from '../graphics/tileset';
+import { openMapEditor, sendAction } from '../io/network';
 
-const BASE_SPEED = 50;
-const BOOST_MULTIPLIER = 4;
+function playerMove(direction: string, keyState: PlayerAction['keyState']) {
+  const action: PlayerAction = {
+    keyState,
+    type: 'move',
+    payload: {
+      direction,
+    },
+  };
+  sendAction(action);
+}
 
-const updatePlayerPosition = (player: Player, deltaTime: number) => {
-  const speed = player.speed * (deltaTime / 1000);
+function playerAttack(keyState: PlayerAction['keyState']) {
+  const action: PlayerAction = {
+    keyState,
+    type: 'attack',
+    payload: {},
+  };
+  sendAction(action);
+}
 
-  if (keys[Key.ArrowUp]) player.y -= speed;
-  if (keys[Key.ArrowDown]) player.y += speed;
-  if (keys[Key.ArrowLeft]) player.x -= speed;
-  if (keys[Key.ArrowRight]) player.x += speed;
-};
+function playerBoost(keyState: PlayerAction['keyState']) {
+  const action: PlayerAction = {
+    keyState,
+    type: 'boost',
+    payload: {
+      boostType: 'speed',
+    },
+  };
+  sendAction(action);
+}
 
-const handleBoost = (player: Player) => {
-  if (keys[Key.Shift] && !previousKeyState[Key.Shift]) {
-    player.speed *= BOOST_MULTIPLIER;
-    previousKeyState[Key.Shift] = true;
+export const actionPlayer = (
+  key: string,
+  keyState: PlayerAction['keyState'],
+) => {
+  switch (key) {
+    case Key.ArrowUp:
+      playerMove('up', keyState);
+      break;
+    case Key.ArrowDown:
+      playerMove('down', keyState);
+      break;
+    case Key.ArrowLeft:
+      playerMove('left', keyState);
+      break;
+    case Key.ArrowRight:
+      playerMove('right', keyState);
+      break;
+    case Key.Shift:
+      playerBoost(keyState);
+      break;
+    case Key.Control:
+      playerAttack(keyState);
+      break;
+    case Key.z:
+      openMapEditor().then((res) => res && toggleTilesetEditor());
+      break;
+    default:
+      break;
   }
-  if (!keys[Key.Shift] && previousKeyState[Key.Shift]) {
-    player.speed = BASE_SPEED;
-    previousKeyState[Key.Shift] = false;
-  }
-};
-
-const handleAttack = () => {
-  if (keys[Key.Control] && !previousKeyState[Key.Control]) {
-    sendPlayerMessage({ type: MessageType.ATTACK });
-    previousKeyState[Key.Control] = true;
-  }
-  if (!keys[Key.Control] && previousKeyState[Key.Control]) {
-    previousKeyState[Key.Control] = false;
-  }
-};
-
-export const update = (deltaTime: number) => {
-  const player = getPlayer();
-
-  handleBoost(player);
-  updatePlayerPosition(player, deltaTime);
-  sendPlayerMessage({ type: MessageType.PLAYER_UPDATE, player: player });
-  handleAttack();
 };

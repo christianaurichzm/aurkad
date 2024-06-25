@@ -1,6 +1,6 @@
-import { GameMap, Player } from '../../shared/types';
+import { MapState, Player } from '../../shared/types';
 
-let gameMap: GameMap;
+let gameMap: MapState;
 
 let _player: Player;
 
@@ -12,7 +12,7 @@ export const getPlayer = (): Player => {
   return _player;
 };
 
-export const updateGameState = (map: GameMap, playerId?: string | null) => {
+export const updateGameState = (map: MapState, playerId?: string | null) => {
   gameMap = map;
   if (playerId) {
     setPlayer(map?.players[playerId]);

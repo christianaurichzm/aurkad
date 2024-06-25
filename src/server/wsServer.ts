@@ -1,88 +1,72 @@
+import WebSocket, { WebSocketServer } from 'ws';
 import { Server } from 'http';
-import { WebSocketServer, WebSocket, RawData } from 'ws';
-import { getPlayer } from './database';
-import { ServerMessage, MessageType } from '../shared/types';
-import {
-  disconnectPlayer,
-  getGameState,
-  handleAttack,
-  handlePlayerUpdate,
-} from './gameService';
+import { PlayerAction } from '../shared/types';
+import { getMap } from './database';
+import { applyAction, getPlayerByName, getGameState } from './gameService';
+import { ExtendedRequest } from './server';
 
-export const initializeWebSocketServer = (server: Server) => {
-  const wss = new WebSocketServer({ server });
-  const playerConnections = new Map<WebSocket, string>();
-  const messageQueue = new Map<WebSocket, ServerMessage[]>();
+let wss: WebSocketServer;
 
-  wss.on('connection', (ws: WebSocket) => {
-    ws.once('message', (message: RawData) => {
-      const data: ServerMessage = JSON.parse(message.toString());
-      if (data.type === MessageType.INIT && data.playerId) {
-        const player = getPlayer(data.playerId);
-        if (player) {
-          playerConnections.set(ws, player.id);
-          messageQueue.set(ws, []);
-          broadcastGameState(wss);
-        }
+const playersWsMap = new Map<string, WebSocket>();
+
+export const startWebSocketServer = (
+  server: Server,
+  sessionMiddleware: any,
+) => {
+  wss = new WebSocketServer({ noServer: true });
+
+  server.on('upgrade', (request, socket, head) => {
+    sessionMiddleware(request, {} as any, () => {
+      if ((request as ExtendedRequest).session.username) {
+        wss.handleUpgrade(request, socket, head, (ws) => {
+          wss.emit('connection', ws, request);
+        });
+      } else {
+        socket.destroy();
       }
-
-      ws.on('message', (message: RawData) => {
-        const data: ServerMessage = JSON.parse(message.toString());
-        const queue = messageQueue.get(ws);
-        if (queue) {
-          queue.push(data);
-        }
-      });
-
-      ws.on('close', () => {
-        const playerId = playerConnections.get(ws);
-        if (playerId) {
-          disconnectPlayer(playerId);
-          playerConnections.delete(ws);
-          messageQueue.delete(ws);
-          broadcastGameState(wss);
-        }
-      });
     });
   });
 
-  const processMessageQueue = () => {
-    messageQueue.forEach((queue, ws) => {
-      while (queue.length > 0) {
-        const data = queue.shift();
-        if (data) {
-          if (data.type === MessageType.PLAYER_UPDATE) {
-            handlePlayerUpdate(data.player);
-          } else if (data.type === MessageType.ATTACK) {
-            const playerId = playerConnections.get(ws);
-            if (playerId) {
-              handleAttack(playerId);
+  setInterval(() => {
+    Object.values(getGameState().maps).forEach((map) =>
+      Object.values(map.players).forEach((player) => {
+        const ws = playersWsMap.get(player.name);
+
+        if (playersWsMap.get(player.name)?.OPEN) {
+          ws!.send(JSON.stringify(map));
+        }
+      }),
+    );
+  }, 1000 / 60);
+
+  wss.on('connection', (ws: WebSocket, request: any) => {
+    const session = (request as ExtendedRequest).session;
+    playersWsMap.set(session.username!, ws);
+
+    ws.on('message', async (message: WebSocket.RawData) => {
+      try {
+        const action: PlayerAction = JSON.parse(message.toString());
+        if (session.username) {
+          const player = await getPlayerByName(session.username);
+          if (player) {
+            const map = await getMap(player.mapId);
+            if (map) {
+              applyAction(map, action, player.name);
             }
+          } else {
+            ws.send('Player not found');
           }
+        } else {
+          ws.send('Session not found or player not logged in.');
         }
-      }
-      broadcastGameState(wss);
-    });
-  };
-
-  setInterval(processMessageQueue, 50);
-
-  const broadcastGameState = (wss: WebSocketServer) => {
-    wss.clients.forEach((client: WebSocket) => {
-      const playerId = playerConnections.get(client);
-      if (playerId) {
-        const player = getPlayer(playerId);
-        if (player) {
-          sendGameStateToClient(client, player.mapId);
-        }
+      } catch (e) {
+        console.error('Error parsing message:', e);
+        ws.send('Invalid message format');
       }
     });
-  };
 
-  const sendGameStateToClient = (client: WebSocket, mapId: string) => {
-    const gameState = getGameState(mapId);
-    if (client.readyState === WebSocket.OPEN) {
-      client.send(JSON.stringify(gameState));
-    }
-  };
+    ws.on('close', () => {
+      console.log('User disconnected', session.username);
+    });
+  });
 };

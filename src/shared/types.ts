@@ -1,11 +1,4 @@
 // shared/types.ts
-export enum MessageType {
-  INIT = 'init',
-  GAME_STATE = 'gameState',
-  PLAYER_UPDATE = 'playerUpdate',
-  ATTACK = 'attack',
-}
-
 export enum Key {
   ArrowUp = 'ArrowUp',
   ArrowDown = 'ArrowDown',
@@ -18,11 +11,15 @@ export enum Key {
 
 export interface Character {
   id: string;
-  x: number;
-  y: number;
+  position: Position;
   width: number;
   height: number;
   color: string;
+}
+
+export interface Position {
+  x: number;
+  y: number;
 }
 
 export interface Player extends Character {
@@ -34,7 +31,7 @@ export interface Player extends Character {
   experience: number;
   experienceToNextLevel: number;
   attackRange: number;
-  mapId: GameMap['id'];
+  mapId: MapState['id'];
 }
 
 export type PlayersMap = { [key: string]: Player };
@@ -47,36 +44,30 @@ export interface Enemy extends Character {
 }
 
 export interface GameState {
-  type: MessageType.GAME_STATE;
-  map: GameMap;
+  maps: Record<string, MapState>;
 }
 
-export interface GameMap {
+export interface MapState {
   id: string;
-  background: string;
-  players: PlayersMap;
-  enemies: EnemiesMap;
+  players: Record<string, Player>;
+  enemies: Record<string, Enemy>;
 }
 
-export interface InitMessage {
-  type: MessageType.INIT;
-  playerId: string;
+export interface PlayerAction {
+  keyState: 'keyup' | 'keydown';
+  type: 'move' | 'attack' | 'boost' | 'mapEditor';
+  payload: MovePayload | AttackPayload | BoostPayload;
 }
 
-export interface PlayerUpdateMessage {
-  type: MessageType.PLAYER_UPDATE;
-  player: Player;
+export interface MovePayload {
+  direction: 'up' | 'down' | 'left' | 'right';
 }
 
-export interface AttackMessage {
-  type: MessageType.ATTACK;
-}
+export interface AttackPayload {}
 
-export type ServerMessage =
-  | InitMessage
-  | GameState
-  | PlayerUpdateMessage
-  | AttackMessage;
+export interface BoostPayload {
+  boostType: 'speed' | 'strength';
+}
 
 export interface HttpRequestOptions {
   method: 'GET' | 'POST' | 'PUT' | 'DELETE';

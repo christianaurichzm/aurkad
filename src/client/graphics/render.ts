@@ -1,16 +1,20 @@
-import { EnemiesMap, GameMap, PlayersMap } from '../../shared/types';
+import { EnemiesMap, MapState, PlayersMap, Position } from '../../shared/types';
 import { renderHealthBar, renderHUD } from '../ui/hud';
 import { foregroundCanvas, foregroundCtx } from './canvas';
 
 const renderEntity = (entity: {
-  x: number;
-  y: number;
+  position: Position;
   width: number;
   height: number;
   color: string;
 }) => {
   foregroundCtx.fillStyle = entity.color;
-  foregroundCtx.fillRect(entity.x, entity.y, entity.width, entity.height);
+  foregroundCtx.fillRect(
+    entity.position.x,
+    entity.position.y,
+    entity.width,
+    entity.height,
+  );
 };
 
 const renderPlayers = (players: PlayersMap) => {
@@ -29,7 +33,7 @@ const renderEnemies = (enemies: EnemiesMap) => {
   });
 };
 
-export const render = (map?: GameMap) => {
+export const render = (map?: MapState) => {
   if (map) {
     foregroundCtx.clearRect(
       0,

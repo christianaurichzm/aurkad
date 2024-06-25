@@ -1,10 +1,5 @@
 import { Key } from '../../shared/types';
-import { getPlayer } from '../core/gameState';
-import {
-  initTilesetEditor,
-  tilesetEditorInitialized,
-  toggleTilesetEditor,
-} from '../graphics/tileset';
+import { actionPlayer } from '../core/player';
 
 export const keys: Record<Key, boolean> = {
   [Key.ArrowUp]: false,
@@ -24,30 +19,10 @@ export const previousKeyState: Partial<Record<Key, boolean>> = {
 
 export function handleInput() {
   window.addEventListener('keydown', (e: KeyboardEvent) => {
-    if (e.key in keys) {
-      keys[e.key as Key] = true;
-    }
-
-    if (keys[Key.z] && !previousKeyState[Key.z]) {
-      e.preventDefault();
-      if (!getPlayer()) return;
-
-      if (!tilesetEditorInitialized) {
-        initTilesetEditor();
-      }
-
-      toggleTilesetEditor();
-      previousKeyState[Key.z] = true;
-    }
+    actionPlayer(e.key, 'keydown');
   });
 
   window.addEventListener('keyup', (e: KeyboardEvent) => {
-    if (e.key in keys) {
-      keys[e.key as Key] = false;
-    }
-
-    if (e.key === Key.z) {
-      previousKeyState[Key.z] = false;
-    }
+    actionPlayer(e.key, 'keyup');
   });
 }

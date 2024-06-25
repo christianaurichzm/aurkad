@@ -6,12 +6,14 @@ export const createPlayer = (username: string): Player => {
   const newPlayer: Player = {
     id: Math.random().toString(36).substring(2, 9),
     name: username,
-    x: Math.random() * 750,
-    y: Math.random() * 550,
+    position: {
+      x: Math.random() * 750,
+      y: Math.random() * 550,
+    },
     width: 50,
     height: 50,
     color: `#${Math.floor(Math.random() * 16777215).toString(16)}`,
-    speed: 100,
+    speed: 10,
     attack: 80,
     level: 1,
     experience: 0,
