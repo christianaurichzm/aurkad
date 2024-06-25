@@ -1,7 +1,6 @@
-import { PlayerAction, Player, MapState, MovePayload } from '../shared/types';
+import { Player, Key } from '../shared/types';
 import {
   getEnemies,
-  getEnemiesInMap,
   getGameStateDb,
   getMap,
   getPlayer,
@@ -11,12 +10,63 @@ import {
 } from './database';
 import { respawnEnemy } from './enemyService';
 import {
+  DEFAULT_PLAYER_SPEED,
   createPlayer,
   handlePlayerUpdates,
   levelUpPlayer,
 } from './playerService';
 
 export const FIRST_GAME_MAP_ID = '1';
+
+export function handleKeyPress(username: string, key: Key) {
+  const player = getPlayerByName(username);
+  if (player) {
+    const newState = { ...player };
+    player.keysPressed.add(key);
+    if (key === Key.Shift) {
+      player.speed *= 2;
+      updatePlayer(newState);
+    }
+  }
+}
+
+export function handleKeyRelease(username: string, key: Key) {
+  const player = getPlayerByName(username);
+  if (player) {
+    const newState = { ...player };
+    player.keysPressed.delete(key);
+    if (key === Key.Shift) {
+      player.speed = DEFAULT_PLAYER_SPEED;
+      updatePlayer(newState);
+    }
+  }
+}
+
+export function updateGameState() {
+  Object.values(getPlayers()).forEach((player) => {
+    const newState = { ...player };
+
+    if (newState.keysPressed.has(Key.ArrowUp)) {
+      newState.position.y -= newState.speed;
+    }
+    if (newState.keysPressed.has(Key.ArrowDown)) {
+      newState.position.y += newState.speed;
+    }
+    if (newState.keysPressed.has(Key.ArrowLeft)) {
+      newState.position.x -= newState.speed;
+    }
+    if (newState.keysPressed.has(Key.ArrowRight)) {
+      newState.position.x += newState.speed;
+    }
+    if (newState.keysPressed.has(Key.Control)) {
+      handleAttack(newState.id);
+    }
+
+    updatePlayer(newState);
+  });
+}
+
+setInterval(updateGameState, 1000 / 60);
 
 export const getGameState = () => getGameStateDb();
 
@@ -68,99 +118,12 @@ export const addPlayerOnMap = (playerId: string) => {
   return updateMap(map);
 };
 
-export const disconnectPlayer = (playerId: string) => {
-  const player = getPlayer(playerId);
+export const disconnectPlayer = (username?: string) => {
+  if (!username) return;
+  const player = getPlayerByName(username);
   if (!player) return;
   const map = getMap(player.mapId);
   if (!map) return;
-  delete map.players[playerId];
+  delete map.players[player.id];
   updateMap(map);
 };
-
-export function applyAction(
-  state: MapState,
-  action: PlayerAction,
-  username: string,
-) {
-  switch (action.type) {
-    case 'move':
-      applyMoveAction(action, username);
-      break;
-    case 'attack':
-      applyAttackAction(action, username);
-      break;
-    case 'boost':
-      applyBoostAction(action, username);
-      break;
-  }
-}
-
-function applyMoveAction(action: PlayerAction, username: string) {
-  const player = getPlayerByName(username);
-  if (!player) {
-    console.warn('applyMoveAction: Player not found', username);
-    return;
-  }
-
-  const newPosition = { ...player.position };
-  if ((action.payload as MovePayload).direction === 'up') {
-    newPosition.y -= player.speed;
-  }
-  if ((action.payload as MovePayload).direction === 'down') {
-    newPosition.y += player.speed;
-  }
-  if ((action.payload as MovePayload).direction === 'left') {
-    newPosition.x -= player.speed;
-  }
-  if ((action.payload as MovePayload).direction === 'right') {
-    newPosition.x += player.speed;
-  }
-
-  updatePlayer({ ...player, position: newPosition });
-}
-
-function applyAttackAction(action: PlayerAction, username: string) {
-  const { type } = action;
-  if (!username || type !== 'attack') return;
-  const player = getPlayerByName(username);
-  if (!player) return;
-
-  const enemies = getEnemiesInMap(player.mapId);
-
-  Object.values(enemies).forEach((enemy) => {
-    const distanceX = Math.abs(player.position.x - enemy.position.x);
-    const distanceY = Math.abs(player.position.y - enemy.position.y);
-
-    if (
-      distanceX <= player.attackRange &&
-      distanceY <= player.attackRange &&
-      enemy.health > 0
-    ) {
-      enemy.health -= player.attack;
-
-      if (enemy.health <= 0) {
-        enemy.health = 0;
-        player.experience += enemy.experienceValue;
-
-        levelUpPlayer(player);
-        respawnEnemy(enemy);
-      }
-    }
-  });
-}
-
-function applyBoostAction(action: PlayerAction, username: string) {
-  const { type, keyState } = action;
-
-  if (!username || type !== 'boost') return;
-
-  const player = getPlayerByName(username);
-  if (!player) return;
-  const originalSpeed = { ...player }.speed;
-
-  if (keyState === 'keydown') {
-    player.speed *= 4;
-  } else {
-    player.speed = originalSpeed;
-  }
-}

@@ -1,8 +1,8 @@
 import {
-  PlayerAction,
   HttpRequestOptions,
   Player,
   MapState,
+  KeyboardAction,
 } from '../../shared/types';
 import { updateGameState } from '../core/gameState';
 
@@ -30,9 +30,9 @@ export const initializeWebSocket = () => {
   };
 };
 
-export function sendAction(action: PlayerAction) {
+export function sendKeyboardAction(keyboardAction: KeyboardAction) {
   if (socket.readyState === WebSocket.OPEN) {
-    socket.send(JSON.stringify(action));
+    socket.send(JSON.stringify(keyboardAction));
   } else {
     console.error('WebSocket is not open.');
   }

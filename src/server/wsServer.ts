@@ -1,9 +1,10 @@
-import WebSocket, { WebSocketServer } from 'ws';
+import WebSocket, { RawData, WebSocketServer } from 'ws';
 import { Server } from 'http';
-import { PlayerAction } from '../shared/types';
-import { getMap } from './database';
-import { applyAction, getPlayerByName, getGameState } from './gameService';
+import { disconnectPlayer, getGameState } from './gameService';
 import { ExtendedRequest } from './server';
+import { enqueueAction, processActions } from './actionQueue';
+import { KeyboardAction } from '../shared/types';
+import { RequestHandler } from 'express';
 
 let wss: WebSocketServer;
 
@@ -11,12 +12,12 @@ const playersWsMap = new Map<string, WebSocket>();
 
 export const startWebSocketServer = (
   server: Server,
-  sessionMiddleware: any,
+  sessionMiddleware: RequestHandler,
 ) => {
   wss = new WebSocketServer({ noServer: true });
 
   server.on('upgrade', (request, socket, head) => {
-    sessionMiddleware(request, {} as any, () => {
+    sessionMiddleware(request as ExtendedRequest, {} as any, () => {
       if ((request as ExtendedRequest).session.username) {
         wss.handleUpgrade(request, socket, head, (ws) => {
           wss.emit('connection', ws, request);
@@ -27,46 +28,46 @@ export const startWebSocketServer = (
     });
   });
 
-  setInterval(() => {
-    Object.values(getGameState().maps).forEach((map) =>
-      Object.values(map.players).forEach((player) => {
-        const ws = playersWsMap.get(player.name);
+  processActions();
+  setInterval(broadcastGameState, 1000 / 60);
 
-        if (playersWsMap.get(player.name)?.OPEN) {
-          ws!.send(JSON.stringify(map));
-        }
-      }),
-    );
-  }, 1000 / 60);
+  wss.on('connection', (ws: WebSocket, request: ExtendedRequest) => {
+    const session = request.session;
 
-  wss.on('connection', (ws: WebSocket, request: any) => {
-    const session = (request as ExtendedRequest).session;
-    playersWsMap.set(session.username!, ws);
+    if (!session?.username) {
+      ws.close();
+      return;
+    }
 
-    ws.on('message', async (message: WebSocket.RawData) => {
-      try {
-        const action: PlayerAction = JSON.parse(message.toString());
-        if (session.username) {
-          const player = await getPlayerByName(session.username);
-          if (player) {
-            const map = await getMap(player.mapId);
-            if (map) {
-              applyAction(map, action, player.name);
-            }
-          } else {
-            ws.send('Player not found');
-          }
-        } else {
-          ws.send('Session not found or player not logged in.');
-        }
-      } catch (e) {
-        console.error('Error parsing message:', e);
-        ws.send('Invalid message format');
+    const { username } = session;
+
+    playersWsMap.set(username, ws);
+
+    ws.on('message', (message: RawData) => {
+      const data: KeyboardAction = JSON.parse(message.toString());
+
+      if (data.type === 'press' || data.type === 'release') {
+        enqueueAction({ username, keyboardAction: data });
       }
     });
 
     ws.on('close', () => {
+      disconnectPlayer(session?.username);
       console.log('User disconnected', session.username);
     });
   });
 };
+
+function broadcastGameState() {
+  const gameState = getGameState();
+
+  Object.values(gameState.maps).forEach((map) => {
+    const message = JSON.stringify(map);
+    Object.values(map.players).forEach((player) => {
+      const ws = playersWsMap.get(player.name);
+      if (ws?.readyState === WebSocket.OPEN) {
+        ws.send(message);
+      }
+    });
+  });
+}

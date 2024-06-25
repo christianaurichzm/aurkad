@@ -9,6 +9,17 @@ export enum Key {
   z = 'z',
 }
 
+export interface KeyboardAction {
+  key: Key;
+  type: 'press' | 'release';
+}
+
+export interface PlayerAction {
+  username: string;
+  keyboardAction: KeyboardAction;
+}
+
+export type ActionQueue = Array<PlayerAction>;
 export interface Character {
   id: string;
   position: Position;
@@ -32,6 +43,7 @@ export interface Player extends Character {
   experienceToNextLevel: number;
   attackRange: number;
   mapId: MapState['id'];
+  keysPressed: Set<Key>;
 }
 
 export type PlayersMap = { [key: string]: Player };
@@ -51,22 +63,6 @@ export interface MapState {
   id: string;
   players: Record<string, Player>;
   enemies: Record<string, Enemy>;
-}
-
-export interface PlayerAction {
-  keyState: 'keyup' | 'keydown';
-  type: 'move' | 'attack' | 'boost' | 'mapEditor';
-  payload: MovePayload | AttackPayload | BoostPayload;
-}
-
-export interface MovePayload {
-  direction: 'up' | 'down' | 'left' | 'right';
-}
-
-export interface AttackPayload {}
-
-export interface BoostPayload {
-  boostType: 'speed' | 'strength';
 }
 
 export interface HttpRequestOptions {

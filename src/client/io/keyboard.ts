@@ -1,28 +1,22 @@
 import { Key } from '../../shared/types';
-import { actionPlayer } from '../core/player';
+import { sendKeyboardAction } from './network';
 
-export const keys: Record<Key, boolean> = {
-  [Key.ArrowUp]: false,
-  [Key.ArrowDown]: false,
-  [Key.ArrowLeft]: false,
-  [Key.ArrowRight]: false,
-  [Key.Shift]: false,
-  [Key.Control]: false,
-  [Key.z]: false,
+const isValidKey = (value: string): value is Key => {
+  return Object.values(Key).includes(value as Key);
 };
 
-export const previousKeyState: Partial<Record<Key, boolean>> = {
-  [Key.Shift]: false,
-  [Key.Control]: false,
-  [Key.z]: false,
+export const handleInput = () => {
+  window.addEventListener('keydown', (event: KeyboardEvent) => {
+    const { key } = event;
+    if (isValidKey(key)) {
+      sendKeyboardAction({ key, type: 'press' });
+    }
+  });
+
+  window.addEventListener('keyup', (event: KeyboardEvent) => {
+    const { key } = event;
+    if (isValidKey(key)) {
+      sendKeyboardAction({ key, type: 'release' });
+    }
+  });
 };
-
-export function handleInput() {
-  window.addEventListener('keydown', (e: KeyboardEvent) => {
-    actionPlayer(e.key, 'keydown');
-  });
-
-  window.addEventListener('keyup', (e: KeyboardEvent) => {
-    actionPlayer(e.key, 'keyup');
-  });
-}
