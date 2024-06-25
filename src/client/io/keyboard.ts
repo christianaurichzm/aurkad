@@ -1,5 +1,6 @@
-import { Key } from '../../shared/types';
-import { sendKeyboardAction } from './network';
+import { Key, Protocol, keyRecord } from '../../shared/types';
+import { toggleTilesetEditor } from '../graphics/tileset';
+import { openMapEditor, sendKeyboardAction } from './network';
 
 const isValidKey = (value: string): value is Key => {
   return Object.values(Key).includes(value as Key);
@@ -8,8 +9,15 @@ const isValidKey = (value: string): value is Key => {
 export const handleInput = () => {
   window.addEventListener('keydown', (event: KeyboardEvent) => {
     const { key } = event;
+
     if (isValidKey(key)) {
-      sendKeyboardAction({ key, type: 'press' });
+      if (keyRecord[key] === Protocol.WS) {
+        sendKeyboardAction({ key, type: 'press' });
+      } else {
+        if (key === Key.z) {
+          openMapEditor().then((res) => res && toggleTilesetEditor());
+        }
+      }
     }
   });
 

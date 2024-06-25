@@ -9,6 +9,21 @@ export enum Key {
   z = 'z',
 }
 
+export enum Protocol {
+  HTTP,
+  WS,
+}
+
+export const keyRecord: Record<Key, Protocol> = {
+  ArrowUp: Protocol.WS,
+  ArrowDown: Protocol.WS,
+  ArrowLeft: Protocol.WS,
+  ArrowRight: Protocol.WS,
+  Shift: Protocol.WS,
+  Control: Protocol.WS,
+  z: Protocol.HTTP,
+};
+
 export interface KeyboardAction {
   key: Key;
   type: 'press' | 'release';

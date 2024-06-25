@@ -19,13 +19,7 @@ export type ExtendedRequest = Request & {
 const server = createServer(app);
 const port = process.env.PORT || 8080;
 
-const corsOptions = {
-  origin: '*',
-  credentials: true,
-  optionSuccessStatus: 200,
-};
-
-app.use(cors(corsOptions));
+app.use(cors());
 
 const sessionMiddleware = session({
   secret: 'changeit',
