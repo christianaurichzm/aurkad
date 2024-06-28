@@ -44,6 +44,8 @@ export const startWebSocketServer = (
 
     playersWsMap.set(username, ws);
 
+    broadcast();
+
     ws.on('message', (message: string) => {
       const data: KeyboardAction = JSON.parse(message);
 
@@ -78,16 +80,19 @@ export async function processActions() {
           handleKeyRelease(action.username, action.keyboardAction.key);
           break;
       }
-
-      Object.values(getGameState().maps).forEach((map) => {
-        const message = JSON.stringify(map);
-        Object.values(map.players).forEach((player) => {
-          const ws = playersWsMap.get(player.name);
-          if (ws?.readyState === WebSocket.OPEN) {
-            ws.send(message);
-          }
-        });
-      });
+      broadcast();
     }
   }
 }
+
+const broadcast = () => {
+  Object.values(getGameState().maps).forEach((map) => {
+    const message = JSON.stringify(map);
+    Object.values(map.players).forEach((player) => {
+      const ws = playersWsMap.get(player.name);
+      if (ws?.readyState === WebSocket.OPEN) {
+        ws.send(message);
+      }
+    });
+  });
+};
