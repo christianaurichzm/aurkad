@@ -1,5 +1,5 @@
 import { Player } from '../shared/types';
-import { addPlayer, getPlayer, levelUp, updatePlayer } from './database';
+import { addPlayer, getPlayer, updatePlayer } from './database';
 import { FIRST_GAME_MAP_ID } from './gameService';
 
 export const DEFAULT_PLAYER_SPEED = 10;
@@ -22,7 +22,6 @@ export const createPlayer = (username: string): Player => {
     experienceToNextLevel: 100,
     attackRange: 50,
     mapId: FIRST_GAME_MAP_ID,
-    keysPressed: new Set(),
   };
 
   addPlayer(newPlayer);
@@ -37,7 +36,6 @@ export const levelUpPlayer = (player: Player): void => {
       100 * Math.pow(1.5, player.level - 1),
     );
   }
-  levelUp(player);
 };
 
 export const handlePlayerUpdates = (player: Player): void => {

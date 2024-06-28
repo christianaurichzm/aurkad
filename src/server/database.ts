@@ -7,9 +7,9 @@ import {
   PlayersMap,
 } from '../shared/types';
 
-let players: PlayersMap = {};
+const players: PlayersMap = {};
 
-let enemies: EnemiesMap = {
+const enemies: EnemiesMap = {
   '1': {
     id: '1',
     position: {
@@ -52,13 +52,14 @@ const gameState: GameState = {
 };
 
 export const getGameStateDb = (): GameState => {
-  return { ...gameState };
+  return gameState;
 };
 
-export const getMap = (mapId: string): MapState | undefined => {
+export const getMap = (mapId: string | undefined): MapState | undefined => {
+  if (!mapId) return undefined;
   const map = gameState.maps[mapId];
   if (map) {
-    return { ...map };
+    return map;
   }
   console.warn('getMap: Map not found', mapId);
   return undefined;
@@ -66,40 +67,34 @@ export const getMap = (mapId: string): MapState | undefined => {
 
 export const updateMap = (map: MapState): MapState | undefined => {
   if (gameState.maps[map.id]) {
-    const newMapState = { ...gameState.maps, [map.id]: { ...map } };
-    gameState.maps = newMapState;
-    return newMapState[map.id];
+    gameState.maps[map.id] = map;
+    return gameState.maps[map.id];
   } else {
     console.warn('updateMap: Map not found', map.id);
   }
 };
 
 export const addPlayer = (player: Player): void => {
-  players = { ...players, [player.id]: { ...player } };
+  players[player.id] = player;
   const mapId = player.mapId;
   if (gameState.maps[mapId]) {
-    gameState.maps[mapId].players = {
-      ...gameState.maps[mapId].players,
-      [player.id]: { ...player },
-    };
+    gameState.maps[mapId].players[player.id] = player;
   } else {
     console.warn('addPlayer: Map not found', mapId);
   }
 };
 
 export const removePlayer = (playerId: string): void => {
-  const { [playerId]: _, ...rest } = players;
-  players = { ...rest };
+  delete players[playerId];
   Object.values(gameState.maps).forEach((map) => {
-    const { [playerId]: _, ...restPlayers } = map.players;
-    map.players = { ...restPlayers };
+    delete map.players[playerId];
   });
 };
 
 export const getPlayer = (playerId: string): Player | undefined => {
   const player = players[playerId];
   if (player) {
-    return { ...player };
+    return player;
   }
   console.warn('getPlayer: Player not found', playerId);
   return undefined;
@@ -107,14 +102,11 @@ export const getPlayer = (playerId: string): Player | undefined => {
 
 export const updatePlayer = (player: Player): void => {
   if (players[player.id]) {
-    players = { ...players, [player.id]: { ...player } };
+    players[player.id] = player;
 
     const mapId = player.mapId;
     if (gameState.maps[mapId]) {
-      gameState.maps[mapId].players = {
-        ...gameState.maps[mapId].players,
-        [player.id]: { ...player },
-      };
+      gameState.maps[mapId].players[player.id] = player;
     } else {
       console.warn('updatePlayer: Map not found', mapId);
     }
@@ -123,33 +115,25 @@ export const updatePlayer = (player: Player): void => {
   }
 };
 
-export const levelUp = (player: Player): void => {
-  if (players[player.id]) {
-    updatePlayer({ ...player, level: player.level + 1 });
-  } else {
-    console.warn('levelUp: Player not found', player.id);
-  }
-};
-
 export const getPlayers = (): PlayersMap => {
-  return { ...players };
+  return players;
 };
 
 export const setEnemies = (newEnemies: Enemy[]): void => {
   newEnemies.forEach((enemy) => {
-    enemies = { ...enemies, [enemy.id]: { ...enemy } };
+    enemies[enemy.id] = enemy;
     Object.values(gameState.maps).forEach((map) => {
       if (map.enemies[enemy.id]) {
-        map.enemies = { ...map.enemies, [enemy.id]: { ...enemy } };
+        map.enemies[enemy.id] = enemy;
       }
     });
   });
 };
 
 export const getEnemies = (): EnemiesMap => {
-  return { ...enemies };
+  return enemies;
 };
 
 export const getEnemiesInMap = (mapId: MapState['id']): EnemiesMap => {
-  return { ...gameState.maps[mapId].enemies };
+  return gameState.maps[mapId].enemies;
 };

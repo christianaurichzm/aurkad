@@ -10,6 +10,8 @@ const WS_URL = 'ws://localhost:8080/ws';
 
 let socket: WebSocket;
 
+const messageQueue: MapState[] = [];
+
 export const initializeWebSocket = () => {
   socket = new WebSocket(WS_URL);
 
@@ -18,7 +20,7 @@ export const initializeWebSocket = () => {
   };
 
   socket.onmessage = (event) => {
-    updateGameState(JSON.parse(event.data));
+    messageQueue.push(JSON.parse(event.data));
   };
 
   socket.onclose = () => {
@@ -29,6 +31,15 @@ export const initializeWebSocket = () => {
     console.error('Erro na conexão:', error);
   };
 };
+
+export function updateWebSocket(): void {
+  while (messageQueue.length > 0) {
+    const message = messageQueue.shift();
+    if (message) {
+      updateGameState(message);
+    }
+  }
+}
 
 export function sendKeyboardAction(keyboardAction: KeyboardAction) {
   if (socket.readyState === WebSocket.OPEN) {

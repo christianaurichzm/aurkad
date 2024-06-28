@@ -12,11 +12,8 @@ export const getPlayer = (): Player => {
   return _player;
 };
 
-export const updateGameState = (map: MapState, playerId?: string | null) => {
-  gameMap = map;
-  if (playerId) {
-    setPlayer(map?.players[playerId]);
-  }
+export const updateGameState = (gameState: MapState) => {
+  gameMap = gameState;
 };
 
 export const getGameState = () => {

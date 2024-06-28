@@ -35,11 +35,11 @@ async function handleLogin(
       const { playerId, map } = data;
 
       if (playerId) {
-        updateGameState(map, playerId);
+        updateGameState(map);
         toggleContainers(loginContainer, gameContainer);
         handleInput();
-        initializeGame();
         initializeWebSocket();
+        initializeGame();
       }
     } catch (error) {
       handleError(error, errorMessage);

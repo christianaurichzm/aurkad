@@ -1,9 +1,13 @@
-import WebSocket, { RawData, WebSocketServer } from 'ws';
+import WebSocket, { WebSocketServer } from 'ws';
 import { Server } from 'http';
-import { disconnectPlayer, getGameState } from './gameService';
+import {
+  disconnectPlayer,
+  getGameState,
+  handleKeyPress,
+  handleKeyRelease,
+} from './gameService';
 import { ExtendedRequest } from './server';
-import { enqueueAction, processActions } from './actionQueue';
-import { KeyboardAction } from '../shared/types';
+import { ActionQueue, KeyboardAction, PlayerAction } from '../shared/types';
 import { RequestHandler } from 'express';
 
 let wss: WebSocketServer;
@@ -28,9 +32,6 @@ export const startWebSocketServer = (
     });
   });
 
-  processActions();
-  setInterval(broadcastGameState, 1000 / 60);
-
   wss.on('connection', (ws: WebSocket, request: ExtendedRequest) => {
     const session = request.session;
 
@@ -43,12 +44,12 @@ export const startWebSocketServer = (
 
     playersWsMap.set(username, ws);
 
-    ws.on('message', (message: RawData) => {
-      const data: KeyboardAction = JSON.parse(message.toString());
+    ws.on('message', (message: string) => {
+      const data: KeyboardAction = JSON.parse(message);
 
-      if (data.type === 'press' || data.type === 'release') {
-        enqueueAction({ username, keyboardAction: data });
-      }
+      enqueueAction({ username: username, keyboardAction: data });
+
+      setInterval(processActions, 100);
     });
 
     ws.on('close', () => {
@@ -58,16 +59,35 @@ export const startWebSocketServer = (
   });
 };
 
-function broadcastGameState() {
-  const gameState = getGameState();
+const actionQueue: ActionQueue = [];
 
-  Object.values(gameState.maps).forEach((map) => {
-    const message = JSON.stringify(map);
-    Object.values(map.players).forEach((player) => {
-      const ws = playersWsMap.get(player.name);
-      if (ws?.readyState === WebSocket.OPEN) {
-        ws.send(message);
+export function enqueueAction(action: PlayerAction) {
+  actionQueue.push(action);
+}
+
+export async function processActions() {
+  while (actionQueue.length > 0) {
+    const action = actionQueue.shift();
+
+    if (action) {
+      switch (action?.keyboardAction.type) {
+        case 'press':
+          handleKeyPress(action.username, action.keyboardAction.key);
+          break;
+        case 'release':
+          handleKeyRelease(action.username, action.keyboardAction.key);
+          break;
       }
-    });
-  });
+
+      Object.values(getGameState().maps).forEach((map) => {
+        const message = JSON.stringify(map);
+        Object.values(map.players).forEach((player) => {
+          const ws = playersWsMap.get(player.name);
+          if (ws?.readyState === WebSocket.OPEN) {
+            ws.send(message);
+          }
+        });
+      });
+    }
+  }
 }

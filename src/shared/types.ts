@@ -58,7 +58,6 @@ export interface Player extends Character {
   experienceToNextLevel: number;
   attackRange: number;
   mapId: MapState['id'];
-  keysPressed: Set<Key>;
 }
 
 export type PlayersMap = { [key: string]: Player };
