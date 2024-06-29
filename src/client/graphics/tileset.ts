@@ -15,6 +15,7 @@ export function initTilesetEditor() {
   const tileSize = 32;
   const selectedTile = { startX: 0, startY: 0, endX: 0, endY: 0 };
   let isSelecting = false;
+  let isPlacing = false;
 
   tileset.onload = () => {
     console.log('Tileset loaded');
@@ -33,7 +34,9 @@ export function initTilesetEditor() {
     tilesetCanvas.addEventListener('mousedown', startSelecting);
     tilesetCanvas.addEventListener('mousemove', updateSelection);
     tilesetCanvas.addEventListener('mouseup', endSelecting);
-    foregroundCanvas.addEventListener('click', placeTile);
+    foregroundCanvas.addEventListener('mousedown', startPlacing);
+    foregroundCanvas.addEventListener('mousemove', placeTileWhileDragging);
+    foregroundCanvas.addEventListener('mouseup', stopPlacing);
   }
 
   function startSelecting(event: MouseEvent) {
@@ -80,6 +83,21 @@ export function initTilesetEditor() {
       (Math.abs(selectedTile.startY - selectedTile.endY) + 1) * tileSize;
 
     tilesetCtx.strokeRect(startX, startY, width, height);
+  }
+
+  function startPlacing(event: MouseEvent) {
+    isPlacing = true;
+    placeTile(event);
+  }
+
+  function placeTileWhileDragging(event: MouseEvent) {
+    if (isPlacing) {
+      placeTile(event);
+    }
+  }
+
+  function stopPlacing(event: MouseEvent) {
+    isPlacing = false;
   }
 
   function placeTile(event: MouseEvent) {
