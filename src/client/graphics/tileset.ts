@@ -13,7 +13,8 @@ export function initTilesetEditor() {
   tileset.src = 'Tiles.png';
 
   const tileSize = 32;
-  const selectedTile = { x: 0, y: 0 };
+  const selectedTile = { startX: 0, startY: 0, endX: 0, endY: 0 };
+  let isSelecting = false;
 
   tileset.onload = () => {
     console.log('Tileset loaded');
@@ -29,16 +30,39 @@ export function initTilesetEditor() {
   };
 
   function setupEventListeners() {
-    tilesetCanvas.addEventListener('click', selectTile);
+    tilesetCanvas.addEventListener('mousedown', startSelecting);
+    tilesetCanvas.addEventListener('mousemove', updateSelection);
+    tilesetCanvas.addEventListener('mouseup', endSelecting);
     foregroundCanvas.addEventListener('click', placeTile);
   }
 
-  function selectTile(event: MouseEvent) {
+  function startSelecting(event: MouseEvent) {
     const rect = tilesetCanvas.getBoundingClientRect();
     const x = event.clientX - rect.left;
     const y = event.clientY - rect.top;
-    selectedTile.x = Math.floor(x / tileSize);
-    selectedTile.y = Math.floor(y / tileSize);
+    selectedTile.startX = Math.floor(x / tileSize);
+    selectedTile.startY = Math.floor(y / tileSize);
+    isSelecting = true;
+  }
+
+  function updateSelection(event: MouseEvent) {
+    if (!isSelecting) return;
+    const rect = tilesetCanvas.getBoundingClientRect();
+    const x = event.clientX - rect.left;
+    const y = event.clientY - rect.top;
+    selectedTile.endX = Math.floor(x / tileSize);
+    selectedTile.endY = Math.floor(y / tileSize);
+    highlightSelectedTile();
+  }
+
+  function endSelecting(event: MouseEvent) {
+    if (!isSelecting) return;
+    const rect = tilesetCanvas.getBoundingClientRect();
+    const x = event.clientX - rect.left;
+    const y = event.clientY - rect.top;
+    selectedTile.endX = Math.floor(x / tileSize);
+    selectedTile.endY = Math.floor(y / tileSize);
+    isSelecting = false;
     highlightSelectedTile();
   }
 
@@ -47,12 +71,15 @@ export function initTilesetEditor() {
     tilesetCtx.drawImage(tileset, 0, 0);
     tilesetCtx.strokeStyle = 'red';
     tilesetCtx.lineWidth = 2;
-    tilesetCtx.strokeRect(
-      selectedTile.x * tileSize,
-      selectedTile.y * tileSize,
-      tileSize,
-      tileSize,
-    );
+
+    const startX = Math.min(selectedTile.startX, selectedTile.endX) * tileSize;
+    const startY = Math.min(selectedTile.startY, selectedTile.endY) * tileSize;
+    const width =
+      (Math.abs(selectedTile.startX - selectedTile.endX) + 1) * tileSize;
+    const height =
+      (Math.abs(selectedTile.startY - selectedTile.endY) + 1) * tileSize;
+
+    tilesetCtx.strokeRect(startX, startY, width, height);
   }
 
   function placeTile(event: MouseEvent) {
@@ -62,21 +89,32 @@ export function initTilesetEditor() {
     const col = Math.floor(x / tileSize);
     const row = Math.floor(y / tileSize);
 
-    console.log(`Placing tile at col: ${col}, row: ${row}`);
-    console.log(`Selected tile: ${selectedTile.x}, ${selectedTile.y}`);
+    const startX = Math.min(selectedTile.startX, selectedTile.endX);
+    const startY = Math.min(selectedTile.startY, selectedTile.endY);
+    const width = Math.abs(selectedTile.startX - selectedTile.endX) + 1;
+    const height = Math.abs(selectedTile.startY - selectedTile.endY) + 1;
 
-    backgroundCtx.clearRect(col * tileSize, row * tileSize, tileSize, tileSize);
-    backgroundCtx.drawImage(
-      tileset,
-      selectedTile.x * tileSize,
-      selectedTile.y * tileSize,
-      tileSize,
-      tileSize,
-      col * tileSize,
-      row * tileSize,
-      tileSize,
-      tileSize,
-    );
+    for (let i = 0; i < width; i++) {
+      for (let j = 0; j < height; j++) {
+        backgroundCtx.clearRect(
+          (col + i) * tileSize,
+          (row + j) * tileSize,
+          tileSize,
+          tileSize,
+        );
+        backgroundCtx.drawImage(
+          tileset,
+          (startX + i) * tileSize,
+          (startY + j) * tileSize,
+          tileSize,
+          tileSize,
+          (col + i) * tileSize,
+          (row + j) * tileSize,
+          tileSize,
+          tileSize,
+        );
+      }
+    }
   }
 }
 
