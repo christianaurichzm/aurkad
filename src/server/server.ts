@@ -1,7 +1,7 @@
 import { createServer } from 'http';
 import { Request, Response } from 'express';
 import app from './app';
-import { addPlayerOnMap, login } from './gameService';
+import { addPlayerOnMap, login, mapSave } from './gameService';
 import session from 'express-session';
 import cors from 'cors';
 import { startWebSocketServer } from './wsServer';
@@ -67,6 +67,15 @@ app.post('/logout', (req: Request, res: Response) => {
     }
     res.status(200).send('Logged out');
   });
+});
+
+app.post('/saveMap', (req: Request, res: Response) => {
+  if (req.session.username) {
+    mapSave(req.body.mapId, req.body.tiles);
+    res.status(200).send('Sucess');
+  } else {
+    res.status(404).send('User not found');
+  }
 });
 
 app.post('/openMapEditor', (req: Request, res: Response) => {

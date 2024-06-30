@@ -46,6 +46,10 @@ button:hover {
   box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
 }
 
+#ui {
+  display: flex;
+  flex-direction: row;
+}
 
 #foregroundCanvas {
   position: absolute;
@@ -81,8 +85,8 @@ button:hover {
 }
 
 #tilesetContainer {
-  width: 512px;
-  height: 512px;
+  width: 272px;
+  height: 640px;
   overflow: auto;
   border: 1px solid black;
   display: none;

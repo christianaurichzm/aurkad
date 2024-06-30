@@ -4,7 +4,7 @@ import {
   MapState,
   KeyboardAction,
 } from '../../shared/types';
-import { updateGameState } from '../core/gameState';
+import { getGameState, updateGameState } from '../core/gameState';
 
 const WS_URL = 'ws://localhost:8080/ws';
 
@@ -95,5 +95,17 @@ export const login = async (username: string) => {
 export const openMapEditor = async () => {
   return httpClient<Response>('/openMapEditor', {
     method: 'POST',
+  });
+};
+
+export const saveMap = async (newMapTiles: MapState['tiles']) => {
+  const mapData = {
+    mapId: getGameState().id,
+    tiles: newMapTiles,
+  };
+
+  return httpClient<Response>('/saveMap', {
+    method: 'POST',
+    body: mapData,
   });
 };

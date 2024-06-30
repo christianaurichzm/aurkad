@@ -12,17 +12,18 @@
         <input type="text" id="username" name="username" required />
         <button type="submit">Login</button>
       </form>
-      <p id="errorMessage">
-        Login failed. Please try again.
-      </p>
+      <p id="errorMessage">Login failed. Please try again.</p>
     </div>
-    <div id="tilesetContainer">
-      <canvas id="tilesetCanvas"></canvas>
-  </div>
-    <div id="gameContainer">
-      <canvas id="foregroundCanvas" width="800" height="640"></canvas>
-      <canvas id="gridCanvas" width="800" height="640"></canvas>
-      <canvas id="playerCanvas" width="800" height="640"></canvas>
+    <div id="ui">
+      <div id="tilesetContainer">
+        <button id="saveButton">Save Map</button>
+        <canvas id="tilesetCanvas"></canvas>
+      </div>
+      <div id="gameContainer">
+        <canvas id="foregroundCanvas" width="800" height="640"></canvas>
+        <canvas id="gridCanvas" width="800" height="640"></canvas>
+        <canvas id="playerCanvas" width="800" height="640"></canvas>
+      </div>
     </div>
     <script src="/bundle.js"></script>
   </body>

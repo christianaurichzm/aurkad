@@ -1,8 +1,10 @@
+import { GameState, MapState } from '../../shared/types';
+import { getGameState } from '../core/gameState';
+import { saveMap } from '../io/network';
 import { foregroundCanvas, foregroundCtx } from './canvas';
 
 const gridCanvas = document.getElementById('gridCanvas') as HTMLCanvasElement;
 const gridCtx = gridCanvas.getContext('2d') as CanvasRenderingContext2D;
-
 const tilesetContainer = document.getElementById(
   'tilesetContainer',
 ) as HTMLDivElement;
@@ -12,112 +14,105 @@ const tilesetCanvas = document.getElementById(
 const tilesetCtx = tilesetCanvas.getContext('2d') as CanvasRenderingContext2D;
 
 const tileSize = 32;
+const selectedTile = { startX: 0, startY: 0, endX: 0, endY: 0 };
+let isSelecting = false;
+let isPlacing = false;
+const mapWidth = Math.floor(foregroundCanvas.width / tileSize);
+const mapHeight = Math.floor(foregroundCanvas.height / tileSize);
+let map: number[][];
+let tileset: HTMLImageElement;
 
-export function initTilesetEditor() {
-  const tileset = new Image();
-  tileset.src = 'Tiles.png';
+const setupEventListeners = () => {
+  tilesetCanvas.addEventListener('mousedown', startSelecting);
+  tilesetCanvas.addEventListener('mousemove', updateSelection);
+  tilesetCanvas.addEventListener('mouseup', endSelecting);
+  foregroundCanvas.addEventListener('mousedown', startPlacing);
+  foregroundCanvas.addEventListener('mousemove', placeTileWhileDragging);
+  foregroundCanvas.addEventListener('mouseup', stopPlacing);
+};
 
-  const selectedTile = { startX: 0, startY: 0, endX: 0, endY: 0 };
-  let isSelecting = false;
-  let isPlacing = false;
-
-  tileset.onload = () => {
-    console.log('Tileset loaded');
-    tilesetCanvas.width = tileset.width;
-    tilesetCanvas.height = tileset.height;
-    tilesetCtx.drawImage(tileset, 0, 0);
-    setupEventListeners();
-    tilesetEditorInitialized = true;
+const getMousePosition = (event: MouseEvent, canvas: HTMLCanvasElement) => {
+  const rect = canvas.getBoundingClientRect();
+  return {
+    x: event.clientX - rect.left,
+    y: event.clientY - rect.top,
   };
+};
 
-  tileset.onerror = () => {
-    console.error('Failed to load tileset');
-  };
+const startSelecting = (event: MouseEvent) => {
+  const { x, y } = getMousePosition(event, tilesetCanvas);
+  selectedTile.startX = Math.floor(x / tileSize);
+  selectedTile.startY = Math.floor(y / tileSize);
+  isSelecting = true;
+};
 
-  function setupEventListeners() {
-    tilesetCanvas.addEventListener('mousedown', startSelecting);
-    tilesetCanvas.addEventListener('mousemove', updateSelection);
-    tilesetCanvas.addEventListener('mouseup', endSelecting);
-    foregroundCanvas.addEventListener('mousedown', startPlacing);
-    foregroundCanvas.addEventListener('mousemove', placeTileWhileDragging);
-    foregroundCanvas.addEventListener('mouseup', stopPlacing);
-  }
+const updateSelection = (event: MouseEvent) => {
+  if (!isSelecting) return;
+  const { x, y } = getMousePosition(event, tilesetCanvas);
+  selectedTile.endX = Math.floor(x / tileSize);
+  selectedTile.endY = Math.floor(y / tileSize);
+  highlightSelectedTile();
+};
 
-  function startSelecting(event: MouseEvent) {
-    const rect = tilesetCanvas.getBoundingClientRect();
-    const x = event.clientX - rect.left;
-    const y = event.clientY - rect.top;
-    selectedTile.startX = Math.floor(x / tileSize);
-    selectedTile.startY = Math.floor(y / tileSize);
-    isSelecting = true;
-  }
+const endSelecting = (event: MouseEvent) => {
+  if (!isSelecting) return;
+  const { x, y } = getMousePosition(event, tilesetCanvas);
+  selectedTile.endX = Math.floor(x / tileSize);
+  selectedTile.endY = Math.floor(y / tileSize);
+  isSelecting = false;
+  highlightSelectedTile();
+};
 
-  function updateSelection(event: MouseEvent) {
-    if (!isSelecting) return;
-    const rect = tilesetCanvas.getBoundingClientRect();
-    const x = event.clientX - rect.left;
-    const y = event.clientY - rect.top;
-    selectedTile.endX = Math.floor(x / tileSize);
-    selectedTile.endY = Math.floor(y / tileSize);
-    highlightSelectedTile();
-  }
+const highlightSelectedTile = () => {
+  tilesetCtx.clearRect(0, 0, tilesetCanvas.width, tilesetCanvas.height);
+  tilesetCtx.drawImage(tileset, 0, 0);
+  tilesetCtx.strokeStyle = 'red';
+  tilesetCtx.lineWidth = 2;
 
-  function endSelecting(event: MouseEvent) {
-    if (!isSelecting) return;
-    const rect = tilesetCanvas.getBoundingClientRect();
-    const x = event.clientX - rect.left;
-    const y = event.clientY - rect.top;
-    selectedTile.endX = Math.floor(x / tileSize);
-    selectedTile.endY = Math.floor(y / tileSize);
-    isSelecting = false;
-    highlightSelectedTile();
-  }
+  const startX = Math.min(selectedTile.startX, selectedTile.endX) * tileSize;
+  const startY = Math.min(selectedTile.startY, selectedTile.endY) * tileSize;
+  const width =
+    (Math.abs(selectedTile.startX - selectedTile.endX) + 1) * tileSize;
+  const height =
+    (Math.abs(selectedTile.startY - selectedTile.endY) + 1) * tileSize;
 
-  function highlightSelectedTile() {
-    tilesetCtx.clearRect(0, 0, tilesetCanvas.width, tilesetCanvas.height);
-    tilesetCtx.drawImage(tileset, 0, 0);
-    tilesetCtx.strokeStyle = 'red';
-    tilesetCtx.lineWidth = 2;
+  tilesetCtx.strokeRect(startX, startY, width, height);
+};
 
-    const startX = Math.min(selectedTile.startX, selectedTile.endX) * tileSize;
-    const startY = Math.min(selectedTile.startY, selectedTile.endY) * tileSize;
-    const width =
-      (Math.abs(selectedTile.startX - selectedTile.endX) + 1) * tileSize;
-    const height =
-      (Math.abs(selectedTile.startY - selectedTile.endY) + 1) * tileSize;
+const startPlacing = (event: MouseEvent) => {
+  isPlacing = true;
+  placeTile(event);
+};
 
-    tilesetCtx.strokeRect(startX, startY, width, height);
-  }
-
-  function startPlacing(event: MouseEvent) {
-    isPlacing = true;
+const placeTileWhileDragging = (event: MouseEvent) => {
+  if (isPlacing) {
     placeTile(event);
   }
+};
 
-  function placeTileWhileDragging(event: MouseEvent) {
-    if (isPlacing) {
-      placeTile(event);
-    }
-  }
+const stopPlacing = () => {
+  isPlacing = false;
+};
 
-  function stopPlacing() {
-    isPlacing = false;
-  }
+const placeTile = (event: MouseEvent) => {
+  const { x, y } = getMousePosition(event, foregroundCanvas);
+  const col = Math.floor(x / tileSize);
+  const row = Math.floor(y / tileSize);
 
-  function placeTile(event: MouseEvent) {
-    const rect = foregroundCanvas.getBoundingClientRect();
-    const x = event.clientX - rect.left;
-    const y = event.clientY - rect.top;
-    const col = Math.floor(x / tileSize);
-    const row = Math.floor(y / tileSize);
+  const startX = Math.min(selectedTile.startX, selectedTile.endX);
+  const startY = Math.min(selectedTile.startY, selectedTile.endY);
+  const width = Math.abs(selectedTile.startX - selectedTile.endX) + 1;
+  const height = Math.abs(selectedTile.startY - selectedTile.endY) + 1;
 
-    const startX = Math.min(selectedTile.startX, selectedTile.endX);
-    const startY = Math.min(selectedTile.startY, selectedTile.endY);
-    const width = Math.abs(selectedTile.startX - selectedTile.endX) + 1;
-    const height = Math.abs(selectedTile.startY - selectedTile.endY) + 1;
+  for (let i = 0; i < width; i++) {
+    for (let j = 0; j < height; j++) {
+      if (row + j < mapHeight && col + i < mapWidth) {
+        const tileIndex =
+          (startY + j) * Math.floor(tilesetCanvas.width / tileSize) +
+          (startX + i);
 
-    for (let i = 0; i < width; i++) {
-      for (let j = 0; j < height; j++) {
+        map[row + j][col + i] = tileIndex;
+
         foregroundCtx.clearRect(
           (col + i) * tileSize,
           (row + j) * tileSize,
@@ -138,18 +133,61 @@ export function initTilesetEditor() {
       }
     }
   }
-}
+};
 
-function drawGrid() {
+export const initTileset = () => {
+  return new Promise((resolve, reject) => {
+    tileset = new Image();
+    tileset.onload = () => {
+      console.log('Tileset loaded');
+      resolve(tileset);
+    };
+    tileset.onerror = () => {
+      reject(new Error('Failed to load tileset'));
+    };
+    tileset.src = 'Tiles.png';
+  });
+};
+
+export const initTilesetEditor = () => {
+  tilesetCanvas.width = tileset.width;
+  tilesetCanvas.height = tileset.height;
+  tilesetCtx.drawImage(tileset, 0, 0);
+  setupEventListeners();
+  tilesetEditorInitialized = true;
+};
+
+export const renderMap = (tiles: number[][]) => {
+  const tilesPerRow = tileset.width / tileSize;
+  for (let row = 0; row < mapHeight; row++) {
+    for (let col = 0; col < mapWidth; col++) {
+      const tileIndex = tiles[row][col];
+      if (tileIndex !== -1) {
+        const tileX = (tileIndex % tilesPerRow) * tileSize;
+        const tileY = Math.floor(tileIndex / tilesPerRow) * tileSize;
+        foregroundCtx.drawImage(
+          tileset,
+          tileX,
+          tileY,
+          tileSize,
+          tileSize,
+          col * tileSize,
+          row * tileSize,
+          tileSize,
+          tileSize,
+        );
+      }
+    }
+  }
+};
+
+const drawGrid = () => {
   const width = gridCanvas.width;
   const height = gridCanvas.height;
   gridCtx.strokeStyle = '#ddd';
   gridCtx.lineWidth = 1;
 
-  console.log('Drawing grid');
-
   for (let x = 0; x <= width; x += tileSize) {
-    console.log(`Drawing vertical line at x=${x}`);
     gridCtx.beginPath();
     gridCtx.moveTo(x, 0);
     gridCtx.lineTo(x, height);
@@ -157,31 +195,47 @@ function drawGrid() {
   }
 
   for (let y = 0; y <= height; y += tileSize) {
-    console.log(`Drawing horizontal line at y=${y}`);
     gridCtx.beginPath();
     gridCtx.moveTo(0, y);
     gridCtx.lineTo(width, y);
     gridCtx.stroke();
   }
-}
+};
 
-function initializeGrid() {
-  console.log('Initializing grid canvas size');
+const initializeGrid = () => {
   gridCanvas.width = foregroundCanvas.width;
   gridCanvas.height = foregroundCanvas.height;
   drawGrid();
-}
+};
 
 export const toggleTilesetEditor = () => {
-  if (tilesetContainer.style.display === 'block') {
-    tilesetContainer.style.display = 'none';
-    gridCanvas.style.display = 'none';
-  } else {
-    tilesetContainer.style.display = 'block';
-    gridCanvas.style.display = 'block';
+  const displayStyle =
+    tilesetContainer.style.display === 'block' ? 'none' : 'block';
+  tilesetContainer.style.display = displayStyle;
+  gridCanvas.style.display = displayStyle;
+
+  if (displayStyle === 'block') {
+    map = getGameState().tiles;
   }
 };
 
 export let tilesetEditorInitialized = false;
+
+document.addEventListener('DOMContentLoaded', () => {
+  const saveButton = document.getElementById('saveButton');
+  if (saveButton) {
+    saveButton.addEventListener('click', () =>
+      saveMap(map)
+        .then(() => {
+          console.log('Map saved successfully');
+        })
+        .catch((error) => {
+          console.error('Error saving map:', error);
+        }),
+    );
+  } else {
+    console.error('Save button not found');
+  }
+});
 
 initializeGrid();

@@ -1,6 +1,7 @@
 import { getGameState } from '../server/gameService';
 import { gameLoop } from './core/game';
 import { updateGameState } from './core/gameState';
+import { initTileset, renderMap } from './graphics/tileset';
 import { handleInput } from './io/keyboard';
 import { initializeWebSocket, login } from './io/network';
 
@@ -39,7 +40,14 @@ async function handleLogin(
         toggleContainers(loginContainer, gameContainer);
         handleInput();
         initializeWebSocket();
-        initializeGame();
+        initTileset()
+          .then(() => {
+            renderMap(map.tiles);
+            initializeGame();
+          })
+          .catch((error) => {
+            console.error('Error loading tileset:', error);
+          });
       }
     } catch (error) {
       handleError(error, errorMessage);

@@ -42,11 +42,13 @@ const gameState: GameState = {
       id: '1',
       players: {},
       enemies: { ...enemies },
+      tiles: Array.from({ length: 640 / 32 }, () => Array(800 / 32).fill(-1)),
     },
     '2': {
       id: '2',
       players: {},
       enemies: {},
+      tiles: Array.from({ length: 640 / 32 }, () => Array(800 / 32).fill(-1)),
     },
   },
 };
@@ -71,6 +73,21 @@ export const updateMap = (map: MapState): MapState | undefined => {
     return gameState.maps[map.id];
   } else {
     console.warn('updateMap: Map not found', map.id);
+  }
+};
+
+export const updateMapById = (
+  mapId: string,
+  tiles: number[][],
+): MapState | undefined => {
+  const map = getMap(mapId);
+  if (map) {
+    if (gameState.maps[map.id]) {
+      gameState.maps[map.id] = { ...map, tiles };
+      return gameState.maps[map.id];
+    } else {
+      console.warn('updateMap: Map not found', map.id);
+    }
   }
 };
 

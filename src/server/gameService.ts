@@ -6,6 +6,7 @@ import {
   getPlayer,
   getPlayers,
   updateMap,
+  updateMapById,
   updatePlayer,
 } from './database';
 import { respawnEnemy } from './enemyService';
@@ -53,6 +54,10 @@ export function handleKeyRelease(username: string, key: Key) {
     }
     updatePlayer(newState);
   }
+}
+
+export function mapSave(mapId: string, tiles: number[][]) {
+  updateMapById(mapId, tiles);
 }
 
 export const getGameState = () => getGameStateDb();

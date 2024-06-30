@@ -77,6 +77,7 @@ export interface MapState {
   id: string;
   players: Record<string, Player>;
   enemies: Record<string, Enemy>;
+  tiles: number[][];
 }
 
 export interface HttpRequestOptions {
