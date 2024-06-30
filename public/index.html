@@ -12,16 +12,17 @@
         <input type="text" id="username" name="username" required />
         <button type="submit">Login</button>
       </form>
-      <p id="errorMessage" style="color: red; display: none">
+      <p id="errorMessage">
         Login failed. Please try again.
       </p>
     </div>
     <div id="tilesetContainer">
       <canvas id="tilesetCanvas"></canvas>
   </div>
-    <div id="gameContainer" style="display: none">
-      <canvas id="backgroundCanvas" width="800" height="640"></canvas>
+    <div id="gameContainer">
       <canvas id="foregroundCanvas" width="800" height="640"></canvas>
+      <canvas id="gridCanvas" width="800" height="640"></canvas>
+      <canvas id="playerCanvas" width="800" height="640"></canvas>
     </div>
     <script src="/bundle.js"></script>
   </body>

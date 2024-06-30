@@ -2,24 +2,6 @@ canvas {
   border: 1px solid black;
 }
 
-#backgroundCanvas {
-  position: absolute;
-  top: 0;
-  left: 0;
-}
-
-#foregroundCanvas {
-  position: absolute;
-  top: 0;
-  left: 0;
-}
-
-#gameContainer {
-  position: relative;
-  width: 800px;
-  height: 640px;
-}
-
 body {
   font-family: Arial, sans-serif;
   display: flex;
@@ -28,13 +10,6 @@ body {
   height: 100vh;
   margin: 0;
   flex-direction: column;
-}
-
-.container {
-  border: 1px solid #ccc;
-  padding: 42px;
-  border-radius: 5px;
-  box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
 }
 
 label {
@@ -64,6 +39,47 @@ button:hover {
   background-color: #45a049;
 }
 
+.container {
+  border: 1px solid #ccc;
+  padding: 42px;
+  border-radius: 5px;
+  box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+}
+
+
+#foregroundCanvas {
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 1;
+}
+
+#gridCanvas {
+  display: none;
+  position: absolute;
+  pointer-events: none; 
+  z-index: 2;
+}
+
+#playerCanvas {
+  display: block;
+  position: absolute;
+  pointer-events: none; 
+  z-index: 3;
+}
+
+#gameContainer {
+  display: none;
+  position: relative;
+  width: 800px;
+  height: 640px;
+}
+
+#errorMessage {
+  color: red;
+  display: none;
+}
+
 #tilesetContainer {
   width: 512px;
   height: 512px;
@@ -71,10 +87,12 @@ button:hover {
   border: 1px solid black;
   display: none;
 }
+
 #tilesetCanvas {
   background-color: #fff;
   border: 1px solid black;
 }
+
 #gameCanvas {
   background-color: #eee;
   border: 1px solid black;

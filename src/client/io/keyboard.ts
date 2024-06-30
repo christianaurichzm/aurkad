@@ -1,5 +1,9 @@
 import { Key, Protocol, keyRecord } from '../../shared/types';
-import { toggleTilesetEditor } from '../graphics/tileset';
+import {
+  initTilesetEditor,
+  tilesetEditorInitialized,
+  toggleTilesetEditor,
+} from '../graphics/tileset';
 import { openMapEditor, sendKeyboardAction } from './network';
 
 const isValidKey = (value: string): value is Key => {
@@ -15,7 +19,14 @@ export const handleInput = () => {
         sendKeyboardAction({ key, type: 'press' });
       } else {
         if (key === Key.z) {
-          openMapEditor().then((res) => res && toggleTilesetEditor());
+          openMapEditor().then((res) => {
+            if (res) {
+              if (!tilesetEditorInitialized) {
+                initTilesetEditor();
+              }
+              toggleTilesetEditor();
+            }
+          });
         }
       }
     }

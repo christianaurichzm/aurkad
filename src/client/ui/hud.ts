@@ -1,10 +1,10 @@
 import { Enemy, Player } from '../../shared/types';
-import { foregroundCtx } from '../graphics/canvas';
+import { playerCtx } from '../graphics/canvas';
 
 export const renderHUD = (player: Player) => {
-  foregroundCtx.fillStyle = 'black';
-  foregroundCtx.font = '14px Arial';
-  foregroundCtx.fillText(
+  playerCtx.fillStyle = 'black';
+  playerCtx.font = '14px Arial';
+  playerCtx.fillText(
     `${player.name} - Level: ${player.level}`,
     player.position.x,
     player.position.y - 10,
@@ -26,9 +26,9 @@ export const renderHealthBar = (enemy: Enemy) => {
     barColor = 'red';
   }
 
-  foregroundCtx.fillStyle = barColor;
-  foregroundCtx.fillRect(barX, barY, barWidth * healthPercentage, barHeight);
+  playerCtx.fillStyle = barColor;
+  playerCtx.fillRect(barX, barY, barWidth * healthPercentage, barHeight);
 
-  foregroundCtx.strokeStyle = 'black';
-  foregroundCtx.strokeRect(barX, barY, barWidth, barHeight);
+  playerCtx.strokeStyle = 'black';
+  playerCtx.strokeRect(barX, barY, barWidth, barHeight);
 };
