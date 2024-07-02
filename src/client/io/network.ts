@@ -109,3 +109,10 @@ export const saveMap = async (newMapTiles: MapState['tiles']) => {
     body: mapData,
   });
 };
+
+export const changeSprite = async (spriteId: number) => {
+  return httpClient<Response>('/changeSprite', {
+    method: 'POST',
+    body: { spriteId },
+  });
+};

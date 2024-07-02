@@ -1,24 +1,31 @@
-import { EnemiesMap, MapState, PlayersMap, Position } from '../../shared/types';
-import { renderHealthBar, renderHUD } from '../ui/hud';
 import {
-  foregroundCanvas,
-  foregroundCtx,
-  playerCanvas,
-  playerCtx,
-} from './canvas';
+  PlayerAction,
+  Direction,
+  EnemiesMap,
+  MapState,
+  PlayersMap,
+  Position,
+} from '../../shared/types';
+import { renderHealthBar, renderHUD } from '../ui/hud';
+import { foregroundCanvas, playerCtx } from './canvas';
+import {
+  getCharacterSpriteCoordinates,
+  getSpriteSize,
+  spriteSheet,
+} from './sprite';
 
 const renderEntity = (entity: {
   position: Position;
-  width: number;
-  height: number;
-  color: string;
+  direction: Direction;
+  sprite: number;
+  action: PlayerAction;
 }) => {
-  playerCtx.fillStyle = entity.color;
-  playerCtx.fillRect(
+  drawSprite(
+    entity.sprite,
+    entity.action,
+    entity.direction,
     entity.position.x,
     entity.position.y,
-    entity.width,
-    entity.height,
   );
 };
 
@@ -37,6 +44,29 @@ const renderEnemies = (enemies: EnemiesMap) => {
     }
   });
 };
+
+export function drawSprite(
+  characterIndex: number,
+  column: number,
+  row: number,
+  posX: number,
+  posY: number,
+) {
+  const { x, y } = getCharacterSpriteCoordinates(characterIndex, column, row);
+  const { SPRITE_WIDTH, SPRITE_HEIGHT } = getSpriteSize();
+
+  playerCtx.drawImage(
+    spriteSheet,
+    x,
+    y,
+    SPRITE_WIDTH,
+    SPRITE_HEIGHT,
+    posX,
+    posY,
+    SPRITE_WIDTH,
+    SPRITE_HEIGHT,
+  );
+}
 
 export const render = (map?: MapState) => {
   if (map) {

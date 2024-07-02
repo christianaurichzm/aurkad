@@ -1,4 +1,4 @@
-import { Player } from '../shared/types';
+import { PlayerAction, Direction, Player } from '../shared/types';
 import { addPlayer, getPlayer, updatePlayer } from './database';
 import { FIRST_GAME_MAP_ID } from './gameService';
 
@@ -22,6 +22,9 @@ export const createPlayer = (username: string): Player => {
     experienceToNextLevel: 100,
     attackRange: 50,
     mapId: FIRST_GAME_MAP_ID,
+    sprite: 0,
+    direction: Direction.Down,
+    action: PlayerAction.Idle,
   };
 
   addPlayer(newPlayer);

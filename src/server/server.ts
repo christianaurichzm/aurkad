@@ -1,7 +1,7 @@
 import { createServer } from 'http';
 import { Request, Response } from 'express';
 import app from './app';
-import { addPlayerOnMap, login, mapSave } from './gameService';
+import { addPlayerOnMap, changeSprite, login, mapSave } from './gameService';
 import session from 'express-session';
 import cors from 'cors';
 import { startWebSocketServer } from './wsServer';
@@ -72,6 +72,17 @@ app.post('/logout', (req: Request, res: Response) => {
 app.post('/saveMap', (req: Request, res: Response) => {
   if (req.session.username) {
     mapSave(req.body.mapId, req.body.tiles);
+    res.status(200).send('Sucess');
+  } else {
+    res.status(404).send('User not found');
+  }
+});
+
+app.post('/changeSprite', (req: Request, res: Response) => {
+  if (req.session.username) {
+    console.log(req.body.spriteId);
+    console.log(req.session.username);
+    changeSprite(req.body.spriteId, req.session.username);
     res.status(200).send('Sucess');
   } else {
     res.status(404).send('User not found');

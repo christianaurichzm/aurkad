@@ -9,6 +9,19 @@ export enum Key {
   z = 'z',
 }
 
+export enum Direction {
+  Down = 0,
+  Left = 1,
+  Right = 2,
+  Up = 3,
+}
+
+export enum PlayerAction {
+  Idle = 1,
+  Walk = 0,
+  Attack = 0,
+}
+
 export enum Protocol {
   HTTP,
   WS,
@@ -29,18 +42,21 @@ export interface KeyboardAction {
   type: 'press' | 'release';
 }
 
-export interface PlayerAction {
+export interface ClientAction {
   username: string;
   keyboardAction: KeyboardAction;
 }
 
-export type ActionQueue = Array<PlayerAction>;
+export type ActionQueue = Array<ClientAction>;
 export interface Character {
   id: string;
   position: Position;
   width: number;
   height: number;
   color: string;
+  sprite: number;
+  direction: Direction;
+  action: PlayerAction;
 }
 
 export interface Position {

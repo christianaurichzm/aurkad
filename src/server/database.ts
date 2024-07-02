@@ -1,4 +1,6 @@
 import {
+  PlayerAction,
+  Direction,
   EnemiesMap,
   Enemy,
   GameState,
@@ -21,6 +23,9 @@ const enemies: EnemiesMap = {
     color: 'red',
     health: 100,
     experienceValue: 500,
+    sprite: 0,
+    direction: Direction.Down,
+    action: PlayerAction.Idle,
   },
   '2': {
     id: '2',
@@ -33,6 +38,9 @@ const enemies: EnemiesMap = {
     color: 'green',
     health: 100,
     experienceValue: 500,
+    sprite: 0,
+    direction: Direction.Down,
+    action: PlayerAction.Idle,
   },
 };
 

@@ -7,7 +7,7 @@ import {
   handleKeyRelease,
 } from './gameService';
 import { ExtendedRequest } from './server';
-import { ActionQueue, KeyboardAction, PlayerAction } from '../shared/types';
+import { ActionQueue, KeyboardAction, ClientAction } from '../shared/types';
 import { RequestHandler } from 'express';
 
 let wss: WebSocketServer;
@@ -63,7 +63,7 @@ export const startWebSocketServer = (
 
 const actionQueue: ActionQueue = [];
 
-export function enqueueAction(action: PlayerAction) {
+export function enqueueAction(action: ClientAction) {
   actionQueue.push(action);
 }
 
@@ -85,7 +85,7 @@ export async function processActions() {
   }
 }
 
-const broadcast = () => {
+export const broadcast = () => {
   Object.values(getGameState().maps).forEach((map) => {
     const message = JSON.stringify(map);
     Object.values(map.players).forEach((player) => {

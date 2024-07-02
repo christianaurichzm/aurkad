@@ -1,4 +1,4 @@
-import { Player, Key } from '../shared/types';
+import { Player, Key, Direction, PlayerAction } from '../shared/types';
 import {
   getEnemies,
   getGameStateDb,
@@ -16,6 +16,7 @@ import {
   handlePlayerUpdates,
   levelUpPlayer,
 } from './playerService';
+import { broadcast } from './wsServer';
 
 export const FIRST_GAME_MAP_ID = '1';
 
@@ -27,18 +28,27 @@ export function handleKeyPress(username: string, key: Key) {
       newState.speed *= 2;
     }
     if (key === Key.ArrowUp) {
+      newState.direction = Direction.Up;
+      newState.action = PlayerAction.Walk;
       newState.position.y -= newState.speed;
     }
     if (key === Key.ArrowDown) {
+      newState.direction = Direction.Down;
+      newState.action = PlayerAction.Walk;
       newState.position.y += newState.speed;
     }
     if (key === Key.ArrowLeft) {
+      newState.direction = Direction.Left;
+      newState.action = PlayerAction.Walk;
       newState.position.x -= newState.speed;
     }
     if (key === Key.ArrowRight) {
+      newState.direction = Direction.Right;
+      newState.action = PlayerAction.Walk;
       newState.position.x += newState.speed;
     }
     if (key === Key.Control) {
+      newState.action = PlayerAction.Attack;
       handleAttack(newState);
     }
     updatePlayer(newState);
@@ -49,8 +59,17 @@ export function handleKeyRelease(username: string, key: Key) {
   const player = getPlayerByName(username);
   if (player) {
     const newState = { ...player };
+    if (key === Key.Control) {
+      newState.action = PlayerAction.Idle;
+    }
+
     if (key === Key.Shift) {
       newState.speed = DEFAULT_PLAYER_SPEED;
+    }
+    if (
+      [Key.ArrowDown, Key.ArrowLeft, Key.ArrowRight, Key.ArrowUp].includes(key)
+    ) {
+      newState.action = PlayerAction.Idle;
     }
     updatePlayer(newState);
   }
@@ -59,6 +78,15 @@ export function handleKeyRelease(username: string, key: Key) {
 export function mapSave(mapId: string, tiles: number[][]) {
   updateMapById(mapId, tiles);
 }
+
+export const changeSprite = (spriteId: number, username: string) => {
+  const newPlayer: Player = {
+    ...getPlayerByName(username)!,
+    sprite: spriteId,
+  };
+  handlePlayerUpdate(newPlayer);
+  broadcast();
+};
 
 export const getGameState = () => getGameStateDb();
 
