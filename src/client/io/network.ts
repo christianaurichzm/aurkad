@@ -52,7 +52,7 @@ export function sendKeyboardAction(keyboardAction: KeyboardAction) {
 export const httpClient = async <T>(
   endpoint: string,
   { method, headers, body }: HttpRequestOptions,
-): Promise<T> => {
+): Promise<T | null> => {
   try {
     const response = await fetch(`${process.env.APP_API_URL}${endpoint}`, {
       method,
@@ -73,15 +73,16 @@ export const httpClient = async <T>(
     }
 
     if (!response.ok) {
-      throw new Error(
+      console.error(
         `Error: ${response.status} - ${response.statusText} - ${data}`,
       );
+      return null;
     }
 
     return data as T;
   } catch (error) {
     console.error('HTTP Client Error:', error);
-    throw error;
+    return null;
   }
 };
 

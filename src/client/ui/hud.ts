@@ -1,14 +1,17 @@
-import { Enemy, Player } from '../../shared/types';
+import { Enemy, Player, playerNameColorRecord } from '../../shared/types';
 import { playerCtx } from '../graphics/canvas';
 
 export const renderHUD = (player: Player) => {
-  playerCtx.fillStyle = 'black';
-  playerCtx.font = '14px Arial';
-  playerCtx.fillText(
-    `${player.name} - Level: ${player.level}`,
-    player.position.x,
-    player.position.y - 10,
-  );
+  const { name, level, position, access } = player;
+  const { x, y } = position;
+  const text = `${name} - Level: ${level}`;
+
+  playerCtx.font = 'bold 14px Arial';
+  playerCtx.strokeStyle = 'black';
+  playerCtx.fillStyle = playerNameColorRecord[access];
+
+  playerCtx.strokeText(text, x, y);
+  playerCtx.fillText(text, x, y);
 };
 
 export const renderHealthBar = (enemy: Enemy) => {

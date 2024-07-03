@@ -34,9 +34,8 @@ async function handleLogin(
       const data = await login(username);
       validateResponse(data);
 
-      const { playerId, map } = data;
-
-      if (playerId) {
+      if (data?.playerId) {
+        const { map } = data;
         updateGameState(map);
         toggleContainers(loginContainer, gameContainer);
         handleInput();

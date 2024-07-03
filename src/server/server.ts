@@ -1,14 +1,23 @@
 import { createServer } from 'http';
 import { Request, Response } from 'express';
 import app from './app';
-import { addPlayerOnMap, changeSprite, login, mapSave } from './gameService';
+import {
+  addPlayerOnMap,
+  changeSprite,
+  getPlayerByName,
+  login,
+  mapSave,
+} from './gameService';
 import session from 'express-session';
 import cors from 'cors';
 import { startWebSocketServer } from './wsServer';
+import { Access, Player } from '../shared/types';
+import checkAccess from './checkAccess';
 
 declare module 'express-session' {
   interface SessionData {
-    username: string;
+    username: Player['name'];
+    accessLevel: Access;
   }
 }
 
@@ -40,6 +49,7 @@ app.post('/login', async (req: Request, res: Response) => {
     const player = await login(username);
     if (player) {
       req.session.username = username;
+      req.session.accessLevel = player.access;
       const map = addPlayerOnMap(player.id);
       req.session.save((err) => {
         if (err) {
@@ -69,33 +79,33 @@ app.post('/logout', (req: Request, res: Response) => {
   });
 });
 
-app.post('/saveMap', (req: Request, res: Response) => {
-  if (req.session.username) {
+app.post(
+  '/saveMap',
+  checkAccess(Access.ADMIN),
+  (req: Request, res: Response) => {
     mapSave(req.body.mapId, req.body.tiles);
-    res.status(200).send('Sucess');
-  } else {
-    res.status(404).send('User not found');
-  }
-});
+    res.status(200).send('Success');
+  },
+);
 
-app.post('/changeSprite', (req: Request, res: Response) => {
-  if (req.session.username) {
-    console.log(req.body.spriteId);
-    console.log(req.session.username);
-    changeSprite(req.body.spriteId, req.session.username);
-    res.status(200).send('Sucess');
-  } else {
-    res.status(404).send('User not found');
-  }
-});
+app.post(
+  '/changeSprite',
+  checkAccess(Access.ADMIN),
+  (req: Request, res: Response) => {
+    if (req.session.username) {
+      changeSprite(req.body.spriteId, req.session.username);
+      res.status(200).send('Sucess');
+    }
+  },
+);
 
-app.post('/openMapEditor', (req: Request, res: Response) => {
-  if (req.session.username) {
+app.post(
+  '/openMapEditor',
+  checkAccess(Access.ADMIN),
+  (req: Request, res: Response) => {
     res.status(200).send('Authorized');
-  } else {
-    res.status(404).send('User not found');
-  }
-});
+  },
+);
 
 server.listen(port, () => {
   console.log(`Server is listening on port ${port}`);

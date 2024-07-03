@@ -27,6 +27,16 @@ export enum Protocol {
   WS,
 }
 
+export enum Access {
+  USER = 0,
+  ADMIN = 1,
+}
+
+export const playerNameColorRecord: Record<Access, string> = {
+  [Access.USER]: 'yellow',
+  [Access.ADMIN]: 'black',
+};
+
 export const keyRecord: Record<Key, Protocol> = {
   ArrowUp: Protocol.WS,
   ArrowDown: Protocol.WS,
@@ -73,6 +83,7 @@ export interface Player extends Character {
   experience: number;
   experienceToNextLevel: number;
   attackRange: number;
+  access: Access;
   mapId: MapState['id'];
 }
 
