@@ -1,10 +1,6 @@
 import { changeSprite } from '../io/network';
+import { SPRITE_HEIGHT, SPRITE_WIDTH } from '../../shared/constants';
 
-export const spriteSheet = new Image();
-spriteSheet.src = 'Sprites.png';
-
-const SPRITE_WIDTH = 64;
-const SPRITE_HEIGHT = 64;
 const TOTAL_CHARACTER_ROWS = 4;
 const TOTAL_CHARACTER_COLUMNS = 4;
 const CHARACTERS_PER_INDEX = TOTAL_CHARACTER_ROWS + TOTAL_CHARACTER_COLUMNS;
@@ -40,16 +36,16 @@ document.addEventListener('DOMContentLoaded', () => {
         const spriteId = parseInt(spriteInput.value, 10);
         changeSprite(spriteId)
           .then(() => {
-            console.log('Map saved successfully');
+            console.log('Sprite changed successfully');
           })
           .catch((error) => {
-            console.error('Error saving map:', error);
+            console.error('Error changing sprite:', error);
           });
       } else {
         console.error('Sprite input not found');
       }
     });
   } else {
-    console.error('Save button not found');
+    console.error('Change sprite button not found');
   }
 });

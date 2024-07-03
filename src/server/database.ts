@@ -1,4 +1,4 @@
-import { getSpriteSize } from '../client/graphics/sprite';
+import { SPRITE_HEIGHT, SPRITE_WIDTH } from '../shared/constants';
 import {
   PlayerAction,
   Direction,
@@ -10,8 +10,6 @@ import {
   PlayersMap,
 } from '../shared/types';
 
-const { SPRITE_WIDTH, SPRITE_HEIGHT } = getSpriteSize();
-
 const players: PlayersMap = {};
 
 const enemies: EnemiesMap = {
@@ -21,8 +19,8 @@ const enemies: EnemiesMap = {
       x: 200,
       y: 200,
     },
-    width: SPRITE_WIDTH,
-    height: SPRITE_HEIGHT,
+    width: SPRITE_WIDTH / 2,
+    height: SPRITE_HEIGHT / 2,
     color: 'red',
     health: 100,
     experienceValue: 500,
@@ -36,8 +34,8 @@ const enemies: EnemiesMap = {
       x: 400,
       y: 400,
     },
-    width: SPRITE_WIDTH,
-    height: SPRITE_HEIGHT,
+    width: SPRITE_WIDTH / 2,
+    height: SPRITE_HEIGHT / 2,
     color: 'green',
     health: 100,
     experienceValue: 500,

@@ -1,4 +1,4 @@
-import { getSpriteSize } from '../client/graphics/sprite';
+import { SPRITE_WIDTH, SPRITE_HEIGHT } from '../shared/constants';
 import { PlayerAction, Direction, Player } from '../shared/types';
 import { addPlayer, getPlayer, updatePlayer } from './database';
 import { FIRST_GAME_MAP_ID } from './gameService';
@@ -6,8 +6,6 @@ import { FIRST_GAME_MAP_ID } from './gameService';
 export const DEFAULT_PLAYER_SPEED = 10;
 
 export const createPlayer = (username: string): Player => {
-  const { SPRITE_WIDTH, SPRITE_HEIGHT } = getSpriteSize();
-
   const newPlayer: Player = {
     id: Math.random().toString(36).substring(2, 9),
     name: username,
@@ -15,8 +13,8 @@ export const createPlayer = (username: string): Player => {
       x: Math.random() * 750,
       y: Math.random() * 550,
     },
-    width: SPRITE_WIDTH,
-    height: SPRITE_HEIGHT,
+    width: SPRITE_WIDTH / 2,
+    height: SPRITE_HEIGHT / 2,
     color: `#${Math.floor(Math.random() * 16777215).toString(16)}`,
     speed: DEFAULT_PLAYER_SPEED,
     attack: 80,

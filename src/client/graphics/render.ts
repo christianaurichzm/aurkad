@@ -6,13 +6,10 @@ import {
   PlayersMap,
   Position,
 } from '../../shared/types';
+import { spriteSheet } from '../io/files';
 import { renderHealthBar, renderHUD } from '../ui/hud';
 import { foregroundCanvas, playerCtx } from './canvas';
-import {
-  getCharacterSpriteCoordinates,
-  getSpriteSize,
-  spriteSheet,
-} from './sprite';
+import { getCharacterSpriteCoordinates, getSpriteSize } from './sprite';
 
 const renderEntity = (entity: {
   position: Position;

@@ -1,5 +1,6 @@
 import { GameState, MapState } from '../../shared/types';
 import { getGameState } from '../core/gameState';
+import { tileset } from '../io/files';
 import { saveMap } from '../io/network';
 import { foregroundCanvas, foregroundCtx } from './canvas';
 
@@ -20,7 +21,6 @@ let isPlacing = false;
 const mapWidth = Math.floor(foregroundCanvas.width / tileSize);
 const mapHeight = Math.floor(foregroundCanvas.height / tileSize);
 let map: number[][];
-let tileset: HTMLImageElement;
 
 const setupEventListeners = () => {
   tilesetCanvas.addEventListener('mousedown', startSelecting);
@@ -133,20 +133,6 @@ const placeTile = (event: MouseEvent) => {
       }
     }
   }
-};
-
-export const initTileset = () => {
-  return new Promise((resolve, reject) => {
-    tileset = new Image();
-    tileset.onload = () => {
-      console.log('Tileset loaded');
-      resolve(tileset);
-    };
-    tileset.onerror = () => {
-      reject(new Error('Failed to load tileset'));
-    };
-    tileset.src = 'Tiles.png';
-  });
 };
 
 export const initTilesetEditor = () => {
