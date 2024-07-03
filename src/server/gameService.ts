@@ -1,4 +1,10 @@
-import { Player, Key, Direction, PlayerAction } from '../shared/types';
+import {
+  Player,
+  Key,
+  Direction,
+  PlayerAction,
+  Character,
+} from '../shared/types';
 import {
   getEnemies,
   getGameStateDb,
@@ -20,40 +26,68 @@ import { broadcast } from './wsServer';
 
 export const FIRST_GAME_MAP_ID = '1';
 
-export function handleKeyPress(username: string, key: Key) {
+const isColliding = (a: Character, b: Character): boolean => {
+  return (
+    a.position.x < b.position.x + b.width &&
+    a.position.x + a.width > b.position.x &&
+    a.position.y < b.position.y + b.height &&
+    a.position.y + a.height > b.position.y
+  );
+};
+
+export const handleKeyPress = (username: string, key: Key) => {
   const player = getPlayerByName(username);
   if (player) {
     const newState = { ...player };
     if (key === Key.Shift) {
       newState.speed *= 2;
     }
+
+    const proposedState = JSON.parse(JSON.stringify(newState));
+
     if (key === Key.ArrowUp) {
       newState.direction = Direction.Up;
       newState.action = PlayerAction.Walk;
-      newState.position.y -= newState.speed;
-    }
-    if (key === Key.ArrowDown) {
+      proposedState.position.y -= newState.speed;
+    } else if (key === Key.ArrowDown) {
       newState.direction = Direction.Down;
       newState.action = PlayerAction.Walk;
-      newState.position.y += newState.speed;
-    }
-    if (key === Key.ArrowLeft) {
+      proposedState.position.y += newState.speed;
+    } else if (key === Key.ArrowLeft) {
       newState.direction = Direction.Left;
       newState.action = PlayerAction.Walk;
-      newState.position.x -= newState.speed;
-    }
-    if (key === Key.ArrowRight) {
+      proposedState.position.x -= newState.speed;
+    } else if (key === Key.ArrowRight) {
       newState.direction = Direction.Right;
       newState.action = PlayerAction.Walk;
-      newState.position.x += newState.speed;
+      proposedState.position.x += newState.speed;
     }
+
+    const map = getMap(player.mapId)!;
+    const { players, enemies } = map;
+
+    const hasCollision =
+      Object.values(enemies).some((enemy) =>
+        isColliding(proposedState, enemy),
+      ) ||
+      Object.values(players).some(
+        (otherPlayer) =>
+          otherPlayer.id !== player.id &&
+          isColliding(proposedState, otherPlayer),
+      );
+
+    if (!hasCollision) {
+      newState.position = proposedState.position;
+    }
+
     if (key === Key.Control) {
       newState.action = PlayerAction.Attack;
       handleAttack(newState);
     }
+
     updatePlayer(newState);
   }
-}
+};
 
 export function handleKeyRelease(username: string, key: Key) {
   const player = getPlayerByName(username);
