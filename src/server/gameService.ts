@@ -145,11 +145,20 @@ export const handleAttack = (player: Player): void => {
       const distanceX = Math.abs(player.position.x - enemy.position.x);
       const distanceY = Math.abs(player.position.y - enemy.position.y);
 
-      if (
-        distanceX <= player.attackRange &&
-        distanceY <= player.attackRange &&
-        enemy.health > 0
-      ) {
+      const isWithinAttackRange =
+        distanceX <= player.attackRange && distanceY <= player.attackRange;
+
+      const isFacingEnemy =
+        (player.direction === Direction.Up &&
+          enemy.position.y < player.position.y) ||
+        (player.direction === Direction.Down &&
+          enemy.position.y > player.position.y) ||
+        (player.direction === Direction.Left &&
+          enemy.position.x < player.position.x) ||
+        (player.direction === Direction.Right &&
+          enemy.position.x > player.position.x);
+
+      if (isWithinAttackRange && isFacingEnemy && enemy.health > 0) {
         enemy.health -= player.attack;
 
         if (enemy.health <= 0) {
