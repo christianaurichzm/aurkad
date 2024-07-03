@@ -5,6 +5,7 @@ import {
   MapState,
   PlayersMap,
   Position,
+  playerActionRecord,
 } from '../../shared/types';
 import { spriteSheet } from '../io/files';
 import { renderHealthBar, renderHUD } from '../ui/hud';
@@ -19,7 +20,7 @@ const renderEntity = (entity: {
 }) => {
   drawSprite(
     entity.sprite,
-    entity.action,
+    playerActionRecord[entity.action],
     entity.direction,
     entity.position.x,
     entity.position.y,

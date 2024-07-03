@@ -17,9 +17,9 @@ export enum Direction {
 }
 
 export enum PlayerAction {
-  Idle = 1,
-  Walk = 0,
-  Attack = 0,
+  Idle,
+  Walk,
+  Attack,
 }
 
 export enum Protocol {
@@ -31,6 +31,12 @@ export enum Access {
   USER = 0,
   ADMIN = 1,
 }
+
+export const playerActionRecord: Record<PlayerAction, number> = {
+  [PlayerAction.Idle]: 0,
+  [PlayerAction.Walk]: 2,
+  [PlayerAction.Attack]: 2,
+};
 
 export const playerNameColorRecord: Record<Access, string> = {
   [Access.USER]: 'yellow',
