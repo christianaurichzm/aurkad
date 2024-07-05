@@ -20,7 +20,8 @@ let isSelecting = false;
 let isPlacing = false;
 const mapWidth = Math.floor(foregroundCanvas.width / tileSize);
 const mapHeight = Math.floor(foregroundCanvas.height / tileSize);
-let map: number[][];
+let originalMap: number[][] = [];
+let map: number[][] = [];
 
 const setupEventListeners = () => {
   tilesetCanvas.addEventListener('mousedown', startSelecting);
@@ -111,11 +112,8 @@ const placeTile = (event: MouseEvent) => {
           (startY + j) * Math.floor(tilesetCanvas.width / tileSize) +
           (startX + i);
 
-        if (!map[row + j]) {
-          map[row + j] = [];
-        }
-
         map[row + j][col + i] = tileIndex;
+        mapEdited = true;
 
         foregroundCtx.clearRect(
           (col + i) * tileSize,
@@ -198,31 +196,69 @@ const initializeGrid = () => {
   drawGrid();
 };
 
-export const toggleTilesetEditor = () => {
-  const displayStyle =
-    tilesetContainer.style.display === 'block' ? 'none' : 'block';
-  tilesetContainer.style.display = displayStyle;
-  gridCanvas.style.display = displayStyle;
+const saveCurrentMap = () => {
+  return saveMap(map)
+    .then(() => {
+      console.log('Map saved successfully');
+      mapEdited = false;
+      originalMap = map.map((row) => [...row]);
+    })
+    .catch((error) => {
+      console.error('Error saving map:', error);
+    });
+};
 
-  if (displayStyle === 'block') {
-    map = getGameState().tiles;
+export const toggleTilesetEditor = () => {
+  const isEditorOpen = tilesetContainer.style.display === 'block';
+
+  if (isEditorOpen) {
+    if (mapEdited) {
+      const discardConfirmed = confirm(
+        'You have unsaved changes. Are you sure you want to exit without saving?',
+      );
+      if (!discardConfirmed) {
+        return;
+      }
+
+      map = originalMap.map((row) => [...row]);
+    }
+
+    tilesetContainer.style.display = 'none';
+    gridCanvas.style.display = 'none';
+    mapEdited = false;
+  } else {
+    const gameState = getGameState();
+    if (gameState.tiles) {
+      map = gameState.tiles.map((row) => [...row]);
+
+      originalMap = gameState.tiles.map((row) => [...row]);
+    } else {
+      map = Array.from({ length: mapHeight }, () => Array(mapWidth).fill(-1));
+      originalMap = map.map((row) => [...row]);
+    }
+
+    tilesetContainer.style.display = 'block';
+    gridCanvas.style.display = 'block';
   }
+
+  renderMap(map);
 };
 
 export let tilesetEditorInitialized = false;
 
+let mapEdited = false;
+
 document.addEventListener('DOMContentLoaded', () => {
   const saveButton = document.getElementById('saveButton');
   if (saveButton) {
-    saveButton.addEventListener('click', () =>
-      saveMap(map)
-        .then(() => {
-          console.log('Map saved successfully');
-        })
-        .catch((error) => {
-          console.error('Error saving map:', error);
-        }),
-    );
+    saveButton.addEventListener('click', () => {
+      const userConfirmed = confirm(
+        'You have unsaved changes. Would you like to save them?',
+      );
+      if (userConfirmed) {
+        saveCurrentMap();
+      }
+    });
   } else {
     console.error('Save button not found');
   }
