@@ -23,7 +23,7 @@ export const createPlayer = (username: string): Player => {
     experienceToNextLevel: 100,
     attackRange: 50,
     mapId: FIRST_GAME_MAP_ID,
-    sprite: 0,
+    sprite: 88,
     access: Access.USER,
     direction: Direction.Down,
     action: PlayerAction.Idle,

@@ -9,6 +9,7 @@ import {
 import { ExtendedRequest } from './server';
 import { ActionQueue, KeyboardAction, ClientAction } from '../shared/types';
 import { RequestHandler } from 'express';
+import { updateEnemies } from './enemyService';
 
 let wss: WebSocketServer;
 
@@ -30,6 +31,7 @@ export const startWebSocketServer = (
         socket.destroy();
       }
     });
+    setInterval(broadcast, 50);
   });
 
   wss.on('connection', (ws: WebSocket, request: ExtendedRequest) => {
@@ -44,14 +46,10 @@ export const startWebSocketServer = (
 
     playersWsMap.set(username, ws);
 
-    broadcast();
-
     ws.on('message', (message: string) => {
       const data: KeyboardAction = JSON.parse(message);
 
       enqueueAction({ username: username, keyboardAction: data });
-
-      setInterval(processActions, 100);
     });
 
     ws.on('close', () => {
@@ -80,13 +78,20 @@ export async function processActions() {
           handleKeyRelease(action.username, action.keyboardAction.key);
           break;
       }
-      broadcast();
     }
   }
 }
 
 export const broadcast = () => {
-  Object.values(getGameState().maps).forEach((map) => {
+  processActions();
+
+  const gameState = getGameState();
+
+  Object.values(gameState.maps).forEach((map) => {
+    Object.values(map.enemies).forEach((enemy) => {
+      updateEnemies(enemy, map);
+    });
+
     const message = JSON.stringify(map);
     Object.values(map.players).forEach((player) => {
       const ws = playersWsMap.get(player.name);

@@ -6,7 +6,6 @@ import {
   Character,
 } from '../shared/types';
 import {
-  getEnemies,
   getGameStateDb,
   getMap,
   getPlayer,
@@ -32,6 +31,22 @@ const isColliding = (a: Character, b: Character): boolean => {
     a.position.x + a.width > b.position.x &&
     a.position.y < b.position.y + b.height &&
     a.position.y + a.height > b.position.y
+  );
+};
+
+export const hasCollision = (character: Character) => {
+  const map = getMap(character.mapId)!;
+  const { players, enemies } = map;
+
+  return (
+    Object.values(enemies).some(
+      (otherEnemy) =>
+        otherEnemy.id !== character.id && isColliding(character, otherEnemy),
+    ) ||
+    Object.values(players).some(
+      (otherPlayer) =>
+        otherPlayer.id !== character.id && isColliding(character, otherPlayer),
+    )
   );
 };
 
@@ -63,20 +78,9 @@ export const handleKeyPress = (username: string, key: Key) => {
       proposedState.position.x += newState.speed;
     }
 
-    const map = getMap(player.mapId)!;
-    const { players, enemies } = map;
+    const collision = hasCollision(proposedState);
 
-    const hasCollision =
-      Object.values(enemies).some((enemy) =>
-        isColliding(proposedState, enemy),
-      ) ||
-      Object.values(players).some(
-        (otherPlayer) =>
-          otherPlayer.id !== player.id &&
-          isColliding(proposedState, otherPlayer),
-      );
-
-    if (!hasCollision) {
+    if (!collision) {
       newState.position = proposedState.position;
     }
 

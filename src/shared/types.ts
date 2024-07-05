@@ -17,9 +17,9 @@ export enum Direction {
 }
 
 export enum PlayerAction {
-  Idle,
-  Walk,
-  Attack,
+  Idle = 'Idle',
+  Walk = 'Walk',
+  Attack = 'Attack',
 }
 
 export enum Protocol {
@@ -71,8 +71,10 @@ export interface Character {
   height: number;
   color: string;
   sprite: number;
+  speed: number;
   direction: Direction;
   action: PlayerAction;
+  mapId: MapState['id'];
 }
 
 export interface Position {
@@ -83,14 +85,12 @@ export interface Position {
 export interface Player extends Character {
   name: string;
   color: string;
-  speed: number;
   attack: number;
   level: number;
   experience: number;
   experienceToNextLevel: number;
   attackRange: number;
   access: Access;
-  mapId: MapState['id'];
 }
 
 export type PlayersMap = { [key: string]: Player };

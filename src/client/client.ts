@@ -1,4 +1,3 @@
-import { getGameState } from '../server/gameService';
 import { gameLoop } from './core/game';
 import { updateGameState } from './core/gameState';
 import { renderMap } from './graphics/tileset';

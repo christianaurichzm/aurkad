@@ -111,6 +111,10 @@ const placeTile = (event: MouseEvent) => {
           (startY + j) * Math.floor(tilesetCanvas.width / tileSize) +
           (startX + i);
 
+        if (!map[row + j]) {
+          map[row + j] = [];
+        }
+
         map[row + j][col + i] = tileIndex;
 
         foregroundCtx.clearRect(
