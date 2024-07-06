@@ -8,6 +8,7 @@ import {
   MapState,
   Player,
   PlayersMap,
+  Tile,
 } from '../shared/types';
 
 const players: PlayersMap = {};
@@ -59,13 +60,17 @@ const gameState: GameState = {
       id: '1',
       players: {},
       enemies: { ...enemies },
-      tiles: Array.from({ length: 448 / 32 }, () => Array(640 / 32).fill(-1)),
+      tiles: Array.from({ length: 448 / 32 }, () =>
+        Array(640 / 32).fill({ tileIndex: -1, blocked: false }),
+      ),
     },
     '2': {
       id: '2',
       players: {},
       enemies: {},
-      tiles: Array.from({ length: 448 / 32 }, () => Array(640 / 32).fill(-1)),
+      tiles: Array.from({ length: 448 / 32 }, () =>
+        Array(640 / 32).fill({ tileIndex: -1, blocked: false }),
+      ),
     },
   },
 };
@@ -95,7 +100,7 @@ export const updateMap = (map: MapState): MapState | undefined => {
 
 export const updateMapById = (
   mapId: string,
-  tiles: number[][],
+  tiles: Tile[][],
 ): MapState | undefined => {
   const map = getMap(mapId);
   if (map) {

@@ -1,9 +1,11 @@
-import { SPRITE_WIDTH, SPRITE_HEIGHT } from '../shared/constants';
+import {
+  SPRITE_WIDTH,
+  SPRITE_HEIGHT,
+  DEFAULT_PLAYER_SPEED,
+  FIRST_GAME_MAP_ID,
+} from '../shared/constants';
 import { PlayerAction, Direction, Player, Access } from '../shared/types';
 import { addPlayer, getPlayer, updatePlayer } from './database';
-import { FIRST_GAME_MAP_ID } from './gameService';
-
-export const DEFAULT_PLAYER_SPEED = 16;
 
 export const createPlayer = (username: string): Player => {
   const newPlayer: Player = {

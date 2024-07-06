@@ -105,11 +105,16 @@ export interface GameState {
   maps: Record<string, MapState>;
 }
 
+export interface Tile {
+  tileIndex: number;
+  blocked: boolean;
+}
+
 export interface MapState {
   id: string;
   players: Record<string, Player>;
   enemies: Record<string, Enemy>;
-  tiles: number[][];
+  tiles: Tile[][];
 }
 
 export interface HttpRequestOptions {

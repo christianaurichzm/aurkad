@@ -1,9 +1,12 @@
+import { DEFAULT_PLAYER_SPEED, TILE_SIZE } from '../shared/constants';
 import {
   Player,
   Key,
   Direction,
   PlayerAction,
   Character,
+  Tile,
+  MapState,
 } from '../shared/types';
 import {
   getGameStateDb,
@@ -16,14 +19,11 @@ import {
 } from './database';
 import { respawnEnemy } from './enemyService';
 import {
-  DEFAULT_PLAYER_SPEED,
   createPlayer,
   handlePlayerUpdates,
   levelUpPlayer,
 } from './playerService';
 import { broadcast } from './wsServer';
-
-export const FIRST_GAME_MAP_ID = '1';
 
 const isColliding = (a: Character, b: Character): boolean => {
   return (
@@ -34,11 +34,17 @@ const isColliding = (a: Character, b: Character): boolean => {
   );
 };
 
+const isTileBlocked = (map: MapState, x: number, y: number): boolean => {
+  const row = Math.floor(y / TILE_SIZE);
+  const col = Math.floor(x / TILE_SIZE);
+  return map.tiles[row] && map.tiles[row][col] && map.tiles[row][col].blocked;
+};
+
 export const hasCollision = (character: Character) => {
   const map = getMap(character.mapId)!;
   const { players, enemies } = map;
 
-  return (
+  const characterCollision =
     Object.values(enemies).some(
       (otherEnemy) =>
         otherEnemy.id !== character.id && isColliding(character, otherEnemy),
@@ -46,8 +52,27 @@ export const hasCollision = (character: Character) => {
     Object.values(players).some(
       (otherPlayer) =>
         otherPlayer.id !== character.id && isColliding(character, otherPlayer),
-    )
-  );
+    );
+
+  const tileCollision =
+    isTileBlocked(map, character.position.x, character.position.y) ||
+    isTileBlocked(
+      map,
+      character.position.x + character.width,
+      character.position.y,
+    ) ||
+    isTileBlocked(
+      map,
+      character.position.x,
+      character.position.y + character.height,
+    ) ||
+    isTileBlocked(
+      map,
+      character.position.x + character.width,
+      character.position.y + character.height,
+    );
+
+  return characterCollision || tileCollision;
 };
 
 export const handleKeyPress = (username: string, key: Key) => {
@@ -113,7 +138,7 @@ export function handleKeyRelease(username: string, key: Key) {
   }
 }
 
-export function mapSave(mapId: string, tiles: number[][]) {
+export function mapSave(mapId: string, tiles: Tile[][]) {
   updateMapById(mapId, tiles);
 }
 
