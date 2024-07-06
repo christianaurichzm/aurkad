@@ -72,8 +72,11 @@ export interface Character {
   color: string;
   sprite: number;
   speed: number;
+  health: number;
+  attack: number;
   direction: Direction;
   action: PlayerAction;
+  attackRange: number;
   mapId: MapState['id'];
 }
 
@@ -84,12 +87,9 @@ export interface Position {
 
 export interface Player extends Character {
   name: string;
-  color: string;
-  attack: number;
   level: number;
   experience: number;
   experienceToNextLevel: number;
-  attackRange: number;
   access: Access;
 }
 
@@ -98,7 +98,6 @@ export type PlayersMap = { [key: string]: Player };
 export type EnemiesMap = { [key: string]: Enemy };
 
 export interface Enemy extends Character {
-  health: number;
   experienceValue: number;
 }
 

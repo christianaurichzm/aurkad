@@ -1,5 +1,14 @@
-import { Character, Direction, Enemy, MapState } from '../shared/types';
+import {
+  Character,
+  Direction,
+  Enemy,
+  MapState,
+  Player,
+  PlayerAction,
+} from '../shared/types';
+import { updatePlayer } from './database';
 import { hasCollision } from './gameService';
+import { respawnPlayer } from './playerService';
 
 export const respawnEnemy = (enemy: Enemy): void => {
   enemy.health = 100;
@@ -17,19 +26,66 @@ function calculateDirection(
   return { dx, dy, distance };
 }
 
-export function moveEnemyTowardsPlayer(enemy: Character, player: Character) {
-  const { dx, dy } = calculateDirection(enemy, player);
+function moveEnemyTowardsPlayer(enemy: Character, player: Character) {
+  const { dx, dy, distance } = calculateDirection(enemy, player);
 
-  if (Math.abs(dx) > Math.abs(dy)) {
-    enemy.position.x += Math.sign(dx) * enemy.speed;
-    enemy.direction = dx > 0 ? Direction.Right : Direction.Left;
+  const absDx = Math.abs(dx);
+  const absDy = Math.abs(dy);
+
+  const tolerance = 1.0;
+
+  if (absDx > absDy) {
+    if (absDx > tolerance) {
+      enemy.position.x += Math.sign(dx) * Math.min(enemy.speed, absDx);
+      enemy.direction = dx > 0 ? Direction.Right : Direction.Left;
+      enemy.action = PlayerAction.Walk;
+    }
   } else {
-    enemy.position.y += Math.sign(dy) * enemy.speed;
-    enemy.direction = dy > 0 ? Direction.Down : Direction.Up;
+    if (absDy > tolerance) {
+      enemy.position.y += Math.sign(dy) * Math.min(enemy.speed, absDy);
+      enemy.direction = dy > 0 ? Direction.Down : Direction.Up;
+      enemy.action = PlayerAction.Walk;
+    }
+  }
+
+  if (distance < tolerance) {
+    enemy.position.x += dx;
+    enemy.position.y += dy;
+    enemy.action = PlayerAction.Idle;
   }
 }
 
-export function findClosestPlayer(
+function isPlayerInAttackRange(enemy: Character, player: Character): boolean {
+  const { dx, dy, distance } = calculateDirection(enemy, player);
+
+  if (distance > enemy.attackRange) {
+    return false;
+  }
+
+  switch (enemy.direction) {
+    case Direction.Up:
+      return dy < 0 && Math.abs(dx) < enemy.width / 2;
+    case Direction.Down:
+      return dy > 0 && Math.abs(dx) < enemy.width / 2;
+    case Direction.Left:
+      return dx < 0 && Math.abs(dy) < enemy.height / 2;
+    case Direction.Right:
+      return dx > 0 && Math.abs(dy) < enemy.height / 2;
+    default:
+      return false;
+  }
+}
+
+function attackPlayer(enemy: Character, player: Character) {
+  player.health -= enemy.attack;
+  if (player.health <= 0) {
+    respawnPlayer(player as Player);
+  }
+  updatePlayer(player as Player);
+  enemy.action = PlayerAction.Attack;
+}
+
+function findClosestPlayer(
   enemy: Character,
   players: Character[],
 ): Character | null {
@@ -52,5 +108,9 @@ export function updateEnemies(enemy: Enemy, map: MapState) {
   const closestPlayer = findClosestPlayer(enemy, Object.values(map.players));
   if (closestPlayer && !hasCollision(enemy)) {
     moveEnemyTowardsPlayer(enemy, closestPlayer);
+
+    if (isPlayerInAttackRange(enemy, closestPlayer)) {
+      attackPlayer(enemy, closestPlayer);
+    }
   }
 }

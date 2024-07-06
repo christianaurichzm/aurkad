@@ -3,7 +3,7 @@ import { PlayerAction, Direction, Player, Access } from '../shared/types';
 import { addPlayer, getPlayer, updatePlayer } from './database';
 import { FIRST_GAME_MAP_ID } from './gameService';
 
-export const DEFAULT_PLAYER_SPEED = 10;
+export const DEFAULT_PLAYER_SPEED = 16;
 
 export const createPlayer = (username: string): Player => {
   const newPlayer: Player = {
@@ -24,6 +24,7 @@ export const createPlayer = (username: string): Player => {
     attackRange: 50,
     mapId: FIRST_GAME_MAP_ID,
     sprite: 88,
+    health: 100,
     access: Access.USER,
     direction: Direction.Down,
     action: PlayerAction.Idle,
@@ -48,4 +49,11 @@ export const handlePlayerUpdates = (player: Player): void => {
   if (existingPlayer) {
     updatePlayer({ ...existingPlayer, ...player });
   }
+};
+
+export const respawnPlayer = (player: Player): void => {
+  player.health = 100;
+  player.mapId = '1';
+  player.position.x = 320;
+  player.position.y = 224;
 };
