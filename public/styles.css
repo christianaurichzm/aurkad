@@ -75,8 +75,8 @@ button:hover {
 #gameContainer {
   display: none;
   position: relative;
-  width: 800px;
-  height: 640px;
+  width: 1280px;
+  height: 896px;
 }
 
 #errorMessage {

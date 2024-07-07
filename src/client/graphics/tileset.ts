@@ -126,6 +126,7 @@ const placeTile = (event: MouseEvent) => {
             tileIndex,
             blocked: map[row + j][col + i].blocked,
           };
+          console.log('Map updated with new tile:', map);
           mapEdited = true;
 
           foregroundCtx.clearRect(
@@ -196,8 +197,8 @@ export const renderMap = (tiles: Tile[][]) => {
     for (let col = 0; col < mapWidth; col++) {
       if (tiles[row][col].blocked) {
         gridCtx.fillStyle = 'red';
-        gridCtx.font = '20px Arial';
-        gridCtx.fillText('B', col * TILE_SIZE + 10, row * TILE_SIZE + 20);
+        gridCtx.font = '40px Arial';
+        gridCtx.fillText('B', col * TILE_SIZE + 20, row * TILE_SIZE + 35);
       }
     }
   }

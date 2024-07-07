@@ -1,3 +1,4 @@
+import { TILE_SIZE } from '../../shared/constants';
 import {
   PlayerAction,
   Direction,
@@ -53,14 +54,17 @@ export function drawSprite(
   const { x, y } = getCharacterSpriteCoordinates(characterIndex, column, row);
   const { SPRITE_WIDTH, SPRITE_HEIGHT } = getSpriteSize();
 
+  const offsetX = (TILE_SIZE - SPRITE_WIDTH) / 2;
+  const offsetY = (TILE_SIZE - SPRITE_HEIGHT) / 2;
+
   playerCtx.drawImage(
     spriteSheet,
     x,
     y,
     SPRITE_WIDTH,
     SPRITE_HEIGHT,
-    posX,
-    posY,
+    posX + offsetX,
+    posY + offsetY,
     SPRITE_WIDTH,
     SPRITE_HEIGHT,
   );
