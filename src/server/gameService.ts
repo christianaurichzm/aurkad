@@ -1,6 +1,8 @@
 import {
   BOOST_MULTIPLIER,
   DEFAULT_PLAYER_SPEED,
+  GAME_HEIGHT,
+  GAME_WIDTH,
   TILE_SIZE,
 } from '../shared/constants';
 import {
@@ -47,6 +49,8 @@ const isTileBlocked = (map: MapState, x: number, y: number): boolean => {
 export const hasCollision = (character: Character) => {
   const map = getMap(character.mapId)!;
   const { players, enemies } = map;
+  const { x, y } = character.position;
+  const { width, height } = character;
 
   const characterCollision =
     Object.values(enemies).some(
@@ -76,7 +80,10 @@ export const hasCollision = (character: Character) => {
       character.position.y + character.height,
     );
 
-  return characterCollision || tileCollision;
+  const borderCollision =
+    x < 0 || y < 0 || x + width > GAME_WIDTH || y + height > GAME_HEIGHT;
+
+  return characterCollision || tileCollision || borderCollision;
 };
 
 const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
