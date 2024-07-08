@@ -69,7 +69,6 @@ export interface Character {
   position: Position;
   width: number;
   height: number;
-  color: string;
   sprite: number;
   speed: number;
   health: number;

@@ -3,6 +3,8 @@ import {
   SPRITE_HEIGHT,
   DEFAULT_PLAYER_SPEED,
   FIRST_GAME_MAP_ID,
+  RESPAWN_POSITION,
+  TILE_SIZE,
 } from '../shared/constants';
 import { PlayerAction, Direction, Player, Access } from '../shared/types';
 import { addPlayer, getPlayer, updatePlayer } from './database';
@@ -11,21 +13,17 @@ export const createPlayer = (username: string): Player => {
   const newPlayer: Player = {
     id: Math.random().toString(36).substring(2, 9),
     name: username,
-    position: {
-      x: Math.random() * 750,
-      y: Math.random() * 550,
-    },
+    position: RESPAWN_POSITION,
     width: SPRITE_WIDTH / 2,
     height: SPRITE_HEIGHT / 2,
-    color: `#${Math.floor(Math.random() * 16777215).toString(16)}`,
     speed: DEFAULT_PLAYER_SPEED,
     attack: 80,
     level: 1,
     experience: 0,
     experienceToNextLevel: 100,
-    attackRange: 50,
+    attackRange: TILE_SIZE,
     mapId: FIRST_GAME_MAP_ID,
-    sprite: 88,
+    sprite: 0,
     health: 100,
     access: Access.USER,
     direction: Direction.Down,
@@ -55,7 +53,6 @@ export const handlePlayerUpdates = (player: Player): void => {
 
 export const respawnPlayer = (player: Player): void => {
   player.health = 100;
-  player.mapId = '1';
-  player.position.x = 320;
-  player.position.y = 224;
+  player.mapId = FIRST_GAME_MAP_ID;
+  player.position = RESPAWN_POSITION;
 };

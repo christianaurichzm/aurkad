@@ -1,4 +1,8 @@
-import { DEFAULT_PLAYER_SPEED, TILE_SIZE } from '../shared/constants';
+import {
+  BOOST_MULTIPLIER,
+  DEFAULT_PLAYER_SPEED,
+  TILE_SIZE,
+} from '../shared/constants';
 import {
   Player,
   Key,
@@ -75,12 +79,19 @@ export const hasCollision = (character: Character) => {
   return characterCollision || tileCollision;
 };
 
-export const handleKeyPress = (username: string, key: Key) => {
+const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+
+let isActing = false;
+
+export const handleKeyPress = async (username: string, key: Key) => {
+  if (isActing) return;
+  isActing = true;
+
   const player = getPlayerByName(username);
   if (player) {
     const newState = { ...player };
     if (key === Key.Shift) {
-      newState.speed *= 2;
+      newState.speed **= BOOST_MULTIPLIER;
     }
 
     const proposedState = JSON.parse(JSON.stringify(newState));
@@ -88,20 +99,22 @@ export const handleKeyPress = (username: string, key: Key) => {
     if (key === Key.ArrowUp) {
       newState.direction = Direction.Up;
       newState.action = PlayerAction.Walk;
-      proposedState.position.y -= newState.speed;
+      proposedState.position.y -= TILE_SIZE;
     } else if (key === Key.ArrowDown) {
       newState.direction = Direction.Down;
       newState.action = PlayerAction.Walk;
-      proposedState.position.y += newState.speed;
+      proposedState.position.y += TILE_SIZE;
     } else if (key === Key.ArrowLeft) {
       newState.direction = Direction.Left;
       newState.action = PlayerAction.Walk;
-      proposedState.position.x -= newState.speed;
+      proposedState.position.x -= TILE_SIZE;
     } else if (key === Key.ArrowRight) {
       newState.direction = Direction.Right;
       newState.action = PlayerAction.Walk;
-      proposedState.position.x += newState.speed;
+      proposedState.position.x += TILE_SIZE;
     }
+
+    await delay(DEFAULT_PLAYER_SPEED ** BOOST_MULTIPLIER / player.speed);
 
     const collision = hasCollision(proposedState);
 
@@ -116,6 +129,8 @@ export const handleKeyPress = (username: string, key: Key) => {
 
     updatePlayer(newState);
   }
+
+  isActing = false;
 };
 
 export function handleKeyRelease(username: string, key: Key) {
