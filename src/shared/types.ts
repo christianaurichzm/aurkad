@@ -53,6 +53,10 @@ export const keyRecord: Record<Key, Protocol> = {
   z: Protocol.HTTP,
 };
 
+export enum ServerActionType {
+  UpdateEnemyPositions = 'updateEnemyPositions',
+}
+
 export interface KeyboardAction {
   key: Key;
   type: 'press' | 'release';
@@ -63,7 +67,13 @@ export interface ClientAction {
   keyboardAction: KeyboardAction;
 }
 
-export type ActionQueue = Array<ClientAction>;
+export interface ServerAction {
+  action: ServerActionType;
+}
+
+export type ActionQueueItem = ClientAction | ServerAction;
+
+export type ActionQueue = Array<ActionQueueItem>;
 export interface Character {
   id: string;
   position: Position;

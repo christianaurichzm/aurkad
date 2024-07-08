@@ -7,9 +7,17 @@ import {
   handleKeyRelease,
 } from './gameService';
 import { ExtendedRequest } from './server';
-import { ActionQueue, KeyboardAction, ClientAction } from '../shared/types';
-import { RequestHandler } from 'express';
+import {
+  ActionQueue,
+  ActionQueueItem,
+  ClientAction,
+  ServerAction,
+  ServerActionType,
+  KeyboardAction,
+} from '../shared/types';
 import { updateEnemies } from './enemyService';
+import { RequestHandler } from 'express';
+import { updateEnemy } from './database';
 
 let wss: WebSocketServer;
 
@@ -31,37 +39,37 @@ export const startWebSocketServer = (
         socket.destroy();
       }
     });
-    setInterval(broadcast, 50);
   });
 
   wss.on('connection', (ws: WebSocket, request: ExtendedRequest) => {
-    const session = request.session;
+    const username = request.session.username;
+    if (username) {
+      playersWsMap.set(username, ws);
 
-    if (!session?.username) {
-      ws.close();
-      return;
+      ws.on('message', (message) => {
+        const keyboardAction: KeyboardAction = JSON.parse(message.toString());
+        enqueueAction({ username, keyboardAction });
+      });
+
+      ws.on('close', () => {
+        disconnectPlayer(username);
+        playersWsMap.delete(username);
+      });
     }
-
-    const { username } = session;
-
-    playersWsMap.set(username, ws);
-
-    ws.on('message', (message: string) => {
-      const data: KeyboardAction = JSON.parse(message);
-
-      enqueueAction({ username: username, keyboardAction: data });
-    });
-
-    ws.on('close', () => {
-      disconnectPlayer(session?.username);
-      console.log('User disconnected', session.username);
-    });
   });
 };
+setInterval(() => {
+  processActions();
+  broadcastGameState();
+}, 50);
+
+setInterval(() => {
+  enqueueAction({ action: ServerActionType.UpdateEnemyPositions });
+}, 500);
 
 const actionQueue: ActionQueue = [];
 
-export function enqueueAction(action: ClientAction) {
+function enqueueAction(action: ActionQueueItem) {
   actionQueue.push(action);
 }
 
@@ -70,28 +78,47 @@ export async function processActions() {
     const action = actionQueue.shift();
 
     if (action) {
-      switch (action?.keyboardAction.type) {
-        case 'press':
-          handleKeyPress(action.username, action.keyboardAction.key);
-          break;
-        case 'release':
-          handleKeyRelease(action.username, action.keyboardAction.key);
-          break;
+      if (isClientAction(action)) {
+        switch (action.keyboardAction.type) {
+          case 'press':
+            handleKeyPress(action.username, action.keyboardAction.key);
+            break;
+          case 'release':
+            handleKeyRelease(action.username, action.keyboardAction.key);
+            break;
+        }
+      } else if (isServerAction(action)) {
+        handleServerAction(action);
       }
     }
   }
 }
 
-export const broadcast = () => {
-  processActions();
+function isClientAction(action: ActionQueueItem): action is ClientAction {
+  return (action as ClientAction).username !== undefined;
+}
 
+function isServerAction(action: ActionQueueItem): action is ServerAction {
+  return (action as ServerAction).action !== undefined;
+}
+
+function handleServerAction(action: ServerAction) {
+  switch (action.action) {
+    case ServerActionType.UpdateEnemyPositions:
+      const gameState = getGameState();
+      Object.values(gameState.maps).forEach((map) => {
+        Object.values(map.enemies).forEach((enemy) => {
+          updateEnemies(enemy, map);
+          updateEnemy(enemy);
+        });
+      });
+      break;
+  }
+}
+
+function broadcastGameState() {
   const gameState = getGameState();
-
   Object.values(gameState.maps).forEach((map) => {
-    Object.values(map.enemies).forEach((enemy) => {
-      updateEnemies(enemy, map);
-    });
-
     const message = JSON.stringify(map);
     Object.values(map.players).forEach((player) => {
       const ws = playersWsMap.get(player.name);
@@ -100,4 +127,6 @@ export const broadcast = () => {
       }
     });
   });
-};
+}
+
+export { broadcastGameState as broadcast };
