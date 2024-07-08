@@ -80,7 +80,6 @@ export interface Character {
   width: number;
   height: number;
   sprite: number;
-  speed: number;
   health: number;
   attack: number;
   direction: Direction;
@@ -97,6 +96,7 @@ export interface Position {
 export interface Player extends Character {
   name: string;
   level: number;
+  speed: number;
   experience: number;
   experienceToNextLevel: number;
   access: Access;

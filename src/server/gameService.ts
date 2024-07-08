@@ -86,7 +86,8 @@ export const hasCollision = (character: Character) => {
   return characterCollision || tileCollision || borderCollision;
 };
 
-const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+export const delay = (ms: number) =>
+  new Promise((resolve) => setTimeout(resolve, ms));
 
 let isActing = false;
 
@@ -98,7 +99,7 @@ export const handleKeyPress = async (username: string, key: Key) => {
   if (player) {
     const newState = { ...player };
     if (key === Key.Shift) {
-      newState.speed **= BOOST_MULTIPLIER;
+      newState.speed *= BOOST_MULTIPLIER;
     }
 
     const proposedState = JSON.parse(JSON.stringify(newState));
@@ -121,7 +122,7 @@ export const handleKeyPress = async (username: string, key: Key) => {
       proposedState.position.x += TILE_SIZE;
     }
 
-    await delay(DEFAULT_PLAYER_SPEED ** BOOST_MULTIPLIER / player.speed);
+    await delay((DEFAULT_PLAYER_SPEED * BOOST_MULTIPLIER) / player.speed);
 
     const collision = hasCollision(proposedState);
 

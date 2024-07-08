@@ -1,4 +1,4 @@
-import { SPRITE_HEIGHT, SPRITE_WIDTH } from '../shared/constants';
+import { SPRITE_HEIGHT, SPRITE_WIDTH, TILE_SIZE } from '../shared/constants';
 import {
   PlayerAction,
   Direction,
@@ -9,6 +9,7 @@ import {
   Player,
   PlayersMap,
   Tile,
+  Character,
 } from '../shared/types';
 
 const players: PlayersMap = {};
@@ -17,38 +18,34 @@ const enemies: EnemiesMap = {
   '1': {
     id: '1',
     position: {
-      x: 200,
-      y: 200,
+      x: 4 * TILE_SIZE,
+      y: 2 * TILE_SIZE,
     },
     width: SPRITE_WIDTH / 2,
     height: SPRITE_HEIGHT / 2,
-    speed: 2,
-    color: 'red',
     health: 100,
     experienceValue: 500,
     sprite: 0,
     mapId: '1',
     attack: 40,
-    attackRange: 50,
+    attackRange: TILE_SIZE,
     direction: Direction.Down,
     action: PlayerAction.Idle,
   },
   '2': {
     id: '2',
     position: {
-      x: 400,
-      y: 400,
+      x: 7 * TILE_SIZE,
+      y: 2 * TILE_SIZE,
     },
     width: SPRITE_WIDTH / 2,
     height: SPRITE_HEIGHT / 2,
-    speed: 2,
-    color: 'green',
     health: 100,
     experienceValue: 500,
     sprite: 0,
     mapId: '1',
     attack: 40,
-    attackRange: 50,
+    attackRange: TILE_SIZE,
     direction: Direction.Down,
     action: PlayerAction.Idle,
   },
@@ -152,6 +149,10 @@ export const updatePlayer = (player: Player): void => {
   } else {
     console.warn('updatePlayer: Player not found', player.id);
   }
+};
+
+export const updateEnemy = (enemy: Character): void => {
+  enemies[enemy.id] = { ...enemy } as Enemy;
 };
 
 export const getPlayers = (): PlayersMap => {
