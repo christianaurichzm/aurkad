@@ -101,3 +101,30 @@ button:hover {
   background-color: #eee;
   border: 1px solid black;
 }
+
+#hud {
+  display: none;
+  margin-top: 16px;
+}
+
+#health-bar-container {
+  width: 200px;
+  height: 20px;
+  border: 2px solid #000;
+  background-color: #ddd;
+  margin: 10px;
+  position: relative;
+}
+
+#health-bar {
+  height: 100%;
+  width: 100%;
+}
+
+#health-bar-text {
+  position: absolute;
+  width: 100%;
+  text-align: center;
+  line-height: 20px;
+  font-weight: bold;
+}

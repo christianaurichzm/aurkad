@@ -9,12 +9,24 @@ document.addEventListener('DOMContentLoaded', () => {
   const loginForm = document.getElementById('loginForm');
   const loginContainer = document.getElementById('loginContainer');
   const gameContainer = document.getElementById('gameContainer');
+  const hudContainer = document.getElementById('hud');
   const errorMessage = document.getElementById('errorMessage');
 
-  if (loginForm && loginContainer && gameContainer && errorMessage) {
+  if (
+    loginForm &&
+    loginContainer &&
+    gameContainer &&
+    hudContainer &&
+    errorMessage
+  ) {
     loginForm.addEventListener('submit', async (event) => {
       event.preventDefault();
-      await handleLogin(loginContainer, gameContainer, errorMessage);
+      await handleLogin(
+        loginContainer,
+        gameContainer,
+        hudContainer,
+        errorMessage,
+      );
     });
   }
 });
@@ -22,6 +34,7 @@ document.addEventListener('DOMContentLoaded', () => {
 async function handleLogin(
   loginContainer: HTMLElement,
   gameContainer: HTMLElement,
+  hudContainer: HTMLElement,
   errorMessage: HTMLElement,
 ) {
   const usernameInput = document.getElementById('username') as HTMLInputElement;
@@ -36,7 +49,7 @@ async function handleLogin(
       if (data?.playerId) {
         const { map } = data;
         updateGameState(map);
-        toggleContainers(loginContainer, gameContainer);
+        toggleContainers(loginContainer, gameContainer, hudContainer);
         handleInput();
         initializeWebSocket();
         initializeAssets()
@@ -63,9 +76,13 @@ function validateResponse(data: any) {
 function toggleContainers(
   loginContainer: HTMLElement,
   gameContainer: HTMLElement,
+  hudContainer: HTMLElement,
 ) {
   loginContainer.style.display = 'none';
   gameContainer.style.display = 'block';
+  hudContainer.style.display = 'flex';
+  hudContainer.style.flexDirection = 'row';
+  hudContainer.style.alignItems = 'center';
 }
 
 function handleError(error: unknown, errorMessage: HTMLElement) {

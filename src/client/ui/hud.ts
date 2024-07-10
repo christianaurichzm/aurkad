@@ -6,12 +6,34 @@ export const renderHUD = (player: Player) => {
   const { x, y } = position;
   const text = `${name} - Level: ${level}`;
 
+  updatePlayerHealthBar(player.health);
+
   playerCtx.font = 'bold 14px Arial';
   playerCtx.strokeStyle = 'black';
   playerCtx.fillStyle = playerNameColorRecord[access];
 
   playerCtx.strokeText(text, x, y);
   playerCtx.fillText(text, x, y);
+};
+
+const updatePlayerHealthBar = (health: number) => {
+  const healthBar = document.getElementById('health-bar');
+  const healthBarText = document.getElementById('health-bar-text');
+
+  if (healthBar && healthBarText) {
+    healthBar.style.width = `${health}%`;
+    healthBarText.textContent = `${health}%`;
+
+    let barColor = 'green';
+
+    if (health <= 0.5 && health > 0.2) {
+      barColor = 'yellow';
+    } else if (health <= 0.2) {
+      barColor = 'red';
+    }
+
+    healthBar.style.backgroundColor = barColor;
+  }
 };
 
 export const renderHealthBar = (enemy: Enemy) => {
