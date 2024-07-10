@@ -10,8 +10,9 @@ import {
 } from '../../shared/types';
 import { spriteSheet } from '../io/files';
 import { renderHealthBar, renderHUD } from '../ui/hud';
-import { foregroundCanvas, playerCtx } from './canvas';
+import { foregroundCanvas, foregroundCtx, playerCtx } from './canvas';
 import { getCharacterSpriteCoordinates, getSpriteSize } from './sprite';
+import { mapEdited, renderMap } from './tileset';
 
 const renderEntity = (entity: {
   position: Position;
@@ -73,6 +74,15 @@ export function drawSprite(
 export const render = (map?: MapState) => {
   if (map) {
     playerCtx.clearRect(0, 0, foregroundCanvas.width, foregroundCanvas.height);
+    if (!mapEdited) {
+      foregroundCtx.clearRect(
+        0,
+        0,
+        foregroundCanvas.width,
+        foregroundCanvas.height,
+      );
+      renderMap(map.tiles);
+    }
     renderPlayers(map.players);
     renderEnemies(map.enemies);
   }

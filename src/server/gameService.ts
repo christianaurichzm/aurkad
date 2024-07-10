@@ -13,6 +13,7 @@ import {
   Character,
   Tile,
   MapState,
+  Warp,
 } from '../shared/types';
 import {
   getGameStateDb,
@@ -40,13 +41,25 @@ const isColliding = (a: Character, b: Character): boolean => {
   );
 };
 
-const isTileBlocked = (map: MapState, x: number, y: number): boolean => {
+const isTileBlocked = (
+  map: MapState,
+  x: number,
+  y: number,
+): boolean | undefined => {
   const row = Math.floor(y / TILE_SIZE);
   const col = Math.floor(x / TILE_SIZE);
   return map.tiles[row] && map.tiles[row][col] && map.tiles[row][col].blocked;
 };
 
+const isTileWarp = (map: MapState, x: number, y: number): Warp | undefined => {
+  const row = Math.floor(y / TILE_SIZE);
+  const col = Math.floor(x / TILE_SIZE);
+  return map.tiles[row] && map.tiles[row][col] && map.tiles[row][col].warp;
+};
+
 export const hasCollision = (character: Character) => {
+  if (!character.mapId) return;
+
   const map = getMap(character.mapId)!;
   const { players, enemies } = map;
   const { x, y } = character.position;
@@ -63,27 +76,31 @@ export const hasCollision = (character: Character) => {
     );
 
   const tileCollision =
-    isTileBlocked(map, character.position.x, character.position.y) ||
-    isTileBlocked(
-      map,
-      character.position.x + character.width,
-      character.position.y,
-    ) ||
-    isTileBlocked(
-      map,
-      character.position.x,
-      character.position.y + character.height,
-    ) ||
-    isTileBlocked(
-      map,
-      character.position.x + character.width,
-      character.position.y + character.height,
-    );
+    isTileBlocked(map, x, y) ||
+    isTileBlocked(map, x + width, y) ||
+    isTileBlocked(map, x, y + height) ||
+    isTileBlocked(map, x + width, y + height);
 
   const borderCollision =
     x < 0 || y < 0 || x + width > GAME_WIDTH || y + height > GAME_HEIGHT;
 
   return characterCollision || tileCollision || borderCollision;
+};
+
+const hasWarp = (character: Character) => {
+  if (!character.mapId) return;
+
+  const map = getMap(character.mapId)!;
+  const { x, y } = character.position;
+  const { width, height } = character;
+
+  const tileWarp =
+    isTileWarp(map, x, y) ||
+    isTileWarp(map, x + width, y) ||
+    isTileWarp(map, x, y + height) ||
+    isTileWarp(map, x + width, y + height);
+
+  return tileWarp;
 };
 
 export const delay = (ms: number) =>
@@ -126,8 +143,15 @@ export const handleKeyPress = async (username: string, key: Key) => {
 
     const collision = hasCollision(proposedState);
 
+    const warp = hasWarp(proposedState);
+
     if (!collision) {
       newState.position = proposedState.position;
+
+      if (warp) {
+        newState.mapId = warp.to;
+        newState.position = warp.position;
+      }
     }
 
     if (key === Key.Control) {
@@ -135,7 +159,9 @@ export const handleKeyPress = async (username: string, key: Key) => {
       handleAttack(newState);
     }
 
+    removePlayerFromMap(player.id);
     updatePlayer(newState);
+    addPlayerOnMap(newState.id);
   }
 
   isActing = false;
@@ -231,6 +257,15 @@ export const addPlayerOnMap = (playerId: string) => {
   const map = getMap(player.mapId);
   if (!map) return;
   map.players[playerId] = player;
+  return updateMap(map);
+};
+
+export const removePlayerFromMap = (playerId: string) => {
+  const player = getPlayer(playerId);
+  if (!player) return;
+  const map = getMap(player.mapId);
+  if (!map) return;
+  delete map.players[playerId];
   return updateMap(map);
 };
 

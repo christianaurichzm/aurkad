@@ -16,11 +16,13 @@ const tilesetCanvas = document.getElementById(
 const tilesetCtx = tilesetCanvas.getContext('2d') as CanvasRenderingContext2D;
 
 const blockButton = document.getElementById('blockButton') as HTMLButtonElement;
+const warpButton = document.getElementById('warpButton') as HTMLButtonElement;
 
 const selectedTile = { startX: 0, startY: 0, endX: 0, endY: 0 };
 let isSelecting = false;
 let isPlacing = false;
 let isBlocking = false;
+let isWarpMode = false;
 const mapWidth = Math.floor(foregroundCanvas.width / TILE_SIZE);
 const mapHeight = Math.floor(foregroundCanvas.height / TILE_SIZE);
 let originalMap: Tile[][] = [];
@@ -35,6 +37,7 @@ const setupEventListeners = () => {
   foregroundCanvas.addEventListener('mouseup', stopPlacing);
 
   blockButton.addEventListener('click', toggleBlockMode);
+  warpButton.addEventListener('click', toggleWarpMode);
 };
 
 const getMousePosition = (event: MouseEvent, canvas: HTMLCanvasElement) => {
@@ -109,6 +112,30 @@ const placeTile = (event: MouseEvent) => {
     map[row][col].blocked = !map[row][col].blocked;
     mapEdited = true;
     renderMap(map);
+  } else if (isWarpMode) {
+    if (map[row][col].warp?.to) {
+      map[row][col].warp = undefined;
+    } else {
+      const warpInput = document.getElementById('mapTo');
+      const xInput = document.getElementById('xTo');
+      const yInput = document.getElementById('yTo');
+
+      if (
+        warpInput &&
+        warpInput instanceof HTMLInputElement &&
+        xInput &&
+        xInput instanceof HTMLInputElement &&
+        yInput &&
+        yInput instanceof HTMLInputElement
+      ) {
+        map[row][col].warp = {
+          to: warpInput.value,
+          position: { x: parseInt(xInput.value), y: parseInt(yInput.value) },
+        };
+      }
+    }
+    mapEdited = true;
+    renderMap(map);
   } else {
     const startX = Math.min(selectedTile.startX, selectedTile.endX);
     const startY = Math.min(selectedTile.startY, selectedTile.endY);
@@ -125,6 +152,7 @@ const placeTile = (event: MouseEvent) => {
           map[row + j][col + i] = {
             tileIndex,
             blocked: map[row + j][col + i].blocked,
+            warp: map[row + j][col + i].warp,
           };
           console.log('Map updated with new tile:', map);
           mapEdited = true;
@@ -160,6 +188,12 @@ const toggleBlockMode = () => {
   blockButton.style.backgroundColor = isBlocking ? 'red' : '';
 };
 
+const toggleWarpMode = () => {
+  isWarpMode = !isWarpMode;
+  warpButton.textContent = isWarpMode ? 'Warp Mode: ON' : 'Warp Mode: OFF';
+  warpButton.style.backgroundColor = isWarpMode ? 'red' : '';
+};
+
 export const initTilesetEditor = () => {
   tilesetCanvas.width = tileset.width;
   tilesetCanvas.height = tileset.height;
@@ -169,6 +203,10 @@ export const initTilesetEditor = () => {
 };
 
 export const renderMap = (tiles: Tile[][]) => {
+  if (tiles) {
+    updateEditorMap(tiles);
+  }
+
   const tilesPerRow = tileset.width / TILE_SIZE;
   for (let row = 0; row < mapHeight; row++) {
     for (let col = 0; col < mapWidth; col++) {
@@ -199,6 +237,12 @@ export const renderMap = (tiles: Tile[][]) => {
         gridCtx.fillStyle = 'red';
         gridCtx.font = '40px Arial';
         gridCtx.fillText('B', col * TILE_SIZE + 20, row * TILE_SIZE + 35);
+      }
+
+      if (tiles[row][col].warp) {
+        gridCtx.fillStyle = 'blue';
+        gridCtx.font = '40px Arial';
+        gridCtx.fillText('W', col * TILE_SIZE + 20, row * TILE_SIZE + 35);
       }
     }
   }
@@ -264,24 +308,13 @@ export const toggleTilesetEditor = () => {
   } else {
     const gameState = getGameState();
     if (gameState.tiles) {
-      map = gameState.tiles.map((row) =>
-        row.map((tile) => ({
-          tileIndex: tile.tileIndex,
-          blocked: tile.blocked,
-        })),
-      );
-
-      originalMap = gameState.tiles.map((row) =>
-        row.map((tile) => ({
-          tileIndex: tile.tileIndex,
-          blocked: tile.blocked,
-        })),
-      );
+      updateEditorMap(gameState.tiles);
     } else {
       map = Array.from({ length: mapHeight }, () =>
         Array.from({ length: mapWidth }, () => ({
           tileIndex: -1,
           blocked: false,
+          warp: undefined,
         })),
       );
       originalMap = map.map((row) => row.map((tile) => ({ ...tile })));
@@ -292,11 +325,30 @@ export const toggleTilesetEditor = () => {
   }
 
   renderMap(map);
+  console.log('caiu tile toggleTilesetEditor');
+};
+
+const updateEditorMap = (tileset: Tile[][]) => {
+  map = tileset.map((row) =>
+    row.map((tile) => ({
+      tileIndex: tile.tileIndex,
+      blocked: tile.blocked,
+      warp: tile.warp,
+    })),
+  );
+
+  originalMap = tileset.map((row) =>
+    row.map((tile) => ({
+      tileIndex: tile.tileIndex,
+      blocked: tile.blocked,
+      warp: tile.warp,
+    })),
+  );
 };
 
 export let tilesetEditorInitialized = false;
 
-let mapEdited = false;
+export let mapEdited = false;
 
 document.addEventListener('DOMContentLoaded', () => {
   const saveButton = document.getElementById('saveButton');

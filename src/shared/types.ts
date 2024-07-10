@@ -114,9 +114,15 @@ export interface GameState {
   maps: Record<string, MapState>;
 }
 
+export interface Warp {
+  to: MapState['id'];
+  position: Position;
+}
+
 export interface Tile {
   tileIndex: number;
-  blocked: boolean;
+  blocked?: boolean;
+  warp?: Warp;
 }
 
 export interface MapState {
