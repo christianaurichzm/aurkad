@@ -137,3 +137,5 @@ export interface HttpRequestOptions {
   headers?: Record<string, string>;
   body?: any;
 }
+
+export type TileEditMode = 'blocking' | 'warping';
