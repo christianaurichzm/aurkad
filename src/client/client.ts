@@ -5,12 +5,23 @@ import { initializeAssets } from './io/files';
 import { handleInput } from './io/keyboard';
 import { initializeWebSocket, login } from './io/network';
 
-document.addEventListener('DOMContentLoaded', () => {
-  const loginForm = document.getElementById('loginForm');
-  const loginContainer = document.getElementById('loginContainer');
-  const gameContainer = document.getElementById('gameContainer');
-  const hudContainer = document.getElementById('hud');
-  const errorMessage = document.getElementById('errorMessage');
+document.addEventListener('DOMContentLoaded', init);
+
+const ELEMENT_IDS = {
+  LOGIN_FORM: 'loginForm',
+  LOGIN_CONTAINER: 'loginContainer',
+  GAME_CONTAINER: 'gameContainer',
+  HUD_CONTAINER: 'hud',
+  ERROR_MESSAGE: 'errorMessage',
+  USERNAME_INPUT: 'username',
+};
+
+function init() {
+  const loginForm = document.getElementById(ELEMENT_IDS.LOGIN_FORM);
+  const loginContainer = document.getElementById(ELEMENT_IDS.LOGIN_CONTAINER);
+  const gameContainer = document.getElementById(ELEMENT_IDS.GAME_CONTAINER);
+  const hudContainer = document.getElementById(ELEMENT_IDS.HUD_CONTAINER);
+  const errorMessage = document.getElementById(ELEMENT_IDS.ERROR_MESSAGE);
 
   if (
     loginForm &&
@@ -19,50 +30,43 @@ document.addEventListener('DOMContentLoaded', () => {
     hudContainer &&
     errorMessage
   ) {
-    loginForm.addEventListener('submit', async (event) => {
-      event.preventDefault();
-      await handleLogin(
+    loginForm.addEventListener('submit', (event) =>
+      handleLogin(
+        event,
         loginContainer,
         gameContainer,
         hudContainer,
         errorMessage,
-      );
-    });
+      ),
+    );
   }
-});
+}
 
 async function handleLogin(
+  event: Event,
   loginContainer: HTMLElement,
   gameContainer: HTMLElement,
   hudContainer: HTMLElement,
   errorMessage: HTMLElement,
 ) {
-  const usernameInput = document.getElementById('username') as HTMLInputElement;
+  event.preventDefault();
+  const usernameInput = document.getElementById(
+    ELEMENT_IDS.USERNAME_INPUT,
+  ) as HTMLInputElement;
 
   if (usernameInput) {
     const username = usernameInput.value;
-
     try {
       const data = await login(username);
       validateResponse(data);
-
-      if (data?.playerId) {
-        const { map } = data;
-        updateGameState(map);
-        toggleContainers(loginContainer, gameContainer, hudContainer);
-        handleInput();
-        initializeWebSocket();
-        initializeAssets()
-          .then(() => {
-            renderMap(map.tiles);
-            initializeGame();
-          })
-          .catch((error) => {
-            console.error('Error during initialization:', error);
-          });
-      }
+      await processLoginSuccess(
+        data,
+        loginContainer,
+        gameContainer,
+        hudContainer,
+      );
     } catch (error) {
-      handleError(error, errorMessage);
+      displayError(error, errorMessage);
     }
   }
 }
@@ -70,6 +74,26 @@ async function handleLogin(
 function validateResponse(data: any) {
   if (!data || !data.map || !data.playerId) {
     throw new Error('Invalid response from server');
+  }
+}
+
+async function processLoginSuccess(
+  data: any,
+  loginContainer: HTMLElement,
+  gameContainer: HTMLElement,
+  hudContainer: HTMLElement,
+) {
+  const { map } = data;
+  updateGameState(map);
+  toggleContainers(loginContainer, gameContainer, hudContainer);
+  handleInput();
+  initializeWebSocket();
+  try {
+    await initializeAssets();
+    await renderMap(map.tiles);
+    startGameLoop();
+  } catch (error) {
+    console.error('Error during initialization:', error);
   }
 }
 
@@ -85,16 +109,17 @@ function toggleContainers(
   hudContainer.style.alignItems = 'center';
 }
 
-function handleError(error: unknown, errorMessage: HTMLElement) {
+function displayError(error: unknown, errorMessage: HTMLElement) {
+  errorMessage.style.display = 'block';
   if (error instanceof Error) {
-    errorMessage.style.display = 'block';
     errorMessage.textContent = error.message;
     console.error('Login error:', error);
   } else {
-    errorMessage.style.display = 'block';
     errorMessage.textContent = 'An unknown error occurred';
     console.error('Unknown error:', error);
   }
 }
 
-const initializeGame = () => requestAnimationFrame(gameLoop);
+function startGameLoop() {
+  requestAnimationFrame(gameLoop);
+}
