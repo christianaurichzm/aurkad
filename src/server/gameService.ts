@@ -32,14 +32,11 @@ import {
 } from './playerService';
 import { broadcast } from './wsServer';
 
-const isColliding = (a: Character, b: Character): boolean => {
-  return (
-    a.position.x < b.position.x + b.width &&
-    a.position.x + a.width > b.position.x &&
-    a.position.y < b.position.y + b.height &&
-    a.position.y + a.height > b.position.y
-  );
-};
+const isColliding = (a: Character, b: Character): boolean =>
+  a.position.x < b.position.x + b.width &&
+  a.position.x + a.width > b.position.x &&
+  a.position.y < b.position.y + b.height &&
+  a.position.y + a.height > b.position.y;
 
 const isTileBlocked = (
   map: MapState,
@@ -48,38 +45,34 @@ const isTileBlocked = (
 ): boolean | undefined => {
   const row = Math.floor(y / TILE_SIZE);
   const col = Math.floor(x / TILE_SIZE);
-  return map.tiles[row] && map.tiles[row][col] && map.tiles[row][col].blocked;
+  return map.tiles[row]?.[col]?.blocked;
 };
 
 const isTileWarp = (map: MapState, x: number, y: number): Warp | undefined => {
   const row = Math.floor(y / TILE_SIZE);
   const col = Math.floor(x / TILE_SIZE);
-  return map.tiles[row] && map.tiles[row][col] && map.tiles[row][col].warp;
+  return map.tiles[row]?.[col]?.warp;
 };
 
-export const hasCollision = (character: Character) => {
-  if (!character.mapId) return;
+export const hasCollision = (character: Character): boolean => {
+  if (!character.mapId) return false;
 
   const map = getMap(character.mapId)!;
   const { players, enemies } = map;
-  const { x, y } = character.position;
   const { width, height } = character;
+  const { x, y } = character.position;
 
-  const characterCollision =
-    Object.values(enemies).some(
-      (otherEnemy) =>
-        otherEnemy.id !== character.id && isColliding(character, otherEnemy),
-    ) ||
-    Object.values(players).some(
-      (otherPlayer) =>
-        otherPlayer.id !== character.id && isColliding(character, otherPlayer),
-    );
+  const characterCollision = [
+    ...Object.values(enemies),
+    ...Object.values(players),
+  ].some((other) => other.id !== character.id && isColliding(character, other));
 
-  const tileCollision =
-    isTileBlocked(map, x, y) ||
-    isTileBlocked(map, x + width, y) ||
-    isTileBlocked(map, x, y + height) ||
-    isTileBlocked(map, x + width, y + height);
+  const tileCollision = [
+    isTileBlocked(map, x, y),
+    isTileBlocked(map, x + width, y),
+    isTileBlocked(map, x, y + height),
+    isTileBlocked(map, x + width, y + height),
+  ].some(Boolean);
 
   const borderCollision =
     x < 0 || y < 0 || x + width > GAME_WIDTH || y + height > GAME_HEIGHT;
@@ -87,20 +80,19 @@ export const hasCollision = (character: Character) => {
   return characterCollision || tileCollision || borderCollision;
 };
 
-const hasWarp = (character: Character) => {
-  if (!character.mapId) return;
+const hasWarp = (character: Character): Warp | undefined => {
+  if (!character.mapId) return undefined;
 
   const map = getMap(character.mapId)!;
-  const { x, y } = character.position;
   const { width, height } = character;
+  const { x, y } = character.position;
 
-  const tileWarp =
-    isTileWarp(map, x, y) ||
-    isTileWarp(map, x + width, y) ||
-    isTileWarp(map, x, y + height) ||
-    isTileWarp(map, x + width, y + height);
-
-  return tileWarp;
+  return [
+    isTileWarp(map, x, y),
+    isTileWarp(map, x + width, y),
+    isTileWarp(map, x, y + height),
+    isTileWarp(map, x + width, y + height),
+  ].find(Boolean);
 };
 
 export const delay = (ms: number) =>
@@ -115,48 +107,49 @@ export const handleKeyPress = async (username: string, key: Key) => {
   const player = getPlayerByName(username);
   if (player) {
     const newState = { ...player };
-    if (key === Key.Shift) {
-      newState.speed *= BOOST_MULTIPLIER;
-    }
+    const proposedState = { ...newState, position: { ...newState.position } };
 
-    const proposedState = JSON.parse(JSON.stringify(newState));
-
-    if (key === Key.ArrowUp) {
-      newState.direction = Direction.Up;
-      newState.action = PlayerAction.Walk;
-      proposedState.position.y -= TILE_SIZE;
-    } else if (key === Key.ArrowDown) {
-      newState.direction = Direction.Down;
-      newState.action = PlayerAction.Walk;
-      proposedState.position.y += TILE_SIZE;
-    } else if (key === Key.ArrowLeft) {
-      newState.direction = Direction.Left;
-      newState.action = PlayerAction.Walk;
-      proposedState.position.x -= TILE_SIZE;
-    } else if (key === Key.ArrowRight) {
-      newState.direction = Direction.Right;
-      newState.action = PlayerAction.Walk;
-      proposedState.position.x += TILE_SIZE;
+    switch (key) {
+      case Key.Shift:
+        newState.speed *= BOOST_MULTIPLIER;
+        break;
+      case Key.ArrowUp:
+        newState.direction = Direction.Up;
+        newState.action = PlayerAction.Walk;
+        proposedState.position.y -= TILE_SIZE;
+        break;
+      case Key.ArrowDown:
+        newState.direction = Direction.Down;
+        newState.action = PlayerAction.Walk;
+        proposedState.position.y += TILE_SIZE;
+        break;
+      case Key.ArrowLeft:
+        newState.direction = Direction.Left;
+        newState.action = PlayerAction.Walk;
+        proposedState.position.x -= TILE_SIZE;
+        break;
+      case Key.ArrowRight:
+        newState.direction = Direction.Right;
+        newState.action = PlayerAction.Walk;
+        proposedState.position.x += TILE_SIZE;
+        break;
+      case Key.Control:
+        newState.action = PlayerAction.Attack;
+        handleAttack(newState);
+        break;
     }
 
     await delay((DEFAULT_PLAYER_SPEED * BOOST_MULTIPLIER) / player.speed);
 
     const collision = hasCollision(proposedState);
-
     const warp = hasWarp(proposedState);
 
     if (!collision) {
       newState.position = proposedState.position;
-
       if (warp) {
         newState.mapId = warp.to;
         newState.position = warp.position;
       }
-    }
-
-    if (key === Key.Control) {
-      newState.action = PlayerAction.Attack;
-      handleAttack(newState);
     }
 
     removePlayerFromMap(player.id);
@@ -167,17 +160,12 @@ export const handleKeyPress = async (username: string, key: Key) => {
   isActing = false;
 };
 
-export function handleKeyRelease(username: string, key: Key) {
+export const handleKeyRelease = (username: string, key: Key) => {
   const player = getPlayerByName(username);
   if (player) {
     const newState = { ...player };
-    if (key === Key.Control) {
-      newState.action = PlayerAction.Idle;
-    }
-
-    if (key === Key.Shift) {
-      newState.speed = DEFAULT_PLAYER_SPEED;
-    }
+    if (key === Key.Control) newState.action = PlayerAction.Idle;
+    if (key === Key.Shift) newState.speed = DEFAULT_PLAYER_SPEED;
     if (
       [Key.ArrowDown, Key.ArrowLeft, Key.ArrowRight, Key.ArrowUp].includes(key)
     ) {
@@ -185,11 +173,11 @@ export function handleKeyRelease(username: string, key: Key) {
     }
     updatePlayer(newState);
   }
-}
+};
 
-export function mapSave(mapId: string, tiles: Tile[][]) {
+export const mapSave = (mapId: string, tiles: Tile[][]) => {
   updateMapById(mapId, tiles);
-}
+};
 
 export const changeSprite = (spriteId: number, username: string) => {
   const newPlayer: Player = {
@@ -205,9 +193,8 @@ export const getGameState = () => getGameStateDb();
 export const getPlayerByName = (username: string) =>
   Object.values(getPlayers()).find((player) => player.name === username);
 
-export const login = (username: string) => {
-  return getPlayerByName(username) || createPlayer(username);
-};
+export const login = (username: string) =>
+  getPlayerByName(username) || createPlayer(username);
 
 export const handlePlayerUpdate = (player: Player): void => {
   handlePlayerUpdates(player);
@@ -218,6 +205,7 @@ export const handleAttack = (player: Player): void => {
 
   const map = getMap(player.mapId);
   const enemies = map?.enemies;
+
   if (enemies) {
     Object.values(enemies).forEach((enemy) => {
       const distanceX = Math.abs(player.position.x - enemy.position.x);
@@ -225,7 +213,6 @@ export const handleAttack = (player: Player): void => {
 
       const isWithinAttackRange =
         distanceX <= player.attackRange && distanceY <= player.attackRange;
-
       const isFacingEnemy =
         (player.direction === Direction.Up &&
           enemy.position.y < player.position.y) ||
@@ -253,8 +240,7 @@ export const handleAttack = (player: Player): void => {
 
 export const addPlayerOnMap = (playerId: string) => {
   const player = getPlayer(playerId);
-  if (!player) return;
-  const map = getMap(player.mapId);
+  const map = player && getMap(player.mapId);
   if (!map) return;
   map.players[playerId] = player;
   return updateMap(map);
@@ -262,18 +248,15 @@ export const addPlayerOnMap = (playerId: string) => {
 
 export const removePlayerFromMap = (playerId: string) => {
   const player = getPlayer(playerId);
-  if (!player) return;
-  const map = getMap(player.mapId);
+  const map = player && getMap(player.mapId);
   if (!map) return;
   delete map.players[playerId];
   return updateMap(map);
 };
 
 export const disconnectPlayer = (username?: string) => {
-  if (!username) return;
-  const player = getPlayerByName(username);
-  if (!player) return;
-  const map = getMap(player.mapId);
+  const player = username && getPlayerByName(username);
+  const map = player && getMap(player.mapId);
   if (!map) return;
   delete map.players[player.id];
   updateMap(map);
