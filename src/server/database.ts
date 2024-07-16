@@ -21,8 +21,8 @@ const enemies: EnemiesMap = {
       x: 4 * TILE_SIZE,
       y: 2 * TILE_SIZE,
     },
-    width: SPRITE_WIDTH / 2,
-    height: SPRITE_HEIGHT / 2,
+    width: SPRITE_WIDTH,
+    height: SPRITE_HEIGHT,
     health: 100,
     experienceValue: 500,
     sprite: 0,
@@ -38,8 +38,8 @@ const enemies: EnemiesMap = {
       x: 7 * TILE_SIZE,
       y: 2 * TILE_SIZE,
     },
-    width: SPRITE_WIDTH / 2,
-    height: SPRITE_HEIGHT / 2,
+    width: SPRITE_WIDTH,
+    height: SPRITE_HEIGHT,
     health: 100,
     experienceValue: 500,
     sprite: 0,
@@ -95,17 +95,13 @@ export const updateMap = (map: MapState): MapState | undefined => {
   }
 };
 
-export const updateMapById = (
-  mapId: string,
-  tiles: Tile[][],
-): MapState | undefined => {
-  const map = getMap(mapId);
-  if (map) {
-    if (gameState.maps[map.id]) {
-      gameState.maps[map.id] = { ...map, tiles };
-      return gameState.maps[map.id];
+export const updateMapById = (mapState: MapState): MapState | undefined => {
+  if (mapState) {
+    if (gameState.maps[mapState.id]) {
+      gameState.maps[mapState.id] = { ...mapState };
+      return gameState.maps[mapState.id];
     } else {
-      console.warn('updateMap: Map not found', map.id);
+      console.warn('updateMap: Map not found', mapState.id);
     }
   }
 };

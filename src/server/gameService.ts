@@ -14,8 +14,10 @@ import {
   Tile,
   MapState,
   Warp,
+  EnemiesMap,
 } from '../shared/types';
 import {
+  getEnemies,
   getGameStateDb,
   getMap,
   getPlayer,
@@ -24,7 +26,7 @@ import {
   updateMapById,
   updatePlayer,
 } from './database';
-import { respawnEnemy } from './enemyService';
+import { findEnemySpawnPositions, respawnEnemy } from './enemyService';
 import {
   createPlayer,
   handlePlayerUpdates,
@@ -38,20 +40,35 @@ const isColliding = (a: Character, b: Character): boolean =>
   a.position.y < b.position.y + b.height &&
   a.position.y + a.height > b.position.y;
 
-const isTileBlocked = (
-  map: MapState,
-  x: number,
-  y: number,
-): boolean | undefined => {
+const isTileBlocked = (map: MapState, x: number, y: number): boolean => {
   const row = Math.floor(y / TILE_SIZE);
   const col = Math.floor(x / TILE_SIZE);
-  return map.tiles[row]?.[col]?.blocked;
+  return !!map.tiles[row]?.[col]?.blocked;
 };
 
 const isTileWarp = (map: MapState, x: number, y: number): Warp | undefined => {
   const row = Math.floor(y / TILE_SIZE);
   const col = Math.floor(x / TILE_SIZE);
   return map.tiles[row]?.[col]?.warp;
+};
+
+export const insertEnemies = (mapId: string, tiles: Tile[][]) => {
+  const newMap = { ...getMap(mapId), tiles, enemies: {} as EnemiesMap };
+  tiles.forEach((row, rowIndex) =>
+    row.forEach((tile, colIndex) => {
+      if (tile.enemySpawn) {
+        const enemy = {
+          ...getEnemies()[tile.enemySpawn],
+          position: { x: colIndex * TILE_SIZE, y: rowIndex * TILE_SIZE },
+          mapId,
+        };
+        newMap.enemies[
+          String.fromCharCode(65 + Math.floor(Math.random() * 26))
+        ] = enemy;
+      }
+    }),
+  );
+  return newMap;
 };
 
 export const hasCollision = (character: Character): boolean => {
@@ -69,9 +86,9 @@ export const hasCollision = (character: Character): boolean => {
 
   const tileCollision = [
     isTileBlocked(map, x, y),
-    isTileBlocked(map, x + width, y),
-    isTileBlocked(map, x, y + height),
-    isTileBlocked(map, x + width, y + height),
+    isTileBlocked(map, x + width - 1, y),
+    isTileBlocked(map, x, y + height - 1),
+    isTileBlocked(map, x + width - 1, y + height - 1),
   ].some(Boolean);
 
   const borderCollision =
@@ -89,9 +106,9 @@ const hasWarp = (character: Character): Warp | undefined => {
 
   return [
     isTileWarp(map, x, y),
-    isTileWarp(map, x + width, y),
-    isTileWarp(map, x, y + height),
-    isTileWarp(map, x + width, y + height),
+    isTileWarp(map, x + width - 1, y),
+    isTileWarp(map, x, y + height - 1),
+    isTileWarp(map, x + width - 1, y + height - 1),
   ].find(Boolean);
 };
 
@@ -114,24 +131,40 @@ export const handleKeyPress = async (username: string, key: Key) => {
         newState.speed *= BOOST_MULTIPLIER;
         break;
       case Key.ArrowUp:
-        newState.direction = Direction.Up;
-        newState.action = PlayerAction.Walk;
-        proposedState.position.y -= TILE_SIZE;
+        updatePlayerPositionAndDirection(
+          newState,
+          proposedState,
+          Direction.Up,
+          0,
+          -TILE_SIZE,
+        );
         break;
       case Key.ArrowDown:
-        newState.direction = Direction.Down;
-        newState.action = PlayerAction.Walk;
-        proposedState.position.y += TILE_SIZE;
+        updatePlayerPositionAndDirection(
+          newState,
+          proposedState,
+          Direction.Down,
+          0,
+          TILE_SIZE,
+        );
         break;
       case Key.ArrowLeft:
-        newState.direction = Direction.Left;
-        newState.action = PlayerAction.Walk;
-        proposedState.position.x -= TILE_SIZE;
+        updatePlayerPositionAndDirection(
+          newState,
+          proposedState,
+          Direction.Left,
+          -TILE_SIZE,
+          0,
+        );
         break;
       case Key.ArrowRight:
-        newState.direction = Direction.Right;
-        newState.action = PlayerAction.Walk;
-        proposedState.position.x += TILE_SIZE;
+        updatePlayerPositionAndDirection(
+          newState,
+          proposedState,
+          Direction.Right,
+          TILE_SIZE,
+          0,
+        );
         break;
       case Key.Control:
         newState.action = PlayerAction.Attack;
@@ -152,12 +185,29 @@ export const handleKeyPress = async (username: string, key: Key) => {
       }
     }
 
-    removePlayerFromMap(player.id);
-    updatePlayer(newState);
-    addPlayerOnMap(newState.id);
+    updatePlayerMap(player.id, newState);
   }
 
   isActing = false;
+};
+
+const updatePlayerPositionAndDirection = (
+  newState: Player,
+  proposedState: Player,
+  direction: Direction,
+  dx: number,
+  dy: number,
+) => {
+  newState.direction = direction;
+  newState.action = PlayerAction.Walk;
+  proposedState.position.x += dx;
+  proposedState.position.y += dy;
+};
+
+const updatePlayerMap = (playerId: string, newState: Player) => {
+  removePlayerFromMap(playerId);
+  updatePlayer(newState);
+  addPlayerOnMap(newState.id);
 };
 
 export const handleKeyRelease = (username: string, key: Key) => {
@@ -176,7 +226,9 @@ export const handleKeyRelease = (username: string, key: Key) => {
 };
 
 export const mapSave = (mapId: string, tiles: Tile[][]) => {
-  updateMapById(mapId, tiles);
+  const newMap = insertEnemies(mapId, tiles);
+  console.log(newMap);
+  updateMapById(newMap as MapState);
 };
 
 export const changeSprite = (spriteId: number, username: string) => {
@@ -231,7 +283,7 @@ export const handleAttack = (player: Player): void => {
           player.experience += enemy.experienceValue;
 
           levelUpPlayer(player);
-          respawnEnemy(enemy);
+          respawnEnemy(player.mapId, enemy);
         }
       }
     });

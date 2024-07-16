@@ -13,6 +13,7 @@ const tilesetCanvas = document.getElementById(
 const tilesetCtx = tilesetCanvas.getContext('2d') as CanvasRenderingContext2D;
 const blockButton = document.getElementById('blockButton') as HTMLButtonElement;
 const warpButton = document.getElementById('warpButton') as HTMLButtonElement;
+const enemyButton = document.getElementById('enemyButton') as HTMLButtonElement;
 const tilesetContainer = document.getElementById(
   'tilesetContainer',
 ) as HTMLDivElement;
@@ -66,8 +67,31 @@ const modes: Record<TileEditMode, ModeConfig> = {
         } else {
           map[row][col].warp = {
             to: warpInput.value,
-            position: { x: parseInt(xInput.value), y: parseInt(yInput.value) },
+            position: {
+              x: parseInt(xInput.value) * TILE_SIZE,
+              y: parseInt(yInput.value) * TILE_SIZE,
+            },
           };
+        }
+      }
+      mapEdited = true;
+      renderMap(map);
+    },
+  },
+  enemy: {
+    button: enemyButton,
+    textOn: 'Enemy Mode: ON',
+    textOff: 'Enemy Mode: OFF',
+    styleOn: 'red',
+    styleOff: '',
+    place: (row: number, col: number) => {
+      const enemyInput = document.getElementById('enemy') as HTMLInputElement;
+
+      if (enemyInput) {
+        if (map[row][col].enemySpawn) {
+          map[row][col].enemySpawn = undefined;
+        } else {
+          map[row][col].enemySpawn = enemyInput.value;
         }
       }
       mapEdited = true;
@@ -96,6 +120,7 @@ const setupEventListeners = () => {
   foregroundCanvas.addEventListener('mouseup', stopPlacing);
   blockButton.addEventListener('click', () => toggleMode('blocking'));
   warpButton.addEventListener('click', () => toggleMode('warping'));
+  enemyButton.addEventListener('click', () => toggleMode('enemy'));
 };
 
 const getMousePosition = (event: MouseEvent, canvas: HTMLCanvasElement) => {
@@ -289,6 +314,9 @@ const drawMarkers = (tiles: Tile[][]) => {
       }
       if (tile.warp) {
         drawMarker(colIndex, rowIndex, 'W', 'blue');
+      }
+      if (tile.enemySpawn) {
+        drawMarker(colIndex, rowIndex, 'E', 'yellow');
       }
     });
   });

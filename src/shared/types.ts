@@ -74,6 +74,7 @@ export interface ServerAction {
 export type ActionQueueItem = ClientAction | ServerAction;
 
 export type ActionQueue = Array<ActionQueueItem>;
+
 export interface Character {
   id: string;
   position: Position;
@@ -123,6 +124,7 @@ export interface Tile {
   tileIndex: number;
   blocked?: boolean;
   warp?: Warp;
+  enemySpawn?: Enemy['id'];
 }
 
 export interface MapState {
@@ -138,4 +140,4 @@ export interface HttpRequestOptions {
   body?: any;
 }
 
-export type TileEditMode = 'blocking' | 'warping';
+export type TileEditMode = 'blocking' | 'warping' | 'enemy';
