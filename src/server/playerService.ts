@@ -8,6 +8,7 @@ import {
 } from '../shared/constants';
 import { PlayerAction, Direction, Player, Access } from '../shared/types';
 import { addPlayer, getPlayer, updatePlayer } from './database';
+import { addPlayerOnMap, removePlayerFromMap } from './gameService';
 
 export const createPlayer = (username: string): Player => {
   const newPlayer: Player = {
@@ -53,6 +54,8 @@ export const handlePlayerUpdates = (player: Player): void => {
 
 export const respawnPlayer = (player: Player): void => {
   player.health = 100;
+  removePlayerFromMap(player.id);
   player.mapId = FIRST_GAME_MAP_ID;
   player.position = RESPAWN_POSITION;
+  addPlayerOnMap(player.id);
 };
