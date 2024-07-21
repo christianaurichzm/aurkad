@@ -129,6 +129,7 @@ export interface Tile {
 
 export interface MapState {
   id: string;
+  name: string;
   players: Record<string, Player>;
   enemies: Record<string, Enemy>;
   tiles: Tile[][];

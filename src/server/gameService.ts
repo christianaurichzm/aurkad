@@ -26,7 +26,7 @@ import {
   updateMapById,
   updatePlayer,
 } from './database';
-import { findEnemySpawnPositions, respawnEnemy } from './enemyService';
+import { respawnEnemy } from './enemyService';
 import {
   createPlayer,
   handlePlayerUpdates,

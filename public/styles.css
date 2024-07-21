@@ -72,11 +72,17 @@ button:hover {
   z-index: 3;
 }
 
-#gameContainer {
+#canvasContainer {
   display: none;
   position: relative;
   width: 1280px;
   height: 896px;
+}
+
+#gameInfo {
+  flex-direction: column;
+  align-items: center;
+  display: none;
 }
 
 #errorMessage {

@@ -73,6 +73,8 @@ export function drawSprite(
 
 export const render = (map?: MapState) => {
   if (map) {
+    const mapName = document.getElementById('mapName') as HTMLElement;
+    mapName.textContent = `${map.id} - ${map.name}`;
     playerCtx.clearRect(0, 0, foregroundCanvas.width, foregroundCanvas.height);
     if (!mapEdited) {
       foregroundCtx.clearRect(

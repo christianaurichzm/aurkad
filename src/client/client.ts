@@ -1,3 +1,4 @@
+import { MapState } from '../shared/types';
 import { gameLoop } from './core/game';
 import { updateGameState } from './core/gameState';
 import { renderMap } from './graphics/tileset';
@@ -10,23 +11,25 @@ document.addEventListener('DOMContentLoaded', init);
 const ELEMENT_IDS = {
   LOGIN_FORM: 'loginForm',
   LOGIN_CONTAINER: 'loginContainer',
-  GAME_CONTAINER: 'gameContainer',
+  CANVAS_CONTAINER: 'canvasContainer',
   HUD_CONTAINER: 'hud',
   ERROR_MESSAGE: 'errorMessage',
   USERNAME_INPUT: 'username',
+  GAME_INFO: 'gameInfo',
+  MAP_NAME: 'mapName',
 };
 
 function init() {
   const loginForm = document.getElementById(ELEMENT_IDS.LOGIN_FORM);
   const loginContainer = document.getElementById(ELEMENT_IDS.LOGIN_CONTAINER);
-  const gameContainer = document.getElementById(ELEMENT_IDS.GAME_CONTAINER);
+  const canvasContainer = document.getElementById(ELEMENT_IDS.CANVAS_CONTAINER);
   const hudContainer = document.getElementById(ELEMENT_IDS.HUD_CONTAINER);
   const errorMessage = document.getElementById(ELEMENT_IDS.ERROR_MESSAGE);
 
   if (
     loginForm &&
     loginContainer &&
-    gameContainer &&
+    canvasContainer &&
     hudContainer &&
     errorMessage
   ) {
@@ -34,7 +37,7 @@ function init() {
       handleLogin(
         event,
         loginContainer,
-        gameContainer,
+        canvasContainer,
         hudContainer,
         errorMessage,
       ),
@@ -45,7 +48,7 @@ function init() {
 async function handleLogin(
   event: Event,
   loginContainer: HTMLElement,
-  gameContainer: HTMLElement,
+  canvasContainer: HTMLElement,
   hudContainer: HTMLElement,
   errorMessage: HTMLElement,
 ) {
@@ -62,7 +65,7 @@ async function handleLogin(
       await processLoginSuccess(
         data,
         loginContainer,
-        gameContainer,
+        canvasContainer,
         hudContainer,
       );
     } catch (error) {
@@ -80,12 +83,12 @@ function validateResponse(data: any) {
 async function processLoginSuccess(
   data: any,
   loginContainer: HTMLElement,
-  gameContainer: HTMLElement,
+  canvasContainer: HTMLElement,
   hudContainer: HTMLElement,
 ) {
   const { map } = data;
   updateGameState(map);
-  toggleContainers(loginContainer, gameContainer, hudContainer);
+  toggleContainers(loginContainer, canvasContainer, hudContainer, map);
   handleInput();
   initializeWebSocket();
   try {
@@ -99,14 +102,22 @@ async function processLoginSuccess(
 
 function toggleContainers(
   loginContainer: HTMLElement,
-  gameContainer: HTMLElement,
+  canvasContainer: HTMLElement,
   hudContainer: HTMLElement,
+  map: MapState,
 ) {
+  const gameInfo = document.getElementById(
+    ELEMENT_IDS.GAME_INFO,
+  ) as HTMLElement;
+  const mapName = document.getElementById(ELEMENT_IDS.MAP_NAME) as HTMLElement;
+
   loginContainer.style.display = 'none';
-  gameContainer.style.display = 'block';
+  canvasContainer.style.display = 'block';
   hudContainer.style.display = 'flex';
   hudContainer.style.flexDirection = 'row';
   hudContainer.style.alignItems = 'center';
+  gameInfo.style.display = 'flex';
+  mapName.textContent = `${map.id} - ${map.name}`;
 }
 
 function displayError(error: unknown, errorMessage: HTMLElement) {

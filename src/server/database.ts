@@ -55,6 +55,7 @@ const gameState: GameState = {
   maps: {
     '1': {
       id: '1',
+      name: 'First map',
       players: {},
       enemies: { ...enemies },
       tiles: Array.from({ length: 448 / 32 }, () =>
@@ -63,6 +64,7 @@ const gameState: GameState = {
     },
     '2': {
       id: '2',
+      name: 'Second map',
       players: {},
       enemies: {},
       tiles: Array.from({ length: 448 / 32 }, () =>
