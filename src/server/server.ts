@@ -57,7 +57,7 @@ app.post('/login', async (req: Request, res: Response) => {
           res.status(500).send('Failed to save session');
           return;
         }
-        res.status(200).json({ playerId: player.id, map });
+        res.status(200).json({ player, map });
       });
     } else {
       res.status(404).send('User not found');

@@ -7,6 +7,7 @@ export enum Key {
   Shift = 'Shift',
   Control = 'Control',
   z = 'z',
+  i = 'i',
 }
 
 export enum Direction {
@@ -43,7 +44,7 @@ export const playerNameColorRecord: Record<Access, string> = {
   [Access.ADMIN]: 'black',
 };
 
-export const keyRecord: Record<Key, Protocol> = {
+export const keyRecord: Partial<Record<Key, Protocol>> = {
   ArrowUp: Protocol.WS,
   ArrowDown: Protocol.WS,
   ArrowLeft: Protocol.WS,
@@ -62,16 +63,32 @@ export interface KeyboardAction {
   type: 'press' | 'release';
 }
 
+export type ClientActionType = 'keyboard' | 'item';
+
 export interface ClientAction {
   username: string;
+  type: ClientActionType;
+}
+
+export interface ClientKeyboardAction extends ClientAction {
+  type: 'keyboard';
   keyboardAction: KeyboardAction;
+}
+
+export interface ClientItemAction extends ClientAction {
+  type: 'item';
+  item: number;
+  action: 'use' | 'drop';
 }
 
 export interface ServerAction {
   action: ServerActionType;
 }
 
-export type ActionQueueItem = ClientAction | ServerAction;
+export type ActionQueueItem =
+  | ClientKeyboardAction
+  | ClientItemAction
+  | ServerAction;
 
 export type ActionQueue = Array<ActionQueueItem>;
 
@@ -94,18 +111,53 @@ export interface Position {
   y: number;
 }
 
+type NumericKeys<T> = {
+  [K in keyof T]: T[K] extends number ? K : never;
+}[keyof T];
+
+export type EffectType = 'add' | 'multiply';
+
+export interface Effect {
+  attribute: Exclude<NumericKeys<Character>, 'width' | 'height'>;
+  type: EffectType;
+  value: number;
+}
+
+export interface Item {
+  id: number;
+  name: string;
+  description: string;
+  sprite: number;
+  type: 'weapon' | 'armor' | 'consumable';
+  effects?: Effect[];
+}
+
+export interface Inventory {
+  items: Item[];
+  maxCapacity: number;
+}
+
+export interface EquippedItems {
+  weapon?: Item;
+  armor?: Item;
+}
+
 export interface Player extends Character {
   name: string;
   level: number;
   speed: number;
   experience: number;
   experienceToNextLevel: number;
+  inventory: Inventory;
+  equipped: EquippedItems;
   access: Access;
 }
 
 export type PlayersMap = { [key: string]: Player };
 
 export type EnemiesMap = { [key: string]: Enemy };
+
+export type ItemsMap = { [key: number]: Item };
 
 export interface Enemy extends Character {
   experienceValue: number;

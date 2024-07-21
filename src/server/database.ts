@@ -10,9 +10,27 @@ import {
   PlayersMap,
   Tile,
   Character,
+  ItemsMap,
 } from '../shared/types';
 
 const players: PlayersMap = {};
+
+const items: ItemsMap = {
+  1: {
+    id: 1,
+    name: 'Sword',
+    description: 'A sharp blade.',
+    sprite: 1,
+    type: 'weapon',
+    effects: [
+      {
+        attribute: 'attack',
+        type: 'add',
+        value: 20,
+      },
+    ],
+  },
+};
 
 const enemies: EnemiesMap = {
   '1': {
@@ -166,6 +184,10 @@ export const setEnemies = (newEnemies: Enemy[]): void => {
       }
     });
   });
+};
+
+export const getItems = (): ItemsMap => {
+  return items;
 };
 
 export const getEnemies = (): EnemiesMap => {

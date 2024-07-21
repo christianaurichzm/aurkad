@@ -7,10 +7,14 @@ import {
   PlayersMap,
   Position,
   playerActionRecord,
+  Player,
+  Item,
 } from '../../shared/types';
+import { getGameState, getPlayer } from '../core/gameState';
 import { spriteSheet } from '../io/files';
 import { renderHealthBar, renderHUD } from '../ui/hud';
 import { foregroundCanvas, foregroundCtx, playerCtx } from './canvas';
+import { renderInventory } from './inventory';
 import { getCharacterSpriteCoordinates, getSpriteSize } from './sprite';
 import { mapEdited, renderMap } from './tileset';
 
@@ -38,7 +42,7 @@ const renderPlayers = (players: PlayersMap) => {
 
 const renderEnemies = (enemies: EnemiesMap) => {
   Object.values(enemies).forEach((enemy) => {
-    if (enemy?.health > 0) {
+    if (enemy.health > 0) {
       renderEntity(enemy);
       renderHealthBar(enemy);
     }
@@ -71,7 +75,9 @@ export function drawSprite(
   );
 }
 
-export const render = (map?: MapState) => {
+export const render = () => {
+  const map = getGameState();
+
   if (map) {
     const mapName = document.getElementById('mapName') as HTMLElement;
     mapName.textContent = `${map.id} - ${map.name}`;

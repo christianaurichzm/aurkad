@@ -11,13 +11,20 @@ import {
   ActionQueue,
   ActionQueueItem,
   ClientAction,
+  ClientKeyboardAction,
+  ClientItemAction,
   ServerAction,
   ServerActionType,
-  KeyboardAction,
 } from '../shared/types';
 import { updateEnemies } from './enemyService';
 import { RequestHandler } from 'express';
 import { updateEnemy } from './database';
+import {
+  handleItemAction,
+  handleKeyAction,
+  removeItemFromInventory,
+  useItem,
+} from './playerService';
 
 let wss: WebSocketServer;
 
@@ -47,8 +54,22 @@ export const startWebSocketServer = (
       playersWsMap.set(username, ws);
 
       ws.on('message', (message) => {
-        const keyboardAction: KeyboardAction = JSON.parse(message.toString());
-        enqueueAction({ username, keyboardAction });
+        const clientAction: ClientAction = JSON.parse(message.toString());
+        if (clientAction.type === 'keyboard') {
+          enqueueAction({
+            username,
+            type: 'keyboard',
+            keyboardAction: (clientAction as ClientKeyboardAction)
+              .keyboardAction,
+          } as ClientKeyboardAction);
+        } else if (clientAction.type === 'item') {
+          enqueueAction({
+            username,
+            type: 'item',
+            item: (clientAction as ClientItemAction).item,
+            action: (clientAction as ClientItemAction).action,
+          });
+        }
       });
 
       ws.on('close', () => {
@@ -58,6 +79,7 @@ export const startWebSocketServer = (
     }
   });
 };
+
 setInterval(() => {
   processActions();
   broadcastGameState();
@@ -79,13 +101,10 @@ export async function processActions() {
 
     if (action) {
       if (isClientAction(action)) {
-        switch (action.keyboardAction.type) {
-          case 'press':
-            handleKeyPress(action.username, action.keyboardAction.key);
-            break;
-          case 'release':
-            handleKeyRelease(action.username, action.keyboardAction.key);
-            break;
+        if (action.type === 'keyboard') {
+          handleKeyAction(action);
+        } else if (action.type === 'item') {
+          handleItemAction(action);
         }
       } else if (isServerAction(action)) {
         handleServerAction(action);
@@ -94,7 +113,9 @@ export async function processActions() {
   }
 }
 
-function isClientAction(action: ActionQueueItem): action is ClientAction {
+function isClientAction(
+  action: ActionQueueItem,
+): action is ClientKeyboardAction | ClientItemAction {
   return (action as ClientAction).username !== undefined;
 }
 
@@ -119,8 +140,9 @@ function handleServerAction(action: ServerAction) {
 function broadcastGameState() {
   const gameState = getGameState();
   Object.values(gameState.maps).forEach((map) => {
-    const message = JSON.stringify(map);
     Object.values(map.players).forEach((player) => {
+      const message = JSON.stringify({ map, player });
+      console.log(player.attack);
       const ws = playersWsMap.get(player.name);
       if (ws?.readyState === WebSocket.OPEN) {
         ws.send(message);

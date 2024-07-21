@@ -3,14 +3,16 @@ import {
   Player,
   MapState,
   KeyboardAction,
+  ClientActionType,
+  ClientAction,
 } from '../../shared/types';
-import { getGameState, updateGameState } from '../core/gameState';
+import { getGameState, setPlayer, updateGameState } from '../core/gameState';
 
 const WS_URL = 'ws://localhost:8080/ws';
 
 let socket: WebSocket;
 
-const messageQueue: MapState[] = [];
+const messageQueue: { map: MapState; player: Player }[] = [];
 
 export const initializeWebSocket = () => {
   socket = new WebSocket(WS_URL);
@@ -36,14 +38,15 @@ export function updateWebSocket(): void {
   while (messageQueue.length > 0) {
     const message = messageQueue.shift();
     if (message) {
-      updateGameState(message);
+      updateGameState(message.map);
+      setPlayer(message.player);
     }
   }
 }
 
-export function sendKeyboardAction(keyboardAction: KeyboardAction) {
+export function sendAction(action: ClientAction) {
   if (socket.readyState === WebSocket.OPEN) {
-    socket.send(JSON.stringify(keyboardAction));
+    socket.send(JSON.stringify(action));
   } else {
     console.error('WebSocket is not open.');
   }
@@ -87,7 +90,7 @@ export const httpClient = async <T>(
 };
 
 export const login = async (username: string) => {
-  return httpClient<{ playerId: Player['id']; map: MapState }>('/login', {
+  return httpClient<{ player: Player; map: MapState }>('/login', {
     method: 'POST',
     body: { username },
   });

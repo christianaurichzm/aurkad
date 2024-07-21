@@ -2,14 +2,14 @@ import { MapState, Player } from '../../shared/types';
 
 let gameMap: MapState;
 
-let _player: Player;
+let player: Player;
 
-export const setPlayer = (player: Player) => {
-  _player = player;
+export const setPlayer = (playerState: Player) => {
+  player = playerState;
 };
 
 export const getPlayer = (): Player => {
-  return _player;
+  return player;
 };
 
 export const updateGameState = (gameState: MapState) => {

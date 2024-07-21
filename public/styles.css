@@ -134,3 +134,67 @@ button:hover {
   line-height: 20px;
   font-weight: bold;
 }
+
+.inventory {
+  border: 1px solid #ccc;
+  padding: 10px;
+  width: 300px;
+  display: none;
+}
+
+.items {
+  display: flex;
+  flex-wrap: wrap;
+}
+
+.item {
+  width: 48px;
+  height: 48px;
+  border: 1px solid #ddd;
+  margin: 2px;
+  position: relative;
+  cursor: pointer;
+}
+
+.item img {
+  width: 100%;
+  height: 100%;
+  pointer-events: all;
+}
+
+.tooltip {
+  position: absolute;
+  padding: 10px;
+  background-color: rgba(0, 0, 0, 0.8);
+  color: #fff;
+  border-radius: 5px;
+  display: none;
+  z-index: 1000;
+}
+
+.tooltip h3 {
+  margin: 0 0 5px 0;
+}
+
+.tooltip p {
+  margin: 0;
+}
+
+.use-button-container {
+  margin-top: 20px;
+}
+
+.use-button-container button {
+  padding: 10px;
+  font-size: 16px;
+  cursor: pointer;
+  background-color: #4CAF50;
+  color: white;
+  border: none;
+  border-radius: 5px;
+}
+
+.use-button-container button:disabled {
+  background-color: #ccc;
+  cursor: not-allowed;
+}

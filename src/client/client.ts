@@ -1,6 +1,6 @@
-import { MapState } from '../shared/types';
+import { MapState, Player } from '../shared/types';
 import { gameLoop } from './core/game';
-import { updateGameState } from './core/gameState';
+import { setPlayer, updateGameState } from './core/gameState';
 import { renderMap } from './graphics/tileset';
 import { initializeAssets } from './io/files';
 import { handleInput } from './io/keyboard';
@@ -60,10 +60,11 @@ async function handleLogin(
   if (usernameInput) {
     const username = usernameInput.value;
     try {
-      const data = await login(username);
+      const data: { map: MapState; player: Player } | null =
+        await login(username);
       validateResponse(data);
       await processLoginSuccess(
-        data,
+        data!,
         loginContainer,
         canvasContainer,
         hudContainer,
@@ -74,20 +75,21 @@ async function handleLogin(
   }
 }
 
-function validateResponse(data: any) {
-  if (!data || !data.map || !data.playerId) {
+function validateResponse(data: { map: MapState; player: Player } | null) {
+  if (!data || !data.map || !data.player) {
     throw new Error('Invalid response from server');
   }
 }
 
 async function processLoginSuccess(
-  data: any,
+  data: { map: MapState; player: Player },
   loginContainer: HTMLElement,
   canvasContainer: HTMLElement,
   hudContainer: HTMLElement,
 ) {
-  const { map } = data;
+  const { map, player } = data;
   updateGameState(map);
+  setPlayer(player);
   toggleContainers(loginContainer, canvasContainer, hudContainer, map);
   handleInput();
   initializeWebSocket();
