@@ -227,7 +227,6 @@ export const handleKeyRelease = (username: string, key: Key) => {
 
 export const mapSave = (mapId: string, tiles: Tile[][]) => {
   const newMap = insertEnemies(mapId, tiles);
-  console.log(newMap);
   updateMapById(newMap as MapState);
 };
 

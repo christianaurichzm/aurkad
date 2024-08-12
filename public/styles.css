@@ -61,14 +61,14 @@ button:hover {
 #gridCanvas {
   display: none;
   position: absolute;
-  pointer-events: none; 
+  pointer-events: none;
   z-index: 2;
 }
 
 #playerCanvas {
   display: block;
   position: absolute;
-  pointer-events: none; 
+  pointer-events: none;
   z-index: 3;
 }
 
@@ -139,6 +139,8 @@ button:hover {
   border: 1px solid #ccc;
   padding: 10px;
   width: 300px;
+  display: flex;
+  flex-direction: column;
   display: none;
 }
 
@@ -188,7 +190,7 @@ button:hover {
   padding: 10px;
   font-size: 16px;
   cursor: pointer;
-  background-color: #4CAF50;
+  background-color: #4caf50;
   color: white;
   border: none;
   border-radius: 5px;
@@ -197,4 +199,49 @@ button:hover {
 .use-button-container button:disabled {
   background-color: #ccc;
   cursor: not-allowed;
+}
+
+.items-container,
+.equipment-container {
+  display: flex;
+  flex-wrap: wrap;
+}
+
+.equipment-container {
+  display: grid;
+  grid-template-areas:
+    "helmet helmet helmet"
+    "weapon chestplate gloves"
+    "boots boots boots";
+  row-gap: 20px;
+  justify-items: center;
+}
+
+.equipment-slot.helmet {
+  grid-area: helmet;
+}
+
+.equipment-slot.chestplate {
+  grid-area: chestplate;
+}
+
+.equipment-slot.weapon {
+  grid-area: weapon;
+}
+
+.equipment-slot.gloves {
+  grid-area: gloves;
+}
+
+.equipment-slot.boots {
+  grid-area: boots;
+}
+
+.equipment-slot {
+  width: 64px;
+  height: 64px;
+  border: 1px solid #ddd;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }

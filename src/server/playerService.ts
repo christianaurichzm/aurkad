@@ -1,3 +1,4 @@
+import { renderEquipment } from '../client/graphics/inventory';
 import {
   SPRITE_WIDTH,
   SPRITE_HEIGHT,
@@ -11,7 +12,6 @@ import {
   Direction,
   Player,
   Access,
-  Inventory,
   Item,
   Effect,
   Character,
@@ -131,7 +131,6 @@ export function removeItemFromInventory(
 }
 
 export function useItem(username: string, itemId: number): boolean {
-  console.log(itemId);
   const player = getPlayerByName(username);
   if (!player) return false;
   const item = Object.values(getItems()).find(
@@ -148,32 +147,52 @@ export function useItem(username: string, itemId: number): boolean {
     console.log('Item not found!');
     return false;
   }
-  if (item.type === 'weapon' || item.type === 'armor') {
-    equipItem(player, item);
-  } else {
+  if (item.type === 'consumable') {
     if (item.effects) {
       applyItemEffects(player, item.effects);
       removeItemFromInventory(player.id, item.id);
     }
+  } else {
+    equipItem(player, item);
   }
   updatePlayer(player);
   return true;
 }
 
 function equipItem(player: Player, item: Item): void {
-  if (item.type === 'weapon') {
-    if (player.equipped.weapon) {
-      unequipItem(player, player.equipped.weapon);
-    }
-    player.equipped.weapon = item;
-    applyItemEffects(player, item.effects ?? []);
-  } else if (item.type === 'armor') {
-    if (player.equipped.armor) {
-      unequipItem(player, player.equipped.armor);
-    }
-    player.equipped.armor = item;
-    applyItemEffects(player, item.effects ?? []);
+  switch (item.type) {
+    case 'weapon':
+      if (player.equipped.weapon) {
+        unequipItem(player, player.equipped.weapon);
+      }
+      player.equipped.weapon = item;
+      break;
+    case 'helmet':
+      if (player.equipped.helmet) {
+        unequipItem(player, player.equipped.helmet);
+      }
+      player.equipped.helmet = item;
+      break;
+    case 'chestplate':
+      if (player.equipped.chestplate) {
+        unequipItem(player, player.equipped.chestplate);
+      }
+      player.equipped.chestplate = item;
+      break;
+    case 'gloves':
+      if (player.equipped.gloves) {
+        unequipItem(player, player.equipped.gloves);
+      }
+      player.equipped.gloves = item;
+      break;
+    case 'boots':
+      if (player.equipped.boots) {
+        unequipItem(player, player.equipped.boots);
+      }
+      player.equipped.boots = item;
+      break;
   }
+  applyItemEffects(player, item.effects ?? []);
 }
 
 function unequipItem(player: Player, item: Item): void {

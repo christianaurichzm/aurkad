@@ -128,7 +128,7 @@ export interface Item {
   name: string;
   description: string;
   sprite: number;
-  type: 'weapon' | 'armor' | 'consumable';
+  type: 'weapon' | 'helmet' | 'chestplate' | 'gloves' | 'boots' | 'consumable';
   effects?: Effect[];
 }
 
@@ -139,7 +139,10 @@ export interface Inventory {
 
 export interface EquippedItems {
   weapon?: Item;
-  armor?: Item;
+  helmet?: Item;
+  chestplate?: Item;
+  gloves?: Item;
+  boots?: Item;
 }
 
 export interface Player extends Character {

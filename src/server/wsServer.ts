@@ -142,7 +142,6 @@ function broadcastGameState() {
   Object.values(gameState.maps).forEach((map) => {
     Object.values(map.players).forEach((player) => {
       const message = JSON.stringify({ map, player });
-      console.log(player.attack);
       const ws = playersWsMap.get(player.name);
       if (ws?.readyState === WebSocket.OPEN) {
         ws.send(message);

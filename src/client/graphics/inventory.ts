@@ -4,9 +4,6 @@ import { getPlayer } from '../core/gameState';
 import { items } from '../io/files';
 import { sendAction } from '../io/network';
 
-const inventoryContainer = document.getElementById(
-  'inventory',
-) as HTMLDivElement;
 let isInventoryOpen = false;
 let selectedItem: Item | null = null;
 let previousInventory: Item[] = [];
@@ -116,6 +113,7 @@ export function renderInventory(player: Player) {
         } as ClientItemAction);
         selectedItem = null;
         renderInventory(player);
+        renderEquipment(player);
       }
     };
     useButtonContainer.appendChild(useButton);
@@ -125,17 +123,60 @@ export function renderInventory(player: Player) {
 function isItemEquipped(player: Player, item: Item): boolean {
   return (
     player.equipped.weapon?.id === item.id ||
-    player.equipped.armor?.id === item.id
+    player.equipped.helmet?.id === item.id ||
+    player.equipped.chestplate?.id === item.id ||
+    player.equipped.gloves?.id === item.id ||
+    player.equipped.boots?.id === item.id
   );
 }
 
 export const toggleInventory = () => {
+  const inventoryContainer = document.getElementById(
+    'inventory',
+  ) as HTMLDivElement;
   if (inventoryContainer) {
     isInventoryOpen = !isInventoryOpen;
     inventoryContainer.style.display = isInventoryOpen ? 'block' : 'none';
 
     if (isInventoryOpen) {
       renderInventory(getPlayer());
+      renderEquipment(getPlayer());
     }
   }
 };
+
+export function renderEquipment(player: Player) {
+  if (typeof document === 'undefined') return;
+  const equipmentContainer = document.getElementById('equipment');
+  if (!equipmentContainer) return;
+
+  equipmentContainer.innerHTML = '';
+
+  const createSlot = (item: Item | undefined, slotClass: string) => {
+    const slot = document.createElement('div');
+    slot.className = `equipment-slot ${slotClass}`;
+    slot.style.border = '1px solid #ddd';
+
+    if (item) {
+      const itemCanvas = document.createElement('canvas');
+      itemCanvas.width = ITEM_SIZE;
+      itemCanvas.height = ITEM_SIZE;
+      const itemCtx = itemCanvas.getContext('2d');
+      if (itemCtx) {
+        renderItemIcon(itemCtx, item.sprite, 0, 0, items?.width);
+      }
+      slot.appendChild(itemCanvas);
+    }
+
+    console.log(`Created slot: ${slot.className}`);
+    return slot;
+  };
+
+  equipmentContainer.appendChild(createSlot(player.equipped.helmet, 'helmet'));
+  equipmentContainer.appendChild(
+    createSlot(player.equipped.chestplate, 'chestplate'),
+  );
+  equipmentContainer.appendChild(createSlot(player.equipped.weapon, 'weapon'));
+  equipmentContainer.appendChild(createSlot(player.equipped.gloves, 'gloves'));
+  equipmentContainer.appendChild(createSlot(player.equipped.boots, 'boots'));
+}
