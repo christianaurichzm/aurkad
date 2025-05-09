@@ -57,3 +57,18 @@ export const renderHealthBar = (enemy: Enemy) => {
   playerCtx.strokeStyle = 'black';
   playerCtx.strokeRect(barX, barY, barWidth, barHeight);
 };
+
+export function showConnectionStatus(message: string, isError = false) {
+  const element = document.getElementById('connection-status');
+  if (!element) return;
+
+  element.textContent = message;
+  element.style.background = isError ? '#c0392b' : '#27ae60';
+  element.style.display = 'block';
+}
+
+export function hideConnectionStatus() {
+  const element = document.getElementById('connection-status');
+  if (!element) return;
+  element.style.display = 'none';
+}
