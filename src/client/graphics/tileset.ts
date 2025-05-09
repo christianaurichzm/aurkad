@@ -28,6 +28,19 @@ let originalMap: Tile[][] = [];
 let map: Tile[][] = [];
 export let mapEdited = false;
 
+let hoveredCell: { row: number; col: number } | null = null;
+
+const handleHover = (event: MouseEvent) => {
+  const { x, y } = getMousePosition(event, foregroundCanvas);
+  const col = Math.floor(x / TILE_SIZE);
+  const row = Math.floor(y / TILE_SIZE);
+
+  if (!hoveredCell || hoveredCell.row !== row || hoveredCell.col !== col) {
+    hoveredCell = { row, col };
+    renderMap(map);
+  }
+};
+
 type ModeConfig = {
   button: HTMLButtonElement;
   textOn: string;
@@ -121,6 +134,7 @@ const setupEventListeners = () => {
   blockButton.addEventListener('click', () => toggleMode('blocking'));
   warpButton.addEventListener('click', () => toggleMode('warping'));
   enemyButton.addEventListener('click', () => toggleMode('enemy'));
+  foregroundCanvas.addEventListener('mousemove', handleHover);
 };
 
 const getMousePosition = (event: MouseEvent, canvas: HTMLCanvasElement) => {
@@ -272,6 +286,23 @@ export const renderMap = (tiles: Tile[][]) => {
 
   clearAndDrawGrid();
   drawMarkers(tiles);
+  drawHoverCell();
+};
+
+const drawHoverCell = () => {
+  if (!hoveredCell) return;
+  const { row, col } = hoveredCell;
+
+  gridCtx.fillStyle = 'rgba(255, 255, 255, 0.4)';
+  gridCtx.fillRect(col * TILE_SIZE, row * TILE_SIZE, TILE_SIZE, TILE_SIZE);
+
+  gridCtx.fillStyle = 'black';
+  gridCtx.font = '12px Arial';
+  gridCtx.fillText(
+    `(${col * TILE_SIZE}, ${row * TILE_SIZE})`,
+    col * TILE_SIZE + 4,
+    row * TILE_SIZE + 24,
+  );
 };
 
 const drawGrid = () => {
