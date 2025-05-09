@@ -20,6 +20,10 @@ export const handleInput = () => {
   window.addEventListener('keydown', (event: KeyboardEvent) => {
     const { key } = event;
 
+    if (Object.keys(keyRecord).includes(key)) {
+      event.preventDefault();
+    }
+
     if (isValidKey(key)) {
       if (keyRecord[key] === Protocol.WS) {
         sendAction({
