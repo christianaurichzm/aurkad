@@ -56,7 +56,12 @@ export function drawSprite(
   posX: number,
   posY: number,
 ) {
-  const { x, y } = getCharacterSpriteCoordinates(characterIndex, column, row);
+  const { x, y } = getCharacterSpriteCoordinates(
+    characterIndex,
+    column,
+    row,
+    spriteSheet.naturalWidth,
+  );
   const { SPRITE_WIDTH, SPRITE_HEIGHT } = getSpriteSize();
 
   const offsetX = (TILE_SIZE - SPRITE_WIDTH) / 2;

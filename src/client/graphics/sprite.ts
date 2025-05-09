@@ -3,21 +3,23 @@ import { SPRITE_HEIGHT, SPRITE_WIDTH } from '../../shared/constants';
 
 const TOTAL_CHARACTER_ROWS = 4;
 const TOTAL_CHARACTER_COLUMNS = 4;
-const CHARACTERS_PER_INDEX = TOTAL_CHARACTER_ROWS + TOTAL_CHARACTER_COLUMNS;
 
 export function getCharacterSpriteCoordinates(
   characterIndex: number,
   column: number,
   row: number,
+  imageWidth: number,
 ) {
-  const characterRow = Math.floor(characterIndex / CHARACTERS_PER_INDEX);
-  const characterColumn = characterIndex % CHARACTERS_PER_INDEX;
+  const BLOCK_WIDTH = SPRITE_WIDTH * TOTAL_CHARACTER_COLUMNS;
+  const BLOCK_HEIGHT = SPRITE_HEIGHT * TOTAL_CHARACTER_ROWS;
 
-  const x =
-    characterColumn * TOTAL_CHARACTER_COLUMNS * SPRITE_WIDTH +
-    column * SPRITE_WIDTH;
-  const y =
-    characterRow * TOTAL_CHARACTER_ROWS * SPRITE_HEIGHT + row * SPRITE_HEIGHT;
+  const charactersPerRow = Math.floor(imageWidth / BLOCK_WIDTH);
+
+  const characterColumn = characterIndex % charactersPerRow;
+  const characterRow = Math.floor(characterIndex / charactersPerRow);
+
+  const x = characterColumn * BLOCK_WIDTH + column * SPRITE_WIDTH;
+  const y = characterRow * BLOCK_HEIGHT + row * SPRITE_HEIGHT;
 
   return { x, y };
 }
