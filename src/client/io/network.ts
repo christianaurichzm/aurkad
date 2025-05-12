@@ -3,16 +3,20 @@ import {
   Player,
   MapState,
   ClientAction,
+  ClientChatAction,
+  ChatScope,
 } from '../../shared/types';
 import { getGameState, setPlayer, updateGameState } from '../core/gameState';
 import { hideConnectionStatus, showConnectionStatus } from '../ui/hud';
+import { displayChatMessage } from '../ui/chat';
 
 const WS_URL = 'ws://localhost:8080/ws';
 
 let socket: WebSocket;
 let reconnectAttempts = 0;
 
-const messageQueue: { map: MapState; player: Player }[] = [];
+const gameStateQueue: { map: MapState; player: Player }[] = [];
+const chatQueue: ClientChatAction[] = [];
 
 const scheduleReconnect = () => {
   if (socket && socket.readyState === WebSocket.OPEN) {
@@ -47,7 +51,13 @@ export const initializeWebSocket = () => {
   };
 
   socket.onmessage = (event) => {
-    messageQueue.push(JSON.parse(event.data));
+    const data = JSON.parse(event.data);
+
+    if (data.type === 'chat') {
+      chatQueue.push(data);
+    } else if (data.map && data.player) {
+      gameStateQueue.push(data);
+    }
   };
 
   socket.onclose = () => {
@@ -72,13 +82,42 @@ window.addEventListener('online', () => {
 });
 
 export function updateWebSocket(): void {
-  while (messageQueue.length > 0) {
-    const message = messageQueue.shift();
+  while (gameStateQueue.length > 0) {
+    const message = gameStateQueue.shift();
+
     if (message) {
       updateGameState(message.map);
       setPlayer(message.player);
     }
   }
+}
+
+export function updateChat(): void {
+  while (chatQueue.length > 0) {
+    const message = chatQueue.shift();
+    if (message) {
+      displayChatMessage(message);
+    }
+  }
+}
+
+export function sendChatMessage() {
+  const input = document.getElementById('chatInput') as HTMLInputElement;
+  const scope = (document.getElementById('chatScope') as HTMLSelectElement)
+    .value as ChatScope;
+  const message = input.value.trim();
+
+  if (!message) return;
+
+  const action: ClientChatAction = {
+    type: 'chat',
+    username: '',
+    scope,
+    message,
+  };
+
+  sendAction(action);
+  input.value = '';
 }
 
 export function sendAction(action: ClientAction): Promise<void> {

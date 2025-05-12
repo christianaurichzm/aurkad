@@ -93,6 +93,12 @@ async function processLoginSuccess(
   toggleContainers(loginContainer, canvasContainer, hudContainer, map);
   handleInput();
   initializeWebSocket();
+
+  const chatContainer = document.getElementById('chatContainer');
+  if (chatContainer) {
+    chatContainer.style.display = 'flex';
+  }
+
   try {
     await initializeAssets();
     await renderMap(map.tiles);

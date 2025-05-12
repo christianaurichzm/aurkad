@@ -63,7 +63,7 @@ export interface KeyboardAction {
   type: 'press' | 'release';
 }
 
-export type ClientActionType = 'keyboard' | 'item';
+export type ClientActionType = 'keyboard' | 'item' | 'chat';
 
 export interface ClientAction {
   username: string;
@@ -81,6 +81,14 @@ export interface ClientItemAction extends ClientAction {
   action: 'use' | 'drop';
 }
 
+export interface ClientChatAction extends ClientAction {
+  type: 'chat';
+  scope: ChatScope;
+  message: string;
+}
+
+export type ChatScope = 'local' | 'global';
+
 export interface ServerAction {
   action: ServerActionType;
 }
@@ -88,6 +96,7 @@ export interface ServerAction {
 export type ActionQueueItem =
   | ClientKeyboardAction
   | ClientItemAction
+  | ClientChatAction
   | ServerAction;
 
 export type ActionQueue = Array<ActionQueueItem>;

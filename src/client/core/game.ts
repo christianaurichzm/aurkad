@@ -1,10 +1,9 @@
-import { renderInventory } from '../graphics/inventory';
 import { render } from '../graphics/render';
-import { updateWebSocket } from '../io/network';
-import { getGameState, getPlayer } from './gameState';
+import { updateChat, updateWebSocket } from '../io/network';
 
 export const gameLoop = () => {
   updateWebSocket();
+  updateChat();
   render();
   requestAnimationFrame(gameLoop);
 };

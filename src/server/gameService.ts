@@ -15,6 +15,7 @@ import {
   MapState,
   Warp,
   EnemiesMap,
+  ClientChatAction,
 } from '../shared/types';
 import {
   getEnemies,
@@ -32,7 +33,7 @@ import {
   handlePlayerUpdates,
   levelUpPlayer,
 } from './playerService';
-import { broadcast } from './wsServer';
+import { broadcast, broadcastChat, broadcastLocalChat } from './wsServer';
 
 const isColliding = (a: Character, b: Character): boolean =>
   a.position.x < b.position.x + b.width &&
@@ -312,3 +313,18 @@ export const disconnectPlayer = (username?: string) => {
   delete map.players[player.id];
   updateMap(map);
 };
+
+export function handleChatAction(action: ClientChatAction) {
+  const message: ClientChatAction = {
+    type: 'chat',
+    username: action.username,
+    message: action.message,
+    scope: action.scope,
+  };
+
+  if (action.scope === 'global') {
+    broadcastChat(message);
+  } else {
+    broadcastLocalChat(action.username, message);
+  }
+}

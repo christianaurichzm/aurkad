@@ -10,7 +10,7 @@ import {
   tilesetEditorInitialized,
   toggleTilesetEditor,
 } from '../graphics/tileset';
-import { openMapEditor, sendAction } from './network';
+import { openMapEditor, sendAction, sendChatMessage } from './network';
 
 const isValidKey = (value: string): value is Key => {
   return Object.values(Key).includes(value as Key);
@@ -19,6 +19,11 @@ const isValidKey = (value: string): value is Key => {
 export const handleInput = () => {
   window.addEventListener('keydown', (event: KeyboardEvent) => {
     const { key } = event;
+
+    const active = document.activeElement;
+    if (active && (active.id === 'chatInput' || active.tagName === 'INPUT')) {
+      return;
+    }
 
     if (Object.keys(keyRecord).includes(key)) {
       event.preventDefault();
@@ -57,3 +62,10 @@ export const handleInput = () => {
     }
   });
 };
+
+document.getElementById('chatInput')?.addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') {
+    e.preventDefault();
+    sendChatMessage();
+  }
+});

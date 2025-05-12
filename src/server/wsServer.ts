@@ -3,8 +3,8 @@ import { Server } from 'http';
 import {
   disconnectPlayer,
   getGameState,
-  handleKeyPress,
-  handleKeyRelease,
+  getPlayerByName,
+  handleChatAction,
 } from './gameService';
 import { ExtendedRequest } from './server';
 import {
@@ -15,16 +15,12 @@ import {
   ClientItemAction,
   ServerAction,
   ServerActionType,
+  ClientChatAction,
 } from '../shared/types';
 import { updateEnemies } from './enemyService';
 import { RequestHandler } from 'express';
-import { updateEnemy } from './database';
-import {
-  handleItemAction,
-  handleKeyAction,
-  removeItemFromInventory,
-  useItem,
-} from './playerService';
+import { getMap, updateEnemy } from './database';
+import { handleItemAction, handleKeyAction } from './playerService';
 
 let wss: WebSocketServer;
 
@@ -55,20 +51,34 @@ export const startWebSocketServer = (
 
       ws.on('message', (message) => {
         const clientAction: ClientAction = JSON.parse(message.toString());
-        if (clientAction.type === 'keyboard') {
-          enqueueAction({
-            username,
-            type: 'keyboard',
-            keyboardAction: (clientAction as ClientKeyboardAction)
-              .keyboardAction,
-          } as ClientKeyboardAction);
-        } else if (clientAction.type === 'item') {
-          enqueueAction({
-            username,
-            type: 'item',
-            item: (clientAction as ClientItemAction).item,
-            action: (clientAction as ClientItemAction).action,
-          });
+
+        switch (clientAction.type) {
+          case 'keyboard':
+            enqueueAction({
+              username,
+              type: 'keyboard',
+              keyboardAction: (clientAction as ClientKeyboardAction)
+                .keyboardAction,
+            });
+            break;
+
+          case 'item':
+            enqueueAction({
+              username,
+              type: 'item',
+              item: (clientAction as ClientItemAction).item,
+              action: (clientAction as ClientItemAction).action,
+            });
+            break;
+
+          case 'chat':
+            enqueueAction({
+              username,
+              type: 'chat',
+              message: (clientAction as ClientChatAction).message,
+              scope: (clientAction as ClientChatAction).scope,
+            });
+            break;
         }
       });
 
@@ -105,6 +115,8 @@ export async function processActions() {
           handleKeyAction(action);
         } else if (action.type === 'item') {
           handleItemAction(action);
+        } else if (action.type === 'chat') {
+          handleChatAction(action);
         }
       } else if (isServerAction(action)) {
         handleServerAction(action);
@@ -113,9 +125,35 @@ export async function processActions() {
   }
 }
 
+export function broadcastChat(message: ClientChatAction) {
+  const data = JSON.stringify(message);
+
+  playersWsMap.forEach((ws) => {
+    if (ws.readyState === WebSocket.OPEN) {
+      ws.send(data);
+    }
+  });
+}
+
+export function broadcastLocalChat(
+  senderUsername: string,
+  message: ClientChatAction,
+) {
+  const player = getPlayerByName(senderUsername);
+
+  const map = getMap(player?.mapId);
+
+  Object.values(map?.players ?? {}).forEach((player) => {
+    const ws = playersWsMap.get(player.name);
+    if (ws?.readyState === WebSocket.OPEN) {
+      ws.send(JSON.stringify(message));
+    }
+  });
+}
+
 function isClientAction(
   action: ActionQueueItem,
-): action is ClientKeyboardAction | ClientItemAction {
+): action is ClientKeyboardAction | ClientItemAction | ClientChatAction {
   return (action as ClientAction).username !== undefined;
 }
 
@@ -126,8 +164,7 @@ function isServerAction(action: ActionQueueItem): action is ServerAction {
 function handleServerAction(action: ServerAction) {
   switch (action.action) {
     case ServerActionType.UpdateEnemyPositions:
-      const gameState = getGameState();
-      Object.values(gameState.maps).forEach((map) => {
+      Object.values(getGameState().maps).forEach((map) => {
         Object.values(map.enemies).forEach((enemy) => {
           updateEnemies(enemy, map);
           updateEnemy(enemy);

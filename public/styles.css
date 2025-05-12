@@ -7,6 +7,7 @@ body {
   display: flex;
   justify-content: center;
   align-items: center;
+  overflow: hidden;
   height: 100vh;
   margin: 0;
   flex-direction: column;
@@ -147,6 +148,56 @@ button:hover {
   z-index: 1000;
   display: none;
 }
+
+#chatContainer {
+  position: fixed;
+  bottom: 10px;
+  left: 10px;
+  width: 320px;
+  background: rgba(0, 0, 0, 0.75);
+  padding: 10px;
+  border-radius: 8px;
+  z-index: 100;
+  color: #fff;
+  display: none;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.chat-box {
+  max-height: 140px;
+  overflow-y: auto;
+  font-size: 14px;
+  padding-right: 6px;
+  scroll-behavior: smooth;
+}
+
+.chat-global {
+  color: #4da6ff;
+}
+.chat-local {
+  color: #58d68d;
+}
+
+#chatInputContainer {
+  display: flex;
+  gap: 5px;
+}
+
+#chatInput {
+  flex: 1;
+  padding: 6px;
+  font-size: 14px;
+  border-radius: 4px;
+  border: none;
+}
+
+#chatScope {
+  width: 70px;
+  font-size: 14px;
+  border-radius: 4px;
+}
+
 
 .inventory {
   border: 1px solid #ccc;
