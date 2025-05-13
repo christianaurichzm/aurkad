@@ -124,19 +124,6 @@ const toggleMode = (mode: TileEditMode) => {
   });
 };
 
-const setupEventListeners = () => {
-  tilesetCanvas.addEventListener('mousedown', startSelecting);
-  tilesetCanvas.addEventListener('mousemove', updateSelection);
-  tilesetCanvas.addEventListener('mouseup', endSelecting);
-  foregroundCanvas.addEventListener('mousedown', startPlacing);
-  foregroundCanvas.addEventListener('mousemove', placeTileWhileDragging);
-  foregroundCanvas.addEventListener('mouseup', stopPlacing);
-  blockButton.addEventListener('click', () => toggleMode('blocking'));
-  warpButton.addEventListener('click', () => toggleMode('warping'));
-  enemyButton.addEventListener('click', () => toggleMode('enemy'));
-  foregroundCanvas.addEventListener('mousemove', handleHover);
-};
-
 const getMousePosition = (event: MouseEvent, canvas: HTMLCanvasElement) => {
   const rect = canvas.getBoundingClientRect();
   return {
@@ -263,6 +250,100 @@ const drawTileOnCanvas = (col: number, row: number, tileIndex: number) => {
   );
 };
 
+const toggleBlocking = () => toggleMode('blocking');
+const toggleWarping = () => toggleMode('warping');
+const toggleEnemy = () => toggleMode('enemy');
+
+const eventListeners = {
+  tilesetCanvas: {
+    mousedown: startSelecting,
+    mousemove: updateSelection,
+    mouseup: endSelecting,
+  },
+  foregroundCanvas: {
+    mousedown: startPlacing,
+    mousemove: [placeTileWhileDragging, handleHover],
+    mouseup: stopPlacing,
+  },
+  buttons: {
+    block: toggleBlocking,
+    warp: toggleWarping,
+    enemy: toggleEnemy,
+  },
+};
+
+const setupEventListeners = () => {
+  tilesetCanvas.addEventListener(
+    'mousedown',
+    eventListeners.tilesetCanvas.mousedown,
+  );
+  tilesetCanvas.addEventListener(
+    'mousemove',
+    eventListeners.tilesetCanvas.mousemove,
+  );
+  tilesetCanvas.addEventListener(
+    'mouseup',
+    eventListeners.tilesetCanvas.mouseup,
+  );
+
+  foregroundCanvas.addEventListener(
+    'mousedown',
+    eventListeners.foregroundCanvas.mousedown,
+  );
+  foregroundCanvas.addEventListener(
+    'mousemove',
+    eventListeners.foregroundCanvas.mousemove[0],
+  );
+  foregroundCanvas.addEventListener(
+    'mousemove',
+    eventListeners.foregroundCanvas.mousemove[1],
+  );
+  foregroundCanvas.addEventListener(
+    'mouseup',
+    eventListeners.foregroundCanvas.mouseup,
+  );
+
+  blockButton.addEventListener('click', eventListeners.buttons.block);
+  warpButton.addEventListener('click', eventListeners.buttons.warp);
+  enemyButton.addEventListener('click', eventListeners.buttons.enemy);
+};
+
+const removeEventListeners = () => {
+  tilesetCanvas.removeEventListener(
+    'mousedown',
+    eventListeners.tilesetCanvas.mousedown,
+  );
+  tilesetCanvas.removeEventListener(
+    'mousemove',
+    eventListeners.tilesetCanvas.mousemove,
+  );
+  tilesetCanvas.removeEventListener(
+    'mouseup',
+    eventListeners.tilesetCanvas.mouseup,
+  );
+
+  foregroundCanvas.removeEventListener(
+    'mousedown',
+    eventListeners.foregroundCanvas.mousedown,
+  );
+  foregroundCanvas.removeEventListener(
+    'mousemove',
+    eventListeners.foregroundCanvas.mousemove[0],
+  );
+  foregroundCanvas.removeEventListener(
+    'mousemove',
+    eventListeners.foregroundCanvas.mousemove[1],
+  );
+  foregroundCanvas.removeEventListener(
+    'mouseup',
+    eventListeners.foregroundCanvas.mouseup,
+  );
+
+  blockButton.removeEventListener('click', eventListeners.buttons.block);
+  warpButton.removeEventListener('click', eventListeners.buttons.warp);
+  enemyButton.removeEventListener('click', eventListeners.buttons.enemy);
+};
+
 export const initTilesetEditor = () => {
   tilesetCanvas.width = tileset.width;
   tilesetCanvas.height = tileset.height;
@@ -383,9 +464,11 @@ export const toggleTilesetEditor = () => {
       }
     }
 
+    removeEventListeners();
     tilesetContainer.style.display = 'none';
     gridCanvas.style.display = 'none';
     mapEdited = false;
+    activeMode = null;
   } else {
     const gameState = getGameState();
     if (gameState.tiles) {
@@ -401,6 +484,7 @@ export const toggleTilesetEditor = () => {
       originalMap = map.map((row) => row.map((tile) => ({ ...tile })));
     }
 
+    setupEventListeners();
     tilesetContainer.style.display = 'block';
     gridCanvas.style.display = 'block';
   }
