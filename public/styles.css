@@ -164,6 +164,13 @@ button:hover {
   gap: 6px;
 }
 
+#gameArea {
+  display: flex;
+  flex-direction: row;
+  align-items: flex-start;
+  gap: 20px;
+}
+
 .chat-box {
   max-height: 140px;
   overflow-y: auto;
@@ -201,7 +208,7 @@ button:hover {
 
 .inventory {
   border: 1px solid #ccc;
-  padding: 10px;
+  padding: 15px;
   width: 300px;
   display: flex;
   flex-direction: column;

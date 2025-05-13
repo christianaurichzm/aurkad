@@ -40,21 +40,23 @@
         <div id="connection-status">
           Connecting...
         </div>
-        <div id="canvasContainer">
-          <canvas id="foregroundCanvas" width="1280" height="896"></canvas>
-          <canvas id="gridCanvas" width="1280" height="896"></canvas>
-          <canvas id="playerCanvas" width="1280" height="896"></canvas>
+        <div id="gameArea">
+          <div id="canvasContainer">
+            <canvas id="foregroundCanvas" width="1280" height="896"></canvas>
+            <canvas id="gridCanvas" width="1280" height="896"></canvas>
+            <canvas id="playerCanvas" width="1280" height="896"></canvas>
+          </div>
+          <div id="inventory" class="inventory">
+            <h2>Inventory</h2>
+            <div id="use-button-container" class="use-button-container"></div>
+            <div id="items" class="items"></div>
+            <h2>Equips</h2>
+            <div id="equipment" class="equipment-container"></div>
+          </div>
+          <div id="tooltip" class="tooltip"></div>
         </div>
       </div>
     </div>
-    <div id="inventory" class="inventory">
-      <h2>Inventory</h2>
-      <div id="use-button-container" class="use-button-container"></div>
-      <div id="items" class="items"></div>
-      <h2>Equips</h2>
-      <div id="equipment" class="equipment-container"></div>
-    </div>
-    <div id="tooltip" class="tooltip"></div>
     <div id="hud">
       HP:
       <div id="health-bar-container">
