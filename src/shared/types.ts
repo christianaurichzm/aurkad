@@ -192,6 +192,7 @@ export type NpcBehavior = 'aggressive' | 'hostile' | 'neutral';
 export interface Npc extends Character {
   behavior: NpcBehavior;
   experienceValue?: number;
+  itemsToDrop?: NpcItemDrop[];
 }
 
 export interface GameState {
@@ -219,6 +220,11 @@ export interface MapState {
   npcs: Record<string, Npc>;
   tiles: Tile[][];
   droppedItems: DroppedItem[];
+}
+
+export interface NpcItemDrop {
+  itemId: Item['id'];
+  chance: number;
 }
 
 export interface DroppedItem {

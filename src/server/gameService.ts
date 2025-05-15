@@ -388,6 +388,28 @@ export const handleAttack = (attacker: Player): void => {
       attacker.experience += attackTarget.experienceValue;
       levelUpPlayer(attacker);
     }
+
+    if (attackTarget.itemsToDrop?.length) {
+      const droppedItems: DroppedItem[] = [];
+
+      attackTarget.itemsToDrop.forEach((drop) => {
+        const roll = Math.random() * 100;
+        if (roll <= drop.chance) {
+          const itemData = getItems()[drop.itemId];
+          droppedItems.push({
+            itemId: drop.itemId,
+            sprite: itemData.sprite,
+            position: {
+              x: attackTarget.position.x,
+              y: attackTarget.position.y,
+            },
+          });
+        }
+      });
+
+      map.droppedItems.push(...droppedItems);
+    }
+
     updatePlayer(attacker);
     respawnNpc(attacker.mapId, attackTarget);
   }

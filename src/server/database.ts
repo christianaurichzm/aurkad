@@ -57,6 +57,7 @@ const npcs: NpcsMap = {
       y: 2 * TILE_SIZE,
     },
     behavior: 'hostile',
+    itemsToDrop: [{ itemId: 1, chance: 50 }],
     width: SPRITE_WIDTH,
     height: SPRITE_HEIGHT,
     health: 100,
