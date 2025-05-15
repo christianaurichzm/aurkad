@@ -16,6 +16,7 @@ import {
   ServerAction,
   ServerActionType,
   ClientChatAction,
+  ChatMessagePayload,
 } from '../shared/types';
 import { updateEnemies } from './enemyService';
 import { RequestHandler } from 'express';
@@ -125,7 +126,7 @@ export async function processActions() {
   }
 }
 
-export function broadcastChat(message: ClientChatAction) {
+export function broadcastChat(message: ChatMessagePayload) {
   const data = JSON.stringify(message);
 
   playersWsMap.forEach((ws) => {
@@ -137,13 +138,28 @@ export function broadcastChat(message: ClientChatAction) {
 
 export function broadcastLocalChat(
   senderUsername: string,
-  message: ClientChatAction,
+  message: ChatMessagePayload,
 ) {
   const player = getPlayerByName(senderUsername);
 
   const map = getMap(player?.mapId);
 
   Object.values(map?.players ?? {}).forEach((player) => {
+    const ws = playersWsMap.get(player.name);
+    if (ws?.readyState === WebSocket.OPEN) {
+      ws.send(JSON.stringify(message));
+    }
+  });
+}
+
+export function broadcastLocalToMap(
+  mapId: string,
+  message: ChatMessagePayload,
+) {
+  const map = getMap(mapId);
+  if (!map) return;
+
+  Object.values(map.players).forEach((player) => {
     const ws = playersWsMap.get(player.name);
     if (ws?.readyState === WebSocket.OPEN) {
       ws.send(JSON.stringify(message));

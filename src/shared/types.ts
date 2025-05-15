@@ -81,13 +81,29 @@ export interface ClientItemAction extends ClientAction {
   action: 'use' | 'drop';
 }
 
-export interface ClientChatAction extends ClientAction {
+export interface ClientChatAction extends ChatBase, ClientAction {
+  type: 'chat';
+}
+
+export interface ServerChatAction extends ChatBase {
+  subtype?: ChatSubtype;
+  mapId?: string;
+}
+
+export interface ChatMessagePayload extends ChatBase {
+  username?: string;
+  subtype?: ChatSubtype;
+}
+
+interface ChatBase {
   type: 'chat';
   scope: ChatScope;
   message: string;
 }
 
 export type ChatScope = 'local' | 'global';
+
+export type ChatSubtype = 'death';
 
 export interface ServerAction {
   action: ServerActionType;
@@ -194,6 +210,7 @@ export interface Tile {
 export interface MapState {
   id: string;
   name: string;
+  type: 'pvp' | 'normal';
   players: Record<string, Player>;
   enemies: Record<string, Enemy>;
   tiles: Tile[][];

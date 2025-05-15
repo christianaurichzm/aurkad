@@ -17,6 +17,8 @@ import {
   EnemiesMap,
   ClientChatAction,
   Enemy,
+  ServerChatAction,
+  ChatMessagePayload,
 } from '../shared/types';
 import {
   getEnemies,
@@ -36,7 +38,12 @@ import {
   levelUpPlayer,
   respawnPlayer,
 } from './playerService';
-import { broadcast, broadcastChat, broadcastLocalChat } from './wsServer';
+import {
+  broadcast,
+  broadcastChat,
+  broadcastLocalChat,
+  broadcastLocalToMap,
+} from './wsServer';
 
 const isColliding = (a: Character, b: Character): boolean =>
   a.position.x < b.position.x + b.width &&
@@ -323,6 +330,12 @@ export const handleAttack = (attacker: Player): void => {
     if (isPlayer(attackTarget)) {
       respawnPlayer(attackTarget);
       updatePlayer(attackTarget);
+      handleChatAction({
+        scope: 'global',
+        type: 'chat',
+        subtype: 'death',
+        message: `${attacker.name} defeated ${attackTarget.name}`,
+      });
     } else if (isEnemy(attackTarget)) {
       attacker.experience += attackTarget.experienceValue;
       levelUpPlayer(attacker);
@@ -356,17 +369,36 @@ export const disconnectPlayer = (username?: string) => {
   updateMap(map);
 };
 
-export function handleChatAction(action: ClientChatAction) {
-  const message: ClientChatAction = {
+function isClientChatAction(
+  action: ClientChatAction | ServerChatAction,
+): action is ClientChatAction {
+  return 'username' in action;
+}
+
+function isServerChatAction(action: any): action is ServerChatAction {
+  return !('username' in action);
+}
+
+export function handleChatAction(action: ClientChatAction | ServerChatAction) {
+  const payload: ChatMessagePayload = {
     type: 'chat',
-    username: action.username,
-    message: action.message,
     scope: action.scope,
+    message: action.message,
+    ...(isServerChatAction(action) && action.subtype
+      ? { subtype: action.subtype }
+      : {}),
+    ...(isClientChatAction(action) ? { username: action.username } : {}),
   };
 
-  if (action.scope === 'global') {
-    broadcastChat(message);
-  } else {
-    broadcastLocalChat(action.username, message);
+  if (payload.scope === 'global') {
+    broadcastChat(payload);
+  } else if (payload.scope === 'local') {
+    if (isClientChatAction(action)) {
+      broadcastLocalChat(action.username, payload);
+    } else if (isServerChatAction(action) && action.mapId) {
+      broadcastLocalToMap(action.mapId, payload);
+    } else {
+      console.warn('Local server message missing mapId.');
+    }
   }
 }

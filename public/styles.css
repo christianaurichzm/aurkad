@@ -186,6 +186,10 @@ button:hover {
   color: #58d68d;
 }
 
+.chat-death {
+  color: #ff4d4d;
+}
+
 #chatInputContainer {
   display: flex;
   gap: 5px;
@@ -204,7 +208,6 @@ button:hover {
   font-size: 14px;
   border-radius: 4px;
 }
-
 
 .inventory {
   border: 1px solid #ccc;
