@@ -8,6 +8,7 @@ export enum Key {
   Control = 'Control',
   z = 'z',
   i = 'i',
+  e = 'e',
 }
 
 export enum Direction {
@@ -51,6 +52,7 @@ export const keyRecord: Partial<Record<Key, Protocol>> = {
   ArrowRight: Protocol.WS,
   Shift: Protocol.WS,
   Control: Protocol.WS,
+  e: Protocol.WS,
   z: Protocol.HTTP,
 };
 

@@ -15,7 +15,6 @@ import {
   MapState,
   Warp,
   ClientChatAction,
-  Npc,
   ServerChatAction,
   ChatMessagePayload,
   NpcsMap,
@@ -225,6 +224,9 @@ export const handleKeyPress = async (username: string, key: Key) => {
         newState.action = PlayerAction.Attack;
         handleAttack(newState);
         break;
+      case Key.e:
+        pickUpItem(getMap(player.mapId)!, player);
+        break;
     }
 
     await delay((DEFAULT_PLAYER_SPEED * BOOST_MULTIPLIER) / player.speed);
@@ -244,6 +246,23 @@ export const handleKeyPress = async (username: string, key: Key) => {
   }
 
   isActing = false;
+};
+
+const pickUpItem = (map: MapState, player: Player) => {
+  map.droppedItems.forEach((item, index) => {
+    if (
+      item.position.x === player.position.x &&
+      item.position.y === player.position.y
+    ) {
+      const itemData = getItems()[item.itemId];
+      if (player.inventory.items.length < player.inventory.maxCapacity) {
+        player.inventory.items.push(itemData);
+        map.droppedItems.splice(index, 1);
+        updatePlayer(player);
+        updateMap(map as MapState);
+      }
+    }
+  });
 };
 
 const updatePlayerPositionAndDirection = (

@@ -9,6 +9,7 @@ import {
 import { getGameState, setPlayer, updateGameState } from '../core/gameState';
 import { hideConnectionStatus, showConnectionStatus } from '../ui/hud';
 import { displayChatMessage } from '../ui/chat';
+import { renderInventory } from '../graphics/inventory';
 
 const WS_URL = 'ws://localhost:8080/ws';
 
@@ -51,12 +52,16 @@ export const initializeWebSocket = () => {
   };
 
   socket.onmessage = (event) => {
-    const data = JSON.parse(event.data);
+    try {
+      const data = JSON.parse(event.data);
 
-    if (data.type === 'chat') {
-      chatQueue.push(data);
-    } else if (data.map && data.player) {
-      gameStateQueue.push(data);
+      if (data.type === 'chat') {
+        chatQueue.push(data);
+      } else if (data.map && data.player) {
+        gameStateQueue.push(data);
+      }
+    } catch (err) {
+      console.error('[Client] WebSocket message error:', err);
     }
   };
 
@@ -88,6 +93,7 @@ export function updateWebSocket(): void {
     if (message) {
       updateGameState(message.map);
       setPlayer(message.player);
+      renderInventory(message.player);
     }
   }
 }

@@ -11,7 +11,13 @@ import {
 import { getGameState, getPlayer } from '../core/gameState';
 import { spriteSheet } from '../io/files';
 import { renderHealthBar, renderHUD, updatePlayerHealthBar } from '../ui/hud';
-import { foregroundCanvas, foregroundCtx, itemCtx, playerCtx } from './canvas';
+import {
+  foregroundCanvas,
+  foregroundCtx,
+  itemCanvas,
+  itemCtx,
+  playerCtx,
+} from './canvas';
 import { renderItemIcon } from './inventory';
 import { getCharacterSpriteCoordinates, getSpriteSize } from './sprite';
 import { mapEdited, renderMap } from './tileset';
@@ -105,6 +111,8 @@ export const render = () => {
       );
       renderMap(map.tiles);
     }
+    itemCtx.clearRect(0, 0, itemCanvas.width, itemCanvas.height);
+
     renderDroppedItems(map.droppedItems);
     renderPlayers(map.players);
     renderNpcs(map.npcs);
