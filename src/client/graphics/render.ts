@@ -6,11 +6,13 @@ import {
   Position,
   playerActionRecord,
   NpcsMap,
+  DroppedItem,
 } from '../../shared/types';
 import { getGameState, getPlayer } from '../core/gameState';
 import { spriteSheet } from '../io/files';
 import { renderHealthBar, renderHUD, updatePlayerHealthBar } from '../ui/hud';
-import { foregroundCanvas, foregroundCtx, playerCtx } from './canvas';
+import { foregroundCanvas, foregroundCtx, itemCtx, playerCtx } from './canvas';
+import { renderItemIcon } from './inventory';
 import { getCharacterSpriteCoordinates, getSpriteSize } from './sprite';
 import { mapEdited, renderMap } from './tileset';
 
@@ -42,6 +44,17 @@ const renderNpcs = (npcs: NpcsMap) => {
       renderEntity(npc);
       renderHealthBar(npc);
     }
+  });
+};
+
+const renderDroppedItems = (droppedItems: DroppedItem[]) => {
+  droppedItems.forEach((item) => {
+    renderItemIcon(
+      itemCtx,
+      item.item?.sprite,
+      item.position.x,
+      item.position.y,
+    );
   });
 };
 
@@ -97,6 +110,7 @@ export const render = () => {
       );
       renderMap(map.tiles);
     }
+    renderDroppedItems(map.droppedItems);
     renderPlayers(map.players);
     renderNpcs(map.npcs);
     updatePlayerHealthBar(getPlayer().health);

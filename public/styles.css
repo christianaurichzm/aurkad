@@ -59,18 +59,25 @@ button:hover {
   z-index: 1;
 }
 
+#itemCanvas {
+  display: block;
+  position: absolute;
+  pointer-events: none;
+  z-index: 2;
+}
+
 #gridCanvas {
   display: none;
   position: absolute;
   pointer-events: none;
-  z-index: 2;
+  z-index: 3;
 }
 
 #playerCanvas {
   display: block;
   position: absolute;
   pointer-events: none;
-  z-index: 3;
+  z-index: 4;
 }
 
 #canvasContainer {

@@ -11,3 +11,8 @@ export const playerCanvas = document.getElementById(
 export const playerCtx = playerCanvas.getContext(
   '2d',
 ) as CanvasRenderingContext2D;
+
+export const itemCanvas = document.getElementById(
+  'itemCanvas',
+) as HTMLCanvasElement;
+export const itemCtx = itemCanvas.getContext('2d') as CanvasRenderingContext2D;

@@ -16,14 +16,16 @@ const getSpriteCoordinates = (spriteId: number, sheetWidth: number) => {
   return { x, y };
 };
 
-const renderItemIcon = (
+export const renderItemIcon = (
   ctx: CanvasRenderingContext2D,
   spriteId: number,
   x: number,
   y: number,
-  sheetWidth: number,
 ) => {
-  const { x: spriteX, y: spriteY } = getSpriteCoordinates(spriteId, sheetWidth);
+  const { x: spriteX, y: spriteY } = getSpriteCoordinates(
+    spriteId,
+    items?.width,
+  );
   ctx.drawImage(
     items,
     spriteX,
@@ -76,7 +78,7 @@ export function renderInventory(player: Player) {
       itemCanvas.height = ITEM_SIZE;
       const itemCtx = itemCanvas.getContext('2d');
       if (itemCtx) {
-        renderItemIcon(itemCtx, item.sprite, 0, 0, items?.width);
+        renderItemIcon(itemCtx, item.sprite, 0, 0);
       }
 
       itemDiv.appendChild(itemCanvas);
@@ -163,7 +165,7 @@ export function renderEquipment(player: Player) {
       itemCanvas.height = ITEM_SIZE;
       const itemCtx = itemCanvas.getContext('2d');
       if (itemCtx) {
-        renderItemIcon(itemCtx, item.sprite, 0, 0, items?.width);
+        renderItemIcon(itemCtx, item.sprite, 0, 0);
       }
       slot.appendChild(itemCanvas);
     }

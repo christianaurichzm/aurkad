@@ -217,6 +217,12 @@ export interface MapState {
   players: Record<string, Player>;
   npcs: Record<string, Npc>;
   tiles: Tile[][];
+  droppedItems: DroppedItem[];
+}
+
+export interface DroppedItem {
+  position: Position;
+  item: Item;
 }
 
 export interface HttpRequestOptions {

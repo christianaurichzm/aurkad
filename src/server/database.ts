@@ -78,6 +78,7 @@ const gameState: GameState = {
       type: 'normal',
       players: {},
       npcs: { ...npcs },
+      droppedItems: [{ position: { x: 0, y: 0 }, item: items[1] }],
       tiles: Array.from({ length: 448 / 32 }, () =>
         Array(640 / 32).fill({ tileIndex: -1, blocked: false }),
       ),
@@ -88,6 +89,7 @@ const gameState: GameState = {
       type: 'pvp',
       players: {},
       npcs: {},
+      droppedItems: [],
       tiles: Array.from({ length: 448 / 32 }, () =>
         Array(640 / 32).fill({ tileIndex: -1, blocked: false }),
       ),
