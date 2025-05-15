@@ -138,10 +138,15 @@ const toggleMode = (mode: TileEditMode) => {
   activeMode = activeMode === mode ? null : mode;
 
   (Object.keys(modes) as TileEditMode[]).forEach((key) => {
-    const m = modes[key];
     const isActive = activeMode === key;
+    const m = modes[key];
     m.button.textContent = isActive ? m.textOn : m.textOff;
     m.button.style.backgroundColor = isActive ? m.styleOn : m.styleOff;
+
+    const group = document.getElementById(`${key}Group`);
+    if (group) {
+      group.classList.toggle('active', isActive);
+    }
   });
 };
 
@@ -480,7 +485,7 @@ const saveCurrentMap = async () => {
 };
 
 export const toggleTilesetEditor = () => {
-  const isEditorOpen = tilesetContainer.style.display === 'block';
+  const isEditorOpen = tilesetContainer.style.display === 'flex';
 
   if (isEditorOpen) {
     if (mapEdited) {
@@ -493,7 +498,7 @@ export const toggleTilesetEditor = () => {
     }
 
     removeEventListeners();
-    tilesetContainer.style.display = 'none';
+    tilesetContainer.style.display = 'flex';
     gridCanvas.style.display = 'none';
     mapEdited = false;
     activeMode = null;
@@ -513,7 +518,7 @@ export const toggleTilesetEditor = () => {
     }
 
     setupEventListeners();
-    tilesetContainer.style.display = 'block';
+    tilesetContainer.style.display = 'flex';
     gridCanvas.style.display = 'block';
   }
 

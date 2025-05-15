@@ -22,20 +22,38 @@
           <input type="number" id="sprite" name="sprite" required />
           <button id="saveSprite">Save Sprite</button>
         </form>
-        <button id="blockButton">Blocking Mode: OFF</button>
-        <button id="warpButton">Warp Mode: OFF</button>
-        <button id="npcButton">Npc Mode: OFF</button>
-        <button id="itemButton">Item Mode: OFF</button>
-        <label for="mapTo">Map to:</label>
-        <input type="number" id="mapTo" name="mapTo" required />
-        <label for="xTo">Tile x number:</label>
-        <input type="number" id="xTo" name="xTo" required />
-        <label for="yTo">Tile y number:</label>
-        <input type="number" id="yTo" name="yTo" required />
-        <label for="npc">Npc ID:</label>
-        <input type="number" id="npc" name="npc" required />
-        <label for="item">Item ID:</label>
-        <input type="number" id="item" name="item" required />
+      
+        <div id="modeControls" class="mode-controls">
+          <div id="blockingGroup" class="mode-group">
+            <button id="blockButton">Blocking Mode: OFF</button>
+          </div>
+          <div id="warpingGroup" class="mode-group">
+            <button id="warpButton">Warp Mode: OFF</button>
+            <div class="mode-inputs">
+              <label for="mapTo">Map To:</label>
+              <input type="number" id="mapTo" name="mapTo" required />
+              <label for="xTo">Tile X:</label>
+              <input type="number" id="xTo" name="xTo" required />
+              <label for="yTo">Tile Y:</label>
+              <input type="number" id="yTo" name="yTo" required />
+            </div>
+          </div>
+          <div id="npcGroup" class="mode-group">
+            <button id="npcButton">NPC Mode: OFF</button>
+            <div class="mode-inputs">
+              <label for="npc">NPC ID:</label>
+              <input type="number" id="npc" name="npc" required />
+            </div>
+          </div>
+          <div id="itemGroup" class="mode-group">
+            <button id="itemButton">Item Mode: OFF</button>
+            <div class="mode-inputs">
+              <label for="item">Item ID:</label>
+              <input type="number" id="item" name="item" required />
+            </div>
+          </div>
+        </div>
+      
         <canvas id="tilesetCanvas"></canvas>
       </div>
       <div id="gameInfo">
