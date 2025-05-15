@@ -3,18 +3,14 @@ import {
   PlayerAction,
   Direction,
   EnemiesMap,
-  MapState,
   PlayersMap,
   Position,
   playerActionRecord,
-  Player,
-  Item,
 } from '../../shared/types';
 import { getGameState, getPlayer } from '../core/gameState';
 import { spriteSheet } from '../io/files';
-import { renderHealthBar, renderHUD } from '../ui/hud';
+import { renderHealthBar, renderHUD, updatePlayerHealthBar } from '../ui/hud';
 import { foregroundCanvas, foregroundCtx, playerCtx } from './canvas';
-import { renderInventory } from './inventory';
 import { getCharacterSpriteCoordinates, getSpriteSize } from './sprite';
 import { mapEdited, renderMap } from './tileset';
 
@@ -86,6 +82,11 @@ export const render = () => {
   if (map) {
     const mapName = document.getElementById('mapName') as HTMLElement;
     mapName.textContent = `${map.id} - ${map.name}`;
+
+    if (map.type === 'pvp' && mapName.style.color !== 'red') {
+      mapName.style.color = 'red';
+    }
+
     playerCtx.clearRect(0, 0, foregroundCanvas.width, foregroundCanvas.height);
     if (!mapEdited) {
       foregroundCtx.clearRect(
@@ -98,5 +99,6 @@ export const render = () => {
     }
     renderPlayers(map.players);
     renderEnemies(map.enemies);
+    updatePlayerHealthBar(getPlayer().health);
   }
 };

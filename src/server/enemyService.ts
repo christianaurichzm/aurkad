@@ -13,6 +13,10 @@ import { getMap, updatePlayer } from './database';
 import { hasCollision } from './gameService';
 import { respawnPlayer } from './playerService';
 
+export const isEnemy = (char: Character): char is Enemy => {
+  return (char as Enemy).experienceValue !== undefined;
+};
+
 function calculateDirection(
   from: Character,
   to: Character,

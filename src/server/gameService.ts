@@ -16,6 +16,7 @@ import {
   Warp,
   EnemiesMap,
   ClientChatAction,
+  Enemy,
 } from '../shared/types';
 import {
   getEnemies,
@@ -27,11 +28,13 @@ import {
   updateMapById,
   updatePlayer,
 } from './database';
-import { respawnEnemy } from './enemyService';
+import { isEnemy, respawnEnemy } from './enemyService';
 import {
   createPlayer,
   handlePlayerUpdates,
+  isPlayer,
   levelUpPlayer,
+  respawnPlayer,
 } from './playerService';
 import { broadcast, broadcastChat, broadcastLocalChat } from './wsServer';
 
@@ -252,41 +255,80 @@ export const handlePlayerUpdate = (player: Player): void => {
   handlePlayerUpdates(player);
 };
 
-export const handleAttack = (player: Player): void => {
-  if (!player) return;
+const isInAttackRange = (attacker: Player, target: Character): boolean => {
+  const distanceX = Math.abs(attacker.position.x - target.position.x);
+  const distanceY = Math.abs(attacker.position.y - target.position.y);
 
-  const map = getMap(player.mapId);
-  const enemies = map?.enemies;
+  return distanceX <= attacker.attackRange && distanceY <= attacker.attackRange;
+};
 
-  if (enemies) {
-    Object.values(enemies).forEach((enemy) => {
-      const distanceX = Math.abs(player.position.x - enemy.position.x);
-      const distanceY = Math.abs(player.position.y - enemy.position.y);
+const isFacingTarget = (attacker: Player, target: Character): boolean => {
+  switch (attacker.direction) {
+    case Direction.Up:
+      return target.position.y < attacker.position.y;
+    case Direction.Down:
+      return target.position.y > attacker.position.y;
+    case Direction.Left:
+      return target.position.x < attacker.position.x;
+    case Direction.Right:
+      return target.position.x > attacker.position.x;
+    default:
+      return false;
+  }
+};
 
-      const isWithinAttackRange =
-        distanceX <= player.attackRange && distanceY <= player.attackRange;
-      const isFacingEnemy =
-        (player.direction === Direction.Up &&
-          enemy.position.y < player.position.y) ||
-        (player.direction === Direction.Down &&
-          enemy.position.y > player.position.y) ||
-        (player.direction === Direction.Left &&
-          enemy.position.x < player.position.x) ||
-        (player.direction === Direction.Right &&
-          enemy.position.x > player.position.x);
+const findAttackTarget = (
+  attacker: Player,
+  map: MapState,
+): Character | undefined => {
+  if (map.type === 'pvp') {
+    const opponentPlayers = Object.values(map.players).filter(
+      (player) =>
+        player.id !== attacker.id &&
+        player.health > 0 &&
+        isInAttackRange(attacker, player) &&
+        isFacingTarget(attacker, player),
+    );
 
-      if (isWithinAttackRange && isFacingEnemy && enemy.health > 0) {
-        enemy.health -= player.attack;
+    if (opponentPlayers.length > 0) {
+      return opponentPlayers[0];
+    }
+  }
 
-        if (enemy.health <= 0) {
-          enemy.health = 0;
-          player.experience += enemy.experienceValue;
+  const npcTargets = Object.values(map.enemies).filter(
+    (enemy) =>
+      enemy.health > 0 &&
+      isInAttackRange(attacker, enemy) &&
+      isFacingTarget(attacker, enemy),
+  );
 
-          levelUpPlayer(player);
-          respawnEnemy(player.mapId, enemy);
-        }
-      }
-    });
+  return npcTargets[0];
+};
+
+export const handleAttack = (attacker: Player): void => {
+  if (!attacker) return;
+
+  const map = getMap(attacker.mapId);
+  if (!map) return;
+
+  const attackTarget = findAttackTarget(attacker, map);
+
+  if (!attackTarget) return;
+
+  attackTarget.health -= attacker.attack;
+
+  if (attackTarget.health <= 0) {
+    attackTarget.health = 0;
+
+    if (isPlayer(attackTarget)) {
+      respawnPlayer(attackTarget);
+      updatePlayer(attackTarget);
+    } else if (isEnemy(attackTarget)) {
+      attacker.experience += attackTarget.experienceValue;
+      levelUpPlayer(attacker);
+      updatePlayer(attacker);
+      respawnEnemy(attacker.mapId, attackTarget);
+    }
   }
 };
 

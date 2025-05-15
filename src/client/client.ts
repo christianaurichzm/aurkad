@@ -126,6 +126,10 @@ function toggleContainers(
   hudContainer.style.alignItems = 'center';
   gameInfo.style.display = 'flex';
   mapName.textContent = `${map.id} - ${map.name}`;
+
+  if (map.type === 'pvp') {
+    mapName.style.color = 'red';
+  }
 }
 
 function displayError(error: unknown, errorMessage: HTMLElement) {

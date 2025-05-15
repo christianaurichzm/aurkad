@@ -57,6 +57,10 @@ export const createPlayer = (username: string): Player => {
   return newPlayer;
 };
 
+export const isPlayer = (char: Character): char is Player => {
+  return (char as Player).inventory !== undefined;
+};
+
 export const levelUpPlayer = (player: Player): void => {
   while (player.experience >= player.experienceToNextLevel) {
     player.experience -= player.experienceToNextLevel;

@@ -6,8 +6,6 @@ export const renderHUD = (player: Player) => {
   const { x, y } = position;
   const text = `${name} - Level: ${level}`;
 
-  updatePlayerHealthBar(player.health);
-
   playerCtx.font = 'bold 14px Arial';
   playerCtx.strokeStyle = 'black';
   playerCtx.fillStyle = playerNameColorRecord[access];
@@ -16,7 +14,7 @@ export const renderHUD = (player: Player) => {
   playerCtx.fillText(text, x, y);
 };
 
-const updatePlayerHealthBar = (health: number) => {
+export const updatePlayerHealthBar = (health: number) => {
   const healthBar = document.getElementById('health-bar');
   const healthBarText = document.getElementById('health-bar-text');
 
