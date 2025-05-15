@@ -1,4 +1,4 @@
-import { Enemy, Player, playerNameColorRecord } from '../../shared/types';
+import { Npc, Player, playerNameColorRecord } from '../../shared/types';
 import { playerCtx } from '../graphics/canvas';
 
 export const renderHUD = (player: Player) => {
@@ -34,13 +34,13 @@ export const updatePlayerHealthBar = (health: number) => {
   }
 };
 
-export const renderHealthBar = (enemy: Enemy) => {
-  const barWidth = enemy.width;
+export const renderHealthBar = (npc: Npc) => {
+  const barWidth = npc.width;
   const barHeight = 10;
-  const barX = enemy.position.x;
-  const barY = enemy.position.y - barHeight - 5;
+  const barX = npc.position.x;
+  const barY = npc.position.y - barHeight - 5;
 
-  const healthPercentage = enemy.health / 100;
+  const healthPercentage = npc.health / 100;
   let barColor = 'green';
 
   if (healthPercentage <= 0.5 && healthPercentage > 0.2) {

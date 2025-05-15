@@ -18,9 +18,9 @@ import {
   ClientChatAction,
   ChatMessagePayload,
 } from '../shared/types';
-import { updateEnemies } from './enemyService';
+import { updateNpcs } from './npcService';
 import { RequestHandler } from 'express';
-import { getMap, updateEnemy } from './database';
+import { getMap, updateNpc } from './database';
 import { handleItemAction, handleKeyAction } from './playerService';
 
 let wss: WebSocketServer;
@@ -97,7 +97,7 @@ setInterval(() => {
 }, 50);
 
 setInterval(() => {
-  enqueueAction({ action: ServerActionType.UpdateEnemyPositions });
+  enqueueAction({ action: ServerActionType.UpdateNpcPositions });
 }, 500);
 
 const actionQueue: ActionQueue = [];
@@ -179,11 +179,11 @@ function isServerAction(action: ActionQueueItem): action is ServerAction {
 
 function handleServerAction(action: ServerAction) {
   switch (action.action) {
-    case ServerActionType.UpdateEnemyPositions:
+    case ServerActionType.UpdateNpcPositions:
       Object.values(getGameState().maps).forEach((map) => {
-        Object.values(map.enemies).forEach((enemy) => {
-          updateEnemies(enemy, map);
-          updateEnemy(enemy);
+        Object.values(map.npcs).forEach((npc) => {
+          updateNpcs(npc, map);
+          updateNpc(npc);
         });
       });
       break;

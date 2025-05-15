@@ -2,15 +2,14 @@ import { SPRITE_HEIGHT, SPRITE_WIDTH, TILE_SIZE } from '../shared/constants';
 import {
   PlayerAction,
   Direction,
-  EnemiesMap,
-  Enemy,
   GameState,
   MapState,
   Player,
   PlayersMap,
-  Tile,
   Character,
   ItemsMap,
+  NpcsMap,
+  Npc,
 } from '../shared/types';
 
 const players: PlayersMap = {};
@@ -32,7 +31,7 @@ const items: ItemsMap = {
   },
 };
 
-const enemies: EnemiesMap = {
+const npcs: NpcsMap = {
   '1': {
     id: '1',
     position: {
@@ -76,7 +75,7 @@ const gameState: GameState = {
       name: 'First map',
       type: 'normal',
       players: {},
-      enemies: { ...enemies },
+      npcs: { ...npcs },
       tiles: Array.from({ length: 448 / 32 }, () =>
         Array(640 / 32).fill({ tileIndex: -1, blocked: false }),
       ),
@@ -86,7 +85,7 @@ const gameState: GameState = {
       name: 'Second map',
       type: 'pvp',
       players: {},
-      enemies: {},
+      npcs: {},
       tiles: Array.from({ length: 448 / 32 }, () =>
         Array(640 / 32).fill({ tileIndex: -1, blocked: false }),
       ),
@@ -169,20 +168,20 @@ export const updatePlayer = (player: Player): void => {
   }
 };
 
-export const updateEnemy = (enemy: Character): void => {
-  enemies[enemy.id] = { ...enemy } as Enemy;
+export const updateNpc = (npc: Character): void => {
+  npcs[npc.id] = { ...npc } as Npc;
 };
 
 export const getPlayers = (): PlayersMap => {
   return players;
 };
 
-export const setEnemies = (newEnemies: Enemy[]): void => {
-  newEnemies.forEach((enemy) => {
-    enemies[enemy.id] = enemy;
+export const setNpcs = (newNpcs: Npc[]): void => {
+  newNpcs.forEach((npc) => {
+    npcs[npc.id] = npc;
     Object.values(gameState.maps).forEach((map) => {
-      if (map.enemies[enemy.id]) {
-        map.enemies[enemy.id] = enemy;
+      if (map.npcs[npc.id]) {
+        map.npcs[npc.id] = npc;
       }
     });
   });
@@ -192,10 +191,10 @@ export const getItems = (): ItemsMap => {
   return items;
 };
 
-export const getEnemies = (): EnemiesMap => {
-  return enemies;
+export const getNpcs = (): NpcsMap => {
+  return npcs;
 };
 
-export const getEnemiesInMap = (mapId: MapState['id']): EnemiesMap => {
-  return gameState.maps[mapId].enemies;
+export const getNpcsInMap = (mapId: MapState['id']): NpcsMap => {
+  return gameState.maps[mapId].npcs;
 };

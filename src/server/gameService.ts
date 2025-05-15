@@ -14,14 +14,14 @@ import {
   Tile,
   MapState,
   Warp,
-  EnemiesMap,
   ClientChatAction,
-  Enemy,
+  Npc,
   ServerChatAction,
   ChatMessagePayload,
+  NpcsMap,
 } from '../shared/types';
 import {
-  getEnemies,
+  getNpcs,
   getGameStateDb,
   getMap,
   getPlayer,
@@ -30,7 +30,7 @@ import {
   updateMapById,
   updatePlayer,
 } from './database';
-import { isEnemy, respawnEnemy } from './enemyService';
+import { isNpc, respawnNpc } from './npcService';
 import {
   createPlayer,
   handlePlayerUpdates,
@@ -63,19 +63,18 @@ const isTileWarp = (map: MapState, x: number, y: number): Warp | undefined => {
   return map.tiles[row]?.[col]?.warp;
 };
 
-export const insertEnemies = (mapId: string, tiles: Tile[][]) => {
-  const newMap = { ...getMap(mapId), tiles, enemies: {} as EnemiesMap };
+export const insertNpcs = (mapId: string, tiles: Tile[][]) => {
+  const newMap = { ...getMap(mapId), tiles, npcs: {} as NpcsMap };
   tiles.forEach((row, rowIndex) =>
     row.forEach((tile, colIndex) => {
-      if (tile.enemySpawn) {
-        const enemy = {
-          ...getEnemies()[tile.enemySpawn],
+      if (tile.npcSpawn) {
+        const npc = {
+          ...getNpcs()[tile.npcSpawn],
           position: { x: colIndex * TILE_SIZE, y: rowIndex * TILE_SIZE },
           mapId,
         };
-        newMap.enemies[
-          String.fromCharCode(65 + Math.floor(Math.random() * 26))
-        ] = enemy;
+        newMap.npcs[String.fromCharCode(65 + Math.floor(Math.random() * 26))] =
+          npc;
       }
     }),
   );
@@ -86,12 +85,12 @@ export const hasCollision = (character: Character): boolean => {
   if (!character.mapId) return false;
 
   const map = getMap(character.mapId)!;
-  const { players, enemies } = map;
+  const { players, npcs } = map;
   const { width, height } = character;
   const { x, y } = character.position;
 
   const characterCollision = [
-    ...Object.values(enemies),
+    ...Object.values(npcs),
     ...Object.values(players),
   ].some((other) => other.id !== character.id && isColliding(character, other));
 
@@ -237,7 +236,7 @@ export const handleKeyRelease = (username: string, key: Key) => {
 };
 
 export const mapSave = (mapId: string, tiles: Tile[][]) => {
-  const newMap = insertEnemies(mapId, tiles);
+  const newMap = insertNpcs(mapId, tiles);
   updateMapById(newMap as MapState);
 };
 
@@ -302,11 +301,11 @@ const findAttackTarget = (
     }
   }
 
-  const npcTargets = Object.values(map.enemies).filter(
-    (enemy) =>
-      enemy.health > 0 &&
-      isInAttackRange(attacker, enemy) &&
-      isFacingTarget(attacker, enemy),
+  const npcTargets = Object.values(map.npcs).filter(
+    (npc) =>
+      npc.health > 0 &&
+      isInAttackRange(attacker, npc) &&
+      isFacingTarget(attacker, npc),
   );
 
   return npcTargets[0];
@@ -336,11 +335,11 @@ export const handleAttack = (attacker: Player): void => {
         subtype: 'death',
         message: `${attacker.name} defeated ${attackTarget.name}`,
       });
-    } else if (isEnemy(attackTarget)) {
+    } else if (isNpc(attackTarget)) {
       attacker.experience += attackTarget.experienceValue;
       levelUpPlayer(attacker);
       updatePlayer(attacker);
-      respawnEnemy(attacker.mapId, attackTarget);
+      respawnNpc(attacker.mapId, attackTarget);
     }
   }
 };

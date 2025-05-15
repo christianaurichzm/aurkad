@@ -55,7 +55,7 @@ export const keyRecord: Partial<Record<Key, Protocol>> = {
 };
 
 export enum ServerActionType {
-  UpdateEnemyPositions = 'updateEnemyPositions',
+  UpdateNpcPositions = 'UpdateNpcPositions',
 }
 
 export interface KeyboardAction {
@@ -183,11 +183,11 @@ export interface Player extends Character {
 
 export type PlayersMap = { [key: string]: Player };
 
-export type EnemiesMap = { [key: string]: Enemy };
+export type NpcsMap = { [key: string]: Npc };
 
 export type ItemsMap = { [key: number]: Item };
 
-export interface Enemy extends Character {
+export interface Npc extends Character {
   experienceValue: number;
 }
 
@@ -204,7 +204,7 @@ export interface Tile {
   tileIndex: number;
   blocked?: boolean;
   warp?: Warp;
-  enemySpawn?: Enemy['id'];
+  npcSpawn?: Npc['id'];
 }
 
 export interface MapState {
@@ -212,7 +212,7 @@ export interface MapState {
   name: string;
   type: 'pvp' | 'normal';
   players: Record<string, Player>;
-  enemies: Record<string, Enemy>;
+  npcs: Record<string, Npc>;
   tiles: Tile[][];
 }
 
@@ -222,4 +222,4 @@ export interface HttpRequestOptions {
   body?: any;
 }
 
-export type TileEditMode = 'blocking' | 'warping' | 'enemy';
+export type TileEditMode = 'blocking' | 'warping' | 'npc';

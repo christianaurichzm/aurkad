@@ -2,10 +2,10 @@ import { TILE_SIZE } from '../../shared/constants';
 import {
   PlayerAction,
   Direction,
-  EnemiesMap,
   PlayersMap,
   Position,
   playerActionRecord,
+  NpcsMap,
 } from '../../shared/types';
 import { getGameState, getPlayer } from '../core/gameState';
 import { spriteSheet } from '../io/files';
@@ -36,11 +36,11 @@ const renderPlayers = (players: PlayersMap) => {
   });
 };
 
-const renderEnemies = (enemies: EnemiesMap) => {
-  Object.values(enemies).forEach((enemy) => {
-    if (enemy.health > 0) {
-      renderEntity(enemy);
-      renderHealthBar(enemy);
+const renderNpcs = (npcs: NpcsMap) => {
+  Object.values(npcs).forEach((npc) => {
+    if (npc.health > 0) {
+      renderEntity(npc);
+      renderHealthBar(npc);
     }
   });
 };
@@ -98,7 +98,7 @@ export const render = () => {
       renderMap(map.tiles);
     }
     renderPlayers(map.players);
-    renderEnemies(map.enemies);
+    renderNpcs(map.npcs);
     updatePlayerHealthBar(getPlayer().health);
   }
 };

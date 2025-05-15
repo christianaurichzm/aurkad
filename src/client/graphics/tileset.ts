@@ -13,7 +13,7 @@ const tilesetCanvas = document.getElementById(
 const tilesetCtx = tilesetCanvas.getContext('2d') as CanvasRenderingContext2D;
 const blockButton = document.getElementById('blockButton') as HTMLButtonElement;
 const warpButton = document.getElementById('warpButton') as HTMLButtonElement;
-const enemyButton = document.getElementById('enemyButton') as HTMLButtonElement;
+const npcButton = document.getElementById('npcButton') as HTMLButtonElement;
 const tilesetContainer = document.getElementById(
   'tilesetContainer',
 ) as HTMLDivElement;
@@ -91,20 +91,20 @@ const modes: Record<TileEditMode, ModeConfig> = {
       renderMap(map);
     },
   },
-  enemy: {
-    button: enemyButton,
-    textOn: 'Enemy Mode: ON',
-    textOff: 'Enemy Mode: OFF',
+  npc: {
+    button: npcButton,
+    textOn: 'Npc Mode: ON',
+    textOff: 'Npc Mode: OFF',
     styleOn: 'red',
     styleOff: '',
     place: (row: number, col: number) => {
-      const enemyInput = document.getElementById('enemy') as HTMLInputElement;
+      const npcInput = document.getElementById('npc') as HTMLInputElement;
 
-      if (enemyInput) {
-        if (map[row][col].enemySpawn) {
-          map[row][col].enemySpawn = undefined;
+      if (npcInput) {
+        if (map[row][col].npcSpawn) {
+          map[row][col].npcSpawn = undefined;
         } else {
-          map[row][col].enemySpawn = enemyInput.value;
+          map[row][col].npcSpawn = npcInput.value;
         }
       }
       mapEdited = true;
@@ -252,7 +252,7 @@ const drawTileOnCanvas = (col: number, row: number, tileIndex: number) => {
 
 const toggleBlocking = () => toggleMode('blocking');
 const toggleWarping = () => toggleMode('warping');
-const toggleEnemy = () => toggleMode('enemy');
+const toggleNpc = () => toggleMode('npc');
 
 const eventListeners = {
   tilesetCanvas: {
@@ -268,7 +268,7 @@ const eventListeners = {
   buttons: {
     block: toggleBlocking,
     warp: toggleWarping,
-    enemy: toggleEnemy,
+    npc: toggleNpc,
   },
 };
 
@@ -305,7 +305,7 @@ const setupEventListeners = () => {
 
   blockButton.addEventListener('click', eventListeners.buttons.block);
   warpButton.addEventListener('click', eventListeners.buttons.warp);
-  enemyButton.addEventListener('click', eventListeners.buttons.enemy);
+  npcButton.addEventListener('click', eventListeners.buttons.npc);
 };
 
 const removeEventListeners = () => {
@@ -341,7 +341,7 @@ const removeEventListeners = () => {
 
   blockButton.removeEventListener('click', eventListeners.buttons.block);
   warpButton.removeEventListener('click', eventListeners.buttons.warp);
-  enemyButton.removeEventListener('click', eventListeners.buttons.enemy);
+  npcButton.removeEventListener('click', eventListeners.buttons.npc);
 };
 
 export const initTilesetEditor = () => {
@@ -427,7 +427,7 @@ const drawMarkers = (tiles: Tile[][]) => {
       if (tile.warp) {
         drawMarker(colIndex, rowIndex, 'W', 'blue');
       }
-      if (tile.enemySpawn) {
+      if (tile.npcSpawn) {
         drawMarker(colIndex, rowIndex, 'E', 'yellow');
       }
     });
