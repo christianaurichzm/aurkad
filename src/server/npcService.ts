@@ -14,7 +14,7 @@ import { hasCollision } from './gameService';
 import { respawnPlayer } from './playerService';
 
 export const isNpc = (char: Character): char is Npc => {
-  return (char as Npc).experienceValue !== undefined;
+  return 'behavior' in char;
 };
 
 function calculateDirection(
@@ -160,13 +160,55 @@ function findClosestPlayer(
   return closestPlayer;
 }
 
+function moveNpcRandomly(npc: Npc, map: MapState) {
+  const directions = [
+    { dx: 0, dy: -TILE_SIZE, dir: Direction.Up },
+    { dx: 0, dy: TILE_SIZE, dir: Direction.Down },
+    { dx: -TILE_SIZE, dy: 0, dir: Direction.Left },
+    { dx: TILE_SIZE, dy: 0, dir: Direction.Right },
+  ];
+
+  const randomDirection =
+    directions[Math.floor(Math.random() * directions.length)];
+
+  const newX = npc.position.x + randomDirection.dx;
+  const newY = npc.position.y + randomDirection.dy;
+
+  const proposed = { ...npc, position: { x: newX, y: newY } };
+
+  if (!hasCollision(proposed)) {
+    npc.position = proposed.position;
+    npc.direction = randomDirection.dir;
+    npc.action = PlayerAction.Walk;
+  } else {
+    npc.action = PlayerAction.Idle;
+  }
+}
+
 export function updateNpcs(npc: Npc, map: MapState) {
+  if (npc.behavior === 'neutral') {
+    npc.action = PlayerAction.Idle;
+    return;
+  }
+
   const closestPlayer = findClosestPlayer(npc, Object.values(map.players));
-  if (closestPlayer) {
-    if (isPlayerInAttackRange(npc, closestPlayer)) {
+  if (!closestPlayer) return;
+
+  const canAttack = isPlayerInAttackRange(npc, closestPlayer);
+
+  if (npc.behavior === 'aggressive') {
+    if (canAttack) {
       attackPlayer(npc, closestPlayer);
     } else {
       moveNpcTowardsPlayer(npc, closestPlayer);
+    }
+  }
+
+  if (npc.behavior === 'hostile') {
+    if (canAttack) {
+      attackPlayer(npc, closestPlayer);
+    } else {
+      moveNpcRandomly(npc, map);
     }
   }
 }

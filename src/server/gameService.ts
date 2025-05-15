@@ -303,6 +303,7 @@ const findAttackTarget = (
 
   const npcTargets = Object.values(map.npcs).filter(
     (npc) =>
+      npc.behavior !== 'neutral' &&
       npc.health > 0 &&
       isInAttackRange(attacker, npc) &&
       isFacingTarget(attacker, npc),
@@ -318,29 +319,32 @@ export const handleAttack = (attacker: Player): void => {
   if (!map) return;
 
   const attackTarget = findAttackTarget(attacker, map);
-
   if (!attackTarget) return;
+
+  if (isNpc(attackTarget) && attackTarget.behavior === 'neutral') return;
 
   attackTarget.health -= attacker.attack;
 
-  if (attackTarget.health <= 0) {
-    attackTarget.health = 0;
+  if (attackTarget.health > 0) return;
 
-    if (isPlayer(attackTarget)) {
-      respawnPlayer(attackTarget);
-      updatePlayer(attackTarget);
-      handleChatAction({
-        scope: 'global',
-        type: 'chat',
-        subtype: 'death',
-        message: `${attacker.name} defeated ${attackTarget.name}`,
-      });
-    } else if (isNpc(attackTarget)) {
+  attackTarget.health = 0;
+
+  if (isPlayer(attackTarget)) {
+    respawnPlayer(attackTarget);
+    updatePlayer(attackTarget);
+    handleChatAction({
+      scope: 'global',
+      type: 'chat',
+      subtype: 'death',
+      message: `${attacker.name} defeated ${attackTarget.name}`,
+    });
+  } else if (isNpc(attackTarget)) {
+    if (attackTarget.experienceValue) {
       attacker.experience += attackTarget.experienceValue;
       levelUpPlayer(attacker);
-      updatePlayer(attacker);
-      respawnNpc(attacker.mapId, attackTarget);
     }
+    updatePlayer(attacker);
+    respawnNpc(attacker.mapId, attackTarget);
   }
 };
 

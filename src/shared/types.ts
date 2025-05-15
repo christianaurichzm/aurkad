@@ -187,8 +187,11 @@ export type NpcsMap = { [key: string]: Npc };
 
 export type ItemsMap = { [key: number]: Item };
 
+export type NpcBehavior = 'aggressive' | 'hostile' | 'neutral';
+
 export interface Npc extends Character {
-  experienceValue: number;
+  behavior: NpcBehavior;
+  experienceValue?: number;
 }
 
 export interface GameState {
