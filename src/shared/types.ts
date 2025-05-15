@@ -160,8 +160,12 @@ export interface Item {
 }
 
 export interface Inventory {
-  items: Item[];
+  items: InventoryItem[];
   maxCapacity: number;
+}
+
+export interface InventoryItem extends Item {
+  quantity: number;
 }
 
 export interface EquippedItems {

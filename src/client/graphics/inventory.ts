@@ -1,13 +1,18 @@
 import { ITEM_SIZE, TILE_SIZE } from '../../shared/constants';
-import { ClientItemAction, Item, Player } from '../../shared/types';
+import {
+  ClientItemAction,
+  InventoryItem,
+  Item,
+  Player,
+} from '../../shared/types';
 import { getPlayer } from '../core/gameState';
 import { items } from '../io/files';
 import { sendAction } from '../io/network';
 
 let isInventoryOpen = false;
-let selectedItem: Item | null = null;
-let previousInventory: Item[] = [];
-let previousSelectedItem: Item | null = null;
+let selectedItem: InventoryItem | null = null;
+let previousInventory: InventoryItem[] = [];
+let previousSelectedItem: InventoryItem | null = null;
 
 const getSpriteCoordinates = (spriteId: number, sheetWidth: number) => {
   const cols = sheetWidth / ITEM_SIZE;
@@ -21,13 +26,15 @@ export const renderItemIcon = (
   spriteId: number,
   x: number,
   y: number,
+  applyOffset: boolean = true,
 ) => {
   const { x: spriteX, y: spriteY } = getSpriteCoordinates(
     spriteId,
     items?.width,
   );
-  const offsetX = (TILE_SIZE - ITEM_SIZE) / 2;
-  const offsetY = (TILE_SIZE - ITEM_SIZE) / 2;
+
+  const offsetX = applyOffset ? (TILE_SIZE - ITEM_SIZE) / 2 : 0;
+  const offsetY = applyOffset ? (TILE_SIZE - ITEM_SIZE) / 2 : 0;
 
   ctx.drawImage(
     items,
@@ -42,7 +49,7 @@ export const renderItemIcon = (
   );
 };
 
-export function selectItem(item: Item): void {
+export function selectItem(item: InventoryItem): void {
   selectedItem = item;
   renderInventory(getPlayer());
 }
@@ -58,7 +65,9 @@ export function renderInventory(player: Player) {
   const inventoryChanged =
     currentInventory.length !== previousInventory.length ||
     currentInventory.some(
-      (item, index) => item.id !== previousInventory[index]?.id,
+      (item, index) =>
+        item.id !== previousInventory[index]?.id ||
+        item.quantity !== previousInventory[index]?.quantity,
     );
 
   if (inventoryChanged || selectedItem !== previousSelectedItem) {
@@ -81,15 +90,39 @@ export function renderInventory(player: Player) {
       itemCanvas.height = ITEM_SIZE;
       const itemCtx = itemCanvas.getContext('2d');
       if (itemCtx) {
-        renderItemIcon(itemCtx, item.sprite, 0, 0);
+        renderItemIcon(itemCtx, item.sprite, 0, 0, false);
       }
 
       itemDiv.appendChild(itemCanvas);
 
       itemDiv.onmouseover = () => {
         tooltip.style.display = 'block';
-        tooltip.innerHTML = `<h3>${item.name}</h3><p>${item.description}</p>`;
+        tooltip.innerHTML = `<h3>${item.name}</h3><p>${item.description}</p>${
+          (item as any).quantity
+            ? `<p>Quantity: ${(item as any).quantity}</p>`
+            : ''
+        }`;
       };
+
+      console.log(item.quantity);
+
+      if (item?.quantity > 1) {
+        const quantityLabel = document.createElement('span');
+        quantityLabel.style.position = 'absolute';
+        quantityLabel.style.top = '2px';
+        quantityLabel.style.right = '4px';
+        quantityLabel.style.fontSize = '12px';
+        quantityLabel.style.backgroundColor = 'rgba(0, 0, 0, 0.6)';
+        quantityLabel.style.color = 'white';
+        quantityLabel.style.padding = '1px 4px';
+        quantityLabel.style.borderRadius = '4px';
+        quantityLabel.style.pointerEvents = 'none';
+
+        itemDiv.style.position = 'relative';
+
+        quantityLabel.textContent = `${item.quantity}`;
+        itemDiv.appendChild(quantityLabel);
+      }
 
       itemDiv.onmousemove = (event) => {
         tooltip.style.top = `${event.clientY + 10}px`;
@@ -168,7 +201,7 @@ export function renderEquipment(player: Player) {
       itemCanvas.height = ITEM_SIZE;
       const itemCtx = itemCanvas.getContext('2d');
       if (itemCtx) {
-        renderItemIcon(itemCtx, item.sprite, 0, 0);
+        renderItemIcon(itemCtx, item.sprite, 0, 0, false);
       }
       slot.appendChild(itemCanvas);
     }

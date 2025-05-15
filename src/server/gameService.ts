@@ -255,12 +255,21 @@ const pickUpItem = (map: MapState, player: Player) => {
       item.position.y === player.position.y
     ) {
       const itemData = getItems()[item.itemId];
-      if (player.inventory.items.length < player.inventory.maxCapacity) {
-        player.inventory.items.push(itemData);
-        map.droppedItems.splice(index, 1);
-        updatePlayer(player);
-        updateMap(map as MapState);
+
+      const existing = player.inventory.items.find((i) => i.id === itemData.id);
+
+      if (existing) {
+        existing.quantity += 1;
+      } else if (player.inventory.items.length < player.inventory.maxCapacity) {
+        player.inventory.items.push({
+          ...itemData,
+          quantity: 1,
+        });
       }
+
+      map.droppedItems.splice(index, 1);
+      updatePlayer(player);
+      updateMap(map);
     }
   });
 };
