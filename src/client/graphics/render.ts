@@ -49,12 +49,7 @@ const renderNpcs = (npcs: NpcsMap) => {
 
 const renderDroppedItems = (droppedItems: DroppedItem[]) => {
   droppedItems.forEach((item) => {
-    renderItemIcon(
-      itemCtx,
-      item.item?.sprite,
-      item.position.x,
-      item.position.y,
-    );
+    renderItemIcon(itemCtx, item.sprite, item.position.x, item.position.y);
   });
 };
 

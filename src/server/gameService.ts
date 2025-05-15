@@ -19,6 +19,7 @@ import {
   ServerChatAction,
   ChatMessagePayload,
   NpcsMap,
+  DroppedItem,
 } from '../shared/types';
 import {
   getNpcs,
@@ -29,6 +30,7 @@ import {
   updateMap,
   updateMapById,
   updatePlayer,
+  getItems,
 } from './database';
 import { isNpc, respawnNpc } from './npcService';
 import {
@@ -63,8 +65,50 @@ const isTileWarp = (map: MapState, x: number, y: number): Warp | undefined => {
   return map.tiles[row]?.[col]?.warp;
 };
 
-export const insertNpcs = (mapId: string, tiles: Tile[][]) => {
-  const newMap = { ...getMap(mapId), tiles, npcs: {} as NpcsMap };
+export const insertModeCell = (mapId: string, tiles: Tile[][]) => {
+  const baseMap = getMap(mapId);
+
+  const partialMap: Partial<typeof baseMap> = {
+    tiles,
+  };
+
+  insertNpcs(partialMap, mapId, tiles);
+  insertItems(partialMap, tiles);
+
+  const newMap = {
+    ...baseMap,
+    ...partialMap,
+  };
+
+  return newMap;
+};
+
+export const insertItems = (partialMap: Partial<MapState>, tiles: Tile[][]) => {
+  const droppedItems: DroppedItem[] = [];
+
+  tiles.forEach((row, rowIndex) =>
+    row.forEach((tile, colIndex) => {
+      if (tile.item) {
+        const { id, sprite } = getItems()[tile.item];
+        droppedItems.push({
+          itemId: id,
+          position: { x: colIndex * TILE_SIZE, y: rowIndex * TILE_SIZE },
+          sprite,
+        });
+      }
+    }),
+  );
+
+  partialMap.droppedItems = droppedItems;
+};
+
+export const insertNpcs = (
+  partialMap: Partial<MapState>,
+  mapId: string,
+  tiles: Tile[][],
+) => {
+  const npcs: NpcsMap = {};
+
   tiles.forEach((row, rowIndex) =>
     row.forEach((tile, colIndex) => {
       if (tile.npcSpawn) {
@@ -73,12 +117,13 @@ export const insertNpcs = (mapId: string, tiles: Tile[][]) => {
           position: { x: colIndex * TILE_SIZE, y: rowIndex * TILE_SIZE },
           mapId,
         };
-        newMap.npcs[String.fromCharCode(65 + Math.floor(Math.random() * 26))] =
-          npc;
+        const npcId = String.fromCharCode(65 + Math.floor(Math.random() * 26));
+        npcs[npcId] = npc;
       }
     }),
   );
-  return newMap;
+
+  partialMap.npcs = npcs;
 };
 
 export const hasCollision = (character: Character): boolean => {
@@ -236,7 +281,7 @@ export const handleKeyRelease = (username: string, key: Key) => {
 };
 
 export const mapSave = (mapId: string, tiles: Tile[][]) => {
-  const newMap = insertNpcs(mapId, tiles);
+  const newMap = insertModeCell(mapId, tiles);
   updateMapById(newMap as MapState);
 };
 

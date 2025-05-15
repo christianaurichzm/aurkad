@@ -208,6 +208,7 @@ export interface Tile {
   blocked?: boolean;
   warp?: Warp;
   npcSpawn?: Npc['id'];
+  item?: Item['id'];
 }
 
 export interface MapState {
@@ -221,8 +222,9 @@ export interface MapState {
 }
 
 export interface DroppedItem {
+  itemId: Item['id'];
   position: Position;
-  item: Item;
+  sprite: number;
 }
 
 export interface HttpRequestOptions {
@@ -231,4 +233,4 @@ export interface HttpRequestOptions {
   body?: any;
 }
 
-export type TileEditMode = 'blocking' | 'warping' | 'npc';
+export type TileEditMode = 'blocking' | 'warping' | 'npc' | 'item';

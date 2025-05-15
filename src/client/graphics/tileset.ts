@@ -14,6 +14,7 @@ const tilesetCtx = tilesetCanvas.getContext('2d') as CanvasRenderingContext2D;
 const blockButton = document.getElementById('blockButton') as HTMLButtonElement;
 const warpButton = document.getElementById('warpButton') as HTMLButtonElement;
 const npcButton = document.getElementById('npcButton') as HTMLButtonElement;
+const itemButton = document.getElementById('itemButton') as HTMLButtonElement;
 const tilesetContainer = document.getElementById(
   'tilesetContainer',
 ) as HTMLDivElement;
@@ -105,6 +106,26 @@ const modes: Record<TileEditMode, ModeConfig> = {
           map[row][col].npcSpawn = undefined;
         } else {
           map[row][col].npcSpawn = npcInput.value;
+        }
+      }
+      mapEdited = true;
+      renderMap(map);
+    },
+  },
+  item: {
+    button: itemButton,
+    textOn: 'Item Mode: ON',
+    textOff: 'Item Mode: OFF',
+    styleOn: 'red',
+    styleOff: '',
+    place: (row: number, col: number) => {
+      const itemInput = document.getElementById('item') as HTMLInputElement;
+
+      if (itemInput) {
+        if (map[row][col].item) {
+          map[row][col].item = undefined;
+        } else {
+          map[row][col].item = Number(itemInput.value);
         }
       }
       mapEdited = true;
@@ -253,6 +274,7 @@ const drawTileOnCanvas = (col: number, row: number, tileIndex: number) => {
 const toggleBlocking = () => toggleMode('blocking');
 const toggleWarping = () => toggleMode('warping');
 const toggleNpc = () => toggleMode('npc');
+const toggleItem = () => toggleMode('item');
 
 const eventListeners = {
   tilesetCanvas: {
@@ -269,6 +291,7 @@ const eventListeners = {
     block: toggleBlocking,
     warp: toggleWarping,
     npc: toggleNpc,
+    item: toggleItem,
   },
 };
 
@@ -306,6 +329,7 @@ const setupEventListeners = () => {
   blockButton.addEventListener('click', eventListeners.buttons.block);
   warpButton.addEventListener('click', eventListeners.buttons.warp);
   npcButton.addEventListener('click', eventListeners.buttons.npc);
+  itemButton.addEventListener('click', eventListeners.buttons.item);
 };
 
 const removeEventListeners = () => {
@@ -342,6 +366,7 @@ const removeEventListeners = () => {
   blockButton.removeEventListener('click', eventListeners.buttons.block);
   warpButton.removeEventListener('click', eventListeners.buttons.warp);
   npcButton.removeEventListener('click', eventListeners.buttons.npc);
+  itemButton.removeEventListener('click', eventListeners.buttons.item);
 };
 
 export const initTilesetEditor = () => {
@@ -428,7 +453,10 @@ const drawMarkers = (tiles: Tile[][]) => {
         drawMarker(colIndex, rowIndex, 'W', 'blue');
       }
       if (tile.npcSpawn) {
-        drawMarker(colIndex, rowIndex, 'E', 'yellow');
+        drawMarker(colIndex, rowIndex, 'N', 'yellow');
+      }
+      if (tile.item) {
+        drawMarker(colIndex, rowIndex, 'I', 'orange');
       }
     });
   });

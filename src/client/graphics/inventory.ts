@@ -1,4 +1,4 @@
-import { ITEM_SIZE } from '../../shared/constants';
+import { ITEM_SIZE, TILE_SIZE } from '../../shared/constants';
 import { ClientItemAction, Item, Player } from '../../shared/types';
 import { getPlayer } from '../core/gameState';
 import { items } from '../io/files';
@@ -26,14 +26,17 @@ export const renderItemIcon = (
     spriteId,
     items?.width,
   );
+  const offsetX = (TILE_SIZE - ITEM_SIZE) / 2;
+  const offsetY = (TILE_SIZE - ITEM_SIZE) / 2;
+
   ctx.drawImage(
     items,
     spriteX,
     spriteY,
     ITEM_SIZE,
     ITEM_SIZE,
-    x,
-    y,
+    x + offsetX,
+    y + offsetY,
     ITEM_SIZE,
     ITEM_SIZE,
   );
