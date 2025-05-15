@@ -1,18 +1,13 @@
 import { createServer } from 'http';
-import { Request, Response } from 'express';
+import express, { Request, Response } from 'express';
 import app from './app';
-import {
-  addPlayerOnMap,
-  changeSprite,
-  getPlayerByName,
-  login,
-  mapSave,
-} from './gameService';
+import path from 'path';
+import { addPlayerOnMap, changeSprite, login, mapSave } from './gameService';
 import session from 'express-session';
-import cors from 'cors';
 import { startWebSocketServer } from './wsServer';
 import { Access, Player } from '../shared/types';
 import checkAccess from './checkAccess';
+import { getItems, getNpcs } from './database';
 
 declare module 'express-session' {
   interface SessionData {
@@ -25,10 +20,8 @@ export type ExtendedRequest = Request & {
   session: session.Session & Partial<session.SessionData>;
 };
 
-const server = createServer(app);
 const port = process.env.PORT || 8080;
-
-app.use(cors());
+const publicFolder = '../../public';
 
 const sessionMiddleware = session({
   secret: 'changeit',
@@ -37,7 +30,6 @@ const sessionMiddleware = session({
 });
 
 app.use(sessionMiddleware);
-startWebSocketServer(server, sessionMiddleware);
 
 app.post('/login', async (req: Request, res: Response) => {
   const username = req.body.username;
@@ -106,6 +98,32 @@ app.post(
     res.status(200).send('Authorized');
   },
 );
+
+app.get('/npcs', checkAccess(Access.ADMIN), (req: Request, res: Response) => {
+  try {
+    const npcs = Object.values(getNpcs());
+    res.status(200).json(npcs);
+  } catch (error) {
+    res.status(500).json({ error: 'Could not fetch NPCs' });
+  }
+});
+
+app.get('/items', checkAccess(Access.ADMIN), (req: Request, res: Response) => {
+  try {
+    const items = Object.values(getItems());
+    res.status(200).json(items);
+  } catch (error) {
+    res.status(500).json({ error: 'Could not fetch items' });
+  }
+});
+
+app.use(express.static(path.join(__dirname, publicFolder)));
+app.get('*', (_req, res) => {
+  res.sendFile(path.join(__dirname, `${publicFolder}/index.html`));
+});
+
+const server = createServer(app);
+startWebSocketServer(server, sessionMiddleware);
 
 server.listen(port, () => {
   console.log(`Server is listening on port ${port}`);

@@ -5,6 +5,8 @@ import {
   ClientAction,
   ClientChatAction,
   ChatScope,
+  Npc,
+  Item,
 } from '../../shared/types';
 import { getGameState, setPlayer, updateGameState } from '../core/gameState';
 import { hideConnectionStatus, showConnectionStatus } from '../ui/hud';
@@ -204,4 +206,12 @@ export const changeSprite = async (spriteId: number) => {
     method: 'POST',
     body: { spriteId },
   });
+};
+
+export const fetchNpcs = async (): Promise<Npc[]> => {
+  return (await httpClient<Npc[]>('/npcs', { method: 'GET' })) || [];
+};
+
+export const fetchItems = async (): Promise<Item[]> => {
+  return (await httpClient<Item[]>('/items', { method: 'GET' })) || [];
 };

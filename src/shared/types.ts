@@ -121,6 +121,7 @@ export type ActionQueue = Array<ActionQueueItem>;
 
 export interface Character {
   id: string;
+  name: string;
   position: Position;
   width: number;
   height: number;
@@ -177,7 +178,6 @@ export interface EquippedItems {
 }
 
 export interface Player extends Character {
-  name: string;
   level: number;
   speed: number;
   experience: number;

@@ -41,15 +41,19 @@
           <div id="npcGroup" class="mode-group">
             <button id="npcButton">NPC Mode: OFF</button>
             <div class="mode-inputs">
-              <label for="npc">NPC ID:</label>
-              <input type="number" id="npc" name="npc" required />
+              <label for="npc">NPC:</label>
+              <select id="npc" name="npc" required>
+                <option value="" disabled selected>Select an NPC</option>
+              </select>
             </div>
           </div>
           <div id="itemGroup" class="mode-group">
             <button id="itemButton">Item Mode: OFF</button>
             <div class="mode-inputs">
-              <label for="item">Item ID:</label>
-              <input type="number" id="item" name="item" required />
+              <label for="item">Item:</label>
+              <select id="item" name="item" required>
+                <option value="" disabled selected>Select an item</option>
+              </select>
             </div>
           </div>
         </div>
