@@ -58,17 +58,17 @@
 
       <div id="modContainer" class="editor-menu">
         <h3>Moderation Menu</h3>
-      
         <h4>Players</h4>
         <div class="editor-group">
           <label for="playerName">Player Name</label>
           <input id="playerName" type="text" placeholder="Type player name..." />
+      
           <div class="editor-actions">
             <button id="kickBtn" class="editor-btn">Kick</button>
             <button id="bringBtn" class="editor-btn">Bring Here</button>
             <button id="gotoBtn" class="editor-btn">Go To</button>
           </div>
-          <div id="playerOpsRow" class="editor-extra" style="display:none;">
+          <div id="playerOpsRow" class="editor-extra" style="display:flex;">
             <div class="editor-extra-field">
               <label for="accessSelect">Access</label>
               <select id="accessSelect"></select>
@@ -79,9 +79,14 @@
               <input id="spriteInput" type="number" min="0" />
               <button id="setSpriteBtn" class="editor-btn small">Set</button>
             </div>
+            <div class="editor-extra-field ban-section">
+              <label>Ban Player</label>
+              <input id="banReason" type="text" placeholder="Reason (optional)" />
+              <input id="banDuration" type="number" min="0" placeholder="Duration (min, 0=perm)" />
+              <button id="banBtn" class="editor-btn small danger">Ban</button>
+            </div>
           </div>
         </div>
-      
         <hr class="editor-divider" />
       
         <h4>My self</h4>
@@ -103,6 +108,7 @@
           </div>
         </div>
       </div>
+      
       
       <div id="gameInfo">
         <p id="mapName">Map</p>

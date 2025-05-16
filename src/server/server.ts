@@ -16,7 +16,7 @@ import session from 'express-session';
 import { broadcast, playersWsMap, startWebSocketServer } from './wsServer';
 import { Access, Player } from '../shared/types';
 import checkAccess from './checkAccess';
-import { getItems, getNpcs } from './database';
+import { bannedPlayers, getItems, getNpcs } from './database';
 
 declare module 'express-session' {
   interface SessionData {
@@ -46,6 +46,18 @@ app.post('/login', async (req: Request, res: Response) => {
     res.status(400).send('Username is required');
     return;
   }
+
+  const ban = bannedPlayers[username];
+  if (ban) {
+    if (!ban.until || Date.now() < ban.until) {
+      return res.status(403).json({
+        message: `You are banned from this game.${ban.reason ? ` Reason: ${ban.reason}` : ''}${ban.until ? ` Until: ${new Date(ban.until).toLocaleString()}` : ''}`,
+      });
+    } else {
+      delete bannedPlayers[username];
+    }
+  }
+
   try {
     const player = await login(username);
     if (player) {
@@ -140,7 +152,7 @@ app.post(
 );
 
 app.post(
-  '/mod/kickPlayer',
+  '/mod/kick',
   checkAccess(Access.MOD),
   async (req: Request, res: Response) => {
     const { playerName } = req.body;
@@ -175,6 +187,29 @@ app.post(
       });
     }
 
+    res.status(200).json({ success: true });
+  },
+);
+
+app.post(
+  '/mod/ban',
+  checkAccess(Access.ADMIN),
+  (req: Request, res: Response) => {
+    const { playerName, reason, until } = req.body;
+    if (!playerName) return res.status(400).json({ error: 'No player name' });
+    bannedPlayers[playerName] = { reason, until };
+    const ws = playersWsMap.get(playerName);
+    if (ws && ws.readyState === ws.OPEN) {
+      ws.send(
+        JSON.stringify({
+          type: 'kick',
+          message: reason
+            ? `You were banned: ${reason}`
+            : 'You were banned from the game.',
+        }),
+      );
+      ws.close();
+    }
     res.status(200).json({ success: true });
   },
 );

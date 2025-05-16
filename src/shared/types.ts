@@ -111,6 +111,8 @@ export type ChatScope = 'player' | 'map' | 'global';
 
 export type ChatSubtype = 'death';
 
+export type BanEntry = { until?: number; reason?: string };
+
 export interface ServerAction {
   action: ServerActionType;
 }

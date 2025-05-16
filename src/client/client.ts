@@ -60,11 +60,9 @@ async function handleLogin(
   if (usernameInput) {
     const username = usernameInput.value;
     try {
-      const data: { map: MapState; player: Player } | null =
-        await login(username);
-      validateResponse(data);
+      const data = await login(username);
       await processLoginSuccess(
-        data!,
+        data as { map: MapState; player: Player },
         loginContainer,
         canvasContainer,
         hudContainer,
@@ -72,12 +70,6 @@ async function handleLogin(
     } catch (error) {
       displayError(error, errorMessage);
     }
-  }
-}
-
-function validateResponse(data: { map: MapState; player: Player } | null) {
-  if (!data || !data.map || !data.player) {
-    throw new Error('Invalid response from server');
   }
 }
 
@@ -134,13 +126,16 @@ function toggleContainers(
 
 function displayError(error: unknown, errorMessage: HTMLElement) {
   errorMessage.style.display = 'block';
-  if (error instanceof Error) {
+  if (typeof error === 'string') {
+    errorMessage.textContent = error;
+  } else if (error instanceof Error) {
     errorMessage.textContent = error.message;
-    console.error('Login error:', error);
+  } else if (error && typeof error === 'object' && 'message' in error) {
+    errorMessage.textContent = (error as any).message;
   } else {
     errorMessage.textContent = 'An unknown error occurred';
-    console.error('Unknown error:', error);
   }
+  console.error('Login error:', error);
 }
 
 function startGameLoop() {

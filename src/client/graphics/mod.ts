@@ -9,6 +9,7 @@ import {
   modMoveMap,
   modSetMyAccess,
   changeSprite,
+  modBan,
 } from '../io/network';
 import { displayChatMessage } from '../ui/chat';
 
@@ -92,6 +93,38 @@ document.getElementById('kickBtn')!.addEventListener('click', async () => {
       type: 'chat',
     });
   }
+});
+
+document.getElementById('banBtn')!.addEventListener('click', async () => {
+  const playerName = (
+    document.getElementById('playerName') as HTMLInputElement
+  ).value.trim();
+  const reason =
+    (document.getElementById('banReason') as HTMLInputElement)?.value ?? '';
+  const duration = Number(
+    (document.getElementById('banDuration') as HTMLInputElement)?.value,
+  );
+
+  if (!playerName) {
+    displayChatMessage({
+      message: 'Enter the player name.',
+      scope: 'player',
+      type: 'chat',
+    });
+    return;
+  }
+
+  let until: number | undefined;
+  if (duration > 0) {
+    until = Date.now() + duration * 60 * 1000;
+  }
+
+  const res = await modBan(playerName, reason, until);
+  displayChatMessage({
+    message: res ? 'Player banned!' : 'Failed to ban player.',
+    scope: 'player',
+    type: 'chat',
+  });
 });
 
 document.getElementById('bringBtn')!.addEventListener('click', async () => {

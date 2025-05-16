@@ -160,7 +160,7 @@ export const httpClient = async <T>(
     });
 
     const contentType = response.headers.get('Content-Type');
-    let data;
+    let data: any;
     if (contentType && contentType.includes('application/json')) {
       data = await response.json();
     } else {
@@ -168,21 +168,23 @@ export const httpClient = async <T>(
     }
 
     if (!response.ok) {
-      console.error(
+      if (data?.message) {
+        throw new Error(data.message);
+      }
+      throw new Error(
         `Error: ${response.status} - ${response.statusText} - ${data}`,
       );
-      return null;
     }
 
     return data as T;
   } catch (error) {
     console.error('HTTP Client Error:', error);
-    return null;
+    throw error;
   }
 };
 
 export const login = async (username: string) => {
-  return httpClient<{ player: Player; map: MapState }>('/login', {
+  return await httpClient<{ player: Player; map: MapState }>('/login', {
     method: 'POST',
     body: { username },
   });
@@ -228,10 +230,21 @@ export const changeSprite = async (spriteId: number) => {
 };
 
 export const modKick = async (playerName: string) =>
-  httpClient<Response>('/mod/kickPlayer', {
+  httpClient<Response>('/mod/kick', {
     method: 'POST',
     body: { playerName },
   });
+
+export const modBan = async (
+  playerName: string,
+  reason = '',
+  until?: number,
+) => {
+  return httpClient<Response>('/mod/ban', {
+    method: 'POST',
+    body: { playerName, reason, until },
+  });
+};
 
 export const modBring = async (playerName: string) =>
   httpClient<Response>('/mod/bring', {
