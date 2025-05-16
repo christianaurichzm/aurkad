@@ -25,7 +25,7 @@ import { handleItemAction, handleKeyAction } from './playerService';
 
 let wss: WebSocketServer;
 
-const playersWsMap = new Map<string, WebSocket>();
+export const playersWsMap = new Map<string, WebSocket>();
 
 export const startWebSocketServer = (
   server: Server,
@@ -136,7 +136,7 @@ export function broadcastChat(message: ChatMessagePayload) {
   });
 }
 
-export function broadcastLocalChat(
+export function broadcastMapChat(
   senderUsername: string,
   message: ChatMessagePayload,
 ) {
@@ -152,10 +152,7 @@ export function broadcastLocalChat(
   });
 }
 
-export function broadcastLocalToMap(
-  mapId: string,
-  message: ChatMessagePayload,
-) {
+export function broadcastToMap(mapId: string, message: ChatMessagePayload) {
   const map = getMap(mapId);
   if (!map) return;
 

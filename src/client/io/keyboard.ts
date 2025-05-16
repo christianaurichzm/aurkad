@@ -5,12 +5,18 @@ import {
   keyRecord,
 } from '../../shared/types';
 import { toggleInventory } from '../graphics/inventory';
+import { closeModMenu, toggleModMenu } from '../graphics/mod';
 import {
   initTilesetEditor,
   tilesetEditorInitialized,
   toggleTilesetEditor,
 } from '../graphics/tileset';
-import { openMapEditor, sendAction, sendChatMessage } from './network';
+import {
+  openMapEditor,
+  openModEditor,
+  sendAction,
+  sendChatMessage,
+} from './network';
 
 const isValidKey = (value: string): value is Key => {
   return Object.values(Key).includes(value as Key);
@@ -36,13 +42,20 @@ export const handleInput = () => {
           type: 'keyboard',
         } as ClientKeyboardAction);
       } else {
-        if (key === Key.z) {
+        if (key === Key.x) {
+          openModEditor().then((res) => {
+            if (res) {
+              toggleModMenu();
+            }
+          });
+        } else if (key === Key.z) {
           openMapEditor().then((res) => {
             if (res) {
               if (!tilesetEditorInitialized) {
                 initTilesetEditor();
               }
               toggleTilesetEditor();
+              closeModMenu();
             }
           });
         } else if (key === Key.i) {

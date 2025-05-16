@@ -16,13 +16,16 @@ export function displayChatMessage({
     if (subtype === 'death') {
       msgEl.className = 'chat-death';
     }
+    if (scope === 'player') {
+      msgEl.className = 'chat-player';
+    }
   } else {
     msgEl.textContent = `[${scope}] ${username}: ${message}`;
 
     if (scope === 'global') {
       msgEl.className = 'chat-global';
-    } else if (scope === 'local') {
-      msgEl.className = 'chat-local';
+    } else if (scope === 'map') {
+      msgEl.className = 'chat-map';
     }
   }
 

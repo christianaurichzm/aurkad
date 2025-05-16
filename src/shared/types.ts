@@ -6,6 +6,7 @@ export enum Key {
   ArrowRight = 'ArrowRight',
   Shift = 'Shift',
   Control = 'Control',
+  x = 'x',
   z = 'z',
   i = 'i',
   e = 'e',
@@ -31,7 +32,8 @@ export enum Protocol {
 
 export enum Access {
   USER = 0,
-  ADMIN = 1,
+  MOD = 1,
+  ADMIN = 2,
 }
 
 export const playerActionRecord: Record<PlayerAction, number> = {
@@ -42,6 +44,7 @@ export const playerActionRecord: Record<PlayerAction, number> = {
 
 export const playerNameColorRecord: Record<Access, string> = {
   [Access.USER]: 'yellow',
+  [Access.MOD]: 'blue',
   [Access.ADMIN]: 'black',
 };
 
@@ -53,6 +56,7 @@ export const keyRecord: Partial<Record<Key, Protocol>> = {
   Shift: Protocol.WS,
   Control: Protocol.WS,
   e: Protocol.WS,
+  x: Protocol.HTTP,
   z: Protocol.HTTP,
 };
 
@@ -103,7 +107,7 @@ interface ChatBase {
   message: string;
 }
 
-export type ChatScope = 'local' | 'global';
+export type ChatScope = 'player' | 'map' | 'global';
 
 export type ChatSubtype = 'death';
 

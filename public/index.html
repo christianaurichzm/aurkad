@@ -3,6 +3,7 @@
   <head>
     <title>Engine</title>
     <link rel="stylesheet" type="text/css" href="styles.css" />
+    <link rel="stylesheet" type="text/css" href="modmenu.css" />
   </head>
   <body>
     <div class="container" id="loginContainer">
@@ -17,12 +18,6 @@
     <div id="ui">
       <div id="tilesetContainer">
         <button id="saveButton">Save Map</button>
-        <form id="spriteForm">
-          <label for="sprite">Sprite:</label>
-          <input type="number" id="sprite" name="sprite" required />
-          <button id="saveSprite">Save Sprite</button>
-        </form>
-      
         <div id="modeControls" class="mode-controls">
           <div id="blockingGroup" class="mode-group">
             <button id="blockButton">Blocking Mode: OFF</button>
@@ -60,6 +55,55 @@
       
         <canvas id="tilesetCanvas"></canvas>
       </div>
+
+      <div id="modContainer" class="editor-menu">
+        <h3>Moderation Menu</h3>
+      
+        <h4>Players</h4>
+        <div class="editor-group">
+          <label for="playerName">Player Name</label>
+          <input id="playerName" type="text" placeholder="Type player name..." />
+          <div class="editor-actions">
+            <button id="kickBtn" class="editor-btn">Kick</button>
+            <button id="bringBtn" class="editor-btn">Bring Here</button>
+            <button id="gotoBtn" class="editor-btn">Go To</button>
+          </div>
+          <div id="playerOpsRow" class="editor-extra" style="display:none;">
+            <div class="editor-extra-field">
+              <label for="accessSelect">Access</label>
+              <select id="accessSelect"></select>
+              <button id="setAccessBtn" class="editor-btn small">Set</button>
+            </div>
+            <div class="editor-extra-field">
+              <label for="spriteInput">Sprite</label>
+              <input id="spriteInput" type="number" min="0" />
+              <button id="setSpriteBtn" class="editor-btn small">Set</button>
+            </div>
+          </div>
+        </div>
+      
+        <hr class="editor-divider" />
+      
+        <h4>My self</h4>
+        <div class="editor-group">
+          <div class="editor-extra-field">
+            <label for="mapId">Move to Map</label>
+            <input id="mapId" type="number" placeholder="Map ID" />
+            <button id="moveMapBtn" class="editor-btn small">Go</button>
+          </div>
+          <div class="editor-extra-field">
+            <label for="myAccess">My Access</label>
+            <select id="myAccess"></select>
+            <button id="setMyAccessBtn" class="editor-btn small">Set</button>
+          </div>
+          <div class="editor-extra-field">
+            <label for="mySpriteInput">My Sprite</label>
+            <input id="mySpriteInput" type="number" min="0" />
+            <button id="setMySpriteBtn" class="editor-btn small">Set</button>
+          </div>
+        </div>
+      </div>
+      
       <div id="gameInfo">
         <p id="mapName">Map</p>
         <div id="connection-status">
@@ -94,7 +138,7 @@
       <div id="chatBox" class="chat-box"></div>
       <div id="chatInputContainer">
         <select id="chatScope">
-          <option value="local">Local</option>
+          <option value="map">Map</option>
           <option value="global">Global</option>
         </select>
         <input type="text" id="chatInput" placeholder="Mensagem..." />

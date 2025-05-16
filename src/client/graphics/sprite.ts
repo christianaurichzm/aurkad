@@ -27,27 +27,3 @@ export function getCharacterSpriteCoordinates(
 export const getSpriteSize = () => {
   return { SPRITE_WIDTH, SPRITE_HEIGHT };
 };
-
-document.addEventListener('DOMContentLoaded', () => {
-  const saveSprite = document.getElementById('saveSprite');
-  if (saveSprite) {
-    saveSprite.addEventListener('click', (e) => {
-      e.preventDefault();
-      const spriteInput = document.getElementById('sprite');
-      if (spriteInput && spriteInput instanceof HTMLInputElement) {
-        const spriteId = parseInt(spriteInput.value, 10);
-        changeSprite(spriteId)
-          .then(() => {
-            console.log('Sprite changed successfully');
-          })
-          .catch((error) => {
-            console.error('Error changing sprite:', error);
-          });
-      } else {
-        console.error('Sprite input not found');
-      }
-    });
-  } else {
-    console.error('Change sprite button not found');
-  }
-});

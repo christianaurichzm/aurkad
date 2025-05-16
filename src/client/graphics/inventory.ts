@@ -104,8 +104,6 @@ export function renderInventory(player: Player) {
         }`;
       };
 
-      console.log(item.quantity);
-
       if (item?.quantity > 1) {
         const quantityLabel = document.createElement('span');
         quantityLabel.style.position = 'absolute';

@@ -10,7 +10,7 @@ const checkAccess = (requiredAccess: Access) => {
       return res.status(401).send('Unauthorized');
     }
 
-    if (accessLevel !== requiredAccess) {
+    if (accessLevel < requiredAccess) {
       return res.status(403).send('Forbidden');
     }
 

@@ -499,7 +499,7 @@ export const toggleTilesetEditor = () => {
     }
 
     removeEventListeners();
-    tilesetContainer.style.display = 'flex';
+    tilesetContainer.style.display = 'none';
     gridCanvas.style.display = 'none';
     mapEdited = false;
     activeMode = null;

@@ -42,8 +42,8 @@ import {
 import {
   broadcast,
   broadcastChat,
-  broadcastLocalChat,
-  broadcastLocalToMap,
+  broadcastMapChat,
+  broadcastToMap,
 } from './wsServer';
 
 const isColliding = (a: Character, b: Character): boolean =>
@@ -490,13 +490,13 @@ export function handleChatAction(action: ClientChatAction | ServerChatAction) {
 
   if (payload.scope === 'global') {
     broadcastChat(payload);
-  } else if (payload.scope === 'local') {
+  } else if (payload.scope === 'map') {
     if (isClientChatAction(action)) {
-      broadcastLocalChat(action.username, payload);
+      broadcastMapChat(action.username, payload);
     } else if (isServerChatAction(action) && action.mapId) {
-      broadcastLocalToMap(action.mapId, payload);
+      broadcastToMap(action.mapId, payload);
     } else {
-      console.warn('Local server message missing mapId.');
+      console.warn('Map server message missing mapId.');
     }
   }
 }

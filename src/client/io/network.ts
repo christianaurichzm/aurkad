@@ -7,6 +7,7 @@ import {
   ChatScope,
   Npc,
   Item,
+  Access,
 } from '../../shared/types';
 import { getGameState, setPlayer, updateGameState } from '../core/gameState';
 import { hideConnectionStatus, showConnectionStatus } from '../ui/hud';
@@ -59,6 +60,10 @@ export const initializeWebSocket = () => {
 
       if (data.type === 'chat') {
         chatQueue.push(data);
+      } else if (data.type === 'kick') {
+        alert(data.message || 'You have been kicked from the game.');
+        window.location.reload();
+        return;
       } else if (data.map && data.player) {
         gameStateQueue.push(data);
       }
@@ -189,6 +194,12 @@ export const openMapEditor = async () => {
   });
 };
 
+export const openModEditor = async () => {
+  return httpClient<Response>('/openModEditor', {
+    method: 'POST',
+  });
+};
+
 export const saveMap = async (newMapTiles: MapState['tiles']) => {
   const mapData = {
     mapId: getGameState().id,
@@ -201,13 +212,6 @@ export const saveMap = async (newMapTiles: MapState['tiles']) => {
   });
 };
 
-export const changeSprite = async (spriteId: number) => {
-  return httpClient<Response>('/changeSprite', {
-    method: 'POST',
-    body: { spriteId },
-  });
-};
-
 export const fetchNpcs = async (): Promise<Npc[]> => {
   return (await httpClient<Npc[]>('/npcs', { method: 'GET' })) || [];
 };
@@ -215,3 +219,52 @@ export const fetchNpcs = async (): Promise<Npc[]> => {
 export const fetchItems = async (): Promise<Item[]> => {
   return (await httpClient<Item[]>('/items', { method: 'GET' })) || [];
 };
+
+export const changeSprite = async (spriteId: number) => {
+  return httpClient<Response>('/mod/changeSprite', {
+    method: 'POST',
+    body: { spriteId },
+  });
+};
+
+export const modKick = async (playerName: string) =>
+  httpClient<Response>('/mod/kickPlayer', {
+    method: 'POST',
+    body: { playerName },
+  });
+
+export const modBring = async (playerName: string) =>
+  httpClient<Response>('/mod/bring', {
+    method: 'POST',
+    body: { playerName },
+  });
+
+export const modGoto = async (playerName: string) =>
+  httpClient<Response>('/mod/goto', {
+    method: 'POST',
+    body: { playerName },
+  });
+
+export const modSetAccess = async (playerName: string, accessLevel: Access) =>
+  httpClient<Response>('/mod/setAccess', {
+    method: 'POST',
+    body: { playerName, accessLevel },
+  });
+
+export const modSetSprite = async (playerName: string, spriteId: number) =>
+  httpClient<Response>('/mod/setSprite', {
+    method: 'POST',
+    body: { playerName, spriteId },
+  });
+
+export const modMoveMap = async (mapId: string) =>
+  httpClient<Response>('/mod/gomap', {
+    method: 'POST',
+    body: { mapId },
+  });
+
+export const modSetMyAccess = async (accessLevel: Access) =>
+  httpClient<Response>('/mod/setMyAccess', {
+    method: 'POST',
+    body: { accessLevel },
+  });
