@@ -32,3 +32,15 @@ export function displayChatMessage({
   chatBox.appendChild(msgEl);
   chatBox.scrollTop = chatBox.scrollHeight;
 }
+
+export function chatResultMsg(
+  success: boolean,
+  okMsg: string,
+  failMsg: string,
+) {
+  displayChatMessage({
+    message: success ? okMsg : failMsg,
+    scope: 'player',
+    type: 'chat',
+  });
+}

@@ -6,7 +6,7 @@ import {
 } from '../../shared/types';
 import { toggleContentEditorMenu } from '../graphics/contentEditor';
 import { toggleInventory } from '../graphics/inventory';
-import { closeModMenu, toggleModMenu } from '../graphics/mod';
+import { closeModMenu, toggleModMenu } from '../graphics/modMenu';
 import {
   initTilesetEditor,
   tilesetEditorInitialized,
@@ -20,20 +20,50 @@ import {
   sendChatMessage,
 } from './network';
 
-const isValidKey = (value: string): value is Key => {
-  return Object.values(Key).includes(value as Key);
+const isValidKey = (value: string): value is Key =>
+  Object.values(Key).includes(value as Key);
+
+const isInputActive = (): boolean => {
+  const active = document.activeElement;
+  return !!active && (active.id === 'chatInput' || active.tagName === 'INPUT');
+};
+
+const handleKeyPress = async (key: Key) => {
+  switch (key) {
+    case Key.x:
+      if (await openModEditor()) {
+        toggleModMenu();
+      }
+      break;
+    case Key.z:
+      if (await openMapEditor()) {
+        if (!tilesetEditorInitialized) {
+          initTilesetEditor();
+        }
+        toggleTilesetEditor();
+        closeModMenu();
+      }
+      break;
+    case Key.c:
+      if (await openContentEditor()) {
+        toggleContentEditorMenu();
+      }
+      break;
+    case Key.i:
+      toggleInventory();
+      break;
+    default:
+      break;
+  }
 };
 
 export const handleInput = () => {
-  window.addEventListener('keydown', (event: KeyboardEvent) => {
+  window.addEventListener('keydown', async (event: KeyboardEvent) => {
     const { key } = event;
 
-    const active = document.activeElement;
-    if (active && (active.id === 'chatInput' || active.tagName === 'INPUT')) {
-      return;
-    }
+    if (isInputActive()) return;
 
-    if (Object.keys(keyRecord).includes(key)) {
+    if (key in keyRecord) {
       event.preventDefault();
     }
 
@@ -44,31 +74,7 @@ export const handleInput = () => {
           type: 'keyboard',
         } as ClientKeyboardAction);
       } else {
-        if (key === Key.x) {
-          openModEditor().then((res) => {
-            if (res) {
-              toggleModMenu();
-            }
-          });
-        } else if (key === Key.z) {
-          openMapEditor().then((res) => {
-            if (res) {
-              if (!tilesetEditorInitialized) {
-                initTilesetEditor();
-              }
-              toggleTilesetEditor();
-              closeModMenu();
-            }
-          });
-        } else if (key === Key.c) {
-          openContentEditor().then((res) => {
-            if (res) {
-              toggleContentEditorMenu();
-            }
-          });
-        } else if (key === Key.i) {
-          toggleInventory();
-        }
+        await handleKeyPress(key);
       }
     }
   });

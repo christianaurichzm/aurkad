@@ -37,10 +37,7 @@ export const updatePlayerHealthBar = (player: Player) => {
 
   if (!healthBar || !healthBarText) return;
 
-  const { percentage, color, text } = getHealthBarInfo(
-    player.health,
-    player.maxHealth,
-  );
+  const { color, text } = getHealthBarInfo(player.health, player.maxHealth);
 
   healthBar.style.width = text;
   healthBarText.textContent = text;

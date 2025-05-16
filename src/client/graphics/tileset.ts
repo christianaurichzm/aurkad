@@ -1,3 +1,17 @@
+import {
+  getEl,
+  getInputValue,
+  setVisibility,
+  show,
+  hide,
+  setText,
+  addEvent,
+  safeParseInt,
+  clearChildren,
+  withLoading,
+  batchSetInputs,
+  removeEvent,
+} from '../../server/domHelpers';
 import { TILE_SIZE } from '../../shared/constants';
 import { Tile, TileEditMode } from '../../shared/types';
 import { getGameState } from '../core/gameState';
@@ -6,19 +20,15 @@ import { fetchItems, fetchNpcs, saveMap } from '../io/network';
 import { setupAsyncSelect } from '../ui/asyncSelect';
 import { foregroundCanvas, foregroundCtx } from './canvas';
 
-const gridCanvas = document.getElementById('gridCanvas') as HTMLCanvasElement;
-const gridCtx = gridCanvas.getContext('2d') as CanvasRenderingContext2D;
-const tilesetCanvas = document.getElementById(
-  'tilesetCanvas',
-) as HTMLCanvasElement;
-const tilesetCtx = tilesetCanvas.getContext('2d') as CanvasRenderingContext2D;
-const blockButton = document.getElementById('blockButton') as HTMLButtonElement;
-const warpButton = document.getElementById('warpButton') as HTMLButtonElement;
-const npcButton = document.getElementById('npcButton') as HTMLButtonElement;
-const itemButton = document.getElementById('itemButton') as HTMLButtonElement;
-const tilesetContainer = document.getElementById(
-  'tilesetContainer',
-) as HTMLDivElement;
+const gridCanvas = getEl<HTMLCanvasElement>('gridCanvas')!;
+const gridCtx = gridCanvas.getContext('2d')!;
+const tilesetCanvas = getEl<HTMLCanvasElement>('tilesetCanvas')!;
+const tilesetCtx = tilesetCanvas.getContext('2d')!;
+const blockButton = getEl<HTMLButtonElement>('blockButton')!;
+const warpButton = getEl<HTMLButtonElement>('warpButton')!;
+const npcButton = getEl<HTMLButtonElement>('npcButton')!;
+const itemButton = getEl<HTMLButtonElement>('itemButton')!;
+const tilesetContainer = getEl<HTMLDivElement>('tilesetContainer')!;
 
 const selectedTile = { startX: 0, startY: 0, endX: 0, endY: 0 };
 let isSelecting = false;
@@ -29,14 +39,12 @@ const mapHeight = Math.floor(foregroundCanvas.height / TILE_SIZE);
 let originalMap: Tile[][] = [];
 let map: Tile[][] = [];
 export let mapEdited = false;
-
 let hoveredCell: { row: number; col: number } | null = null;
 
 const handleHover = (event: MouseEvent) => {
   const { x, y } = getMousePosition(event, foregroundCanvas);
   const col = Math.floor(x / TILE_SIZE);
   const row = Math.floor(y / TILE_SIZE);
-
   if (!hoveredCell || hoveredCell.row !== row || hoveredCell.col !== col) {
     hoveredCell = { row, col };
     renderMap(map);
@@ -72,25 +80,21 @@ const modes: Record<TileEditMode, ModeConfig> = {
     styleOn: 'red',
     styleOff: '',
     place: (row: number, col: number) => {
-      const warpInput = document.getElementById('mapTo') as HTMLInputElement;
-      const xInput = document.getElementById('xTo') as HTMLInputElement;
-      const yInput = document.getElementById('yTo') as HTMLInputElement;
-
-      if (warpInput && xInput && yInput) {
+      const mapTo = getInputValue('mapTo');
+      const xTo = safeParseInt(getInputValue('xTo'));
+      const yTo = safeParseInt(getInputValue('yTo'));
+      if (mapTo && !isNaN(xTo) && !isNaN(yTo)) {
         if (map[row][col].warp?.to) {
           map[row][col].warp = undefined;
         } else {
           map[row][col].warp = {
-            to: warpInput.value,
-            position: {
-              x: parseInt(xInput.value) * TILE_SIZE,
-              y: parseInt(yInput.value) * TILE_SIZE,
-            },
+            to: mapTo,
+            position: { x: xTo * TILE_SIZE, y: yTo * TILE_SIZE },
           };
         }
+        mapEdited = true;
+        renderMap(map);
       }
-      mapEdited = true;
-      renderMap(map);
     },
   },
   npc: {
@@ -100,17 +104,16 @@ const modes: Record<TileEditMode, ModeConfig> = {
     styleOn: 'red',
     styleOff: '',
     place: (row: number, col: number) => {
-      const npcInput = document.getElementById('npc') as HTMLInputElement;
-
-      if (npcInput) {
+      const npc = getInputValue('npc');
+      if (npc) {
         if (map[row][col].npcSpawn) {
           map[row][col].npcSpawn = undefined;
         } else {
-          map[row][col].npcSpawn = npcInput.value;
+          map[row][col].npcSpawn = npc;
         }
+        mapEdited = true;
+        renderMap(map);
       }
-      mapEdited = true;
-      renderMap(map);
     },
   },
   item: {
@@ -120,34 +123,29 @@ const modes: Record<TileEditMode, ModeConfig> = {
     styleOn: 'red',
     styleOff: '',
     place: (row: number, col: number) => {
-      const itemInput = document.getElementById('item') as HTMLInputElement;
-
-      if (itemInput) {
+      const item = getInputValue('item');
+      if (item) {
         if (map[row][col].item) {
           map[row][col].item = undefined;
         } else {
-          map[row][col].item = Number(itemInput.value);
+          map[row][col].item = safeParseInt(item);
         }
+        mapEdited = true;
+        renderMap(map);
       }
-      mapEdited = true;
-      renderMap(map);
     },
   },
 };
 
 const toggleMode = (mode: TileEditMode) => {
   activeMode = activeMode === mode ? null : mode;
-
   (Object.keys(modes) as TileEditMode[]).forEach((key) => {
     const isActive = activeMode === key;
     const m = modes[key];
     m.button.textContent = isActive ? m.textOn : m.textOff;
     m.button.style.backgroundColor = isActive ? m.styleOn : m.styleOff;
-
-    const group = document.getElementById(`${key}Group`);
-    if (group) {
-      group.classList.toggle('active', isActive);
-    }
+    const group = getEl(`${key}Group`);
+    if (group) group.classList.toggle('active', isActive);
   });
 };
 
@@ -186,14 +184,12 @@ const highlightSelectedTile = () => {
   tilesetCtx.drawImage(tileset, 0, 0);
   tilesetCtx.strokeStyle = 'red';
   tilesetCtx.lineWidth = 2;
-
   const startX = Math.min(selectedTile.startX, selectedTile.endX) * TILE_SIZE;
   const startY = Math.min(selectedTile.startY, selectedTile.endY) * TILE_SIZE;
   const width =
     (Math.abs(selectedTile.startX - selectedTile.endX) + 1) * TILE_SIZE;
   const height =
     (Math.abs(selectedTile.startY - selectedTile.endY) + 1) * TILE_SIZE;
-
   tilesetCtx.strokeRect(startX, startY, width, height);
 };
 
@@ -201,20 +197,16 @@ const startPlacing = (event: MouseEvent) => {
   isPlacing = true;
   placeTile(event);
 };
-
 const placeTileWhileDragging = (event: MouseEvent) => {
   if (isPlacing) placeTile(event);
 };
-
 const stopPlacing = () => {
   isPlacing = false;
 };
-
 const placeTile = (event: MouseEvent) => {
   const { x, y } = getMousePosition(event, foregroundCanvas);
   const col = Math.floor(x / TILE_SIZE);
   const row = Math.floor(y / TILE_SIZE);
-
   if (activeMode) {
     modes[activeMode].place(row, col);
   } else {
@@ -224,7 +216,6 @@ const placeTile = (event: MouseEvent) => {
 
 const placeSelectedTile = (row: number, col: number) => {
   const { startX, startY, width, height } = calculateSelectionBounds();
-
   for (let i = 0; i < width; i++) {
     for (let j = 0; j < height; j++) {
       if (row + j < mapHeight && col + i < mapWidth) {
@@ -236,7 +227,6 @@ const placeSelectedTile = (row: number, col: number) => {
           blocked: map[row + j][col + i].blocked,
           warp: map[row + j][col + i].warp,
         };
-
         drawTileOnCanvas(col + i, row + j, tileIndex);
       }
     }
@@ -249,7 +239,6 @@ const calculateSelectionBounds = () => {
   const startY = Math.min(selectedTile.startY, selectedTile.endY);
   const width = Math.abs(selectedTile.startX - selectedTile.endX) + 1;
   const height = Math.abs(selectedTile.startY - selectedTile.endY) + 1;
-
   return { startX, startY, width, height };
 };
 
@@ -257,7 +246,6 @@ const drawTileOnCanvas = (col: number, row: number, tileIndex: number) => {
   const tilesPerRow = tileset.width / TILE_SIZE;
   const tileX = (tileIndex % tilesPerRow) * TILE_SIZE;
   const tileY = Math.floor(tileIndex / tilesPerRow) * TILE_SIZE;
-
   foregroundCtx.clearRect(
     col * TILE_SIZE,
     row * TILE_SIZE,
@@ -282,97 +270,34 @@ const toggleWarping = () => toggleMode('warping');
 const toggleNpc = () => toggleMode('npc');
 const toggleItem = () => toggleMode('item');
 
-const eventListeners = {
-  tilesetCanvas: {
-    mousedown: startSelecting,
-    mousemove: updateSelection,
-    mouseup: endSelecting,
-  },
-  foregroundCanvas: {
-    mousedown: startPlacing,
-    mousemove: [placeTileWhileDragging, handleHover],
-    mouseup: stopPlacing,
-  },
-  buttons: {
-    block: toggleBlocking,
-    warp: toggleWarping,
-    npc: toggleNpc,
-    item: toggleItem,
-  },
-};
-
 const setupEventListeners = () => {
-  tilesetCanvas.addEventListener(
-    'mousedown',
-    eventListeners.tilesetCanvas.mousedown,
-  );
-  tilesetCanvas.addEventListener(
-    'mousemove',
-    eventListeners.tilesetCanvas.mousemove,
-  );
-  tilesetCanvas.addEventListener(
-    'mouseup',
-    eventListeners.tilesetCanvas.mouseup,
-  );
+  addEvent('tilesetCanvas', 'mousedown', startSelecting);
+  addEvent('tilesetCanvas', 'mousemove', updateSelection);
+  addEvent('tilesetCanvas', 'mouseup', endSelecting);
+  addEvent('foregroundCanvas', 'mousedown', startPlacing);
+  addEvent('foregroundCanvas', 'mousemove', placeTileWhileDragging);
+  addEvent('foregroundCanvas', 'mousemove', handleHover);
+  addEvent('foregroundCanvas', 'mouseup', stopPlacing);
 
-  foregroundCanvas.addEventListener(
-    'mousedown',
-    eventListeners.foregroundCanvas.mousedown,
-  );
-  foregroundCanvas.addEventListener(
-    'mousemove',
-    eventListeners.foregroundCanvas.mousemove[0],
-  );
-  foregroundCanvas.addEventListener(
-    'mousemove',
-    eventListeners.foregroundCanvas.mousemove[1],
-  );
-  foregroundCanvas.addEventListener(
-    'mouseup',
-    eventListeners.foregroundCanvas.mouseup,
-  );
-
-  blockButton.addEventListener('click', eventListeners.buttons.block);
-  warpButton.addEventListener('click', eventListeners.buttons.warp);
-  npcButton.addEventListener('click', eventListeners.buttons.npc);
-  itemButton.addEventListener('click', eventListeners.buttons.item);
+  addEvent('blockButton', 'click', toggleBlocking);
+  addEvent('warpButton', 'click', toggleWarping);
+  addEvent('npcButton', 'click', toggleNpc);
+  addEvent('itemButton', 'click', toggleItem);
 };
 
 const removeEventListeners = () => {
-  tilesetCanvas.removeEventListener(
-    'mousedown',
-    eventListeners.tilesetCanvas.mousedown,
-  );
-  tilesetCanvas.removeEventListener(
-    'mousemove',
-    eventListeners.tilesetCanvas.mousemove,
-  );
-  tilesetCanvas.removeEventListener(
-    'mouseup',
-    eventListeners.tilesetCanvas.mouseup,
-  );
+  removeEvent('tilesetCanvas', 'mousedown', startSelecting);
+  removeEvent('tilesetCanvas', 'mousemove', updateSelection);
+  removeEvent('tilesetCanvas', 'mouseup', endSelecting);
+  removeEvent('foregroundCanvas', 'mousedown', startPlacing);
+  removeEvent('foregroundCanvas', 'mousemove', placeTileWhileDragging);
+  removeEvent('foregroundCanvas', 'mousemove', handleHover);
+  removeEvent('foregroundCanvas', 'mouseup', stopPlacing);
 
-  foregroundCanvas.removeEventListener(
-    'mousedown',
-    eventListeners.foregroundCanvas.mousedown,
-  );
-  foregroundCanvas.removeEventListener(
-    'mousemove',
-    eventListeners.foregroundCanvas.mousemove[0],
-  );
-  foregroundCanvas.removeEventListener(
-    'mousemove',
-    eventListeners.foregroundCanvas.mousemove[1],
-  );
-  foregroundCanvas.removeEventListener(
-    'mouseup',
-    eventListeners.foregroundCanvas.mouseup,
-  );
-
-  blockButton.removeEventListener('click', eventListeners.buttons.block);
-  warpButton.removeEventListener('click', eventListeners.buttons.warp);
-  npcButton.removeEventListener('click', eventListeners.buttons.npc);
-  itemButton.removeEventListener('click', eventListeners.buttons.item);
+  removeEvent('blockButton', 'click', toggleBlocking);
+  removeEvent('warpButton', 'click', toggleWarping);
+  removeEvent('npcButton', 'click', toggleNpc);
+  removeEvent('itemButton', 'click', toggleItem);
 };
 
 export const initTilesetEditor = () => {
@@ -384,10 +309,7 @@ export const initTilesetEditor = () => {
 };
 
 export const renderMap = (tiles: Tile[][]) => {
-  if (tiles) {
-    updateEditorMap(tiles);
-  }
-
+  if (tiles) updateEditorMap(tiles);
   tiles.forEach((row, rowIndex) => {
     row.forEach((tile, colIndex) => {
       if (tile.tileIndex !== -1) {
@@ -395,7 +317,6 @@ export const renderMap = (tiles: Tile[][]) => {
       }
     });
   });
-
   clearAndDrawGrid();
   drawMarkers(tiles);
   drawHoverCell();
@@ -404,10 +325,8 @@ export const renderMap = (tiles: Tile[][]) => {
 const drawHoverCell = () => {
   if (!hoveredCell) return;
   const { row, col } = hoveredCell;
-
   gridCtx.fillStyle = 'rgba(255, 255, 255, 0.4)';
   gridCtx.fillRect(col * TILE_SIZE, row * TILE_SIZE, TILE_SIZE, TILE_SIZE);
-
   gridCtx.fillStyle = 'black';
   gridCtx.font = '12px Arial';
   gridCtx.fillText(
@@ -422,14 +341,12 @@ const drawGrid = () => {
   const height = gridCanvas.height;
   gridCtx.strokeStyle = '#ddd';
   gridCtx.lineWidth = 1;
-
   for (let x = 0; x <= width; x += TILE_SIZE) {
     gridCtx.beginPath();
     gridCtx.moveTo(x, 0);
     gridCtx.lineTo(x, height);
     gridCtx.stroke();
   }
-
   for (let y = 0; y <= height; y += TILE_SIZE) {
     gridCtx.beginPath();
     gridCtx.moveTo(0, y);
@@ -443,7 +360,6 @@ const initializeGrid = () => {
   gridCanvas.height = foregroundCanvas.height;
   drawGrid();
 };
-
 const clearAndDrawGrid = () => {
   gridCtx.clearRect(0, 0, gridCanvas.width, gridCanvas.height);
   drawGrid();
@@ -452,22 +368,13 @@ const clearAndDrawGrid = () => {
 const drawMarkers = (tiles: Tile[][]) => {
   tiles.forEach((row, rowIndex) => {
     row.forEach((tile, colIndex) => {
-      if (tile.blocked) {
-        drawMarker(colIndex, rowIndex, 'B', 'red');
-      }
-      if (tile.warp) {
-        drawMarker(colIndex, rowIndex, 'W', 'blue');
-      }
-      if (tile.npcSpawn) {
-        drawMarker(colIndex, rowIndex, 'N', 'yellow');
-      }
-      if (tile.item) {
-        drawMarker(colIndex, rowIndex, 'I', 'orange');
-      }
+      if (tile.blocked) drawMarker(colIndex, rowIndex, 'B', 'red');
+      if (tile.warp) drawMarker(colIndex, rowIndex, 'W', 'blue');
+      if (tile.npcSpawn) drawMarker(colIndex, rowIndex, 'N', 'yellow');
+      if (tile.item) drawMarker(colIndex, rowIndex, 'I', 'orange');
     });
   });
 };
-
 const drawMarker = (col: number, row: number, text: string, color: string) => {
   gridCtx.fillStyle = color;
   gridCtx.font = '40px Arial';
@@ -475,19 +382,20 @@ const drawMarker = (col: number, row: number, text: string, color: string) => {
 };
 
 const saveCurrentMap = async () => {
-  try {
-    await saveMap(map);
-    console.log('Map saved successfully');
-    mapEdited = false;
-    originalMap = map.map((row) => row.map((tile) => ({ ...tile })));
-  } catch (error) {
-    console.error('Error saving map:', error);
-  }
+  await withLoading('saveButton', async () => {
+    try {
+      await saveMap(map);
+      console.log('Map saved successfully');
+      mapEdited = false;
+      originalMap = map.map((row) => row.map((tile) => ({ ...tile })));
+    } catch (error) {
+      console.error('Error saving map:', error);
+    }
+  });
 };
 
 export const toggleTilesetEditor = () => {
   const isEditorOpen = tilesetContainer.style.display === 'flex';
-
   if (isEditorOpen) {
     if (mapEdited) {
       const discardConfirmed = confirm(
@@ -497,10 +405,9 @@ export const toggleTilesetEditor = () => {
         map = originalMap.map((row) => row.map((tile) => ({ ...tile })));
       }
     }
-
     removeEventListeners();
-    tilesetContainer.style.display = 'none';
-    gridCanvas.style.display = 'none';
+    hide('tilesetContainer');
+    hide('gridCanvas');
     mapEdited = false;
     activeMode = null;
   } else {
@@ -517,12 +424,10 @@ export const toggleTilesetEditor = () => {
       );
       originalMap = map.map((row) => row.map((tile) => ({ ...tile })));
     }
-
     setupEventListeners();
-    tilesetContainer.style.display = 'flex';
-    gridCanvas.style.display = 'block';
+    show('tilesetContainer', 'flex');
+    show('gridCanvas', 'block');
   }
-
   renderMap(map);
 };
 
@@ -530,7 +435,6 @@ setupAsyncSelect('npc', 'Select an NPC', fetchNpcs, (npc) => ({
   value: String(npc.id),
   label: `${npc.id} - ${npc.name}`,
 }));
-
 setupAsyncSelect('item', 'Select an item', fetchItems, (item) => ({
   value: String(item.id),
   label: `${item.id} - ${item.name}`,
@@ -544,9 +448,9 @@ const updateEditorMap = (tiles: Tile[][]) => {
 export const tilesetEditorInitialized = false;
 
 document.addEventListener('DOMContentLoaded', () => {
-  const saveButton = document.getElementById('saveButton');
+  const saveButton = getEl('saveButton');
   if (saveButton) {
-    saveButton.addEventListener('click', async () => {
+    addEvent('saveButton', 'click', async () => {
       if (mapEdited) {
         const userConfirmed = confirm(
           'You have unsaved changes. Would you like to save them?',

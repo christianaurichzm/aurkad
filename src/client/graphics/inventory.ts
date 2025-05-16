@@ -1,3 +1,4 @@
+import { getEl } from '../../server/domHelpers';
 import { ITEM_SIZE, TILE_SIZE } from '../../shared/constants';
 import {
   ClientItemAction,
@@ -91,9 +92,9 @@ export function selectItem(item: InventoryItem): void {
 }
 
 export function renderInventory(player: Player) {
-  const itemsContainer = document.getElementById('items');
-  const tooltip = document.getElementById('tooltip');
-  const useButtonContainer = document.getElementById('use-button-container');
+  const itemsContainer = getEl<HTMLDivElement>('items');
+  const tooltip = getEl<HTMLDivElement>('tooltip');
+  const useButtonContainer = getEl<HTMLDivElement>('use-button-container');
 
   if (!itemsContainer || !tooltip || !useButtonContainer) return;
 
@@ -203,9 +204,7 @@ function isItemEquipped(player: Player, item: Item): boolean {
 }
 
 export const toggleInventory = () => {
-  const inventoryContainer = document.getElementById(
-    'inventory',
-  ) as HTMLDivElement;
+  const inventoryContainer = getEl<HTMLDivElement>('inventory');
   if (inventoryContainer) {
     isInventoryOpen = !isInventoryOpen;
     inventoryContainer.style.display = isInventoryOpen ? 'block' : 'none';
@@ -219,7 +218,7 @@ export const toggleInventory = () => {
 
 export function renderEquipment(player: Player) {
   if (typeof document === 'undefined') return;
-  const equipmentContainer = document.getElementById('equipment');
+  const equipmentContainer = getEl<HTMLDivElement>('equipment');
   if (!equipmentContainer) return;
 
   equipmentContainer.innerHTML = '';
@@ -240,7 +239,6 @@ export function renderEquipment(player: Player) {
       slot.appendChild(itemCanvas);
     }
 
-    console.log(`Created slot: ${slot.className}`);
     return slot;
   };
 
