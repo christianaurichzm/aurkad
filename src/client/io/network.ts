@@ -168,17 +168,16 @@ export const httpClient = async <T>(
     }
 
     if (!response.ok) {
-      if (data?.message) {
-        throw new Error(data.message);
-      }
-      throw new Error(
-        `Error: ${response.status} - ${response.statusText} - ${data}`,
-      );
+      throw {
+        status: response.status,
+        message:
+          data?.message ||
+          `Error: ${response.status} - ${response.statusText} - ${data}`,
+      };
     }
 
     return data as T;
   } catch (error) {
-    console.error('HTTP Client Error:', error);
     throw error;
   }
 };
@@ -190,17 +189,30 @@ export const login = async (username: string) => {
   });
 };
 
-export const openMapEditor = async () => {
-  return httpClient<Response>('/openMapEditor', {
-    method: 'POST',
-  });
-};
+export async function silentAction<T>(promise: Promise<T>): Promise<T | null> {
+  try {
+    return await promise;
+  } catch (error: any) {
+    if (error?.status === 401 || error?.status === 403) {
+      return null;
+    }
+    throw error;
+  }
+}
 
-export const openModEditor = async () => {
-  return httpClient<Response>('/openModEditor', {
-    method: 'POST',
-  });
-};
+export async function openMapEditor(): Promise<boolean> {
+  const res = await silentAction(
+    httpClient('/openMapEditor', { method: 'POST' }),
+  );
+  return !!res;
+}
+
+export async function openModEditor(): Promise<boolean> {
+  const res = await silentAction(
+    httpClient('/openModEditor', { method: 'POST' }),
+  );
+  return !!res;
+}
 
 export const saveMap = async (newMapTiles: MapState['tiles']) => {
   const mapData = {
