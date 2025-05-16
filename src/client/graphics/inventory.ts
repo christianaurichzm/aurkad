@@ -21,6 +21,42 @@ const getSpriteCoordinates = (spriteId: number, sheetWidth: number) => {
   return { x, y };
 };
 
+/**
+ * Render an item icon filling all the canvas (for previews, etc)
+ *
+ * @param ctx CanvasRenderingContext2D
+ * @param spriteId Index of the item sprite in the items sheet
+ * @param destX Top-left X (usually 0 for preview)
+ * @param destY Top-left Y (usually 0 for preview)
+ * @param destW Width to fill (usually canvas.width)
+ * @param destH Height to fill (usually canvas.height)
+ */
+export function drawItemGeneric(
+  ctx: CanvasRenderingContext2D,
+  spriteId: number,
+  destX: number,
+  destY: number,
+  destW: number,
+  destH: number,
+) {
+  const { x: spriteX, y: spriteY } = getSpriteCoordinates(
+    spriteId,
+    items.naturalWidth,
+  );
+
+  ctx.drawImage(
+    items,
+    spriteX,
+    spriteY,
+    ITEM_SIZE,
+    ITEM_SIZE,
+    destX,
+    destY,
+    destW,
+    destH,
+  );
+}
+
 export const renderItemIcon = (
   ctx: CanvasRenderingContext2D,
   spriteId: number,

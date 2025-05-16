@@ -4,6 +4,7 @@
     <title>Engine</title>
     <link rel="stylesheet" type="text/css" href="styles.css" />
     <link rel="stylesheet" type="text/css" href="modmenu.css" />
+    <link rel="stylesheet" type="text/css" href="contenteditor.css" />
   </head>
   <body>
     <div class="container" id="loginContainer">
@@ -52,7 +53,7 @@
             </div>
           </div>
         </div>
-      
+
         <canvas id="tilesetCanvas"></canvas>
       </div>
 
@@ -61,14 +62,18 @@
         <h4>Players</h4>
         <div class="editor-group">
           <label for="playerName">Player Name</label>
-          <input id="playerName" type="text" placeholder="Type player name..." />
-      
+          <input
+            id="playerName"
+            type="text"
+            placeholder="Type player name..."
+          />
+
           <div class="editor-actions">
             <button id="kickBtn" class="editor-btn">Kick</button>
             <button id="bringBtn" class="editor-btn">Bring Here</button>
             <button id="gotoBtn" class="editor-btn">Go To</button>
           </div>
-          <div id="playerOpsRow" class="editor-extra" style="display:flex;">
+          <div id="playerOpsRow" class="editor-extra" style="display: flex">
             <div class="editor-extra-field">
               <label for="accessSelect">Access</label>
               <select id="accessSelect"></select>
@@ -81,14 +86,23 @@
             </div>
             <div class="editor-extra-field ban-section">
               <label>Ban Player</label>
-              <input id="banReason" type="text" placeholder="Reason (optional)" />
-              <input id="banDuration" type="number" min="0" placeholder="Duration (min, 0=perm)" />
+              <input
+                id="banReason"
+                type="text"
+                placeholder="Reason (optional)"
+              />
+              <input
+                id="banDuration"
+                type="number"
+                min="0"
+                placeholder="Duration (min, 0=perm)"
+              />
               <button id="banBtn" class="editor-btn small danger">Ban</button>
             </div>
           </div>
         </div>
         <hr class="editor-divider" />
-      
+
         <h4>My self</h4>
         <div class="editor-group">
           <div class="editor-extra-field">
@@ -108,13 +122,97 @@
           </div>
         </div>
       </div>
-      
-      
+
+      <link rel="stylesheet" href="contentEditor.css" />
+      <div id="contentEditorContainer" class="editor-menu">
+        <h2>Content Editor</h2>
+
+        <div class="editor-group">
+          <label for="npcSelect">Select NPC</label>
+          <select id="npcSelect"></select>
+          <div class="editor-actions">
+            <button id="editNpcBtn" class="editor-btn small">Edit</button>
+            <button id="createNpcBtn" class="editor-btn small">New NPC</button>
+          </div>
+          <div
+            id="npcEditorFields"
+            style="display: none; flex-direction: column; gap: 12px"
+          >
+            <canvas
+              id="npcSpritePreview"
+              class="editor-preview-canvas"
+            ></canvas>
+            <label for="npcNameInput">Name</label>
+            <input id="npcNameInput" type="text" />
+            <label for="npcSpriteInput">Sprite ID</label>
+            <input id="npcSpriteInput" type="number" min="0" />
+            <label for="npcHealthInput">Health</label>
+            <input id="npcHealthInput" type="number" min="1" />
+            <label for="npcAttackInput">Attack</label>
+            <input id="npcAttackInput" type="number" min="1" />
+            <label for="npcBehaviorInput">Behavior</label>
+            <select id="npcBehaviorInput">
+              <option value="">Select behavior</option>
+              <option value="neutral">Neutral</option>
+              <option value="aggressive">Aggressive</option>
+              <option value="passive">Passive</option>
+            </select>
+            <label for="npcExpInput">Experience Value</label>
+            <input id="npcExpInput" type="number" min="0" />
+            <div class="editor-actions">
+              <button id="saveNpcBtn" class="editor-btn small">Save</button>
+              <button id="deleteNpcBtn" class="editor-btn small">Delete</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="editor-group">
+          <label for="itemSelect">Select Item</label>
+          <select id="itemSelect"></select>
+          <div class="editor-actions">
+            <button id="editItemBtn" class="editor-btn small">Edit</button>
+            <button id="createItemBtn" class="editor-btn small">
+              New Item
+            </button>
+          </div>
+          <div
+            id="itemEditorFields"
+            style="display: none; flex-direction: column; gap: 12px"
+          >
+            <canvas
+              id="itemSpritePreview"
+              class="editor-preview-canvas"
+            ></canvas>
+            <label for="itemNameInput">Name</label>
+            <input id="itemNameInput" type="text" />
+            <label for="itemSpriteInput">Sprite ID</label>
+            <input id="itemSpriteInput" type="number" min="0" />
+            <label for="itemDescriptionInput">Description</label>
+            <input id="itemDescriptionInput" type="text" />
+            <label for="itemTypeInput">Type</label>
+            <select id="itemTypeInput">
+              <option value="">Select type</option>
+              <option value="weapon">Weapon</option>
+              <option value="helmet">Helmet</option>
+              <option value="chestplate">Chestplate</option>
+              <option value="gloves">Gloves</option>
+              <option value="boots">Boots</option>
+              <option value="consumable">Consumable</option>
+            </select>
+
+            <div class="editor-actions">
+              <button id="saveItemBtn" class="editor-btn small">Save</button>
+              <button id="deleteItemBtn" class="editor-btn small">
+                Delete
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
       <div id="gameInfo">
         <p id="mapName">Map</p>
-        <div id="connection-status">
-          Connecting...
-        </div>
+        <div id="connection-status">Connecting...</div>
         <div id="gameArea">
           <div id="canvasContainer">
             <canvas id="foregroundCanvas" width="1280" height="896"></canvas>

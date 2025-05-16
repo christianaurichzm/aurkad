@@ -10,7 +10,12 @@ import {
   ItemsMap,
   NpcsMap,
   Npc,
+  EquippedItems,
+  Item,
+  BanEntry,
 } from '../shared/types';
+
+export const bannedPlayers: Record<string, BanEntry> = {};
 
 const players: PlayersMap = {};
 
@@ -42,6 +47,7 @@ const npcs: NpcsMap = {
     behavior: 'hostile',
     width: SPRITE_WIDTH,
     height: SPRITE_HEIGHT,
+    maxHealth: 100,
     health: 100,
     experienceValue: 500,
     sprite: 0,
@@ -62,6 +68,7 @@ const npcs: NpcsMap = {
     itemsToDrop: [{ itemId: 1, chance: 50 }],
     width: SPRITE_WIDTH,
     height: SPRITE_HEIGHT,
+    maxHealth: 100,
     health: 100,
     experienceValue: 500,
     sprite: 0,
@@ -211,3 +218,97 @@ export const getNpcs = (): NpcsMap => {
 export const getNpcsInMap = (mapId: MapState['id']): NpcsMap => {
   return gameState.maps[mapId].npcs;
 };
+
+function getNextNpcId(): string {
+  const ids = Object.keys(npcs).map(Number);
+  return String(ids.length ? Math.max(...ids) + 1 : 1);
+}
+
+export function addNpc(npc: Omit<Npc, 'id'>): Npc {
+  const id = getNextNpcId();
+  const newNpc: Npc = { ...npc, id };
+  npcs[id] = newNpc;
+  return newNpc;
+}
+
+export function updateNpcAll(id: string, data: Partial<Npc>): Npc | undefined {
+  const npc = npcs[id];
+  if (!npc) return undefined;
+  Object.assign(npc, data);
+  Object.values(gameState.maps).forEach((map) => {
+    if (map.npcs && map.npcs[id]) {
+      Object.assign(map.npcs[id], data);
+    }
+  });
+  return npc;
+}
+
+export function deleteNpcEverywhere(id: string): void {
+  delete npcs[id];
+  Object.values(gameState.maps).forEach((map) => {
+    if (map.npcs && map.npcs[id]) {
+      delete map.npcs[id];
+    }
+  });
+}
+
+function getNextItemId(): number {
+  const ids = Object.keys(items).map(Number);
+  return ids.length ? Math.max(...ids) + 1 : 1;
+}
+
+export function addItem(item: Omit<Item, 'id'>): Item {
+  const id = getNextItemId();
+  const newItem: Item = { ...item, id };
+  items[id] = newItem;
+  return newItem;
+}
+
+export function updateItemEverywhere(
+  id: number,
+  data: Partial<Item>,
+): Item | undefined {
+  const item = items[id];
+  if (!item) return undefined;
+  Object.assign(item, data);
+  Object.values(players).forEach((player) => {
+    player.inventory.items.forEach((invItem) => {
+      if (invItem.id === id) {
+        Object.assign(invItem, data);
+      }
+    });
+    if (player.equipped) {
+      (Object.keys(player.equipped) as (keyof EquippedItems)[]).forEach(
+        (slot) => {
+          const equip = player.equipped[slot];
+          if (equip && equip.id === id) {
+            Object.assign(equip, data);
+          }
+        },
+      );
+    }
+  });
+  return item;
+}
+
+export function deleteItemEverywhere(id: number): void {
+  delete items[id];
+  Object.values(players).forEach((player) => {
+    player.inventory.items = player.inventory.items.filter(
+      (item) => item.id !== id,
+    );
+    if (player.equipped) {
+      (Object.keys(player.equipped) as (keyof EquippedItems)[]).forEach(
+        (slot) => {
+          const equip = player.equipped[slot];
+          if (equip && equip.id === id) {
+            player.equipped[slot] = undefined;
+          }
+        },
+      );
+    }
+  });
+  Object.values(gameState.maps).forEach((map) => {
+    map.droppedItems = map.droppedItems.filter((drop) => drop.itemId !== id);
+  });
+}

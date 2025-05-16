@@ -1,0 +1,118 @@
+#contentEditorContainer.editor-menu {
+    background: #fff;
+    border: 2px solid #2ecc40;
+    border-radius: 18px;
+    box-shadow: 0 4px 28px 0 rgba(46,204,64,0.15);
+    padding: 30px 20px;
+    width: 420px;
+    max-width: 98vw;
+    min-width: 260px;
+    max-height: 92vh;
+    overflow-y: auto;
+    display: none;
+    flex-direction: column;
+    gap: 30px;
+    z-index: 40;
+  }
+  
+  #contentEditorContainer h2 {
+    margin: 0 0 8px 0;
+    color: #16913c;
+    font-size: 1.5rem;
+    font-weight: 700;
+    text-align: center;
+  }
+  
+  .editor-group {
+    background: #f9f9f9;
+    border-radius: 13px;
+    padding: 22px 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+    box-shadow: 0 1px 8px 0 rgba(46,204,64,0.07);
+    border: 1.5px solid #e6fbe7;
+  }
+  
+  .editor-group label {
+    font-weight: 600;
+    color: #16913c;
+    font-size: 15px;
+    margin-bottom: 2px;
+  }
+  
+  .editor-group select,
+  .editor-group input[type="text"],
+  .editor-group input[type="number"] {
+    padding: 8px 6px;
+    border: 1.5px solid #2ecc40;
+    border-radius: 6px;
+    outline: none;
+    font-size: 15px;
+    background: #fff;
+    margin-bottom: 7px;
+    transition: border .16s;
+  }
+  .editor-group select:focus,
+  .editor-group input:focus {
+    border-color: #16913c;
+    background: #e9fbe9;
+  }
+  
+  .editor-actions {
+    display: flex;
+    gap: 14px;
+    margin: 7px 0 0 0;
+  }
+  
+  .editor-btn {
+    background: #2ecc40;
+    color: #fff;
+    border: none;
+    padding: 9px 18px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-weight: 600;
+    font-size: 15px;
+    box-shadow: 0 0.5px 2px 0 rgba(46,204,64,0.09);
+    transition: background 0.2s, box-shadow .2s;
+  }
+  .editor-btn.small {
+    padding: 7px 14px;
+    font-size: 13px;
+  }
+  .editor-btn:hover {
+    background: #219b3a;
+    box-shadow: 0 2px 8px 0 rgba(46,204,64,0.13);
+  }
+  
+  #contentEditorContainer .editor-group + .editor-group {
+    margin-top: 0;
+  }
+  
+  #contentEditorContainer .editor-divider {
+    border: none;
+    border-top: 1.5px solid #e5ffe9;
+    margin: 10px 0 0 0;
+  }
+  
+  .editor-preview-canvas {
+    display: block;
+    margin: 0 auto 14px auto;
+    background: #fff;
+    border: 1.5px solid #e6fbe7;
+    border-radius: 10px;
+    box-shadow: 0 1px 8px 0 rgba(46,204,64,0.08);
+    width: 64px;
+    height: 64px;
+  }
+  
+  @media (max-width: 600px) {
+    #contentEditorContainer.editor-menu {
+      padding: 10px 3vw;
+      width: 99vw;
+      min-width: unset;
+      max-height: 98vh;
+    }
+  }
+  

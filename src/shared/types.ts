@@ -6,6 +6,7 @@ export enum Key {
   ArrowRight = 'ArrowRight',
   Shift = 'Shift',
   Control = 'Control',
+  c = 'c',
   x = 'x',
   z = 'z',
   i = 'i',
@@ -56,6 +57,7 @@ export const keyRecord: Partial<Record<Key, Protocol>> = {
   Shift: Protocol.WS,
   Control: Protocol.WS,
   e: Protocol.WS,
+  c: Protocol.HTTP,
   x: Protocol.HTTP,
   z: Protocol.HTTP,
 };
@@ -132,6 +134,7 @@ export interface Character {
   width: number;
   height: number;
   sprite: number;
+  maxHealth: number;
   health: number;
   attack: number;
   direction: Direction;

@@ -14,24 +14,37 @@ export const renderHUD = (player: Player) => {
   playerCtx.fillText(text, x, y);
 };
 
-export const updatePlayerHealthBar = (health: number) => {
+function getHealthBarInfo(current: number, max: number) {
+  const percentage = Math.max(0, Math.min(current / max, 1));
+  let color = 'green';
+
+  if (percentage <= 0.5 && percentage > 0.2) {
+    color = 'yellow';
+  } else if (percentage <= 0.2) {
+    color = 'red';
+  }
+
+  return {
+    percentage,
+    color,
+    text: `${Math.round(percentage * 100)}%`,
+  };
+}
+
+export const updatePlayerHealthBar = (player: Player) => {
   const healthBar = document.getElementById('health-bar');
   const healthBarText = document.getElementById('health-bar-text');
 
-  if (healthBar && healthBarText) {
-    healthBar.style.width = `${health}%`;
-    healthBarText.textContent = `${health}%`;
+  if (!healthBar || !healthBarText) return;
 
-    let barColor = 'green';
+  const { percentage, color, text } = getHealthBarInfo(
+    player.health,
+    player.maxHealth,
+  );
 
-    if (health <= 0.5 && health > 0.2) {
-      barColor = 'yellow';
-    } else if (health <= 0.2) {
-      barColor = 'red';
-    }
-
-    healthBar.style.backgroundColor = barColor;
-  }
+  healthBar.style.width = text;
+  healthBarText.textContent = text;
+  healthBar.style.backgroundColor = color;
 };
 
 export const renderHealthBar = (npc: Npc) => {
@@ -40,17 +53,10 @@ export const renderHealthBar = (npc: Npc) => {
   const barX = npc.position.x;
   const barY = npc.position.y - barHeight - 5;
 
-  const healthPercentage = npc.health / 100;
-  let barColor = 'green';
+  const { percentage, color } = getHealthBarInfo(npc.health, npc.maxHealth);
 
-  if (healthPercentage <= 0.5 && healthPercentage > 0.2) {
-    barColor = 'yellow';
-  } else if (healthPercentage <= 0.2) {
-    barColor = 'red';
-  }
-
-  playerCtx.fillStyle = barColor;
-  playerCtx.fillRect(barX, barY, barWidth * healthPercentage, barHeight);
+  playerCtx.fillStyle = color;
+  playerCtx.fillRect(barX, barY, barWidth * percentage, barHeight);
 
   playerCtx.strokeStyle = 'black';
   playerCtx.strokeRect(barX, barY, barWidth, barHeight);

@@ -35,13 +35,14 @@ export const createPlayer = (username: string): Player => {
     width: SPRITE_WIDTH,
     height: SPRITE_HEIGHT,
     speed: DEFAULT_PLAYER_SPEED,
-    attack: 80,
+    attack: 100,
     level: 1,
     experience: 0,
     experienceToNextLevel: 100,
     attackRange: TILE_SIZE,
     mapId: FIRST_GAME_MAP_ID,
     sprite: 0,
+    maxHealth: 100,
     health: 100,
     inventory: {
       items: [],
@@ -79,7 +80,7 @@ export const handlePlayerUpdates = (player: Player): void => {
 };
 
 export const respawnPlayer = (player: Player): void => {
-  player.health = 100;
+  player.health = player.maxHealth;
   removePlayerFromMap(player.id);
   player.mapId = FIRST_GAME_MAP_ID;
   player.position = RESPAWN_POSITION;

@@ -415,6 +415,7 @@ export const handleAttack = (attacker: Player): void => {
     if (attackTarget.experienceValue) {
       attacker.experience += attackTarget.experienceValue;
       levelUpPlayer(attacker);
+      updatePlayer(attacker);
     }
 
     if (attackTarget.itemsToDrop?.length) {
@@ -438,7 +439,6 @@ export const handleAttack = (attacker: Player): void => {
       map.droppedItems.push(...droppedItems);
     }
 
-    updatePlayer(attacker);
     respawnNpc(attacker.mapId, attackTarget);
   }
 };

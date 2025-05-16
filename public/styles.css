@@ -368,3 +368,17 @@ button:hover {
   background-color: #e74c3c;
   color: #fff;
 }
+
+#contentEditorContainer.editor-menu {
+  max-height: 80vh;
+  overflow-y: auto;
+  background: #fff;
+  border: 1.5px solid #2ecc40;
+  border-radius: 16px;
+  box-shadow: 0 2px 16px 0 rgba(40, 167, 69, 0.12);
+  padding: 24px 20px 24px 20px;
+  width: 400px;
+  display: none;
+  flex-direction: column;
+  gap: 24px;
+}

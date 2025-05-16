@@ -214,6 +214,13 @@ export async function openModEditor(): Promise<boolean> {
   return !!res;
 }
 
+export async function openContentEditor(): Promise<boolean> {
+  const res = await silentAction(
+    httpClient('/openContentEditor', { method: 'POST' }),
+  );
+  return !!res;
+}
+
 export const saveMap = async (newMapTiles: MapState['tiles']) => {
   const mapData = {
     mapId: getGameState().id,
@@ -293,3 +300,56 @@ export const modSetMyAccess = async (accessLevel: Access) =>
     method: 'POST',
     body: { accessLevel },
   });
+
+export const createNpc = async (
+  npc: Pick<
+    Npc,
+    'name' | 'sprite' | 'maxHealth' | 'attack' | 'behavior' | 'experienceValue'
+  >,
+): Promise<Npc | null> => {
+  return httpClient<Npc>('/npcs', {
+    method: 'POST',
+    body: npc,
+  });
+};
+
+export const updateNpc = async (
+  id: string,
+  npc: Partial<Npc>,
+): Promise<Npc | null> => {
+  return httpClient<Npc>(`/npcs/${id}`, {
+    method: 'PUT',
+    body: npc,
+  });
+};
+
+export const deleteNpc = async (id: string): Promise<void> => {
+  await httpClient(`/npcs/${id}`, {
+    method: 'DELETE',
+  });
+};
+
+export const createItem = async (
+  item: Omit<Item, 'id'>,
+): Promise<Item | null> => {
+  return httpClient<Item>('/items', {
+    method: 'POST',
+    body: item,
+  });
+};
+
+export const updateItem = async (
+  id: number,
+  item: Partial<Item>,
+): Promise<Item | null> => {
+  return httpClient<Item>(`/items/${id}`, {
+    method: 'PUT',
+    body: item,
+  });
+};
+
+export const deleteItem = async (id: number): Promise<void> => {
+  await httpClient(`/items/${id}`, {
+    method: 'DELETE',
+  });
+};

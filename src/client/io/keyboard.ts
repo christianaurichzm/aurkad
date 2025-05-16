@@ -4,6 +4,7 @@ import {
   Protocol,
   keyRecord,
 } from '../../shared/types';
+import { toggleContentEditorMenu } from '../graphics/contentEditor';
 import { toggleInventory } from '../graphics/inventory';
 import { closeModMenu, toggleModMenu } from '../graphics/mod';
 import {
@@ -12,6 +13,7 @@ import {
   toggleTilesetEditor,
 } from '../graphics/tileset';
 import {
+  openContentEditor,
   openMapEditor,
   openModEditor,
   sendAction,
@@ -56,6 +58,12 @@ export const handleInput = () => {
               }
               toggleTilesetEditor();
               closeModMenu();
+            }
+          });
+        } else if (key === Key.c) {
+          openContentEditor().then((res) => {
+            if (res) {
+              toggleContentEditorMenu();
             }
           });
         } else if (key === Key.i) {

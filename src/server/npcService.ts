@@ -36,7 +36,7 @@ export const respawnNpc = (mapId: string, npc: Npc) => {
 
   if (!newPosition) return;
 
-  npc.health = 100;
+  npc.health = npc.maxHealth;
   npc.position = newPosition;
 };
 

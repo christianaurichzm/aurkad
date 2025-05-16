@@ -14,9 +14,20 @@ import {
 } from './gameService';
 import session from 'express-session';
 import { broadcast, playersWsMap, startWebSocketServer } from './wsServer';
-import { Access, Player } from '../shared/types';
+import { Access, Direction, Player, PlayerAction } from '../shared/types';
 import checkAccess from './checkAccess';
-import { bannedPlayers, getItems, getNpcs } from './database';
+import {
+  addItem,
+  addNpc,
+  bannedPlayers,
+  deleteItemEverywhere,
+  deleteNpcEverywhere,
+  getItems,
+  getNpcs,
+  updateItemEverywhere,
+  updateNpcAll,
+} from './database';
+import { SPRITE_HEIGHT, SPRITE_WIDTH, TILE_SIZE } from '../shared/constants';
 
 declare module 'express-session' {
   interface SessionData {
@@ -112,6 +123,14 @@ app.post(
 app.post(
   '/openModEditor',
   checkAccess(Access.MOD),
+  (req: Request, res: Response) => {
+    res.status(200).send('Authorized');
+  },
+);
+
+app.post(
+  '/openContentEditor',
+  checkAccess(Access.ADMIN),
   (req: Request, res: Response) => {
     res.status(200).send('Authorized');
   },
@@ -320,6 +339,77 @@ app.post(
     res.status(200).send('Your access updated');
   },
 );
+
+app.post('/npcs', checkAccess(Access.ADMIN), (req, res) => {
+  const { name, sprite, maxHealth, attack, behavior, experienceValue } =
+    req.body;
+
+  const defaults = {
+    position: { x: 0, y: 0 },
+    width: SPRITE_WIDTH,
+    height: SPRITE_HEIGHT,
+    direction: Direction.Down,
+    action: PlayerAction.Idle,
+    mapId: '1',
+    attackRange: TILE_SIZE,
+    itemsToDrop: [],
+    health: maxHealth,
+  };
+
+  const npcData = {
+    ...defaults,
+    name,
+    sprite,
+    maxHealth,
+    attack,
+    behavior,
+    experienceValue,
+  };
+
+  const newNpc = addNpc(npcData);
+  res.status(201).json(newNpc);
+});
+
+app.put('/npcs/:id', checkAccess(Access.ADMIN), (req, res) => {
+  const { id } = req.params;
+  const updated = updateNpcAll(id, req.body);
+  if (!updated) {
+    return res.status(404).json({ error: 'NPC not found.' });
+  }
+  res.status(200).json(updated);
+});
+
+app.delete('/npcs/:id', checkAccess(Access.ADMIN), (req, res) => {
+  const { id } = req.params;
+  deleteNpcEverywhere(id);
+  res.status(204).send();
+});
+
+app.post('/items', checkAccess(Access.ADMIN), (req, res) => {
+  try {
+    const newItem = addItem(req.body);
+    res.status(201).json(newItem);
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to create item.' });
+  }
+});
+
+app.put('/items/:id', checkAccess(Access.ADMIN), (req, res) => {
+  const id = Number(req.params.id);
+  if (isNaN(id)) return res.status(400).json({ error: 'Invalid item id.' });
+  const updated = updateItemEverywhere(id, req.body);
+  if (!updated) {
+    return res.status(404).json({ error: 'Item not found.' });
+  }
+  res.status(200).json(updated);
+});
+
+app.delete('/items/:id', checkAccess(Access.ADMIN), (req, res) => {
+  const id = Number(req.params.id);
+  if (isNaN(id)) return res.status(400).json({ error: 'Invalid item id.' });
+  deleteItemEverywhere(id);
+  res.status(204).send();
+});
 
 app.use(express.static(path.join(__dirname, publicFolder)));
 app.get('*', (_req, res) => {
