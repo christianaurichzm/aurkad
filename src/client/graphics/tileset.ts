@@ -3,6 +3,7 @@ import { Tile, TileEditMode } from '../../shared/types';
 import { getGameState } from '../core/gameState';
 import { tileset } from '../io/files';
 import { fetchItems, fetchNpcs, saveMap } from '../io/network';
+import { setupAsyncSelect } from '../ui/asyncSelect';
 import { foregroundCanvas, foregroundCtx } from './canvas';
 
 const gridCanvas = document.getElementById('gridCanvas') as HTMLCanvasElement;
@@ -337,18 +338,6 @@ const setupEventListeners = () => {
   itemButton.addEventListener('click', eventListeners.buttons.item);
 };
 
-document.addEventListener('DOMContentLoaded', () => {
-  const npcSelect = document.getElementById('npc');
-  if (!npcSelect) return;
-  npcSelect.addEventListener('focus', populateNpcSelect);
-});
-
-document.addEventListener('DOMContentLoaded', () => {
-  const itemSelect = document.getElementById('item');
-  if (!itemSelect) return;
-  itemSelect.addEventListener('focus', populateItemSelect);
-});
-
 const removeEventListeners = () => {
   tilesetCanvas.removeEventListener(
     'mousedown',
@@ -537,37 +526,15 @@ export const toggleTilesetEditor = () => {
   renderMap(map);
 };
 
-export async function populateNpcSelect() {
-  const npcSelect = document.getElementById('npc') as HTMLSelectElement;
-  if (!npcSelect) return;
+setupAsyncSelect('npc', 'Select an NPC', fetchNpcs, (npc) => ({
+  value: String(npc.id),
+  label: `${npc.id} - ${npc.name}`,
+}));
 
-  npcSelect.innerHTML = '<option value="">Loading...</option>';
-  const npcs = await fetchNpcs();
-
-  npcSelect.innerHTML = '<option value="">Select an NPC</option>';
-  npcs.forEach((npc) => {
-    const option = document.createElement('option');
-    option.value = String(npc.id);
-    option.textContent = `${npc.id} - ${npc.name}`;
-    npcSelect.appendChild(option);
-  });
-}
-
-export async function populateItemSelect() {
-  const itemSelect = document.getElementById('item') as HTMLSelectElement;
-  if (!itemSelect) return;
-
-  itemSelect.innerHTML = '<option value="">Loading...</option>';
-  const items = await fetchItems();
-
-  itemSelect.innerHTML = '<option value="">Select an item</option>';
-  items.forEach((item) => {
-    const option = document.createElement('option');
-    option.value = String(item.id);
-    option.textContent = `${item.id} - ${item.name}`;
-    itemSelect.appendChild(option);
-  });
-}
+setupAsyncSelect('item', 'Select an item', fetchItems, (item) => ({
+  value: String(item.id),
+  label: `${item.id} - ${item.name}`,
+}));
 
 const updateEditorMap = (tiles: Tile[][]) => {
   map = tiles.map((row) => row.map((tile) => ({ ...tile })));
