@@ -1,105 +1,38 @@
-import { renderEquipment } from '../client/graphics/inventory';
 import {
-  SPRITE_WIDTH,
-  SPRITE_HEIGHT,
-  DEFAULT_PLAYER_SPEED,
-  FIRST_GAME_MAP_ID,
-  RESPAWN_POSITION,
-  TILE_SIZE,
-} from '../shared/constants';
-import {
-  PlayerAction,
-  Direction,
+  MapState,
   Player,
-  Access,
-  Item,
-  Effect,
-  Character,
-  ClientKeyboardAction,
   ClientItemAction,
-} from '../shared/types';
-import { addPlayer, getItems, getPlayer, updatePlayer } from './database';
-import {
-  addPlayerOnMap,
-  getPlayerByName,
-  handleKeyPress,
-  handleKeyRelease,
-  removePlayerFromMap,
-} from './gameService';
+  Item,
+  Character,
+  Effect,
+} from '../../shared/types';
+import { getItems, updatePlayer, updateMap } from '../database';
+import { getPlayerByName } from './gameService';
 
-export const createPlayer = (username: string): Player => {
-  const newPlayer: Player = {
-    id: Math.random().toString(36).substring(2, 9),
-    name: username,
-    position: RESPAWN_POSITION,
-    width: SPRITE_WIDTH,
-    height: SPRITE_HEIGHT,
-    speed: DEFAULT_PLAYER_SPEED,
-    attack: 100,
-    level: 1,
-    experience: 0,
-    experienceToNextLevel: 100,
-    attackRange: TILE_SIZE,
-    mapId: FIRST_GAME_MAP_ID,
-    sprite: 0,
-    maxHealth: 100,
-    health: 100,
-    inventory: {
-      items: [],
-      maxCapacity: 10,
-    },
-    equipped: {},
-    access: Access.USER,
-    direction: Direction.Down,
-    action: PlayerAction.Idle,
-  };
+export const pickUpItem = (map: MapState, player: Player) => {
+  map.droppedItems.forEach((item, index) => {
+    if (
+      item.position.x === player.position.x &&
+      item.position.y === player.position.y
+    ) {
+      const itemData = getItems()[item.itemId];
 
-  addPlayer(newPlayer);
-  return newPlayer;
-};
+      const existing = player.inventory.items.find((i) => i.id === itemData.id);
 
-export const isPlayer = (char: Character): char is Player => {
-  return (char as Player).inventory !== undefined;
-};
+      if (existing) {
+        existing.quantity += 1;
+      } else if (player.inventory.items.length < player.inventory.maxCapacity) {
+        player.inventory.items.push({
+          ...itemData,
+          quantity: 1,
+        });
+      }
 
-export const levelUpPlayer = (player: Player): void => {
-  while (player.experience >= player.experienceToNextLevel) {
-    player.experience -= player.experienceToNextLevel;
-    player.level++;
-    player.experienceToNextLevel = Math.floor(
-      100 * Math.pow(1.5, player.level - 1),
-    );
-  }
-};
-
-export const handlePlayerUpdates = (player: Player): void => {
-  const existingPlayer = getPlayer(player.id);
-  if (existingPlayer) {
-    updatePlayer({ ...existingPlayer, ...player });
-  }
-};
-
-export const respawnPlayer = (player: Player): void => {
-  player.health = player.maxHealth;
-  removePlayerFromMap(player.id);
-  player.mapId = FIRST_GAME_MAP_ID;
-  player.position = RESPAWN_POSITION;
-  addPlayerOnMap(player.id);
-};
-
-export const handleKeyAction = (action: ClientKeyboardAction) => {
-  const { username, keyboardAction } = action;
-  switch (keyboardAction.type) {
-    case 'press':
-      handleKeyPress(username, keyboardAction.key);
-      break;
-    case 'release':
-      handleKeyRelease(username, keyboardAction.key);
-      break;
-    default:
-      console.warn(`Unknown item action: ${keyboardAction.key}`);
-      break;
-  }
+      map.droppedItems.splice(index, 1);
+      updatePlayer(player);
+      updateMap(map);
+    }
+  });
 };
 
 export const handleItemAction = (action: ClientItemAction) => {

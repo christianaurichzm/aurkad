@@ -2,17 +2,7 @@ import { createServer } from 'http';
 import express, { Request, Response } from 'express';
 import app from './app';
 import path from 'path';
-import {
-  addPlayerOnMap,
-  changeSprite,
-  login,
-  mapSave,
-  getPlayerByName,
-  handlePlayerUpdate,
-  removePlayerFromMap,
-  disconnectPlayer,
-  buyShopItem,
-} from './gameService';
+
 import session from 'express-session';
 import { broadcast, playersWsMap, startWebSocketServer } from './wsServer';
 import {
@@ -38,6 +28,16 @@ import {
   updateNpcAll,
 } from './database';
 import { SPRITE_HEIGHT, SPRITE_WIDTH, TILE_SIZE } from '../shared/constants';
+import {
+  login,
+  mapSave,
+  changeSprite,
+  getPlayerByName,
+  disconnectPlayer,
+  handlePlayerUpdate,
+  buyShopItem,
+} from './services/gameService';
+import { addPlayerOnMap, removePlayerFromMap } from './services/mapService';
 
 declare module 'express-session' {
   interface SessionData {

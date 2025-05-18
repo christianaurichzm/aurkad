@@ -1,27 +1,28 @@
+import { RequestHandler } from 'express';
 import WebSocket, { WebSocketServer } from 'ws';
 import { Server } from 'http';
 import {
-  disconnectPlayer,
-  getGameState,
-  getPlayerByName,
-  handleChatAction,
-} from './gameService';
-import { ExtendedRequest } from './server';
-import {
-  ActionQueue,
-  ActionQueueItem,
   ClientAction,
   ClientKeyboardAction,
   ClientItemAction,
-  ServerAction,
-  ServerActionType,
   ClientChatAction,
+  ServerActionType,
+  ActionQueue,
+  ActionQueueItem,
   ChatMessagePayload,
+  ServerAction,
 } from '../shared/types';
-import { updateNpcs } from './npcService';
-import { RequestHandler } from 'express';
 import { getMap, updateNpc } from './database';
-import { handleItemAction, handleKeyAction } from './playerService';
+import { ExtendedRequest } from './server';
+import { handleChatAction } from './services/chatService';
+import {
+  disconnectPlayer,
+  handleKeyAction,
+  getPlayerByName,
+  getGameState,
+} from './services/gameService';
+import { handleItemAction } from './services/inventoryService';
+import { updateNpcs } from './services/npcService';
 
 let wss: WebSocketServer;
 

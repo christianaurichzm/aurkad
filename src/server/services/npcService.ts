@@ -1,16 +1,16 @@
-import { TILE_SIZE } from '../shared/constants';
-import { getRandomPosition } from '../shared/utils';
+import { TILE_SIZE } from '../../shared/constants';
+import { getRandomPosition } from '../../shared/utils';
 import {
   Character,
-  Direction,
   Npc,
   MapState,
-  Player,
-  PlayerAction,
   Position,
-} from '../shared/types';
-import { getMap, updatePlayer } from './database';
-import { hasCollision } from './gameService';
+  Direction,
+  PlayerAction,
+  Player,
+} from '../../shared/types';
+import { getMap, updatePlayer } from '../database';
+import { hasCollision } from './physicsService';
 import { respawnPlayer } from './playerService';
 
 export const isNpc = (char: Character): char is Npc => {
