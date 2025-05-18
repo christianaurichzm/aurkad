@@ -13,6 +13,7 @@ import {
   EquippedItems,
   Item,
   BanEntry,
+  Shop,
 } from '../shared/types';
 
 export const bannedPlayers: Record<string, BanEntry> = {};
@@ -33,6 +34,13 @@ const items: ItemsMap = {
         value: 20,
       },
     ],
+  },
+  2: {
+    id: 2,
+    name: 'Silver',
+    description: 'A coin made of silver.',
+    sprite: 2,
+    type: 'money',
   },
 };
 
@@ -112,6 +120,22 @@ const gameState: GameState = {
     },
   },
 };
+
+const shops: Record<string, Shop> = {
+  '1': {
+    id: '1',
+    name: 'Armory',
+    products: [{ itemId: 1, currency: 2, price: 5 }],
+  },
+};
+
+export function getShopById(id: string): Shop | undefined {
+  return Object.values(shops).find((shop) => shop.id === id);
+}
+
+export function getShops(): Shop[] | undefined {
+  return Object.values(shops);
+}
 
 export const getGameStateDb = (): GameState => {
   return gameState;

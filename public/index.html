@@ -5,6 +5,7 @@
     <link rel="stylesheet" type="text/css" href="styles.css" />
     <link rel="stylesheet" type="text/css" href="modmenu.css" />
     <link rel="stylesheet" type="text/css" href="contenteditor.css" />
+    <link rel="stylesheet" type="text/css" href="modal.css" />
   </head>
   <body>
     <div class="container" id="loginContainer">
@@ -49,6 +50,15 @@
               <label for="item">Item:</label>
               <select id="item" name="item" required>
                 <option value="" disabled selected>Select an item</option>
+              </select>
+            </div>
+          </div>
+          <div id="shopGroup" class="mode-group">
+            <button id="shopButton">Shop Mode: OFF</button>
+            <div class="mode-inputs">
+              <label for="shop">Shop:</label>
+              <select id="shop" name="shop" required>
+                <option value="" disabled selected>Select a shop</option>
               </select>
             </div>
           </div>

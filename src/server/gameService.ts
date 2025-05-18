@@ -19,6 +19,8 @@ import {
   ChatMessagePayload,
   NpcsMap,
   DroppedItem,
+  Shop,
+  ProductRaw,
 } from '../shared/types';
 import {
   getNpcs,
@@ -37,6 +39,7 @@ import {
   handlePlayerUpdates,
   isPlayer,
   levelUpPlayer,
+  removeItemFromInventory,
   respawnPlayer,
 } from './playerService';
 import {
@@ -44,6 +47,7 @@ import {
   broadcastChat,
   broadcastMapChat,
   broadcastToMap,
+  playersWsMap,
 } from './wsServer';
 
 const isColliding = (a: Character, b: Character): boolean =>
@@ -243,6 +247,27 @@ export const handleKeyPress = async (username: string, key: Key) => {
     }
 
     updatePlayerMap(player.id, newState);
+
+    const updatedPlayer = getPlayerByName(username);
+    if (updatedPlayer) {
+      const map = getMap(updatedPlayer.mapId);
+      if (map) {
+        const row = Math.floor(updatedPlayer.position.y / TILE_SIZE);
+        const col = Math.floor(updatedPlayer.position.x / TILE_SIZE);
+        const tile = map.tiles[row]?.[col];
+        if (tile?.shop) {
+          const ws = playersWsMap.get(updatedPlayer.name);
+          if (ws && ws.readyState === ws.OPEN) {
+            ws.send(
+              JSON.stringify({
+                type: 'openShop',
+                shopId: tile.shop,
+              }),
+            );
+          }
+        }
+      }
+    }
   }
 
   isActing = false;
@@ -500,3 +525,35 @@ export function handleChatAction(action: ClientChatAction | ServerChatAction) {
     }
   }
 }
+
+export const buyShopItem = (
+  player: Player,
+  itemId: number,
+  shop: Shop<ProductRaw>,
+): boolean => {
+  const item = getItems()[itemId];
+  const product = shop.products.find((i) => i.itemId === itemId);
+  if (!product) return false;
+
+  const itemInInventory = player.inventory.items.find(
+    (i) => i.id === product.currency,
+  );
+  if (!itemInInventory || itemInInventory.quantity < product.price)
+    return false;
+
+  itemInInventory.quantity -= product.price;
+  if (itemInInventory.quantity === 0) {
+    player.inventory.items = player.inventory.items.filter(
+      (i) => i.id !== itemInInventory.id,
+    );
+  }
+
+  const itemNoInventario = player.inventory.items.find((i) => i.id === item.id);
+  if (itemNoInventario) {
+    itemNoInventario.quantity += 1;
+  } else {
+    player.inventory.items.push({ ...item, quantity: 1 });
+  }
+
+  return true;
+};

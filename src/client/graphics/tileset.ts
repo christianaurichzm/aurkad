@@ -16,7 +16,7 @@ import { TILE_SIZE } from '../../shared/constants';
 import { Tile, TileEditMode } from '../../shared/types';
 import { getGameState } from '../core/gameState';
 import { tileset } from '../io/files';
-import { fetchItems, fetchNpcs, saveMap } from '../io/network';
+import { fetchItems, fetchNpcs, fetchShops, saveMap } from '../io/network';
 import { setupAsyncSelect } from '../ui/asyncSelect';
 import { foregroundCanvas, foregroundCtx } from './canvas';
 
@@ -28,6 +28,7 @@ const blockButton = getEl<HTMLButtonElement>('blockButton')!;
 const warpButton = getEl<HTMLButtonElement>('warpButton')!;
 const npcButton = getEl<HTMLButtonElement>('npcButton')!;
 const itemButton = getEl<HTMLButtonElement>('itemButton')!;
+const shopButton = getEl<HTMLButtonElement>('shopButton')!;
 const tilesetContainer = getEl<HTMLDivElement>('tilesetContainer')!;
 
 const selectedTile = { startX: 0, startY: 0, endX: 0, endY: 0 };
@@ -129,6 +130,25 @@ const modes: Record<TileEditMode, ModeConfig> = {
           map[row][col].item = undefined;
         } else {
           map[row][col].item = safeParseInt(item);
+        }
+        mapEdited = true;
+        renderMap(map);
+      }
+    },
+  },
+  shop: {
+    button: shopButton,
+    textOn: 'Shop Mode: ON',
+    textOff: 'Shop Mode: OFF',
+    styleOn: 'red',
+    styleOff: '',
+    place: (row: number, col: number) => {
+      const shop = getInputValue('shop');
+      if (shop) {
+        if (map[row][col].shop) {
+          map[row][col].shop = undefined;
+        } else {
+          map[row][col].shop = shop;
         }
         mapEdited = true;
         renderMap(map);
@@ -269,6 +289,7 @@ const toggleBlocking = () => toggleMode('blocking');
 const toggleWarping = () => toggleMode('warping');
 const toggleNpc = () => toggleMode('npc');
 const toggleItem = () => toggleMode('item');
+const toggleShop = () => toggleMode('shop');
 
 const setupEventListeners = () => {
   addEvent('tilesetCanvas', 'mousedown', startSelecting);
@@ -283,6 +304,7 @@ const setupEventListeners = () => {
   addEvent('warpButton', 'click', toggleWarping);
   addEvent('npcButton', 'click', toggleNpc);
   addEvent('itemButton', 'click', toggleItem);
+  addEvent('shopButton', 'click', toggleShop);
 };
 
 const removeEventListeners = () => {
@@ -298,6 +320,7 @@ const removeEventListeners = () => {
   removeEvent('warpButton', 'click', toggleWarping);
   removeEvent('npcButton', 'click', toggleNpc);
   removeEvent('itemButton', 'click', toggleItem);
+  removeEvent('shopButton', 'click', toggleShop);
 };
 
 export const initTilesetEditor = () => {
@@ -372,6 +395,7 @@ const drawMarkers = (tiles: Tile[][]) => {
       if (tile.warp) drawMarker(colIndex, rowIndex, 'W', 'blue');
       if (tile.npcSpawn) drawMarker(colIndex, rowIndex, 'N', 'yellow');
       if (tile.item) drawMarker(colIndex, rowIndex, 'I', 'orange');
+      if (tile.shop) drawMarker(colIndex, rowIndex, 'S', 'green');
     });
   });
 };
@@ -438,6 +462,10 @@ setupAsyncSelect('npc', 'Select an NPC', fetchNpcs, (npc) => ({
 setupAsyncSelect('item', 'Select an item', fetchItems, (item) => ({
   value: String(item.id),
   label: `${item.id} - ${item.name}`,
+}));
+setupAsyncSelect('shop', 'Select a shop', fetchShops, (shop) => ({
+  value: String(shop.id),
+  label: `${shop.id} - ${shop.name}`,
 }));
 
 const updateEditorMap = (tiles: Tile[][]) => {

@@ -143,6 +143,24 @@ export interface Character {
   mapId: MapState['id'];
 }
 
+export interface Shop<T = ProductRaw> {
+  id: string;
+  name: string;
+  products: T[];
+}
+
+export interface ProductRaw {
+  itemId: number;
+  currency: number;
+  price: number;
+}
+
+export interface ProductDetailed {
+  item: Item;
+  currency: Item;
+  price: number;
+}
+
 export interface Position {
   x: number;
   y: number;
@@ -160,12 +178,21 @@ export interface Effect {
   value: number;
 }
 
+export type ItemType =
+  | 'weapon'
+  | 'helmet'
+  | 'chestplate'
+  | 'gloves'
+  | 'boots'
+  | 'consumable'
+  | 'money';
+
 export interface Item {
   id: number;
   name: string;
   description: string;
   sprite: number;
-  type: 'weapon' | 'helmet' | 'chestplate' | 'gloves' | 'boots' | 'consumable';
+  type: ItemType;
   effects?: Effect[];
 }
 
@@ -225,6 +252,7 @@ export interface Tile {
   warp?: Warp;
   npcSpawn?: Npc['id'];
   item?: Item['id'];
+  shop?: Shop['id'];
 }
 
 export interface MapState {
@@ -254,4 +282,4 @@ export interface HttpRequestOptions {
   body?: any;
 }
 
-export type TileEditMode = 'blocking' | 'warping' | 'npc' | 'item';
+export type TileEditMode = 'blocking' | 'warping' | 'npc' | 'item' | 'shop';

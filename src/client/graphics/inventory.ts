@@ -15,7 +15,7 @@ let selectedItem: InventoryItem | null = null;
 let previousInventory: InventoryItem[] = [];
 let previousSelectedItem: InventoryItem | null = null;
 
-const getSpriteCoordinates = (spriteId: number, sheetWidth: number) => {
+export const getSpriteCoordinates = (spriteId: number, sheetWidth: number) => {
   const cols = sheetWidth / ITEM_SIZE;
   const x = (spriteId % cols) * ITEM_SIZE;
   const y = Math.floor(spriteId / cols) * ITEM_SIZE;

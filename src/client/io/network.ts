@@ -8,11 +8,15 @@ import {
   Npc,
   Item,
   Access,
+  Shop,
+  ProductDetailed,
+  ProductRaw,
 } from '../../shared/types';
 import { getGameState, setPlayer, updateGameState } from '../core/gameState';
 import { hideConnectionStatus, showConnectionStatus } from '../ui/hud';
 import { displayChatMessage } from '../ui/chat';
 import { renderInventory } from '../graphics/inventory';
+import { openShopWindow } from '../graphics/shop';
 
 const WS_URL = 'ws://localhost:8080/ws';
 
@@ -63,6 +67,9 @@ export const initializeWebSocket = () => {
       } else if (data.type === 'kick') {
         alert(data.message || 'You have been kicked from the game.');
         window.location.reload();
+        return;
+      } else if (data.type === 'openShop' && data.shopId) {
+        openShopWindow(data.shopId);
         return;
       } else if (data.map && data.player) {
         gameStateQueue.push(data);
@@ -241,6 +248,13 @@ export const fetchItems = async (): Promise<Item[]> => {
   return (await httpClient<Item[]>('/items', { method: 'GET' })) || [];
 };
 
+export const fetchShops = async (): Promise<Shop<ProductRaw>[]> => {
+  const result = await httpClient<Shop<ProductRaw>[]>('/shops', {
+    method: 'GET',
+  });
+  return Array.isArray(result) ? result : [];
+};
+
 export const changeSprite = async (spriteId: number) => {
   return httpClient<Response>('/mod/changeSprite', {
     method: 'POST',
@@ -351,5 +365,23 @@ export const updateItem = async (
 export const deleteItem = async (id: number): Promise<void> => {
   await httpClient(`/items/${id}`, {
     method: 'DELETE',
+  });
+};
+
+export const fetchShop = async (
+  shopId: string,
+): Promise<Shop<ProductDetailed> | null> => {
+  return httpClient<Shop<ProductDetailed>>(`/shop/${shopId}`, {
+    method: 'GET',
+  });
+};
+
+export const buyShopItem = async (
+  shopId: string,
+  itemId: number,
+): Promise<{ success: boolean; message?: string } | null> => {
+  return httpClient<{ success: boolean; message?: string }>('/shop/buy', {
+    method: 'POST',
+    body: { shopId, itemId },
   });
 };

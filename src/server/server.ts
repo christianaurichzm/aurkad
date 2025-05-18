@@ -11,10 +11,18 @@ import {
   handlePlayerUpdate,
   removePlayerFromMap,
   disconnectPlayer,
+  buyShopItem,
 } from './gameService';
 import session from 'express-session';
 import { broadcast, playersWsMap, startWebSocketServer } from './wsServer';
-import { Access, Direction, Player, PlayerAction } from '../shared/types';
+import {
+  Access,
+  Direction,
+  Player,
+  PlayerAction,
+  ProductDetailed,
+  Shop,
+} from '../shared/types';
 import checkAccess from './checkAccess';
 import {
   addItem,
@@ -24,6 +32,8 @@ import {
   deleteNpcEverywhere,
   getItems,
   getNpcs,
+  getShopById,
+  getShops,
   updateItemEverywhere,
   updateNpcAll,
 } from './database';
@@ -151,6 +161,67 @@ app.get('/items', checkAccess(Access.ADMIN), (req: Request, res: Response) => {
     res.status(200).json(items);
   } catch (error) {
     res.status(500).json({ error: 'Could not fetch items' });
+  }
+});
+
+app.get('/shops', checkAccess(Access.ADMIN), (req: Request, res: Response) => {
+  try {
+    const shops = getShops();
+    res.status(200).json(shops);
+  } catch (error) {
+    res.status(500).json({ error: 'Could not fetch items' });
+  }
+});
+
+app.get('/shop/:shopId', (req, res) => {
+  try {
+    const { shopId } = req.params;
+    const shop = getShopById(shopId);
+
+    if (!shop) {
+      return res.status(404).json({ error: 'Shop not found' });
+    }
+
+    const itemsDb = getItems();
+
+    const products = shop.products.map((entry) => {
+      const item = itemsDb[entry.itemId];
+      const currency = itemsDb[entry.currency];
+      const price = entry.price;
+
+      if (!item) throw new Error(`Item ${entry.itemId} not found in itemsDb`);
+      if (!currency)
+        throw new Error(`Currency ${entry.currency} not found in itemsDb`);
+
+      return {
+        item: {
+          id: item.id,
+          name: item.name,
+          sprite: item.sprite,
+          description: item.description,
+          type: item.type,
+        },
+        currency: {
+          id: currency.id,
+          name: currency.name,
+          sprite: currency.sprite,
+          description: currency.description,
+          type: currency.type,
+        },
+        price,
+      };
+    });
+
+    res.json({
+      id: shop.id,
+      name: shop.name,
+      products,
+    });
+  } catch (e) {
+    console.error('Error in route /shop/:shopId:', e);
+    res
+      .status(500)
+      .json({ error: 'Internal server error', details: String(e) });
   }
 });
 
@@ -409,6 +480,35 @@ app.delete('/items/:id', checkAccess(Access.ADMIN), (req, res) => {
   if (isNaN(id)) return res.status(400).json({ error: 'Invalid item id.' });
   deleteItemEverywhere(id);
   res.status(204).send();
+});
+
+app.post('/shop/buy', checkAccess(Access.USER), (req, res) => {
+  const { shopId, itemId } = req.body;
+  const username = req.session.username;
+
+  if (!username) {
+    return res.status(401).json({ error: 'Not logged in' });
+  }
+
+  const player = getPlayerByName(username);
+  const shop = getShopById(shopId);
+
+  if (!player || !shop) {
+    return res.status(404).json({ error: 'Shop or player not found' });
+  }
+
+  const success = buyShopItem(player, itemId, shop);
+
+  if (success) {
+    return res.status(200).json({
+      message: 'Purchase completed successfully!',
+      inventory: player.inventory.items,
+    });
+  } else {
+    return res.status(400).json({
+      error: 'Purchase failed: insufficient coins/item',
+    });
+  }
 });
 
 app.use(express.static(path.join(__dirname, publicFolder)));
