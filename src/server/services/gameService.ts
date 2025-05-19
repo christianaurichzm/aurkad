@@ -7,10 +7,10 @@ import {
   Key,
   Direction,
   PlayerAction,
-  Player,
+  PlayerServer,
   ClientKeyboardAction,
   Tile,
-  MapState,
+  MapStateServer,
   Shop,
   ProductRaw,
 } from '../../shared/types';
@@ -18,17 +18,17 @@ import {
   getMap,
   updatePlayer,
   updateMapById,
-  getGameStateDb,
+  getRuntimeState,
   getPlayers,
   updateMap,
-  getItems,
-} from '../database';
+} from '../gameData';
 import { playersWsMap, broadcast } from '../wsServer';
 import { handleAttack } from './combatService';
 import { pickUpItem } from './inventoryService';
 import { insertModeCell, updatePlayerMap } from './mapService';
 import { hasCollision, hasWarp } from './physicsService';
 import { createPlayer, handlePlayerUpdates } from './playerService';
+import { getItemById } from './inventoryService';
 
 export const delay = (ms: number) =>
   new Promise((resolve) => setTimeout(resolve, ms));
@@ -89,7 +89,7 @@ export const handleKeyPress = async (username: string, key: Key) => {
         handleAttack(newState);
         break;
       case Key.e:
-        pickUpItem(getMap(player.mapId)!, player);
+        await pickUpItem(getMap(player.mapId)!, player);
         break;
     }
 
@@ -134,8 +134,8 @@ export const handleKeyPress = async (username: string, key: Key) => {
 };
 
 const updatePlayerPositionAndDirection = (
-  newState: Player,
-  proposedState: Player,
+  newState: PlayerServer,
+  proposedState: PlayerServer,
   direction: Direction,
   dx: number,
   dy: number,
@@ -176,13 +176,14 @@ export const handleKeyRelease = (username: string, key: Key) => {
   }
 };
 
-export const mapSave = (mapId: string, tiles: Tile[][]) => {
-  const newMap = insertModeCell(mapId, tiles);
-  updateMapById(newMap as MapState);
+export const mapSave = async (mapId: string, tiles: Tile[][]) => {
+  const newMap = await insertModeCell(mapId, tiles);
+
+  await updateMapById(newMap as MapStateServer);
 };
 
 export const changeSprite = (spriteId: number, username: string) => {
-  const newPlayer: Player = {
+  const newPlayer: PlayerServer = {
     ...getPlayerByName(username)!,
     sprite: spriteId,
   };
@@ -190,7 +191,7 @@ export const changeSprite = (spriteId: number, username: string) => {
   broadcast();
 };
 
-export const getGameState = () => getGameStateDb();
+export const getGameState = () => getRuntimeState();
 
 export const getPlayerByName = (username: string) =>
   Object.values(getPlayers()).find((player) => player.name === username);
@@ -198,7 +199,7 @@ export const getPlayerByName = (username: string) =>
 export const login = (username: string) =>
   getPlayerByName(username) || createPlayer(username);
 
-export const handlePlayerUpdate = (player: Player): void => {
+export const handlePlayerUpdate = (player: PlayerServer): void => {
   handlePlayerUpdates(player);
 };
 
@@ -210,34 +211,34 @@ export const disconnectPlayer = (username?: string) => {
   updateMap(map);
 };
 
-export const buyShopItem = (
-  player: Player,
+export const buyShopItem = async (
+  player: PlayerServer,
   itemId: number,
   shop: Shop<ProductRaw>,
-): boolean => {
-  const item = getItems()[itemId];
-  const product = shop.products.find((i) => i.itemId === itemId);
+): Promise<boolean> => {
+  const product = shop.products.find((p) => p.itemId === itemId);
   if (!product) return false;
 
-  const itemInInventory = player.inventory.items.find(
-    (i) => i.id === product.currency,
+  const currencyInInventory = player.inventory.items.find(
+    (i) => i.item === product.currency,
   );
-  if (!itemInInventory || itemInInventory.quantity < product.price)
+  if (!currencyInInventory || currencyInInventory.quantity < product.price)
     return false;
 
-  itemInInventory.quantity -= product.price;
-  if (itemInInventory.quantity === 0) {
+  currencyInInventory.quantity -= product.price;
+  if (currencyInInventory.quantity === 0) {
     player.inventory.items = player.inventory.items.filter(
-      (i) => i.id !== itemInInventory.id,
+      (i) => i.item !== product.currency,
     );
   }
 
-  const itemNoInventario = player.inventory.items.find((i) => i.id === item.id);
-  if (itemNoInventario) {
-    itemNoInventario.quantity += 1;
+  const existingItem = player.inventory.items.find((i) => i.item === itemId);
+  if (existingItem) {
+    existingItem.quantity++;
   } else {
-    player.inventory.items.push({ ...item, quantity: 1 });
+    player.inventory.items.push({ item: itemId, quantity: 1 });
   }
 
+  await updatePlayer(player);
   return true;
 };

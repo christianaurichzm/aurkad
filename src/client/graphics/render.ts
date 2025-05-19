@@ -157,6 +157,9 @@ export const render = () => {
     renderDroppedItems(map.droppedItems);
     renderPlayers(map.players);
     renderNpcs(map.npcs);
-    updatePlayerHealthBar(getPlayer());
+    const currentPlayer = getPlayer();
+    if (currentPlayer) {
+      updatePlayerHealthBar(currentPlayer);
+    }
   }
 };

@@ -1,6 +1,6 @@
 import { TILE_SIZE, GAME_WIDTH, GAME_HEIGHT } from '../../shared/constants';
-import { Character, MapState, Warp } from '../../shared/types';
-import { getMap } from '../database';
+import { Character, MapStateServer, Warp } from '../../shared/types';
+import { getMap } from '../gameData';
 
 const isColliding = (a: Character, b: Character): boolean =>
   a.position.x < b.position.x + b.width &&
@@ -8,13 +8,17 @@ const isColliding = (a: Character, b: Character): boolean =>
   a.position.y < b.position.y + b.height &&
   a.position.y + a.height > b.position.y;
 
-const isTileBlocked = (map: MapState, x: number, y: number): boolean => {
+const isTileBlocked = (map: MapStateServer, x: number, y: number): boolean => {
   const row = Math.floor(y / TILE_SIZE);
   const col = Math.floor(x / TILE_SIZE);
   return !!map.tiles[row]?.[col]?.blocked;
 };
 
-const isTileWarp = (map: MapState, x: number, y: number): Warp | undefined => {
+const isTileWarp = (
+  map: MapStateServer,
+  x: number,
+  y: number,
+): Warp | undefined => {
   const row = Math.floor(y / TILE_SIZE);
   const col = Math.floor(x / TILE_SIZE);
   return map.tiles[row]?.[col]?.warp;

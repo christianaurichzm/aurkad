@@ -5,19 +5,46 @@ import {
   DEFAULT_PLAYER_SPEED,
   TILE_SIZE,
   FIRST_GAME_MAP_ID,
+  EQUIPMENT_SLOTS,
 } from '../../shared/constants';
 import {
-  Player,
+  PlayerServer,
   Access,
   Direction,
   PlayerAction,
   Character,
+  EquippedItemsDetailed,
+  InventoryItemDetailed,
+  Player,
 } from '../../shared/types';
-import { addPlayer, getPlayer, updatePlayer } from '../database';
-import { addPlayerOnMap, removePlayerFromMap } from './mapService';
+import PlayerModel from '../model/Player';
 
-export const createPlayer = (username: string): Player => {
-  const newPlayer: Player = {
+import { addPlayer, getPlayer, updatePlayer } from '../gameData';
+import { addPlayerOnMap, removePlayerFromMap } from './mapService';
+import { getItemById } from './inventoryService';
+
+export async function getPlayerById(id: string): Promise<PlayerServer | null> {
+  return await PlayerModel.findOne({ id }).lean<PlayerServer>().exec();
+}
+
+export async function createOrUpdatePlayer(
+  player: PlayerServer,
+): Promise<void> {
+  await PlayerModel.findOneAndUpdate({ id: player.id }, player, {
+    upsert: true,
+  });
+}
+
+export async function deletePlayer(id: string): Promise<void> {
+  await PlayerModel.deleteOne({ id });
+}
+
+export async function listPlayers(): Promise<PlayerServer[]> {
+  return await PlayerModel.find().lean<PlayerServer[]>().exec();
+}
+
+export const createPlayer = (username: string): PlayerServer => {
+  const newPlayer: PlayerServer = {
     id: Math.random().toString(36).substring(2, 9),
     name: username,
     position: RESPAWN_POSITION,
@@ -47,11 +74,11 @@ export const createPlayer = (username: string): Player => {
   return newPlayer;
 };
 
-export const isPlayer = (char: Character): char is Player => {
-  return (char as Player).inventory !== undefined;
+export const isPlayer = (char: Character): char is PlayerServer => {
+  return (char as PlayerServer).inventory !== undefined;
 };
 
-export const levelUpPlayer = (player: Player): void => {
+export const levelUpPlayer = (player: PlayerServer): void => {
   while (player.experience >= player.experienceToNextLevel) {
     player.experience -= player.experienceToNextLevel;
     player.level++;
@@ -61,17 +88,45 @@ export const levelUpPlayer = (player: Player): void => {
   }
 };
 
-export const handlePlayerUpdates = (player: Player): void => {
+export const handlePlayerUpdates = (player: PlayerServer): void => {
   const existingPlayer = getPlayer(player.id);
   if (existingPlayer) {
     updatePlayer({ ...existingPlayer, ...player });
   }
 };
 
-export const respawnPlayer = (player: Player): void => {
+export const respawnPlayer = (player: PlayerServer): void => {
   player.health = player.maxHealth;
   removePlayerFromMap(player.id);
   player.mapId = FIRST_GAME_MAP_ID;
   player.position = RESPAWN_POSITION;
   addPlayerOnMap(player.id);
 };
+
+export async function enrichPlayer(player: PlayerServer): Promise<Player> {
+  const detailedInventory: InventoryItemDetailed[] = await Promise.all(
+    player.inventory.items.map(async (entry) => {
+      const item = await getItemById(entry.item);
+
+      if (!item) throw new Error(`Item ${entry.item} not found`);
+      return { item, quantity: entry.quantity };
+    }),
+  );
+
+  const equipped: EquippedItemsDetailed = {};
+  for (const slot of EQUIPMENT_SLOTS) {
+    const itemId = player.equipped[slot];
+    if (itemId) {
+      const item = await getItemById(itemId);
+      if (item) equipped[slot] = item;
+    }
+  }
+
+  const { inventory, equipped: _, ...rest } = player;
+
+  return {
+    ...rest,
+    inventory: detailedInventory,
+    equipped,
+  };
+}

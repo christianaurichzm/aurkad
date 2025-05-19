@@ -14,3 +14,10 @@ export const RESPAWN_POSITION: Position = {
   x: 9 * TILE_SIZE,
   y: 6 * TILE_SIZE,
 };
+export const EQUIPMENT_SLOTS = [
+  'weapon',
+  'helmet',
+  'chestplate',
+  'gloves',
+  'boots',
+] as const;

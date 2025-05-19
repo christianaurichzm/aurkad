@@ -1,6 +1,6 @@
-import { MapState, Player } from '../../shared/types';
+import { MapStateClient, Player } from '../../shared/types';
 
-let gameMap: MapState;
+let gameMap: MapStateClient;
 
 let player: Player;
 
@@ -12,7 +12,7 @@ export const getPlayer = (): Player => {
   return player;
 };
 
-export const updateGameState = (gameState: MapState) => {
+export const updateGameState = (gameState: MapStateClient) => {
   gameMap = gameState;
 };
 

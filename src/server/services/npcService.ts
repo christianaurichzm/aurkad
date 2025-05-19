@@ -3,15 +3,33 @@ import { getRandomPosition } from '../../shared/utils';
 import {
   Character,
   Npc,
-  MapState,
+  MapStateServer,
   Position,
   Direction,
   PlayerAction,
-  Player,
+  PlayerServer,
 } from '../../shared/types';
-import { getMap, updatePlayer } from '../database';
+import { getMap, updatePlayer } from '../gameData';
 import { hasCollision } from './physicsService';
 import { respawnPlayer } from './playerService';
+
+import NpcModel from '../model/Npc';
+
+export async function getNpcById(id: string): Promise<Npc | null> {
+  return await NpcModel.findOne({ id }).lean<Npc>().exec();
+}
+
+export async function createOrUpdateNpc(npc: Npc): Promise<void> {
+  await NpcModel.findOneAndUpdate({ id: npc.id }, npc, { upsert: true });
+}
+
+export async function deleteNpc(id: string): Promise<void> {
+  await NpcModel.deleteOne({ id });
+}
+
+export async function listNpcs(): Promise<Npc[]> {
+  return await NpcModel.find().lean<Npc[]>().exec();
+}
 
 export const isNpc = (char: Character): char is Npc => {
   return 'behavior' in char;
@@ -41,7 +59,7 @@ export const respawnNpc = (mapId: string, npc: Npc) => {
 };
 
 export const findNpcSpawnPositions = (
-  map: MapState,
+  map: MapStateServer,
   npcId: string,
 ): Position[] => {
   const positions: Position[] = [];
@@ -135,9 +153,9 @@ function isPlayerInAttackRange(npc: Character, player: Character): boolean {
 function attackPlayer(npc: Character, player: Character) {
   player.health -= npc.attack;
   if (player.health <= 0) {
-    respawnPlayer(player as Player);
+    respawnPlayer(player as PlayerServer);
   }
-  updatePlayer(player as Player);
+  updatePlayer(player as PlayerServer);
   npc.action = PlayerAction.Attack;
 }
 
@@ -160,7 +178,7 @@ function findClosestPlayer(
   return closestPlayer;
 }
 
-function moveNpcRandomly(npc: Npc, map: MapState) {
+function moveNpcRandomly(npc: Npc, map: MapStateServer) {
   const directions = [
     { dx: 0, dy: -TILE_SIZE, dir: Direction.Up },
     { dx: 0, dy: TILE_SIZE, dir: Direction.Down },
@@ -185,7 +203,7 @@ function moveNpcRandomly(npc: Npc, map: MapState) {
   }
 }
 
-export function updateNpcs(npc: Npc, map: MapState) {
+export function updateNpcs(npc: Npc, map: MapStateServer) {
   if (npc.behavior === 'neutral') {
     npc.action = PlayerAction.Idle;
     return;

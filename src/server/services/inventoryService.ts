@@ -1,38 +1,60 @@
 import {
-  MapState,
-  Player,
+  MapStateServer,
+  PlayerServer,
   ClientItemAction,
-  Item,
   Character,
-  Effect,
+  Item,
 } from '../../shared/types';
-import { getItems, updatePlayer, updateMap } from '../database';
+import { updatePlayer, updateMap } from '../gameData';
 import { getPlayerByName } from './gameService';
+import ItemModel from '../model/Item';
+import { getNextItemId } from './dbService';
+import { EQUIPMENT_SLOTS } from '../../shared/constants';
 
-export const pickUpItem = (map: MapState, player: Player) => {
-  map.droppedItems.forEach((item, index) => {
-    if (
-      item.position.x === player.position.x &&
-      item.position.y === player.position.y
-    ) {
-      const itemData = getItems()[item.itemId];
+export async function getItemById(id: number): Promise<Item | null> {
+  return await ItemModel.findOne({ id }).lean<Item>().exec();
+}
 
-      const existing = player.inventory.items.find((i) => i.id === itemData.id);
+export async function createOrUpdateItem(item: any): Promise<void> {
+  if (!item.id) {
+    item.id = await getNextItemId();
+  }
 
-      if (existing) {
-        existing.quantity += 1;
-      } else if (player.inventory.items.length < player.inventory.maxCapacity) {
-        player.inventory.items.push({
-          ...itemData,
-          quantity: 1,
-        });
-      }
-
-      map.droppedItems.splice(index, 1);
-      updatePlayer(player);
-      updateMap(map);
-    }
+  await ItemModel.findOneAndUpdate({ id: item.id }, item, {
+    upsert: true,
   });
+}
+
+export async function deleteItem(id: number): Promise<void> {
+  await ItemModel.deleteOne({ id });
+}
+
+export async function listItems(): Promise<Item[]> {
+  return await ItemModel.find().lean<Item[]>().exec();
+}
+
+export const pickUpItem = async (map: MapStateServer, player: PlayerServer) => {
+  const dropIndex = map.droppedItems.findIndex(
+    (drop) =>
+      drop.position.x === player.position.x &&
+      drop.position.y === player.position.y,
+  );
+
+  if (dropIndex === -1) return;
+
+  const drop = map.droppedItems[dropIndex];
+
+  const existing = player.inventory.items.find((i) => i.item === drop.itemId);
+
+  if (existing) {
+    existing.quantity += 1;
+  } else if (player.inventory.items.length < player.inventory.maxCapacity) {
+    player.inventory.items.push({ item: drop.itemId, quantity: 1 });
+  }
+
+  map.droppedItems.splice(dropIndex, 1);
+  await updatePlayer(player);
+  updateMap(map);
 };
 
 export const handleItemAction = (action: ClientItemAction) => {
@@ -51,110 +73,138 @@ export const handleItemAction = (action: ClientItemAction) => {
   }
 };
 
-export function removeItemFromInventory(
+export async function removeItemFromInventory(
   username: string,
   itemId: number,
-): boolean {
+): Promise<boolean> {
   const player = getPlayerByName(username);
   if (!player) return false;
-  const itemIndex = player.inventory.items.findIndex(
-    (item) => item.id === itemId,
+
+  player.inventory.items = player.inventory.items.filter(
+    (i) => i.item !== itemId,
   );
-  if (itemIndex === -1) {
-    console.log('Item not found!');
-    return false;
-  }
-  player.inventory.items.splice(itemIndex, 1);
+
+  await updatePlayer(player);
   return true;
 }
 
-export function useItem(username: string, itemId: number): boolean {
+export async function useItem(
+  username: string,
+  itemId: number,
+): Promise<boolean> {
   const player = getPlayerByName(username);
   if (!player) return false;
-  const item = Object.values(getItems()).find(
-    (invItem) => invItem.id === itemId,
-  );
-  if (!item) {
-    console.log('Item not found!');
-    return false;
-  }
-  const itemIndex = player.inventory.items.findIndex(
-    (invItem) => invItem.id === item.id,
-  );
-  if (itemIndex === -1) {
-    console.log('Item not found!');
-    return false;
-  }
+
+  const item = await getItemById(itemId);
+  if (!item) return false;
+
+  const invItem = player.inventory.items.find((i) => i.item === itemId);
+
   if (item.type === 'consumable') {
-    if (item.effects) {
-      applyItemEffects(player, item.effects);
-      removeItemFromInventory(player.id, item.id);
+    if (!invItem || invItem.quantity <= 0) return false;
+
+    await applyItemEffects(player, itemId);
+    invItem.quantity--;
+    if (invItem.quantity <= 0) {
+      player.inventory.items = player.inventory.items.filter(
+        (i) => i.item !== itemId,
+      );
     }
   } else {
-    equipItem(player, item);
+    // Novo bloco: permite desequipar mesmo sem o item no inventário
+    const slot = item.type as keyof PlayerServer['equipped'];
+    const equippedItem = player.equipped[slot];
+
+    if (!invItem && equippedItem === itemId) {
+      console.log('[useItem] item is equipped, proceeding to unequip');
+      await unequipItem(player, slot);
+    } else if (invItem) {
+      console.log('[useItem] equipping item from inventory');
+      await equipItem(player, itemId);
+    } else {
+      console.warn('[useItem] item not in inventory nor equipped');
+      return false;
+    }
   }
-  updatePlayer(player);
+
+  await updatePlayer(player);
   return true;
 }
 
-function equipItem(player: Player, item: Item): void {
-  switch (item.type) {
-    case 'weapon':
-      if (player.equipped.weapon) {
-        unequipItem(player, player.equipped.weapon);
-      }
-      player.equipped.weapon = item;
-      break;
-    case 'helmet':
-      if (player.equipped.helmet) {
-        unequipItem(player, player.equipped.helmet);
-      }
-      player.equipped.helmet = item;
-      break;
-    case 'chestplate':
-      if (player.equipped.chestplate) {
-        unequipItem(player, player.equipped.chestplate);
-      }
-      player.equipped.chestplate = item;
-      break;
-    case 'gloves':
-      if (player.equipped.gloves) {
-        unequipItem(player, player.equipped.gloves);
-      }
-      player.equipped.gloves = item;
-      break;
-    case 'boots':
-      if (player.equipped.boots) {
-        unequipItem(player, player.equipped.boots);
-      }
-      player.equipped.boots = item;
-      break;
+export async function equipItem(
+  player: PlayerServer,
+  itemId: number,
+): Promise<void> {
+  const item = await getItemById(itemId);
+  if (!item) return;
+
+  const slot = item.type as keyof PlayerServer['equipped'];
+
+  if (!EQUIPMENT_SLOTS.includes(slot)) {
+    console.warn(`Invalid equip slot: ${slot}`);
+    return;
   }
-  applyItemEffects(player, item.effects ?? []);
+
+  if (Number(player.equipped[slot]) === Number(itemId)) {
+    await unequipItem(player, slot);
+    return;
+  } else {
+  }
+
+  if (player.equipped[slot]) {
+    await unequipItem(player, slot);
+  }
+
+  player.equipped[slot] = itemId;
+
+  const existing = player.inventory.items.find((i) => i.item === itemId);
+  if (existing) {
+    existing.quantity--;
+    if (existing.quantity <= 0) {
+      player.inventory.items = player.inventory.items.filter(
+        (i) => i.item !== itemId,
+      );
+    }
+  }
+
+  await applyItemEffects(player, itemId);
 }
 
-function unequipItem(player: Player, item: Item): void {
-  if (item.effects) {
-    applyItemEffects(player, item.effects, true);
+export async function unequipItem(
+  player: PlayerServer,
+  slot: keyof PlayerServer['equipped'],
+): Promise<void> {
+  const itemId = player.equipped[slot];
+  if (!itemId) return;
+
+  await applyItemEffects(player, itemId, true);
+
+  const existing = player.inventory.items.find((i) => i.item === itemId);
+  if (existing) {
+    existing.quantity++;
+  } else {
+    player.inventory.items.push({ item: itemId, quantity: 1 });
   }
+
+  player.equipped[slot] = undefined;
 }
 
-function applyItemEffects(
+export async function applyItemEffects(
   player: Character,
-  effects: Effect[],
+  itemId: number,
   reverse = false,
-): void {
-  effects.forEach((effect) => {
-    const attribute = effect.attribute;
-    if (typeof player[attribute] === 'number') {
-      switch (effect.type) {
-        case 'add':
-          player[attribute] += reverse ? -effect.value : effect.value;
-          break;
-        case 'multiply':
-          player[attribute] *= reverse ? 1 / effect.value : effect.value;
-          break;
+): Promise<void> {
+  const item = await getItemById(itemId);
+  if (!item || !item.effects) return;
+
+  for (const effect of item.effects) {
+    const attr = effect.attribute;
+    if (typeof player[attr] === 'number') {
+      if (effect.type === 'add') {
+        player[attr] += reverse ? -effect.value : effect.value;
+      } else if (effect.type === 'multiply') {
+        player[attr] *= reverse ? 1 / effect.value : effect.value;
       }
     }
-  });
+  }
 }

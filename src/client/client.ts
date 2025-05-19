@@ -7,7 +7,7 @@ import {
   setText,
   addEvent,
 } from '../server/domHelpers';
-import { MapState, Player } from '../shared/types';
+import { MapStateClient, Player } from '../shared/types';
 import { gameLoop } from './core/game';
 import { setPlayer, updateGameState } from './core/gameState';
 import { renderMap } from './graphics/tileset';
@@ -56,14 +56,19 @@ async function handleLogin(event: Event) {
   if (username) {
     try {
       const data = await login(username);
-      await processLoginSuccess(data as { map: MapState; player: Player });
+      await processLoginSuccess(
+        data as { map: MapStateClient; player: Player },
+      );
     } catch (error) {
       displayError(error, ELEMENT_IDS.ERROR_MESSAGE);
     }
   }
 }
 
-async function processLoginSuccess(data: { map: MapState; player: Player }) {
+async function processLoginSuccess(data: {
+  map: MapStateClient;
+  player: Player;
+}) {
   const { map, player } = data;
   updateGameState(map);
   setPlayer(player);
@@ -82,7 +87,7 @@ async function processLoginSuccess(data: { map: MapState; player: Player }) {
   }
 }
 
-function toggleContainers(map: MapState) {
+function toggleContainers(map: MapStateClient) {
   hide(ELEMENT_IDS.LOGIN_CONTAINER);
   show(ELEMENT_IDS.CANVAS_CONTAINER, 'block');
   show(ELEMENT_IDS.HUD_CONTAINER, 'flex');

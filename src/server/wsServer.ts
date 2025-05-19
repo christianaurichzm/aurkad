@@ -12,7 +12,7 @@ import {
   ChatMessagePayload,
   ServerAction,
 } from '../shared/types';
-import { getMap, updateNpc } from './database';
+import { getMap, updateNpc } from './gameData';
 import { ExtendedRequest } from './server';
 import { handleChatAction } from './services/chatService';
 import {
@@ -23,6 +23,7 @@ import {
 } from './services/gameService';
 import { handleItemAction } from './services/inventoryService';
 import { updateNpcs } from './services/npcService';
+import { enrichPlayer } from './services/playerService';
 
 let wss: WebSocketServer;
 
@@ -92,15 +93,6 @@ export const startWebSocketServer = (
   });
 };
 
-setInterval(() => {
-  processActions();
-  broadcastGameState();
-}, 50);
-
-setInterval(() => {
-  enqueueAction({ action: ServerActionType.UpdateNpcPositions });
-}, 500);
-
 const actionQueue: ActionQueue = [];
 
 function enqueueAction(action: ActionQueueItem) {
@@ -125,6 +117,17 @@ export async function processActions() {
       }
     }
   }
+}
+
+export function startGameLoops() {
+  setInterval(() => {
+    processActions();
+    broadcastGameState();
+  }, 50);
+
+  setInterval(() => {
+    enqueueAction({ action: ServerActionType.UpdateNpcPositions });
+  }, 500);
 }
 
 export function broadcastChat(message: ChatMessagePayload) {
@@ -190,14 +193,17 @@ function handleServerAction(action: ServerAction) {
 
 function broadcastGameState() {
   const gameState = getGameState();
-  Object.values(gameState.maps).forEach((map) => {
-    Object.values(map.players).forEach((player) => {
-      const message = JSON.stringify({ map, player });
-      const ws = playersWsMap.get(player.name);
-      if (ws?.readyState === WebSocket.OPEN) {
-        ws.send(message);
-      }
-    });
+  Object.values(gameState.maps).forEach(async (map) => {
+    await Promise.all(
+      Object.values(map.players).map(async (player) => {
+        const enrichedPlayer = await enrichPlayer(player);
+        const message = JSON.stringify({ map, player: enrichedPlayer });
+        const ws = playersWsMap.get(player.name);
+        if (ws?.readyState === WebSocket.OPEN) {
+          ws.send(message);
+        }
+      }),
+    );
   });
 }
 

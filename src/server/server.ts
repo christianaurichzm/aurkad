@@ -4,29 +4,15 @@ import app from './app';
 import path from 'path';
 
 import session from 'express-session';
-import { broadcast, playersWsMap, startWebSocketServer } from './wsServer';
 import {
-  Access,
-  Direction,
-  Player,
-  PlayerAction,
-  ProductDetailed,
-  Shop,
-} from '../shared/types';
+  broadcast,
+  playersWsMap,
+  startGameLoops,
+  startWebSocketServer,
+} from './wsServer';
+import { Access, Direction, PlayerServer, PlayerAction } from '../shared/types';
 import checkAccess from './checkAccess';
-import {
-  addItem,
-  addNpc,
-  bannedPlayers,
-  deleteItemEverywhere,
-  deleteNpcEverywhere,
-  getItems,
-  getNpcs,
-  getShopById,
-  getShops,
-  updateItemEverywhere,
-  updateNpcAll,
-} from './database';
+import { addNpc, deleteNpcEverywhere, getNpcs, updateNpcAll } from './gameData';
 import { SPRITE_HEIGHT, SPRITE_WIDTH, TILE_SIZE } from '../shared/constants';
 import {
   login,
@@ -38,10 +24,20 @@ import {
   buyShopItem,
 } from './services/gameService';
 import { addPlayerOnMap, removePlayerFromMap } from './services/mapService';
+import { connectToDatabase, loadInitialData } from './initDb';
+import { banPlayer, getBan, unbanPlayer } from './services/banService';
+import { getShopById, listShops } from './services/shopService';
+import {
+  createOrUpdateItem,
+  deleteItem,
+  getItemById,
+  listItems,
+} from './services/inventoryService';
+import { enrichPlayer } from './services/playerService';
 
 declare module 'express-session' {
   interface SessionData {
-    username: Player['name'];
+    username: PlayerServer['name'];
     accessLevel: Access;
   }
 }
@@ -64,38 +60,36 @@ app.use(sessionMiddleware);
 app.post('/login', async (req: Request, res: Response) => {
   const username = req.body.username;
   if (!username) {
-    res.status(400).send('Username is required');
-    return;
+    return res.status(400).send('Username is required');
   }
 
-  const ban = bannedPlayers[username];
+  const ban = await getBan(username);
   if (ban) {
     if (!ban.until || Date.now() < ban.until) {
       return res.status(403).json({
         message: `You are banned from this game.${ban.reason ? ` Reason: ${ban.reason}` : ''}${ban.until ? ` Until: ${new Date(ban.until).toLocaleString()}` : ''}`,
       });
     } else {
-      delete bannedPlayers[username];
+      await unbanPlayer(username);
     }
   }
 
   try {
     const player = await login(username);
-    if (player) {
-      req.session.username = username;
-      req.session.accessLevel = player.access;
-      const map = addPlayerOnMap(player.id);
-      req.session.save((err) => {
-        if (err) {
-          console.error('Session save failed:', err);
-          res.status(500).send('Failed to save session');
-          return;
-        }
-        res.status(200).json({ player, map });
-      });
-    } else {
-      res.status(404).send('User not found');
-    }
+    if (!player) return res.status(404).send('User not found');
+
+    const enrichedPlayer = await enrichPlayer(player);
+
+    req.session.username = username;
+    req.session.accessLevel = player.access;
+    const map = addPlayerOnMap(player.id);
+    req.session.save((err) => {
+      if (err) {
+        console.error('Session save failed:', err);
+        return res.status(500).send('Failed to save session');
+      }
+      res.status(200).json({ enrichedPlayer, map });
+    });
   } catch (error) {
     console.error('Login failed:', error);
     res.status(500).send('Internal server error');
@@ -155,62 +149,72 @@ app.get('/npcs', checkAccess(Access.ADMIN), (req: Request, res: Response) => {
   }
 });
 
-app.get('/items', checkAccess(Access.ADMIN), (req: Request, res: Response) => {
-  try {
-    const items = Object.values(getItems());
-    res.status(200).json(items);
-  } catch (error) {
-    res.status(500).json({ error: 'Could not fetch items' });
-  }
-});
+app.get(
+  '/items',
+  checkAccess(Access.ADMIN),
+  async (req: Request, res: Response) => {
+    try {
+      const items = await listItems();
+      res.status(200).json(items);
+    } catch (error) {
+      res.status(500).json({ error: 'Could not fetch items' });
+    }
+  },
+);
 
-app.get('/shops', checkAccess(Access.ADMIN), (req: Request, res: Response) => {
-  try {
-    const shops = getShops();
-    res.status(200).json(shops);
-  } catch (error) {
-    res.status(500).json({ error: 'Could not fetch items' });
-  }
-});
+app.get(
+  '/shops',
+  checkAccess(Access.ADMIN),
+  async (req: Request, res: Response) => {
+    try {
+      const shops = await listShops();
+      res.status(200).json(shops);
+    } catch (error) {
+      res.status(500).json({ error: 'Could not fetch items' });
+    }
+  },
+);
 
-app.get('/shop/:shopId', (req, res) => {
+app.get('/shop/:shopId', async (req, res) => {
   try {
     const { shopId } = req.params;
-    const shop = getShopById(shopId);
+    const shop = await getShopById(shopId);
 
     if (!shop) {
       return res.status(404).json({ error: 'Shop not found' });
     }
 
-    const itemsDb = getItems();
+    const products = await Promise.all(
+      shop.products.map(async (entry) => {
+        const item = await getItemById(entry.itemId);
+        const currency = await getItemById(entry.currency);
 
-    const products = shop.products.map((entry) => {
-      const item = itemsDb[entry.itemId];
-      const currency = itemsDb[entry.currency];
-      const price = entry.price;
+        if (!item) {
+          throw new Error(`Item ${entry.itemId} not found`);
+        }
+        if (!currency) {
+          throw new Error(`Currency ${entry.currency} not found`);
+        }
 
-      if (!item) throw new Error(`Item ${entry.itemId} not found in itemsDb`);
-      if (!currency)
-        throw new Error(`Currency ${entry.currency} not found in itemsDb`);
-
-      return {
-        item: {
-          id: item.id,
-          name: item.name,
-          sprite: item.sprite,
-          description: item.description,
-          type: item.type,
-        },
-        currency: {
-          id: currency.id,
-          name: currency.name,
-          sprite: currency.sprite,
-          description: currency.description,
-          type: currency.type,
-        },
-        price,
-      };
-    });
+        return {
+          item: {
+            id: item.id,
+            name: item.name,
+            sprite: item.sprite,
+            description: item.description,
+            type: item.type,
+          },
+          currency: {
+            id: currency.id,
+            name: currency.name,
+            sprite: currency.sprite,
+            description: currency.description,
+            type: currency.type,
+          },
+          price: entry.price,
+        };
+      }),
+    );
 
     res.json({
       id: shop.id,
@@ -219,9 +223,10 @@ app.get('/shop/:shopId', (req, res) => {
     });
   } catch (e) {
     console.error('Error in route /shop/:shopId:', e);
-    res
-      .status(500)
-      .json({ error: 'Internal server error', details: String(e) });
+    res.status(500).json({
+      error: 'Internal server error',
+      details: String(e),
+    });
   }
 });
 
@@ -287,7 +292,7 @@ app.post(
   (req: Request, res: Response) => {
     const { playerName, reason, until } = req.body;
     if (!playerName) return res.status(400).json({ error: 'No player name' });
-    bannedPlayers[playerName] = { reason, until };
+    banPlayer(playerName, reason, until);
     const ws = playersWsMap.get(playerName);
     if (ws && ws.readyState === ws.OPEN) {
       ws.send(
@@ -456,33 +461,43 @@ app.delete('/npcs/:id', checkAccess(Access.ADMIN), (req, res) => {
   res.status(204).send();
 });
 
-app.post('/items', checkAccess(Access.ADMIN), (req, res) => {
+app.post('/items', checkAccess(Access.ADMIN), async (req, res) => {
   try {
-    const newItem = addItem(req.body);
-    res.status(201).json(newItem);
+    const item = req.body;
+    if (!item.name || item.sprite === undefined || !item.type) {
+      return res.status(400).json({ error: 'Missing required item fields' });
+    }
+
+    await createOrUpdateItem(item);
+    res.status(201).json(item);
   } catch (err) {
     res.status(500).json({ error: 'Failed to create item.' });
   }
 });
 
-app.put('/items/:id', checkAccess(Access.ADMIN), (req, res) => {
+app.put('/items/:id', checkAccess(Access.ADMIN), async (req, res) => {
   const id = Number(req.params.id);
   if (isNaN(id)) return res.status(400).json({ error: 'Invalid item id.' });
-  const updated = updateItemEverywhere(id, req.body);
-  if (!updated) {
-    return res.status(404).json({ error: 'Item not found.' });
+  try {
+    await createOrUpdateItem({ ...req.body, id });
+    res.status(200).json({ success: true });
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to update item.' });
   }
-  res.status(200).json(updated);
 });
 
-app.delete('/items/:id', checkAccess(Access.ADMIN), (req, res) => {
+app.delete('/items/:id', checkAccess(Access.ADMIN), async (req, res) => {
   const id = Number(req.params.id);
   if (isNaN(id)) return res.status(400).json({ error: 'Invalid item id.' });
-  deleteItemEverywhere(id);
-  res.status(204).send();
+  try {
+    await deleteItem(id);
+    res.status(204).send();
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to delete item.' });
+  }
 });
 
-app.post('/shop/buy', checkAccess(Access.USER), (req, res) => {
+app.post('/shop/buy', checkAccess(Access.USER), async (req, res) => {
   const { shopId, itemId } = req.body;
   const username = req.session.username;
 
@@ -491,18 +506,19 @@ app.post('/shop/buy', checkAccess(Access.USER), (req, res) => {
   }
 
   const player = getPlayerByName(username);
-  const shop = getShopById(shopId);
+  const shop = await getShopById(shopId);
 
   if (!player || !shop) {
     return res.status(404).json({ error: 'Shop or player not found' });
   }
 
-  const success = buyShopItem(player, itemId, shop);
+  const success = await buyShopItem(player, itemId, shop);
 
   if (success) {
+    const enrichedPlayer = await enrichPlayer(player);
     return res.status(200).json({
       message: 'Purchase completed successfully!',
-      inventory: player.inventory.items,
+      inventory: enrichedPlayer.inventory,
     });
   } else {
     return res.status(400).json({
@@ -517,8 +533,20 @@ app.get('*', (_req, res) => {
 });
 
 const server = createServer(app);
-startWebSocketServer(server, sessionMiddleware);
 
-server.listen(port, () => {
-  console.log(`Server is listening on port ${port}`);
-});
+async function startServer() {
+  try {
+    await connectToDatabase();
+    await loadInitialData();
+    startWebSocketServer(server, sessionMiddleware);
+    startGameLoops();
+    server.listen(port, () => {
+      console.log(`Server is listening on port ${port}`);
+    });
+  } catch (err) {
+    console.error('Falha ao iniciar o servidor:', err);
+    process.exit(1);
+  }
+}
+
+startServer();

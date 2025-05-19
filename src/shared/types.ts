@@ -1,3 +1,5 @@
+import { EQUIPMENT_SLOTS } from './constants';
+
 // shared/types.ts
 export enum Key {
   ArrowUp = 'ArrowUp',
@@ -140,7 +142,7 @@ export interface Character {
   direction: Direction;
   action: PlayerAction;
   attackRange: number;
-  mapId: MapState['id'];
+  mapId: MapStateServer['id'];
 }
 
 export interface Shop<T = ProductRaw> {
@@ -179,11 +181,7 @@ export interface Effect {
 }
 
 export type ItemType =
-  | 'weapon'
-  | 'helmet'
-  | 'chestplate'
-  | 'gloves'
-  | 'boots'
+  | (typeof EQUIPMENT_SLOTS)[number]
   | 'consumable'
   | 'money';
 
@@ -201,11 +199,30 @@ export interface Inventory {
   maxCapacity: number;
 }
 
-export interface InventoryItem extends Item {
+type InventoryItem = {
+  item: Item['id'];
+  quantity: number;
+};
+
+export interface EquippedItems {
+  weapon?: Item['id'];
+  helmet?: Item['id'];
+  chestplate?: Item['id'];
+  gloves?: Item['id'];
+  boots?: Item['id'];
+}
+
+export interface InventoryDetailed {
+  items: InventoryItemDetailed[];
+  maxCapacity: number;
+}
+
+export interface InventoryItemDetailed {
+  item: Item;
   quantity: number;
 }
 
-export interface EquippedItems {
+export interface EquippedItemsDetailed {
   weapon?: Item;
   helmet?: Item;
   chestplate?: Item;
@@ -213,7 +230,7 @@ export interface EquippedItems {
   boots?: Item;
 }
 
-export interface Player extends Character {
+export interface PlayerServer extends Character {
   level: number;
   speed: number;
   experience: number;
@@ -222,6 +239,13 @@ export interface Player extends Character {
   equipped: EquippedItems;
   access: Access;
 }
+
+export interface Player extends Omit<PlayerServer, 'inventory' | 'equipped'> {
+  inventory: InventoryItemDetailed[];
+  equipped: EquippedItemsDetailed;
+}
+
+export type PlayersServerMap = { [key: string]: PlayerServer };
 
 export type PlayersMap = { [key: string]: Player };
 
@@ -238,11 +262,11 @@ export interface Npc extends Character {
 }
 
 export interface GameState {
-  maps: Record<string, MapState>;
+  maps: Record<string, MapStateServer>;
 }
 
 export interface Warp {
-  to: MapState['id'];
+  to: MapStateServer['id'];
   position: Position;
 }
 
@@ -255,7 +279,17 @@ export interface Tile {
   shop?: Shop['id'];
 }
 
-export interface MapState {
+export interface MapStateServer {
+  id: string;
+  name: string;
+  type: 'pvp' | 'normal';
+  players: Record<string, PlayerServer>;
+  npcs: Record<string, Npc>;
+  tiles: Tile[][];
+  droppedItems: DroppedItem[];
+}
+
+export interface MapStateClient {
   id: string;
   name: string;
   type: 'pvp' | 'normal';

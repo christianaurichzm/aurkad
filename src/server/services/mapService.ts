@@ -1,29 +1,49 @@
 import { TILE_SIZE } from '../../shared/constants';
 import {
   Tile,
-  MapState,
+  MapStateServer,
   DroppedItem,
   NpcsMap,
-  Player,
+  PlayerServer,
 } from '../../shared/types';
 import {
   getMap,
-  getItems,
   getNpcs,
   updatePlayer,
   getPlayer,
   updateMap,
-} from '../database';
+} from '../gameData';
 
-export const insertModeCell = (mapId: string, tiles: Tile[][]) => {
+import GameMapModel from '../model/Map';
+import { getItemById } from './inventoryService';
+
+export async function getMapById(id: string): Promise<MapStateServer | null> {
+  return await GameMapModel.findOne({ id }).lean<MapStateServer>().exec();
+}
+
+export async function createOrUpdateMap(
+  map: Partial<MapStateServer>,
+): Promise<void> {
+  await GameMapModel.findOneAndUpdate({ id: map.id }, map, { upsert: true });
+}
+
+export async function deleteMap(id: string): Promise<void> {
+  await GameMapModel.deleteOne({ id });
+}
+
+export async function listMaps(): Promise<MapStateServer[]> {
+  return await GameMapModel.find().lean<MapStateServer[]>().exec();
+}
+
+export const insertModeCell = async (mapId: string, tiles: Tile[][]) => {
   const baseMap = getMap(mapId);
 
   const partialMap: Partial<typeof baseMap> = {
     tiles,
   };
 
-  insertNpcs(partialMap, mapId, tiles);
-  insertItems(partialMap, tiles);
+  await insertNpcs(partialMap, mapId, tiles);
+  await insertItems(partialMap, tiles);
 
   const newMap = {
     ...baseMap,
@@ -33,27 +53,37 @@ export const insertModeCell = (mapId: string, tiles: Tile[][]) => {
   return newMap;
 };
 
-export const insertItems = (partialMap: Partial<MapState>, tiles: Tile[][]) => {
+export const insertItems = async (
+  partialMap: Partial<MapStateServer>,
+  tiles: Tile[][],
+) => {
   const droppedItems: DroppedItem[] = [];
 
-  tiles.forEach((row, rowIndex) =>
-    row.forEach((tile, colIndex) => {
+  for (let rowIndex = 0; rowIndex < tiles.length; rowIndex++) {
+    const row = tiles[rowIndex];
+    for (let colIndex = 0; colIndex < row.length; colIndex++) {
+      const tile = row[colIndex];
       if (tile.item) {
-        const { id, sprite } = getItems()[tile.item];
+        const item = await getItemById(tile.item);
+        if (!item) continue;
+
         droppedItems.push({
-          itemId: id,
-          position: { x: colIndex * TILE_SIZE, y: rowIndex * TILE_SIZE },
-          sprite,
+          itemId: item.id,
+          sprite: item.sprite,
+          position: {
+            x: colIndex * TILE_SIZE,
+            y: rowIndex * TILE_SIZE,
+          },
         });
       }
-    }),
-  );
-
+    }
+  }
+  console.log(droppedItems);
   partialMap.droppedItems = droppedItems;
 };
 
 export const insertNpcs = (
-  partialMap: Partial<MapState>,
+  partialMap: Partial<MapStateServer>,
   mapId: string,
   tiles: Tile[][],
 ) => {
@@ -76,7 +106,7 @@ export const insertNpcs = (
   partialMap.npcs = npcs;
 };
 
-export const updatePlayerMap = (playerId: string, newState: Player) => {
+export const updatePlayerMap = (playerId: string, newState: PlayerServer) => {
   removePlayerFromMap(playerId);
   updatePlayer(newState);
   addPlayerOnMap(newState.id);

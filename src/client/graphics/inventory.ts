@@ -1,8 +1,8 @@
 import { getEl } from '../../server/domHelpers';
-import { ITEM_SIZE, TILE_SIZE } from '../../shared/constants';
+import { EQUIPMENT_SLOTS, ITEM_SIZE, TILE_SIZE } from '../../shared/constants';
 import {
   ClientItemAction,
-  InventoryItem,
+  InventoryItemDetailed,
   Item,
   Player,
 } from '../../shared/types';
@@ -11,9 +11,10 @@ import { items } from '../io/files';
 import { sendAction } from '../io/network';
 
 let isInventoryOpen = false;
-let selectedItem: InventoryItem | null = null;
-let previousInventory: InventoryItem[] = [];
-let previousSelectedItem: InventoryItem | null = null;
+let selectedItem: InventoryItemDetailed | null = null;
+let previousInventory: InventoryItemDetailed[] = [];
+let previousSelectedItem: InventoryItemDetailed | null = null;
+let previousEquipment: Player['equipped'] | null = null;
 
 export const getSpriteCoordinates = (spriteId: number, sheetWidth: number) => {
   const cols = sheetWidth / ITEM_SIZE;
@@ -86,7 +87,7 @@ export const renderItemIcon = (
   );
 };
 
-export function selectItem(item: InventoryItem): void {
+export function selectItem(item: InventoryItemDetailed): void {
   selectedItem = item;
   renderInventory(getPlayer());
 }
@@ -98,12 +99,12 @@ export function renderInventory(player: Player) {
 
   if (!itemsContainer || !tooltip || !useButtonContainer) return;
 
-  const currentInventory = player.inventory.items;
+  const currentInventory = player.inventory;
   const inventoryChanged =
     currentInventory.length !== previousInventory.length ||
     currentInventory.some(
       (item, index) =>
-        item.id !== previousInventory[index]?.id ||
+        item.item.id !== previousInventory[index]?.item.id ||
         item.quantity !== previousInventory[index]?.quantity,
     );
 
@@ -116,9 +117,9 @@ export function renderInventory(player: Player) {
       const itemDiv = document.createElement('div');
       itemDiv.className = 'item';
       itemDiv.style.border =
-        selectedItem && selectedItem.id === item.id
+        selectedItem && selectedItem.item.id === item.item.id
           ? '2px solid red'
-          : isItemEquipped(player, item)
+          : isItemEquipped(player, item.item)
             ? '2px solid green'
             : '1px solid #ddd';
 
@@ -127,21 +128,19 @@ export function renderInventory(player: Player) {
       itemCanvas.height = ITEM_SIZE;
       const itemCtx = itemCanvas.getContext('2d');
       if (itemCtx) {
-        renderItemIcon(itemCtx, item.sprite, 0, 0, false);
+        renderItemIcon(itemCtx, item.item.sprite, 0, 0, false);
       }
 
       itemDiv.appendChild(itemCanvas);
 
       itemDiv.onmouseover = () => {
         tooltip.style.display = 'block';
-        tooltip.innerHTML = `<h3>${item.name}</h3><p>${item.description}</p>${
-          (item as any).quantity
-            ? `<p>Quantity: ${(item as any).quantity}</p>`
-            : ''
+        tooltip.innerHTML = `<h3>${item.item.name}</h3><p>${item.item.description}</p>${
+          item.quantity > 1 ? `<p>Quantity: ${item.quantity}</p>` : ''
         }`;
       };
 
-      if (item?.quantity > 1) {
+      if (item.quantity > 1) {
         const quantityLabel = document.createElement('span');
         quantityLabel.style.position = 'absolute';
         quantityLabel.style.top = '2px';
@@ -152,9 +151,7 @@ export function renderInventory(player: Player) {
         quantityLabel.style.padding = '1px 4px';
         quantityLabel.style.borderRadius = '4px';
         quantityLabel.style.pointerEvents = 'none';
-
         itemDiv.style.position = 'relative';
-
         quantityLabel.textContent = `${item.quantity}`;
         itemDiv.appendChild(quantityLabel);
       }
@@ -175,20 +172,29 @@ export function renderInventory(player: Player) {
 
     useButtonContainer.innerHTML = '';
     const useButton = document.createElement('button');
-    useButton.textContent = 'Use Item';
+    if (selectedItem) {
+      const isEquipped = isItemEquipped(player, selectedItem.item);
+      useButton.textContent = isEquipped ? 'Desequipar' : 'Usar Item';
+    } else {
+      useButton.textContent = 'Usar Item';
+    }
+
     useButton.disabled = !selectedItem;
-    useButton.onclick = () => {
+    useButton.onclick = async () => {
       if (selectedItem) {
-        sendAction({
+        await sendAction({
           type: 'item',
           action: 'use',
-          item: selectedItem.id,
+          item: selectedItem.item.id,
         } as ClientItemAction);
+
         selectedItem = null;
+
         renderInventory(player);
         renderEquipment(player);
       }
     };
+
     useButtonContainer.appendChild(useButton);
   }
 }
@@ -217,9 +223,26 @@ export const toggleInventory = () => {
 };
 
 export function renderEquipment(player: Player) {
-  if (typeof document === 'undefined') return;
   const equipmentContainer = getEl<HTMLDivElement>('equipment');
-  if (!equipmentContainer) return;
+  const tooltip = getEl<HTMLDivElement>('tooltip');
+  const useButtonContainer = getEl<HTMLDivElement>('use-button-container');
+
+  if (!equipmentContainer || !tooltip || !useButtonContainer) return;
+
+  const currentEquipment = player.equipped;
+
+  const equipmentChanged =
+    !previousEquipment ||
+    EQUIPMENT_SLOTS.some((slot) => {
+      const key = slot as keyof Player['equipped'];
+      const prevId = previousEquipment?.[key]?.id ?? null;
+      const currId = currentEquipment[key]?.id ?? null;
+      return prevId !== currId;
+    });
+
+  if (!equipmentChanged) return;
+
+  previousEquipment = { ...currentEquipment };
 
   equipmentContainer.innerHTML = '';
 
@@ -237,6 +260,28 @@ export function renderEquipment(player: Player) {
         renderItemIcon(itemCtx, item.sprite, 0, 0, false);
       }
       slot.appendChild(itemCanvas);
+
+      slot.onmouseover = (e) => {
+        tooltip.style.display = 'block';
+        tooltip.innerHTML = `<h3>${item.name}</h3><p>${item.description}</p>`;
+        tooltip.style.top = `${e.clientY + 10}px`;
+        tooltip.style.left = `${e.clientX + 10}px`;
+      };
+
+      slot.onmousemove = (e) => {
+        tooltip.style.top = `${e.clientY + 10}px`;
+        tooltip.style.left = `${e.clientX + 10}px`;
+      };
+
+      slot.onmouseout = () => {
+        tooltip.style.display = 'none';
+      };
+
+      slot.onclick = () => {
+        selectedItem = { item, quantity: 1 };
+        renderInventory(player);
+        renderEquipment(player);
+      };
     }
 
     return slot;

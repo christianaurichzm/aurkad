@@ -1,23 +1,27 @@
 import {
-  Player,
+  PlayerServer,
   Character,
   Direction,
-  MapState,
+  MapStateServer,
   DroppedItem,
 } from '../../shared/types';
-import { getMap, updatePlayer, getItems } from '../database';
+import { getMap, updatePlayer } from '../gameData';
 import { handleChatAction } from './chatService';
+import { getItemById } from './inventoryService';
 import { isNpc, respawnNpc } from './npcService';
 import { isPlayer, respawnPlayer, levelUpPlayer } from './playerService';
 
-const isInAttackRange = (attacker: Player, target: Character): boolean => {
+const isInAttackRange = (
+  attacker: PlayerServer,
+  target: Character,
+): boolean => {
   const distanceX = Math.abs(attacker.position.x - target.position.x);
   const distanceY = Math.abs(attacker.position.y - target.position.y);
 
   return distanceX <= attacker.attackRange && distanceY <= attacker.attackRange;
 };
 
-const isFacingTarget = (attacker: Player, target: Character): boolean => {
+const isFacingTarget = (attacker: PlayerServer, target: Character): boolean => {
   switch (attacker.direction) {
     case Direction.Up:
       return target.position.y < attacker.position.y;
@@ -33,8 +37,8 @@ const isFacingTarget = (attacker: Player, target: Character): boolean => {
 };
 
 const findAttackTarget = (
-  attacker: Player,
-  map: MapState,
+  attacker: PlayerServer,
+  map: MapStateServer,
 ): Character | undefined => {
   if (map.type === 'pvp') {
     const opponentPlayers = Object.values(map.players).filter(
@@ -61,13 +65,13 @@ const findAttackTarget = (
   return npcTargets[0];
 };
 
-export const handleAttack = (attacker: Player): void => {
+export const handleAttack = async (attacker: PlayerServer): Promise<void> => {
   if (!attacker) return;
 
   const map = getMap(attacker.mapId);
   if (!map) return;
 
-  const attackTarget = findAttackTarget(attacker, map);
+  const attackTarget = await findAttackTarget(attacker, map);
   if (!attackTarget) return;
 
   if (isNpc(attackTarget) && attackTarget.behavior === 'neutral') return;
@@ -80,7 +84,8 @@ export const handleAttack = (attacker: Player): void => {
 
   if (isPlayer(attackTarget)) {
     respawnPlayer(attackTarget);
-    updatePlayer(attackTarget);
+    await updatePlayer(attackTarget);
+
     handleChatAction({
       scope: 'global',
       type: 'chat',
@@ -91,26 +96,31 @@ export const handleAttack = (attacker: Player): void => {
     if (attackTarget.experienceValue) {
       attacker.experience += attackTarget.experienceValue;
       levelUpPlayer(attacker);
-      updatePlayer(attacker);
+      await updatePlayer(attacker);
     }
 
     if (attackTarget.itemsToDrop?.length) {
       const droppedItems: DroppedItem[] = [];
 
-      attackTarget.itemsToDrop.forEach((drop) => {
+      for (const drop of attackTarget.itemsToDrop) {
         const roll = Math.random() * 100;
         if (roll <= drop.chance) {
-          const itemData = getItems()[drop.itemId];
+          const item = await getItemById(drop.itemId);
+          if (!item) {
+            console.warn(`[drop] Item not found: ${drop.itemId}`);
+            continue;
+          }
+
           droppedItems.push({
             itemId: drop.itemId,
-            sprite: itemData.sprite,
+            sprite: item.sprite,
             position: {
               x: attackTarget.position.x,
               y: attackTarget.position.y,
             },
           });
         }
-      });
+      }
 
       map.droppedItems.push(...droppedItems);
     }

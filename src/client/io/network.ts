@@ -1,7 +1,7 @@
 import {
   HttpRequestOptions,
   Player,
-  MapState,
+  MapStateClient,
   ClientAction,
   ClientChatAction,
   ChatScope,
@@ -15,7 +15,7 @@ import {
 import { getGameState, setPlayer, updateGameState } from '../core/gameState';
 import { hideConnectionStatus, showConnectionStatus } from '../ui/hud';
 import { displayChatMessage } from '../ui/chat';
-import { renderInventory } from '../graphics/inventory';
+import { renderEquipment, renderInventory } from '../graphics/inventory';
 import { openShopWindow } from '../graphics/shop';
 
 const WS_URL = 'ws://localhost:8080/ws';
@@ -23,7 +23,7 @@ const WS_URL = 'ws://localhost:8080/ws';
 let socket: WebSocket;
 let reconnectAttempts = 0;
 
-const gameStateQueue: { map: MapState; player: Player }[] = [];
+const gameStateQueue: { map: MapStateClient; player: Player }[] = [];
 const chatQueue: ClientChatAction[] = [];
 
 const scheduleReconnect = () => {
@@ -108,6 +108,7 @@ export function updateWebSocket(): void {
       updateGameState(message.map);
       setPlayer(message.player);
       renderInventory(message.player);
+      renderEquipment(message.player);
     }
   }
 }
@@ -190,7 +191,7 @@ export const httpClient = async <T>(
 };
 
 export const login = async (username: string) => {
-  return await httpClient<{ player: Player; map: MapState }>('/login', {
+  return await httpClient<{ player: Player; map: MapStateClient }>('/login', {
     method: 'POST',
     body: { username },
   });
@@ -228,7 +229,7 @@ export async function openContentEditor(): Promise<boolean> {
   return !!res;
 }
 
-export const saveMap = async (newMapTiles: MapState['tiles']) => {
+export const saveMap = async (newMapTiles: MapStateClient['tiles']) => {
   const mapData = {
     mapId: getGameState().id,
     tiles: newMapTiles,
