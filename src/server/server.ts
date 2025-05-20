@@ -1,6 +1,9 @@
 import { createServer } from 'http';
 import express, { Request, Response } from 'express';
+import https from 'https';
+import http from 'http';
 import app from './app';
+import { imageMap } from '../shared/mappings';
 import path from 'path';
 
 import session from 'express-session';
@@ -13,7 +16,12 @@ import {
 import { Access, PlayerServer } from '../shared/types';
 import checkAccess from './checkAccess';
 import { deleteNpcEverywhere, players } from './gameData';
-import { SPRITE_HEIGHT, SPRITE_WIDTH, TILE_SIZE } from '../shared/constants';
+import {
+  IMAGES_PATH,
+  SPRITE_HEIGHT,
+  SPRITE_WIDTH,
+  TILE_SIZE,
+} from '../shared/constants';
 import {
   login,
   mapSave,
@@ -532,6 +540,39 @@ app.post('/shop/buy', checkAccess(Access.USER), async (req, res) => {
     return res.status(400).json({
       error: 'Purchase failed: insufficient coins/item',
     });
+  }
+});
+
+app.get('/assets/:name.bin', async (req, res) => {
+  const { name } = req.params;
+  const imageUrl = `${IMAGES_PATH}/${imageMap[name]}.png`;
+  if (!imageUrl) return res.status(404).send('Image not found');
+
+  try {
+    const url = new URL(imageUrl);
+    const client = url.protocol === 'https:' ? https : http;
+
+    client
+      .get(imageUrl, (imgRes) => {
+        if (imgRes.statusCode !== 200) {
+          return res.status(502).send('Failed to fetch image');
+        }
+
+        res.setHeader('Content-Type', 'application/octet-stream');
+        imgRes.on('data', (chunk) => {
+          const obfuscatedChunk = Buffer.from(chunk).map((byte) => byte ^ 0xa5);
+          res.write(obfuscatedChunk);
+        });
+
+        imgRes.on('end', () => res.end());
+      })
+      .on('error', (err) => {
+        console.error('Image fetch failed:', err);
+        res.status(500).send('Internal error');
+      });
+  } catch (err) {
+    console.error('Request failed:', err);
+    res.status(500).send('Unexpected error');
   }
 });
 

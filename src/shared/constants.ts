@@ -21,3 +21,4 @@ export const EQUIPMENT_SLOTS = [
   'gloves',
   'boots',
 ] as const;
+export const IMAGES_PATH = process.env.IMAGES_BASE_URL || '.';

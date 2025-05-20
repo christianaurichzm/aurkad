@@ -24,3 +24,9 @@ export const keyRecord: Partial<Record<Key, Protocol>> = {
   x: Protocol.HTTP,
   z: Protocol.HTTP,
 };
+
+export const imageMap: Record<string, string> = {
+  tiles: 'tiles',
+  sprites: 'sprites',
+  items: 'items',
+};

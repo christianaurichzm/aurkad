@@ -1,55 +1,45 @@
-const baseUrl = process.env.IMAGES_BASE_URL || '.';
+import { loadImageFromBin } from './network';
+import { imageMap } from '../../shared/mappings';
 
 export let tileset: HTMLImageElement;
 export let spriteSheet: HTMLImageElement;
 export let items: HTMLImageElement;
 
-export const initTileset = () => {
-  return new Promise((resolve, reject) => {
-    tileset = new Image();
-    tileset.onload = () => {
-      console.log('Tileset loaded');
-      resolve(tileset);
-    };
-    tileset.onerror = () => {
-      reject(new Error('Failed to load tileset'));
-    };
-    tileset.src = `${baseUrl}/Tiles.png`;
-  });
+const getUrl = (type: keyof typeof imageMap) => {
+  return `assets/${imageMap[type]}.bin`;
 };
 
-export const initSpriteSheet = () => {
-  return new Promise((resolve, reject) => {
-    spriteSheet = new Image();
-    spriteSheet.onload = () => {
-      console.log('Spritesheet loaded');
-      resolve(spriteSheet);
-    };
-    spriteSheet.onerror = () => {
-      reject(new Error('Failed to load spritesheet'));
-    };
-    spriteSheet.src = `${baseUrl}/Sprites.png`;
-  });
+export const initTileset = async () => {
+  try {
+    tileset = await loadImageFromBin(getUrl('tiles'));
+    return tileset;
+  } catch (err) {
+    throw new Error('Failed to load tileset');
+  }
 };
 
-export const initItems = () => {
-  return new Promise((resolve, reject) => {
-    items = new Image();
-    items.onload = () => {
-      console.log('Items loaded');
-      resolve(items);
-    };
-    items.onerror = () => {
-      reject(new Error('Failed to load items'));
-    };
-    items.src = `${baseUrl}/items.png`;
-  });
+export const initSpriteSheet = async () => {
+  try {
+    spriteSheet = await loadImageFromBin(getUrl('sprites'));
+    return spriteSheet;
+  } catch (err) {
+    throw new Error('Failed to load spritesheet');
+  }
+};
+
+export const initItems = async () => {
+  try {
+    items = await loadImageFromBin(getUrl('items'));
+    return items;
+  } catch (err) {
+    throw new Error('Failed to load items');
+  }
 };
 
 export const initializeAssets = () => {
   return Promise.all([initTileset(), initSpriteSheet(), initItems()])
     .then(([loadedTileset, loadedSpriteSheet]) => {
-      console.log('Both tileset and spritesheet loaded');
+      console.log('All assets loaded');
       return { tileset: loadedTileset, spriteSheet: loadedSpriteSheet };
     })
     .catch((error) => {
