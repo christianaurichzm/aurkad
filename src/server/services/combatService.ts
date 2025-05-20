@@ -15,10 +15,14 @@ const isInAttackRange = (
   attacker: PlayerServer,
   target: CombatTarget,
 ): boolean => {
-  const distanceX = Math.abs(attacker.position.x - target.position.x);
-  const distanceY = Math.abs(attacker.position.y - target.position.y);
+  const dx = Math.abs(attacker.position.x - target.position.x);
+  const dy = Math.abs(attacker.position.y - target.position.y);
 
-  return distanceX <= attacker.attackRange && distanceY <= attacker.attackRange;
+  const inLine =
+    (dx === 0 && dy <= attacker.attackRange) ||
+    (dy === 0 && dx <= attacker.attackRange);
+
+  return inLine;
 };
 
 const isFacingTarget = (
