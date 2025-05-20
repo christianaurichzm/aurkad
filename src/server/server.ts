@@ -1,3 +1,10 @@
+import dotenv from 'dotenv';
+dotenv.config({
+  path:
+    process.env.NODE_ENV === 'production'
+      ? './.env.production'
+      : './.env.development',
+});
 import { createServer } from 'http';
 import express, { Request, Response } from 'express';
 import https from 'https';
