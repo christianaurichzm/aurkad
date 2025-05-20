@@ -18,7 +18,7 @@ import { displayChatMessage } from '../ui/chat';
 import { renderEquipment, renderInventory } from '../graphics/inventory';
 import { openShopWindow } from '../graphics/shop';
 
-const WS_URL = 'ws://localhost:8080/ws';
+const WS_URL = `${process.env.WS_PROTOCOL}://${process.env.APP_API_URL}/ws`;
 
 let socket: WebSocket;
 let reconnectAttempts = 0;
@@ -156,15 +156,18 @@ export const httpClient = async <T>(
   endpoint: string,
   { method, headers, body }: HttpRequestOptions,
 ): Promise<T | null> => {
-  const response = await fetch(`${process.env.APP_API_URL}${endpoint}`, {
-    method,
-    headers: {
-      'Content-Type': 'application/json',
-      ...headers,
+  const response = await fetch(
+    `${process.env.REST_PROTOCOL}://${process.env.APP_API_URL}${endpoint}`,
+    {
+      method,
+      headers: {
+        'Content-Type': 'application/json',
+        ...headers,
+      },
+      body: body ? JSON.stringify(body) : undefined,
+      credentials: 'include',
     },
-    body: body ? JSON.stringify(body) : undefined,
-    credentials: 'include',
-  });
+  );
 
   const contentType = response.headers.get('Content-Type');
   let data: any;

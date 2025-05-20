@@ -1,3 +1,5 @@
+const baseUrl = process.env.IMAGES_BASE_URL || '.';
+
 export let tileset: HTMLImageElement;
 export let spriteSheet: HTMLImageElement;
 export let items: HTMLImageElement;
@@ -12,7 +14,7 @@ export const initTileset = () => {
     tileset.onerror = () => {
       reject(new Error('Failed to load tileset'));
     };
-    tileset.src = 'Tiles.png';
+    tileset.src = `${baseUrl}/Tiles.png`;
   });
 };
 
@@ -26,7 +28,7 @@ export const initSpriteSheet = () => {
     spriteSheet.onerror = () => {
       reject(new Error('Failed to load spritesheet'));
     };
-    spriteSheet.src = 'Sprites.png';
+    spriteSheet.src = `${baseUrl}/Sprites.png`;
   });
 };
 
@@ -40,7 +42,7 @@ export const initItems = () => {
     items.onerror = () => {
       reject(new Error('Failed to load items'));
     };
-    items.src = 'items.png';
+    items.src = `${baseUrl}/items.png`;
   });
 };
 

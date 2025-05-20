@@ -33,9 +33,14 @@ export const startWebSocketServer = (
   server: Server,
   sessionMiddleware: RequestHandler,
 ) => {
-  wss = new WebSocketServer({ noServer: true });
+  wss = new WebSocketServer({ noServer: true, path: '/ws' });
 
   server.on('upgrade', (request, socket, head) => {
+    if (request.url !== '/ws') {
+      socket.destroy();
+      return;
+    }
+
     sessionMiddleware(request as ExtendedRequest, {} as any, () => {
       if ((request as ExtendedRequest).session.username) {
         wss.handleUpgrade(request, socket, head, (ws) => {
