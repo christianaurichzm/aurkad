@@ -11,12 +11,11 @@ import {
 import { setupAsyncSelect } from '../ui/asyncSelect';
 import { SPRITE_HEIGHT, SPRITE_WIDTH } from '../../shared/constants';
 import { drawSpriteGeneric } from './render';
-import { Npc, Item, NpcBehavior } from '../../shared/types';
+import { Item, NpcBehavior } from '../../shared/types';
 import { chatResultMsg } from '../ui/chat';
 import { drawItemGeneric } from './inventory';
 import {
   getEl,
-  setInputValue,
   getInputValue,
   show,
   hide,
@@ -38,14 +37,25 @@ export function closeContentEditorMenu() {
   isContentEditorOpen = false;
 }
 
-setupAsyncSelect('itemSelect', 'Select an item', fetchItems, (item) => ({
-  value: String(item.id),
-  label: `${item.id} - ${item.name}`,
-}));
-setupAsyncSelect('npcSelect', 'Select an NPC', fetchNpcs, (npc) => ({
-  value: String(npc.id),
-  label: `${npc.id} - ${npc.name}`,
-}));
+const refreshItemSelect = setupAsyncSelect(
+  'itemSelect',
+  'Select an item',
+  fetchItems,
+  (item) => ({
+    value: String(item.id),
+    label: `${item.id} - ${item.name}`,
+  }),
+);
+
+const refreshNpcSelect = setupAsyncSelect(
+  'npcSelect',
+  'Select an NPC',
+  fetchNpcs,
+  (npc) => ({
+    value: String(npc.id),
+    label: `${npc.id} - ${npc.name}`,
+  }),
+);
 
 function ensureSpritePreviewCanvas(id: string): HTMLCanvasElement {
   let canvas = getEl<HTMLCanvasElement>(id);
@@ -145,12 +155,14 @@ addEvent('saveNpcBtn', 'click', async () => {
 
   chatResultMsg(!!result, 'NPC salvo com sucesso!', 'Erro ao salvar NPC.');
   hideNpcFields();
+  refreshNpcSelect();
 });
 addEvent('deleteNpcBtn', 'click', async () => {
   const id = getInputValue('npcSelect');
   if (!id) return;
   try {
     await deleteNpc(id);
+    await refreshNpcSelect();
     chatResultMsg(true, `NPC ${id} deletado.`, '');
   } catch {
     chatResultMsg(false, '', 'Erro ao deletar NPC.');
@@ -198,6 +210,7 @@ addEvent('saveItemBtn', 'click', async () => {
     ? await updateItem(Number(id), itemData)
     : await createItem(itemData);
 
+  await refreshItemSelect();
   chatResultMsg(!!result, 'Item salvo com sucesso!', 'Erro ao salvar item.');
   hide('itemEditorFields');
 });
@@ -206,6 +219,7 @@ addEvent('deleteItemBtn', 'click', async () => {
   if (!id) return;
   try {
     await deleteItem(Number(id));
+    await refreshItemSelect();
     chatResultMsg(true, `Item ${id} deletado.`, '');
   } catch {
     chatResultMsg(false, '', 'Erro ao deletar item.');

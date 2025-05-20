@@ -1,15 +1,11 @@
 import {
   getEl,
   getInputValue,
-  setVisibility,
   show,
   hide,
-  setText,
   addEvent,
   safeParseInt,
-  clearChildren,
   withLoading,
-  batchSetInputs,
   removeEvent,
 } from '../../server/domHelpers';
 import { TILE_SIZE } from '../../shared/constants';

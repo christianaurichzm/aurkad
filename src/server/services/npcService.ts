@@ -1,61 +1,94 @@
 import { TILE_SIZE } from '../../shared/constants';
 import { getRandomPosition } from '../../shared/utils';
 import {
-  Character,
-  Npc,
   MapStateServer,
   Position,
   Direction,
-  PlayerAction,
+  CharacterAction,
   PlayerServer,
+  RuntimeNpc,
+  PersistentNpc,
 } from '../../shared/types';
-import { getMap, updatePlayer } from '../gameData';
+import { getMap, runtimeState, updatePlayer } from '../gameData';
 import { hasCollision } from './physicsService';
 import { respawnPlayer } from './playerService';
-
 import NpcModel from '../model/Npc';
+import { getNextNpcId } from './dbService';
 
-export async function getNpcById(id: string): Promise<Npc | null> {
-  return await NpcModel.findOne({ id }).lean<Npc>().exec();
+export async function getNpcById(id: string): Promise<PersistentNpc | null> {
+  return await NpcModel.findOne({ id }).lean<PersistentNpc>().exec();
 }
 
-export async function createOrUpdateNpc(npc: Npc): Promise<void> {
-  await NpcModel.findOneAndUpdate({ id: npc.id }, npc, { upsert: true });
+export async function createOrUpdateNpc(
+  npc: Partial<PersistentNpc>,
+): Promise<void> {
+  if (!npc.id) {
+    npc.id = (await getNextNpcId()).toString();
+  }
+
+  console.log(npc);
+
+  await NpcModel.findOneAndUpdate({ id: npc.id }, npc, {
+    upsert: true,
+  });
+}
+
+export async function updateNpcAll(
+  id: string,
+  updates: Partial<PersistentNpc>,
+): Promise<PersistentNpc | undefined> {
+  if (!id) return;
+
+  const updated = await NpcModel.findOneAndUpdate(
+    { id },
+    { $set: updates },
+    { new: true },
+  )
+    .lean<PersistentNpc>()
+    .exec();
+
+  refreshNpcInRuntime(id);
+
+  return updated || undefined;
+}
+
+export async function refreshNpcInRuntime(id: string): Promise<void> {
+  const updated = await getNpcById(id);
+  if (!updated) return;
+
+  for (const map of Object.values(runtimeState.maps)) {
+    for (const [runtimeId, npc] of Object.entries(map.npcs)) {
+      if (npc.id === id) {
+        map.npcs[runtimeId] = {
+          ...map.npcs[runtimeId],
+          ...updated,
+          health: updated.maxHealth,
+          action: CharacterAction.Idle,
+        };
+      }
+    }
+  }
 }
 
 export async function deleteNpc(id: string): Promise<void> {
   await NpcModel.deleteOne({ id });
 }
 
-export async function listNpcs(): Promise<Npc[]> {
-  return await NpcModel.find().lean<Npc[]>().exec();
+export async function listNpcs(): Promise<PersistentNpc[]> {
+  return await NpcModel.find().lean<PersistentNpc[]>().exec();
 }
 
-export const isNpc = (char: Character): char is Npc => {
-  return 'behavior' in char;
-};
-
-function calculateDirection(
-  from: Character,
-  to: Character,
-): { dx: number; dy: number; distance: number } {
-  const dx = to.position.x - from.position.x;
-  const dy = to.position.y - from.position.y;
-  const distance = Math.sqrt(dx * dx + dy * dy);
-  return { dx, dy, distance };
-}
-
-export const respawnNpc = (mapId: string, npc: Npc) => {
+export const respawnNpc = (mapId: string, npc: RuntimeNpc) => {
   const map = getMap(mapId);
   if (!map) return;
-  const positionsNpc = findNpcSpawnPositions(map, npc.id);
 
-  const newPosition = getRandomPosition(positionsNpc);
-
+  const positions = findNpcSpawnPositions(map, npc.id);
+  const newPosition = getRandomPosition(positions);
   if (!newPosition) return;
 
   npc.health = npc.maxHealth;
   npc.position = newPosition;
+  npc.action = CharacterAction.Idle;
 };
 
 export const findNpcSpawnPositions = (
@@ -78,9 +111,64 @@ export const findNpcSpawnPositions = (
   return positions;
 };
 
-function moveNpcTowardsPlayer(npc: Character, player: Character) {
-  const { dx, dy } = calculateDirection(npc, player);
+function calculateDirection(
+  from: { position: Position },
+  to: { position: Position },
+) {
+  const dx = to.position.x - from.position.x;
+  const dy = to.position.y - from.position.y;
+  const distance = Math.sqrt(dx * dx + dy * dy);
+  return { dx, dy, distance };
+}
 
+function isPlayerInAttackRange(npc: RuntimeNpc, player: PlayerServer): boolean {
+  const { dx, dy, distance } = calculateDirection(npc, player);
+
+  if (distance > npc.attackRange) return false;
+
+  switch (npc.direction) {
+    case Direction.Up:
+      return dy < 0 && Math.abs(dx) < player.width;
+    case Direction.Down:
+      return dy > 0 && Math.abs(dx) < player.width;
+    case Direction.Left:
+      return dx < 0 && Math.abs(dy) < player.height;
+    case Direction.Right:
+      return dx > 0 && Math.abs(dy) < player.height;
+    default:
+      return false;
+  }
+}
+
+function attackPlayer(npc: RuntimeNpc, player: PlayerServer) {
+  player.health -= npc.attack;
+  if (player.health <= 0) {
+    respawnPlayer(player);
+  }
+  updatePlayer(player);
+  npc.action = CharacterAction.Attack;
+}
+
+function findClosestPlayer(
+  npc: RuntimeNpc,
+  players: PlayerServer[],
+): PlayerServer | null {
+  let closest: PlayerServer | null = null;
+  let minDistance = Infinity;
+
+  for (const player of players) {
+    const { distance } = calculateDirection(npc, player);
+    if (distance < minDistance) {
+      minDistance = distance;
+      closest = player;
+    }
+  }
+
+  return closest;
+}
+
+function moveNpcTowardsPlayer(npc: RuntimeNpc, player: PlayerServer) {
+  const { dx, dy } = calculateDirection(npc, player);
   let newX = npc.position.x;
   let newY = npc.position.y;
 
@@ -112,14 +200,12 @@ function moveNpcTowardsPlayer(npc: Character, player: Character) {
     }
   }
 
-  const proposedPosition = { ...npc, position: { x: newX, y: newY } };
-
-  if (!hasCollision(proposedPosition)) {
-    npc.position.x = newX;
-    npc.position.y = newY;
-    npc.action = PlayerAction.Walk;
+  const proposed = { ...npc, position: { x: newX, y: newY } };
+  if (!hasCollision(proposed)) {
+    npc.position = proposed.position;
+    npc.action = CharacterAction.Walk;
   } else {
-    npc.action = PlayerAction.Idle;
+    npc.action = CharacterAction.Idle;
   }
 
   if (dx === 0) {
@@ -129,56 +215,7 @@ function moveNpcTowardsPlayer(npc: Character, player: Character) {
   }
 }
 
-function isPlayerInAttackRange(npc: Character, player: Character): boolean {
-  const { dx, dy, distance } = calculateDirection(npc, player);
-
-  if (distance > npc.attackRange) {
-    return false;
-  }
-
-  switch (npc.direction) {
-    case Direction.Up:
-      return dy < 0 && Math.abs(dx) < player.width;
-    case Direction.Down:
-      return dy > 0 && Math.abs(dx) < player.width;
-    case Direction.Left:
-      return dx < 0 && Math.abs(dy) < player.height;
-    case Direction.Right:
-      return dx > 0 && Math.abs(dy) < player.height;
-    default:
-      return false;
-  }
-}
-
-function attackPlayer(npc: Character, player: Character) {
-  player.health -= npc.attack;
-  if (player.health <= 0) {
-    respawnPlayer(player as PlayerServer);
-  }
-  updatePlayer(player as PlayerServer);
-  npc.action = PlayerAction.Attack;
-}
-
-function findClosestPlayer(
-  npc: Character,
-  players: Character[],
-): Character | null {
-  let closestPlayer: Character | null = null;
-  let shortestDistance = Infinity;
-
-  players.forEach((player) => {
-    const { distance } = calculateDirection(npc, player);
-
-    if (distance < shortestDistance) {
-      shortestDistance = distance;
-      closestPlayer = player;
-    }
-  });
-
-  return closestPlayer;
-}
-
-function moveNpcRandomly(npc: Npc, map: MapStateServer) {
+function moveNpcRandomly(npc: RuntimeNpc) {
   const directions = [
     { dx: 0, dy: -TILE_SIZE, dir: Direction.Up },
     { dx: 0, dy: TILE_SIZE, dir: Direction.Down },
@@ -186,26 +223,24 @@ function moveNpcRandomly(npc: Npc, map: MapStateServer) {
     { dx: TILE_SIZE, dy: 0, dir: Direction.Right },
   ];
 
-  const randomDirection =
+  const { dx, dy, dir } =
     directions[Math.floor(Math.random() * directions.length)];
-
-  const newX = npc.position.x + randomDirection.dx;
-  const newY = npc.position.y + randomDirection.dy;
+  const newX = npc.position.x + dx;
+  const newY = npc.position.y + dy;
 
   const proposed = { ...npc, position: { x: newX, y: newY } };
-
   if (!hasCollision(proposed)) {
     npc.position = proposed.position;
-    npc.direction = randomDirection.dir;
-    npc.action = PlayerAction.Walk;
+    npc.direction = dir;
+    npc.action = CharacterAction.Walk;
   } else {
-    npc.action = PlayerAction.Idle;
+    npc.action = CharacterAction.Idle;
   }
 }
 
-export function updateNpcs(npc: Npc, map: MapStateServer) {
+export function updateNpcs(npc: RuntimeNpc, map: MapStateServer) {
   if (npc.behavior === 'neutral') {
-    npc.action = PlayerAction.Idle;
+    npc.action = CharacterAction.Idle;
     return;
   }
 
@@ -215,18 +250,12 @@ export function updateNpcs(npc: Npc, map: MapStateServer) {
   const canAttack = isPlayerInAttackRange(npc, closestPlayer);
 
   if (npc.behavior === 'aggressive') {
-    if (canAttack) {
-      attackPlayer(npc, closestPlayer);
-    } else {
-      moveNpcTowardsPlayer(npc, closestPlayer);
-    }
+    canAttack
+      ? attackPlayer(npc, closestPlayer)
+      : moveNpcTowardsPlayer(npc, closestPlayer);
   }
 
   if (npc.behavior === 'hostile') {
-    if (canAttack) {
-      attackPlayer(npc, closestPlayer);
-    } else {
-      moveNpcRandomly(npc, map);
-    }
+    canAttack ? attackPlayer(npc, closestPlayer) : moveNpcRandomly(npc);
   }
 }

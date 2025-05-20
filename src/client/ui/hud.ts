@@ -1,5 +1,6 @@
-import { Npc, Player, playerNameColorRecord } from '../../shared/types';
+import { RuntimeNpc, Player } from '../../shared/types';
 import { playerCtx } from '../graphics/canvas';
+import { playerNameColorRecord } from '../../shared/mappings';
 
 export const renderHUD = (player: Player) => {
   const { name, level, position, access } = player;
@@ -44,7 +45,7 @@ export const updatePlayerHealthBar = (player: Player) => {
   healthBar.style.backgroundColor = color;
 };
 
-export const renderHealthBar = (npc: Npc) => {
+export const renderHealthBar = (npc: RuntimeNpc) => {
   const barWidth = npc.width;
   const barHeight = 10;
   const barX = npc.position.x;

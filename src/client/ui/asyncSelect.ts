@@ -5,14 +5,13 @@ export function setupAsyncSelect<T>(
   placeholder: string,
   fetchFn: () => Promise<T[]>,
   renderOption: OptionRenderer<T>,
-) {
+): () => Promise<void> {
   const select = document.getElementById(selectId) as HTMLSelectElement;
-  if (!select) return;
+  if (!select) return async () => {};
 
   let loaded = false;
 
-  select.addEventListener('focus', async function handleFocus() {
-    if (loaded) return;
+  async function loadOptions() {
     select.innerHTML = `<option value="">Loading...</option>`;
     const items = await fetchFn();
     select.innerHTML = `<option value="">${placeholder}</option>`;
@@ -24,5 +23,14 @@ export function setupAsyncSelect<T>(
       select.appendChild(option);
     });
     loaded = true;
+  }
+
+  select.addEventListener('focus', () => {
+    if (!loaded) loadOptions();
   });
+
+  return async () => {
+    loaded = false;
+    await loadOptions();
+  };
 }

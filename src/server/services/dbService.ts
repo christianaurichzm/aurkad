@@ -16,3 +16,13 @@ export async function getNextItemId(): Promise<number> {
 
   return result.seq;
 }
+
+export async function getNextNpcId(): Promise<number> {
+  const result = await Counter.findByIdAndUpdate(
+    'npc',
+    { $inc: { seq: 1 } },
+    { upsert: true, new: true },
+  );
+
+  return result.seq;
+}

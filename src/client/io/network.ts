@@ -5,7 +5,7 @@ import {
   ClientAction,
   ClientChatAction,
   ChatScope,
-  Npc,
+  RuntimeNpc,
   Item,
   Access,
   Shop,
@@ -156,38 +156,34 @@ export const httpClient = async <T>(
   endpoint: string,
   { method, headers, body }: HttpRequestOptions,
 ): Promise<T | null> => {
-  try {
-    const response = await fetch(`${process.env.APP_API_URL}${endpoint}`, {
-      method,
-      headers: {
-        'Content-Type': 'application/json',
-        ...headers,
-      },
-      body: body ? JSON.stringify(body) : undefined,
-      credentials: 'include',
-    });
+  const response = await fetch(`${process.env.APP_API_URL}${endpoint}`, {
+    method,
+    headers: {
+      'Content-Type': 'application/json',
+      ...headers,
+    },
+    body: body ? JSON.stringify(body) : undefined,
+    credentials: 'include',
+  });
 
-    const contentType = response.headers.get('Content-Type');
-    let data: any;
-    if (contentType && contentType.includes('application/json')) {
-      data = await response.json();
-    } else {
-      data = await response.text();
-    }
-
-    if (!response.ok) {
-      throw {
-        status: response.status,
-        message:
-          data?.message ||
-          `Error: ${response.status} - ${response.statusText} - ${data}`,
-      };
-    }
-
-    return data as T;
-  } catch (error) {
-    throw error;
+  const contentType = response.headers.get('Content-Type');
+  let data: any;
+  if (contentType && contentType.includes('application/json')) {
+    data = await response.json();
+  } else {
+    data = await response.text();
   }
+
+  if (!response.ok) {
+    throw {
+      status: response.status,
+      message:
+        data?.message ||
+        `Error: ${response.status} - ${response.statusText} - ${data}`,
+    };
+  }
+
+  return data as T;
 };
 
 export const login = async (username: string) => {
@@ -241,8 +237,8 @@ export const saveMap = async (newMapTiles: MapStateClient['tiles']) => {
   });
 };
 
-export const fetchNpcs = async (): Promise<Npc[]> => {
-  return (await httpClient<Npc[]>('/npcs', { method: 'GET' })) || [];
+export const fetchNpcs = async (): Promise<RuntimeNpc[]> => {
+  return (await httpClient<RuntimeNpc[]>('/npcs', { method: 'GET' })) || [];
 };
 
 export const fetchItems = async (): Promise<Item[]> => {
@@ -318,11 +314,11 @@ export const modSetMyAccess = async (accessLevel: Access) =>
 
 export const createNpc = async (
   npc: Pick<
-    Npc,
+    RuntimeNpc,
     'name' | 'sprite' | 'maxHealth' | 'attack' | 'behavior' | 'experienceValue'
   >,
-): Promise<Npc | null> => {
-  return httpClient<Npc>('/npcs', {
+): Promise<RuntimeNpc | null> => {
+  return httpClient<RuntimeNpc>('/npcs', {
     method: 'POST',
     body: npc,
   });
@@ -330,9 +326,9 @@ export const createNpc = async (
 
 export const updateNpc = async (
   id: string,
-  npc: Partial<Npc>,
-): Promise<Npc | null> => {
-  return httpClient<Npc>(`/npcs/${id}`, {
+  npc: Partial<RuntimeNpc>,
+): Promise<RuntimeNpc | null> => {
+  return httpClient<RuntimeNpc>(`/npcs/${id}`, {
     method: 'PUT',
     body: npc,
   });

@@ -11,8 +11,7 @@ import {
   PlayerServer,
   Access,
   Direction,
-  PlayerAction,
-  Character,
+  CharacterAction,
   EquippedItemsDetailed,
   InventoryItemDetailed,
   Player,
@@ -43,7 +42,7 @@ export async function listPlayers(): Promise<PlayerServer[]> {
   return await PlayerModel.find().lean<PlayerServer[]>().exec();
 }
 
-export const createPlayer = (username: string): PlayerServer => {
+export const createPlayer = async (username: string): Promise<PlayerServer> => {
   const newPlayer: PlayerServer = {
     id: Math.random().toString(36).substring(2, 9),
     name: username,
@@ -51,6 +50,7 @@ export const createPlayer = (username: string): PlayerServer => {
     width: SPRITE_WIDTH,
     height: SPRITE_HEIGHT,
     speed: DEFAULT_PLAYER_SPEED,
+    kind: 'player',
     attack: 100,
     level: 1,
     experience: 0,
@@ -65,17 +65,24 @@ export const createPlayer = (username: string): PlayerServer => {
       maxCapacity: 10,
     },
     equipped: {},
-    access: Access.USER,
+    access: Access.ADMIN,
     direction: Direction.Down,
-    action: PlayerAction.Idle,
+    action: CharacterAction.Idle,
   };
 
-  addPlayer(newPlayer);
+  await addPlayer(newPlayer);
   return newPlayer;
 };
 
-export const isPlayer = (char: Character): char is PlayerServer => {
-  return (char as PlayerServer).inventory !== undefined;
+export const persistPlayerSessionState = async (player: PlayerServer) => {
+  await createOrUpdatePlayer({
+    ...player,
+    position: player.position,
+    direction: player.direction,
+    action: player.action,
+    mapId: player.mapId,
+    health: player.health,
+  });
 };
 
 export const levelUpPlayer = (player: PlayerServer): void => {

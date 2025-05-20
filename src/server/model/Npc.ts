@@ -8,26 +8,21 @@ const NpcItemDropSchema = new mongoose.Schema(
   { _id: false },
 );
 
-const NpcSchema = new mongoose.Schema({
-  id: { type: String, required: true, unique: true },
-  name: String,
-  position: {
-    x: Number,
-    y: Number,
+const NpcSchema = new mongoose.Schema(
+  {
+    id: { type: String, required: true, unique: true },
+    name: String,
+    width: Number,
+    height: Number,
+    sprite: Number,
+    maxHealth: Number,
+    attack: Number,
+    attackRange: Number,
+    behavior: String,
+    experienceValue: Number,
+    itemsToDrop: [NpcItemDropSchema],
   },
-  width: Number,
-  height: Number,
-  sprite: Number,
-  maxHealth: Number,
-  health: Number,
-  attack: Number,
-  direction: Number,
-  action: String,
-  attackRange: Number,
-  mapId: String,
-  behavior: String,
-  experienceValue: Number,
-  itemsToDrop: [NpcItemDropSchema],
-});
+  { _id: false },
+);
 
 export default mongoose.model('Npc', NpcSchema);

@@ -1,6 +1,5 @@
 import { EQUIPMENT_SLOTS } from './constants';
 
-// shared/types.ts
 export enum Key {
   ArrowUp = 'ArrowUp',
   ArrowDown = 'ArrowDown',
@@ -22,7 +21,7 @@ export enum Direction {
   Up = 3,
 }
 
-export enum PlayerAction {
+export enum CharacterAction {
   Idle = 'Idle',
   Walk = 'Walk',
   Attack = 'Attack',
@@ -39,128 +38,8 @@ export enum Access {
   ADMIN = 2,
 }
 
-export const playerActionRecord: Record<PlayerAction, number> = {
-  [PlayerAction.Idle]: 0,
-  [PlayerAction.Walk]: 2,
-  [PlayerAction.Attack]: 2,
-};
-
-export const playerNameColorRecord: Record<Access, string> = {
-  [Access.USER]: 'yellow',
-  [Access.MOD]: 'blue',
-  [Access.ADMIN]: 'black',
-};
-
-export const keyRecord: Partial<Record<Key, Protocol>> = {
-  ArrowUp: Protocol.WS,
-  ArrowDown: Protocol.WS,
-  ArrowLeft: Protocol.WS,
-  ArrowRight: Protocol.WS,
-  Shift: Protocol.WS,
-  Control: Protocol.WS,
-  e: Protocol.WS,
-  c: Protocol.HTTP,
-  x: Protocol.HTTP,
-  z: Protocol.HTTP,
-};
-
 export enum ServerActionType {
   UpdateNpcPositions = 'UpdateNpcPositions',
-}
-
-export interface KeyboardAction {
-  key: Key;
-  type: 'press' | 'release';
-}
-
-export type ClientActionType = 'keyboard' | 'item' | 'chat';
-
-export interface ClientAction {
-  username: string;
-  type: ClientActionType;
-}
-
-export interface ClientKeyboardAction extends ClientAction {
-  type: 'keyboard';
-  keyboardAction: KeyboardAction;
-}
-
-export interface ClientItemAction extends ClientAction {
-  type: 'item';
-  item: number;
-  action: 'use' | 'drop';
-}
-
-export interface ClientChatAction extends ChatBase, ClientAction {
-  type: 'chat';
-}
-
-export interface ServerChatAction extends ChatBase {
-  subtype?: ChatSubtype;
-  mapId?: string;
-}
-
-export interface ChatMessagePayload extends ChatBase {
-  username?: string;
-  subtype?: ChatSubtype;
-}
-
-interface ChatBase {
-  type: 'chat';
-  scope: ChatScope;
-  message: string;
-}
-
-export type ChatScope = 'player' | 'map' | 'global';
-
-export type ChatSubtype = 'death';
-
-export type BanEntry = { until?: number; reason?: string };
-
-export interface ServerAction {
-  action: ServerActionType;
-}
-
-export type ActionQueueItem =
-  | ClientKeyboardAction
-  | ClientItemAction
-  | ClientChatAction
-  | ServerAction;
-
-export type ActionQueue = Array<ActionQueueItem>;
-
-export interface Character {
-  id: string;
-  name: string;
-  position: Position;
-  width: number;
-  height: number;
-  sprite: number;
-  maxHealth: number;
-  health: number;
-  attack: number;
-  direction: Direction;
-  action: PlayerAction;
-  attackRange: number;
-  mapId: MapStateServer['id'];
-}
-
-export interface Shop<T = ProductRaw> {
-  id: string;
-  name: string;
-  products: T[];
-}
-
-export interface ProductRaw {
-  itemId: number;
-  currency: number;
-  price: number;
-}
-
-export interface ProductDetailed {
-  item: Item;
-  currency: Item;
-  price: number;
 }
 
 export interface Position {
@@ -168,17 +47,25 @@ export interface Position {
   y: number;
 }
 
-type NumericKeys<T> = {
-  [K in keyof T]: T[K] extends number ? K : never;
-}[keyof T];
-
 export type EffectType = 'add' | 'multiply';
 
+export type ModifiablePlayerAttribute =
+  | 'health'
+  | 'maxHealth'
+  | 'attack'
+  | 'speed'
+  | 'attackRange'
+  | 'experience'
+  | 'experienceToNextLevel'
+  | 'level';
+
 export interface Effect {
-  attribute: Exclude<NumericKeys<Character>, 'width' | 'height'>;
+  attribute: ModifiablePlayerAttribute;
   type: EffectType;
   value: number;
 }
+
+export type BanEntry = { until?: number; reason?: string };
 
 export type ItemType =
   | (typeof EQUIPMENT_SLOTS)[number]
@@ -230,9 +117,40 @@ export interface EquippedItemsDetailed {
   boots?: Item;
 }
 
-export interface PlayerServer extends Character {
+export interface CharacterBase {
+  id: string;
+  name: string;
+  sprite: number;
+  width: number;
+  height: number;
+  maxHealth: number;
+  attack: number;
+  attackRange: number;
+}
+
+export interface CharacterRuntime {
+  position: Position;
+  mapId: string;
+  direction: Direction;
+  action: CharacterAction;
+  health: number;
+  kind: 'npc' | 'player';
+}
+
+export type NpcBehavior = 'aggressive' | 'hostile' | 'neutral';
+
+export interface PersistentNpc extends CharacterBase {
+  behavior: NpcBehavior;
+  experienceValue?: number;
+  itemsToDrop?: NpcItemDrop[];
+}
+
+export interface RuntimeNpc extends PersistentNpc, CharacterRuntime {
+  kind: 'npc';
+}
+
+export interface PersistentPlayer extends CharacterBase {
   level: number;
-  speed: number;
   experience: number;
   experienceToNextLevel: number;
   inventory: Inventory;
@@ -240,30 +158,17 @@ export interface PlayerServer extends Character {
   access: Access;
 }
 
+export interface PlayerServer extends PersistentPlayer, CharacterRuntime {
+  speed: number;
+  kind: 'player';
+}
+
 export interface Player extends Omit<PlayerServer, 'inventory' | 'equipped'> {
   inventory: InventoryItemDetailed[];
   equipped: EquippedItemsDetailed;
 }
 
-export type PlayersServerMap = { [key: string]: PlayerServer };
-
-export type PlayersMap = { [key: string]: Player };
-
-export type NpcsMap = { [key: string]: Npc };
-
-export type ItemsMap = { [key: number]: Item };
-
-export type NpcBehavior = 'aggressive' | 'hostile' | 'neutral';
-
-export interface Npc extends Character {
-  behavior: NpcBehavior;
-  experienceValue?: number;
-  itemsToDrop?: NpcItemDrop[];
-}
-
-export interface GameState {
-  maps: Record<string, MapStateServer>;
-}
+export type CombatTarget = PlayerServer | RuntimeNpc;
 
 export interface Warp {
   to: MapStateServer['id'];
@@ -274,9 +179,15 @@ export interface Tile {
   tileIndex: number;
   blocked?: boolean;
   warp?: Warp;
-  npcSpawn?: Npc['id'];
+  npcSpawn?: PersistentNpc['id'];
   item?: Item['id'];
   shop?: Shop['id'];
+}
+
+export interface DroppedItem {
+  itemId: Item['id'];
+  position: Position;
+  sprite: number;
 }
 
 export interface MapStateServer {
@@ -284,7 +195,7 @@ export interface MapStateServer {
   name: string;
   type: 'pvp' | 'normal';
   players: Record<string, PlayerServer>;
-  npcs: Record<string, Npc>;
+  npcs: Record<string, RuntimeNpc>;
   tiles: Tile[][];
   droppedItems: DroppedItem[];
 }
@@ -294,26 +205,105 @@ export interface MapStateClient {
   name: string;
   type: 'pvp' | 'normal';
   players: Record<string, Player>;
-  npcs: Record<string, Npc>;
+  npcs: Record<string, RuntimeNpc>;
   tiles: Tile[][];
   droppedItems: DroppedItem[];
 }
+
+export interface GameState {
+  maps: Record<string, MapStateServer>;
+}
+
+export type PlayersServerMap = { [key: string]: PlayerServer };
+export type PlayersMap = { [key: string]: Player };
+export type RuntimeNpcsMap = { [key: string]: RuntimeNpc };
+export type ItemsMap = { [key: number]: Item };
 
 export interface NpcItemDrop {
   itemId: Item['id'];
   chance: number;
 }
 
-export interface DroppedItem {
-  itemId: Item['id'];
-  position: Position;
-  sprite: number;
+export type ChatScope = 'player' | 'map' | 'global';
+export type ChatSubtype = 'death';
+
+interface ChatBase {
+  type: 'chat';
+  scope: ChatScope;
+  message: string;
 }
+
+export interface ClientChatAction extends ChatBase, ClientAction {
+  type: 'chat';
+}
+
+export interface ServerChatAction extends ChatBase {
+  subtype?: ChatSubtype;
+  mapId?: string;
+}
+
+export interface ChatMessagePayload extends ChatBase {
+  username?: string;
+  subtype?: ChatSubtype;
+}
+
+export interface KeyboardAction {
+  key: Key;
+  type: 'press' | 'release';
+}
+
+export type ClientActionType = 'keyboard' | 'item' | 'chat';
+
+export interface ClientAction {
+  username: string;
+  type: ClientActionType;
+}
+
+export interface ClientKeyboardAction extends ClientAction {
+  type: 'keyboard';
+  keyboardAction: KeyboardAction;
+}
+
+export interface ClientItemAction extends ClientAction {
+  type: 'item';
+  item: number;
+  action: 'use' | 'drop';
+}
+
+export interface ServerAction {
+  action: ServerActionType;
+}
+
+export type ActionQueueItem =
+  | ClientKeyboardAction
+  | ClientItemAction
+  | ClientChatAction
+  | ServerAction;
+
+export type ActionQueue = Array<ActionQueueItem>;
+
+export interface Shop<T = ProductRaw> {
+  id: string;
+  name: string;
+  products: T[];
+}
+
+export interface ProductRaw {
+  itemId: number;
+  currency: number;
+  price: number;
+}
+
+export interface ProductDetailed {
+  item: Item;
+  currency: Item;
+  price: number;
+}
+
+export type TileEditMode = 'blocking' | 'warping' | 'npc' | 'item' | 'shop';
 
 export interface HttpRequestOptions {
   method: 'GET' | 'POST' | 'PUT' | 'DELETE';
   headers?: Record<string, string>;
   body?: any;
 }
-
-export type TileEditMode = 'blocking' | 'warping' | 'npc' | 'item' | 'shop';

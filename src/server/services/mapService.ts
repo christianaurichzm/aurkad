@@ -3,19 +3,16 @@ import {
   Tile,
   MapStateServer,
   DroppedItem,
-  NpcsMap,
   PlayerServer,
+  RuntimeNpc,
+  Direction,
+  CharacterAction,
 } from '../../shared/types';
-import {
-  getMap,
-  getNpcs,
-  updatePlayer,
-  getPlayer,
-  updateMap,
-} from '../gameData';
+import { getMap, updatePlayer, getPlayer, updateMap } from '../gameData';
 
 import GameMapModel from '../model/Map';
 import { getItemById } from './inventoryService';
+import { getNpcById } from './npcService';
 
 export async function getMapById(id: string): Promise<MapStateServer | null> {
   return await GameMapModel.findOne({ id }).lean<MapStateServer>().exec();
@@ -78,7 +75,6 @@ export const insertItems = async (
       }
     }
   }
-  console.log(droppedItems);
   partialMap.droppedItems = droppedItems;
 };
 
@@ -87,18 +83,28 @@ export const insertNpcs = (
   mapId: string,
   tiles: Tile[][],
 ) => {
-  const npcs: NpcsMap = {};
+  const npcs: Record<string, RuntimeNpc> = {};
 
   tiles.forEach((row, rowIndex) =>
-    row.forEach((tile, colIndex) => {
+    row.forEach(async (tile, colIndex) => {
       if (tile.npcSpawn) {
-        const npc = {
-          ...getNpcs()[tile.npcSpawn],
-          position: { x: colIndex * TILE_SIZE, y: rowIndex * TILE_SIZE },
+        const base = await getNpcById(tile.npcSpawn);
+        if (!base) return;
+
+        const runtimeNpc: RuntimeNpc = {
+          ...base,
+          health: base.maxHealth,
+          position: {
+            x: colIndex * TILE_SIZE,
+            y: rowIndex * TILE_SIZE,
+          },
           mapId,
+          direction: Direction.Down,
+          action: CharacterAction.Idle,
+          kind: 'npc',
         };
-        const npcId = String.fromCharCode(65 + Math.floor(Math.random() * 26));
-        npcs[npcId] = npc;
+
+        npcs[runtimeNpc.id] = runtimeNpc;
       }
     }),
   );

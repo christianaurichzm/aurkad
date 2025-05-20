@@ -10,9 +10,9 @@ import {
   startGameLoops,
   startWebSocketServer,
 } from './wsServer';
-import { Access, Direction, PlayerServer, PlayerAction } from '../shared/types';
+import { Access, PlayerServer } from '../shared/types';
 import checkAccess from './checkAccess';
-import { addNpc, deleteNpcEverywhere, getNpcs, updateNpcAll } from './gameData';
+import { deleteNpcEverywhere, players } from './gameData';
 import { SPRITE_HEIGHT, SPRITE_WIDTH, TILE_SIZE } from '../shared/constants';
 import {
   login,
@@ -33,7 +33,15 @@ import {
   getItemById,
   listItems,
 } from './services/inventoryService';
-import { enrichPlayer } from './services/playerService';
+import {
+  enrichPlayer,
+  persistPlayerSessionState,
+} from './services/playerService';
+import {
+  createOrUpdateNpc,
+  listNpcs,
+  updateNpcAll,
+} from './services/npcService';
 
 declare module 'express-session' {
   interface SessionData {
@@ -82,6 +90,7 @@ app.post('/login', async (req: Request, res: Response) => {
 
     req.session.username = username;
     req.session.accessLevel = player.access;
+    players[player.id] = player;
     const map = addPlayerOnMap(player.id);
     req.session.save((err) => {
       if (err) {
@@ -103,6 +112,7 @@ app.post('/logout', (req: Request, res: Response) => {
       res.status(500).send('Failed to destroy session');
       return;
     }
+    disconnectPlayer(req.session.username!);
     res.status(200).send('Logged out');
   });
 });
@@ -140,14 +150,18 @@ app.post(
   },
 );
 
-app.get('/npcs', checkAccess(Access.ADMIN), (req: Request, res: Response) => {
-  try {
-    const npcs = Object.values(getNpcs());
-    res.status(200).json(npcs);
-  } catch (error) {
-    res.status(500).json({ error: 'Could not fetch NPCs' });
-  }
-});
+app.get(
+  '/npcs',
+  checkAccess(Access.ADMIN),
+  async (req: Request, res: Response) => {
+    try {
+      const npcs = await listNpcs();
+      res.status(200).json(npcs);
+    } catch (error) {
+      res.status(500).json({ error: 'Could not fetch NPCs' });
+    }
+  },
+);
 
 app.get(
   '/items',
@@ -421,15 +435,10 @@ app.post('/npcs', checkAccess(Access.ADMIN), (req, res) => {
     req.body;
 
   const defaults = {
-    position: { x: 0, y: 0 },
     width: SPRITE_WIDTH,
     height: SPRITE_HEIGHT,
-    direction: Direction.Down,
-    action: PlayerAction.Idle,
-    mapId: '1',
     attackRange: TILE_SIZE,
     itemsToDrop: [],
-    health: maxHealth,
   };
 
   const npcData = {
@@ -442,19 +451,18 @@ app.post('/npcs', checkAccess(Access.ADMIN), (req, res) => {
     experienceValue,
   };
 
-  const newNpc = addNpc(npcData);
+  const newNpc = createOrUpdateNpc(npcData);
   res.status(201).json(newNpc);
 });
 
-app.put('/npcs/:id', checkAccess(Access.ADMIN), (req, res) => {
+app.put('/npcs/:id', checkAccess(Access.ADMIN), async (req, res) => {
   const { id } = req.params;
-  const updated = updateNpcAll(id, req.body);
+  const updated = await updateNpcAll(id, req.body);
   if (!updated) {
     return res.status(404).json({ error: 'NPC not found.' });
   }
   res.status(200).json(updated);
 });
-
 app.delete('/npcs/:id', checkAccess(Access.ADMIN), (req, res) => {
   const { id } = req.params;
   deleteNpcEverywhere(id);
@@ -550,3 +558,15 @@ async function startServer() {
 }
 
 startServer();
+
+async function shutdown() {
+  console.log('[Shutdown] Persisting player states...');
+  for (const player of Object.values(players)) {
+    await persistPlayerSessionState(player);
+  }
+  console.log('[Shutdown] Server exiting cleanly.');
+  process.exit(0);
+}
+
+process.on('SIGINT', shutdown);
+process.on('SIGTERM', shutdown);

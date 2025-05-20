@@ -12,7 +12,7 @@ import {
   ChatMessagePayload,
   ServerAction,
 } from '../shared/types';
-import { getMap, updateNpc } from './gameData';
+import { getMap } from './gameData';
 import { ExtendedRequest } from './server';
 import { handleChatAction } from './services/chatService';
 import {
@@ -184,7 +184,6 @@ function handleServerAction(action: ServerAction) {
       Object.values(getGameState().maps).forEach((map) => {
         Object.values(map.npcs).forEach((npc) => {
           updateNpcs(npc, map);
-          updateNpc(npc);
         });
       });
       break;

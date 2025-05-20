@@ -1,12 +1,8 @@
-import {
-  ClientKeyboardAction,
-  Key,
-  Protocol,
-  keyRecord,
-} from '../../shared/types';
+import { ClientKeyboardAction, Key, Protocol } from '../../shared/types';
 import { toggleContentEditorMenu } from '../graphics/contentEditor';
 import { toggleInventory } from '../graphics/inventory';
 import { closeModMenu, toggleModMenu } from '../graphics/modMenu';
+import { keyRecord } from '../../shared/mappings';
 import {
   initTilesetEditor,
   tilesetEditorInitialized,

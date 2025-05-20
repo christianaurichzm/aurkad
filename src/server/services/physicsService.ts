@@ -1,8 +1,8 @@
 import { TILE_SIZE, GAME_WIDTH, GAME_HEIGHT } from '../../shared/constants';
-import { Character, MapStateServer, Warp } from '../../shared/types';
+import { CombatTarget, MapStateServer, Warp } from '../../shared/types';
 import { getMap } from '../gameData';
 
-const isColliding = (a: Character, b: Character): boolean =>
+const isColliding = (a: CombatTarget, b: CombatTarget): boolean =>
   a.position.x < b.position.x + b.width &&
   a.position.x + a.width > b.position.x &&
   a.position.y < b.position.y + b.height &&
@@ -24,7 +24,7 @@ const isTileWarp = (
   return map.tiles[row]?.[col]?.warp;
 };
 
-export const hasCollision = (character: Character): boolean => {
+export const hasCollision = (character: CombatTarget): boolean => {
   if (!character.mapId) return false;
 
   const map = getMap(character.mapId)!;
@@ -50,7 +50,7 @@ export const hasCollision = (character: Character): boolean => {
   return characterCollision || tileCollision || borderCollision;
 };
 
-export const hasWarp = (character: Character): Warp | undefined => {
+export const hasWarp = (character: CombatTarget): Warp | undefined => {
   if (!character.mapId) return undefined;
 
   const map = getMap(character.mapId)!;

@@ -1,19 +1,19 @@
 import {
   PlayerServer,
-  Character,
   Direction,
   MapStateServer,
   DroppedItem,
+  CombatTarget,
 } from '../../shared/types';
 import { getMap, updatePlayer } from '../gameData';
 import { handleChatAction } from './chatService';
 import { getItemById } from './inventoryService';
-import { isNpc, respawnNpc } from './npcService';
-import { isPlayer, respawnPlayer, levelUpPlayer } from './playerService';
+import { respawnNpc } from './npcService';
+import { respawnPlayer, levelUpPlayer } from './playerService';
 
 const isInAttackRange = (
   attacker: PlayerServer,
-  target: Character,
+  target: CombatTarget,
 ): boolean => {
   const distanceX = Math.abs(attacker.position.x - target.position.x);
   const distanceY = Math.abs(attacker.position.y - target.position.y);
@@ -21,7 +21,10 @@ const isInAttackRange = (
   return distanceX <= attacker.attackRange && distanceY <= attacker.attackRange;
 };
 
-const isFacingTarget = (attacker: PlayerServer, target: Character): boolean => {
+const isFacingTarget = (
+  attacker: PlayerServer,
+  target: CombatTarget,
+): boolean => {
   switch (attacker.direction) {
     case Direction.Up:
       return target.position.y < attacker.position.y;
@@ -39,7 +42,7 @@ const isFacingTarget = (attacker: PlayerServer, target: Character): boolean => {
 const findAttackTarget = (
   attacker: PlayerServer,
   map: MapStateServer,
-): Character | undefined => {
+): CombatTarget | undefined => {
   if (map.type === 'pvp') {
     const opponentPlayers = Object.values(map.players).filter(
       (player) =>
@@ -71,10 +74,14 @@ export const handleAttack = async (attacker: PlayerServer): Promise<void> => {
   const map = getMap(attacker.mapId);
   if (!map) return;
 
-  const attackTarget = await findAttackTarget(attacker, map);
+  const attackTarget: CombatTarget | undefined = await findAttackTarget(
+    attacker,
+    map,
+  );
   if (!attackTarget) return;
 
-  if (isNpc(attackTarget) && attackTarget.behavior === 'neutral') return;
+  if (attackTarget.kind === 'npc' && attackTarget.behavior === 'neutral')
+    return;
 
   attackTarget.health -= attacker.attack;
 
@@ -82,27 +89,29 @@ export const handleAttack = async (attacker: PlayerServer): Promise<void> => {
 
   attackTarget.health = 0;
 
-  if (isPlayer(attackTarget)) {
-    respawnPlayer(attackTarget);
-    await updatePlayer(attackTarget);
+  switch (attackTarget.kind) {
+    case 'player':
+      respawnPlayer(attackTarget);
+      await updatePlayer(attackTarget);
 
-    handleChatAction({
-      scope: 'global',
-      type: 'chat',
-      subtype: 'death',
-      message: `${attacker.name} defeated ${attackTarget.name}`,
-    });
-  } else if (isNpc(attackTarget)) {
-    if (attackTarget.experienceValue) {
-      attacker.experience += attackTarget.experienceValue;
-      levelUpPlayer(attacker);
-      await updatePlayer(attacker);
-    }
+      handleChatAction({
+        scope: 'global',
+        type: 'chat',
+        subtype: 'death',
+        message: `${attacker.name} defeated ${attackTarget.name}`,
+      });
+      break;
 
-    if (attackTarget.itemsToDrop?.length) {
+    case 'npc': {
+      if (attackTarget.experienceValue) {
+        attacker.experience += attackTarget.experienceValue;
+        levelUpPlayer(attacker);
+        await updatePlayer(attacker);
+      }
+
       const droppedItems: DroppedItem[] = [];
 
-      for (const drop of attackTarget.itemsToDrop) {
+      for (const drop of attackTarget.itemsToDrop ?? []) {
         const roll = Math.random() * 100;
         if (roll <= drop.chance) {
           const item = await getItemById(drop.itemId);
@@ -123,8 +132,8 @@ export const handleAttack = async (attacker: PlayerServer): Promise<void> => {
       }
 
       map.droppedItems.push(...droppedItems);
+      respawnNpc(attacker.mapId, attackTarget);
+      break;
     }
-
-    respawnNpc(attacker.mapId, attackTarget);
   }
 };

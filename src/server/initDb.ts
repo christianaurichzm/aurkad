@@ -1,8 +1,6 @@
 import mongoose from 'mongoose';
 import { insertNpcs, listMaps } from './services/mapService';
-import { listNpcs } from './services/npcService';
-import { listPlayers } from './services/playerService';
-import { players, runtimeState, npcs } from './gameData';
+import { runtimeState } from './gameData';
 
 export async function connectToDatabase() {
   try {
@@ -19,21 +17,7 @@ export async function connectToDatabase() {
 
 export async function loadInitialData() {
   try {
-    const [loadedPlayers, loadedNpcs, loadedMaps] = await Promise.all([
-      listPlayers(),
-      listNpcs(),
-      listMaps(),
-    ]);
-
-    for (const player of loadedPlayers) {
-      players[player.id] = player;
-      const map = runtimeState.maps[player.mapId];
-      if (map) map.players[player.id] = player;
-    }
-
-    for (const npc of loadedNpcs) {
-      npcs[npc.id] = npc;
-    }
+    const loadedMaps = await listMaps();
 
     for (const map of loadedMaps) {
       const runtimeMap = {

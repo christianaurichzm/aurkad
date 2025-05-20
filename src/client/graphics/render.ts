@@ -1,12 +1,11 @@
 import { TILE_SIZE } from '../../shared/constants';
 import {
-  PlayerAction,
+  CharacterAction,
   Direction,
   PlayersMap,
   Position,
-  playerActionRecord,
-  NpcsMap,
   DroppedItem,
+  RuntimeNpcsMap,
 } from '../../shared/types';
 import { getGameState, getPlayer } from '../core/gameState';
 import { spriteSheet } from '../io/files';
@@ -18,6 +17,7 @@ import {
   itemCtx,
   playerCtx,
 } from './canvas';
+import { playerActionRecord } from '../../shared/mappings';
 import { renderItemIcon } from './inventory';
 import { getCharacterSpriteCoordinates, getSpriteSize } from './sprite';
 import { mapEdited, renderMap } from './tileset';
@@ -26,7 +26,7 @@ const renderEntity = (entity: {
   position: Position;
   direction: Direction;
   sprite: number;
-  action: PlayerAction;
+  action: CharacterAction;
 }) => {
   drawSprite(
     entity.sprite,
@@ -44,7 +44,7 @@ const renderPlayers = (players: PlayersMap) => {
   });
 };
 
-const renderNpcs = (npcs: NpcsMap) => {
+const renderNpcs = (npcs: RuntimeNpcsMap) => {
   Object.values(npcs).forEach((npc) => {
     if (npc.health > 0) {
       renderEntity(npc);

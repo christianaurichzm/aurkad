@@ -3,10 +3,12 @@ import {
   TILE_SIZE,
   DEFAULT_PLAYER_SPEED,
 } from '../../shared/constants';
+import PlayerModel from '../model/Player';
+
 import {
   Key,
   Direction,
-  PlayerAction,
+  CharacterAction,
   PlayerServer,
   ClientKeyboardAction,
   Tile,
@@ -19,15 +21,19 @@ import {
   updatePlayer,
   updateMapById,
   getRuntimeState,
-  getPlayers,
   updateMap,
+  players,
 } from '../gameData';
 import { playersWsMap, broadcast } from '../wsServer';
 import { handleAttack } from './combatService';
 import { pickUpItem } from './inventoryService';
 import { insertModeCell, updatePlayerMap } from './mapService';
 import { hasCollision, hasWarp } from './physicsService';
-import { createPlayer, handlePlayerUpdates } from './playerService';
+import {
+  createPlayer,
+  handlePlayerUpdates,
+  persistPlayerSessionState,
+} from './playerService';
 import { getItemById } from './inventoryService';
 
 export const delay = (ms: number) =>
@@ -85,7 +91,7 @@ export const handleKeyPress = async (username: string, key: Key) => {
         );
         break;
       case Key.Control:
-        newState.action = PlayerAction.Attack;
+        newState.action = CharacterAction.Attack;
         handleAttack(newState);
         break;
       case Key.e:
@@ -141,7 +147,7 @@ const updatePlayerPositionAndDirection = (
   dy: number,
 ) => {
   newState.direction = direction;
-  newState.action = PlayerAction.Walk;
+  newState.action = CharacterAction.Walk;
   proposedState.position.x += dx;
   proposedState.position.y += dy;
 };
@@ -165,12 +171,12 @@ export const handleKeyRelease = (username: string, key: Key) => {
   const player = getPlayerByName(username);
   if (player) {
     const newState = { ...player };
-    if (key === Key.Control) newState.action = PlayerAction.Idle;
+    if (key === Key.Control) newState.action = CharacterAction.Idle;
     if (key === Key.Shift) newState.speed = DEFAULT_PLAYER_SPEED;
     if (
       [Key.ArrowDown, Key.ArrowLeft, Key.ArrowRight, Key.ArrowUp].includes(key)
     ) {
-      newState.action = PlayerAction.Idle;
+      newState.action = CharacterAction.Idle;
     }
     updatePlayer(newState);
   }
@@ -193,22 +199,40 @@ export const changeSprite = (spriteId: number, username: string) => {
 
 export const getGameState = () => getRuntimeState();
 
-export const getPlayerByName = (username: string) =>
-  Object.values(getPlayers()).find((player) => player.name === username);
+export const getPlayerByName = (username: string): PlayerServer | undefined =>
+  Object.values(players).find((player) => player.name === username);
 
-export const login = (username: string) =>
-  getPlayerByName(username) || createPlayer(username);
+export async function getPlayerByNameFromDb(
+  name: string,
+): Promise<PlayerServer | null> {
+  const result = await PlayerModel.findOne({ name })
+    .lean<PlayerServer>()
+    .exec();
+  return result;
+}
+
+export const login = async (username: string) => {
+  const playerExiste = await getPlayerByNameFromDb(username);
+
+  return playerExiste || (await createPlayer(username));
+};
 
 export const handlePlayerUpdate = (player: PlayerServer): void => {
   handlePlayerUpdates(player);
 };
 
-export const disconnectPlayer = (username?: string) => {
+export const disconnectPlayer = async (username?: string) => {
   const player = username && getPlayerByName(username);
-  const map = player && getMap(player.mapId);
-  if (!map) return;
-  delete map.players[player.id];
-  updateMap(map);
+  if (!player) return;
+
+  const map = getMap(player.mapId);
+  if (map) {
+    delete map.players[player.id];
+    updateMap(map);
+  }
+
+  await persistPlayerSessionState(player);
+  delete players[player.id];
 };
 
 export const buyShopItem = async (

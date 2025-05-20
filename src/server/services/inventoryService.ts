@@ -2,8 +2,8 @@ import {
   MapStateServer,
   PlayerServer,
   ClientItemAction,
-  Character,
   Item,
+  ModifiablePlayerAttribute,
 } from '../../shared/types';
 import { updatePlayer, updateMap } from '../gameData';
 import { getPlayerByName } from './gameService';
@@ -148,7 +148,6 @@ export async function equipItem(
   if (Number(player.equipped[slot]) === Number(itemId)) {
     await unequipItem(player, slot);
     return;
-  } else {
   }
 
   if (player.equipped[slot]) {
@@ -190,21 +189,20 @@ export async function unequipItem(
 }
 
 export async function applyItemEffects(
-  player: Character,
+  player: Pick<PlayerServer, ModifiablePlayerAttribute>,
   itemId: number,
   reverse = false,
 ): Promise<void> {
   const item = await getItemById(itemId);
-  if (!item || !item.effects) return;
+  if (!item?.effects) return;
 
   for (const effect of item.effects) {
-    const attr = effect.attribute;
-    if (typeof player[attr] === 'number') {
-      if (effect.type === 'add') {
-        player[attr] += reverse ? -effect.value : effect.value;
-      } else if (effect.type === 'multiply') {
-        player[attr] *= reverse ? 1 / effect.value : effect.value;
-      }
+    const { attribute, type, value } = effect;
+
+    if (type === 'add') {
+      player[attribute] += reverse ? -value : value;
+    } else if (type === 'multiply') {
+      player[attribute] *= reverse ? 1 / value : value;
     }
   }
 }
