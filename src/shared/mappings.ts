@@ -1,10 +1,11 @@
 import { CharacterAction, Access, Key, Protocol } from './types';
 
-export const playerActionRecord: Record<CharacterAction, number> = {
-  [CharacterAction.Idle]: 0,
-  [CharacterAction.Walk]: 1,
-  [CharacterAction.Attack]: 2,
-};
+export const playerActionToActionColumnRecord: Record<CharacterAction, number> =
+  {
+    [CharacterAction.Idle]: 0,
+    [CharacterAction.Walk]: 2,
+    [CharacterAction.Attack]: 2,
+  };
 
 export const playerNameColorRecord: Record<Access, string> = {
   [Access.USER]: 'yellow',

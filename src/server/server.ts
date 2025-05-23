@@ -32,16 +32,13 @@ import {
 import {
   login,
   mapSave,
-  changeSprite,
-  getPlayerByName,
   disconnectPlayer,
   handlePlayerUpdate,
-  buyShopItem,
 } from './services/gameService';
 import { addPlayerOnMap, removePlayerFromMap } from './services/mapService';
 import { connectToDatabase, loadInitialData } from './initDb';
 import { banPlayer, getBan, unbanPlayer } from './services/banService';
-import { getShopById, listShops } from './services/shopService';
+import { buyShopItem, getShopById, listShops } from './services/shopService';
 import {
   createOrUpdateItem,
   deleteItem,
@@ -49,7 +46,9 @@ import {
   listItems,
 } from './services/inventoryService';
 import {
+  changeSprite,
   enrichPlayer,
+  getPlayerByName,
   persistPlayerSessionState,
 } from './services/playerService';
 import {

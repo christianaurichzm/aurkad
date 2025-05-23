@@ -1,5 +1,6 @@
 import ShopModel from '../model/Shop';
-import { Shop } from '../../shared/types';
+import { PlayerServer, ProductRaw, Shop } from '../../shared/types';
+import { updatePlayer } from '../gameData';
 
 export async function getShopById(id: string): Promise<Shop | null> {
   return await ShopModel.findOne({ id }).lean<Shop>().exec();
@@ -16,3 +17,35 @@ export async function deleteShop(id: string): Promise<void> {
 export async function listShops(): Promise<Shop[]> {
   return await ShopModel.find().lean<Shop[]>().exec();
 }
+
+export const buyShopItem = async (
+  player: PlayerServer,
+  itemId: number,
+  shop: Shop<ProductRaw>,
+): Promise<boolean> => {
+  const product = shop.products.find((p) => p.itemId === itemId);
+  if (!product) return false;
+
+  const currencyInInventory = player.inventory.items.find(
+    (i) => i.item === product.currency,
+  );
+  if (!currencyInInventory || currencyInInventory.quantity < product.price)
+    return false;
+
+  currencyInInventory.quantity -= product.price;
+  if (currencyInInventory.quantity === 0) {
+    player.inventory.items = player.inventory.items.filter(
+      (i) => i.item !== product.currency,
+    );
+  }
+
+  const existingItem = player.inventory.items.find((i) => i.item === itemId);
+  if (existingItem) {
+    existingItem.quantity++;
+  } else {
+    player.inventory.items.push({ item: itemId, quantity: 1 });
+  }
+
+  await updatePlayer(player);
+  return true;
+};

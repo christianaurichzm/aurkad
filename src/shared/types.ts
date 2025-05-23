@@ -130,6 +130,8 @@ export interface CharacterBase {
 
 export interface CharacterRuntime {
   position: Position;
+  targetPosition?: Position;
+  moving?: boolean;
   mapId: string;
   direction: Direction;
   action: CharacterAction;

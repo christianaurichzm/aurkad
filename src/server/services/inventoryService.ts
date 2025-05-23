@@ -6,10 +6,10 @@ import {
   ModifiablePlayerAttribute,
 } from '../../shared/types';
 import { updatePlayer, updateMap } from '../gameData';
-import { getPlayerByName } from './gameService';
 import ItemModel from '../model/Item';
 import { getNextItemId } from './dbService';
 import { EQUIPMENT_SLOTS } from '../../shared/constants';
+import { getPlayerByName } from './playerService';
 
 export async function getItemById(id: number): Promise<Item | null> {
   return await ItemModel.findOne({ id }).lean<Item>().exec();
@@ -111,7 +111,6 @@ export async function useItem(
       );
     }
   } else {
-    // Novo bloco: permite desequipar mesmo sem o item no inventário
     const slot = item.type as keyof PlayerServer['equipped'];
     const equippedItem = player.equipped[slot];
 

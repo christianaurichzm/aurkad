@@ -18,12 +18,13 @@ import { handleChatAction } from './services/chatService';
 import {
   disconnectPlayer,
   handleKeyAction,
-  getPlayerByName,
   getGameState,
+  processMovement,
+  processInputMovement,
 } from './services/gameService';
 import { handleItemAction } from './services/inventoryService';
 import { updateNpcs } from './services/npcService';
-import { enrichPlayer } from './services/playerService';
+import { enrichPlayer, getPlayerByName } from './services/playerService';
 
 let wss: WebSocketServer;
 
@@ -125,14 +126,38 @@ export async function processActions() {
 }
 
 export function startGameLoops() {
-  setInterval(() => {
-    processActions();
-    broadcastGameState();
-  }, 50);
+  const TICK_RATE = process.env.TICK_RATE ? Number(process.env.TICK_RATE) : 10;
+  const MAX_UPDATES_PER_TICK = process.env.MAX_UPDATES_PER_TICK
+    ? Number(process.env.MAX_UPDATES_PER_TICK)
+    : 2;
+
+  const tickInterval = 1000 / TICK_RATE;
+  let lastUpdateTime = Date.now();
+
+  const tick = () => {
+    const now = Date.now();
+    let updates = 0;
+
+    while (
+      now - lastUpdateTime >= tickInterval &&
+      updates < MAX_UPDATES_PER_TICK
+    ) {
+      processInputMovement();
+      processMovement();
+      processActions();
+      broadcastGameState();
+      lastUpdateTime += tickInterval;
+      updates++;
+    }
+
+    setTimeout(tick, tickInterval - (Date.now() - lastUpdateTime));
+  };
+
+  tick();
 
   setInterval(() => {
     enqueueAction({ action: ServerActionType.UpdateNpcPositions });
-  }, 500);
+  }, 1000);
 }
 
 export function broadcastChat(message: ChatMessagePayload) {

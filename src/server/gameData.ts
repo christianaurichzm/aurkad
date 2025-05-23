@@ -1,5 +1,6 @@
 import {
   GameState,
+  Key,
   MapStateServer,
   PlayerServer,
   PlayersServerMap,
@@ -11,6 +12,8 @@ import { deleteNpc } from './services/npcService';
 import { createOrUpdatePlayer, deletePlayer } from './services/playerService';
 
 export const players: PlayersServerMap = {};
+
+export const pressedKeysMap = new Map<string, Set<Key>>();
 
 export const runtimeState: GameState = {
   maps: {

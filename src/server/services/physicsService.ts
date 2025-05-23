@@ -1,4 +1,4 @@
-import { TILE_SIZE, GAME_WIDTH, GAME_HEIGHT } from '../../shared/constants';
+import { GAME_HEIGHT, GAME_WIDTH, TILE_SIZE } from '../../shared/constants';
 import { CombatTarget, MapStateServer, Warp } from '../../shared/types';
 import { getMap } from '../gameData';
 
@@ -11,7 +11,18 @@ const isColliding = (a: CombatTarget, b: CombatTarget): boolean =>
 const isTileBlocked = (map: MapStateServer, x: number, y: number): boolean => {
   const row = Math.floor(y / TILE_SIZE);
   const col = Math.floor(x / TILE_SIZE);
-  return !!map.tiles[row]?.[col]?.blocked;
+
+  if (
+    row < 0 ||
+    row >= map.tiles.length ||
+    col < 0 ||
+    (map.tiles[row] && col >= map.tiles[row].length)
+  ) {
+    return true;
+  }
+
+  const tile = map.tiles[row]?.[col];
+  return !!tile?.blocked;
 };
 
 const isTileWarp = (
@@ -25,24 +36,29 @@ const isTileWarp = (
 };
 
 export const hasCollision = (character: CombatTarget): boolean => {
-  if (!character.mapId) return false;
+  if (!character.mapId) {
+    return false;
+  }
 
-  const map = getMap(character.mapId)!;
+  const map = getMap(character.mapId);
+  if (!map) {
+    return true;
+  }
+
   const { players, npcs } = map;
-  const { width, height } = character;
-  const { x, y } = character.position;
+  const { width, height, position } = character;
+  const { x, y } = position;
 
   const characterCollision = [
     ...Object.values(npcs),
     ...Object.values(players),
   ].some((other) => other.id !== character.id && isColliding(character, other));
 
-  const tileCollision = [
-    isTileBlocked(map, x, y),
-    isTileBlocked(map, x + width - 1, y),
-    isTileBlocked(map, x, y + height - 1),
-    isTileBlocked(map, x + width - 1, y + height - 1),
-  ].some(Boolean);
+  const tileCollision =
+    isTileBlocked(map, x, y) ||
+    isTileBlocked(map, x + width - 1, y) ||
+    isTileBlocked(map, x, y + height - 1) ||
+    isTileBlocked(map, x + width - 1, y + height - 1);
 
   const borderCollision =
     x < 0 || y < 0 || x + width > GAME_WIDTH || y + height > GAME_HEIGHT;
@@ -51,11 +67,17 @@ export const hasCollision = (character: CombatTarget): boolean => {
 };
 
 export const hasWarp = (character: CombatTarget): Warp | undefined => {
-  if (!character.mapId) return undefined;
+  if (!character.mapId) {
+    return undefined;
+  }
 
-  const map = getMap(character.mapId)!;
-  const { width, height } = character;
-  const { x, y } = character.position;
+  const map = getMap(character.mapId);
+  if (!map) {
+    return undefined;
+  }
+
+  const { width, height, position } = character;
+  const { x, y } = position;
 
   return [
     isTileWarp(map, x, y),

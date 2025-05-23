@@ -18,9 +18,11 @@ import {
 } from '../../shared/types';
 import PlayerModel from '../model/Player';
 
-import { addPlayer, getPlayer, updatePlayer } from '../gameData';
+import { addPlayer, getPlayer, players, updatePlayer } from '../gameData';
 import { addPlayerOnMap, removePlayerFromMap } from './mapService';
 import { getItemById } from './inventoryService';
+import { handlePlayerUpdate } from './gameService';
+import { broadcast } from '../wsServer';
 
 export async function getPlayerById(id: string): Promise<PlayerServer | null> {
   return await PlayerModel.findOne({ id }).lean<PlayerServer>().exec();
@@ -137,3 +139,24 @@ export async function enrichPlayer(player: PlayerServer): Promise<Player> {
     equipped,
   };
 }
+
+export const getPlayerByName = (username: string): PlayerServer | undefined =>
+  Object.values(players).find((player) => player.name === username);
+
+export async function getPlayerByNameFromDb(
+  name: string,
+): Promise<PlayerServer | null> {
+  const result = await PlayerModel.findOne({ name })
+    .lean<PlayerServer>()
+    .exec();
+  return result;
+}
+
+export const changeSprite = (spriteId: number, username: string) => {
+  const newPlayer: PlayerServer = {
+    ...getPlayerByName(username)!,
+    sprite: spriteId,
+  };
+  handlePlayerUpdate(newPlayer);
+  broadcast();
+};

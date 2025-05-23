@@ -17,7 +17,7 @@ import {
   itemCtx,
   playerCtx,
 } from './canvas';
-import { playerActionRecord } from '../../shared/mappings';
+import { playerActionToActionColumnRecord } from '../../shared/mappings';
 import { renderItemIcon } from './inventory';
 import { getCharacterSpriteCoordinates, getSpriteSize } from './sprite';
 import { mapEdited, renderMap } from './tileset';
@@ -30,7 +30,7 @@ const renderEntity = (entity: {
 }) => {
   drawSprite(
     entity.sprite,
-    playerActionRecord[entity.action],
+    playerActionToActionColumnRecord[entity.action],
     entity.direction,
     entity.position.x,
     entity.position.y,
