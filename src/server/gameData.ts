@@ -1,10 +1,12 @@
 import {
   GameState,
+  Item,
   Key,
   MapStateServer,
   PlayerServer,
   PlayersServerMap,
 } from '../shared/types';
+import { getItemById } from './services/inventoryService';
 
 import { createOrUpdateMap } from './services/mapService';
 import { deleteNpc } from './services/npcService';
@@ -14,6 +16,8 @@ import { createOrUpdatePlayer, deletePlayer } from './services/playerService';
 export const players: PlayersServerMap = {};
 
 export const pressedKeysMap = new Map<string, Set<Key>>();
+
+export const items = new Map<number, Item>();
 
 export const runtimeState: GameState = {
   maps: {

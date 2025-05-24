@@ -17,6 +17,7 @@
     "cors": "^2.8.5",
     "express": "^4.19.2",
     "express-session": "^1.18.0",
+    "jsondiffpatch": "0.5.0",
     "mongoose": "^8.15.0",
     "ws": "^8.17.1"
   },

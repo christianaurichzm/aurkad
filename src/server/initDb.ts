@@ -1,6 +1,7 @@
 import mongoose from 'mongoose';
 import { insertNpcs, listMaps } from './services/mapService';
-import { runtimeState } from './gameData';
+import { items, runtimeState } from './gameData';
+import { listItems } from './services/inventoryService';
 
 export async function connectToDatabase() {
   try {
@@ -18,6 +19,7 @@ export async function connectToDatabase() {
 export async function loadInitialData() {
   try {
     const loadedMaps = await listMaps();
+    const loadedItems = await listItems();
 
     for (const map of loadedMaps) {
       const runtimeMap = {
@@ -30,6 +32,10 @@ export async function loadInitialData() {
       await insertNpcs(runtimeMap, map.id, map.tiles);
 
       runtimeState.maps[map.id] = runtimeMap;
+    }
+
+    for (const item of loadedItems) {
+      items.set(item.id, item);
     }
 
     console.log('Data successfully loaded from database into memory');

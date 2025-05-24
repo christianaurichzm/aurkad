@@ -5,14 +5,14 @@ import {
   Item,
   ModifiablePlayerAttribute,
 } from '../../shared/types';
-import { updatePlayer, updateMap } from '../gameData';
+import { updatePlayer, updateMap, items } from '../gameData';
 import ItemModel from '../model/Item';
 import { getNextItemId } from './dbService';
 import { EQUIPMENT_SLOTS } from '../../shared/constants';
 import { getPlayerByName } from './playerService';
 
-export async function getItemById(id: number): Promise<Item | null> {
-  return await ItemModel.findOne({ id }).lean<Item>().exec();
+export function getItemById(id: number): Item | null {
+  return items.get(id) ?? null;
 }
 
 export async function createOrUpdateItem(item: any): Promise<void> {
@@ -23,10 +23,13 @@ export async function createOrUpdateItem(item: any): Promise<void> {
   await ItemModel.findOneAndUpdate({ id: item.id }, item, {
     upsert: true,
   });
+
+  items.set(item.id, { ...item, id: item.id });
 }
 
 export async function deleteItem(id: number): Promise<void> {
   await ItemModel.deleteOne({ id });
+  items.delete(id);
 }
 
 export async function listItems(): Promise<Item[]> {

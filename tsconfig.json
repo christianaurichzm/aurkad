@@ -3,14 +3,16 @@
     "target": "es5",
     "module": "commonjs",
     "strict": true,
+    "moduleResolution": "node",
     "esModuleInterop": true,
+    "allowSyntheticDefaultImports": true,
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
-    "baseUrl": "./",
+    "baseUrl": "./src",
     "paths": {
-      "*": ["src/*"]
+      "*": ["*", "shared/*"]
     }
   },
-  "include": ["src/shared/**/*"],
+  "include": ["src/**/*"],
   "exclude": ["node_modules", "dist"]
 }

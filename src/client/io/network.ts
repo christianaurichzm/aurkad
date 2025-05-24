@@ -1,18 +1,23 @@
 import {
-  HttpRequestOptions,
-  Player,
-  MapStateClient,
   ClientAction,
   ClientChatAction,
   ChatScope,
-  RuntimeNpc,
-  Item,
+  MapStateClient,
+  Player,
   Access,
-  Shop,
+  HttpRequestOptions,
+  Item,
   ProductDetailed,
   ProductRaw,
+  RuntimeNpc,
+  Shop,
 } from '../../shared/types';
-import { getGameState, setPlayer, updateGameState } from '../core/gameState';
+import {
+  getGameState,
+  getPlayer,
+  patchGameState,
+  setFullGameState,
+} from '../core/gameState';
 import { hideConnectionStatus, showConnectionStatus } from '../ui/hud';
 import { displayChatMessage } from '../ui/chat';
 import { renderEquipment, renderInventory } from '../graphics/inventory';
@@ -23,7 +28,7 @@ const WS_URL = `${process.env.WS_PROTOCOL}://${process.env.APP_API_URL}/ws`;
 let socket: WebSocket;
 let reconnectAttempts = 0;
 
-const gameStateQueue: { map: MapStateClient; player: Player }[] = [];
+const gameStateQueue: any[] = [];
 const chatQueue: ClientChatAction[] = [];
 
 const scheduleReconnect = () => {
@@ -62,17 +67,32 @@ export const initializeWebSocket = () => {
     try {
       const data = JSON.parse(event.data);
 
-      if (data.type === 'chat') {
-        chatQueue.push(data);
-      } else if (data.type === 'kick') {
-        alert(data.message || 'You have been kicked from the game.');
-        window.location.reload();
-        return;
-      } else if (data.type === 'openShop' && data.shopId) {
-        openShopWindow(data.shopId);
-        return;
-      } else if (data.map && data.player) {
-        gameStateQueue.push(data);
+      switch (data.type) {
+        case 'chat':
+          chatQueue.push(data);
+          break;
+        case 'kick':
+          alert(data.message || 'You have been kicked from the game.');
+          window.location.reload();
+          break;
+        case 'openShop':
+          if (data.shopId) {
+            openShopWindow(data.shopId);
+          }
+          break;
+        case 'fullGameState':
+        case 'gameStateDelta':
+          gameStateQueue.push(data);
+          break;
+        default:
+          if (data.map && data.player) {
+            console.warn(
+              'Received legacy game state format. Treating as full update.',
+            );
+            gameStateQueue.push({ type: 'fullGameState', payload: data });
+          } else {
+            console.warn('Received unknown WebSocket message type:', data.type);
+          }
       }
     } catch (err) {
       console.error('[Client] WebSocket message error:', err);
@@ -104,11 +124,18 @@ export function updateWebSocket(): void {
   while (gameStateQueue.length > 0) {
     const message = gameStateQueue.shift();
 
-    if (message) {
-      updateGameState(message.map);
-      setPlayer(message.player);
-      renderInventory(message.player);
-      renderEquipment(message.player);
+    if (message?.payload) {
+      if (message.type === 'fullGameState') {
+        setFullGameState(message.payload);
+      } else if (message.type === 'gameStateDelta') {
+        patchGameState(message.payload);
+      }
+
+      const currentPlayer = getPlayer();
+      if (currentPlayer) {
+        renderInventory(currentPlayer);
+        renderEquipment(currentPlayer);
+      }
     }
   }
 }
@@ -141,15 +168,12 @@ export function sendChatMessage() {
   input.value = '';
 }
 
-export function sendAction(action: ClientAction): Promise<void> {
-  return new Promise((resolve) => {
-    if (socket?.readyState === WebSocket.OPEN) {
-      socket.send(JSON.stringify(action));
-    } else {
-      console.warn('WebSocket not open. Action skipped.');
-    }
-    resolve();
-  });
+export function sendAction(action: ClientAction): void {
+  if (socket?.readyState === WebSocket.OPEN) {
+    socket.send(JSON.stringify(action));
+  } else {
+    console.warn('WebSocket not open. Action skipped:', action.type);
+  }
 }
 
 export async function loadImageFromBin(url: string): Promise<HTMLImageElement> {
@@ -253,7 +277,7 @@ export async function openContentEditor(): Promise<boolean> {
 
 export const saveMap = async (newMapTiles: MapStateClient['tiles']) => {
   const mapData = {
-    mapId: getGameState().id,
+    mapId: getGameState()?.id,
     tiles: newMapTiles,
   };
 

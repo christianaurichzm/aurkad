@@ -89,7 +89,11 @@ export const renderItemIcon = (
 
 export function selectItem(item: InventoryItemDetailed): void {
   selectedItem = item;
-  renderInventory(getPlayer());
+  const player = getPlayer();
+
+  if (player) {
+    renderInventory(player);
+  }
 }
 
 export function renderInventory(player: Player) {
@@ -216,8 +220,10 @@ export const toggleInventory = () => {
     inventoryContainer.style.display = isInventoryOpen ? 'block' : 'none';
 
     if (isInventoryOpen) {
-      renderInventory(getPlayer());
-      renderEquipment(getPlayer());
+      const player = getPlayer();
+      if (!player) return;
+      renderInventory(player);
+      renderEquipment(player);
     }
   }
 };

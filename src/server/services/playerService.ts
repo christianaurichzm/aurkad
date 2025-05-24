@@ -112,21 +112,21 @@ export const respawnPlayer = (player: PlayerServer): void => {
   addPlayerOnMap(player.id);
 };
 
-export async function enrichPlayer(player: PlayerServer): Promise<Player> {
-  const detailedInventory: InventoryItemDetailed[] = await Promise.all(
-    player.inventory.items.map(async (entry) => {
-      const item = await getItemById(entry.item);
+export function enrichPlayer(player: PlayerServer): Player {
+  const detailedInventory: InventoryItemDetailed[] = player.inventory.items.map(
+    (entry) => {
+      const item = getItemById(entry.item);
 
       if (!item) throw new Error(`Item ${entry.item} not found`);
       return { item, quantity: entry.quantity };
-    }),
+    },
   );
 
   const equipped: EquippedItemsDetailed = {};
   for (const slot of EQUIPMENT_SLOTS) {
     const itemId = player.equipped[slot];
     if (itemId) {
-      const item = await getItemById(itemId);
+      const item = getItemById(itemId);
       if (item) equipped[slot] = item;
     }
   }

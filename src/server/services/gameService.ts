@@ -21,6 +21,7 @@ import {
   players,
   pressedKeysMap,
 } from '../gameData';
+import { lastSentStates } from '../wsServer';
 import { handleAttack } from './combatService';
 import { pickUpItem } from './inventoryService';
 import { insertModeCell, updatePlayerMap } from './mapService';
@@ -320,5 +321,6 @@ export const disconnectPlayer = async (username?: string) => {
   await persistPlayerSessionState(player);
   if (players[player.id]) {
     delete players[player.id];
+    lastSentStates.delete(player.name);
   }
 };

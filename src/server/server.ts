@@ -100,7 +100,7 @@ app.post('/login', async (req: Request, res: Response) => {
     const player = await login(username);
     if (!player) return res.status(404).send('User not found');
 
-    const enrichedPlayer = await enrichPlayer(player);
+    const enrichedPlayer = enrichPlayer(player);
 
     req.session.username = username;
     req.session.accessLevel = player.access;
@@ -537,7 +537,7 @@ app.post('/shop/buy', checkAccess(Access.USER), async (req, res) => {
   const success = await buyShopItem(player, itemId, shop);
 
   if (success) {
-    const enrichedPlayer = await enrichPlayer(player);
+    const enrichedPlayer = enrichPlayer(player);
     return res.status(200).json({
       message: 'Purchase completed successfully!',
       inventory: enrichedPlayer.inventory,

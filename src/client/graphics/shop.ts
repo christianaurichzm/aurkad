@@ -89,8 +89,11 @@ export async function openShopWindow(shopId: string) {
           () => null,
         );
         if (result?.success) {
-          renderInventory(getPlayer());
-          modal.close();
+          const player = getPlayer();
+          if (player) {
+            renderInventory(player);
+            modal.close();
+          }
         } else {
           alert(result?.message || 'Error while purchasing.');
           buyBtn.textContent = 'Buy';

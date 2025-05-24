@@ -11,6 +11,8 @@ import {
   ActionQueueItem,
   ChatMessagePayload,
   ServerAction,
+  MapStateClient,
+  Player,
 } from '../shared/types';
 import { getMap } from './gameData';
 import { ExtendedRequest } from './server';
@@ -25,10 +27,21 @@ import {
 import { handleItemAction } from './services/inventoryService';
 import { updateNpcs } from './services/npcService';
 import { enrichPlayer, getPlayerByName } from './services/playerService';
+import * as jsondiffpatch from 'jsondiffpatch';
 
 let wss: WebSocketServer;
 
 export const playersWsMap = new Map<string, WebSocket>();
+
+const diffPatcher = jsondiffpatch.create({
+  objectHash: (obj: any, index?: number): string | undefined => {
+    return obj.id || obj.name || `$$index:${index}`;
+  },
+  arrays: {
+    detectMove: true,
+    includeValueOnMove: false,
+  },
+});
 
 export const startWebSocketServer = (
   server: Server,
@@ -220,20 +233,53 @@ function handleServerAction(action: ServerAction) {
   }
 }
 
+export const lastSentStates = new Map<
+  string,
+  { map: MapStateClient; player: Player }
+>();
+
 function broadcastGameState() {
   const gameState = getGameState();
-  Object.values(gameState.maps).forEach(async (map) => {
-    await Promise.all(
-      Object.values(map.players).map(async (player) => {
-        const enrichedPlayer = await enrichPlayer(player);
-        const message = JSON.stringify({ map, player: enrichedPlayer });
-        const ws = playersWsMap.get(player.name);
-        if (ws?.readyState === WebSocket.OPEN) {
-          ws.send(message);
+
+  for (const map of Object.values(gameState.maps)) {
+    for (const player of Object.values(map.players)) {
+      const ws = playersWsMap.get(player.name);
+
+      if (ws?.readyState === WebSocket.OPEN) {
+        try {
+          const enrichedPlayer = enrichPlayer(player);
+
+          const currentState = JSON.parse(
+            JSON.stringify({
+              map: map,
+              player: enrichedPlayer,
+            }),
+          );
+
+          const lastState = lastSentStates.get(player.name);
+          let message: { type: string; payload: any } | null = null;
+
+          if (!lastState) {
+            message = { type: 'fullGameState', payload: currentState };
+          } else {
+            const delta = diffPatcher.diff(lastState, currentState);
+
+            if (delta) {
+              message = { type: 'gameStateDelta', payload: delta };
+            }
+          }
+
+          if (message) {
+            ws.send(JSON.stringify(message));
+
+            lastSentStates.set(player.name, currentState);
+          }
+        } catch (error) {
+          console.error(`Error broadcasting to ${player.name}:`, error);
         }
-      }),
-    );
-  });
+      }
+    }
+  }
 }
 
 export { broadcastGameState as broadcast };

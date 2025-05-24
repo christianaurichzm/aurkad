@@ -54,16 +54,20 @@ export const hasCollision = (character: CombatTarget): boolean => {
     ...Object.values(players),
   ].some((other) => other.id !== character.id && isColliding(character, other));
 
+  if (characterCollision) return true;
+
   const tileCollision =
     isTileBlocked(map, x, y) ||
     isTileBlocked(map, x + width - 1, y) ||
     isTileBlocked(map, x, y + height - 1) ||
     isTileBlocked(map, x + width - 1, y + height - 1);
 
+  if (tileCollision) return true;
+
   const borderCollision =
     x < 0 || y < 0 || x + width > GAME_WIDTH || y + height > GAME_HEIGHT;
 
-  return characterCollision || tileCollision || borderCollision;
+  return borderCollision;
 };
 
 export const hasWarp = (character: CombatTarget): Warp | undefined => {

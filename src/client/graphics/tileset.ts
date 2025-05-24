@@ -432,7 +432,7 @@ export const toggleTilesetEditor = () => {
     activeMode = null;
   } else {
     const gameState = getGameState();
-    if (gameState.tiles) {
+    if (gameState?.tiles) {
       updateEditorMap(gameState.tiles);
     } else {
       map = Array.from({ length: mapHeight }, () =>

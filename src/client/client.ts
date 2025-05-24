@@ -9,7 +9,7 @@ import {
 } from '../server/domHelpers';
 import { MapStateClient, Player } from '../shared/types';
 import { gameLoop } from './core/game';
-import { setPlayer, updateGameState } from './core/gameState';
+import { setFullGameState } from './core/gameState';
 import { renderMap } from './graphics/tileset';
 import { initializeAssets } from './io/files';
 import { handleInput } from './io/keyboard';
@@ -69,9 +69,8 @@ async function processLoginSuccess(data: {
   map: MapStateClient;
   player: Player;
 }) {
-  const { map, player } = data;
-  updateGameState(map);
-  setPlayer(player);
+  const { map } = data;
+  setFullGameState(data);
   toggleContainers(map);
   handleInput();
   initializeWebSocket();
