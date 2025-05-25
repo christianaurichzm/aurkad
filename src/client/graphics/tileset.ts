@@ -167,10 +167,14 @@ const toggleMode = (mode: TileEditMode) => {
 
 const getMousePosition = (event: MouseEvent, canvas: HTMLCanvasElement) => {
   const rect = canvas.getBoundingClientRect();
-  return {
-    x: event.clientX - rect.left,
-    y: event.clientY - rect.top,
-  };
+
+  const scaleX = canvas.width / rect.width;
+  const scaleY = canvas.height / rect.height;
+
+  const x = (event.clientX - rect.left) * scaleX;
+  const y = (event.clientY - rect.top) * scaleY;
+
+  return { x, y };
 };
 
 const startSelecting = (event: MouseEvent) => {
@@ -349,7 +353,7 @@ const drawHoverCell = () => {
   gridCtx.fillStyle = 'black';
   gridCtx.font = '12px Arial';
   gridCtx.fillText(
-    `(${col * TILE_SIZE}, ${row * TILE_SIZE})`,
+    `(${col}, ${row})`,
     col * TILE_SIZE + 4,
     row * TILE_SIZE + 24,
   );
