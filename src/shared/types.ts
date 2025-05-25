@@ -41,6 +41,7 @@ export enum Access {
 
 export enum ServerActionType {
   UpdateNpcPositions = 'UpdateNpcPositions',
+  RegeneratePlayersHP = 'RegeneratePlayersHP',
 }
 
 export interface Position {

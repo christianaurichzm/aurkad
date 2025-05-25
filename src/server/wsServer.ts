@@ -28,6 +28,7 @@ import { handleItemAction } from './services/inventoryService';
 import { updateNpcs } from './services/npcService';
 import { enrichPlayer, getPlayerByName } from './services/playerService';
 import * as jsondiffpatch from 'jsondiffpatch';
+import { REGEN_PERCENT, MIN_REGEN } from '../shared/constants';
 
 let wss: WebSocketServer;
 
@@ -171,6 +172,10 @@ export function startGameLoops() {
   setInterval(() => {
     enqueueAction({ action: ServerActionType.UpdateNpcPositions });
   }, 1000);
+
+  setInterval(() => {
+    enqueueAction({ action: ServerActionType.RegeneratePlayersHP });
+  }, 5000);
 }
 
 export function broadcastChat(message: ChatMessagePayload) {
@@ -227,6 +232,22 @@ function handleServerAction(action: ServerAction) {
       Object.values(getGameState().maps).forEach((map) => {
         Object.values(map.npcs).forEach((npc) => {
           updateNpcs(npc, map);
+        });
+      });
+      break;
+    case ServerActionType.RegeneratePlayersHP:
+      Object.values(getGameState().maps).forEach((map) => {
+        Object.values(map.players).forEach((player) => {
+          if (player.health < player.maxHealth) {
+            const regenAmount = Math.max(
+              Math.floor(player.maxHealth * REGEN_PERCENT),
+              MIN_REGEN,
+            );
+            player.health = Math.min(
+              player.health + regenAmount,
+              player.maxHealth,
+            );
+          }
         });
       });
       break;
