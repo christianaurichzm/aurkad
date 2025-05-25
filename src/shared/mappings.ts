@@ -5,6 +5,7 @@ export const playerActionToActionColumnRecord: Record<CharacterAction, number> =
     [CharacterAction.Idle]: 0,
     [CharacterAction.Walk]: 2,
     [CharacterAction.Attack]: 2,
+    [CharacterAction.Run]: 2,
   };
 
 export const playerNameColorRecord: Record<Access, string> = {

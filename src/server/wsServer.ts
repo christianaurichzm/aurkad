@@ -11,8 +11,8 @@ import {
   ActionQueueItem,
   ChatMessagePayload,
   ServerAction,
-  MapStateClient,
   Player,
+  MapStateServer,
 } from '../shared/types';
 import { getMap } from './gameData';
 import { ExtendedRequest } from './server';
@@ -21,8 +21,8 @@ import {
   disconnectPlayer,
   handleKeyAction,
   getGameState,
-  processMovement,
-  processInputMovement,
+  processMovementIntent,
+  processMovementCompletion,
 } from './services/gameService';
 import { handleItemAction } from './services/inventoryService';
 import { updateNpcs } from './services/npcService';
@@ -139,7 +139,7 @@ export async function processActions() {
 }
 
 export function startGameLoops() {
-  const TICK_RATE = process.env.TICK_RATE ? Number(process.env.TICK_RATE) : 10;
+  const TICK_RATE = process.env.TICK_RATE ? Number(process.env.TICK_RATE) : 20;
   const MAX_UPDATES_PER_TICK = process.env.MAX_UPDATES_PER_TICK
     ? Number(process.env.MAX_UPDATES_PER_TICK)
     : 2;
@@ -155,9 +155,9 @@ export function startGameLoops() {
       now - lastUpdateTime >= tickInterval &&
       updates < MAX_UPDATES_PER_TICK
     ) {
-      processInputMovement();
-      processMovement();
       processActions();
+      processMovementIntent();
+      processMovementCompletion();
       broadcastGameState();
       lastUpdateTime += tickInterval;
       updates++;
@@ -235,7 +235,7 @@ function handleServerAction(action: ServerAction) {
 
 export const lastSentStates = new Map<
   string,
-  { map: MapStateClient; player: Player }
+  { map: MapStateServer; player: Player }
 >();
 
 function broadcastGameState() {
@@ -245,38 +245,41 @@ function broadcastGameState() {
     for (const player of Object.values(map.players)) {
       const ws = playersWsMap.get(player.name);
 
-      if (ws?.readyState === WebSocket.OPEN) {
-        try {
-          const enrichedPlayer = enrichPlayer(player);
+      if (ws?.readyState !== WebSocket.OPEN) {
+        continue;
+      }
 
-          const currentState = JSON.parse(
-            JSON.stringify({
-              map: map,
-              player: enrichedPlayer,
-            }),
-          );
+      try {
+        const enrichedPlayer = enrichPlayer(player);
 
-          const lastState = lastSentStates.get(player.name);
-          let message: { type: string; payload: any } | null = null;
+        const currentState = structuredClone({
+          map: {
+            ...map,
+            players: Object.fromEntries(
+              Object.entries(map.players).filter(([id]) => id !== player.id),
+            ),
+          },
+          player: enrichedPlayer,
+        });
 
-          if (!lastState) {
-            message = { type: 'fullGameState', payload: currentState };
-          } else {
-            const delta = diffPatcher.diff(lastState, currentState);
+        const lastState = lastSentStates.get(player.name);
+        let message: { type: string; payload: any } | null = null;
 
-            if (delta) {
-              message = { type: 'gameStateDelta', payload: delta };
-            }
+        if (!lastState) {
+          message = { type: 'fullGameState', payload: currentState };
+        } else {
+          const delta = diffPatcher.diff(lastState, currentState);
+          if (delta) {
+            message = { type: 'gameStateDelta', payload: delta };
           }
-
-          if (message) {
-            ws.send(JSON.stringify(message));
-
-            lastSentStates.set(player.name, currentState);
-          }
-        } catch (error) {
-          console.error(`Error broadcasting to ${player.name}:`, error);
         }
+
+        if (message) {
+          ws.send(JSON.stringify(message));
+          lastSentStates.set(player.name, currentState);
+        }
+      } catch (error) {
+        console.error(`Error broadcasting to ${player.name}:`, error);
       }
     }
   }

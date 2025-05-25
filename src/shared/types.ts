@@ -24,6 +24,7 @@ export enum Direction {
 export enum CharacterAction {
   Idle = 'Idle',
   Walk = 'Walk',
+  Run = 'Run',
   Attack = 'Attack',
 }
 
@@ -132,6 +133,8 @@ export interface CharacterRuntime {
   position: Position;
   targetPosition?: Position;
   moving?: boolean;
+  moveStartTime?: number;
+  currentMoveDuration?: number;
   mapId: string;
   direction: Direction;
   action: CharacterAction;

@@ -1,4 +1,8 @@
-import { TILE_SIZE } from '../../shared/constants';
+import {
+  MOVEMENT_DURATION,
+  RUN_MOVEMENT_DURATION,
+  TILE_SIZE,
+} from '../../shared/constants';
 import {
   CharacterAction,
   Direction,
@@ -6,6 +10,7 @@ import {
   Position,
   DroppedItem,
   RuntimeNpcsMap,
+  Player,
 } from '../../shared/types';
 import { getGameState, getPlayer } from '../core/gameState';
 import { spriteSheet } from '../io/files';
@@ -36,10 +41,89 @@ const renderEntity = (entity: {
     entity.position.y,
   );
 };
+interface MovementStep {
+  from: Position;
+  to: Position;
+  startTime: number;
+  duration: number;
+}
 
-const renderPlayers = (players: PlayersMap) => {
+const movementQueues = new Map<string, MovementStep[]>();
+
+export function onServerPositionUpdate(
+  playerId: string,
+  from: Position,
+  to: Position,
+) {
+  if (from.x === to.x && from.y === to.y) return;
+
+  const queue = movementQueues.get(playerId) || [];
+  const lastPos = queue.length > 0 ? queue[queue.length - 1].to : from;
+
+  const gameState = getGameState();
+  const clientPlayer = getPlayer();
+  let playerState: Player | null = null;
+
+  if (gameState?.players?.[playerId]) {
+    playerState = gameState.players[playerId];
+  } else if (clientPlayer?.id === playerId) {
+    playerState = clientPlayer;
+  }
+
+  const isRunning = playerState?.action === CharacterAction.Run;
+  const duration = isRunning ? RUN_MOVEMENT_DURATION : MOVEMENT_DURATION;
+
+  queue.push({
+    from: lastPos,
+    to,
+    startTime: performance.now(),
+    duration: duration,
+  });
+
+  movementQueues.set(playerId, queue);
+}
+
+function getAnimatedPosition(playerId: string): Position {
+  const queue = movementQueues.get(playerId);
+
+  const gameState = getGameState();
+  const localPlayer = getPlayer();
+  let player: Player | null = null;
+  if (gameState?.players?.[playerId]) {
+    player = gameState.players[playerId];
+  } else if (localPlayer?.id === playerId) {
+    player = localPlayer;
+  }
+
+  if (!queue || queue.length === 0) {
+    return player ? player.position : { x: 0, y: 0 };
+  }
+
+  const step = queue[0];
+  const now = performance.now();
+  const elapsed = now - step.startTime;
+  const t = Math.min(elapsed / step.duration, 1);
+
+  const x = step.from.x + (step.to.x - step.from.x) * t;
+  const y = step.from.y + (step.to.y - step.from.y) * t;
+
+  if (t >= 1) {
+    queue.shift();
+    movementQueues.set(playerId, queue);
+
+    return step.to;
+  }
+
+  return { x, y };
+}
+
+export const renderPlayers = (players: PlayersMap) => {
   Object.values(players).forEach((player) => {
-    renderEntity(player);
+    const smoothPosition = getAnimatedPosition(player.id);
+    renderEntity({
+      ...player,
+      position: smoothPosition,
+    });
     renderHUD(player);
   });
 };
@@ -133,14 +217,12 @@ export function drawSprite(
 
 export const render = () => {
   const map = getGameState();
+  const currentPlayer = getPlayer();
 
   if (map) {
     const mapName = document.getElementById('mapName') as HTMLElement;
     mapName.textContent = `${map.id} - ${map.name}`;
-
-    if (map.type === 'pvp' && mapName.style.color !== 'red') {
-      mapName.style.color = 'red';
-    }
+    if (map.type === 'pvp') mapName.style.color = 'red';
 
     playerCtx.clearRect(0, 0, foregroundCanvas.width, foregroundCanvas.height);
     if (!mapEdited) {
@@ -155,11 +237,23 @@ export const render = () => {
     itemCtx.clearRect(0, 0, itemCanvas.width, itemCanvas.height);
 
     renderDroppedItems(map.droppedItems);
+
     renderPlayers(map.players);
-    renderNpcs(map.npcs);
-    const currentPlayer = getPlayer();
+
     if (currentPlayer) {
+      const smoothPosition = getAnimatedPosition(currentPlayer.id);
+
+      const player = {
+        ...currentPlayer,
+        position: smoothPosition,
+      };
+
+      renderEntity(player);
+
+      renderHUD(player);
       updatePlayerHealthBar(currentPlayer);
     }
+
+    renderNpcs(map.npcs);
   }
 };

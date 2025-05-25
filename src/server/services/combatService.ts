@@ -118,7 +118,7 @@ export const handleAttack = async (attacker: PlayerServer): Promise<void> => {
       for (const drop of attackTarget.itemsToDrop ?? []) {
         const roll = Math.random() * 100;
         if (roll <= drop.chance) {
-          const item = await getItemById(drop.itemId);
+          const item = getItemById(drop.itemId);
           if (!item) {
             console.warn(`[drop] Item not found: ${drop.itemId}`);
             continue;

@@ -21,8 +21,8 @@ import PlayerModel from '../model/Player';
 import { addPlayer, getPlayer, players, updatePlayer } from '../gameData';
 import { addPlayerOnMap, removePlayerFromMap } from './mapService';
 import { getItemById } from './inventoryService';
-import { handlePlayerUpdate } from './gameService';
 import { broadcast } from '../wsServer';
+import { handlePlayerUpdate } from './gameService';
 
 export async function getPlayerById(id: string): Promise<PlayerServer | null> {
   return await PlayerModel.findOne({ id }).lean<PlayerServer>().exec();
@@ -113,7 +113,7 @@ export const respawnPlayer = (player: PlayerServer): void => {
 };
 
 export function enrichPlayer(player: PlayerServer): Player {
-  const detailedInventory: InventoryItemDetailed[] = player.inventory.items.map(
+  const inventory: InventoryItemDetailed[] = player.inventory.items.map(
     (entry) => {
       const item = getItemById(entry.item);
 
@@ -131,13 +131,35 @@ export function enrichPlayer(player: PlayerServer): Player {
     }
   }
 
-  const { inventory, equipped: _, ...rest } = player;
+  const {
+    id,
+    name,
+    level,
+    access,
+    action,
+    direction,
+    sprite,
+    position,
+    maxHealth,
+    health,
+    targetPosition,
+  } = player;
 
   return {
-    ...rest,
-    inventory: detailedInventory,
+    id,
+    name,
+    level,
+    access,
+    maxHealth,
+    health,
+    action,
+    direction,
+    sprite,
+    position,
+    inventory,
     equipped,
-  };
+    targetPosition,
+  } as Player;
 }
 
 export const getPlayerByName = (username: string): PlayerServer | undefined =>

@@ -22,6 +22,7 @@ import { hideConnectionStatus, showConnectionStatus } from '../ui/hud';
 import { displayChatMessage } from '../ui/chat';
 import { renderEquipment, renderInventory } from '../graphics/inventory';
 import { openShopWindow } from '../graphics/shop';
+import { onServerPositionUpdate } from '../graphics/render';
 
 const WS_URL = `${process.env.WS_PROTOCOL}://${process.env.APP_API_URL}/ws`;
 
@@ -124,17 +125,34 @@ export function updateWebSocket(): void {
   while (gameStateQueue.length > 0) {
     const message = gameStateQueue.shift();
 
-    if (message?.payload) {
-      if (message.type === 'fullGameState') {
-        setFullGameState(message.payload);
-      } else if (message.type === 'gameStateDelta') {
-        patchGameState(message.payload);
-      }
+    if (!message?.payload) continue;
 
-      const currentPlayer = getPlayer();
-      if (currentPlayer) {
-        renderInventory(currentPlayer);
-        renderEquipment(currentPlayer);
+    const previousPlayer = structuredClone(getPlayer());
+
+    if (message.type === 'fullGameState') {
+      setFullGameState(message.payload);
+    } else if (message.type === 'gameStateDelta') {
+      patchGameState(message.payload);
+    }
+
+    const currentPlayer = getPlayer();
+
+    if (currentPlayer) {
+      renderInventory(currentPlayer);
+      renderEquipment(currentPlayer);
+    }
+
+    if (previousPlayer && currentPlayer) {
+      const moved =
+        previousPlayer.position.x !== currentPlayer.position.x ||
+        previousPlayer.position.y !== currentPlayer.position.y;
+
+      if (moved) {
+        onServerPositionUpdate(
+          currentPlayer.id,
+          previousPlayer.position,
+          currentPlayer.position,
+        );
       }
     }
   }

@@ -1,4 +1,3 @@
-import { changeSprite } from '../io/network';
 import { SPRITE_HEIGHT, SPRITE_WIDTH } from '../../shared/constants';
 
 const TOTAL_CHARACTER_ROWS = 4;
