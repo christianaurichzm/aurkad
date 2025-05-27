@@ -2,8 +2,12 @@ import {
   ClientChatAction,
   ServerChatAction,
   ChatMessagePayload,
-} from '../../shared/types';
-import { broadcastChat, broadcastMapChat, broadcastToMap } from '../wsServer';
+} from '../../shared/types.js';
+import {
+  broadcastChat,
+  broadcastMapChat,
+  broadcastToMap,
+} from '../wsServer.js';
 
 function isClientChatAction(
   action: ClientChatAction | ServerChatAction,

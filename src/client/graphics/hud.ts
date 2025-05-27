@@ -1,5 +1,5 @@
 import { RuntimeNpc, Player } from '../../shared/types';
-import { playerCtx } from '../graphics/canvas';
+import { playerCtx } from './canvas';
 import { playerNameColorRecord } from '../../shared/mappings';
 
 export const renderHUD = (player: Player) => {

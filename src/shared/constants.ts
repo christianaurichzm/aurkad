@@ -1,4 +1,4 @@
-import { Position } from './types';
+import { Position } from './types.js';
 
 export const SPRITE_WIDTH = 64;
 export const SPRITE_HEIGHT = 64;
@@ -25,4 +25,3 @@ export const EQUIPMENT_SLOTS = [
   'gloves',
   'boots',
 ] as const;
-export const IMAGES_PATH = process.env.IMAGES_BASE_URL || '.';

@@ -1,6 +1,6 @@
-import ShopModel from '../model/Shop';
-import { PlayerServer, ProductRaw, Shop } from '../../shared/types';
-import { updatePlayer } from '../gameData';
+import ShopModel from '../model/Shop.js';
+import { PlayerServer, ProductRaw, Shop } from '../../shared/types.js';
+import { updatePlayer } from '../gameData.js';
 
 export async function getShopById(id: string): Promise<Shop | null> {
   return await ShopModel.findOne({ id }).lean<Shop>().exec();

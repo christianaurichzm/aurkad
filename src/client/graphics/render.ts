@@ -1,4 +1,5 @@
 import {
+  ITEM_SIZE,
   MOVEMENT_DURATION,
   RUN_MOVEMENT_DURATION,
   TILE_SIZE,
@@ -13,8 +14,8 @@ import {
   Player,
 } from '../../shared/types';
 import { getGameState, getPlayer } from '../core/gameState';
-import { spriteSheet } from '../io/files';
-import { renderHealthBar, renderHUD, updatePlayerHealthBar } from '../ui/hud';
+import { items, spriteSheet } from '../io/files';
+import { renderHealthBar, renderHUD, updatePlayerHealthBar } from './hud';
 import {
   foregroundCanvas,
   foregroundCtx,
@@ -23,9 +24,69 @@ import {
   playerCtx,
 } from './canvas';
 import { playerActionToActionColumnRecord } from '../../shared/mappings';
-import { renderItemIcon } from './inventory';
 import { getCharacterSpriteCoordinates, getSpriteSize } from './sprite';
 import { mapEdited, renderMap } from './tileset';
+
+export const getSpriteCoordinates = (spriteId: number, sheetWidth: number) => {
+  const cols = sheetWidth / ITEM_SIZE;
+  const x = (spriteId % cols) * ITEM_SIZE;
+  const y = Math.floor(spriteId / cols) * ITEM_SIZE;
+  return { x, y };
+};
+
+export const renderItemIcon = (
+  ctx: CanvasRenderingContext2D,
+  spriteId: number,
+  x: number,
+  y: number,
+  applyOffset: boolean = true,
+) => {
+  const { x: spriteX, y: spriteY } = getSpriteCoordinates(
+    spriteId,
+    items?.width,
+  );
+
+  const offsetX = applyOffset ? (TILE_SIZE - ITEM_SIZE) / 2 : 0;
+  const offsetY = applyOffset ? (TILE_SIZE - ITEM_SIZE) / 2 : 0;
+
+  ctx.drawImage(
+    items,
+    spriteX,
+    spriteY,
+    ITEM_SIZE,
+    ITEM_SIZE,
+    x + offsetX,
+    y + offsetY,
+    ITEM_SIZE,
+    ITEM_SIZE,
+  );
+};
+
+export function drawItemGeneric(
+  ctx: CanvasRenderingContext2D,
+  spriteId: number,
+  destX: number,
+  destY: number,
+  destW: number,
+  destH: number,
+) {
+  const { x: spriteX, y: spriteY } = getSpriteCoordinates(
+    spriteId,
+    items.naturalWidth,
+  );
+
+  ctx.drawImage(
+    items,
+    spriteX,
+    spriteY,
+    ITEM_SIZE,
+    ITEM_SIZE,
+    destX,
+    destY,
+    destW,
+    destH,
+  );
+}
 
 const renderEntity = (entity: {
   position: Position;

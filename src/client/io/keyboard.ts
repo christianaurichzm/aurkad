@@ -1,94 +1,64 @@
 import { ClientKeyboardAction, Key, Protocol } from '../../shared/types';
-import { toggleContentEditorMenu } from '../graphics/contentEditor';
-import { toggleInventory } from '../graphics/inventory';
-import { closeModMenu, toggleModMenu } from '../graphics/modMenu';
 import { keyRecord } from '../../shared/mappings';
-import {
-  initTilesetEditor,
-  tilesetEditorInitialized,
-  toggleTilesetEditor,
-} from '../graphics/tileset';
 import {
   openContentEditor,
   openMapEditor,
   openModEditor,
   sendAction,
-  sendChatMessage,
 } from './network';
 
 const isValidKey = (value: string): value is Key =>
   Object.values(Key).includes(value as Key);
 
 const isInputActive = (): boolean => {
-  const active = document.activeElement;
-  return !!active && (active.id === 'chatInput' || active.tagName === 'INPUT');
+  const a = document.activeElement;
+  return !!a && (a.id === 'chatInput' || a.tagName === 'INPUT');
 };
 
 const handleKeyPress = async (key: Key) => {
   switch (key) {
     case Key.x:
       if (await openModEditor()) {
-        toggleModMenu();
+        window.dispatchEvent(new Event('toggleModMenu'));
       }
       break;
     case Key.z:
       if (await openMapEditor()) {
-        if (!tilesetEditorInitialized) {
-          initTilesetEditor();
-        }
-        toggleTilesetEditor();
-        closeModMenu();
+        window.dispatchEvent(new Event('toggleTilesetEditor'));
       }
       break;
     case Key.c:
       if (await openContentEditor()) {
-        toggleContentEditorMenu();
+        window.dispatchEvent(new Event('toggleContentEditor'));
       }
       break;
     case Key.i:
-      toggleInventory();
-      break;
-    default:
+      window.dispatchEvent(new Event('toggleInventory'));
       break;
   }
 };
 
 export const handleInput = () => {
-  window.addEventListener('keydown', async (event: KeyboardEvent) => {
-    const { key } = event;
-
+  window.addEventListener('keydown', async (e) => {
     if (isInputActive()) return;
-
-    if (key in keyRecord) {
-      event.preventDefault();
-    }
-
-    if (isValidKey(key)) {
-      if (keyRecord[key] === Protocol.WS) {
+    if (e.key in keyRecord) e.preventDefault();
+    if (isValidKey(e.key)) {
+      if (keyRecord[e.key] === Protocol.WS) {
         sendAction({
-          keyboardAction: { key, type: 'press' },
+          keyboardAction: { key: e.key, type: 'press' },
           type: 'keyboard',
         } as ClientKeyboardAction);
       } else {
-        await handleKeyPress(key);
+        await handleKeyPress(e.key);
       }
     }
   });
-
-  window.addEventListener('keyup', (event: KeyboardEvent) => {
-    const { key } = event;
-    if (isValidKey(key)) {
+  window.addEventListener('keyup', (e) => {
+    if (isValidKey(e.key)) {
       sendAction({
-        keyboardAction: { key, type: 'release' },
+        keyboardAction: { key: e.key, type: 'release' },
         type: 'keyboard',
       } as ClientKeyboardAction);
     }
   });
 };
-
-document.getElementById('chatInput')?.addEventListener('keydown', (e) => {
-  if (e.key === 'Enter') {
-    e.preventDefault();
-    sendChatMessage();
-  }
-});

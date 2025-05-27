@@ -1,0 +1,66 @@
+.tileset-controls {
+  padding: 16px;
+  background: #f0f0f0;
+  border-radius: 8px;
+}
+
+.close-btn {
+  background: #2ecc40;
+  margin-bottom: 12px;
+}
+
+.save-btn {
+  background: #2ecc40;
+  margin-bottom: 12px;
+}
+
+.mode-controls {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.mode-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.mode-inputs {
+  display: none;
+  padding: 10px;
+  background: #fff;
+  border-radius: 6px;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.1);
+  gap: 8px;
+  flex-direction: column;
+}
+
+.mode-group.active .mode-inputs {
+  display: flex;
+}
+
+.editor-btn {
+  background: #2ecc40;
+  color: #fff;
+  border: none;
+  padding: 8px 14px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: 600;
+  transition: background 0.2s;
+}
+
+.editor-btn.small {
+  font-size: 0.85rem;
+  padding: 6px 10px;
+}
+
+.editor-btn:hover {
+  background: #219b3a;
+}
+
+.editor-btn.active {
+  background: #e74c3c !important;
+}
+

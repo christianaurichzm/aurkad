@@ -1,4 +1,4 @@
-import { TILE_SIZE } from '../../shared/constants';
+import { TILE_SIZE } from '../../shared/constants.js';
 import {
   Tile,
   MapStateServer,
@@ -7,12 +7,12 @@ import {
   RuntimeNpc,
   Direction,
   CharacterAction,
-} from '../../shared/types';
-import { getMap, updatePlayer, getPlayer, updateMap } from '../gameData';
+} from '../../shared/types.js';
+import { getMap, updatePlayer, getPlayer, updateMap } from '../gameData.js';
 
-import GameMapModel from '../model/Map';
-import { getItemById } from './inventoryService';
-import { getNpcById } from './npcService';
+import GameMapModel from '../model/Map.js';
+import { getItemById } from './inventoryService.js';
+import { getNpcById } from './npcService.js';
 
 export async function getMapById(id: string): Promise<MapStateServer | null> {
   return await GameMapModel.findOne({ id }).lean<MapStateServer>().exec();

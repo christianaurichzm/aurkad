@@ -18,13 +18,18 @@ import {
   patchGameState,
   setFullGameState,
 } from '../core/gameState';
-import { hideConnectionStatus, showConnectionStatus } from '../ui/hud';
-import { displayChatMessage } from '../ui/chat';
-import { renderEquipment, renderInventory } from '../graphics/inventory';
-import { openShopWindow } from '../graphics/shop';
+import { hideConnectionStatus, showConnectionStatus } from '../graphics/hud';
 import { onServerPositionUpdate } from '../graphics/render';
+import { displayChatMessage } from '../components/ChatPanel';
 
-const WS_URL = `${process.env.WS_PROTOCOL}://${process.env.APP_API_URL}/ws`;
+const API_URL = import.meta.env.VITE_APP_API_URL;
+const REST_PROTO = import.meta.env.VITE_REST_PROTOCOL;
+
+const clientWsProtocol = window.location.protocol === 'https:' ? 'wss' : 'ws';
+
+const clientHost = window.location.host;
+
+export const WS_URL = `${clientWsProtocol}://${clientHost}/ws`;
 
 let socket: WebSocket;
 let reconnectAttempts = 0;
@@ -78,7 +83,9 @@ export const initializeWebSocket = () => {
           break;
         case 'openShop':
           if (data.shopId) {
-            openShopWindow(data.shopId);
+            window.dispatchEvent(
+              new CustomEvent<string>('open-shop', { detail: data.shopId }),
+            );
           }
           break;
         case 'fullGameState':
@@ -136,11 +143,6 @@ export function updateWebSocket(): void {
     }
 
     const currentPlayer = getPlayer();
-
-    if (currentPlayer) {
-      renderInventory(currentPlayer);
-      renderEquipment(currentPlayer);
-    }
 
     if (previousPlayer && currentPlayer) {
       const moved =
@@ -221,18 +223,15 @@ export const httpClient = async <T>(
   endpoint: string,
   { method, headers, body }: HttpRequestOptions,
 ): Promise<T | null> => {
-  const response = await fetch(
-    `${process.env.REST_PROTOCOL}://${process.env.APP_API_URL}${endpoint}`,
-    {
-      method,
-      headers: {
-        'Content-Type': 'application/json',
-        ...headers,
-      },
-      body: body ? JSON.stringify(body) : undefined,
-      credentials: 'include',
+  const response = await fetch(`${REST_PROTO}://${API_URL}${endpoint}`, {
+    method,
+    headers: {
+      'Content-Type': 'application/json',
+      ...headers,
     },
-  );
+    body: body ? JSON.stringify(body) : undefined,
+    credentials: 'include',
+  });
 
   const contentType = response.headers.get('Content-Type');
   let data: any;

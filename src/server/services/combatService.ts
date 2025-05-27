@@ -4,12 +4,12 @@ import {
   MapStateServer,
   DroppedItem,
   CombatTarget,
-} from '../../shared/types';
-import { getMap, updatePlayer } from '../gameData';
-import { handleChatAction } from './chatService';
-import { getItemById } from './inventoryService';
-import { respawnNpc } from './npcService';
-import { respawnPlayer, levelUpPlayer } from './playerService';
+} from '../../shared/types.js';
+import { getMap, updatePlayer } from '../gameData.js';
+import { handleChatAction } from './chatService.js';
+import { getItemById } from './inventoryService.js';
+import { respawnNpc } from './npcService.js';
+import { respawnPlayer, levelUpPlayer } from './playerService.js';
 
 const isInAttackRange = (
   attacker: PlayerServer,

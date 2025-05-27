@@ -1,5 +1,5 @@
 import mongoose from 'mongoose';
-import { PositionSchema } from './schemas';
+import { PositionSchema } from './schemas.js';
 
 const InventoryItemSchema = new mongoose.Schema(
   {

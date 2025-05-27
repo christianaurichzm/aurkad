@@ -1,3 +1,18 @@
+const currentNodeVersion = process.versions.node;
+const [major] = currentNodeVersion.split('.').map(Number);
+
+const REQUIRED_MAJOR_VERSION = 17;
+
+if (major < REQUIRED_MAJOR_VERSION) {
+  process.exit(1);
+}
+
+import { fileURLToPath } from 'url';
+import { dirname } from 'path';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+
 import dotenv from 'dotenv';
 dotenv.config({
   path:
@@ -9,53 +24,51 @@ import { createServer } from 'http';
 import express, { Request, Response } from 'express';
 import https from 'https';
 import http from 'http';
-import app from './app';
-import { imageMap } from '../shared/mappings';
+import app from './app.js';
+import { imageMap } from '../shared/mappings.js';
 import path from 'path';
 
-import session from 'express-session';
 import {
   broadcast,
   playersWsMap,
   startGameLoops,
   startWebSocketServer,
-} from './wsServer';
-import { Access, PlayerServer } from '../shared/types';
-import checkAccess from './checkAccess';
-import { deleteNpcEverywhere, players } from './gameData';
-import {
-  IMAGES_PATH,
-  SPRITE_HEIGHT,
-  SPRITE_WIDTH,
-  TILE_SIZE,
-} from '../shared/constants';
+} from './wsServer.js';
+import { Access, PlayerServer } from '../shared/types.js';
+import checkAccess from './checkAccess.js';
+import { deleteNpcEverywhere, players } from './gameData.js';
+import { SPRITE_HEIGHT, SPRITE_WIDTH, TILE_SIZE } from '../shared/constants.js';
 import {
   login,
   mapSave,
   disconnectPlayer,
   handlePlayerUpdate,
-} from './services/gameService';
-import { addPlayerOnMap, removePlayerFromMap } from './services/mapService';
-import { connectToDatabase, loadInitialData } from './initDb';
-import { banPlayer, getBan, unbanPlayer } from './services/banService';
-import { buyShopItem, getShopById, listShops } from './services/shopService';
+} from './services/gameService.js';
+import { addPlayerOnMap, removePlayerFromMap } from './services/mapService.js';
+import { connectToDatabase, loadInitialData } from './initDb.js';
+import { banPlayer, getBan, unbanPlayer } from './services/banService.js';
+import { buyShopItem, getShopById, listShops } from './services/shopService.js';
 import {
   createOrUpdateItem,
   deleteItem,
   getItemById,
   listItems,
-} from './services/inventoryService';
+} from './services/inventoryService.js';
 import {
   changeSprite,
   enrichPlayer,
   getPlayerByName,
   persistPlayerSessionState,
-} from './services/playerService';
+} from './services/playerService.js';
 import {
   createOrUpdateNpc,
   listNpcs,
   updateNpcAll,
-} from './services/npcService';
+} from './services/npcService.js';
+
+export const IMAGES_PATH = process.env.IMAGES_BASE_URL || '.';
+
+import session from 'express-session';
 
 declare module 'express-session' {
   interface SessionData {
@@ -69,7 +82,6 @@ export type ExtendedRequest = Request & {
 };
 
 const port = process.env.PORT || 8080;
-const publicFolder = '../../public';
 
 const sessionMiddleware = session({
   secret: 'changeit',
@@ -97,21 +109,21 @@ app.post('/login', async (req: Request, res: Response) => {
   }
 
   try {
-    const player = await login(username);
-    if (!player) return res.status(404).send('User not found');
+    const basicPlayer = await login(username);
+    if (!basicPlayer) return res.status(404).send('User not found');
 
-    const enrichedPlayer = enrichPlayer(player);
+    const player = enrichPlayer(basicPlayer);
 
     req.session.username = username;
-    req.session.accessLevel = player.access;
-    players[player.id] = player;
-    const map = addPlayerOnMap(player.id);
+    req.session.accessLevel = basicPlayer.access;
+    players[basicPlayer.id] = basicPlayer;
+    const map = addPlayerOnMap(basicPlayer.id);
     req.session.save((err) => {
       if (err) {
         console.error('Session save failed:', err);
         return res.status(500).send('Failed to save session');
       }
-      res.status(200).json({ enrichedPlayer, map });
+      res.status(200).json({ player, map });
     });
   } catch (error) {
     console.error('Login failed:', error);
@@ -582,10 +594,13 @@ app.get('/assets/:name.bin', async (req, res) => {
   }
 });
 
-app.use(express.static(path.join(__dirname, publicFolder)));
-app.get('*', (_req, res) => {
-  res.sendFile(path.join(__dirname, `${publicFolder}/index.html`));
-});
+if (process.env.NODE_ENV === 'production') {
+  const clientDist = path.join(__dirname, '../client');
+  app.use(express.static(clientDist));
+  app.get('*', (_, res) => {
+    res.sendFile(path.join(clientDist, 'index.html'));
+  });
+}
 
 const server = createServer(app);
 

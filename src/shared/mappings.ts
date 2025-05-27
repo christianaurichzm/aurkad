@@ -1,4 +1,4 @@
-import { CharacterAction, Access, Key, Protocol } from './types';
+import { CharacterAction, Access, Key, Protocol } from './types.js';
 
 export const playerActionToActionColumnRecord: Record<CharacterAction, number> =
   {

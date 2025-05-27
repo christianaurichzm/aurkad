@@ -1,4 +1,4 @@
-import BanModel from '../model/Ban';
+import BanModel from '../model/Ban.js';
 
 export async function getBan(username: string) {
   return await BanModel.findOne({ username }).lean();

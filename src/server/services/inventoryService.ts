@@ -4,12 +4,12 @@ import {
   ClientItemAction,
   Item,
   ModifiablePlayerAttribute,
-} from '../../shared/types';
-import { updatePlayer, updateMap, items } from '../gameData';
-import ItemModel from '../model/Item';
-import { getNextItemId } from './dbService';
-import { EQUIPMENT_SLOTS } from '../../shared/constants';
-import { getPlayerByName } from './playerService';
+} from '../../shared/types.js';
+import { updatePlayer, updateMap, items } from '../gameData.js';
+import ItemModel from '../model/Item.js';
+import { getNextItemId } from './dbService.js';
+import { EQUIPMENT_SLOTS } from '../../shared/constants.js';
+import { getPlayerByName } from './playerService.js';
 
 export function getItemById(id: number): Item | null {
   return items.get(id) ?? null;
@@ -68,6 +68,7 @@ export const handleItemAction = (action: ClientItemAction) => {
       useItem(username, item);
       break;
     case 'drop':
+      // colocar no chao
       removeItemFromInventory(username, item);
       break;
     default:

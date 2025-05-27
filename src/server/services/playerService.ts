@@ -6,7 +6,7 @@ import {
   TILE_SIZE,
   FIRST_GAME_MAP_ID,
   EQUIPMENT_SLOTS,
-} from '../../shared/constants';
+} from '../../shared/constants.js';
 import {
   PlayerServer,
   Access,
@@ -15,14 +15,14 @@ import {
   EquippedItemsDetailed,
   InventoryItemDetailed,
   Player,
-} from '../../shared/types';
-import PlayerModel from '../model/Player';
+} from '../../shared/types.js';
+import PlayerModel from '../model/Player.js';
 
-import { addPlayer, getPlayer, players, updatePlayer } from '../gameData';
-import { addPlayerOnMap, removePlayerFromMap } from './mapService';
-import { getItemById } from './inventoryService';
-import { broadcast } from '../wsServer';
-import { handlePlayerUpdate } from './gameService';
+import { addPlayer, getPlayer, players, updatePlayer } from '../gameData.js';
+import { addPlayerOnMap, removePlayerFromMap } from './mapService.js';
+import { getItemById } from './inventoryService.js';
+import { broadcast } from '../wsServer.js';
+import { handlePlayerUpdate } from './gameService.js';
 
 export async function getPlayerById(id: string): Promise<PlayerServer | null> {
   return await PlayerModel.findOne({ id }).lean<PlayerServer>().exec();

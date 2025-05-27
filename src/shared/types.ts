@@ -1,4 +1,4 @@
-import { EQUIPMENT_SLOTS } from './constants';
+import { EQUIPMENT_SLOTS } from './constants.js';
 
 export enum Key {
   ArrowUp = 'ArrowUp',

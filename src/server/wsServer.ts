@@ -13,22 +13,22 @@ import {
   ServerAction,
   Player,
   MapStateServer,
-} from '../shared/types';
-import { getMap } from './gameData';
-import { ExtendedRequest } from './server';
-import { handleChatAction } from './services/chatService';
+} from '../shared/types.js';
+import { getMap } from './gameData.js';
+import { ExtendedRequest } from './server.js';
+import { handleChatAction } from './services/chatService.js';
 import {
   disconnectPlayer,
   handleKeyAction,
   getGameState,
   processMovementIntent,
   processMovementCompletion,
-} from './services/gameService';
-import { handleItemAction } from './services/inventoryService';
-import { updateNpcs } from './services/npcService';
-import { enrichPlayer, getPlayerByName } from './services/playerService';
+} from './services/gameService.js';
+import { handleItemAction } from './services/inventoryService.js';
+import { updateNpcs } from './services/npcService.js';
+import { enrichPlayer, getPlayerByName } from './services/playerService.js';
 import * as jsondiffpatch from 'jsondiffpatch';
-import { REGEN_PERCENT, MIN_REGEN } from '../shared/constants';
+import { REGEN_PERCENT, MIN_REGEN } from '../shared/constants.js';
 
 let wss: WebSocketServer;
 

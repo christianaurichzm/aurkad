@@ -1,7 +1,7 @@
 import mongoose from 'mongoose';
-import { insertNpcs, listMaps } from './services/mapService';
-import { items, runtimeState } from './gameData';
-import { listItems } from './services/inventoryService';
+import { insertNpcs, listMaps } from './services/mapService.js';
+import { items, runtimeState } from './gameData.js';
+import { listItems } from './services/inventoryService.js';
 
 export async function connectToDatabase() {
   try {

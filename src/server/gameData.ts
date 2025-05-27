@@ -5,13 +5,16 @@ import {
   MapStateServer,
   PlayerServer,
   PlayersServerMap,
-} from '../shared/types';
-import { getItemById } from './services/inventoryService';
+} from '../shared/types.js';
+import { getItemById } from './services/inventoryService.js';
 
-import { createOrUpdateMap } from './services/mapService';
-import { deleteNpc } from './services/npcService';
+import { createOrUpdateMap } from './services/mapService.js';
+import { deleteNpc } from './services/npcService.js';
 
-import { createOrUpdatePlayer, deletePlayer } from './services/playerService';
+import {
+  createOrUpdatePlayer,
+  deletePlayer,
+} from './services/playerService.js';
 
 export const players: PlayersServerMap = {};
 

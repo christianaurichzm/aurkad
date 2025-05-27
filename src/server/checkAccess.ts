@@ -1,5 +1,5 @@
 import { Request, Response, NextFunction } from 'express';
-import { Access } from '../shared/types';
+import { Access } from '../shared/types.js';
 
 const checkAccess = (requiredAccess: Access) => {
   return (req: Request, res: Response, next: NextFunction) => {

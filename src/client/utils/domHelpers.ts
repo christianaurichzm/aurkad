@@ -1,17 +1,16 @@
+import { capitalizeFirst } from '../../shared/utils';
+
 export function getEl<T extends HTMLElement = HTMLElement>(
   id: string,
 ): T | null {
   return document.getElementById(id) as T | null;
 }
 
-export function setInputValue(id: string, value: any) {
-  const el = getEl<HTMLInputElement | HTMLSelectElement>(id);
-  if (el) el.value = String(value);
-}
-
 export function getInputValue(id: string): string {
-  const el = getEl<HTMLInputElement | HTMLSelectElement>(id);
-  return el ? el.value : '';
+  const element = document.getElementById(id) as HTMLInputElement | null;
+  if (element) return element.value;
+
+  return (window as any)[`selected${capitalizeFirst(id)}`] || '';
 }
 
 export function setVisibility(id: string, visible: boolean, display = 'flex') {
@@ -22,6 +21,7 @@ export function setVisibility(id: string, visible: boolean, display = 'flex') {
 export function show(id: string, display = 'flex') {
   setVisibility(id, true, display);
 }
+
 export function hide(id: string) {
   setVisibility(id, false);
 }
@@ -58,11 +58,6 @@ export function safeParseFloat(value: any, fallback = 0): number {
   return isNaN(n) ? fallback : n;
 }
 
-export function clearChildren(id: string) {
-  const el = getEl(id);
-  if (el) el.innerHTML = '';
-}
-
 export async function withLoading(id: string, fn: () => Promise<any>) {
   const btn = getEl<HTMLButtonElement>(id);
   if (btn) btn.disabled = true;
@@ -71,8 +66,4 @@ export async function withLoading(id: string, fn: () => Promise<any>) {
   } finally {
     if (btn) btn.disabled = false;
   }
-}
-
-export function batchSetInputs(obj: Record<string, string | number>) {
-  Object.entries(obj).forEach(([id, value]) => setInputValue(id, value));
 }

@@ -5,7 +5,7 @@ import {
   MOVE_STEP,
   MOVEMENT_DURATION,
   RUN_MOVEMENT_DURATION,
-} from '../../shared/constants';
+} from '../../shared/constants.js';
 import {
   Key,
   Direction,
@@ -15,7 +15,7 @@ import {
   Tile,
   MapStateServer,
   Position,
-} from '../../shared/types';
+} from '../../shared/types.js';
 import {
   getMap,
   updateMapById,
@@ -23,19 +23,19 @@ import {
   updateMap,
   players,
   pressedKeysMap,
-} from '../gameData';
-import { lastSentStates } from '../wsServer';
-import { handleAttack } from './combatService';
-import { pickUpItem } from './inventoryService';
-import { insertModeCell, updatePlayerMap } from './mapService';
-import { hasCollision, hasWarp } from './physicsService';
+} from '../gameData.js';
+import { lastSentStates, playersWsMap } from '../wsServer.js';
+import { handleAttack } from './combatService.js';
+import { pickUpItem } from './inventoryService.js';
+import { insertModeCell, updatePlayerMap } from './mapService.js';
+import { hasCollision, hasWarp } from './physicsService.js';
 import {
   createPlayer,
   getPlayerByName,
   getPlayerByNameFromDb,
   handlePlayerUpdates,
   persistPlayerSessionState,
-} from './playerService';
+} from './playerService.js';
 
 export const delay = (ms: number) =>
   new Promise((resolve) => setTimeout(resolve, ms));
@@ -50,6 +50,25 @@ const handleWarpAndShops = (player: PlayerServer): void => {
     player.action = CharacterAction.Idle;
     player.moveStartTime = undefined;
     updatePlayerMap(player.id, player);
+    return;
+  }
+
+  const map = getMap(player.mapId);
+  if (map) {
+    const tileX = Math.round(player.position.x / TILE_SIZE);
+    const tileY = Math.round(player.position.y / TILE_SIZE);
+    const tile = map.tiles?.[tileY]?.[tileX];
+    if (tile?.shop) {
+      const ws = playersWsMap.get(player.name);
+      if (ws && ws.readyState === ws.OPEN) {
+        ws.send(
+          JSON.stringify({
+            type: 'openShop',
+            shopId: tile.shop,
+          }),
+        );
+      }
+    }
   }
 };
 

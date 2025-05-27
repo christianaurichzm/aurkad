@@ -7,25 +7,48 @@ import {
   safeParseInt,
   withLoading,
   removeEvent,
-} from '../../server/domHelpers';
+} from '../utils/domHelpers';
 import { TILE_SIZE } from '../../shared/constants';
 import { Tile, TileEditMode } from '../../shared/types';
-import { getGameState } from '../core/gameState';
 import { tileset } from '../io/files';
-import { fetchItems, fetchNpcs, fetchShops, saveMap } from '../io/network';
-import { setupAsyncSelect } from '../ui/asyncSelect';
+import { saveMap } from '../io/network';
 import { foregroundCanvas, foregroundCtx } from './canvas';
+
+type ModeConfig = {
+  button: HTMLButtonElement;
+  textOn: string;
+  textOff: string;
+  styleOn: string;
+  styleOff: string;
+  place: (row: number, col: number) => void;
+};
 
 const gridCanvas = getEl<HTMLCanvasElement>('gridCanvas')!;
 const gridCtx = gridCanvas.getContext('2d')!;
-const tilesetCanvas = getEl<HTMLCanvasElement>('tilesetCanvas')!;
-const tilesetCtx = tilesetCanvas.getContext('2d')!;
 const blockButton = getEl<HTMLButtonElement>('blockButton')!;
 const warpButton = getEl<HTMLButtonElement>('warpButton')!;
 const npcButton = getEl<HTMLButtonElement>('npcButton')!;
 const itemButton = getEl<HTMLButtonElement>('itemButton')!;
 const shopButton = getEl<HTMLButtonElement>('shopButton')!;
-const tilesetContainer = getEl<HTMLDivElement>('tilesetContainer')!;
+let tilesetCanvas: HTMLCanvasElement;
+let tilesetCtx: CanvasRenderingContext2D;
+
+export let tilesetEditorInitialized = false;
+
+export const initTilesetEditor = () => {
+  tilesetCanvas = getEl<HTMLCanvasElement>('tilesetCanvas')!;
+  if (!tilesetCanvas) {
+    console.error('#tilesetCanvas does not exist in the DOM');
+    return;
+  }
+  tilesetCanvas.width = tileset.width;
+  tilesetCanvas.height = tileset.height;
+  tilesetCtx = tilesetCanvas.getContext('2d')!;
+  tilesetCtx.drawImage(tileset, 0, 0);
+  setupEventListeners();
+  initializeGrid();
+  tilesetEditorInitialized = true;
+};
 
 const selectedTile = { startX: 0, startY: 0, endX: 0, endY: 0 };
 let isSelecting = false;
@@ -46,15 +69,6 @@ const handleHover = (event: MouseEvent) => {
     hoveredCell = { row, col };
     renderMap(map);
   }
-};
-
-type ModeConfig = {
-  button: HTMLButtonElement;
-  textOn: string;
-  textOff: string;
-  styleOn: string;
-  styleOff: string;
-  place: (row: number, col: number) => void;
 };
 
 const modes: Record<TileEditMode, ModeConfig> = {
@@ -285,11 +299,11 @@ const drawTileOnCanvas = (col: number, row: number, tileIndex: number) => {
   );
 };
 
-const toggleBlocking = () => toggleMode('blocking');
-const toggleWarping = () => toggleMode('warping');
-const toggleNpc = () => toggleMode('npc');
-const toggleItem = () => toggleMode('item');
-const toggleShop = () => toggleMode('shop');
+export const toggleBlocking = () => toggleMode('blocking');
+export const toggleWarping = () => toggleMode('warping');
+export const toggleNpc = () => toggleMode('npc');
+export const toggleItem = () => toggleMode('item');
+export const toggleShop = () => toggleMode('shop');
 
 const setupEventListeners = () => {
   addEvent('tilesetCanvas', 'mousedown', startSelecting);
@@ -299,12 +313,6 @@ const setupEventListeners = () => {
   addEvent('foregroundCanvas', 'mousemove', placeTileWhileDragging);
   addEvent('foregroundCanvas', 'mousemove', handleHover);
   addEvent('foregroundCanvas', 'mouseup', stopPlacing);
-
-  addEvent('blockButton', 'click', toggleBlocking);
-  addEvent('warpButton', 'click', toggleWarping);
-  addEvent('npcButton', 'click', toggleNpc);
-  addEvent('itemButton', 'click', toggleItem);
-  addEvent('shopButton', 'click', toggleShop);
 };
 
 const removeEventListeners = () => {
@@ -315,20 +323,6 @@ const removeEventListeners = () => {
   removeEvent('foregroundCanvas', 'mousemove', placeTileWhileDragging);
   removeEvent('foregroundCanvas', 'mousemove', handleHover);
   removeEvent('foregroundCanvas', 'mouseup', stopPlacing);
-
-  removeEvent('blockButton', 'click', toggleBlocking);
-  removeEvent('warpButton', 'click', toggleWarping);
-  removeEvent('npcButton', 'click', toggleNpc);
-  removeEvent('itemButton', 'click', toggleItem);
-  removeEvent('shopButton', 'click', toggleShop);
-};
-
-export const initTilesetEditor = () => {
-  tilesetCanvas.width = tileset.width;
-  tilesetCanvas.height = tileset.height;
-  tilesetCtx.drawImage(tileset, 0, 0);
-  setupEventListeners();
-  initializeGrid();
 };
 
 export const renderMap = (tiles: Tile[][]) => {
@@ -405,7 +399,7 @@ const drawMarker = (col: number, row: number, text: string, color: string) => {
   gridCtx.fillText(text, col * TILE_SIZE + 20, row * TILE_SIZE + 35);
 };
 
-const saveCurrentMap = async () => {
+export const saveCurrentMap = async () => {
   await withLoading('saveButton', async () => {
     try {
       await saveMap(map);
@@ -418,77 +412,40 @@ const saveCurrentMap = async () => {
   });
 };
 
-export const toggleTilesetEditor = () => {
-  const isEditorOpen = tilesetContainer.style.display === 'flex';
-  if (isEditorOpen) {
+export const toggleTilesetEditor = (shouldShow: boolean) => {
+  if (shouldShow) {
+    if (!tilesetEditorInitialized) {
+      initTilesetEditor();
+    } else {
+      tilesetCtx.clearRect(0, 0, tileset.width, tileset.height);
+      tilesetCtx.drawImage(tileset, 0, 0);
+      setupEventListeners();
+      initializeGrid();
+    }
+    show('gridCanvas', 'block');
+  } else {
     if (mapEdited) {
-      const discardConfirmed = confirm(
+      const discard = confirm(
         'You have unsaved changes. Are you sure you want to exit without saving?',
       );
-      if (discardConfirmed) {
-        map = originalMap.map((row) => row.map((tile) => ({ ...tile })));
+      if (discard) {
+        map = originalMap.map((row) => row.map((t) => ({ ...t })));
+      } else {
+        return;
       }
     }
     removeEventListeners();
-    hide('tilesetContainer');
     hide('gridCanvas');
     mapEdited = false;
     activeMode = null;
-  } else {
-    const gameState = getGameState();
-    if (gameState?.tiles) {
-      updateEditorMap(gameState.tiles);
-    } else {
-      map = Array.from({ length: mapHeight }, () =>
-        Array.from({ length: mapWidth }, () => ({
-          tileIndex: -1,
-          blocked: false,
-          warp: undefined,
-        })),
-      );
-      originalMap = map.map((row) => row.map((tile) => ({ ...tile })));
-    }
-    setupEventListeners();
-    show('tilesetContainer', 'flex');
-    show('gridCanvas', 'block');
+
+    tilesetEditorInitialized = false;
   }
+
   renderMap(map);
 };
-
-setupAsyncSelect('npc', 'Select an NPC', fetchNpcs, (npc) => ({
-  value: String(npc.id),
-  label: `${npc.id} - ${npc.name}`,
-}));
-setupAsyncSelect('item', 'Select an item', fetchItems, (item) => ({
-  value: String(item.id),
-  label: `${item.id} - ${item.name}`,
-}));
-setupAsyncSelect('shop', 'Select a shop', fetchShops, (shop) => ({
-  value: String(shop.id),
-  label: `${shop.id} - ${shop.name}`,
-}));
 
 const updateEditorMap = (tiles: Tile[][]) => {
   map = tiles.map((row) => row.map((tile) => ({ ...tile })));
   originalMap = tiles.map((row) => row.map((tile) => ({ ...tile })));
 };
-
-export const tilesetEditorInitialized = false;
-
-document.addEventListener('DOMContentLoaded', () => {
-  const saveButton = getEl('saveButton');
-  if (saveButton) {
-    addEvent('saveButton', 'click', async () => {
-      if (mapEdited) {
-        const userConfirmed = confirm(
-          'You have unsaved changes. Would you like to save them?',
-        );
-        if (userConfirmed) {
-          await saveCurrentMap();
-        }
-      }
-    });
-  } else {
-    console.error('Save button not found');
-  }
-});

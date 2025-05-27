@@ -1,6 +1,6 @@
-import { GAME_HEIGHT, GAME_WIDTH, TILE_SIZE } from '../../shared/constants';
-import { CombatTarget, MapStateServer, Warp } from '../../shared/types';
-import { getMap } from '../gameData';
+import { GAME_HEIGHT, GAME_WIDTH, TILE_SIZE } from '../../shared/constants.js';
+import { CombatTarget, MapStateServer, Warp } from '../../shared/types.js';
+import { getMap } from '../gameData.js';
 
 const isColliding = (a: CombatTarget, b: CombatTarget): boolean =>
   a.position.x < b.position.x + b.width &&

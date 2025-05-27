@@ -27,13 +27,11 @@ export const getGameState = (): MapStateClient | null => {
 };
 
 export const setFullGameState = (payload: FullGameState) => {
-  console.log('Setting Full Game State...');
   fullGameState = payload;
 };
 
 export const patchGameState = (delta: jsondiffpatch.Delta | undefined) => {
   if (fullGameState && delta) {
-    console.log('Patching Game State Delta:', delta);
     fullGameState = diffPatcher.patch(
       fullGameState,
       delta,

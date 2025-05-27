@@ -1,5 +1,5 @@
-import { TILE_SIZE } from '../../shared/constants';
-import { getRandomPosition } from '../../shared/utils';
+import { TILE_SIZE } from '../../shared/constants.js';
+import { getRandomPosition } from '../../shared/utils.js';
 import {
   MapStateServer,
   Position,
@@ -8,12 +8,12 @@ import {
   PlayerServer,
   RuntimeNpc,
   PersistentNpc,
-} from '../../shared/types';
-import { getMap, runtimeState, updatePlayer } from '../gameData';
-import { hasCollision } from './physicsService';
-import { respawnPlayer } from './playerService';
-import NpcModel from '../model/Npc';
-import { getNextNpcId } from './dbService';
+} from '../../shared/types.js';
+import { getMap, runtimeState, updatePlayer } from '../gameData.js';
+import { hasCollision } from './physicsService.js';
+import { respawnPlayer } from './playerService.js';
+import NpcModel from '../model/Npc.js';
+import { getNextNpcId } from './dbService.js';
 
 export async function getNpcById(id: string): Promise<PersistentNpc | null> {
   return await NpcModel.findOne({ id }).lean<PersistentNpc>().exec();
@@ -25,8 +25,6 @@ export async function createOrUpdateNpc(
   if (!npc.id) {
     npc.id = (await getNextNpcId()).toString();
   }
-
-  console.log(npc);
 
   await NpcModel.findOneAndUpdate({ id: npc.id }, npc, {
     upsert: true,
