@@ -37,7 +37,7 @@ export const ContentEditor: React.FC = () => {
   return (
     <div style={styles.container}>
       <button style={styles.closeBtn} onClick={() => setVisible(false)}>
-        ×
+        x
       </button>
       <h2 style={styles.title}>Content Editor</h2>
       <NpcEditor npcs={npcs} loadNpcs={loadNpcs} refreshData={refreshData} />

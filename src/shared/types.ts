@@ -196,24 +196,23 @@ export interface DroppedItem {
   sprite: number;
 }
 
-export interface MapStateServer {
+export type MapType = 'pvp' | 'normal';
+
+export interface MapStateBase {
   id: string;
   name: string;
-  type: 'pvp' | 'normal';
-  players: Record<string, PlayerServer>;
-  npcs: Record<string, RuntimeNpc>;
+  type: MapType;
   tiles: Tile[][];
   droppedItems: DroppedItem[];
+  npcs: Record<string, RuntimeNpc>;
 }
 
-export interface MapStateClient {
-  id: string;
-  name: string;
-  type: 'pvp' | 'normal';
+export interface MapStateServer extends MapStateBase {
+  players: Record<string, PlayerServer>;
+}
+
+export interface MapStateClient extends MapStateBase {
   players: Record<string, Player>;
-  npcs: Record<string, RuntimeNpc>;
-  tiles: Tile[][];
-  droppedItems: DroppedItem[];
 }
 
 export interface GameState {

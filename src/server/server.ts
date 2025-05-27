@@ -44,7 +44,12 @@ import {
   disconnectPlayer,
   handlePlayerUpdate,
 } from './services/gameService.js';
-import { addPlayerOnMap, removePlayerFromMap } from './services/mapService.js';
+import {
+  addPlayerOnMap,
+  getMapById,
+  listMaps,
+  removePlayerFromMap,
+} from './services/mapService.js';
 import { connectToDatabase, loadInitialData } from './initDb.js';
 import { banPlayer, getBan, unbanPlayer } from './services/banService.js';
 import { buyShopItem, getShopById, listShops } from './services/shopService.js';
@@ -147,7 +152,11 @@ app.post(
   '/saveMap',
   checkAccess(Access.ADMIN),
   (req: Request, res: Response) => {
-    mapSave(req.body.mapId, req.body.tiles);
+    const { mapId, tiles, name, type } = req.body;
+    if (!mapId || !tiles || !name || !type) {
+      return res.status(400).send('Missing required fields');
+    }
+    mapSave(mapId, tiles, name, type);
     res.status(200).send('Success');
   },
 );
@@ -201,6 +210,30 @@ app.get(
     }
   },
 );
+
+app.get('/maps/:mapId', async (req, res) => {
+  try {
+    const { mapId } = req.params;
+    const map = await getMapById(mapId);
+
+    if (!map) {
+      return res.status(404).json({ error: 'Map not found' });
+    }
+
+    res.json({
+      id: map.id,
+      name: map.name,
+      tiles: map.tiles,
+      type: map.type,
+    });
+  } catch (e) {
+    console.error('Error in route /maps/:mapId:', e);
+    res.status(500).json({
+      error: 'Internal server error',
+      details: String(e),
+    });
+  }
+});
 
 app.get(
   '/shops',

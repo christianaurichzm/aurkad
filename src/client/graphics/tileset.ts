@@ -9,7 +9,7 @@ import {
   removeEvent,
 } from '../utils/domHelpers';
 import { TILE_SIZE } from '../../shared/constants';
-import { Tile, TileEditMode } from '../../shared/types';
+import { MapType, Tile, TileEditMode } from '../../shared/types';
 import { tileset } from '../io/files';
 import { saveMap } from '../io/network';
 import { foregroundCanvas, foregroundCtx } from './canvas';
@@ -372,6 +372,10 @@ const drawGrid = () => {
   }
 };
 
+export const setMapEdited = (edited: boolean) => {
+  mapEdited = edited;
+};
+
 const initializeGrid = () => {
   gridCanvas.width = foregroundCanvas.width;
   gridCanvas.height = foregroundCanvas.height;
@@ -399,10 +403,10 @@ const drawMarker = (col: number, row: number, text: string, color: string) => {
   gridCtx.fillText(text, col * TILE_SIZE + 20, row * TILE_SIZE + 35);
 };
 
-export const saveCurrentMap = async () => {
+export const saveCurrentMap = async (name: string, type: MapType) => {
   await withLoading('saveButton', async () => {
     try {
-      await saveMap(map);
+      await saveMap(map, name, type);
       console.log('Map saved successfully');
       mapEdited = false;
       originalMap = map.map((row) => row.map((tile) => ({ ...tile })));

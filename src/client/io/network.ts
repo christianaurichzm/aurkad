@@ -11,6 +11,8 @@ import {
   ProductRaw,
   RuntimeNpc,
   Shop,
+  GameState,
+  MapType,
 } from '../../shared/types';
 import {
   getGameState,
@@ -292,10 +294,16 @@ export async function openContentEditor(): Promise<boolean> {
   return !!res;
 }
 
-export const saveMap = async (newMapTiles: MapStateClient['tiles']) => {
+export const saveMap = async (
+  newMapTiles: MapStateClient['tiles'],
+  name: string,
+  type: MapType,
+) => {
   const mapData = {
     mapId: getGameState()?.id,
     tiles: newMapTiles,
+    name,
+    type,
   };
 
   return httpClient<Response>('/saveMap', {
@@ -436,6 +444,14 @@ export const fetchShop = async (
   shopId: string,
 ): Promise<Shop<ProductDetailed> | null> => {
   return httpClient<Shop<ProductDetailed>>(`/shop/${shopId}`, {
+    method: 'GET',
+  });
+};
+
+export const fetchMap = async (
+  mapId: string,
+): Promise<MapStateClient | null> => {
+  return httpClient<MapStateClient>(`/maps/${mapId}`, {
     method: 'GET',
   });
 };

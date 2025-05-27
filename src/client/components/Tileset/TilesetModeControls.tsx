@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import {
   mapEdited,
   saveCurrentMap,
@@ -7,18 +7,45 @@ import {
   toggleNpc,
   toggleItem,
   toggleShop,
+  setMapEdited,
 } from '../../graphics/tileset';
-import { fetchNpcs, fetchItems, fetchShops } from '../../io/network';
+import { fetchNpcs, fetchItems, fetchShops, fetchMap } from '../../io/network';
 import { AsyncSelect } from '../common/Select/AsyncSelect';
-
-type ModeKey = 'blocking' | 'warping' | 'npc' | 'item' | 'shop';
+import { Select } from '../common/Select/Select';
+import { MapType, TileEditMode } from '../../../shared/types';
+import { getGameState } from '../../core/gameState';
+import { useGame } from '../../context/GameContext';
 
 export const TilesetModeControls: React.FC = () => {
-  const [activeMode, setActiveMode] = useState<ModeKey | null>(null);
+  const { setMap } = useGame();
+
+  const [activeMode, setActiveMode] = useState<TileEditMode | null>(null);
 
   const [selectedNpc, setSelectedNpc] = useState<string | number>('');
   const [selectedItem, setSelectedItem] = useState<string | number>('');
   const [selectedShop, setSelectedShop] = useState<string | number>('');
+
+  const [mapType, setMapType] = useState<MapType>('normal');
+  const [mapName, setMapName] = useState<string>('');
+
+  const loadMapData = useCallback(async () => {
+    const state = getGameState();
+    if (state?.id) {
+      const map = await fetchMap(state.id);
+      if (map) {
+        setMapType(map.type);
+        setMapName(map.name);
+        setMap(map);
+      } else {
+        setMapType('normal');
+        setMapName('New Map');
+      }
+    }
+  }, [setMap]);
+
+  useEffect(() => {
+    loadMapData();
+  }, [loadMapData]);
 
   useEffect(() => {
     (window as any).selectedNpc = selectedNpc;
@@ -50,120 +77,140 @@ export const TilesetModeControls: React.FC = () => {
   const handleSave = async () => {
     if (!mapEdited) return;
     if (confirm('You have unsaved changes. Save now?')) {
-      await saveCurrentMap();
+      await saveCurrentMap(mapName, mapType);
+      await loadMapData();
     }
   };
 
-  const handleToggle = (mode: ModeKey) => {
+  const handleToggle = (mode: TileEditMode) => {
     const newMode = activeMode === mode ? null : mode;
     setActiveMode(newMode);
 
-    switch (mode) {
-      case 'blocking':
-        toggleBlocking();
-        break;
-      case 'warping':
-        toggleWarping();
-        break;
-      case 'npc':
-        toggleNpc();
-        break;
-      case 'item':
-        toggleItem();
-        break;
-      case 'shop':
-        toggleShop();
-        break;
-    }
+    const toggleMap: Record<TileEditMode, () => void> = {
+      blocking: toggleBlocking,
+      warping: toggleWarping,
+      npc: toggleNpc,
+      item: toggleItem,
+      shop: toggleShop,
+    };
+
+    toggleMap[mode]?.();
+  };
+
+  const modes: TileEditMode[] = ['blocking', 'warping', 'npc', 'item', 'shop'];
+  const modeLabels: Record<TileEditMode, string> = {
+    blocking: 'Blocking',
+    warping: 'Warp',
+    npc: 'NPC',
+    item: 'Item',
+    shop: 'Shop',
   };
 
   return (
     <div className="tileset-controls">
-      <button className="editor-btn save-btn" onClick={handleSave}>
-        Save Map
-      </button>
-
-      <div className="mode-controls">
-        <div
-          className={`mode-group ${activeMode === 'blocking' ? 'active' : ''}`}
+      <div style={{ display: 'flex', gap: '15px', alignItems: 'center' }}>
+        <button
+          className="editor-btn save-btn"
+          onClick={handleSave}
+          disabled={!mapEdited}
+          style={{ marginTop: '20px' }}
         >
-          <button
-            className={`editor-btn small ${activeMode === 'blocking' ? 'active' : ''}`}
-            onClick={() => handleToggle('blocking')}
-          >
-            Blocking Mode: {activeMode === 'blocking' ? 'ON' : 'OFF'}
-          </button>
+          Save Map
+        </button>
+
+        <div style={{ display: 'flex', flexDirection: 'column' }}>
+          <label htmlFor="mapName" style={{ marginBottom: 2 }}>
+            Map name
+          </label>
+          <input
+            id="mapName"
+            type="text"
+            placeholder="Map name"
+            value={mapName}
+            onChange={(e) => {
+              const name = e.target.value;
+              setMapName(name);
+              if (name !== mapName) setMapEdited(true);
+            }}
+          />
         </div>
 
-        <div
-          className={`mode-group ${activeMode === 'warping' ? 'active' : ''}`}
-        >
-          <button
-            className={`editor-btn small ${activeMode === 'warping' ? 'active' : ''}`}
-            onClick={() => handleToggle('warping')}
-          >
-            Warp Mode: {activeMode === 'warping' ? 'ON' : 'OFF'}
-          </button>
-          <div className="mode-inputs">
-            <label htmlFor="mapTo">Map To:</label>
-            <input type="number" id="mapTo" name="mapTo" />
-            <label htmlFor="xTo">Tile X:</label>
-            <input type="number" id="xTo" name="xTo" />
-            <label htmlFor="yTo">Tile Y:</label>
-            <input type="number" id="yTo" name="yTo" />
-          </div>
+        <div style={{ display: 'flex', flexDirection: 'column' }}>
+          <label style={{ marginBottom: 2 }}>Map type</label>
+          <Select
+            options={[
+              { value: 'pvp', label: 'PvP' },
+              { value: 'normal', label: 'Normal' },
+            ]}
+            value={mapType}
+            onChange={(value) => {
+              if (value === 'pvp' || value === 'normal') {
+                setMapType(value);
+                if (value !== mapType) setMapEdited(true);
+              }
+            }}
+          />
         </div>
+      </div>
 
-        <div className={`mode-group ${activeMode === 'npc' ? 'active' : ''}`}>
-          <button
-            className={`editor-btn small ${activeMode === 'npc' ? 'active' : ''}`}
-            onClick={() => handleToggle('npc')}
+      <div className="mode-controls" style={{ marginTop: '15px' }}>
+        {modes.map((mode) => (
+          <div
+            key={mode}
+            className={`mode-group ${activeMode === mode ? 'active' : ''}`}
           >
-            NPC Mode: {activeMode === 'npc' ? 'ON' : 'OFF'}
-          </button>
-          <div className="mode-inputs">
-            <label htmlFor="npc">NPC:</label>
-            <AsyncSelect
-              loadOptions={loadNpcs}
-              value={selectedNpc}
-              onChange={setSelectedNpc}
-            />
-          </div>
-        </div>
+            <button
+              className={`editor-btn small ${activeMode === mode ? 'active' : ''}`}
+              onClick={() => handleToggle(mode)}
+            >
+              {modeLabels[mode]} Mode: {activeMode === mode ? 'ON' : 'OFF'}
+            </button>
 
-        <div className={`mode-group ${activeMode === 'item' ? 'active' : ''}`}>
-          <button
-            className={`editor-btn small ${activeMode === 'item' ? 'active' : ''}`}
-            onClick={() => handleToggle('item')}
-          >
-            Item Mode: {activeMode === 'item' ? 'ON' : 'OFF'}
-          </button>
-          <div className="mode-inputs">
-            <label htmlFor="item">Item:</label>
-            <AsyncSelect
-              loadOptions={loadItems}
-              value={selectedItem}
-              onChange={setSelectedItem}
-            />
-          </div>
-        </div>
+            {mode === 'warping' && (
+              <div className="mode-inputs">
+                <label htmlFor="mapTo">Map To:</label>
+                <input type="number" id="mapTo" name="mapTo" />
+                <label htmlFor="xTo">Tile X:</label>
+                <input type="number" id="xTo" name="xTo" />
+                <label htmlFor="yTo">Tile Y:</label>
+                <input type="number" id="yTo" name="yTo" />
+              </div>
+            )}
 
-        <div className={`mode-group ${activeMode === 'shop' ? 'active' : ''}`}>
-          <button
-            className={`editor-btn small ${activeMode === 'shop' ? 'active' : ''}`}
-            onClick={() => handleToggle('shop')}
-          >
-            Shop Mode: {activeMode === 'shop' ? 'ON' : 'OFF'}
-          </button>
-          <div className="mode-inputs">
-            <label htmlFor="shop">Shop:</label>
-            <AsyncSelect
-              loadOptions={loadShops}
-              value={selectedShop}
-              onChange={setSelectedShop}
-            />
+            {mode === 'npc' && (
+              <div className="mode-inputs">
+                <label htmlFor="npc">NPC:</label>
+                <AsyncSelect
+                  loadOptions={loadNpcs}
+                  value={selectedNpc}
+                  onChange={setSelectedNpc}
+                />
+              </div>
+            )}
+
+            {mode === 'item' && (
+              <div className="mode-inputs">
+                <label htmlFor="item">Item:</label>
+                <AsyncSelect
+                  loadOptions={loadItems}
+                  value={selectedItem}
+                  onChange={setSelectedItem}
+                />
+              </div>
+            )}
+
+            {mode === 'shop' && (
+              <div className="mode-inputs">
+                <label htmlFor="shop">Shop:</label>
+                <AsyncSelect
+                  loadOptions={loadShops}
+                  value={selectedShop}
+                  onChange={setSelectedShop}
+                />
+              </div>
+            )}
           </div>
-        </div>
+        ))}
       </div>
     </div>
   );

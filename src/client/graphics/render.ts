@@ -281,10 +281,6 @@ export const render = () => {
   const currentPlayer = getPlayer();
 
   if (map) {
-    const mapName = document.getElementById('mapName') as HTMLElement;
-    mapName.textContent = `${map.id} - ${map.name}`;
-    if (map.type === 'pvp') mapName.style.color = 'red';
-
     playerCtx.clearRect(0, 0, foregroundCanvas.width, foregroundCanvas.height);
     if (!mapEdited) {
       foregroundCtx.clearRect(

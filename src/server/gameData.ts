@@ -6,7 +6,6 @@ import {
   PlayerServer,
   PlayersServerMap,
 } from '../shared/types.js';
-import { getItemById } from './services/inventoryService.js';
 
 import { createOrUpdateMap } from './services/mapService.js';
 import { deleteNpc } from './services/npcService.js';

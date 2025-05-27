@@ -31,8 +31,15 @@ export const GameInterface = () => {
 
   return (
     <div id="gameInfo">
-      <p id="mapName" style={{ textAlign: 'center', margin: '20px' }}>
-        Map
+      <p
+        id="mapName"
+        style={{
+          textAlign: 'center',
+          margin: '20px',
+          color: map?.type === 'normal' ? 'black' : 'red',
+        }}
+      >
+        {map?.id} - {map?.name || 'Loading Map...'}
       </p>
       <div id="connection-status">Connecting...</div>
       <div id="gameArea"></div>

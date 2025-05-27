@@ -6,6 +6,7 @@ type GameContextType = {
   map: MapStateClient | null;
   player: Player | null;
   loginSuccess: (data: { map: MapStateClient; player: Player }) => void;
+  setMap: (map: MapStateClient) => void;
 };
 
 const GameContext = createContext<GameContextType | null>(null);
@@ -21,7 +22,9 @@ export const GameProvider = ({ children }: { children: React.ReactNode }) => {
   };
 
   return (
-    <GameContext.Provider value={{ isLoggedIn, map, player, loginSuccess }}>
+    <GameContext.Provider
+      value={{ isLoggedIn, map, player, loginSuccess, setMap }}
+    >
       {children}
     </GameContext.Provider>
   );

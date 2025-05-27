@@ -15,6 +15,7 @@ import {
   Tile,
   MapStateServer,
   Position,
+  MapType,
 } from '../../shared/types.js';
 import {
   getMap,
@@ -224,9 +225,14 @@ export const handleKeyAction = (action: ClientKeyboardAction) => {
   }
 };
 
-export const mapSave = async (mapId: string, tiles: Tile[][]) => {
+export const mapSave = async (
+  mapId: string,
+  tiles: Tile[][],
+  name: string,
+  type: MapType,
+) => {
   const newMap = await insertModeCell(mapId, tiles);
-  await updateMapById(newMap as MapStateServer);
+  await updateMapById({ ...newMap, name, type } as MapStateServer);
 };
 
 export const getGameState = () => getRuntimeState();
