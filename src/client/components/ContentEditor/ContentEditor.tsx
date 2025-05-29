@@ -1,13 +1,18 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { ItemEditor } from './ItemEditor';
-import { RuntimeNpc, Item } from '../../../shared/types';
-import { fetchNpcs, fetchItems } from '../../io/network';
 import { NpcEditor } from './NpcEditor';
+import { MapEditor } from './MapEditor';
+
+import { RuntimeNpc, Item, MapStateClient } from '../../../shared/types';
+import { fetchNpcs, fetchItems, fetchMaps } from '../../io/network';
+import { useGame } from '../../context/GameContext';
 
 export const ContentEditor: React.FC = () => {
+  const { map: currentMap } = useGame();
   const [visible, setVisible] = useState(false);
   const [npcs, setNpcs] = useState<RuntimeNpc[]>([]);
   const [items, setItems] = useState<Item[]>([]);
+  const [maps, setMaps] = useState<MapStateClient[]>([]);
 
   useEffect(() => {
     const toggle = () => setVisible((v) => !v);
@@ -18,6 +23,7 @@ export const ContentEditor: React.FC = () => {
   const refreshData = useCallback(() => {
     fetchNpcs().then(setNpcs);
     fetchItems().then(setItems);
+    fetchMaps().then(setMaps);
   }, []);
 
   const loadNpcs = useCallback(async () => {
@@ -30,6 +36,16 @@ export const ContentEditor: React.FC = () => {
     const data = await fetchItems();
     setItems(data);
     return data.map((i) => ({ value: i.id, label: `${i.id} - ${i.name}` }));
+  }, []);
+
+  const loadMaps = useCallback(async () => {
+    const data = await fetchMaps();
+    const filteredMaps = data.filter((m) => m.id !== currentMap?.id);
+    setMaps(filteredMaps);
+    return filteredMaps.map((m) => ({
+      value: m.id,
+      label: `${m.id} - ${m.name}`,
+    }));
   }, []);
 
   if (!visible) return null;
@@ -46,6 +62,7 @@ export const ContentEditor: React.FC = () => {
         loadItems={loadItems}
         refreshData={refreshData}
       />
+      <MapEditor maps={maps} loadMaps={loadMaps} refreshData={refreshData} />
     </div>
   );
 };

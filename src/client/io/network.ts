@@ -320,6 +320,10 @@ export const fetchItems = async (): Promise<Item[]> => {
   return (await httpClient<Item[]>('/items', { method: 'GET' })) || [];
 };
 
+export const fetchMaps = async (): Promise<MapStateClient[]> => {
+  return (await httpClient<MapStateClient[]>('/maps', { method: 'GET' })) || [];
+};
+
 export const fetchShops = async (): Promise<Shop<ProductRaw>[]> => {
   const result = await httpClient<Shop<ProductRaw>[]>('/shops', {
     method: 'GET',
@@ -406,6 +410,26 @@ export const updateNpc = async (
   return httpClient<RuntimeNpc>(`/npcs/${id}`, {
     method: 'PUT',
     body: npc,
+  });
+};
+
+export const updateMap = async (
+  id: string,
+  map: Partial<MapStateClient>,
+): Promise<MapStateClient | null> => {
+  return httpClient<MapStateClient>(`/maps/${id}`, {
+    method: 'PUT',
+    body: map,
+  });
+};
+
+export const createMap = async (data: {
+  name: string;
+  type: MapType;
+}): Promise<MapStateClient | null> => {
+  return httpClient<MapStateClient>(`/maps`, {
+    method: 'POST',
+    body: data,
   });
 };
 

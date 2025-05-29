@@ -36,7 +36,7 @@ import {
 } from './wsServer.js';
 import { Access, PlayerServer } from '../shared/types.js';
 import checkAccess from './checkAccess.js';
-import { deleteNpcEverywhere, players } from './gameData.js';
+import { defaultTiles, deleteNpcEverywhere, players } from './gameData.js';
 import { SPRITE_HEIGHT, SPRITE_WIDTH, TILE_SIZE } from '../shared/constants.js';
 import {
   login,
@@ -46,6 +46,7 @@ import {
 } from './services/gameService.js';
 import {
   addPlayerOnMap,
+  createOrUpdateMap,
   getMapById,
   listMaps,
   removePlayerFromMap,
@@ -153,9 +154,6 @@ app.post(
   checkAccess(Access.ADMIN),
   (req: Request, res: Response) => {
     const { mapId, tiles, name, type } = req.body;
-    if (!mapId || !tiles || !name || !type) {
-      return res.status(400).send('Missing required fields');
-    }
     mapSave(mapId, tiles, name, type);
     res.status(200).send('Success');
   },
@@ -204,6 +202,19 @@ app.get(
   async (req: Request, res: Response) => {
     try {
       const items = await listItems();
+      res.status(200).json(items);
+    } catch (error) {
+      res.status(500).json({ error: 'Could not fetch items' });
+    }
+  },
+);
+
+app.get(
+  '/maps',
+  checkAccess(Access.ADMIN),
+  async (req: Request, res: Response) => {
+    try {
+      const items = await listMaps();
       res.status(200).json(items);
     } catch (error) {
       res.status(500).json({ error: 'Could not fetch items' });
@@ -512,6 +523,52 @@ app.post('/npcs', checkAccess(Access.ADMIN), (req, res) => {
 
   const newNpc = createOrUpdateNpc(npcData);
   res.status(201).json(newNpc);
+});
+
+app.post('/maps', checkAccess(Access.ADMIN), async (req, res) => {
+  const { name, type } = req.body;
+
+  if (!name || !type) {
+    return res.status(400).json({ error: 'Missing map name or type' });
+  }
+
+  const defaultMap = {
+    players: {},
+    npcs: {},
+    droppedItems: [],
+    tiles: defaultTiles,
+  };
+
+  const mapData = {
+    name,
+    type,
+  };
+
+  try {
+    await createOrUpdateMap({ ...defaultMap, ...mapData });
+    res.status(201).json({ success: true });
+  } catch (error) {
+    console.error('Error creating map:', error);
+    res.status(500).json({ error: 'Failed to create map' });
+  }
+});
+
+app.put('/maps/:id', checkAccess(Access.ADMIN), async (req, res) => {
+  const { id } = req.params;
+  const { name, type } = req.body;
+
+  try {
+    await createOrUpdateMap({
+      id,
+      ...(name && { name }),
+      ...(type && { type }),
+    });
+
+    res.status(200).json({ message: 'Map updated successfully.' });
+  } catch (error) {
+    console.error('Error updating map:', error);
+    res.status(500).json({ error: 'Failed to update map.' });
+  }
 });
 
 app.put('/npcs/:id', checkAccess(Access.ADMIN), async (req, res) => {

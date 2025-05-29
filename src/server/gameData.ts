@@ -21,20 +21,12 @@ export const pressedKeysMap = new Map<string, Set<Key>>();
 
 export const items = new Map<number, Item>();
 
+export const defaultTiles = Array.from({ length: 448 / 32 }, () =>
+  Array(640 / 32).fill({ tileIndex: -1, blocked: false }),
+);
+
 export const runtimeState: GameState = {
-  maps: {
-    '1': {
-      id: '1',
-      name: 'First map',
-      type: 'normal',
-      players: {},
-      npcs: {},
-      droppedItems: [],
-      tiles: Array.from({ length: 448 / 32 }, () =>
-        Array(640 / 32).fill({ tileIndex: -1, blocked: false }),
-      ),
-    },
-  },
+  maps: {},
 };
 
 export const getRuntimeState = (): GameState => runtimeState;

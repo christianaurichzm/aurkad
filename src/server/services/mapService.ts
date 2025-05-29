@@ -8,9 +8,16 @@ import {
   Direction,
   CharacterAction,
 } from '../../shared/types.js';
-import { getMap, updatePlayer, getPlayer, updateMap } from '../gameData.js';
+import {
+  getMap,
+  updatePlayer,
+  getPlayer,
+  updateMap,
+  runtimeState,
+} from '../gameData.js';
 
 import GameMapModel from '../model/Map.js';
+import { getNextMapId } from './dbService.js';
 import { getItemById } from './inventoryService.js';
 import { getNpcById } from './npcService.js';
 
@@ -21,7 +28,19 @@ export async function getMapById(id: string): Promise<MapStateServer | null> {
 export async function createOrUpdateMap(
   map: Partial<MapStateServer>,
 ): Promise<void> {
-  await GameMapModel.findOneAndUpdate({ id: map.id }, map, { upsert: true });
+  if (!map.id) {
+    map.id = (await getNextMapId()).toString();
+  }
+
+  runtimeState.maps[map.id] = {
+    ...runtimeState.maps[map.id],
+    ...map,
+  };
+
+  await GameMapModel.findOneAndUpdate({ id: map.id }, map, {
+    upsert: true,
+    new: true,
+  });
 }
 
 export async function deleteMap(id: string): Promise<void> {

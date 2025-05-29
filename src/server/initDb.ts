@@ -1,7 +1,12 @@
 import mongoose from 'mongoose';
-import { insertNpcs, listMaps } from './services/mapService.js';
-import { items, runtimeState } from './gameData.js';
+import {
+  createOrUpdateMap,
+  insertNpcs,
+  listMaps,
+} from './services/mapService.js';
+import { defaultTiles, items, runtimeState } from './gameData.js';
 import { listItems } from './services/inventoryService.js';
+import { MapStateServer } from '../shared/types.js';
 
 export async function connectToDatabase() {
   try {
@@ -18,7 +23,19 @@ export async function connectToDatabase() {
 
 export async function loadInitialData() {
   try {
-    const loadedMaps = await listMaps();
+    let loadedMaps: MapStateServer[] = await listMaps();
+
+    if (loadedMaps.length === 0) {
+      await createOrUpdateMap({
+        name: 'Default Map',
+        type: 'normal',
+        tiles: defaultTiles,
+      });
+
+      loadedMaps = await listMaps();
+      console.log('[DB] No maps found. Created default map.');
+    }
+
     const loadedItems = await listItems();
 
     for (const map of loadedMaps) {
@@ -30,7 +47,6 @@ export async function loadInitialData() {
       };
 
       await insertNpcs(runtimeMap, map.id, map.tiles);
-
       runtimeState.maps[map.id] = runtimeMap;
     }
 
