@@ -2,7 +2,12 @@ import React, { useEffect, useRef } from 'react';
 import { ITEM_SIZE } from '../../../shared/constants';
 import { renderItemIcon } from '../../graphics/render';
 
-export const ItemIcon: React.FC<{ spriteId: number }> = ({ spriteId }) => {
+interface ItemIconProps {
+  spriteId: number;
+  style?: React.CSSProperties;
+}
+
+export const ItemIcon: React.FC<ItemIconProps> = ({ spriteId, style }) => {
   const ref = useRef<HTMLCanvasElement>(null);
 
   useEffect(() => {
@@ -18,7 +23,7 @@ export const ItemIcon: React.FC<{ spriteId: number }> = ({ spriteId }) => {
       ref={ref}
       width={ITEM_SIZE}
       height={ITEM_SIZE}
-      style={{ display: 'block' }}
+      style={style ?? { display: 'block' }}
     />
   );
 };

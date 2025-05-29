@@ -1,19 +1,24 @@
 import React, { useRef, useState, useEffect, useCallback } from 'react';
-import { RuntimeNpc, NpcBehavior } from '../../../shared/types';
-import { drawSpriteGeneric } from '../../graphics/render';
+import { RuntimeNpc, NpcBehavior, Item } from '../../../shared/types';
+import { drawItemGeneric, drawSpriteGeneric } from '../../graphics/render';
 import { updateNpc, createNpc, deleteNpc } from '../../io/network';
 import { chatResultMsg } from '../ChatPanel';
 import { AsyncSelect } from '../common/Select/AsyncSelect';
+import { ItemIcon } from '../Inventory/ItemIcon';
 
 interface NpcEditorProps {
   npcs: RuntimeNpc[];
+  items: Item[];
   loadNpcs: () => Promise<any>;
+  loadItems: () => Promise<any>;
   refreshData: () => void;
 }
 
 export const NpcEditor: React.FC<NpcEditorProps> = ({
   npcs,
+  items,
   loadNpcs,
+  loadItems,
   refreshData,
 }) => {
   const [selectedId, setSelectedId] = useState('');
@@ -23,6 +28,9 @@ export const NpcEditor: React.FC<NpcEditorProps> = ({
   const [attack, setAttack] = useState(1);
   const [behavior, setBehavior] = useState<NpcBehavior>('neutral');
   const [exp, setExp] = useState(0);
+  const [dropItemId, setDropItemId] = useState<number | null>(null);
+  const [dropChance, setDropChance] = useState<number>(100);
+
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
   const reset = () => {
@@ -33,6 +41,8 @@ export const NpcEditor: React.FC<NpcEditorProps> = ({
     setAttack(1);
     setBehavior('neutral');
     setExp(0);
+    setDropItemId(null);
+    setDropChance(100);
   };
 
   const drawNpc = useCallback(
@@ -61,6 +71,13 @@ export const NpcEditor: React.FC<NpcEditorProps> = ({
       setAttack(npc.attack ?? 1);
       setBehavior(npc.behavior);
       setExp(npc.experienceValue ?? 0);
+      if (npc.itemsToDrop?.length) {
+        setDropItemId(npc.itemsToDrop[0].itemId);
+        setDropChance(npc.itemsToDrop[0].chance);
+      } else {
+        setDropItemId(null);
+        setDropChance(100);
+      }
     }
   };
 
@@ -72,10 +89,15 @@ export const NpcEditor: React.FC<NpcEditorProps> = ({
       attack,
       behavior,
       experienceValue: exp,
+      itemsToDrop: dropItemId
+        ? [{ itemId: dropItemId, chance: dropChance }]
+        : [],
     };
+
     const result = selectedId
       ? await updateNpc(selectedId, data)
       : await createNpc(data);
+
     chatResultMsg(!!result, 'NPC saved!', 'Error saving NPC');
     refreshData();
     reset();
@@ -139,6 +161,27 @@ export const NpcEditor: React.FC<NpcEditorProps> = ({
         value={behavior}
         onChange={(v) => setBehavior(v as NpcBehavior)}
       />
+      <label style={styles.label}>Drop Item</label>
+      <AsyncSelect<number>
+        loadOptions={loadItems}
+        value={dropItemId ?? 0}
+        onChange={(id) => setDropItemId(id)}
+      />
+      {dropItemId && (
+        <>
+          <label style={styles.label}>Drop Chance (%)</label>
+          <input
+            style={styles.input}
+            type="number"
+            value={dropChance}
+            onChange={(e) => setDropChance(+e.target.value)}
+          />
+          <label style={styles.label}>Item Preview</label>
+          <ItemIcon
+            spriteId={items.find((i) => i.id === dropItemId)?.sprite ?? 0}
+          />
+        </>
+      )}
       <label style={styles.label}>Experience</label>
       <input
         style={styles.input}

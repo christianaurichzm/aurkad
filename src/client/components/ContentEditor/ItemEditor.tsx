@@ -4,6 +4,7 @@ import { drawItemGeneric } from '../../graphics/render';
 import { updateItem, createItem, deleteItem } from '../../io/network';
 import { chatResultMsg } from '../ChatPanel';
 import { AsyncSelect } from '../common/Select/AsyncSelect';
+import { ItemIcon } from '../Inventory/ItemIcon';
 
 interface ItemEditorProps {
   items: Item[];
@@ -30,22 +31,6 @@ export const ItemEditor: React.FC<ItemEditorProps> = ({
     setDesc('');
     setType('helmet');
   };
-
-  const drawItem = useCallback(
-    (ctx: CanvasRenderingContext2D) => {
-      drawItemGeneric(ctx, sprite, 0, 0, 64, 64);
-    },
-    [sprite],
-  );
-
-  useEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-    drawItem(ctx);
-  }, [drawItem]);
 
   const selectItem = (id: number) => {
     setSelectedId(String(id));
@@ -110,7 +95,15 @@ export const ItemEditor: React.FC<ItemEditorProps> = ({
         placeholder="Sprite ID"
       />
       <label style={styles.label}>Preview</label>
-      <canvas ref={canvasRef} width={64} height={64} style={styles.canvas} />
+      <ItemIcon
+        spriteId={sprite}
+        style={{
+          border: '1px solid #ccc',
+          marginBottom: 8,
+          width: 64,
+          height: 64,
+        }}
+      />
       <label style={styles.label}>Description</label>
       <input
         style={styles.input}

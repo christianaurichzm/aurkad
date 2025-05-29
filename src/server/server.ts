@@ -34,7 +34,7 @@ import {
   startGameLoops,
   startWebSocketServer,
 } from './wsServer.js';
-import { Access, PlayerServer } from '../shared/types.js';
+import { Access, PersistentNpc, PlayerServer } from '../shared/types.js';
 import checkAccess from './checkAccess.js';
 import { defaultTiles, deleteNpcEverywhere, players } from './gameData.js';
 import { SPRITE_HEIGHT, SPRITE_WIDTH, TILE_SIZE } from '../shared/constants.js';
@@ -501,14 +501,20 @@ app.post(
 );
 
 app.post('/npcs', checkAccess(Access.ADMIN), (req, res) => {
-  const { name, sprite, maxHealth, attack, behavior, experienceValue } =
-    req.body;
+  const {
+    name,
+    sprite,
+    maxHealth,
+    attack,
+    behavior,
+    experienceValue,
+    itemsToDrop,
+  }: PersistentNpc = req.body;
 
   const defaults = {
     width: SPRITE_WIDTH,
     height: SPRITE_HEIGHT,
     attackRange: TILE_SIZE,
-    itemsToDrop: [],
   };
 
   const npcData = {
@@ -519,6 +525,7 @@ app.post('/npcs', checkAccess(Access.ADMIN), (req, res) => {
     attack,
     behavior,
     experienceValue,
+    itemsToDrop,
   };
 
   const newNpc = createOrUpdateNpc(npcData);

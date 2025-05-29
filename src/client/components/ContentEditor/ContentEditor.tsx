@@ -56,7 +56,13 @@ export const ContentEditor: React.FC = () => {
         x
       </button>
       <h2 style={styles.title}>Content Editor</h2>
-      <NpcEditor npcs={npcs} loadNpcs={loadNpcs} refreshData={refreshData} />
+      <NpcEditor
+        npcs={npcs}
+        loadNpcs={loadNpcs}
+        refreshData={refreshData}
+        items={items}
+        loadItems={loadItems}
+      />
       <ItemEditor
         items={items}
         loadItems={loadItems}
