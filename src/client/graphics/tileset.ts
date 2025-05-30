@@ -23,8 +23,8 @@ type ModeConfig = {
   place: (row: number, col: number) => void;
 };
 
-const gridCanvas = getEl<HTMLCanvasElement>('gridCanvas')!;
-const gridCtx = gridCanvas.getContext('2d')!;
+let gridCanvas: HTMLCanvasElement;
+let gridCtx: CanvasRenderingContext2D;
 const blockButton = getEl<HTMLButtonElement>('blockButton')!;
 const warpButton = getEl<HTMLButtonElement>('warpButton')!;
 const npcButton = getEl<HTMLButtonElement>('npcButton')!;
@@ -38,9 +38,10 @@ export let tilesetEditorInitialized = false;
 export const initTilesetEditor = () => {
   tilesetCanvas = getEl<HTMLCanvasElement>('tilesetCanvas')!;
   if (!tilesetCanvas) {
-    console.error('#tilesetCanvas does not exist in the DOM');
     return;
   }
+  gridCanvas = getEl<HTMLCanvasElement>('gridCanvas')!;
+  gridCtx = gridCanvas.getContext('2d')!;
   tilesetCanvas.width = tileset.width;
   tilesetCanvas.height = tileset.height;
   tilesetCtx = tilesetCanvas.getContext('2d')!;
@@ -48,14 +49,16 @@ export const initTilesetEditor = () => {
   setupEventListeners();
   initializeGrid();
   tilesetEditorInitialized = true;
+  mapWidth = Math.floor(foregroundCanvas.width / TILE_SIZE);
+  mapHeight = Math.floor(foregroundCanvas.height / TILE_SIZE);
 };
 
 const selectedTile = { startX: 0, startY: 0, endX: 0, endY: 0 };
 let isSelecting = false;
 let isPlacing = false;
 let activeMode: TileEditMode | null = null;
-const mapWidth = Math.floor(foregroundCanvas.width / TILE_SIZE);
-const mapHeight = Math.floor(foregroundCanvas.height / TILE_SIZE);
+let mapWidth: number;
+let mapHeight: number;
 let originalMap: Tile[][] = [];
 let map: Tile[][] = [];
 export let mapEdited = false;
@@ -377,11 +380,13 @@ export const setMapEdited = (edited: boolean) => {
 };
 
 const initializeGrid = () => {
+  if (!gridCtx || !gridCanvas) return;
   gridCanvas.width = foregroundCanvas.width;
   gridCanvas.height = foregroundCanvas.height;
   drawGrid();
 };
 const clearAndDrawGrid = () => {
+  if (!gridCtx || !gridCanvas) return;
   gridCtx.clearRect(0, 0, gridCanvas.width, gridCanvas.height);
   drawGrid();
 };

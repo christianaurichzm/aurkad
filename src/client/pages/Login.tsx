@@ -3,38 +3,129 @@ import { login } from '../io/network';
 import { MapStateClient, Player } from '../../shared/types';
 import { useGame } from '../context/GameContext';
 
-export const Login = () => {
+export const Login = ({ onSwitch }: { onSwitch: () => void }) => {
   const { loginSuccess } = useGame();
   const [username, setUsername] = useState('');
+  const [password, setPassword] = useState('');
   const [error, setError] = useState('');
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
 
+    if (!username.trim() || !password.trim()) {
+      setError('Username and password are required');
+      return;
+    }
+
     try {
-      const data = await login(username);
-      loginSuccess(data as { map: MapStateClient; player: Player });
-    } catch (err) {
+      const data = await login(username, password);
+
+      if (data?.player && data?.map) {
+        loginSuccess(data as { map: MapStateClient; player: Player });
+      } else {
+        setError('Invalid response from server');
+      }
+    } catch (err: any) {
       console.error(err);
-      if (err instanceof Error) setError(err.message);
-      else setError('Unknown error during login');
+      setError(err.message || 'Login failed');
     }
   };
 
   return (
-    <div id="loginContainer">
-      <form id="loginForm" onSubmit={handleSubmit}>
+    <div style={styles.container}>
+      <form style={styles.form} onSubmit={handleSubmit}>
         <input
-          id="username"
           type="text"
           placeholder="User"
           value={username}
           onChange={(e) => setUsername(e.target.value)}
+          required
+          style={styles.input}
         />
-        <button type="submit">Login</button>
-        {error && <div id="errorMessage">{error}</div>}
+        <input
+          type="password"
+          placeholder="Password"
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+          required
+          style={styles.input}
+        />
+        <button
+          type="submit"
+          disabled={!username || !password}
+          style={styles.button}
+        >
+          Login
+        </button>
+        <p style={styles.registerText}>
+          Don't have an account?{' '}
+          <button type="button" onClick={onSwitch} style={styles.linkButton}>
+            Register
+          </button>
+        </p>
+        {error && <div style={styles.error}>{error}</div>}
       </form>
     </div>
   );
+};
+
+const styles: Record<string, React.CSSProperties> = {
+  container: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    width: '100%',
+    height: '100%',
+    backgroundColor: '#f0f0f0',
+    zIndex: 2000,
+    display: 'flex',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  form: {
+    background: '#fff',
+    padding: '40px 30px',
+    borderRadius: '8px',
+    boxShadow: '0 4px 15px rgba(0, 0, 0, 0.1)',
+    width: '320px',
+    textAlign: 'center',
+  },
+  input: {
+    width: '100%',
+    padding: '12px',
+    marginBottom: '20px',
+    border: '1px solid #ccc',
+    borderRadius: '4px',
+    fontSize: '1rem',
+  },
+  button: {
+    width: '100%',
+    padding: '12px',
+    backgroundColor: '#2ecc40',
+    color: 'white',
+    border: 'none',
+    borderRadius: '4px',
+    cursor: 'pointer',
+    fontSize: '1rem',
+    fontWeight: 'bold',
+    transition: 'background-color 0.2s',
+  },
+  registerText: {
+    marginTop: '20px',
+    fontSize: '0.9rem',
+  },
+  linkButton: {
+    background: 'none',
+    border: 'none',
+    color: '#3498db',
+    cursor: 'pointer',
+    textDecoration: 'underline',
+    fontSize: 'inherit',
+  },
+  error: {
+    marginTop: '15px',
+    color: 'red',
+    fontSize: '0.9rem',
+  },
 };

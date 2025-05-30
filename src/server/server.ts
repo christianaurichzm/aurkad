@@ -1,13 +1,14 @@
 const currentNodeVersion = process.versions.node;
 const [major] = currentNodeVersion.split('.').map(Number);
 
-const REQUIRED_MAJOR_VERSION = 17;
+const REQUIRED_MAJOR_VERSION = 18;
 
 if (major < REQUIRED_MAJOR_VERSION) {
   process.exit(1);
 }
 
 import { fileURLToPath } from 'url';
+import bcrypt from 'bcrypt';
 import { dirname } from 'path';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -44,7 +45,6 @@ import {
 } from './gameData.js';
 import { SPRITE_HEIGHT, SPRITE_WIDTH, TILE_SIZE } from '../shared/constants.js';
 import {
-  login,
   mapSave,
   disconnectPlayer,
   handlePlayerUpdate,
@@ -67,9 +67,11 @@ import {
 } from './services/inventoryService.js';
 import {
   changeSprite,
+  createPlayer,
   enrichPlayer,
   getPlayerById,
   getPlayerByName,
+  getPlayerByNameFromDb,
   persistPlayerSessionState,
 } from './services/playerService.js';
 import {
@@ -81,6 +83,7 @@ import {
 export const IMAGES_PATH = process.env.IMAGES_BASE_URL || '.';
 
 import session from 'express-session';
+import Player from './model/Player.js';
 
 declare module 'express-session' {
   interface SessionData {
@@ -104,43 +107,45 @@ const sessionMiddleware = session({
 app.use(sessionMiddleware);
 
 app.post('/login', async (req: Request, res: Response) => {
-  const username = req.body.username;
-  if (!username) {
-    return res.status(400).send('Username is required');
+  const { username, password } = req.body;
+
+  if (!username || !password) {
+    return res.status(400).send('Username and password are required');
+  }
+
+  const playerDoc = await getPlayerByNameFromDb(username);
+  if (!playerDoc) {
+    return res.status(404).send('User not found');
+  }
+
+  const passwordMatches = await bcrypt.compare(password, playerDoc.password);
+  if (!passwordMatches) {
+    return res.status(401).send('Invalid password');
   }
 
   const ban = await getBan(username);
-  if (ban) {
-    if (!ban.until || Date.now() < ban.until) {
-      return res.status(403).json({
-        message: `You are banned from this game.${ban.reason ? ` Reason: ${ban.reason}` : ''}${ban.until ? ` Until: ${new Date(ban.until).toLocaleString()}` : ''}`,
-      });
-    } else {
-      await unbanPlayer(username);
-    }
-  }
-
-  try {
-    const basicPlayer = await login(username);
-    if (!basicPlayer) return res.status(404).send('User not found');
-
-    const player = enrichPlayer(basicPlayer);
-
-    req.session.username = username;
-    req.session.accessLevel = basicPlayer.access;
-    players[basicPlayer.id] = basicPlayer;
-    const map = addPlayerOnMap(basicPlayer.id);
-    req.session.save((err) => {
-      if (err) {
-        console.error('Session save failed:', err);
-        return res.status(500).send('Failed to save session');
-      }
-      res.status(200).json({ player, map });
+  if (ban && (!ban.until || Date.now() < ban.until)) {
+    return res.status(403).json({
+      message: `You are banned from this game.${ban.reason ? ` Reason: ${ban.reason}` : ''}${ban.until ? ` Until: ${new Date(ban.until).toLocaleString()}` : ''}`,
     });
-  } catch (error) {
-    console.error('Login failed:', error);
-    res.status(500).send('Internal server error');
+  } else if (ban) {
+    await unbanPlayer(username);
   }
+
+  const player = enrichPlayer(playerDoc);
+
+  req.session.username = username;
+  req.session.accessLevel = player.access;
+  players[player.id] = playerDoc;
+
+  const map = addPlayerOnMap(player.id);
+  req.session.save((err) => {
+    if (err) {
+      console.error('Session save failed:', err);
+      return res.status(500).send('Failed to save session');
+    }
+    res.status(200).json({ player, map });
+  });
 });
 
 app.post('/logout', (req: Request, res: Response) => {
@@ -153,6 +158,27 @@ app.post('/logout', (req: Request, res: Response) => {
     disconnectPlayer(req.session.username!);
     res.status(200).send('Logged out');
   });
+});
+
+app.post('/register', async (req, res) => {
+  const { username, password } = req.body;
+
+  if (!username || !password)
+    return res.status(400).send('Username and password are required');
+
+  const existing = await getPlayerByNameFromDb(username);
+  if (existing) return res.status(409).send('Username already taken');
+
+  try {
+    const saltRounds = 10;
+    const hashedPassword = await bcrypt.hash(password, saltRounds);
+    const newPlayer = await createPlayer(username, hashedPassword);
+
+    res.status(201).json({ success: true, playerId: newPlayer.id });
+  } catch (err) {
+    console.error('Registration failed:', err);
+    res.status(500).send('Failed to register player');
+  }
 });
 
 app.post(

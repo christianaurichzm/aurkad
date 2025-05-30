@@ -1,6 +1,6 @@
 import { useLayoutEffect, useRef } from 'react';
 import { initializeAssets } from '../io/files';
-import { renderMap } from '../graphics/tileset';
+import { initTilesetEditor, renderMap } from '../graphics/tileset';
 import { handleInput } from '../io/keyboard';
 import { initializeWebSocket } from '../io/network';
 import { gameLoop } from '../core/game';
@@ -20,7 +20,6 @@ export const GameInterface = () => {
       setFullGameState({ map, player });
       handleInput();
       initializeWebSocket();
-
       await initializeAssets();
       await renderMap(map.tiles);
       requestAnimationFrame(gameLoop);

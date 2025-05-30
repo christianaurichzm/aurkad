@@ -44,10 +44,14 @@ export async function listPlayers(): Promise<PlayerServer[]> {
   return await PlayerModel.find().lean<PlayerServer[]>().exec();
 }
 
-export const createPlayer = async (username: string): Promise<PlayerServer> => {
+export const createPlayer = async (
+  username: string,
+  password: string,
+): Promise<PlayerServer> => {
   const newPlayer: PlayerServer = {
     id: Math.random().toString(36).substring(2, 9),
     name: username,
+    password,
     position: RESPAWN_POSITION,
     width: SPRITE_WIDTH,
     height: SPRITE_HEIGHT,

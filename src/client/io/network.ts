@@ -255,10 +255,17 @@ export const httpClient = async <T>(
   return data as T;
 };
 
-export const login = async (username: string) => {
+export const login = async (username: string, password: string) => {
   return await httpClient<{ player: Player; map: MapStateClient }>('/login', {
     method: 'POST',
-    body: { username },
+    body: { username, password },
+  });
+};
+
+export const register = async (username: string, password: string) => {
+  return await httpClient<{ success: boolean }>('/register', {
+    method: 'POST',
+    body: { username, password },
   });
 };
 

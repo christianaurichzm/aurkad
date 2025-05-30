@@ -237,11 +237,6 @@ export const mapSave = async (
 
 export const getGameState = () => getRuntimeState();
 
-export const login = async (username: string) => {
-  const playerExiste = await getPlayerByNameFromDb(username);
-  return playerExiste || (await createPlayer(username));
-};
-
 export const handlePlayerUpdate = (player: PlayerServer): void => {
   handlePlayerUpdates(player);
 };

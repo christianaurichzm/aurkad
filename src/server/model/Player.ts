@@ -51,6 +51,7 @@ const PlayerSchema = new mongoose.Schema({
   inventory: InventorySchema,
   equipped: EquippedItemsSchema,
   access: Number,
+  password: { type: String, required: true },
 });
 
 export default mongoose.model('Player', PlayerSchema);

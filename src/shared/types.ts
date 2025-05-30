@@ -158,6 +158,7 @@ export interface RuntimeNpc extends PersistentNpc, CharacterRuntime {
 
 export interface PersistentPlayer extends CharacterBase {
   level: number;
+  password: string;
   experience: number;
   experienceToNextLevel: number;
   inventory: Inventory;

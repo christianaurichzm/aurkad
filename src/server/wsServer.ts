@@ -171,7 +171,7 @@ export function startGameLoops() {
 
   setInterval(() => {
     enqueueAction({ action: ServerActionType.UpdateNpcPositions });
-  }, 1000);
+  }, 1250);
 
   setInterval(() => {
     enqueueAction({ action: ServerActionType.RegeneratePlayersHP });
