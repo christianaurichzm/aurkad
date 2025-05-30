@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { usePlayerForceUpdate } from '../hooks/usePlayerForceUpdate';
-import { assignPointsPlayer, httpClient } from '../io/network';
+import { assignPointsPlayer } from '../io/network';
+import { Modal } from './common/Modal';
 
 export const AttributeDistributorModal: React.FC = () => {
   const [visible, setVisible] = useState(false);
@@ -10,7 +11,7 @@ export const AttributeDistributorModal: React.FC = () => {
   const [loading, setLoading] = useState(false);
 
   const player = usePlayerForceUpdate(visible);
-  console.log(player);
+
   useEffect(() => {
     const onToggle = () => setVisible((v) => !v);
     window.addEventListener('toggleAttributeDistributor', onToggle);
@@ -42,10 +43,8 @@ export const AttributeDistributorModal: React.FC = () => {
   };
 
   return (
-    <div style={styles.container}>
+    <Modal title="Attributes" onClose={() => setVisible(false)} width={400}>
       <div style={styles.panel}>
-        <div style={styles.title}>Attributes</div>
-
         <div style={styles.row}>
           <label>
             Attack: {player.attack} + {attack}
@@ -84,30 +83,15 @@ export const AttributeDistributorModal: React.FC = () => {
           </button>
         </div>
       </div>
-    </div>
+    </Modal>
   );
 };
 
 const styles = {
-  container: {
-    position: 'absolute' as const,
-    top: 100,
-    right: 100,
-    backgroundColor: '#222',
-    border: '2px solid #444',
-    padding: 16,
-    borderRadius: 8,
-    color: '#fff',
-    zIndex: 999,
-  },
   panel: {
     display: 'flex',
     flexDirection: 'column' as const,
     gap: 12,
-  },
-  title: {
-    fontSize: 18,
-    fontWeight: 'bold' as const,
   },
   row: {
     display: 'flex',
