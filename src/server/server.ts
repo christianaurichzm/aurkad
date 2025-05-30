@@ -36,7 +36,12 @@ import {
 } from './wsServer.js';
 import { Access, PersistentNpc, PlayerServer } from '../shared/types.js';
 import checkAccess from './checkAccess.js';
-import { defaultTiles, deleteNpcEverywhere, players } from './gameData.js';
+import {
+  defaultTiles,
+  deleteNpcEverywhere,
+  players,
+  updatePlayer,
+} from './gameData.js';
 import { SPRITE_HEIGHT, SPRITE_WIDTH, TILE_SIZE } from '../shared/constants.js';
 import {
   login,
@@ -63,6 +68,7 @@ import {
 import {
   changeSprite,
   enrichPlayer,
+  getPlayerById,
   getPlayerByName,
   persistPlayerSessionState,
 } from './services/playerService.js';
@@ -530,6 +536,40 @@ app.post('/npcs', checkAccess(Access.ADMIN), (req, res) => {
 
   const newNpc = createOrUpdateNpc(npcData);
   res.status(201).json(newNpc);
+});
+
+app.post('/players/:id/assignPoints', async (req, res) => {
+  const { vitality = 0, attack = 0 } = req.body;
+
+  const totalAssigned = vitality + attack;
+  if (totalAssigned <= 0) {
+    return res.status(400).json({ error: 'No points assigned' });
+  }
+
+  const player = await getPlayerById(req.params.id);
+  if (!player) {
+    return res.status(404).json({ error: 'Player not found' });
+  }
+
+  if (totalAssigned > player.unspentPoints) {
+    return res.status(400).json({ error: 'Not enough unspent points' });
+  }
+
+  player.vitality += vitality;
+  player.attack += attack;
+  player.unspentPoints -= totalAssigned;
+
+  player.maxHealth = 100 + player.vitality * 10;
+
+  await updatePlayer(player);
+
+  return res.json({
+    success: true,
+    unspentPoints: player.unspentPoints,
+    vitality: player.vitality,
+    attack: player.attack,
+    maxHealth: player.maxHealth,
+  });
 });
 
 app.post('/maps', checkAccess(Access.ADMIN), async (req, res) => {

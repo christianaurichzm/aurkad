@@ -38,6 +38,8 @@ const PlayerSchema = new mongoose.Schema({
   maxHealth: Number,
   health: Number,
   attack: Number,
+  vitality: Number,
+  unspentPoints: Number,
   direction: Number,
   action: String,
   attackRange: Number,

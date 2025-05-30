@@ -12,6 +12,7 @@ export enum Key {
   z = 'z',
   i = 'i',
   e = 'e',
+  v = 'v',
 }
 
 export enum Direction {
@@ -162,6 +163,8 @@ export interface PersistentPlayer extends CharacterBase {
   inventory: Inventory;
   equipped: EquippedItems;
   access: Access;
+  vitality: number;
+  unspentPoints: number;
 }
 
 export interface PlayerServer extends PersistentPlayer, CharacterRuntime {

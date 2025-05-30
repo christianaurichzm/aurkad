@@ -35,6 +35,9 @@ const handleKeyPress = async (key: Key) => {
     case Key.i:
       window.dispatchEvent(new Event('toggleInventory'));
       break;
+    case Key.v:
+      window.dispatchEvent(new Event('toggleAttributeDistributor'));
+      break;
   }
 };
 

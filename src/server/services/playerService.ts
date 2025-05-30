@@ -54,6 +54,8 @@ export const createPlayer = async (username: string): Promise<PlayerServer> => {
     speed: DEFAULT_PLAYER_SPEED,
     kind: 'player',
     attack: 100,
+    vitality: 0,
+    unspentPoints: 0,
     level: 1,
     experience: 0,
     experienceToNextLevel: 100,
@@ -88,12 +90,16 @@ export const persistPlayerSessionState = async (player: PlayerServer) => {
 };
 
 export const levelUpPlayer = (player: PlayerServer): void => {
+  const POINTS_PER_LEVEL = 5;
+
   while (player.experience >= player.experienceToNextLevel) {
     player.experience -= player.experienceToNextLevel;
     player.level++;
     player.experienceToNextLevel = Math.floor(
       100 * Math.pow(1.5, player.level - 1),
     );
+
+    player.unspentPoints += POINTS_PER_LEVEL;
   }
 };
 
@@ -143,6 +149,9 @@ export function enrichPlayer(player: PlayerServer): Player {
     maxHealth,
     health,
     targetPosition,
+    unspentPoints,
+    vitality,
+    attack,
   } = player;
 
   return {
@@ -159,6 +168,9 @@ export function enrichPlayer(player: PlayerServer): Player {
     inventory,
     equipped,
     targetPosition,
+    unspentPoints,
+    vitality,
+    attack,
   } as Player;
 }
 

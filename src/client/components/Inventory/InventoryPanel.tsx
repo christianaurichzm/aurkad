@@ -11,7 +11,6 @@ type Selection = { item: Item; quantity: number };
 
 export const InventoryPanel: React.FC = () => {
   const styles = useStyles();
-  const player = usePlayerForceUpdate();
   const [selected, setSelected] = useState<Selection | null>(null);
   const [tooltip, setTooltip] = useState<{
     x: number;
@@ -21,6 +20,7 @@ export const InventoryPanel: React.FC = () => {
   } | null>(null);
 
   const [visible, setVisible] = useState(false);
+  const player = usePlayerForceUpdate(visible);
 
   useEffect(() => {
     const onToggle = () => setVisible((v) => !v);

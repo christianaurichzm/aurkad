@@ -324,6 +324,17 @@ export const fetchMaps = async (): Promise<MapStateClient[]> => {
   return (await httpClient<MapStateClient[]>('/maps', { method: 'GET' })) || [];
 };
 
+export const assignPointsPlayer = async (
+  id: string,
+  attack: number,
+  vitality: number,
+): Promise<void> => {
+  await httpClient(`/players/${id}/assignPoints`, {
+    method: 'POST',
+    body: { attack, vitality },
+  });
+};
+
 export const fetchShops = async (): Promise<Shop<ProductRaw>[]> => {
   const result = await httpClient<Shop<ProductRaw>[]>('/shops', {
     method: 'GET',
