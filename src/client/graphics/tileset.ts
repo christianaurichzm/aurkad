@@ -30,6 +30,8 @@ const warpButton = getEl<HTMLButtonElement>('warpButton')!;
 const npcButton = getEl<HTMLButtonElement>('npcButton')!;
 const itemButton = getEl<HTMLButtonElement>('itemButton')!;
 const shopButton = getEl<HTMLButtonElement>('shopButton')!;
+const avoidNpcButton = getEl<HTMLButtonElement>('avoidNpcButton')!;
+
 let tilesetCanvas: HTMLCanvasElement;
 let tilesetCtx: CanvasRenderingContext2D;
 
@@ -166,6 +168,18 @@ const modes: Record<TileEditMode, ModeConfig> = {
         mapEdited = true;
         renderMap(map);
       }
+    },
+  },
+  avoidNpc: {
+    button: avoidNpcButton,
+    textOn: 'Avoid NPC Mode: ON',
+    textOff: 'Avoid NPC Mode: OFF',
+    styleOn: 'red',
+    styleOff: '',
+    place: (row: number, col: number) => {
+      map[row][col].avoidNpc = !map[row][col].avoidNpc;
+      mapEdited = true;
+      renderMap(map);
     },
   },
 };
@@ -307,6 +321,7 @@ export const toggleWarping = () => toggleMode('warping');
 export const toggleNpc = () => toggleMode('npc');
 export const toggleItem = () => toggleMode('item');
 export const toggleShop = () => toggleMode('shop');
+export const toggleAvoidNpc = () => toggleMode('avoidNpc');
 
 const setupEventListeners = () => {
   addEvent('tilesetCanvas', 'mousedown', startSelecting);
@@ -399,6 +414,7 @@ const drawMarkers = (tiles: Tile[][]) => {
       if (tile.npcSpawn) drawMarker(colIndex, rowIndex, 'N', 'yellow');
       if (tile.item) drawMarker(colIndex, rowIndex, 'I', 'orange');
       if (tile.shop) drawMarker(colIndex, rowIndex, 'S', 'green');
+      if (tile.avoidNpc) drawMarker(colIndex, rowIndex, 'A', 'purple');
     });
   });
 };

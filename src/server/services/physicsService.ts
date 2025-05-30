@@ -8,7 +8,12 @@ const isColliding = (a: CombatTarget, b: CombatTarget): boolean =>
   a.position.y < b.position.y + b.height &&
   a.position.y + a.height > b.position.y;
 
-const isTileBlocked = (map: MapStateServer, x: number, y: number): boolean => {
+const isTileBlocked = (
+  map: MapStateServer,
+  x: number,
+  y: number,
+  forNpc = false,
+): boolean => {
   const row = Math.floor(y / TILE_SIZE);
   const col = Math.floor(x / TILE_SIZE);
 
@@ -22,6 +27,11 @@ const isTileBlocked = (map: MapStateServer, x: number, y: number): boolean => {
   }
 
   const tile = map.tiles[row]?.[col];
+
+  if (forNpc) {
+    return !!tile?.blocked || !!tile?.avoidNpc;
+  }
+
   return !!tile?.blocked;
 };
 
@@ -56,11 +66,13 @@ export const hasCollision = (character: CombatTarget): boolean => {
 
   if (characterCollision) return true;
 
+  const isNpc = character.kind === 'npc';
+
   const tileCollision =
-    isTileBlocked(map, x, y) ||
-    isTileBlocked(map, x + width - 1, y) ||
-    isTileBlocked(map, x, y + height - 1) ||
-    isTileBlocked(map, x + width - 1, y + height - 1);
+    isTileBlocked(map, x, y, isNpc) ||
+    isTileBlocked(map, x + width - 1, y, isNpc) ||
+    isTileBlocked(map, x, y + height - 1, isNpc) ||
+    isTileBlocked(map, x + width - 1, y + height - 1, isNpc);
 
   if (tileCollision) return true;
 

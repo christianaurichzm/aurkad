@@ -8,6 +8,7 @@ import {
   toggleItem,
   toggleShop,
   setMapEdited,
+  toggleAvoidNpc,
 } from '../../graphics/tileset';
 import { fetchNpcs, fetchItems, fetchShops, fetchMap } from '../../io/network';
 import { AsyncSelect } from '../common/Select/AsyncSelect';
@@ -92,18 +93,27 @@ export const TilesetModeControls: React.FC = () => {
       npc: toggleNpc,
       item: toggleItem,
       shop: toggleShop,
+      avoidNpc: toggleAvoidNpc,
     };
 
     toggleMap[mode]?.();
   };
 
-  const modes: TileEditMode[] = ['blocking', 'warping', 'npc', 'item', 'shop'];
+  const modes: TileEditMode[] = [
+    'blocking',
+    'warping',
+    'npc',
+    'item',
+    'shop',
+    'avoidNpc',
+  ];
   const modeLabels: Record<TileEditMode, string> = {
     blocking: 'Blocking',
     warping: 'Warp',
     npc: 'NPC',
     item: 'Item',
     shop: 'Shop',
+    avoidNpc: 'Avoid Npc',
   };
 
   return (

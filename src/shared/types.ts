@@ -192,6 +192,7 @@ export interface Tile {
   npcSpawn?: PersistentNpc['id'];
   item?: Item['id'];
   shop?: Shop['id'];
+  avoidNpc?: boolean;
 }
 
 export interface DroppedItem {
@@ -309,7 +310,13 @@ export interface ProductDetailed {
   price: number;
 }
 
-export type TileEditMode = 'blocking' | 'warping' | 'npc' | 'item' | 'shop';
+export type TileEditMode =
+  | 'blocking'
+  | 'warping'
+  | 'npc'
+  | 'item'
+  | 'shop'
+  | 'avoidNpc';
 
 export interface HttpRequestOptions {
   method: 'GET' | 'POST' | 'PUT' | 'DELETE';
