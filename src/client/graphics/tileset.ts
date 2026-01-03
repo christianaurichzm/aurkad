@@ -13,6 +13,7 @@ import { MapType, Tile, TileEditMode } from '../../shared/types';
 import { tileset } from '../io/files';
 import { saveMap } from '../io/network';
 import { foregroundCanvas, foregroundCtx } from './canvas';
+import { useUIStore } from '../stores/uiStore';
 
 type ModeConfig = {
   button: HTMLButtonElement;
@@ -63,7 +64,6 @@ let mapWidth: number;
 let mapHeight: number;
 let originalMap: Tile[][] = [];
 let map: Tile[][] = [];
-export let mapEdited = false;
 let hoveredCell: { row: number; col: number } | null = null;
 
 const handleHover = (event: MouseEvent) => {
@@ -85,7 +85,7 @@ const modes: Record<TileEditMode, ModeConfig> = {
     styleOff: '',
     place: (row: number, col: number) => {
       map[row][col].blocked = !map[row][col].blocked;
-      mapEdited = true;
+      setMapEdited(true);
       renderMap(map);
     },
   },
@@ -108,7 +108,7 @@ const modes: Record<TileEditMode, ModeConfig> = {
             position: { x: xTo * TILE_SIZE, y: yTo * TILE_SIZE },
           };
         }
-        mapEdited = true;
+        setMapEdited(true);
         renderMap(map);
       }
     },
@@ -127,7 +127,7 @@ const modes: Record<TileEditMode, ModeConfig> = {
         } else {
           map[row][col].npcSpawn = npc;
         }
-        mapEdited = true;
+        setMapEdited(true);
         renderMap(map);
       }
     },
@@ -146,7 +146,7 @@ const modes: Record<TileEditMode, ModeConfig> = {
         } else {
           map[row][col].item = safeParseInt(item);
         }
-        mapEdited = true;
+        setMapEdited(true);
         renderMap(map);
       }
     },
@@ -165,7 +165,7 @@ const modes: Record<TileEditMode, ModeConfig> = {
         } else {
           map[row][col].shop = shop;
         }
-        mapEdited = true;
+        setMapEdited(true);
         renderMap(map);
       }
     },
@@ -178,7 +178,7 @@ const modes: Record<TileEditMode, ModeConfig> = {
     styleOff: '',
     place: (row: number, col: number) => {
       map[row][col].avoidNpc = !map[row][col].avoidNpc;
-      mapEdited = true;
+      setMapEdited(true);
       renderMap(map);
     },
   },
@@ -282,7 +282,7 @@ const placeSelectedTile = (row: number, col: number) => {
       }
     }
   }
-  mapEdited = true;
+  setMapEdited(true);
 };
 
 const calculateSelectionBounds = () => {
@@ -358,7 +358,7 @@ export const renderMap = (tiles: Tile[][]) => {
 };
 
 const drawHoverCell = () => {
-  if (!hoveredCell) return;
+  if (!hoveredCell || !gridCtx) return;
   const { row, col } = hoveredCell;
   gridCtx.fillStyle = 'rgba(255, 255, 255, 0.4)';
   gridCtx.fillRect(col * TILE_SIZE, row * TILE_SIZE, TILE_SIZE, TILE_SIZE);
@@ -391,7 +391,7 @@ const drawGrid = () => {
 };
 
 export const setMapEdited = (edited: boolean) => {
-  mapEdited = edited;
+  useUIStore.getState().setMapEdited(edited);
 };
 
 const initializeGrid = () => {
@@ -419,6 +419,7 @@ const drawMarkers = (tiles: Tile[][]) => {
   });
 };
 const drawMarker = (col: number, row: number, text: string, color: string) => {
+  if (!gridCtx) return;
   gridCtx.fillStyle = color;
   gridCtx.font = '40px Arial';
   gridCtx.fillText(text, col * TILE_SIZE + 20, row * TILE_SIZE + 35);
@@ -428,8 +429,7 @@ export const saveCurrentMap = async (name: string, type: MapType) => {
   await withLoading('saveButton', async () => {
     try {
       await saveMap(map, name, type);
-      console.log('Map saved successfully');
-      mapEdited = false;
+      setMapEdited(false);
       originalMap = map.map((row) => row.map((tile) => ({ ...tile })));
     } catch (error) {
       console.error('Error saving map:', error);
@@ -449,6 +449,7 @@ export const toggleTilesetEditor = (shouldShow: boolean) => {
     }
     show('gridCanvas', 'block');
   } else {
+    const mapEdited = useUIStore.getState().mapEdited;
     if (mapEdited) {
       const discard = confirm(
         'You have unsaved changes. Are you sure you want to exit without saving?',
@@ -461,7 +462,7 @@ export const toggleTilesetEditor = (shouldShow: boolean) => {
     }
     removeEventListeners();
     hide('gridCanvas');
-    mapEdited = false;
+    setMapEdited(false);
     activeMode = null;
 
     tilesetEditorInitialized = false;

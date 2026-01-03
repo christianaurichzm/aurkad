@@ -39,7 +39,6 @@ export const initItems = async () => {
 export const initializeAssets = () => {
   return Promise.all([initTileset(), initSpriteSheet(), initItems()])
     .then(([loadedTileset, loadedSpriteSheet]) => {
-      console.log('All assets loaded');
       return { tileset: loadedTileset, spriteSheet: loadedSpriteSheet };
     })
     .catch((error) => {

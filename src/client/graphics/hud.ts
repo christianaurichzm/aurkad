@@ -1,8 +1,9 @@
-import { RuntimeNpc, Player } from '../../shared/types';
+import { RuntimeNpc, Player, PlayerPublic } from '../../shared/types';
 import { playerCtx } from './canvas';
 import { playerNameColorRecord } from '../../shared/mappings';
+import { useUIStore } from '../stores/uiStore';
 
-export const renderHUD = (player: Player) => {
+export const renderHUD = (player: Player | PlayerPublic) => {
   const { name, level, position, access } = player;
   const { x, y } = position;
   const text = `${name} - Level: ${level}`;
@@ -15,7 +16,7 @@ export const renderHUD = (player: Player) => {
   playerCtx.fillText(text, x, y);
 };
 
-function getHealthBarInfo(current: number, max: number) {
+export function getHealthBarInfo(current: number, max: number) {
   const percentage = Math.max(0, Math.min(current / max, 1));
   let color = 'green';
 
@@ -33,16 +34,7 @@ function getHealthBarInfo(current: number, max: number) {
 }
 
 export const updatePlayerHealthBar = (player: Player) => {
-  const healthBar = document.getElementById('health-bar');
-  const healthBarText = document.getElementById('health-bar-text');
-
-  if (!healthBar || !healthBarText) return;
-
-  const { color, text } = getHealthBarInfo(player.health, player.maxHealth);
-
-  healthBar.style.width = text;
-  healthBarText.textContent = text;
-  healthBar.style.backgroundColor = color;
+  useUIStore.getState().setPlayerHealth(player.health, player.maxHealth);
 };
 
 export const renderHealthBar = (npc: RuntimeNpc) => {
@@ -61,16 +53,9 @@ export const renderHealthBar = (npc: RuntimeNpc) => {
 };
 
 export function showConnectionStatus(message: string, isError = false) {
-  const element = document.getElementById('connection-status');
-  if (!element) return;
-
-  element.textContent = message;
-  element.style.background = isError ? '#c0392b' : '#27ae60';
-  element.style.display = 'block';
+  useUIStore.getState().showConnectionStatus(message, isError);
 }
 
 export function hideConnectionStatus() {
-  const element = document.getElementById('connection-status');
-  if (!element) return;
-  element.style.display = 'none';
+  useUIStore.getState().hideConnectionStatus();
 }

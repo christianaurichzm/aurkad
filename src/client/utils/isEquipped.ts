@@ -1,4 +1,4 @@
-import type { Player } from '../shared/types';
+import type { Player } from '../../shared/types';
 
 export const isEquipped = (p: Player, id: number) =>
   [

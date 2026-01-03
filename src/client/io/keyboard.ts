@@ -1,4 +1,4 @@
-import { ClientKeyboardAction, Key, Protocol } from '../../shared/types';
+import { Key, Protocol } from '../../shared/types';
 import { keyRecord } from '../../shared/mappings';
 import {
   openContentEditor,
@@ -44,24 +44,26 @@ const handleKeyPress = async (key: Key) => {
 export const handleInput = () => {
   window.addEventListener('keydown', async (e) => {
     if (isInputActive()) return;
+    if (!document.hasFocus()) return;
     if (e.key in keyRecord) e.preventDefault();
     if (isValidKey(e.key)) {
       if (keyRecord[e.key] === Protocol.WS) {
         sendAction({
           keyboardAction: { key: e.key, type: 'press' },
           type: 'keyboard',
-        } as ClientKeyboardAction);
+        });
       } else {
         await handleKeyPress(e.key);
       }
     }
   });
   window.addEventListener('keyup', (e) => {
+    if (!document.hasFocus()) return;
     if (isValidKey(e.key)) {
       sendAction({
         keyboardAction: { key: e.key, type: 'release' },
         type: 'keyboard',
-      } as ClientKeyboardAction);
+      });
     }
   });
 };
