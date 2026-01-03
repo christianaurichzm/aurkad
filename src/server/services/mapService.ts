@@ -10,8 +10,8 @@ import {
 } from '../../shared/types.js';
 import {
   getMap,
-  updatePlayer,
   getPlayer,
+  players,
   updateMap,
   runtimeState,
 } from '../gameData.js';
@@ -97,44 +97,76 @@ export const insertItems = async (
   partialMap.droppedItems = droppedItems;
 };
 
-export const insertNpcs = (
+export const insertNpcs = async (
   partialMap: Partial<MapStateServer>,
   mapId: string,
   tiles: Tile[][],
 ) => {
   const npcs: Record<string, RuntimeNpc> = {};
 
-  tiles.forEach((row, rowIndex) =>
-    row.forEach(async (tile, colIndex) => {
-      if (tile.npcSpawn) {
-        const base = await getNpcById(tile.npcSpawn);
-        if (!base) return;
+  const npcCache = new Map<string, RuntimeNpc | null>();
 
-        const runtimeNpc: RuntimeNpc = {
-          ...base,
-          health: base.maxHealth,
-          position: {
-            x: colIndex * TILE_SIZE,
-            y: rowIndex * TILE_SIZE,
-          },
-          mapId,
-          direction: Direction.Down,
-          action: CharacterAction.Idle,
-          kind: 'npc',
-        };
+  for (let rowIndex = 0; rowIndex < tiles.length; rowIndex++) {
+    const row = tiles[rowIndex];
+    for (let colIndex = 0; colIndex < row.length; colIndex++) {
+      const tile = row[colIndex];
+      const npcId = tile.npcSpawn;
+      if (!npcId) continue;
 
-        npcs[runtimeNpc.id] = runtimeNpc;
+      if (!npcCache.has(npcId)) {
+        const base = await getNpcById(npcId);
+        if (!base) {
+          npcCache.set(npcId, null);
+        } else {
+          npcCache.set(npcId, {
+            ...base,
+            health: base.maxHealth,
+            position: { x: 0, y: 0 },
+            mapId,
+            direction: Direction.Down,
+            action: CharacterAction.Idle,
+            kind: 'npc',
+          });
+        }
       }
-    }),
-  );
+
+      const baseNpc = npcCache.get(npcId);
+      if (!baseNpc) continue;
+
+      const runtimeNpc: RuntimeNpc = {
+        ...baseNpc,
+        position: {
+          x: colIndex * TILE_SIZE,
+          y: rowIndex * TILE_SIZE,
+        },
+      };
+
+      npcs[runtimeNpc.id] = runtimeNpc;
+    }
+  }
 
   partialMap.npcs = npcs;
 };
 
-export const updatePlayerMap = (playerId: string, newState: PlayerServer) => {
-  removePlayerFromMap(playerId);
-  updatePlayer(newState);
-  addPlayerOnMap(newState.id);
+export const updatePlayerMap = (
+  playerId: string,
+  newState: PlayerServer,
+  previousMapId?: string,
+) => {
+  const prevMapId = previousMapId ?? getPlayer(playerId)?.mapId;
+
+  if (prevMapId && prevMapId !== newState.mapId) {
+    const prevMap = getMap(prevMapId);
+    if (prevMap?.players?.[playerId]) {
+      delete prevMap.players[playerId];
+    }
+  }
+
+  players[playerId] = newState;
+
+  const nextMap = getMap(newState.mapId);
+  if (!nextMap) return;
+  nextMap.players[playerId] = newState;
 };
 
 export const addPlayerOnMap = (playerId: string) => {

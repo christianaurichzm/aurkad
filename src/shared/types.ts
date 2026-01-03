@@ -40,11 +40,6 @@ export enum Access {
   ADMIN = 2,
 }
 
-export enum ServerActionType {
-  UpdateNpcPositions = 'UpdateNpcPositions',
-  RegeneratePlayersHP = 'RegeneratePlayersHP',
-}
-
 export interface Position {
   x: number;
   y: number;
@@ -158,7 +153,6 @@ export interface RuntimeNpc extends PersistentNpc, CharacterRuntime {
 
 export interface PersistentPlayer extends CharacterBase {
   level: number;
-  password: string;
   experience: number;
   experienceToNextLevel: number;
   inventory: Inventory;
@@ -168,12 +162,36 @@ export interface PersistentPlayer extends CharacterBase {
   unspentPoints: number;
 }
 
-export interface PlayerServer extends PersistentPlayer, CharacterRuntime {
+export interface PersistentPlayerWithPassword extends PersistentPlayer {
+  password: string;
+}
+
+export interface PlayerServer
+  extends PersistentPlayerWithPassword,
+    CharacterRuntime {
   speed: number;
   kind: 'player';
 }
 
-export interface Player extends Omit<PlayerServer, 'inventory' | 'equipped'> {
+export interface PlayerPublic {
+  id: string;
+  name: string;
+  sprite: number;
+  width: number;
+  height: number;
+  maxHealth: number;
+  health: number;
+  level: number;
+  access: Access;
+  position: Position;
+  targetPosition?: Position;
+  direction: Direction;
+  action: CharacterAction;
+  kind: 'player';
+}
+
+export interface Player
+  extends Omit<PlayerServer, 'password' | 'inventory' | 'equipped'> {
   inventory: InventoryItemDetailed[];
   equipped: EquippedItemsDetailed;
 }
@@ -217,7 +235,7 @@ export interface MapStateServer extends MapStateBase {
 }
 
 export interface MapStateClient extends MapStateBase {
-  players: Record<string, Player>;
+  players: Record<string, PlayerPublic>;
 }
 
 export interface GameState {
@@ -225,7 +243,7 @@ export interface GameState {
 }
 
 export type PlayersServerMap = { [key: string]: PlayerServer };
-export type PlayersMap = { [key: string]: Player };
+export type PlayersMap = { [key: string]: PlayerPublic };
 export type RuntimeNpcsMap = { [key: string]: RuntimeNpc };
 export type ItemsMap = { [key: number]: Item };
 
@@ -243,10 +261,6 @@ interface ChatBase {
   message: string;
 }
 
-export interface ClientChatAction extends ChatBase, ClientAction {
-  type: 'chat';
-}
-
 export interface ServerChatAction extends ChatBase {
   subtype?: ChatSubtype;
   mapId?: string;
@@ -261,36 +275,6 @@ export interface KeyboardAction {
   key: Key;
   type: 'press' | 'release';
 }
-
-export type ClientActionType = 'keyboard' | 'item' | 'chat';
-
-export interface ClientAction {
-  username: string;
-  type: ClientActionType;
-}
-
-export interface ClientKeyboardAction extends ClientAction {
-  type: 'keyboard';
-  keyboardAction: KeyboardAction;
-}
-
-export interface ClientItemAction extends ClientAction {
-  type: 'item';
-  item: number;
-  action: 'use' | 'drop';
-}
-
-export interface ServerAction {
-  action: ServerActionType;
-}
-
-export type ActionQueueItem =
-  | ClientKeyboardAction
-  | ClientItemAction
-  | ClientChatAction
-  | ServerAction;
-
-export type ActionQueue = Array<ActionQueueItem>;
 
 export interface Shop<T = ProductRaw> {
   id: string;

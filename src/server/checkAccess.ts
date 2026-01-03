@@ -6,7 +6,7 @@ const checkAccess = (requiredAccess: Access) => {
     const username = req.session.username;
     const accessLevel = req.session.accessLevel;
 
-    if (!username || !accessLevel) {
+    if (!username || accessLevel === undefined) {
       return res.status(401).send('Unauthorized');
     }
 

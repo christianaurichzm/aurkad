@@ -1,6 +1,7 @@
 import { GAME_HEIGHT, GAME_WIDTH, TILE_SIZE } from '../../shared/constants.js';
 import { CombatTarget, MapStateServer, Warp } from '../../shared/types.js';
 import { getMap } from '../gameData.js';
+import { queryNearbyEntities } from '../spatial/SpatialManager.js';
 
 const isColliding = (a: CombatTarget, b: CombatTarget): boolean =>
   a.position.x < b.position.x + b.width &&
@@ -55,14 +56,28 @@ export const hasCollision = (character: CombatTarget): boolean => {
     return true;
   }
 
-  const { players, npcs } = map;
   const { width, height, position } = character;
   const { x, y } = position;
 
-  const characterCollision = [
-    ...Object.values(npcs),
-    ...Object.values(players),
-  ].some((other) => other.id !== character.id && isColliding(character, other));
+  const nearbyEntities = queryNearbyEntities(character);
+
+  let characterCollision = false;
+  if (nearbyEntities.length > 0) {
+    characterCollision = nearbyEntities.some(
+      (other) => other.id !== character.id && isColliding(character, {
+        id: other.id!,
+        position: other.position,
+        width: other.width,
+        height: other.height,
+      } as CombatTarget)
+    );
+  } else {
+    const { players, npcs } = map;
+    characterCollision = [
+      ...Object.values(npcs),
+      ...Object.values(players),
+    ].some((other) => other.id !== character.id && isColliding(character, other));
+  }
 
   if (characterCollision) return true;
 

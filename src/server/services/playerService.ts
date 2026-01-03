@@ -48,6 +48,13 @@ export const createPlayer = async (
   username: string,
   password: string,
 ): Promise<PlayerServer> => {
+  const bootstrapAdminUsername = process.env.BOOTSTRAP_ADMIN_USERNAME;
+  const shouldBootstrapAdmin =
+    bootstrapAdminUsername === username ||
+    (!bootstrapAdminUsername &&
+      process.env.NODE_ENV !== 'production' &&
+      !(await PlayerModel.exists({})));
+
   const newPlayer: PlayerServer = {
     id: Math.random().toString(36).substring(2, 9),
     name: username,
@@ -78,7 +85,7 @@ export const createPlayer = async (
     action: CharacterAction.Idle,
   };
 
-  await addPlayer(newPlayer);
+  await createOrUpdatePlayer(newPlayer);
   return newPlayer;
 };
 
@@ -110,7 +117,9 @@ export const levelUpPlayer = (player: PlayerServer): void => {
 export const handlePlayerUpdates = (player: PlayerServer): void => {
   const existingPlayer = getPlayer(player.id);
   if (existingPlayer) {
-    updatePlayer({ ...existingPlayer, ...player });
+    updatePlayer({ ...existingPlayer, ...player }).catch((e) => {
+      console.error('updatePlayer failed:', e);
+    });
   }
 };
 
@@ -141,41 +150,14 @@ export function enrichPlayer(player: PlayerServer): Player {
     }
   }
 
-  const {
-    id,
-    name,
-    level,
-    access,
-    action,
-    direction,
-    sprite,
-    position,
-    maxHealth,
-    health,
-    targetPosition,
-    unspentPoints,
-    vitality,
-    attack,
-  } = player;
+  const { password: _password, inventory: _rawInv, equipped: _rawEq, ...rest } =
+    player;
 
   return {
-    id,
-    name,
-    level,
-    access,
-    maxHealth,
-    health,
-    action,
-    direction,
-    sprite,
-    position,
+    ...rest,
     inventory,
     equipped,
-    targetPosition,
-    unspentPoints,
-    vitality,
-    attack,
-  } as Player;
+  };
 }
 
 export const getPlayerByName = (username: string): PlayerServer | undefined =>

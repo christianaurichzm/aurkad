@@ -78,7 +78,7 @@ export const handleAttack = async (attacker: PlayerServer): Promise<void> => {
   const map = getMap(attacker.mapId);
   if (!map) return;
 
-  const attackTarget: CombatTarget | undefined = await findAttackTarget(
+  const attackTarget: CombatTarget | undefined = findAttackTarget(
     attacker,
     map,
   );
@@ -97,6 +97,9 @@ export const handleAttack = async (attacker: PlayerServer): Promise<void> => {
     case 'player':
       respawnPlayer(attackTarget);
       await updatePlayer(attackTarget);
+
+      const { broadcast } = await import('../wsServer.js');
+      broadcast();
 
       handleChatAction({
         scope: 'global',

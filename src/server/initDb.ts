@@ -4,7 +4,7 @@ import {
   insertNpcs,
   listMaps,
 } from './services/mapService.js';
-import { defaultTiles, items, runtimeState } from './gameData.js';
+import { createDefaultTiles, items, runtimeState } from './gameData.js';
 import { listItems } from './services/inventoryService.js';
 import { MapStateServer } from '../shared/types.js';
 
@@ -29,7 +29,7 @@ export async function loadInitialData() {
       await createOrUpdateMap({
         name: 'Default Map',
         type: 'normal',
-        tiles: defaultTiles,
+        tiles: createDefaultTiles(),
       });
 
       loadedMaps = await listMaps();

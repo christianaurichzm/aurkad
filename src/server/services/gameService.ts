@@ -1,8 +1,6 @@
 import {
-  BOOST_MULTIPLIER,
   TILE_SIZE,
   DEFAULT_PLAYER_SPEED,
-  MOVE_STEP,
   MOVEMENT_DURATION,
   RUN_MOVEMENT_DURATION,
 } from '../../shared/constants.js';
@@ -11,12 +9,12 @@ import {
   Direction,
   CharacterAction,
   PlayerServer,
-  ClientKeyboardAction,
   Tile,
   MapStateServer,
   Position,
   MapType,
 } from '../../shared/types.js';
+import type { ClientKeyboardAction } from '../engine/actions.js';
 import {
   getMap,
   updateMapById,
@@ -25,15 +23,14 @@ import {
   players,
   pressedKeysMap,
 } from '../gameData.js';
-import { lastSentStates, playersWsMap } from '../wsServer.js';
+import { lastSentStates } from '../wsServer.js';
+import { emitGameEvent } from '../engine/eventBus.js';
 import { handleAttack } from './combatService.js';
 import { pickUpItem } from './inventoryService.js';
 import { insertModeCell, updatePlayerMap } from './mapService.js';
 import { hasCollision, hasWarp } from './physicsService.js';
 import {
-  createPlayer,
   getPlayerByName,
-  getPlayerByNameFromDb,
   handlePlayerUpdates,
   persistPlayerSessionState,
 } from './playerService.js';
@@ -44,13 +41,14 @@ export const delay = (ms: number) =>
 const handleWarpAndShops = (player: PlayerServer): void => {
   const warp = hasWarp(player);
   if (warp) {
+    const previousMapId = player.mapId;
     player.mapId = warp.to;
     player.position = warp.position;
     player.targetPosition = undefined;
     player.moving = false;
     player.action = CharacterAction.Idle;
     player.moveStartTime = undefined;
-    updatePlayerMap(player.id, player);
+    updatePlayerMap(player.id, player, previousMapId);
     return;
   }
 
@@ -60,15 +58,11 @@ const handleWarpAndShops = (player: PlayerServer): void => {
     const tileY = Math.round(player.position.y / TILE_SIZE);
     const tile = map.tiles?.[tileY]?.[tileX];
     if (tile?.shop) {
-      const ws = playersWsMap.get(player.name);
-      if (ws && ws.readyState === ws.OPEN) {
-        ws.send(
-          JSON.stringify({
-            type: 'openShop',
-            shopId: tile.shop,
-          }),
-        );
-      }
+      emitGameEvent({
+        type: 'openShop',
+        username: player.name,
+        shopId: tile.shop,
+      });
     }
   }
 };
@@ -188,13 +182,19 @@ export const handleKeyAction = (action: ClientKeyboardAction) => {
       if (key === Key.Control) {
         if (player.action !== CharacterAction.Attack) {
           player.action = CharacterAction.Attack;
-          handleAttack(player);
+          handleAttack(player).catch((e) => {
+            console.error('handleAttack failed:', e);
+          });
           updatePlayerMap(player.id, player);
         }
       } else if (key === Key.e) {
-        pickUpItem(getMap(player.mapId)!, player).then(() => {
-          updatePlayerMap(player.id, player);
-        });
+        pickUpItem(getMap(player.mapId)!, player)
+          .then(() => {
+            updatePlayerMap(player.id, player);
+          })
+          .catch((e) => {
+            console.error('pickUpItem failed:', e);
+          });
       }
       break;
     }

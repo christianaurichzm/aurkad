@@ -1,13 +1,9 @@
 import {
-  ClientChatAction,
   ServerChatAction,
   ChatMessagePayload,
 } from '../../shared/types.js';
-import {
-  broadcastChat,
-  broadcastMapChat,
-  broadcastToMap,
-} from '../wsServer.js';
+import type { ClientChatAction } from '../engine/actions.js';
+import { emitGameEvent } from '../engine/eventBus.js';
 
 function isClientChatAction(
   action: ClientChatAction | ServerChatAction,
@@ -31,12 +27,16 @@ export function handleChatAction(action: ClientChatAction | ServerChatAction) {
   };
 
   if (payload.scope === 'global') {
-    broadcastChat(payload);
+    emitGameEvent({ type: 'chatGlobal', payload });
   } else if (payload.scope === 'map') {
     if (isClientChatAction(action)) {
-      broadcastMapChat(action.username, payload);
+      emitGameEvent({
+        type: 'chatMap',
+        senderUsername: action.username,
+        payload,
+      });
     } else if (isServerChatAction(action) && action.mapId) {
-      broadcastToMap(action.mapId, payload);
+      emitGameEvent({ type: 'chatMapId', mapId: action.mapId, payload });
     } else {
       console.warn('Map server message missing mapId.');
     }

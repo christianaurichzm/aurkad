@@ -1,14 +1,14 @@
 import express from 'express';
 import cors from 'cors';
+import { config } from './config.js';
 
-const app = express();
+export function createApp() {
+  const app = express();
 
-app.use(express.json());
-app.use(
-  cors({
-    origin: (origin, cb) => cb(null, origin),
-    credentials: true,
-  }),
-);
+  app.use(express.json({ limit: config.http.jsonBodyLimit }));
+  app.use(cors(config.cors.options));
 
-export default app;
+  return app;
+}
+
+export default createApp();

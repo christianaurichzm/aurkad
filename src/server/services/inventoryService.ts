@@ -1,10 +1,10 @@
 import {
   MapStateServer,
   PlayerServer,
-  ClientItemAction,
   Item,
   ModifiablePlayerAttribute,
 } from '../../shared/types.js';
+import type { ClientItemAction } from '../engine/actions.js';
 import { updatePlayer, updateMap, items } from '../gameData.js';
 import ItemModel from '../model/Item.js';
 import { getNextItemId } from './dbService.js';
@@ -65,11 +65,14 @@ export const handleItemAction = (action: ClientItemAction) => {
 
   switch (itemAction) {
     case 'use':
-      useItem(username, item);
+      useItem(username, item).catch((e) => {
+        console.error('useItem failed:', e);
+      });
       break;
     case 'drop':
-      // colocar no chao
-      removeItemFromInventory(username, item);
+      removeItemFromInventory(username, item).catch((e) => {
+        console.error('removeItemFromInventory failed:', e);
+      });
       break;
     default:
       console.warn(`Unknown item action: ${itemAction}`);
@@ -119,10 +122,8 @@ export async function useItem(
     const equippedItem = player.equipped[slot];
 
     if (!invItem && equippedItem === itemId) {
-      console.log('[useItem] item is equipped, proceeding to unequip');
       await unequipItem(player, slot);
     } else if (invItem) {
-      console.log('[useItem] equipping item from inventory');
       await equipItem(player, itemId);
     } else {
       console.warn('[useItem] item not in inventory nor equipped');

@@ -5,6 +5,7 @@ import {
   MapStateServer,
   PlayerServer,
   PlayersServerMap,
+  Tile,
 } from '../shared/types.js';
 
 import { createOrUpdateMap } from './services/mapService.js';
@@ -21,9 +22,16 @@ export const pressedKeysMap = new Map<string, Set<Key>>();
 
 export const items = new Map<number, Item>();
 
-export const defaultTiles = Array.from({ length: 448 / 32 }, () =>
-  Array(640 / 32).fill({ tileIndex: -1, blocked: false }),
-);
+export function createDefaultTiles(): Tile[][] {
+  const rows = 448 / 32;
+  const cols = 640 / 32;
+
+  return Array.from({ length: rows }, () =>
+    Array.from({ length: cols }, () => ({ tileIndex: -1, blocked: false })),
+  );
+}
+
+export const defaultTiles = createDefaultTiles();
 
 export const runtimeState: GameState = {
   maps: {},
@@ -33,9 +41,7 @@ export const getRuntimeState = (): GameState => runtimeState;
 
 export const getMap = (mapId?: string): MapStateServer | undefined => {
   if (!mapId) return;
-  const map = runtimeState.maps[mapId];
-  if (!map) console.warn('getMap: Map not found', mapId);
-  return map;
+  return runtimeState.maps[mapId];
 };
 
 export const updateMap = (map: MapStateServer): MapStateServer | undefined => {
