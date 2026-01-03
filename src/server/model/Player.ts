@@ -31,6 +31,7 @@ const EquippedItemsSchema = new mongoose.Schema(
 const PlayerSchema = new mongoose.Schema({
   id: { type: String, required: true, unique: true },
   name: String,
+  kind: { type: String, default: 'player' },
   position: PositionSchema,
   width: Number,
   height: Number,
