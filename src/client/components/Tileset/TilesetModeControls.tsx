@@ -1,6 +1,5 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import {
-  mapEdited,
   saveCurrentMap,
   toggleBlocking,
   toggleWarping,
@@ -10,6 +9,7 @@ import {
   setMapEdited,
   toggleAvoidNpc,
 } from '../../graphics/tileset';
+import { useUIStore } from '../../stores/uiStore';
 import { fetchNpcs, fetchItems, fetchShops, fetchMap } from '../../io/network';
 import { AsyncSelect } from '../common/Select/AsyncSelect';
 import { Select } from '../common/Select/Select';
@@ -19,6 +19,7 @@ import { useGame } from '../../context/GameContext';
 
 export const TilesetModeControls: React.FC = () => {
   const { setMap } = useGame();
+  const mapEdited = useUIStore((state) => state.mapEdited);
 
   const [activeMode, setActiveMode] = useState<TileEditMode | null>(null);
 

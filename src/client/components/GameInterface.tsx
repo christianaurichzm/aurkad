@@ -6,42 +6,48 @@ import { initializeWebSocket } from '../io/network';
 import { gameLoop } from '../core/game';
 import { setFullGameState } from '../core/gameState';
 import { useGame } from '../context/GameContext';
+import { ConnectionStatus } from './HUD/ConnectionStatus';
+import { useUIStore } from '../stores/uiStore';
 
 export const GameInterface = () => {
-  const { map, player } = useGame();
+  const { map: initialMap, player } = useGame();
   const initialized = useRef(false);
+  const currentMap = useUIStore((state) => state.currentMap);
 
   useLayoutEffect(() => {
-    if (!map || !player || initialized.current) return;
+    if (!initialMap || !player || initialized.current) return;
 
     const init = async () => {
       initialized.current = true;
 
-      setFullGameState({ map, player });
+      setFullGameState({ map: initialMap, player });
+      useUIStore.getState().setCurrentMap(initialMap);
       handleInput();
-      initializeWebSocket();
       await initializeAssets();
-      await renderMap(map.tiles);
+      initializeWebSocket();
+      await renderMap(initialMap.tiles);
       requestAnimationFrame(gameLoop);
     };
 
     init();
-  }, [map, player]);
+  }, [initialMap, player]);
 
   return (
-    <div id="gameInfo">
-      <p
-        id="mapName"
-        style={{
-          textAlign: 'center',
-          margin: '20px',
-          color: map?.type === 'normal' ? 'black' : 'red',
-        }}
-      >
-        {map?.id} - {map?.name || 'Loading Map...'}
-      </p>
-      <div id="connection-status">Connecting...</div>
-      <div id="gameArea"></div>
-    </div>
+    <>
+      <ConnectionStatus />
+      <div id="gameInfo">
+        <p
+          id="mapName"
+          style={{
+            textAlign: 'center',
+            margin: '20px',
+            color: currentMap?.type === 'normal' ? 'black' : 'red',
+          }}
+        >
+          {currentMap?.id} - {currentMap?.name || 'Loading Map...'}
+        </p>
+        <div id="gameArea"></div>
+      </div>
+    </>
   );
 };

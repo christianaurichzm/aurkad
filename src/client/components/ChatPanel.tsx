@@ -1,15 +1,27 @@
 import React, { useEffect, useRef } from 'react';
-import { ChatMessagePayload } from '../../shared/types';
+import { ChatMessagePayload, ChatScope } from '../../shared/types';
 import { updateChat, sendChatMessage } from '../io/network';
+import { useUIStore } from '../stores/uiStore';
 
 export const ChatPanel: React.FC = () => {
-  const inputRef = useRef<HTMLInputElement>(null);
+  const chatBoxRef = useRef<HTMLDivElement>(null);
+  const messages = useUIStore((state) => state.chat.messages);
+  const inputValue = useUIStore((state) => state.chat.inputValue);
+  const scope = useUIStore((state) => state.chat.scope);
+  const setChatInput = useUIStore((state) => state.setChatInput);
+  const setChatScope = useUIStore((state) => state.setChatScope);
 
   useEffect(() => {
     const onMessage = () => updateChat();
     window.addEventListener('chat-update', onMessage);
     return () => window.removeEventListener('chat-update', onMessage);
   }, []);
+
+  useEffect(() => {
+    if (chatBoxRef.current) {
+      chatBoxRef.current.scrollTop = chatBoxRef.current.scrollHeight;
+    }
+  }, [messages]);
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter') {
@@ -18,12 +30,35 @@ export const ChatPanel: React.FC = () => {
     }
   };
 
+  const getChatMessageClassName = (msg: ChatMessagePayload) => {
+    if (msg.subtype === 'death') return 'chat-death';
+    if (msg.scope === 'player') return 'chat-player';
+    if (msg.scope === 'global') return 'chat-global';
+    if (msg.scope === 'map') return 'chat-map';
+    return '';
+  };
+
+  const formatChatMessage = (msg: ChatMessagePayload) => {
+    if (!msg.username) return msg.message;
+    return `[${msg.scope}] ${msg.username}: ${msg.message}`;
+  };
+
   return (
     <div id="chatContainer">
-      <div id="chatBox" className="chat-box" />
+      <div id="chatBox" className="chat-box" ref={chatBoxRef}>
+        {messages.map((msg, index) => (
+          <div key={index} className={getChatMessageClassName(msg)}>
+            {formatChatMessage(msg)}
+          </div>
+        ))}
+      </div>
 
       <div id="chatInputContainer">
-        <select id="chatScope">
+        <select
+          id="chatScope"
+          value={scope}
+          onChange={(e) => setChatScope(e.target.value as ChatScope)}
+        >
           <option value="map">Map</option>
           <option value="global">Global</option>
         </select>
@@ -32,7 +67,8 @@ export const ChatPanel: React.FC = () => {
           id="chatInput"
           type="text"
           placeholder="Mensagem..."
-          ref={inputRef}
+          value={inputValue}
+          onChange={(e) => setChatInput(e.target.value)}
           onKeyDown={handleKeyDown}
         />
       </div>
@@ -40,38 +76,10 @@ export const ChatPanel: React.FC = () => {
   );
 };
 
-export function displayChatMessage({
-  username,
-  message,
-  scope,
-  subtype,
-}: ChatMessagePayload) {
-  const chatBox = document.getElementById('chatBox');
-  if (!chatBox) return;
-
-  const msgEl = document.createElement('div');
-
-  if (!username) {
-    msgEl.textContent = message;
-    if (subtype === 'death') {
-      msgEl.className = 'chat-death';
-    }
-    if (scope === 'player') {
-      msgEl.className = 'chat-player';
-    }
-  } else {
-    msgEl.textContent = `[${scope}] ${username}: ${message}`;
-
-    if (scope === 'global') {
-      msgEl.className = 'chat-global';
-    } else if (scope === 'map') {
-      msgEl.className = 'chat-map';
-    }
-  }
-
-  chatBox.appendChild(msgEl);
-  chatBox.scrollTop = chatBox.scrollHeight;
+export function displayChatMessage(message: ChatMessagePayload) {
+  useUIStore.getState().addChatMessage(message);
 }
+
 export function chatResultMsg(
   success: boolean,
   okMsg: string,

@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import type { Item, ClientItemAction } from '../../../shared/types';
+import type { Item } from '../../../shared/types';
 import { sendAction } from '../../io/network';
 import { EquipmentPanel } from './EquipmentPanel';
 import { ItemIcon } from './ItemIcon';
@@ -42,23 +42,23 @@ export const InventoryPanel: React.FC = () => {
         )?.[0]
       : null;
 
-  const handlePrimary = async () => {
+  const handlePrimary = () => {
     if (!player || !selected) return;
-    await sendAction({
+    sendAction({
       type: 'item',
       action: 'use',
       item: selected.item.id,
-    } as ClientItemAction);
+    });
     setSelected(null);
   };
 
-  const handleDrop = async () => {
+  const handleDrop = () => {
     if (!player || !selected) return;
-    await sendAction({
+    sendAction({
       type: 'item',
       action: 'drop',
       item: selected.item.id,
-    } as ClientItemAction);
+    });
     setSelected(null);
   };
 
