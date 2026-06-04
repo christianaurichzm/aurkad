@@ -23,7 +23,7 @@ import {
   players,
   pressedKeysMap,
 } from '../gameData.js';
-import { resetPlayerNetState } from '../wsServer.js';
+import { resetPlayerNetState } from '../net/snapshot.js';
 import { emitGameEvent } from '../engine/eventBus.js';
 import { handleAttack } from './combatService.js';
 import { pickUpItem } from './inventoryService.js';
