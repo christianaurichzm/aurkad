@@ -162,15 +162,13 @@ export interface PersistentPlayer extends CharacterBase {
   unspentPoints: number;
 }
 
-export interface PersistentPlayerWithPassword extends PersistentPlayer {
-  password: string;
-}
-
-export interface PlayerServer
-  extends PersistentPlayerWithPassword,
-    CharacterRuntime {
+export interface PlayerServer extends PersistentPlayer, CharacterRuntime {
   speed: number;
   kind: 'player';
+}
+
+export interface PlayerRecord extends PlayerServer {
+  password: string;
 }
 
 export interface PlayerPublic {
@@ -191,7 +189,7 @@ export interface PlayerPublic {
 }
 
 export interface Player
-  extends Omit<PlayerServer, 'password' | 'inventory' | 'equipped'> {
+  extends Omit<PlayerServer, 'inventory' | 'equipped'> {
   inventory: InventoryItemDetailed[];
   equipped: EquippedItemsDetailed;
 }

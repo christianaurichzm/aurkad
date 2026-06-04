@@ -44,13 +44,15 @@ export function createAuthRouter() {
       await unbanPlayer(username);
     }
 
-    const player = enrichPlayer(playerDoc);
+    const { password: _pw, ...runtimePlayer } = playerDoc;
+
+    const player = enrichPlayer(runtimePlayer);
 
     req.session.username = username;
     req.session.accessLevel = player.access ?? Access.USER;
 
     if (!players[player.id]) {
-      players[player.id] = playerDoc;
+      players[player.id] = runtimePlayer;
     }
 
     const map = addPlayerOnMap(player.id);
@@ -59,7 +61,7 @@ export function createAuthRouter() {
       map &&
       toMapStateClient(
         map,
-        playerDoc,
+        runtimePlayer,
         config.net.interestRadiusTiles * TILE_SIZE,
       );
     req.session.save((err) => {

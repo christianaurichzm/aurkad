@@ -9,6 +9,7 @@ import {
 } from '../../shared/constants.js';
 import {
   PlayerServer,
+  PlayerRecord,
   Access,
   Direction,
   CharacterAction,
@@ -26,16 +27,18 @@ import { getItemById } from './inventoryService.js';
 import { broadcast } from '../wsServer.js';
 import { handlePlayerUpdate } from './gameService.js';
 
-export async function getPlayerById(id: string): Promise<PlayerServer | null> {
-  return await PlayerModel.findOne({ id }).lean<PlayerServer>().exec();
+export async function getPlayerById(id: string): Promise<PlayerRecord | null> {
+  return await PlayerModel.findOne({ id }).lean<PlayerRecord>().exec();
 }
 
 export async function createOrUpdatePlayer(
   player: PlayerServer,
 ): Promise<void> {
-  await PlayerModel.findOneAndUpdate({ id: player.id }, player, {
-    upsert: true,
-  });
+  await PlayerModel.findOneAndUpdate(
+    { id: player.id },
+    { $set: player },
+    { upsert: false },
+  );
 }
 
 export async function deletePlayer(id: string): Promise<void> {
@@ -51,7 +54,7 @@ export const createPlayer = async (
   password: string,
 ): Promise<PlayerServer> => {
   const bootstrapAdminUsername = process.env.BOOTSTRAP_ADMIN_USERNAME;
-  const shouldBootstrapAdmin =
+  const isAdmin =
     bootstrapAdminUsername === username ||
     (!bootstrapAdminUsername &&
       process.env.NODE_ENV !== 'production' &&
@@ -60,7 +63,6 @@ export const createPlayer = async (
   const newPlayer: PlayerServer = {
     id: Math.random().toString(36).substring(2, 9),
     name: username,
-    password,
     position: RESPAWN_POSITION,
     width: SPRITE_WIDTH,
     height: SPRITE_HEIGHT,
@@ -82,12 +84,12 @@ export const createPlayer = async (
       maxCapacity: 10,
     },
     equipped: {},
-    access: Access.ADMIN,
+    access: isAdmin ? Access.ADMIN : Access.USER,
     direction: Direction.Down,
     action: CharacterAction.Idle,
   };
 
-  await createOrUpdatePlayer(newPlayer);
+  await PlayerModel.create({ ...newPlayer, password });
   return newPlayer;
 };
 
@@ -223,11 +225,8 @@ export const getPlayerByName = (username: string): PlayerServer | undefined =>
 
 export async function getPlayerByNameFromDb(
   name: string,
-): Promise<PlayerServer | null> {
-  const result = await PlayerModel.findOne({ name })
-    .lean<PlayerServer>()
-    .exec();
-  return result;
+): Promise<PlayerRecord | null> {
+  return await PlayerModel.findOne({ name }).lean<PlayerRecord>().exec();
 }
 
 export const changeSprite = (spriteId: number, username: string) => {
