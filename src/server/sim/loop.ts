@@ -8,6 +8,7 @@ import { getGameState } from '../services/gameService.js';
 import { ServerActionType } from '../engine/actions.js';
 import { processActions, enqueueServerAction } from '../net/transport.js';
 import { broadcastGameState, flushGameEvents } from '../net/snapshot.js';
+import { advanceTick } from './clock.js';
 
 type TimeoutHandle = ReturnType<typeof setTimeout>;
 
@@ -27,6 +28,7 @@ function rebuildSpatialIndexes() {
 }
 
 const tickSystems: Array<{ name: string; run: () => unknown }> = [
+  { name: 'advanceTick', run: advanceTick },
   { name: 'rebuildSpatialIndexes', run: rebuildSpatialIndexes },
   { name: 'processActions', run: processActions },
   { name: 'processMovementIntent', run: processMovementIntent },

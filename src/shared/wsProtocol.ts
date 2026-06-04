@@ -11,6 +11,7 @@ import type {
 export interface WsClientKeyboardMessage {
   type: 'keyboard';
   keyboardAction: KeyboardAction;
+  seq?: number;
 }
 
 export interface WsClientItemMessage {

@@ -4,6 +4,7 @@ import {
   MOVEMENT_DURATION,
   RUN_MOVEMENT_DURATION,
 } from '../../shared/constants.js';
+import { getTick, msToTicks } from '../sim/clock.js';
 import {
   Key,
   Direction,
@@ -47,7 +48,8 @@ const handleWarpAndShops = (player: PlayerServer): void => {
     player.targetPosition = undefined;
     player.moving = false;
     player.action = CharacterAction.Idle;
-    player.moveStartTime = undefined;
+    player.moveTick = undefined;
+    player.moveDurationTicks = undefined;
     updatePlayerMap(player.id, player, previousMapId);
     return;
   }
@@ -117,10 +119,10 @@ export const processMovementIntent = () => {
       player.moving = true;
 
       player.action = isBoosting ? CharacterAction.Run : CharacterAction.Walk;
-      player.currentMoveDuration = isBoosting
-        ? RUN_MOVEMENT_DURATION
-        : MOVEMENT_DURATION;
-      player.moveStartTime = Date.now();
+      player.moveDurationTicks = msToTicks(
+        isBoosting ? RUN_MOVEMENT_DURATION : MOVEMENT_DURATION,
+      );
+      player.moveTick = getTick();
       player.targetPosition = newTarget;
 
       handleWarpAndShops(player);
@@ -132,18 +134,19 @@ export const processMovementIntent = () => {
 };
 
 export const processMovementCompletion = (): void => {
+  const tick = getTick();
   Object.values(players).forEach((player) => {
-    const duration = player.currentMoveDuration || MOVEMENT_DURATION;
+    const durationTicks = player.moveDurationTicks ?? msToTicks(MOVEMENT_DURATION);
 
     if (
       player.moving &&
-      player.moveStartTime &&
-      Date.now() - player.moveStartTime >= duration
+      player.moveTick !== undefined &&
+      tick - player.moveTick >= durationTicks
     ) {
       player.moving = false;
-      player.moveStartTime = undefined;
+      player.moveTick = undefined;
       player.targetPosition = undefined;
-      player.currentMoveDuration = undefined;
+      player.moveDurationTicks = undefined;
 
       const keys = pressedKeysMap.get(player.name);
       const isStillTryingToMove =
@@ -163,11 +166,15 @@ export const processMovementCompletion = (): void => {
 };
 
 export const handleKeyAction = (action: ClientKeyboardAction) => {
-  const { username, keyboardAction } = action;
+  const { username, keyboardAction, seq } = action;
   const key = keyboardAction.key;
   const player = getPlayerByName(username);
 
   if (!player) return;
+
+  if (seq !== undefined) {
+    player.lastProcessedSeq = seq;
+  }
 
   if (!pressedKeysMap.has(username)) {
     pressedKeysMap.set(username, new Set());

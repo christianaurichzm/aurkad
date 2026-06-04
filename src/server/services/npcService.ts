@@ -17,6 +17,7 @@ import {
 } from '../../shared/types.js';
 import { getMap } from '../gameData.js';
 import { getOrInitNpcAi, transitionNpcAi, resetNpcAi } from './npc/aiBrain.js';
+import { getTick, msToTicks } from '../sim/clock.js';
 import {
   findClosestPlayer,
   isPlayerInAttackRange,
@@ -79,16 +80,15 @@ export function updateNpcs(npc: RuntimeNpc, map: MapStateServer) {
   const canAttack = isPlayerInAttackRange(npc, closestPlayer);
 
   const ai = getOrInitNpcAi(npc);
-  const now = Date.now();
-
-  const ATTACK_COOLDOWN_MS = 900;
+  const tick = getTick();
+  const ATTACK_COOLDOWN_TICKS = msToTicks(900);
 
   if (npc.behavior === 'aggressive') {
     transitionNpcAi(ai, canAttack ? 'attack' : 'chase');
 
     if (ai.state === 'attack') {
-      if (now - ai.lastAttackMs >= ATTACK_COOLDOWN_MS) {
-        ai.lastAttackMs = now;
+      if (tick - ai.lastAttackTick >= ATTACK_COOLDOWN_TICKS) {
+        ai.lastAttackTick = tick;
         attackPlayer(npc, closestPlayer);
       } else {
         npc.action = CharacterAction.Idle;
@@ -102,8 +102,8 @@ export function updateNpcs(npc: RuntimeNpc, map: MapStateServer) {
     transitionNpcAi(ai, canAttack ? 'attack' : 'wander');
 
     if (ai.state === 'attack') {
-      if (now - ai.lastAttackMs >= ATTACK_COOLDOWN_MS) {
-        ai.lastAttackMs = now;
+      if (tick - ai.lastAttackTick >= ATTACK_COOLDOWN_TICKS) {
+        ai.lastAttackTick = tick;
         attackPlayer(npc, closestPlayer);
       } else {
         npc.action = CharacterAction.Idle;

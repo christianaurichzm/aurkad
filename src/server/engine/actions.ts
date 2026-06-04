@@ -10,6 +10,7 @@ export interface ClientActionBase {
 export interface ClientKeyboardAction extends ClientActionBase {
   type: 'keyboard';
   keyboardAction: KeyboardAction;
+  seq?: number;
 }
 
 export interface ClientItemAction extends ClientActionBase {

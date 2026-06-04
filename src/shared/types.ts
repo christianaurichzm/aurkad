@@ -130,8 +130,8 @@ export interface CharacterRuntime {
   position: Position;
   targetPosition?: Position;
   moving?: boolean;
-  moveStartTime?: number;
-  currentMoveDuration?: number;
+  moveTick?: number;
+  moveDurationTicks?: number;
   mapId: string;
   direction: Direction;
   action: CharacterAction;
@@ -165,6 +165,7 @@ export interface PersistentPlayer extends CharacterBase {
 export interface PlayerServer extends PersistentPlayer, CharacterRuntime {
   speed: number;
   kind: 'player';
+  lastProcessedSeq?: number;
 }
 
 export interface PlayerRecord extends PlayerServer {
@@ -199,11 +200,12 @@ export interface PlayerHot {
   position: Position;
   targetPosition?: Position;
   moving?: boolean;
-  moveStartTime?: number;
-  currentMoveDuration?: number;
+  moveTick?: number;
+  moveDurationTicks?: number;
   direction: Direction;
   action: CharacterAction;
   health: number;
+  lastProcessedSeq?: number;
 }
 
 export interface PlayerCold {

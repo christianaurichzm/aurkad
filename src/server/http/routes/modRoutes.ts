@@ -99,8 +99,8 @@ export function createModRouter() {
       target.targetPosition = undefined;
       target.moving = false;
       target.action = CharacterAction.Idle;
-      target.moveStartTime = undefined;
-      target.currentMoveDuration = undefined;
+      target.moveTick = undefined;
+      target.moveDurationTicks = undefined;
 
       updatePlayerMap(target.id, target, previousMapId);
       broadcast();
@@ -125,8 +125,8 @@ export function createModRouter() {
       me.targetPosition = undefined;
       me.moving = false;
       me.action = CharacterAction.Idle;
-      me.moveStartTime = undefined;
-      me.currentMoveDuration = undefined;
+      me.moveTick = undefined;
+      me.moveDurationTicks = undefined;
 
       updatePlayerMap(me.id, me, previousMapId);
       broadcast();
@@ -181,8 +181,8 @@ export function createModRouter() {
       me.targetPosition = undefined;
       me.moving = false;
       me.action = CharacterAction.Idle;
-      me.moveStartTime = undefined;
-      me.currentMoveDuration = undefined;
+      me.moveTick = undefined;
+      me.moveDurationTicks = undefined;
 
       updatePlayerMap(me.id, me, previousMapId);
       broadcast();

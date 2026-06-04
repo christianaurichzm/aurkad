@@ -283,6 +283,10 @@ export const startWebSocketServer = (
               return;
             }
 
+            const seq =
+              typeof clientAction.seq === 'number'
+                ? clientAction.seq
+                : undefined;
             enqueueAction({
               username,
               type: 'keyboard',
@@ -290,6 +294,7 @@ export const startWebSocketServer = (
                 key: key as Key,
                 type: actionType,
               },
+              seq,
             });
             break;
           }

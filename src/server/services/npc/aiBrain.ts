@@ -1,5 +1,6 @@
 import type { RuntimeNpc } from '../../../shared/types.js';
 import type { NpcAiState, NpcAiStateName } from './types.js';
+import { getTick } from '../../sim/clock.js';
 
 const npcAiState = new Map<string, NpcAiState>();
 
@@ -14,8 +15,8 @@ export function getOrInitNpcAi(npc: RuntimeNpc): NpcAiState {
 
   const created: NpcAiState = {
     state: 'idle',
-    lastStateChangeMs: Date.now(),
-    lastAttackMs: 0,
+    lastStateChangeTick: getTick(),
+    lastAttackTick: 0,
   };
   npcAiState.set(key, created);
   return created;
@@ -24,7 +25,7 @@ export function getOrInitNpcAi(npc: RuntimeNpc): NpcAiState {
 export function transitionNpcAi(ai: NpcAiState, next: NpcAiStateName) {
   if (ai.state === next) return;
   ai.state = next;
-  ai.lastStateChangeMs = Date.now();
+  ai.lastStateChangeTick = getTick();
 }
 
 export function resetNpcAi(npc: RuntimeNpc) {

@@ -141,11 +141,12 @@ export function toPlayerHot(player: PlayerServer): PlayerHot {
     position: player.position,
     targetPosition: player.targetPosition,
     moving: player.moving,
-    moveStartTime: player.moveStartTime,
-    currentMoveDuration: player.currentMoveDuration,
+    moveTick: player.moveTick,
+    moveDurationTicks: player.moveDurationTicks,
     direction: player.direction,
     action: player.action,
     health: player.health,
+    lastProcessedSeq: player.lastProcessedSeq,
   };
 }
 

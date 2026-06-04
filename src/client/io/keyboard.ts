@@ -41,6 +41,8 @@ const handleKeyPress = async (key: Key) => {
   }
 };
 
+let inputSeq = 0;
+
 export const handleInput = () => {
   window.addEventListener('keydown', async (e) => {
     if (isInputActive()) return;
@@ -49,8 +51,9 @@ export const handleInput = () => {
     if (isValidKey(e.key)) {
       if (keyRecord[e.key] === Protocol.WS) {
         sendAction({
-          keyboardAction: { key: e.key, type: 'press' },
           type: 'keyboard',
+          keyboardAction: { key: e.key, type: 'press' },
+          seq: ++inputSeq,
         });
       } else {
         await handleKeyPress(e.key);
@@ -61,8 +64,9 @@ export const handleInput = () => {
     if (!document.hasFocus()) return;
     if (isValidKey(e.key)) {
       sendAction({
-        keyboardAction: { key: e.key, type: 'release' },
         type: 'keyboard',
+        keyboardAction: { key: e.key, type: 'release' },
+        seq: ++inputSeq,
       });
     }
   });
