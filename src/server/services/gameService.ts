@@ -23,7 +23,7 @@ import {
   players,
   pressedKeysMap,
 } from '../gameData.js';
-import { lastSentStates } from '../wsServer.js';
+import { resetPlayerNetState } from '../wsServer.js';
 import { emitGameEvent } from '../engine/eventBus.js';
 import { handleAttack } from './combatService.js';
 import { pickUpItem } from './inventoryService.js';
@@ -261,6 +261,6 @@ export const disconnectPlayer = async (username?: string) => {
   await persistPlayerSessionState(player);
   if (players[player.id]) {
     delete players[player.id];
-    lastSentStates.delete(player.name);
+    resetPlayerNetState(player.name);
   }
 };

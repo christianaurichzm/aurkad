@@ -32,10 +32,22 @@ export async function createOrUpdateMap(
     map.id = (await getNextMapId()).toString();
   }
 
-  runtimeState.maps[map.id] = {
-    ...runtimeState.maps[map.id],
+  const previous = runtimeState.maps[map.id];
+
+  const merged: MapStateServer = {
+    ...previous,
     ...map,
   };
+
+  const staticChanged =
+    map.tiles !== undefined ||
+    map.name !== undefined ||
+    map.type !== undefined;
+  if (staticChanged) {
+    merged.tilesRevision = (previous?.tilesRevision ?? 0) + 1;
+  }
+
+  runtimeState.maps[map.id] = merged;
 
   await GameMapModel.findOneAndUpdate({ id: map.id }, map, {
     upsert: true,

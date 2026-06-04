@@ -1,4 +1,10 @@
-import type { MapStateClient, Player } from '../../shared/types';
+import type {
+  MapDynamicClient,
+  MapStateClient,
+  MapStaticClient,
+  Player,
+  PlayerCold,
+} from '../../shared/types';
 import type { FullGameStatePayload } from '../../shared/wsProtocol';
 import * as jsondiffpatch from 'jsondiffpatch';
 
@@ -12,28 +18,65 @@ const diffPatcher = jsondiffpatch.create({
   },
 });
 
-let fullGameState: FullGameStatePayload | null = null;
+let staticMap: MapStaticClient | null = null;
+let dynamic: FullGameStatePayload | null = null;
+let playerCold: PlayerCold | null = null;
+
+let composedCache: MapStateClient | null = null;
+let composedFromStatic: MapStaticClient | null = null;
+let composedFromDynamicMap: MapDynamicClient | null = null;
 
 export const getPlayer = (): Player | null => {
-  return fullGameState?.player ?? null;
+  if (!playerCold || !dynamic) return null;
+  return { ...playerCold, ...dynamic.player };
 };
 
 export const getGameState = (): MapStateClient | null => {
-  return fullGameState?.map ?? null;
+  if (!staticMap || !dynamic) return null;
+
+  const dynMap = dynamic.map;
+  if (
+    composedCache &&
+    composedFromStatic === staticMap &&
+    composedFromDynamicMap === dynMap
+  ) {
+    return composedCache;
+  }
+
+  composedCache = {
+    id: staticMap.id,
+    name: staticMap.name,
+    type: staticMap.type,
+    tiles: staticMap.tiles,
+    droppedItems: dynMap.droppedItems,
+    npcs: dynMap.npcs,
+    players: dynMap.players,
+  };
+  composedFromStatic = staticMap;
+  composedFromDynamicMap = dynMap;
+  return composedCache;
+};
+
+export const setStaticMap = (payload: MapStaticClient) => {
+  staticMap = payload;
+};
+
+export const setPlayerStats = (payload: PlayerCold) => {
+  playerCold = payload;
 };
 
 export const setFullGameState = (payload: FullGameStatePayload) => {
-  fullGameState = payload;
+  dynamic = payload;
 };
 
 export const patchGameState = (delta: jsondiffpatch.Delta | undefined) => {
-  if (fullGameState && delta) {
-    fullGameState = diffPatcher.patch(
-      fullGameState,
+  if (dynamic && delta) {
+    dynamic = diffPatcher.patch(
+      dynamic,
       delta,
     ) as unknown as FullGameStatePayload;
-  } else if (!fullGameState) {
-    console.warn('Attempted to patch but no full game state exists.');
+  } else if (!dynamic) {
+    console.warn('Attempted to patch but no dynamic game state exists.');
   } else if (!delta) {
     console.warn('Received a delta message but the delta was undefined.');
   }

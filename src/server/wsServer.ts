@@ -4,6 +4,8 @@ import { Server } from 'http';
 import {
   Key,
   ChatMessagePayload,
+  MapStateServer,
+  PlayerServer,
 } from '../shared/types.js';
 import type {
   FullGameStatePayload,
@@ -30,8 +32,16 @@ import {
 } from './services/gameService.js';
 import { handleItemAction } from './services/inventoryService.js';
 import { updateNpcs } from './services/npcService.js';
-import { enrichPlayer, getPlayerByName } from './services/playerService.js';
-import { toMapStateClient } from './engine/serialization.js';
+import {
+  getPlayerByName,
+  playerColdSignature,
+  toPlayerCold,
+  toPlayerHot,
+} from './services/playerService.js';
+import {
+  toMapDynamicClient,
+  toMapStaticClient,
+} from './engine/serialization.js';
 import * as jsondiffpatch from 'jsondiffpatch';
 import { REGEN_PERCENT, MIN_REGEN, TILE_SIZE } from '../shared/constants.js';
 import { rebuildQuadtree } from './spatial/SpatialManager.js';
@@ -557,42 +567,91 @@ function handleServerAction(action: ServerAction) {
 }
 
 export const lastSentStates = new Map<string, FullGameStatePayload>();
+const lastSentMapId = new Map<string, string>();
+const lastSentMapRevision = new Map<string, number>();
+const lastSentPlayerColdSig = new Map<string, string>();
+
+export function resetPlayerNetState(name: string) {
+  lastSentStates.delete(name);
+  lastSentMapId.delete(name);
+  lastSentMapRevision.delete(name);
+  lastSentPlayerColdSig.delete(name);
+}
+
+function sendStaticMapIfNeeded(
+  player: PlayerServer,
+  map: MapStateServer,
+  mapRevision: number,
+  ws: WebSocket,
+) {
+  const needsStaticMap =
+    lastSentMapId.get(player.name) !== map.id ||
+    lastSentMapRevision.get(player.name) !== mapRevision;
+
+  if (!needsStaticMap) return;
+
+  ws.send(
+    JSON.stringify({ type: 'mapStatic', payload: toMapStaticClient(map) }),
+  );
+  lastSentMapId.set(player.name, map.id);
+  lastSentMapRevision.set(player.name, mapRevision);
+  lastSentStates.delete(player.name);
+}
+
+function sendPlayerStatsIfNeeded(player: PlayerServer, ws: WebSocket) {
+  const signature = playerColdSignature(player);
+  if (lastSentPlayerColdSig.get(player.name) === signature) return;
+
+  ws.send(
+    JSON.stringify({ type: 'playerStats', payload: toPlayerCold(player) }),
+  );
+  lastSentPlayerColdSig.set(player.name, signature);
+}
+
+function sendDynamicSnapshot(
+  player: PlayerServer,
+  map: MapStateServer,
+  ws: WebSocket,
+  interestRadiusPx: number,
+) {
+  const currentState: FullGameStatePayload = structuredClone({
+    map: toMapDynamicClient(map, player, interestRadiusPx),
+    player: toPlayerHot(player),
+  });
+
+  const lastState = lastSentStates.get(player.name);
+  let message: { type: string; payload: any } | null = null;
+
+  if (!lastState) {
+    message = { type: 'fullGameState', payload: currentState };
+  } else {
+    const delta = diffPatcher.diff(lastState, currentState);
+    if (delta) {
+      message = { type: 'gameStateDelta', payload: delta };
+    }
+  }
+
+  if (message) {
+    ws.send(JSON.stringify(message));
+    lastSentStates.set(player.name, currentState);
+  }
+}
 
 function broadcastGameState() {
   const gameState = getGameState();
   const interestRadiusPx = config.net.interestRadiusTiles * TILE_SIZE;
 
   for (const map of Object.values(gameState.maps)) {
+    const mapRevision = map.tilesRevision ?? 0;
+
     for (const player of Object.values(map.players)) {
       const ws = playersWsMap.get(player.name);
-
-      if (ws?.readyState !== WebSocket.OPEN) {
-        continue;
-      }
+      if (!ws || ws.readyState !== WebSocket.OPEN) continue;
 
       try {
-        const enrichedPlayer = enrichPlayer(player);
-        const currentState: FullGameStatePayload = structuredClone({
-          map: toMapStateClient(map, player, interestRadiusPx),
-          player: enrichedPlayer,
-        });
-
-        const lastState = lastSentStates.get(player.name);
-        let message: { type: string; payload: any } | null = null;
-
-        if (!lastState) {
-          message = { type: 'fullGameState', payload: currentState };
-        } else {
-          const delta = diffPatcher.diff(lastState, currentState);
-          if (delta) {
-            message = { type: 'gameStateDelta', payload: delta };
-          }
-        }
-
-        if (message) {
-          ws.send(JSON.stringify(message));
-          lastSentStates.set(player.name, currentState);
-        }
+        sendStaticMapIfNeeded(player, map, mapRevision, ws);
+        sendPlayerStatsIfNeeded(player, ws);
+        sendDynamicSnapshot(player, map, ws, interestRadiusPx);
       } catch (error) {
         console.error(`Error broadcasting to ${player.name}:`, error);
       }

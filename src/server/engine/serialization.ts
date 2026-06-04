@@ -1,6 +1,8 @@
 import type {
   DroppedItem,
+  MapDynamicClient,
   MapStateClient,
+  MapStaticClient,
   MapStateServer,
   PlayerPublic,
   PlayerServer,
@@ -39,11 +41,20 @@ function withinInterestRadius(
   );
 }
 
-export function toMapStateClient(
+export function toMapStaticClient(map: MapStateServer): MapStaticClient {
+  return {
+    id: map.id,
+    name: map.name,
+    type: map.type,
+    tiles: map.tiles,
+  };
+}
+
+export function toMapDynamicClient(
   map: MapStateServer,
   viewer: PlayerServer,
   interestRadiusPx: number,
-): MapStateClient {
+): MapDynamicClient {
   const viewerPos = viewer.position;
 
   const players = Object.fromEntries(
@@ -69,12 +80,20 @@ export function toMapStateClient(
 
   return {
     id: map.id,
-    name: map.name,
-    type: map.type,
-    tiles: map.tiles,
     droppedItems,
     npcs,
     players,
+  };
+}
+
+export function toMapStateClient(
+  map: MapStateServer,
+  viewer: PlayerServer,
+  interestRadiusPx: number,
+): MapStateClient {
+  return {
+    ...toMapStaticClient(map),
+    ...toMapDynamicClient(map, viewer, interestRadiusPx),
   };
 }
 

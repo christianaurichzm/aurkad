@@ -2,8 +2,10 @@ import type {
   ChatMessagePayload,
   ChatScope,
   KeyboardAction,
-  MapStateClient,
-  Player,
+  MapDynamicClient,
+  MapStaticClient,
+  PlayerCold,
+  PlayerHot,
 } from './types.js';
 
 export interface WsClientKeyboardMessage {
@@ -29,13 +31,27 @@ export type WsClientMessage =
   | WsClientChatMessage;
 
 export interface FullGameStatePayload {
-  map: MapStateClient;
-  player: Player;
+  map: MapDynamicClient;
+  player: PlayerHot;
 }
 
 export interface WsServerFullGameStateMessage {
   type: 'fullGameState';
   payload: FullGameStatePayload;
+}
+
+export type MapStaticPayload = MapStaticClient;
+
+export interface WsServerMapStaticMessage {
+  type: 'mapStatic';
+  payload: MapStaticPayload;
+}
+
+export type PlayerStatsPayload = PlayerCold;
+
+export interface WsServerPlayerStatsMessage {
+  type: 'playerStats';
+  payload: PlayerStatsPayload;
 }
 
 export type GameStateDeltaPayload = unknown;
@@ -61,5 +77,7 @@ export type WsServerMessage =
   | WsServerChatMessage
   | WsServerKickMessage
   | WsServerOpenShopMessage
+  | WsServerMapStaticMessage
+  | WsServerPlayerStatsMessage
   | WsServerFullGameStateMessage
   | WsServerGameStateDeltaMessage;

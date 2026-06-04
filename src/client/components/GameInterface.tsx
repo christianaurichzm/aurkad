@@ -4,7 +4,11 @@ import { initTilesetEditor, renderMap } from '../graphics/tileset';
 import { handleInput } from '../io/keyboard';
 import { initializeWebSocket } from '../io/network';
 import { gameLoop } from '../core/game';
-import { setFullGameState } from '../core/gameState';
+import {
+  setFullGameState,
+  setPlayerStats,
+  setStaticMap,
+} from '../core/gameState';
 import { useGame } from '../context/GameContext';
 import { ConnectionStatus } from './HUD/ConnectionStatus';
 import { useUIStore } from '../stores/uiStore';
@@ -20,7 +24,54 @@ export const GameInterface = () => {
     const init = async () => {
       initialized.current = true;
 
-      setFullGameState({ map: initialMap, player });
+      // The HTTP login snapshot is a full map (static + dynamic); split it into
+      // the two layers the netcode now streams separately.
+      setStaticMap({
+        id: initialMap.id,
+        name: initialMap.name,
+        type: initialMap.type,
+        tiles: initialMap.tiles,
+      });
+      setPlayerStats({
+        id: player.id,
+        name: player.name,
+        sprite: player.sprite,
+        width: player.width,
+        height: player.height,
+        maxHealth: player.maxHealth,
+        attack: player.attack,
+        attackRange: player.attackRange,
+        level: player.level,
+        experience: player.experience,
+        experienceToNextLevel: player.experienceToNextLevel,
+        inventory: player.inventory,
+        equipped: player.equipped,
+        access: player.access,
+        vitality: player.vitality,
+        unspentPoints: player.unspentPoints,
+        speed: player.speed,
+        mapId: player.mapId,
+        kind: 'player',
+      });
+      setFullGameState({
+        map: {
+          id: initialMap.id,
+          droppedItems: initialMap.droppedItems,
+          npcs: initialMap.npcs,
+          players: initialMap.players,
+        },
+        player: {
+          id: player.id,
+          position: player.position,
+          targetPosition: player.targetPosition,
+          moving: player.moving,
+          moveStartTime: player.moveStartTime,
+          currentMoveDuration: player.currentMoveDuration,
+          direction: player.direction,
+          action: player.action,
+          health: player.health,
+        },
+      });
       useUIStore.getState().setCurrentMap(initialMap);
       handleInput();
       await initializeAssets();

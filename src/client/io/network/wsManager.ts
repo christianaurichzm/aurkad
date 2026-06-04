@@ -1,4 +1,4 @@
-import type { WsClientMessage, FullGameStatePayload } from '../../../shared/wsProtocol';
+import type { WsClientMessage } from '../../../shared/wsProtocol';
 import { hideConnectionStatus, showConnectionStatus } from '../../graphics/hud';
 import { enqueueGameStateMessage } from './sync/gameStateSync';
 import { enqueueChatMessage, setChatSocketSender } from './sync/chatSync';
@@ -62,17 +62,12 @@ export const initializeWebSocket = () => {
             );
           }
           break;
+        case 'mapStatic':
+        case 'playerStats':
         case 'fullGameState':
         case 'gameStateDelta':
           enqueueGameStateMessage(data);
           break;
-        default:
-          if (data.map && data.player) {
-            enqueueGameStateMessage({
-              type: 'fullGameState',
-              payload: data as FullGameStatePayload,
-            });
-          }
       }
     } catch (err) {
       console.error('[Client] WebSocket message error:', err);

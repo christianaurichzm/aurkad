@@ -56,11 +56,13 @@ export const updateMap = (map: MapStateServer): MapStateServer | undefined => {
 export const updateMapById = async (
   mapState: MapStateServer,
 ): Promise<MapStateServer | undefined> => {
-  if (!runtimeState.maps[mapState.id]) {
+  const previous = runtimeState.maps[mapState.id];
+  if (!previous) {
     console.warn('updateMap: Map not found', mapState.id);
     return;
   }
 
+  mapState.tilesRevision = previous.tilesRevision;
   runtimeState.maps[mapState.id] = mapState;
 
   await createOrUpdateMap({

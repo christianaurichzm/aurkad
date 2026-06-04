@@ -1,23 +1,29 @@
 import type {
   WsServerFullGameStateMessage,
   WsServerGameStateDeltaMessage,
+  WsServerMapStaticMessage,
+  WsServerPlayerStatsMessage,
 } from '../../../../shared/wsProtocol';
 import {
   getPlayer,
   getGameState,
   patchGameState,
   setFullGameState,
+  setPlayerStats,
+  setStaticMap,
 } from '../../../core/gameState';
 import { onServerPositionUpdate } from '../../../graphics/render';
 import { useUIStore } from '../../../stores/uiStore';
 
-const gameStateQueue: Array<
-  WsServerFullGameStateMessage | WsServerGameStateDeltaMessage
-> = [];
+type GameStateMessage =
+  | WsServerMapStaticMessage
+  | WsServerPlayerStatsMessage
+  | WsServerFullGameStateMessage
+  | WsServerGameStateDeltaMessage;
 
-export function enqueueGameStateMessage(
-  message: WsServerFullGameStateMessage | WsServerGameStateDeltaMessage,
-) {
+const gameStateQueue: Array<GameStateMessage> = [];
+
+export function enqueueGameStateMessage(message: GameStateMessage) {
   gameStateQueue.push(message);
 }
 
@@ -29,7 +35,11 @@ export function updateWebSocket(): void {
 
     const previousPlayer = structuredClone(getPlayer());
 
-    if (message.type === 'fullGameState') {
+    if (message.type === 'mapStatic') {
+      setStaticMap(message.payload);
+    } else if (message.type === 'playerStats') {
+      setPlayerStats(message.payload);
+    } else if (message.type === 'fullGameState') {
       setFullGameState(message.payload);
     } else if (message.type === 'gameStateDelta') {
       patchGameState(message.payload);

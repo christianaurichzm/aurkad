@@ -196,6 +196,40 @@ export interface Player
   equipped: EquippedItemsDetailed;
 }
 
+export interface PlayerHot {
+  id: string;
+  position: Position;
+  targetPosition?: Position;
+  moving?: boolean;
+  moveStartTime?: number;
+  currentMoveDuration?: number;
+  direction: Direction;
+  action: CharacterAction;
+  health: number;
+}
+
+export interface PlayerCold {
+  id: string;
+  name: string;
+  sprite: number;
+  width: number;
+  height: number;
+  maxHealth: number;
+  attack: number;
+  attackRange: number;
+  level: number;
+  experience: number;
+  experienceToNextLevel: number;
+  inventory: InventoryItemDetailed[];
+  equipped: EquippedItemsDetailed;
+  access: Access;
+  vitality: number;
+  unspentPoints: number;
+  speed: number;
+  mapId: string;
+  kind: 'player';
+}
+
 export type CombatTarget = PlayerServer | RuntimeNpc;
 
 export interface Warp {
@@ -232,9 +266,24 @@ export interface MapStateBase {
 
 export interface MapStateServer extends MapStateBase {
   players: Record<string, PlayerServer>;
+  tilesRevision?: number;
 }
 
 export interface MapStateClient extends MapStateBase {
+  players: Record<string, PlayerPublic>;
+}
+
+export interface MapStaticClient {
+  id: string;
+  name: string;
+  type: MapType;
+  tiles: Tile[][];
+}
+
+export interface MapDynamicClient {
+  id: string;
+  droppedItems: DroppedItem[];
+  npcs: Record<string, RuntimeNpc>;
   players: Record<string, PlayerPublic>;
 }
 
