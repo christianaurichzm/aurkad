@@ -15,6 +15,8 @@ import {
   EquippedItemsDetailed,
   InventoryItemDetailed,
   Player,
+  PlayerCold,
+  PlayerHot,
 } from '../../shared/types.js';
 import PlayerModel from '../model/Player.js';
 
@@ -131,7 +133,21 @@ export const respawnPlayer = (player: PlayerServer): void => {
   addPlayerOnMap(player.id);
 };
 
-export function enrichPlayer(player: PlayerServer): Player {
+export function toPlayerHot(player: PlayerServer): PlayerHot {
+  return {
+    id: player.id,
+    position: player.position,
+    targetPosition: player.targetPosition,
+    moving: player.moving,
+    moveStartTime: player.moveStartTime,
+    currentMoveDuration: player.currentMoveDuration,
+    direction: player.direction,
+    action: player.action,
+    health: player.health,
+  };
+}
+
+export function toPlayerCold(player: PlayerServer): PlayerCold {
   const inventory: InventoryItemDetailed[] = player.inventory.items.map(
     (entry) => {
       const item = getItemById(entry.item);
@@ -150,13 +166,55 @@ export function enrichPlayer(player: PlayerServer): Player {
     }
   }
 
-  const { password: _password, inventory: _rawInv, equipped: _rawEq, ...rest } =
-    player;
-
   return {
-    ...rest,
+    id: player.id,
+    name: player.name,
+    sprite: player.sprite,
+    width: player.width,
+    height: player.height,
+    maxHealth: player.maxHealth,
+    attack: player.attack,
+    attackRange: player.attackRange,
+    level: player.level,
+    experience: player.experience,
+    experienceToNextLevel: player.experienceToNextLevel,
     inventory,
     equipped,
+    access: player.access,
+    vitality: player.vitality,
+    unspentPoints: player.unspentPoints,
+    speed: player.speed,
+    mapId: player.mapId,
+    kind: 'player',
+  };
+}
+
+export function playerColdSignature(player: PlayerServer): string {
+  return JSON.stringify([
+    player.name,
+    player.sprite,
+    player.width,
+    player.height,
+    player.maxHealth,
+    player.attack,
+    player.attackRange,
+    player.level,
+    player.experience,
+    player.experienceToNextLevel,
+    player.access,
+    player.vitality,
+    player.unspentPoints,
+    player.speed,
+    player.mapId,
+    player.inventory,
+    player.equipped,
+  ]);
+}
+
+export function enrichPlayer(player: PlayerServer): Player {
+  return {
+    ...toPlayerCold(player),
+    ...toPlayerHot(player),
   };
 }
 
