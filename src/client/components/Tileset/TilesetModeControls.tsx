@@ -18,17 +18,6 @@ import { getGameState } from '../../core/gameState';
 import { useGame } from '../../context/GameContext';
 import { colors, radius } from '../../theme';
 
-const btn: React.CSSProperties = {
-  background: colors.primary,
-  color: '#fff',
-  border: 'none',
-  padding: '7px 12px',
-  borderRadius: radius.md,
-  cursor: 'pointer',
-  fontWeight: 600,
-  fontSize: '0.85rem',
-};
-
 const inputStyle: React.CSSProperties = {
   padding: '6px 8px',
   border: `1px solid ${colors.border}`,
@@ -36,12 +25,43 @@ const inputStyle: React.CSSProperties = {
   fontSize: 13,
   fontFamily: 'inherit',
   width: '100%',
+  boxSizing: 'border-box',
 };
 
 const labelStyle: React.CSSProperties = {
-  fontSize: 12,
+  fontSize: 11,
   color: colors.textMuted,
+  fontWeight: 600,
+  textTransform: 'uppercase',
+  letterSpacing: '0.04em',
   marginBottom: 2,
+};
+
+const inputsBox: React.CSSProperties = {
+  display: 'flex',
+  flexDirection: 'column',
+  gap: 6,
+  padding: '10px 12px',
+  background: colors.surfaceMuted,
+  border: `1px solid ${colors.border}`,
+  borderRadius: radius.md,
+};
+
+const modes: TileEditMode[] = [
+  'blocking',
+  'warping',
+  'npc',
+  'item',
+  'shop',
+  'avoidNpc',
+];
+const modeLabels: Record<TileEditMode, string> = {
+  blocking: 'Block',
+  warping: 'Warp',
+  npc: 'NPC',
+  item: 'Item',
+  shop: 'Shop',
+  avoidNpc: 'Avoid',
 };
 
 const TilesetModeControlsComponent: React.FC = () => {
@@ -127,36 +147,20 @@ const TilesetModeControlsComponent: React.FC = () => {
     toggleMap[mode]?.();
   };
 
-  const modes: TileEditMode[] = [
-    'blocking',
-    'warping',
-    'npc',
-    'item',
-    'shop',
-    'avoidNpc',
-  ];
-  const modeLabels: Record<TileEditMode, string> = {
-    blocking: 'Blocking',
-    warping: 'Warp',
-    npc: 'NPC',
-    item: 'Item',
-    shop: 'Shop',
-    avoidNpc: 'Avoid NPC',
-  };
-
   return (
     <div
-      style={{ padding: 14, display: 'flex', flexDirection: 'column', gap: 14 }}
+      style={{
+        padding: 12,
+        display: 'flex',
+        flexDirection: 'column',
+        gap: 10,
+        minWidth: 260,
+      }}
     >
-      <div
-        style={{
-          display: 'flex',
-          gap: 12,
-          alignItems: 'flex-end',
-          flexWrap: 'wrap',
-        }}
-      >
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+      <div style={{ display: 'flex', gap: 8, alignItems: 'flex-end' }}>
+        <div
+          style={{ display: 'flex', flexDirection: 'column', gap: 3, flex: 1 }}
+        >
           <label style={labelStyle} htmlFor="mapName">
             Map name
           </label>
@@ -173,9 +177,8 @@ const TilesetModeControlsComponent: React.FC = () => {
             }}
           />
         </div>
-
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-          <label style={labelStyle}>Map type</label>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+          <label style={labelStyle}>Type</label>
           <Select
             options={[
               { value: 'pvp', label: 'PvP' },
@@ -190,110 +193,109 @@ const TilesetModeControlsComponent: React.FC = () => {
             }}
           />
         </div>
-
         <button
           id="saveButton"
           onClick={handleSave}
           disabled={!mapEdited}
           style={{
-            ...btn,
             background: colors.success,
-            opacity: !mapEdited ? 0.45 : 1,
+            color: '#fff',
+            border: 'none',
+            padding: '7px 14px',
+            borderRadius: radius.md,
             cursor: !mapEdited ? 'not-allowed' : 'pointer',
+            fontWeight: 700,
+            fontSize: 13,
+            opacity: !mapEdited ? 0.45 : 1,
+            flexShrink: 0,
           }}
         >
-          Save Map
+          Save
         </button>
       </div>
 
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+      <div
+        style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(3, 1fr)',
+          gap: 5,
+        }}
+      >
         {modes.map((mode) => {
           const isActive = activeMode === mode;
           return (
-            <div
+            <button
               key={mode}
-              style={{ display: 'flex', flexDirection: 'column', gap: 5 }}
+              onClick={() => handleToggle(mode)}
+              style={{
+                padding: '6px 0',
+                border: `1px solid ${isActive ? colors.danger : colors.border}`,
+                borderRadius: radius.sm,
+                background: isActive ? colors.danger : colors.surfaceMuted,
+                color: isActive ? '#fff' : colors.text,
+                fontWeight: 600,
+                fontSize: 12,
+                cursor: 'pointer',
+                transition: 'all 0.12s',
+              }}
             >
-              <button
-                style={{
-                  ...btn,
-                  background: isActive ? colors.danger : colors.primary,
-                }}
-                onClick={() => handleToggle(mode)}
-              >
-                {modeLabels[mode]}: {isActive ? 'ON' : 'OFF'}
-              </button>
-
-              {isActive && mode === 'warping' && (
-                <div style={inputsBox}>
-                  <label style={labelStyle} htmlFor="mapTo">
-                    Map To
-                  </label>
-                  <input
-                    type="number"
-                    id="mapTo"
-                    name="mapTo"
-                    style={inputStyle}
-                  />
-                  <label style={labelStyle} htmlFor="xTo">
-                    Tile X
-                  </label>
-                  <input type="number" id="xTo" name="xTo" style={inputStyle} />
-                  <label style={labelStyle} htmlFor="yTo">
-                    Tile Y
-                  </label>
-                  <input type="number" id="yTo" name="yTo" style={inputStyle} />
-                </div>
-              )}
-
-              {isActive && mode === 'npc' && (
-                <div style={inputsBox}>
-                  <label style={labelStyle}>NPC</label>
-                  <AsyncSelect
-                    loadOptions={loadNpcs}
-                    value={selectedNpc}
-                    onChange={setSelectedNpc}
-                  />
-                </div>
-              )}
-
-              {isActive && mode === 'item' && (
-                <div style={inputsBox}>
-                  <label style={labelStyle}>Item</label>
-                  <AsyncSelect
-                    loadOptions={loadItems}
-                    value={selectedItem}
-                    onChange={setSelectedItem}
-                  />
-                </div>
-              )}
-
-              {isActive && mode === 'shop' && (
-                <div style={inputsBox}>
-                  <label style={labelStyle}>Shop</label>
-                  <AsyncSelect
-                    loadOptions={loadShops}
-                    value={selectedShop}
-                    onChange={setSelectedShop}
-                  />
-                </div>
-              )}
-            </div>
+              {modeLabels[mode]}
+            </button>
           );
         })}
       </div>
+
+      {activeMode === 'warping' && (
+        <div style={inputsBox}>
+          <label style={labelStyle} htmlFor="mapTo">
+            Map To
+          </label>
+          <input type="number" id="mapTo" name="mapTo" style={inputStyle} />
+          <label style={labelStyle} htmlFor="xTo">
+            Tile X
+          </label>
+          <input type="number" id="xTo" name="xTo" style={inputStyle} />
+          <label style={labelStyle} htmlFor="yTo">
+            Tile Y
+          </label>
+          <input type="number" id="yTo" name="yTo" style={inputStyle} />
+        </div>
+      )}
+
+      {activeMode === 'npc' && (
+        <div style={inputsBox}>
+          <label style={labelStyle}>NPC</label>
+          <AsyncSelect
+            loadOptions={loadNpcs}
+            value={selectedNpc}
+            onChange={setSelectedNpc}
+          />
+        </div>
+      )}
+
+      {activeMode === 'item' && (
+        <div style={inputsBox}>
+          <label style={labelStyle}>Item</label>
+          <AsyncSelect
+            loadOptions={loadItems}
+            value={selectedItem}
+            onChange={setSelectedItem}
+          />
+        </div>
+      )}
+
+      {activeMode === 'shop' && (
+        <div style={inputsBox}>
+          <label style={labelStyle}>Shop</label>
+          <AsyncSelect
+            loadOptions={loadShops}
+            value={selectedShop}
+            onChange={setSelectedShop}
+          />
+        </div>
+      )}
     </div>
   );
-};
-
-const inputsBox: React.CSSProperties = {
-  display: 'flex',
-  flexDirection: 'column',
-  gap: 6,
-  padding: '10px 12px',
-  background: colors.surfaceMuted,
-  border: `1px solid ${colors.border}`,
-  borderRadius: radius.md,
 };
 
 export const TilesetModeControls = React.memo(TilesetModeControlsComponent);

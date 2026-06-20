@@ -7,13 +7,13 @@ import {
 import { useUIStore } from '../../stores/uiStore';
 import { TilesetModeControls } from './TilesetModeControls';
 import { useDraggable } from '../../hooks/useDraggable';
-import { zIndex } from '../../theme';
+import { colors, radius, shadow, zIndex } from '../../theme';
 
 export const TilesetEditor: React.FC = () => {
   const [visible, setVisible] = useState(false);
   const visibleRef = useRef(false);
 
-  const { ref, pos, onMouseDown } = useDraggable(100, 100);
+  const { ref, pos, onMouseDown } = useDraggable(100, 80);
 
   useEffect(() => {
     visibleRef.current = visible;
@@ -56,42 +56,60 @@ export const TilesetEditor: React.FC = () => {
     }
   }, [visible]);
 
+  if (!visible) return null;
+
   return (
-    <>
-      {visible && (
-        <div
-          id="tilesetContainer"
-          ref={ref}
-          onMouseDown={onMouseDown}
+    <div
+      id="tilesetContainer"
+      ref={ref}
+      style={{
+        position: 'fixed',
+        top: pos.y,
+        left: pos.x,
+        zIndex: zIndex.editor,
+        background: colors.surface,
+        border: `1px solid ${colors.border}`,
+        borderRadius: radius.lg,
+        boxShadow: shadow.modal,
+        overflow: 'hidden',
+      }}
+    >
+      <div
+        onMouseDown={onMouseDown}
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          padding: '8px 12px',
+          borderBottom: `1px solid ${colors.border}`,
+          background: colors.surfaceMuted,
+          cursor: 'move',
+          userSelect: 'none',
+        }}
+      >
+        <span style={{ fontWeight: 700, fontSize: 13, color: colors.text }}>
+          Map Editor
+        </span>
+        <button
           style={{
-            position: 'fixed',
-            top: pos.y,
-            left: pos.x,
-            zIndex: zIndex.editor,
+            border: 'none',
+            background: 'transparent',
+            fontSize: 16,
+            cursor: 'pointer',
+            color: colors.textMuted,
+            lineHeight: 1,
+            padding: '0 2px',
+          }}
+          onClick={(e) => {
+            e.stopPropagation();
+            void handleClose();
           }}
         >
-          <button
-            style={{
-              position: 'absolute',
-              top: 8,
-              right: 8,
-              border: 'none',
-              background: 'transparent',
-              fontSize: '1.2rem',
-              cursor: 'pointer',
-              color: 'inherit',
-            }}
-            onClick={(e) => {
-              e.stopPropagation();
-              void handleClose();
-            }}
-          >
-            X
-          </button>
-          <TilesetModeControls />
-          <canvas id="tilesetCanvas" />
-        </div>
-      )}
-    </>
+          ×
+        </button>
+      </div>
+      <TilesetModeControls />
+      <canvas id="tilesetCanvas" />
+    </div>
   );
 };

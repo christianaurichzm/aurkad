@@ -13,7 +13,8 @@ import {
 } from '../io/network';
 import { displayChatMessage, chatResultMsg } from './ChatPanel';
 import { SelectOption, Select } from './common/Select/Select';
-import { colors, radius, shadow, zIndex } from '../theme';
+import { Modal } from './common/Modal';
+import { colors, radius } from '../theme';
 
 export const ModerationMenu: React.FC = () => {
   const [visible, setVisible] = useState(false);
@@ -26,11 +27,11 @@ export const ModerationMenu: React.FC = () => {
   const [myAccess, setMyAccess] = useState<Access>(Access.USER);
   const [mySprite, setMySprite] = useState(0);
 
-  const accessLevels: Access[] = useMemo(() => {
-    return Object.values(Access).filter(
-      (v) => typeof v === 'number',
-    ) as Access[];
-  }, []);
+  const accessLevels: Access[] = useMemo(
+    () =>
+      Object.values(Access).filter((v) => typeof v === 'number') as Access[],
+    [],
+  );
 
   useEffect(() => {
     setAccess(accessLevels[0]);
@@ -43,7 +44,7 @@ export const ModerationMenu: React.FC = () => {
     return () => window.removeEventListener('toggleModMenu', toggle);
   }, []);
 
-  const requirePlayerName = (): string | null => {
+  const requireName = (): string | null => {
     const p = playerName.trim();
     if (!p) {
       displayChatMessage({
@@ -56,11 +57,6 @@ export const ModerationMenu: React.FC = () => {
     return p;
   };
 
-  const accessOptions: SelectOption[] = accessLevels.map((lvl) => ({
-    value: lvl.toString(),
-    label: lvl.toString(),
-  }));
-
   const doAction = async (
     fn: () => Promise<any>,
     success: string,
@@ -70,323 +66,358 @@ export const ModerationMenu: React.FC = () => {
     chatResultMsg(!!res, success, fail);
   };
 
+  const accessOptions: SelectOption[] = accessLevels.map((lvl) => ({
+    value: lvl.toString(),
+    label: lvl.toString(),
+  }));
+
   if (!visible) return null;
 
   return (
-    <div style={styles.container}>
-      <button style={styles.closeBtn} onClick={() => setVisible(false)}>
-        x
-      </button>
-      <h3 style={styles.title}>Moderation Menu</h3>
+    <Modal title="Moderation" onClose={() => setVisible(false)} width={340}>
+      <div style={layout}>
+        <section style={section}>
+          <h4 style={sectionTitle}>Player actions</h4>
 
-      <div style={styles.group}>
-        <h4 style={styles.groupTitle}>Players</h4>
-        <label style={styles.label}>Player Name</label>
-        <input
-          style={styles.input}
-          value={playerName}
-          onChange={(e) => setPlayerName(e.target.value)}
-          placeholder="Type player name…"
-        />
-        <div style={styles.actions}>
-          <button
-            style={styles.btn}
-            onClick={() =>
-              doAction(
-                () => modKick(requirePlayerName()!),
-                'Player kicked!',
-                'Failed to kick.',
-              )
-            }
-          >
-            Kick
-          </button>
-          <button
-            style={styles.btn}
-            onClick={() =>
-              doAction(
-                () => modBring(requirePlayerName()!),
-                'Player brought!',
-                'Failed to bring.',
-              )
-            }
-          >
-            Bring
-          </button>
-          <button
-            style={styles.btn}
-            onClick={() =>
-              doAction(
-                () => modGoto(requirePlayerName()!),
-                'Teleported!',
-                'Failed to teleport.',
-              )
-            }
-          >
-            Go To
-          </button>
-        </div>
+          <div style={field}>
+            <label style={label}>Player name</label>
+            <input
+              style={input}
+              value={playerName}
+              onChange={(e) => setPlayerName(e.target.value)}
+              placeholder="Type player name…"
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  const p = requireName();
+                  if (p)
+                    doAction(
+                      () => modKick(p),
+                      'Player kicked!',
+                      'Failed to kick.',
+                    );
+                }
+              }}
+            />
+          </div>
 
-        <div style={styles.extraField}>
-          <label style={styles.label}>Access</label>
-          <Select
-            options={accessOptions}
-            value={access.toString()}
-            onChange={(v) => setAccess(+v)}
-          />
-          <button
-            style={{ ...styles.btn, ...styles.btnSmall }}
-            onClick={() =>
-              doAction(
-                () => modSetAccess(requirePlayerName()!, access),
-                'Access changed!',
-                'Failed to change access.',
-              )
-            }
-          >
-            Set
-          </button>
-        </div>
+          <div style={btnRow}>
+            <button
+              style={actionBtn}
+              onClick={() => {
+                const p = requireName();
+                if (p)
+                  doAction(
+                    () => modKick(p),
+                    'Player kicked!',
+                    'Failed to kick.',
+                  );
+              }}
+            >
+              Kick
+            </button>
+            <button
+              style={actionBtn}
+              onClick={() => {
+                const p = requireName();
+                if (p)
+                  doAction(
+                    () => modBring(p),
+                    'Player brought!',
+                    'Failed to bring.',
+                  );
+              }}
+            >
+              Bring
+            </button>
+            <button
+              style={actionBtn}
+              onClick={() => {
+                const p = requireName();
+                if (p)
+                  doAction(
+                    () => modGoto(p),
+                    'Teleported!',
+                    'Failed to teleport.',
+                  );
+              }}
+            >
+              Go To
+            </button>
+          </div>
 
-        <div style={styles.extraField}>
-          <label style={styles.label}>Sprite</label>
-          <input
-            style={styles.input}
-            type="number"
-            value={spriteId}
-            onChange={(e) => setSpriteId(+e.target.value)}
-          />
-          <button
-            style={{ ...styles.btn, ...styles.btnSmall }}
-            onClick={() =>
-              doAction(
-                () => modSetSprite(requirePlayerName()!, spriteId),
-                'Sprite changed!',
-                'Failed to change sprite.',
-              )
-            }
-          >
-            Set
-          </button>
-        </div>
+          <div style={inlineRow}>
+            <div style={{ flex: 1 }}>
+              <label style={label}>Access</label>
+              <Select
+                options={accessOptions}
+                value={access.toString()}
+                onChange={(v) => setAccess(+v)}
+              />
+            </div>
+            <button
+              style={{ ...setBtn, marginTop: 18 }}
+              onClick={() => {
+                const p = requireName();
+                if (p)
+                  doAction(
+                    () => modSetAccess(p, access),
+                    'Access changed!',
+                    'Failed.',
+                  );
+              }}
+            >
+              Set
+            </button>
+          </div>
 
-        <div style={{ ...styles.extraField, ...styles.banSection }}>
-          <label style={styles.label}>Ban Player</label>
-          <input
-            style={styles.input}
-            placeholder="Reason (opt.)"
-            value={banReason}
-            onChange={(e) => setBanReason(e.target.value)}
-          />
-          <input
-            style={styles.input}
-            type="number"
-            placeholder="Duration (min)"
-            value={banDuration}
-            onChange={(e) => setBanDuration(+e.target.value)}
-          />
-          <button
-            style={{ ...styles.btn, ...styles.btnSmall, ...styles.btnDanger }}
-            onClick={() =>
-              doAction(
-                () =>
-                  modBan(
-                    requirePlayerName()!,
-                    banReason,
-                    banDuration ? Date.now() + banDuration * 60000 : undefined,
-                  ),
-                'Player banned!',
-                'Failed to ban.',
-              )
-            }
-          >
-            Ban
-          </button>
-        </div>
+          <div style={inlineRow}>
+            <div style={{ flex: 1 }}>
+              <label style={label}>Sprite ID</label>
+              <input
+                style={input}
+                type="number"
+                value={spriteId}
+                onChange={(e) => setSpriteId(+e.target.value)}
+              />
+            </div>
+            <button
+              style={{ ...setBtn, marginTop: 18 }}
+              onClick={() => {
+                const p = requireName();
+                if (p)
+                  doAction(
+                    () => modSetSprite(p, spriteId),
+                    'Sprite changed!',
+                    'Failed.',
+                  );
+              }}
+            >
+              Set
+            </button>
+          </div>
+
+          <div style={banBox}>
+            <label style={label}>Ban player</label>
+            <input
+              style={input}
+              placeholder="Reason (optional)"
+              value={banReason}
+              onChange={(e) => setBanReason(e.target.value)}
+            />
+            <div style={inlineRow}>
+              <input
+                style={{ ...input, flex: 1 }}
+                type="number"
+                placeholder="Duration (min, 0 = permanent)"
+                value={banDuration}
+                onChange={(e) => setBanDuration(+e.target.value)}
+              />
+              <button
+                style={banBtn}
+                onClick={() => {
+                  const p = requireName();
+                  if (p)
+                    doAction(
+                      () =>
+                        modBan(
+                          p,
+                          banReason,
+                          banDuration
+                            ? Date.now() + banDuration * 60000
+                            : undefined,
+                        ),
+                      'Player banned!',
+                      'Failed to ban.',
+                    );
+                }}
+              >
+                Ban
+              </button>
+            </div>
+          </div>
+        </section>
+
+        <hr style={divider} />
+
+        <section style={section}>
+          <h4 style={sectionTitle}>My self</h4>
+
+          <div style={inlineRow}>
+            <div style={{ flex: 1 }}>
+              <label style={label}>Move to map</label>
+              <input
+                style={input}
+                value={mapId}
+                onChange={(e) => setMapId(e.target.value)}
+                placeholder="Map ID"
+              />
+            </div>
+            <button
+              style={{ ...setBtn, marginTop: 18 }}
+              onClick={() =>
+                doAction(() => modMoveMap(mapId.trim()), 'Moved!', 'Failed.')
+              }
+            >
+              Go
+            </button>
+          </div>
+
+          <div style={inlineRow}>
+            <div style={{ flex: 1 }}>
+              <label style={label}>My access</label>
+              <Select
+                options={accessOptions}
+                value={myAccess.toString()}
+                onChange={(v) => setMyAccess(+v)}
+              />
+            </div>
+            <button
+              style={{ ...setBtn, marginTop: 18 }}
+              onClick={() =>
+                doAction(
+                  () => modSetMyAccess(myAccess),
+                  'Access changed!',
+                  'Failed.',
+                )
+              }
+            >
+              Set
+            </button>
+          </div>
+
+          <div style={inlineRow}>
+            <div style={{ flex: 1 }}>
+              <label style={label}>My sprite</label>
+              <input
+                style={input}
+                type="number"
+                value={mySprite}
+                onChange={(e) => setMySprite(+e.target.value)}
+              />
+            </div>
+            <button
+              style={{ ...setBtn, marginTop: 18 }}
+              onClick={() =>
+                doAction(
+                  () => changeSprite(mySprite),
+                  'Sprite changed!',
+                  'Failed.',
+                )
+              }
+            >
+              Set
+            </button>
+          </div>
+        </section>
       </div>
-
-      <hr style={styles.divider} />
-
-      <div style={styles.group}>
-        <h4 style={styles.groupTitle}>My self</h4>
-        <div style={styles.extraField}>
-          <label style={styles.label}>Move to Map</label>
-          <input
-            style={styles.input}
-            value={mapId}
-            onChange={(e) => setMapId(e.target.value)}
-            placeholder="Map ID"
-          />
-          <button
-            style={{ ...styles.btn, ...styles.btnSmall }}
-            onClick={() =>
-              doAction(
-                () => modMoveMap(mapId.trim()),
-                'You moved maps!',
-                'Failed to move.',
-              )
-            }
-          >
-            Go
-          </button>
-        </div>
-        <div style={styles.extraField}>
-          <label style={styles.label}>My Access</label>
-          <Select
-            options={accessOptions}
-            value={myAccess.toString()}
-            onChange={(v) => setMyAccess(+v)}
-          />
-          <button
-            style={{ ...styles.btn, ...styles.btnSmall }}
-            onClick={() =>
-              doAction(
-                () => modSetMyAccess(myAccess),
-                'Your access changed!',
-                'Failed.',
-              )
-            }
-          >
-            Set
-          </button>
-        </div>
-        <div style={styles.extraField}>
-          <label style={styles.label}>My Sprite</label>
-          <input
-            style={styles.input}
-            type="number"
-            value={mySprite}
-            onChange={(e) => setMySprite(+e.target.value)}
-          />
-          <button
-            style={{ ...styles.btn, ...styles.btnSmall }}
-            onClick={() =>
-              doAction(
-                () => changeSprite(mySprite),
-                'Your sprite changed!',
-                'Failed.',
-              )
-            }
-          >
-            Set
-          </button>
-        </div>
-      </div>
-    </div>
+    </Modal>
   );
 };
 
-const styles = {
-  container: {
-    position: 'absolute' as const,
-    top: 15,
-    right: 15,
-    display: 'flex' as const,
-    flexDirection: 'column' as const,
-    gap: 15,
-    background: colors.surface,
-    padding: 20,
-    borderRadius: radius.lg,
-    boxShadow: shadow.raised,
-    maxWidth: 320,
-    zIndex: zIndex.hud,
-  },
-  closeBtn: {
-    position: 'absolute' as const,
-    top: 8,
-    right: 8,
-    border: 'none',
-    background: 'transparent',
-    fontSize: '1.2rem',
-    cursor: 'pointer',
-  },
-  title: {
-    margin: 0,
-    color: colors.primary,
-    fontWeight: 700,
-    textAlign: 'center' as const,
-    fontSize: '1.2rem',
-  },
-  group: {
-    background: '#f9f9f9',
-    borderRadius: radius.lg,
-    padding: '18px 15px',
-    display: 'flex' as const,
-    flexDirection: 'column' as const,
-    gap: 12,
-    border: '1px solid #e9fbe9',
-  },
-  groupTitle: {
-    margin: 0,
-    marginBottom: 5,
-    color: colors.text,
-    fontWeight: 700,
-    fontSize: '1rem',
-    textAlign: 'left' as const,
-  },
-  label: {
-    fontWeight: 600,
-    color: '#218c49',
-    fontSize: 14,
-    marginBottom: 2,
-    display: 'block' as const,
-  },
-  input: {
-    width: '100%',
-    padding: '9px 10px',
-    border: '1.5px solid #a0e0a0',
-    borderRadius: 6,
-    outline: 'none',
-    fontSize: 14,
-    background: '#fff',
-    marginBottom: 5,
-    transition: 'border 0.16s, background 0.16s',
-  },
-  actions: {
-    display: 'flex' as const,
-    gap: 10,
-    marginTop: 5,
-    flexWrap: 'wrap' as const,
-  },
-  btn: {
-    background: colors.primary,
-    color: '#fff',
-    border: 'none',
-    padding: '9px 16px',
-    borderRadius: radius.md,
-    cursor: 'pointer',
-    fontWeight: 600,
-    fontSize: 14,
-    transition: 'background 0.2s',
-    flexGrow: 1,
-    textAlign: 'center' as const,
-  },
-  btnSmall: {
-    padding: '7px 12px',
-    fontSize: 12,
-    flexGrow: 0,
-  },
-  btnDanger: {
-    background: colors.danger,
-  },
-  divider: {
-    border: 'none',
-    borderTop: '1px solid #e0e0e0',
-    margin: '10px 0',
-  },
-  extraField: {
-    display: 'flex' as const,
-    alignItems: 'center' as const,
-    gap: 8,
-    flexWrap: 'wrap' as const,
-    marginBottom: 10,
-  },
-  banSection: {
-    flexDirection: 'column' as const,
-    alignItems: 'stretch' as const,
-    backgroundColor: '#fff0f0',
-    padding: 10,
-    borderRadius: radius.sm,
-    border: '1px solid #f0c0c0',
-  },
+const layout: React.CSSProperties = {
+  display: 'flex',
+  flexDirection: 'column',
+  gap: 12,
+};
+
+const section: React.CSSProperties = {
+  display: 'flex',
+  flexDirection: 'column',
+  gap: 10,
+};
+
+const sectionTitle: React.CSSProperties = {
+  margin: 0,
+  fontSize: 12,
+  fontWeight: 700,
+  textTransform: 'uppercase',
+  letterSpacing: '0.06em',
+  color: colors.textMuted,
+};
+
+const field: React.CSSProperties = {
+  display: 'flex',
+  flexDirection: 'column',
+  gap: 4,
+};
+
+const label: React.CSSProperties = {
+  fontSize: 11,
+  fontWeight: 600,
+  textTransform: 'uppercase',
+  letterSpacing: '0.04em',
+  color: colors.textMuted,
+  display: 'block',
+  marginBottom: 2,
+};
+
+const input: React.CSSProperties = {
+  width: '100%',
+  padding: '7px 9px',
+  border: `1.5px solid ${colors.border}`,
+  borderRadius: radius.sm,
+  outline: 'none',
+  fontSize: 14,
+  background: colors.surface,
+  boxSizing: 'border-box',
+};
+
+const btnRow: React.CSSProperties = { display: 'flex', gap: 6 };
+
+const actionBtn: React.CSSProperties = {
+  flex: 1,
+  background: colors.primary,
+  color: '#fff',
+  border: 'none',
+  padding: '8px 0',
+  borderRadius: radius.sm,
+  cursor: 'pointer',
+  fontWeight: 600,
+  fontSize: 13,
+};
+
+const inlineRow: React.CSSProperties = {
+  display: 'flex',
+  alignItems: 'flex-end',
+  gap: 8,
+};
+
+const setBtn: React.CSSProperties = {
+  background: colors.surfaceMuted,
+  color: colors.text,
+  border: `1px solid ${colors.border}`,
+  padding: '7px 12px',
+  borderRadius: radius.sm,
+  cursor: 'pointer',
+  fontWeight: 600,
+  fontSize: 13,
+  flexShrink: 0,
+};
+
+const banBox: React.CSSProperties = {
+  display: 'flex',
+  flexDirection: 'column',
+  gap: 6,
+  background: '#fff5f5',
+  border: `1px solid #f5c6c6`,
+  borderRadius: radius.md,
+  padding: '10px 12px',
+};
+
+const banBtn: React.CSSProperties = {
+  background: colors.danger,
+  color: '#fff',
+  border: 'none',
+  padding: '7px 14px',
+  borderRadius: radius.sm,
+  cursor: 'pointer',
+  fontWeight: 600,
+  fontSize: 13,
+  flexShrink: 0,
+};
+
+const divider: React.CSSProperties = {
+  border: 'none',
+  borderTop: `1px solid ${colors.border}`,
+  margin: '4px 0',
 };

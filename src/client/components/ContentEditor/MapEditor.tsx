@@ -25,7 +25,7 @@ export const MapEditor: React.FC<MapEditorProps> = ({
     { value: 'pvp', label: 'PvP' },
   ];
 
-  const handleSelect = async (mapId: string) => {
+  const handleSelect = (mapId: string) => {
     setSelectedId(mapId);
     const map = maps.find((m) => m.id === mapId);
     if (map) {
@@ -41,106 +41,111 @@ export const MapEditor: React.FC<MapEditorProps> = ({
   };
 
   const handleSave = async () => {
-    const data = {
-      name,
-      type,
-    };
-
     const result = selectedId
-      ? await updateMap(selectedId, data)
-      : await createMap(data);
+      ? await updateMap(selectedId, { name, type })
+      : await createMap({ name, type });
     chatResultMsg(!!result, 'Map saved!', 'Error saving map');
     refreshData();
     reset();
   };
 
   return (
-    <div style={styles.group}>
-      <h3 style={styles.h3}>Map Editor</h3>
-
-      <label style={styles.label}>Select Map</label>
-      <AsyncSelect
-        loadOptions={loadMaps}
-        value={selectedId}
-        onChange={handleSelect}
-      />
-
-      <label style={styles.label}>Map Name</label>
-      <input
-        style={styles.input}
-        value={name}
-        onChange={(e) => setName(e.target.value)}
-        placeholder="Map name"
-      />
-
-      <label style={styles.label}>Map Type</label>
-      <AsyncSelect
-        loadOptions={async () => mapTypeOptions}
-        value={type}
-        onChange={(v) => setType(v as MapType)}
-      />
-
-      <div style={styles.actions}>
-        <button style={styles.btn} onClick={handleSave}>
-          {selectedId ? 'Save Map' : 'Create Map'}
-        </button>
+    <div style={container}>
+      <div style={field}>
+        <label style={label}>Map</label>
+        <div style={{ display: 'flex', gap: 8 }}>
+          <div style={{ flex: 1 }}>
+            <AsyncSelect
+              loadOptions={loadMaps}
+              value={selectedId}
+              onChange={handleSelect}
+            />
+          </div>
+          {selectedId && (
+            <button style={resetBtn} onClick={reset}>
+              New
+            </button>
+          )}
+        </div>
       </div>
+
+      <div style={field}>
+        <label style={label}>Map Name</label>
+        <input
+          style={input}
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          placeholder="Map name"
+        />
+      </div>
+
+      <div style={field}>
+        <label style={label}>Map Type</label>
+        <AsyncSelect
+          loadOptions={async () => mapTypeOptions}
+          value={type}
+          onChange={(v) => setType(v as MapType)}
+        />
+      </div>
+
+      <button style={saveBtn} onClick={handleSave} disabled={!name.trim()}>
+        {selectedId ? 'Save Map' : 'Create Map'}
+      </button>
     </div>
   );
 };
 
-const styles = {
-  group: {
-    background: '#f9f9f9',
-    borderRadius: 12,
-    padding: '18px 15px',
-    display: 'flex' as const,
-    flexDirection: 'column' as const,
-    gap: 12,
-    border: '1px solid #e9fbe9',
-  },
-  h3: {
-    margin: 0,
-    marginBottom: 5,
-    color: '#333',
-    fontWeight: 700,
-    fontSize: '1rem',
-    textAlign: 'left' as const,
-  },
-  label: {
-    fontWeight: 600,
-    color: '#218c49',
-    fontSize: 14,
-    marginBottom: 2,
-    display: 'block' as const,
-  },
-  input: {
-    width: '100%',
-    padding: '9px 10px',
-    border: '1.5px solid #a0e0a0',
-    borderRadius: 6,
-    outline: 'none',
-    fontSize: 14,
-    background: '#fff',
-    marginBottom: 5,
-    transition: 'border 0.16s, background 0.16s',
-  },
-  actions: {
-    display: 'flex' as const,
-    gap: 10,
-    marginTop: 5,
-  },
-  btn: {
-    background: colors.primary,
-    color: '#fff',
-    border: 'none',
-    padding: '9px 16px',
-    borderRadius: radius.md,
-    cursor: 'pointer',
-    fontWeight: 600,
-    fontSize: 14,
-    transition: 'background 0.2s',
-    flexGrow: 1,
-    textAlign: 'center' as const,
-  },
+const container: React.CSSProperties = {
+  display: 'flex',
+  flexDirection: 'column',
+  gap: 14,
+};
+
+const field: React.CSSProperties = {
+  display: 'flex',
+  flexDirection: 'column',
+  gap: 4,
+};
+
+const label: React.CSSProperties = {
+  fontSize: 11,
+  fontWeight: 600,
+  textTransform: 'uppercase',
+  letterSpacing: '0.04em',
+  color: colors.textMuted,
+};
+
+const input: React.CSSProperties = {
+  padding: '7px 9px',
+  border: `1.5px solid ${colors.border}`,
+  borderRadius: radius.sm,
+  fontSize: 14,
+  outline: 'none',
+  width: '100%',
+  boxSizing: 'border-box',
+  background: colors.surface,
+};
+
+const saveBtn: React.CSSProperties = {
+  background: colors.primary,
+  color: '#fff',
+  border: 'none',
+  padding: '10px 16px',
+  borderRadius: radius.md,
+  cursor: 'pointer',
+  fontWeight: 600,
+  fontSize: 14,
+  width: '100%',
+};
+
+const resetBtn: React.CSSProperties = {
+  background: colors.surfaceMuted,
+  color: colors.text,
+  border: `1px solid ${colors.border}`,
+  padding: '7px 12px',
+  borderRadius: radius.md,
+  cursor: 'pointer',
+  fontWeight: 600,
+  fontSize: 13,
+  whiteSpace: 'nowrap',
 };

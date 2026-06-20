@@ -1,6 +1,5 @@
-import React, { useRef, useState, useEffect, useCallback } from 'react';
+import React, { useState } from 'react';
 import { Item } from '../../../shared/types';
-import { drawItemGeneric } from '../../graphics/render';
 import { updateItem, createItem, deleteItem } from '../../io/network';
 import { chatResultMsg } from '../ChatPanel';
 import { AsyncSelect } from '../common/Select/AsyncSelect';
@@ -23,14 +22,13 @@ export const ItemEditor: React.FC<ItemEditorProps> = ({
   const [sprite, setSprite] = useState(0);
   const [desc, setDesc] = useState('');
   const [type, setType] = useState<Item['type']>('weapon');
-  const canvasRef = useRef<HTMLCanvasElement>(null);
 
   const reset = () => {
     setSelectedId('');
     setName('');
     setSprite(0);
     setDesc('');
-    setType('helmet');
+    setType('weapon');
   };
 
   const selectItem = (id: number) => {
@@ -69,131 +67,180 @@ export const ItemEditor: React.FC<ItemEditorProps> = ({
     { value: 'gloves', label: 'Gloves' },
     { value: 'boots', label: 'Boots' },
     { value: 'consumable', label: 'Consumable' },
+    { value: 'money', label: 'Money' },
   ];
 
   return (
-    <div style={styles.group}>
-      <h3 style={styles.h3}>Item Editor</h3>
-      <label style={styles.label}>Selecione Item</label>
-      <AsyncSelect<Item['id']>
-        loadOptions={loadItems}
-        value={selectedId ? Number(selectedId) : 0}
-        onChange={selectItem}
-      />
-      <label style={styles.label}>Name</label>
-      <input
-        style={styles.input}
-        value={name}
-        onChange={(e) => setName(e.target.value)}
-        placeholder="Name"
-      />
-      <label style={styles.label}>Sprite ID</label>
-      <input
-        style={styles.input}
-        type="number"
-        value={sprite}
-        onChange={(e) => setSprite(+e.target.value)}
-        placeholder="Sprite ID"
-      />
-      <label style={styles.label}>Preview</label>
-      <ItemIcon
-        spriteId={sprite}
-        style={{
-          border: '1px solid #ccc',
-          marginBottom: 8,
-          width: 64,
-          height: 64,
-        }}
-      />
-      <label style={styles.label}>Description</label>
-      <input
-        style={styles.input}
-        value={desc}
-        onChange={(e) => setDesc(e.target.value)}
-        placeholder="Description"
-      />
-      <label style={styles.label}>Type</label>
-      <AsyncSelect
-        loadOptions={async () => typeOptions}
-        value={type}
-        onChange={(v) => setType(v as Item['type'])}
-      />
-      <div style={styles.actions}>
-        <button style={styles.btn} onClick={saveItem}>
-          Save Item
+    <div style={container}>
+      <div style={field}>
+        <label style={label}>Item</label>
+        <div style={{ display: 'flex', gap: 8 }}>
+          <div style={{ flex: 1 }}>
+            <AsyncSelect<Item['id']>
+              loadOptions={loadItems}
+              value={selectedId ? Number(selectedId) : 0}
+              onChange={selectItem}
+            />
+          </div>
+          {selectedId && (
+            <button style={resetBtn} onClick={reset}>
+              New
+            </button>
+          )}
+        </div>
+      </div>
+
+      <div style={cols}>
+        <div style={leftCol}>
+          <ItemIcon spriteId={sprite} style={previewIcon} />
+          <div style={field}>
+            <label style={label}>Sprite ID</label>
+            <input
+              style={input}
+              type="number"
+              value={sprite}
+              onChange={(e) => setSprite(+e.target.value)}
+              placeholder="0"
+            />
+          </div>
+        </div>
+
+        <div style={rightCol}>
+          <div style={field}>
+            <label style={label}>Name</label>
+            <input
+              style={input}
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder="Item name"
+            />
+          </div>
+          <div style={field}>
+            <label style={label}>Type</label>
+            <AsyncSelect
+              loadOptions={async () => typeOptions}
+              value={type}
+              onChange={(v) => setType(v as Item['type'])}
+            />
+          </div>
+          <div style={field}>
+            <label style={label}>Description</label>
+            <input
+              style={input}
+              value={desc}
+              onChange={(e) => setDesc(e.target.value)}
+              placeholder="Optional description"
+            />
+          </div>
+        </div>
+      </div>
+
+      <div style={actions}>
+        <button style={saveBtn} onClick={saveItem}>
+          {selectedId ? 'Save Item' : 'Create Item'}
         </button>
-        <button
-          style={{ ...styles.btn, ...styles.btnDanger }}
-          onClick={removeItem}
-        >
-          Delete Item
-        </button>
+        {selectedId && (
+          <button style={deleteBtn} onClick={removeItem}>
+            Delete
+          </button>
+        )}
       </div>
     </div>
   );
 };
 
-const styles = {
-  group: {
-    background: '#f9f9f9',
-    borderRadius: 12,
-    padding: '18px 15px',
-    display: 'flex' as const,
-    flexDirection: 'column' as const,
-    gap: 12,
-    border: '1px solid #e9fbe9',
-  },
-  h3: {
-    margin: 0,
-    marginBottom: 5,
-    color: '#333',
-    fontWeight: 700,
-    fontSize: '1rem',
-    textAlign: 'left' as const,
-  },
-  label: {
-    fontWeight: 600,
-    color: '#218c49',
-    fontSize: 14,
-    marginBottom: 2,
-    display: 'block' as const,
-  },
-  input: {
-    width: '100%',
-    padding: '9px 10px',
-    border: '1.5px solid #a0e0a0',
-    borderRadius: 6,
-    outline: 'none',
-    fontSize: 14,
-    background: '#fff',
-    marginBottom: 5,
-    transition: 'border 0.16s, background 0.16s',
-  },
-  canvas: {
-    border: '1px solid #ccc',
-    marginBottom: 8,
-    height: '64px',
-    width: '64px',
-  },
-  actions: {
-    display: 'flex' as const,
-    gap: 10,
-    marginTop: 5,
-  },
-  btn: {
-    background: colors.primary,
-    color: '#fff',
-    border: 'none',
-    padding: '9px 16px',
-    borderRadius: radius.md,
-    cursor: 'pointer',
-    fontWeight: 600,
-    fontSize: 14,
-    transition: 'background 0.2s',
-    flexGrow: 1,
-    textAlign: 'center' as const,
-  },
-  btnDanger: {
-    background: colors.danger,
-  },
+const container: React.CSSProperties = {
+  display: 'flex',
+  flexDirection: 'column',
+  gap: 14,
+};
+
+const cols: React.CSSProperties = {
+  display: 'grid',
+  gridTemplateColumns: '90px 1fr',
+  gap: 14,
+};
+
+const leftCol: React.CSSProperties = {
+  display: 'flex',
+  flexDirection: 'column',
+  gap: 8,
+  alignItems: 'center',
+};
+
+const rightCol: React.CSSProperties = {
+  display: 'flex',
+  flexDirection: 'column',
+  gap: 10,
+};
+
+const previewIcon: React.CSSProperties = {
+  width: 64,
+  height: 64,
+  border: `1px solid ${colors.border}`,
+  borderRadius: radius.sm,
+  background: colors.surfaceMuted,
+  flexShrink: 0,
+};
+
+const field: React.CSSProperties = {
+  display: 'flex',
+  flexDirection: 'column',
+  gap: 4,
+};
+
+const label: React.CSSProperties = {
+  fontSize: 11,
+  fontWeight: 600,
+  textTransform: 'uppercase',
+  letterSpacing: '0.04em',
+  color: colors.textMuted,
+};
+
+const input: React.CSSProperties = {
+  padding: '7px 9px',
+  border: `1.5px solid ${colors.border}`,
+  borderRadius: radius.sm,
+  fontSize: 14,
+  outline: 'none',
+  width: '100%',
+  boxSizing: 'border-box',
+  background: colors.surface,
+};
+
+const actions: React.CSSProperties = { display: 'flex', gap: 8 };
+
+const saveBtn: React.CSSProperties = {
+  flex: 1,
+  background: colors.primary,
+  color: '#fff',
+  border: 'none',
+  padding: '9px 16px',
+  borderRadius: radius.md,
+  cursor: 'pointer',
+  fontWeight: 600,
+  fontSize: 14,
+};
+
+const deleteBtn: React.CSSProperties = {
+  background: colors.danger,
+  color: '#fff',
+  border: 'none',
+  padding: '9px 14px',
+  borderRadius: radius.md,
+  cursor: 'pointer',
+  fontWeight: 600,
+  fontSize: 14,
+};
+
+const resetBtn: React.CSSProperties = {
+  background: colors.surfaceMuted,
+  color: colors.text,
+  border: `1px solid ${colors.border}`,
+  padding: '7px 12px',
+  borderRadius: radius.md,
+  cursor: 'pointer',
+  fontWeight: 600,
+  fontSize: 13,
+  whiteSpace: 'nowrap',
 };
