@@ -6,6 +6,9 @@ import {
   CombatTarget,
 } from '../../shared/types.js';
 import { getMap, updatePlayer } from '../gameData.js';
+import { getTick } from '../sim/clock.js';
+import { randomChance } from '../sim/rng.js';
+import { tryConsumeAttackCooldown } from './combat/attackCooldown.js';
 import { handleChatAction } from './chatService.js';
 import { getItemById } from './inventoryService.js';
 import { respawnNpc } from './npcService.js';
@@ -75,6 +78,8 @@ const findAttackTarget = (
 export const handleAttack = async (attacker: PlayerServer): Promise<void> => {
   if (!attacker) return;
 
+  if (!tryConsumeAttackCooldown(attacker.id, getTick())) return;
+
   const map = getMap(attacker.mapId);
   if (!map) return;
 
@@ -119,8 +124,7 @@ export const handleAttack = async (attacker: PlayerServer): Promise<void> => {
       const droppedItems: DroppedItem[] = [];
 
       for (const drop of attackTarget.itemsToDrop ?? []) {
-        const roll = Math.random() * 100;
-        if (roll <= drop.chance) {
+        if (randomChance(drop.chance)) {
           const item = getItemById(drop.itemId);
           if (!item) {
             console.warn(`[drop] Item not found: ${drop.itemId}`);

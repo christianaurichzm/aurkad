@@ -20,10 +20,15 @@ import {
   getMap,
   updateMapById,
   getRuntimeState,
-  updateMap,
-  players,
   pressedKeysMap,
 } from '../gameData.js';
+import {
+  getAllPlayers,
+  getPlayerById,
+  unregisterPlayer,
+} from '../sim/world.js';
+import { clearPlayerDirty } from '../persistence/dirtyPlayers.js';
+import { clearAttackCooldown } from './combat/attackCooldown.js';
 import { resetPlayerNetState } from '../net/snapshot.js';
 import { emitGameEvent } from '../engine/eventBus.js';
 import { handleAttack } from './combatService.js';
@@ -135,7 +140,7 @@ export const processMovementIntent = () => {
 
 export const processMovementCompletion = (): void => {
   const tick = getTick();
-  Object.values(players).forEach((player) => {
+  getAllPlayers().forEach((player) => {
     const durationTicks = player.moveDurationTicks ?? msToTicks(MOVEMENT_DURATION);
 
     if (
@@ -255,19 +260,15 @@ export const disconnectPlayer = async (username?: string) => {
     return;
   }
 
-  const map = getMap(player.mapId);
-  if (map?.players?.[player.id]) {
-    delete map.players[player.id];
-    updateMap(map);
-  }
-
   if (username) {
     pressedKeysMap.delete(username);
   }
 
   await persistPlayerSessionState(player);
-  if (players[player.id]) {
-    delete players[player.id];
+  clearPlayerDirty(player.id);
+  clearAttackCooldown(player.id);
+  if (getPlayerById(player.id)) {
+    unregisterPlayer(player.id);
     resetPlayerNetState(player.name);
   }
 };
