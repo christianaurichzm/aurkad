@@ -1,7 +1,9 @@
 import { RuntimeNpc, Player, PlayerPublic } from '../../shared/types';
+import { TILE_SIZE } from '../../shared/constants';
 import { playerCtx } from './canvas';
 import { playerNameColorRecord } from '../../shared/mappings';
 import { useUIStore } from '../stores/uiStore';
+import { renderSpeechBubble } from './speechBubble';
 
 export const renderHUD = (player: Player | PlayerPublic) => {
   const { name, level, position, access } = player;
@@ -14,6 +16,8 @@ export const renderHUD = (player: Player | PlayerPublic) => {
 
   playerCtx.strokeText(text, x, y);
   playerCtx.fillText(text, x, y);
+
+  renderSpeechBubble(playerCtx, name, x + TILE_SIZE / 2, y - 2);
 };
 
 export function getHealthBarInfo(current: number, max: number) {

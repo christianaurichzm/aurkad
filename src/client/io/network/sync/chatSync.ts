@@ -1,6 +1,7 @@
 import { ChatMessagePayload } from '../../../../shared/types';
 import type { WsClientMessage } from '../../../../shared/wsProtocol';
 import { useUIStore } from '../../../stores/uiStore';
+import { setPlayerSpeech } from '../../../graphics/speechBubble';
 
 const chatQueue: ChatMessagePayload[] = [];
 let socketSender: ((action: WsClientMessage) => void) | null = null;
@@ -18,6 +19,9 @@ export function updateChat(): void {
     const message = chatQueue.shift();
     if (message) {
       useUIStore.getState().addChatMessage(message);
+      if (message.scope === 'map' && message.username) {
+        setPlayerSpeech(message.username, message.message);
+      }
     }
   }
 }

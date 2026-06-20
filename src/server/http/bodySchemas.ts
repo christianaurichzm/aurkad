@@ -31,6 +31,7 @@ const TileSchema = z.object({
   item: z.number().optional(),
   shop: z.string().optional(),
   avoidNpc: z.boolean().optional(),
+  fringe: z.boolean().optional(),
 });
 
 const NpcItemDropSchema = z.object({

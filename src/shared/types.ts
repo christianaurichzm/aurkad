@@ -266,6 +266,7 @@ export interface Tile {
   item?: Item['id'];
   shop?: Shop['id'];
   avoidNpc?: boolean;
+  fringe?: boolean;
 }
 
 export interface DroppedItem {
@@ -370,7 +371,8 @@ export type TileEditMode =
   | 'npc'
   | 'item'
   | 'shop'
-  | 'avoidNpc';
+  | 'avoidNpc'
+  | 'fringe';
 
 export interface HttpRequestOptions {
   method: 'GET' | 'POST' | 'PUT' | 'DELETE';

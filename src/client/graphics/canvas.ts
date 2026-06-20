@@ -9,6 +9,9 @@ export let playerCtx: CanvasRenderingContext2D;
 export let itemCanvas: HTMLCanvasElement;
 export let itemCtx: CanvasRenderingContext2D;
 
+export let fringeCanvas: HTMLCanvasElement;
+export let fringeCtx: CanvasRenderingContext2D;
+
 export const initGameCanvas = () => {
   foregroundCanvas = getEl<HTMLCanvasElement>('foregroundCanvas')!;
   if (!foregroundCanvas) throw new Error('foregroundCanvas element not found');
@@ -19,7 +22,11 @@ export const initGameCanvas = () => {
   itemCanvas = getEl<HTMLCanvasElement>('itemCanvas')!;
   if (!itemCanvas) throw new Error('itemCanvas element not found');
 
+  fringeCanvas = getEl<HTMLCanvasElement>('fringeCanvas')!;
+  if (!fringeCanvas) throw new Error('fringeCanvas element not found');
+
   foregroundCtx = foregroundCanvas.getContext('2d')!;
   playerCtx = playerCanvas.getContext('2d')!;
   itemCtx = itemCanvas.getContext('2d')!;
+  fringeCtx = fringeCanvas.getContext('2d')!;
 };

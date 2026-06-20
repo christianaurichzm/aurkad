@@ -16,6 +16,7 @@
   --z-canvas-items: 2;
   --z-canvas-grid: 3;
   --z-canvas-actors: 4;
+  --z-canvas-fringe: 5;
   --z-game-overlay: 50;
   --z-hud: 100;
   --z-panel: 150;
@@ -62,7 +63,8 @@ body {
 #foregroundCanvas,
 #itemCanvas,
 #gridCanvas,
-#playerCanvas {
+#playerCanvas,
+#fringeCanvas {
   width: 1280px;
   height: 896px;
 }
@@ -85,6 +87,11 @@ body {
 }
 #playerCanvas {
   z-index: var(--z-canvas-actors);
+  pointer-events: none;
+  background: transparent;
+}
+#fringeCanvas {
+  z-index: var(--z-canvas-fringe);
   pointer-events: none;
   background: transparent;
 }

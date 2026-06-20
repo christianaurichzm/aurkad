@@ -8,6 +8,7 @@ import {
   toggleShop,
   setMapEdited,
   toggleAvoidNpc,
+  toggleFringe,
 } from '../../graphics/tileset';
 import { useUIStore } from '../../stores/uiStore';
 import { fetchNpcs, fetchItems, fetchShops, fetchMap } from '../../io/network';
@@ -54,6 +55,7 @@ const modes: TileEditMode[] = [
   'item',
   'shop',
   'avoidNpc',
+  'fringe',
 ];
 const modeLabels: Record<TileEditMode, string> = {
   blocking: 'Block',
@@ -62,6 +64,7 @@ const modeLabels: Record<TileEditMode, string> = {
   item: 'Item',
   shop: 'Shop',
   avoidNpc: 'Avoid',
+  fringe: 'Fringe',
 };
 
 const TilesetModeControlsComponent: React.FC = () => {
@@ -143,6 +146,7 @@ const TilesetModeControlsComponent: React.FC = () => {
       item: toggleItem,
       shop: toggleShop,
       avoidNpc: toggleAvoidNpc,
+      fringe: toggleFringe,
     };
     toggleMap[mode]?.();
   };

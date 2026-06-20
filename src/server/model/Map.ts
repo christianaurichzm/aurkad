@@ -31,6 +31,8 @@ const TileSchema = new mongoose.Schema(
     npcSpawn: String,
     item: Number,
     shop: String,
+    avoidNpc: Boolean,
+    fringe: Boolean,
   },
   { _id: false },
 );

@@ -14,8 +14,10 @@ import {
   itemCanvas,
   itemCtx,
   playerCtx,
+  fringeCanvas,
+  fringeCtx,
 } from './canvas';
-import { renderMap } from './tileset';
+import { renderMap, renderMapFringe } from './tileset';
 import {
   renderPlayers,
   renderNpcs,
@@ -23,6 +25,7 @@ import {
   renderEntityDirect,
   animate,
 } from './entityRendering';
+import { renderFloatingTexts } from './floatingText';
 import { useUIStore } from '../stores/uiStore';
 
 let lastDrawnTiles: Tile[][] | null = null;
@@ -34,6 +37,8 @@ export const render = () => {
 
   if (map) {
     playerCtx.clearRect(0, 0, foregroundCanvas.width, foregroundCanvas.height);
+    fringeCtx.clearRect(0, 0, fringeCanvas.width, fringeCanvas.height);
+
     if (!mapEdited) {
       if (map.tiles !== lastDrawnTiles) {
         foregroundCtx.clearRect(
@@ -64,5 +69,8 @@ export const render = () => {
     }
 
     renderNpcs(map.npcs);
+
+    renderMapFringe(map.tiles);
+    renderFloatingTexts(fringeCtx);
   }
 };

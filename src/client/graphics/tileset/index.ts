@@ -12,7 +12,7 @@ import { TILE_SIZE } from '../../../shared/constants';
 import { MapType, Tile, TileEditMode } from '../../../shared/types';
 import { tileset } from '../../io/assets';
 import { saveMap } from '../../io/network';
-import { foregroundCanvas, foregroundCtx } from '../canvas';
+import { foregroundCanvas, foregroundCtx, fringeCtx } from '../canvas';
 import { useUIStore } from '../../stores/uiStore';
 
 type ModeConfig = {
@@ -141,6 +141,13 @@ const modes: Record<TileEditMode, ModeConfig> = {
       renderMap(map);
     },
   },
+  fringe: {
+    place: (row: number, col: number) => {
+      map[row][col].fringe = !map[row][col].fringe;
+      setMapEdited(true);
+      renderMap(map);
+    },
+  },
 };
 
 const toggleMode = (mode: TileEditMode) => {
@@ -225,10 +232,10 @@ const placeSelectedTile = (row: number, col: number) => {
         const tileIndex =
           (startY + j) * Math.floor(tilesetCanvas.width / TILE_SIZE) +
           (startX + i);
+        const prev = map[row + j][col + i];
         map[row + j][col + i] = {
+          ...prev,
           tileIndex,
-          blocked: map[row + j][col + i].blocked,
-          warp: map[row + j][col + i].warp,
         };
         drawTileOnCanvas(col + i, row + j, tileIndex);
       }
@@ -274,6 +281,7 @@ export const toggleNpc = () => toggleMode('npc');
 export const toggleItem = () => toggleMode('item');
 export const toggleShop = () => toggleMode('shop');
 export const toggleAvoidNpc = () => toggleMode('avoidNpc');
+export const toggleFringe = () => toggleMode('fringe');
 
 const setupEventListeners = () => {
   addEvent('tilesetCanvas', 'mousedown', startSelecting);
@@ -367,6 +375,7 @@ const drawMarkers = (tiles: Tile[][]) => {
       if (tile.item) drawMarker(colIndex, rowIndex, 'I', 'orange');
       if (tile.shop) drawMarker(colIndex, rowIndex, 'S', 'green');
       if (tile.avoidNpc) drawMarker(colIndex, rowIndex, 'A', 'purple');
+      if (tile.fringe) drawMarker(colIndex, rowIndex, 'F', 'cyan');
     });
   });
 };
@@ -414,4 +423,28 @@ export const toggleTilesetEditor = (shouldShow: boolean) => {
 const updateEditorMap = (tiles: Tile[][]) => {
   map = tiles.map((row) => row.map((tile) => ({ ...tile })));
   originalMap = tiles.map((row) => row.map((tile) => ({ ...tile })));
+};
+
+export const renderMapFringe = (tiles: Tile[][]) => {
+  if (!fringeCtx || !tiles) return;
+  const tilesPerRow = tileset.width / TILE_SIZE;
+  tiles.forEach((row, rowIndex) => {
+    row.forEach((tile, colIndex) => {
+      if (tile.fringe && tile.tileIndex !== -1) {
+        const tileX = (tile.tileIndex % tilesPerRow) * TILE_SIZE;
+        const tileY = Math.floor(tile.tileIndex / tilesPerRow) * TILE_SIZE;
+        fringeCtx.drawImage(
+          tileset,
+          tileX,
+          tileY,
+          TILE_SIZE,
+          TILE_SIZE,
+          colIndex * TILE_SIZE,
+          rowIndex * TILE_SIZE,
+          TILE_SIZE,
+          TILE_SIZE,
+        );
+      }
+    });
+  });
 };
