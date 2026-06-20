@@ -1,6 +1,7 @@
 import { randomUUID } from 'crypto';
 import type { Request, Response, NextFunction } from 'express';
 import { logger } from '../logger.js';
+import { reqCtx } from '../context.js';
 
 export function requestLoggerMiddleware(
   req: Request,
@@ -11,15 +12,15 @@ export function requestLoggerMiddleware(
   const start = Date.now();
 
   res.setHeader('X-Request-Id', requestId);
-  res.locals['requestId'] = requestId;
 
-  res.on('finish', () => {
-    logger.info(`${req.method} ${req.path}`, {
-      requestId,
-      status: res.statusCode,
-      ms: Date.now() - start,
+  reqCtx.run({ requestId, username: req.session?.username }, () => {
+    res.on('finish', () => {
+      logger.info(`${req.method} ${req.path}`, {
+        status: res.statusCode,
+        ms: Date.now() - start,
+      });
     });
-  });
 
-  next();
+    next();
+  });
 }

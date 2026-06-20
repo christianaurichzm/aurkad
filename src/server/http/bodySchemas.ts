@@ -1,6 +1,11 @@
 import { z } from 'zod';
 import type { Response } from 'express';
-import { Access } from '../../shared/types.js';
+import {
+  Access,
+  type ItemType,
+  type ModifiablePlayerAttribute,
+  type EffectType,
+} from '../../shared/types.js';
 import { EQUIPMENT_SLOTS } from '../../shared/constants.js';
 
 const PositionSchema = z.object({ x: z.number(), y: z.number() });
@@ -8,10 +13,10 @@ const AccessSchema = z.nativeEnum(Access);
 const MapTypeSchema = z.enum(['pvp', 'normal']);
 const NpcBehaviorSchema = z.enum(['aggressive', 'hostile', 'neutral']);
 
-const ItemTypeSchema = z.enum([...EQUIPMENT_SLOTS, 'consumable', 'money'] as [
-  string,
-  ...string[],
-]);
+const ITEM_TYPE_TUPLE = [...EQUIPMENT_SLOTS, 'consumable', 'money'] as const;
+const ItemTypeSchema = z.enum(
+  ITEM_TYPE_TUPLE as unknown as [ItemType, ...ItemType[]],
+);
 
 const WarpSchema = z.object({
   to: z.string().min(1),
@@ -33,18 +38,26 @@ const NpcItemDropSchema = z.object({
   chance: z.number().min(0).max(1),
 });
 
+const MODIFIABLE_ATTRS = [
+  'health',
+  'maxHealth',
+  'attack',
+  'speed',
+  'attackRange',
+  'experience',
+  'experienceToNextLevel',
+  'level',
+] as const;
+const EFFECT_TYPES = ['add', 'multiply'] as const;
+
 const EffectSchema = z.object({
-  attribute: z.enum([
-    'health',
-    'maxHealth',
-    'attack',
-    'speed',
-    'attackRange',
-    'experience',
-    'experienceToNextLevel',
-    'level',
-  ] as [string, ...string[]]),
-  type: z.enum(['add', 'multiply']),
+  attribute: z.enum(
+    MODIFIABLE_ATTRS as unknown as [
+      ModifiablePlayerAttribute,
+      ...ModifiablePlayerAttribute[],
+    ],
+  ),
+  type: z.enum(EFFECT_TYPES as unknown as [EffectType, ...EffectType[]]),
   value: z.number(),
 });
 

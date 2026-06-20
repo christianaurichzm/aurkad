@@ -42,7 +42,7 @@ function rebuildSpatialIndexes() {
       }
     }
   } catch (err) {
-    logger.error('[spatial] Failed to rebuild quadtree', { err });
+    logger.error('[spatial] Failed to rebuild quadtree', { tick: getTick(), err });
   }
 }
 
@@ -63,11 +63,11 @@ function runTickSystems() {
       const result = system.run();
       if (result instanceof Promise) {
         result.catch((e) => {
-          logger.error(`[tick] system failed: ${system.name}`, { err: e });
+          logger.error(`[tick] system failed: ${system.name}`, { tick: getTick(), err: e });
         });
       }
     } catch (e) {
-      logger.error(`[tick] system failed: ${system.name}`, { err: e });
+      logger.error(`[tick] system failed: ${system.name}`, { tick: getTick(), err: e });
     }
   }
 }

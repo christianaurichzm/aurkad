@@ -1,12 +1,22 @@
+import { reqCtx } from './context.js';
+
 type Level = 'debug' | 'info' | 'warn' | 'error';
 type LogCtx = Record<string, unknown>;
 
 const isDev = process.env.NODE_ENV !== 'production';
 
 function log(level: Level, msg: string, ctx?: LogCtx): void {
+  const stored = reqCtx.getStore();
+  const enriched: LogCtx = {
+    ...(stored?.requestId && { requestId: stored.requestId }),
+    ...(stored?.username && { username: stored.username }),
+    ...ctx,
+  };
+  const hasCtx = Object.keys(enriched).length > 0;
+
   const line = isDev
-    ? `[${level.toUpperCase()}] ${msg}${ctx ? ' ' + JSON.stringify(ctx) : ''}`
-    : JSON.stringify({ ts: new Date().toISOString(), level, msg, ...ctx });
+    ? `[${level.toUpperCase()}] ${msg}${hasCtx ? ' ' + JSON.stringify(enriched) : ''}`
+    : JSON.stringify({ ts: new Date().toISOString(), level, msg, ...enriched });
 
   if (level === 'error' || level === 'warn') {
     process.stderr.write(line + '\n');

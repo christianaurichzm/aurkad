@@ -9,7 +9,9 @@ function isClientChatAction(
   return 'username' in action;
 }
 
-function isServerChatAction(action: any): action is ServerChatAction {
+function isServerChatAction(
+  action: ClientChatAction | ServerChatAction,
+): action is ServerChatAction {
   return !('username' in action);
 }
 

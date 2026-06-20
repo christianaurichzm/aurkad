@@ -16,16 +16,16 @@ export function getItemById(id: number): Item | null {
   return items.get(id) ?? null;
 }
 
-export async function createOrUpdateItem(item: any): Promise<void> {
+export async function createOrUpdateItem(
+  item: Omit<Item, 'id'> & { id?: number },
+): Promise<void> {
   if (!item.id) {
     item.id = await getNextItemId();
   }
 
-  await ItemModel.findOneAndUpdate({ id: item.id }, item, {
-    upsert: true,
-  });
-
-  items.set(item.id, { ...item, id: item.id });
+  const id = item.id;
+  await ItemModel.findOneAndUpdate({ id }, item, { upsert: true });
+  items.set(id, { ...item, id } as Item);
 }
 
 export async function deleteItem(id: number): Promise<void> {

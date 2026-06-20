@@ -5,7 +5,10 @@ import {
   MapStateServer,
   PlayerServer,
 } from '../../shared/types.js';
-import type { FullGameStatePayload } from '../../shared/wsProtocol.js';
+import type {
+  FullGameStatePayload,
+  GameStateDeltaPayload,
+} from '../../shared/wsProtocol.js';
 import { config } from '../config.js';
 import { logger } from '../logger.js';
 import { getMap } from '../gameData.js';
@@ -88,7 +91,7 @@ function sendDynamicSnapshot(
   });
 
   const lastState = lastSentStates.get(player.name);
-  let message: { type: string; payload: any } | null = null;
+  let message: { type: string; payload: FullGameStatePayload | GameStateDeltaPayload } | null = null;
 
   if (!lastState) {
     message = { type: 'fullGameState', payload: currentState };
