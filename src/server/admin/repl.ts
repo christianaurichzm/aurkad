@@ -4,6 +4,7 @@ import { banPlayer, unbanPlayer, getBan } from '../services/banService.js';
 import { broadcastChat } from '../net/index.js';
 import { getMetrics } from '../metrics.js';
 import { getChatLog } from '../services/chatService.js';
+import { serverState, type ServerMode } from '../serverState.js';
 
 const PROMPT = 'admin> ';
 
@@ -31,6 +32,8 @@ Commands:
   broadcast <message>  send global announcement to all players
   chat [n]             show last n chat messages (default 20)
   stats                show server metrics
+  mode [normal|maintenance|gm_only]  get or set server access mode
+  motd [message|clear]               get, set or clear the MOTD
   help                 show this message
   exit | quit          close admin console (server keeps running)
 `.trim());
@@ -150,6 +153,43 @@ Commands:
       out(
         `Tick: avg ${m.tick.avgMs}ms  queue: ${m.tick.avgQueueSize}  (${m.tick.samples} samples)`,
       );
+      break;
+    }
+
+    case 'mode': {
+      const newMode = args[0] as ServerMode | undefined;
+      if (!newMode) {
+        out(`Server mode: ${serverState.mode}`);
+        break;
+      }
+      if (newMode !== 'normal' && newMode !== 'maintenance' && newMode !== 'gm_only') {
+        out('Usage: mode [normal|maintenance|gm_only]');
+        break;
+      }
+      serverState.mode = newMode;
+      out(`Server mode set to: ${newMode}`);
+      if (newMode !== 'normal') {
+        const msg =
+          newMode === 'maintenance'
+            ? 'Server entering maintenance mode. New logins are restricted.'
+            : 'Server is now GM-only. New logins are restricted.';
+        broadcastChat({ type: 'chat', scope: 'global', message: msg, username: '[SERVER]' });
+      }
+      break;
+    }
+
+    case 'motd': {
+      if (args.length === 0) {
+        out(serverState.motd ? `MOTD: ${serverState.motd}` : 'No MOTD set.');
+        break;
+      }
+      if (args[0] === 'clear') {
+        serverState.motd = '';
+        out('MOTD cleared.');
+        break;
+      }
+      serverState.motd = args.join(' ');
+      out(`MOTD set: ${serverState.motd}`);
       break;
     }
 

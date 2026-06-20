@@ -22,6 +22,9 @@ import {
 import { getBan, unbanPlayer } from '../../services/banService.js';
 import { config } from '../../config.js';
 import { toMapStateClient } from '../../net/serialization.js';
+import { serverState } from '../../serverState.js';
+import { playersWsMap } from '../../net/connections.js';
+import { WebSocket } from 'ws';
 
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
@@ -65,8 +68,28 @@ export function createAuthRouter() {
       }
 
       const { password: _pw, ...runtimePlayer } = playerDoc;
-
       const player = enrichPlayer(runtimePlayer);
+
+      if (
+        serverState.mode === 'maintenance' &&
+        player.access < Access.ADMIN
+      ) {
+        return res
+          .status(503)
+          .json({ message: 'Server is under maintenance. Please try again later.' });
+      }
+      if (serverState.mode === 'gm_only' && player.access < Access.MOD) {
+        return res
+          .status(503)
+          .json({ message: 'Server is currently restricted to GMs only.' });
+      }
+
+      const existingWs = playersWsMap.get(username);
+      if (existingWs?.readyState === WebSocket.OPEN) {
+        return res
+          .status(409)
+          .json({ message: 'This account is already logged in from another session.' });
+      }
 
       req.session.username = username;
       req.session.accessLevel = player.access ?? Access.USER;
@@ -90,9 +113,12 @@ export function createAuthRouter() {
           logger.error('Session save failed', { err });
           return res.status(500).send('Failed to save session');
         }
-        res
-          .status(200)
-          .json({ player, map: mapClient, assetKey: req.session.assetKey });
+        res.status(200).json({
+          player,
+          map: mapClient,
+          assetKey: req.session.assetKey,
+          ...(serverState.motd ? { motd: serverState.motd } : {}),
+        });
       });
     },
   );

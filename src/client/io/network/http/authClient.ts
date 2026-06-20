@@ -6,6 +6,7 @@ export const login = async (username: string, password: string) => {
     player: Player;
     map: MapStateClient;
     assetKey: string;
+    motd?: string;
   }>('/login', {
     method: 'POST',
     body: { username, password },

@@ -3,6 +3,7 @@ import { login } from '../io/network';
 import { setAssetKey } from '../io/assets';
 import { MapStateClient, Player } from '../../shared/types';
 import { useGame } from '../context/GameContext';
+import { useUIStore } from '../stores/uiStore';
 import { colors, radius, zIndex } from '../theme';
 
 export const Login = ({ onSwitch }: { onSwitch: () => void }) => {
@@ -26,6 +27,13 @@ export const Login = ({ onSwitch }: { onSwitch: () => void }) => {
       if (data?.player && data?.map && data?.assetKey) {
         setAssetKey(data.assetKey);
         loginSuccess(data as { map: MapStateClient; player: Player });
+        if (data.motd) {
+          useUIStore.getState().addChatMessage({
+            type: 'chat',
+            scope: 'player',
+            message: `📢 ${data.motd}`,
+          });
+        }
       } else {
         setError('Invalid response from server');
       }
