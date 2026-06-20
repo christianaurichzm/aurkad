@@ -1,7 +1,6 @@
 import { RequestHandler } from 'express';
 import WebSocket, { WebSocketServer } from 'ws';
 import { Server } from 'http';
-import { Key } from '../../shared/types.js';
 import {
   ActionQueueItem,
   ClientChatAction,
@@ -10,6 +9,7 @@ import {
   ServerAction,
   ServerActionType,
 } from '../engine/actions.js';
+import { ClientMessageSchema } from './clientMessage.js';
 import { config } from '../config.js';
 import type { ExtendedRequest } from '../http/session.js';
 import { handleChatAction } from '../services/chatService.js';
@@ -251,102 +251,19 @@ export const startWebSocketServer = (
 
       ws.on('message', (message, isBinary) => {
         if (isBinary) return;
+        if (isRateLimited(username)) return;
 
-        if (isRateLimited(username)) {
-          return;
-        }
-
-        let parsed: unknown;
+        let raw: unknown;
         try {
-          parsed = JSON.parse(message.toString());
+          raw = JSON.parse(Buffer.isBuffer(message) ? message.toString('utf8') : message.toString());
         } catch {
           return;
         }
 
-        if (!parsed || typeof parsed !== 'object') return;
+        const result = ClientMessageSchema.safeParse(raw);
+        if (!result.success) return;
 
-        const clientAction = parsed as Record<string, unknown>;
-        const type = clientAction.type;
-        if (typeof type !== 'string') return;
-
-        switch (type) {
-          case 'keyboard': {
-            const keyboardActionUnknown = clientAction.keyboardAction;
-            if (
-              !keyboardActionUnknown ||
-              typeof keyboardActionUnknown !== 'object'
-            ) {
-              return;
-            }
-
-            const keyboardAction = keyboardActionUnknown as Record<
-              string,
-              unknown
-            >;
-            const actionType = keyboardAction.type;
-            const key = keyboardAction.key;
-
-            if (
-              (actionType !== 'press' && actionType !== 'release') ||
-              typeof key !== 'string' ||
-              !Object.values(Key).includes(key as Key)
-            ) {
-              return;
-            }
-
-            const seq =
-              typeof clientAction.seq === 'number'
-                ? clientAction.seq
-                : undefined;
-            enqueueAction({
-              username,
-              type: 'keyboard',
-              keyboardAction: {
-                key: key as Key,
-                type: actionType,
-              },
-              seq,
-            });
-            break;
-          }
-
-          case 'item':
-            if (typeof clientAction.item !== 'number') {
-              return;
-            }
-            if (
-              clientAction.action !== 'use' &&
-              clientAction.action !== 'drop'
-            ) {
-              return;
-            }
-            enqueueAction({
-              username,
-              type: 'item',
-              item: clientAction.item,
-              action: clientAction.action,
-            });
-            break;
-
-          case 'chat':
-            if (typeof clientAction.message !== 'string') {
-              return;
-            }
-            if (
-              clientAction.scope !== 'player' &&
-              clientAction.scope !== 'map' &&
-              clientAction.scope !== 'global'
-            ) {
-              return;
-            }
-            enqueueAction({
-              username,
-              type: 'chat',
-              message: clientAction.message,
-              scope: clientAction.scope,
-            });
-            break;
-        }
+        enqueueAction({ username, ...result.data });
       });
 
       ws.on('close', () => {
