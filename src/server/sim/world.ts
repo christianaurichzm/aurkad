@@ -1,5 +1,6 @@
 import { MapStateServer, PlayerServer } from '../../shared/types.js';
 import { players, playersByName, runtimeState } from './state.js';
+import { logger } from '../logger.js';
 
 export function getPlayerById(id: string): PlayerServer | undefined {
   return players[id];
@@ -33,7 +34,7 @@ export function upsertOnCurrentMap(player: PlayerServer): void {
   if (map) {
     map.players[player.id] = player;
   } else {
-    console.warn('upsertOnCurrentMap: Map not found', player.mapId);
+    logger.warn('upsertOnCurrentMap: Map not found', { mapId: player.mapId });
   }
 }
 

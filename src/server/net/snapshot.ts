@@ -1,8 +1,13 @@
 import WebSocket from 'ws';
 import * as jsondiffpatch from 'jsondiffpatch';
-import { ChatMessagePayload, MapStateServer, PlayerServer } from '../../shared/types.js';
+import {
+  ChatMessagePayload,
+  MapStateServer,
+  PlayerServer,
+} from '../../shared/types.js';
 import type { FullGameStatePayload } from '../../shared/wsProtocol.js';
 import { config } from '../config.js';
+import { logger } from '../logger.js';
 import { getMap } from '../gameData.js';
 import { getGameState } from '../services/gameService.js';
 import { drainGameEvents } from '../engine/eventBus.js';
@@ -116,7 +121,10 @@ export function broadcastGameState() {
         sendPlayerStatsIfNeeded(player, ws);
         sendDynamicSnapshot(player, map, ws, interestRadiusPx);
       } catch (error) {
-        console.error(`Error broadcasting to ${player.name}:`, error);
+        logger.error('Error broadcasting to player', {
+          player: player.name,
+          err: error,
+        });
       }
     }
   }

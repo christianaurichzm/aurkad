@@ -1,8 +1,6 @@
-import {
-  ServerChatAction,
-  ChatMessagePayload,
-} from '../../shared/types.js';
+import { ServerChatAction, ChatMessagePayload } from '../../shared/types.js';
 import type { ClientChatAction } from '../engine/actions.js';
+import { logger } from '../logger.js';
 import { emitGameEvent } from '../engine/eventBus.js';
 
 function isClientChatAction(
@@ -38,7 +36,7 @@ export function handleChatAction(action: ClientChatAction | ServerChatAction) {
     } else if (isServerChatAction(action) && action.mapId) {
       emitGameEvent({ type: 'chatMapId', mapId: action.mapId, payload });
     } else {
-      console.warn('Map server message missing mapId.');
+      logger.warn('Map server message missing mapId');
     }
   }
 }

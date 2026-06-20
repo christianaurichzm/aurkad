@@ -1,4 +1,5 @@
 import mongoose from 'mongoose';
+import { logger } from './logger.js';
 import {
   createOrUpdateMap,
   insertNpcs,
@@ -10,13 +11,13 @@ import { MapStateServer } from '../shared/types.js';
 
 export async function connectToDatabase() {
   try {
-    console.log('[DB] Connecting...');
+    logger.info('[DB] Connecting...');
     await mongoose.connect(
       process.env.MONGO_URI || 'mongodb://localhost:27017/game',
     );
-    console.log('[DB] Connected successfully');
+    logger.info('[DB] Connected successfully');
   } catch (err) {
-    console.error('[DB] Connection failed:', err);
+    logger.error('[DB] Connection failed', { err });
     process.exit(1);
   }
 }
@@ -33,12 +34,22 @@ export async function loadInitialData() {
       });
 
       loadedMaps = await listMaps();
-      console.log('[DB] No maps found. Created default map.');
+      logger.info('[DB] No maps found. Created default map.');
     }
 
     const loadedItems = await listItems();
 
     for (const map of loadedMaps) {
+      if (!map.id || !map.name || !map.type || !map.tiles?.length) {
+        logger.warn('[DB] Skipping map with missing required fields', {
+          id: map.id,
+          name: map.name,
+          type: map.type,
+          hasTiles: !!map.tiles?.length,
+        });
+        continue;
+      }
+
       const runtimeMap = {
         ...map,
         players: {},
@@ -51,11 +62,19 @@ export async function loadInitialData() {
     }
 
     for (const item of loadedItems) {
+      if (item.id == null || !item.name || !item.type) {
+        logger.warn('[DB] Skipping item with missing required fields', {
+          id: item.id,
+          name: item.name,
+          type: item.type,
+        });
+        continue;
+      }
       items.set(item.id, item);
     }
 
-    console.log('Data successfully loaded from database into memory');
+    logger.info('Data successfully loaded from database into memory');
   } catch (error) {
-    console.error('Failed to load initial data:', error);
+    logger.error('Failed to load initial data', { err: error });
   }
 }

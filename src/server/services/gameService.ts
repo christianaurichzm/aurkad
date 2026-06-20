@@ -40,6 +40,7 @@ import {
   handlePlayerUpdates,
   persistPlayerSessionState,
 } from './playerService.js';
+import { logger } from '../logger.js';
 
 export const delay = (ms: number) =>
   new Promise((resolve) => setTimeout(resolve, ms));
@@ -141,7 +142,8 @@ export const processMovementIntent = () => {
 export const processMovementCompletion = (): void => {
   const tick = getTick();
   getAllPlayers().forEach((player) => {
-    const durationTicks = player.moveDurationTicks ?? msToTicks(MOVEMENT_DURATION);
+    const durationTicks =
+      player.moveDurationTicks ?? msToTicks(MOVEMENT_DURATION);
 
     if (
       player.moving &&
@@ -195,7 +197,7 @@ export const handleKeyAction = (action: ClientKeyboardAction) => {
         if (player.action !== CharacterAction.Attack) {
           player.action = CharacterAction.Attack;
           handleAttack(player).catch((e) => {
-            console.error('handleAttack failed:', e);
+            logger.error('handleAttack failed', { err: e });
           });
           updatePlayerMap(player.id, player);
         }
@@ -205,7 +207,7 @@ export const handleKeyAction = (action: ClientKeyboardAction) => {
             updatePlayerMap(player.id, player);
           })
           .catch((e) => {
-            console.error('pickUpItem failed:', e);
+            logger.error('pickUpItem failed', { err: e });
           });
       }
       break;

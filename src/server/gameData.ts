@@ -6,6 +6,7 @@ import {
   PlayerServer,
   Tile,
 } from '../shared/types.js';
+import { logger } from './logger.js';
 
 import { createOrUpdateMap } from './services/mapService.js';
 import { deleteNpc } from './services/npcService.js';
@@ -45,7 +46,7 @@ export const getMap = (mapId?: string): MapStateServer | undefined => {
 
 export const updateMap = (map: MapStateServer): MapStateServer | undefined => {
   if (!runtimeState.maps[map.id]) {
-    console.warn('updateMap: Map not found', map.id);
+    logger.warn('updateMap: Map not found', { mapId: map.id });
     return;
   }
   runtimeState.maps[map.id] = map;
@@ -57,7 +58,7 @@ export const updateMapById = async (
 ): Promise<MapStateServer | undefined> => {
   const previous = runtimeState.maps[mapState.id];
   if (!previous) {
-    console.warn('updateMap: Map not found', mapState.id);
+    logger.warn('updateMap: Map not found', { mapId: mapState.id });
     return;
   }
 
@@ -80,7 +81,7 @@ export const addPlayer = async (player: PlayerServer): Promise<void> => {
 
 export const getPlayer = (playerId: string): PlayerServer | undefined => {
   const player = getPlayerById(playerId);
-  if (!player) console.warn('getPlayer: Player not found', playerId);
+  if (!player) logger.warn('getPlayer: Player not found', { playerId });
   return player;
 };
 

@@ -6,6 +6,7 @@ import {
 } from '../../shared/types.js';
 import type { ClientItemAction } from '../engine/actions.js';
 import { updatePlayer, updateMap, items } from '../gameData.js';
+import { logger } from '../logger.js';
 import ItemModel from '../model/Item.js';
 import { getNextItemId } from './dbService.js';
 import { EQUIPMENT_SLOTS } from '../../shared/constants.js';
@@ -45,7 +46,7 @@ export const pickUpItem = async (map: MapStateServer, player: PlayerServer) => {
 
   if (dropIndex === -1) return;
 
-  const drop = map.droppedItems[dropIndex];
+  const drop = map.droppedItems[dropIndex]!;
 
   const existing = player.inventory.items.find((i) => i.item === drop.itemId);
 
@@ -66,16 +67,16 @@ export const handleItemAction = (action: ClientItemAction) => {
   switch (itemAction) {
     case 'use':
       useItem(username, item).catch((e) => {
-        console.error('useItem failed:', e);
+        logger.error('useItem failed', { err: e });
       });
       break;
     case 'drop':
       removeItemFromInventory(username, item).catch((e) => {
-        console.error('removeItemFromInventory failed:', e);
+        logger.error('removeItemFromInventory failed', { err: e });
       });
       break;
     default:
-      console.warn(`Unknown item action: ${itemAction}`);
+      logger.warn('Unknown item action', { itemAction });
       break;
   }
 };
@@ -126,7 +127,7 @@ export async function useItem(
     } else if (invItem) {
       await equipItem(player, itemId);
     } else {
-      console.warn('[useItem] item not in inventory nor equipped');
+      logger.warn('[useItem] item not in inventory nor equipped');
       return false;
     }
   }
@@ -145,7 +146,7 @@ export async function equipItem(
   const slot = item.type as keyof PlayerServer['equipped'];
 
   if (!EQUIPMENT_SLOTS.includes(slot)) {
-    console.warn(`Invalid equip slot: ${slot}`);
+    logger.warn('Invalid equip slot', { slot });
     return;
   }
 

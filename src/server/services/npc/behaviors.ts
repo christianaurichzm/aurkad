@@ -12,6 +12,7 @@ import { respawnPlayer } from '../playerService.js';
 import { updatePlayer } from '../../gameData.js';
 import { queryEntitiesInRadius } from '../../spatial/SpatialManager.js';
 import { randomInt } from '../../sim/rng.js';
+import { logger } from '../../logger.js';
 
 export function calculateDirection(
   from: { position: Position },
@@ -79,7 +80,7 @@ export function moveNpcRandomly(npc: RuntimeNpc) {
     { dx: TILE_SIZE, dy: 0, dir: Direction.Right },
   ];
 
-  const { dx, dy, dir } = directions[randomInt(directions.length)];
+  const { dx, dy, dir } = directions[randomInt(directions.length)]!;
   const newX = npc.position.x + dx;
   const newY = npc.position.y + dy;
 
@@ -93,7 +94,10 @@ export function moveNpcRandomly(npc: RuntimeNpc) {
   }
 }
 
-export function isPlayerInAttackRange(npc: RuntimeNpc, player: PlayerServer): boolean {
+export function isPlayerInAttackRange(
+  npc: RuntimeNpc,
+  player: PlayerServer,
+): boolean {
   const { dx, dy, distanceSq } = calculateDirection(npc, player);
 
   const attackRangeSq = npc.attackRange * npc.attackRange;
@@ -119,7 +123,7 @@ export function attackPlayer(npc: RuntimeNpc, player: PlayerServer) {
     respawnPlayer(player);
   }
   updatePlayer(player).catch((e) => {
-    console.error('updatePlayer failed:', e);
+    logger.error('updatePlayer failed', { err: e });
   });
   npc.action = CharacterAction.Attack;
 }

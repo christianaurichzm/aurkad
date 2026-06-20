@@ -6,6 +6,7 @@ import {
   CombatTarget,
 } from '../../shared/types.js';
 import { getMap, updatePlayer } from '../gameData.js';
+import { logger } from '../logger.js';
 import { getTick } from '../sim/clock.js';
 import { randomChance } from '../sim/rng.js';
 import { queryEntitiesInRadius } from '../spatial/SpatialManager.js';
@@ -128,7 +129,7 @@ export const handleAttack = async (attacker: PlayerServer): Promise<void> => {
         if (randomChance(drop.chance)) {
           const item = getItemById(drop.itemId);
           if (!item) {
-            console.warn(`[drop] Item not found: ${drop.itemId}`);
+            logger.warn('[drop] Item not found', { itemId: drop.itemId });
             continue;
           }
 

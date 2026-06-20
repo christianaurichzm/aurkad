@@ -1,6 +1,7 @@
 import { RequestHandler } from 'express';
 import WebSocket, { WebSocketServer } from 'ws';
 import { Server } from 'http';
+import { logger } from '../logger.js';
 import {
   ActionQueueItem,
   ClientChatAction,
@@ -113,9 +114,10 @@ function enqueueAction(action: ActionQueueItem) {
 
     const now = Date.now();
     if (now - lastQueueDropLogTime > 5000) {
-      console.warn(
-        `[ws] action queue full; dropping oldest (dropped=${droppedQueuedActions}, max=${maxSize})`,
-      );
+      logger.warn('[ws] action queue full; dropping oldest', {
+        dropped: droppedQueuedActions,
+        max: maxSize,
+      });
       lastQueueDropLogTime = now;
     }
   }
@@ -255,7 +257,11 @@ export const startWebSocketServer = (
 
         let raw: unknown;
         try {
-          raw = JSON.parse(Buffer.isBuffer(message) ? message.toString('utf8') : message.toString());
+          raw = JSON.parse(
+            Buffer.isBuffer(message)
+              ? message.toString('utf8')
+              : message.toString(),
+          );
         } catch {
           return;
         }
@@ -269,7 +275,7 @@ export const startWebSocketServer = (
       ws.on('close', () => {
         if (!shuttingDown) {
           disconnectPlayer(username).catch((e) => {
-            console.error('disconnectPlayer failed:', e);
+            logger.error('disconnectPlayer failed', { err: e });
           });
         }
         playersWsMap.delete(username);
@@ -277,7 +283,7 @@ export const startWebSocketServer = (
       });
 
       ws.on('error', (err) => {
-        console.error(`[ws] error for ${username}:`, err);
+        logger.error('[ws] connection error', { username, err });
         playersWsMap.delete(username);
         messageRate.delete(username);
       });
@@ -304,6 +310,10 @@ export async function stopWebSocketServer(): Promise<void> {
     if (!wss) return resolve();
     wss.close(() => resolve());
   });
+}
+
+export function getActionQueueSize(): number {
+  return actionQueue.size;
 }
 
 export function markServerShuttingDown() {

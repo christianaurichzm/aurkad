@@ -2,6 +2,7 @@ import { config } from '../config.js';
 import { getPlayerById } from '../sim/world.js';
 import { persistPlayerSessionState } from '../services/playerService.js';
 import { drainDirtyPlayerIds } from './dirtyPlayers.js';
+import { logger } from '../logger.js';
 
 type IntervalHandle = ReturnType<typeof setInterval>;
 
@@ -26,7 +27,7 @@ export function startPlayerSnapshotLoop(): () => void {
     running = true;
     persistDirtyPlayers()
       .catch((e) => {
-        console.error('[snapshot] persistDirtyPlayers failed:', e);
+        logger.error('[snapshot] persistDirtyPlayers failed', { err: e });
       })
       .finally(() => {
         running = false;

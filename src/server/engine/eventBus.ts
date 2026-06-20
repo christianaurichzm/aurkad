@@ -1,4 +1,5 @@
 import { config } from '../config.js';
+import { logger } from '../logger.js';
 import type { GameEvent } from './events.js';
 
 const queue: GameEvent[] = [];
@@ -13,9 +14,10 @@ export function emitGameEvent(event: GameEvent) {
 
     const now = Date.now();
     if (now - lastDropLogTime > 5000) {
-      console.warn(
-        `[engine] event queue full; dropping oldest (dropped=${droppedEvents}, max=${maxSize})`,
-      );
+      logger.warn('[engine] event queue full; dropping oldest', {
+        dropped: droppedEvents,
+        max: maxSize,
+      });
       lastDropLogTime = now;
     }
   }

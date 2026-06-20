@@ -28,6 +28,7 @@ import { addPlayerOnMap, removePlayerFromMap } from './mapService.js';
 import { getItemById } from './inventoryService.js';
 import { broadcast } from '../wsServer.js';
 import { handlePlayerUpdate } from './gameService.js';
+import { logger } from '../logger.js';
 
 export async function getPlayerById(id: string): Promise<PlayerRecord | null> {
   return playerRepository.findById(id);
@@ -120,7 +121,7 @@ export const handlePlayerUpdates = (player: PlayerServer): void => {
   const existingPlayer = getPlayer(player.id);
   if (existingPlayer) {
     updatePlayer({ ...existingPlayer, ...player }).catch((e) => {
-      console.error('updatePlayer failed:', e);
+      logger.error('updatePlayer failed', { err: e });
     });
   }
 };
@@ -149,14 +150,14 @@ export function toPlayerHot(player: PlayerServer): PlayerHot {
 }
 
 export function toPlayerCold(player: PlayerServer): PlayerCold {
-  const inventory: InventoryItemDetailed[] = (player.inventory?.items ?? []).map(
-    (entry) => {
-      const item = getItemById(entry.item);
+  const inventory: InventoryItemDetailed[] = (
+    player.inventory?.items ?? []
+  ).map((entry) => {
+    const item = getItemById(entry.item);
 
-      if (!item) throw new Error(`Item ${entry.item} not found`);
-      return { item, quantity: entry.quantity };
-    },
-  );
+    if (!item) throw new Error(`Item ${entry.item} not found`);
+    return { item, quantity: entry.quantity };
+  });
 
   const equippedSource = player.equipped ?? {};
   const equipped: EquippedItemsDetailed = {};
