@@ -15,3 +15,7 @@ export function tryConsumeAttackCooldown(id: string, tick: number): boolean {
 export function clearAttackCooldown(id: string): void {
   lastAttackTick.delete(id);
 }
+
+export function clearAllAttackCooldowns(): void {
+  lastAttackTick.clear();
+}
