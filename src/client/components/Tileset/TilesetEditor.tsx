@@ -72,6 +72,9 @@ export const TilesetEditor: React.FC = () => {
         borderRadius: radius.lg,
         boxShadow: shadow.modal,
         overflow: 'hidden',
+        display: 'flex',
+        flexDirection: 'column',
+        maxHeight: 'min(92vh, 860px)',
       }}
     >
       <div
@@ -85,6 +88,7 @@ export const TilesetEditor: React.FC = () => {
           background: colors.surfaceMuted,
           cursor: 'move',
           userSelect: 'none',
+          flexShrink: 0,
         }}
       >
         <span style={{ fontWeight: 700, fontSize: 13, color: colors.text }}>
@@ -108,8 +112,16 @@ export const TilesetEditor: React.FC = () => {
           ×
         </button>
       </div>
-      <TilesetModeControls />
-      <canvas id="tilesetCanvas" />
+
+      <div
+        style={{ flexShrink: 0, borderBottom: `1px solid ${colors.border}` }}
+      >
+        <TilesetModeControls />
+      </div>
+
+      <div style={{ overflow: 'auto', flex: 1, minHeight: 0 }}>
+        <canvas id="tilesetCanvas" style={{ display: 'block' }} />
+      </div>
     </div>
   );
 };

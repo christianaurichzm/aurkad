@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import {
   saveCurrentMap,
+  fillMap,
   toggleBlocking,
   toggleWarping,
   toggleNpc,
@@ -197,6 +198,25 @@ const TilesetModeControlsComponent: React.FC = () => {
             }}
           />
         </div>
+        <button
+          onClick={() => {
+            fillMap();
+          }}
+          style={{
+            background: colors.surfaceMuted,
+            color: colors.text,
+            border: `1px solid ${colors.border}`,
+            padding: '7px 10px',
+            borderRadius: radius.md,
+            cursor: 'pointer',
+            fontWeight: 600,
+            fontSize: 12,
+            flexShrink: 0,
+          }}
+          title="Fill entire map with selected tile"
+        >
+          Fill
+        </button>
         <button
           id="saveButton"
           onClick={handleSave}

@@ -275,6 +275,20 @@ const drawTileOnCanvas = (col: number, row: number, tileIndex: number) => {
   );
 };
 
+export const fillMap = () => {
+  if (!tilesetCanvas) return;
+  const { startX, startY } = calculateSelectionBounds();
+  const tilesPerRow = Math.floor(tilesetCanvas.width / TILE_SIZE);
+  const tileIndex = startY * tilesPerRow + startX;
+  for (let row = 0; row < mapHeight; row++) {
+    for (let col = 0; col < mapWidth; col++) {
+      map[row][col] = { ...map[row][col], tileIndex };
+    }
+  }
+  setMapEdited(true);
+  renderMap(map);
+};
+
 export const toggleBlocking = () => toggleMode('blocking');
 export const toggleWarping = () => toggleMode('warping');
 export const toggleNpc = () => toggleMode('npc');
