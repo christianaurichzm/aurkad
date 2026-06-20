@@ -165,7 +165,13 @@ export interface CharacterRuntime extends Transform, Movement {
   kind: 'npc' | 'player';
 }
 
-export type NpcBehavior = 'aggressive' | 'hostile' | 'neutral';
+export type NpcBehavior =
+  | 'aggressive'
+  | 'hostile'
+  | 'neutral'
+  | 'friendly'
+  | 'shopkeeper'
+  | 'guard';
 
 export interface PersistentNpc extends CharacterBase {
   behavior: NpcBehavior;
@@ -267,6 +273,9 @@ export interface Tile {
   shop?: Shop['id'];
   avoidNpc?: boolean;
   fringe?: boolean;
+  heal?: boolean;
+  death?: boolean;
+  warn?: boolean;
 }
 
 export interface DroppedItem {
@@ -372,7 +381,10 @@ export type TileEditMode =
   | 'item'
   | 'shop'
   | 'avoidNpc'
-  | 'fringe';
+  | 'fringe'
+  | 'heal'
+  | 'death'
+  | 'warn';
 
 export interface HttpRequestOptions {
   method: 'GET' | 'POST' | 'PUT' | 'DELETE';

@@ -19,4 +19,9 @@ export type GameEvent =
       type: 'chatMapId';
       mapId: string;
       payload: ChatMessagePayload;
+    }
+  | {
+      type: 'chatPlayer';
+      username: string;
+      payload: ChatMessagePayload;
     };

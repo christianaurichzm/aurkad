@@ -29,7 +29,10 @@ import {
 } from '../sim/world.js';
 import { clearPlayerDirty } from '../persistence/dirtyPlayers.js';
 import { clearAttackCooldown } from './combat/attackCooldown.js';
-import { resetPlayerNetState, broadcastGameState as broadcast } from '../net/snapshot.js';
+import {
+  resetPlayerNetState,
+  broadcastGameState as broadcast,
+} from '../net/snapshot.js';
 import { playersWsMap } from '../net/connections.js';
 import { emitGameEvent } from '../engine/eventBus.js';
 import { handleAttack } from './combat/index.js';
@@ -40,7 +43,9 @@ import {
   getPlayerByName,
   handlePlayerUpdates,
   persistPlayerSessionState,
+  respawnPlayer,
 } from './playerService.js';
+import { handleChatAction } from './chatService.js';
 import { logger } from '../logger.js';
 
 export const delay = (ms: number) =>
@@ -71,6 +76,30 @@ const handleWarpAndShops = (player: PlayerServer): void => {
         type: 'openShop',
         username: player.name,
         shopId: tile.shop,
+      });
+    }
+    if (tile?.heal) {
+      player.health = player.maxHealth;
+    }
+    if (tile?.death) {
+      player.health = 0;
+      respawnPlayer(player);
+      handleChatAction({
+        scope: 'global',
+        type: 'chat',
+        subtype: 'death',
+        message: `${player.name} fell into a deadly trap!`,
+      });
+    }
+    if (tile?.warn) {
+      emitGameEvent({
+        type: 'chatPlayer',
+        username: player.name,
+        payload: {
+          type: 'chat',
+          scope: 'player',
+          message: '⚠️ Entering a dangerous area!',
+        },
       });
     }
   }

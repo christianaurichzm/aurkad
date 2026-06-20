@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { login } from '../io/network';
 import { setAssetKey } from '../io/assets';
 import { MapStateClient, Player } from '../../shared/types';
@@ -11,6 +11,14 @@ export const Login = ({ onSwitch }: { onSwitch: () => void }) => {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
+  const [onlinePlayers, setOnlinePlayers] = useState<number | null>(null);
+
+  useEffect(() => {
+    fetch('/healthz')
+      .then((r) => r.json())
+      .then((d) => setOnlinePlayers(d.players))
+      .catch(() => {});
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -69,6 +77,11 @@ export const Login = ({ onSwitch }: { onSwitch: () => void }) => {
         >
           Login
         </button>
+        {onlinePlayers !== null && (
+          <p style={styles.onlineCount}>
+            {onlinePlayers} player{onlinePlayers !== 1 ? 's' : ''} online
+          </p>
+        )}
         <p style={styles.registerText}>
           Don't have an account?{' '}
           <button type="button" onClick={onSwitch} style={styles.linkButton}>
@@ -133,6 +146,11 @@ const styles: Record<string, React.CSSProperties> = {
     cursor: 'pointer',
     textDecoration: 'underline',
     fontSize: 'inherit',
+  },
+  onlineCount: {
+    marginTop: '16px',
+    fontSize: '0.85rem',
+    color: colors.textMuted,
   },
   error: {
     marginTop: '15px',

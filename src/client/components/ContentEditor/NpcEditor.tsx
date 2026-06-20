@@ -114,6 +114,9 @@ export const NpcEditor: React.FC<NpcEditorProps> = ({
     { value: 'neutral', label: 'Neutral' },
     { value: 'aggressive', label: 'Aggressive' },
     { value: 'hostile', label: 'Hostile' },
+    { value: 'friendly', label: 'Friendly' },
+    { value: 'shopkeeper', label: 'Shopkeeper' },
+    { value: 'guard', label: 'Guard' },
   ];
 
   const dropItem = items.find((i) => i.id === dropItemId);

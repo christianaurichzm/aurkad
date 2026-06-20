@@ -67,7 +67,12 @@ const findAttackTarget = (
       map.npcs[entity.id];
 
     if (!target || target.health <= 0) continue;
-    if (target.kind === 'npc' && target.behavior === 'neutral') continue;
+    if (
+      target.kind === 'npc' &&
+      target.behavior !== 'aggressive' &&
+      target.behavior !== 'hostile'
+    )
+      continue;
     if (!isInAttackRange(attacker, target)) continue;
     if (!isFacingTarget(attacker, target)) continue;
 
@@ -91,7 +96,11 @@ export const handleAttack = async (attacker: PlayerServer): Promise<void> => {
   );
   if (!attackTarget) return;
 
-  if (attackTarget.kind === 'npc' && attackTarget.behavior === 'neutral')
+  if (
+    attackTarget.kind === 'npc' &&
+    attackTarget.behavior !== 'aggressive' &&
+    attackTarget.behavior !== 'hostile'
+  )
     return;
 
   attackTarget.health -= attacker.attack;

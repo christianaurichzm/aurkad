@@ -13,6 +13,9 @@ export default defineConfig({
   server: {
     port: 3000,
     proxy: {
+      // Public
+      "/healthz": { target: "http://localhost:8080", changeOrigin: true },
+
       // Auth
       "/login": { target: "http://localhost:8080", changeOrigin: true },
       "/register": { target: "http://localhost:8080", changeOrigin: true },

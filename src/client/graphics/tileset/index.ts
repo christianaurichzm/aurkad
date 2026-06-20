@@ -148,6 +148,27 @@ const modes: Record<TileEditMode, ModeConfig> = {
       renderMap(map);
     },
   },
+  heal: {
+    place: (row: number, col: number) => {
+      map[row][col].heal = !map[row][col].heal;
+      setMapEdited(true);
+      renderMap(map);
+    },
+  },
+  death: {
+    place: (row: number, col: number) => {
+      map[row][col].death = !map[row][col].death;
+      setMapEdited(true);
+      renderMap(map);
+    },
+  },
+  warn: {
+    place: (row: number, col: number) => {
+      map[row][col].warn = !map[row][col].warn;
+      setMapEdited(true);
+      renderMap(map);
+    },
+  },
 };
 
 const toggleMode = (mode: TileEditMode) => {
@@ -296,6 +317,9 @@ export const toggleItem = () => toggleMode('item');
 export const toggleShop = () => toggleMode('shop');
 export const toggleAvoidNpc = () => toggleMode('avoidNpc');
 export const toggleFringe = () => toggleMode('fringe');
+export const toggleHeal = () => toggleMode('heal');
+export const toggleDeath = () => toggleMode('death');
+export const toggleWarn = () => toggleMode('warn');
 
 const setupEventListeners = () => {
   addEvent('tilesetCanvas', 'mousedown', startSelecting);
@@ -390,6 +414,9 @@ const drawMarkers = (tiles: Tile[][]) => {
       if (tile.shop) drawMarker(colIndex, rowIndex, 'S', 'green');
       if (tile.avoidNpc) drawMarker(colIndex, rowIndex, 'A', 'purple');
       if (tile.fringe) drawMarker(colIndex, rowIndex, 'F', 'cyan');
+      if (tile.heal) drawMarker(colIndex, rowIndex, 'H', '#00e676');
+      if (tile.death) drawMarker(colIndex, rowIndex, 'D', '#ff1744');
+      if (tile.warn) drawMarker(colIndex, rowIndex, '!', '#ff9100');
     });
   });
 };

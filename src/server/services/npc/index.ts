@@ -62,7 +62,12 @@ export const findNpcSpawnPositions = (
 };
 
 export function updateNpcs(npc: RuntimeNpc, map: MapStateServer) {
-  if (npc.behavior === 'neutral') {
+  if (
+    npc.behavior === 'neutral' ||
+    npc.behavior === 'friendly' ||
+    npc.behavior === 'shopkeeper' ||
+    npc.behavior === 'guard'
+  ) {
     npc.action = CharacterAction.Idle;
     return;
   }

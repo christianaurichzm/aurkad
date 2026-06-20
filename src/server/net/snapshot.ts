@@ -14,10 +14,7 @@ import { logger } from '../logger.js';
 import { getMap } from '../gameData.js';
 import { getGameState } from '../services/gameService.js';
 import { drainGameEvents } from '../engine/eventBus.js';
-import {
-  toMapDynamicClient,
-  toMapStaticClient,
-} from './serialization.js';
+import { toMapDynamicClient, toMapStaticClient } from './serialization.js';
 import {
   getPlayerByName,
   playerColdSignature,
@@ -91,7 +88,10 @@ function sendDynamicSnapshot(
   });
 
   const lastState = lastSentStates.get(player.name);
-  let message: { type: string; payload: FullGameStatePayload | GameStateDeltaPayload } | null = null;
+  let message: {
+    type: string;
+    payload: FullGameStatePayload | GameStateDeltaPayload;
+  } | null = null;
 
   if (!lastState) {
     message = { type: 'fullGameState', payload: currentState };
@@ -192,6 +192,13 @@ export function flushGameEvents() {
       case 'chatMapId':
         broadcastToMap(event.mapId, event.payload);
         break;
+      case 'chatPlayer': {
+        const ws = playersWsMap.get(event.username);
+        if (ws?.readyState === WebSocket.OPEN) {
+          ws.send(JSON.stringify(event.payload));
+        }
+        break;
+      }
     }
   }
 }
