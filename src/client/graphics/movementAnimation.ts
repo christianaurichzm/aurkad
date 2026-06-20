@@ -12,7 +12,16 @@ interface MovementStep {
   duration: number;
 }
 
+export interface AnimatedState {
+  position: Position;
+  moving: boolean;
+}
+
 const movementQueues = new Map<string, MovementStep[]>();
+
+export function clearMovementQueues() {
+  movementQueues.clear();
+}
 
 export function onServerPositionUpdate(
   playerId: string,
@@ -22,7 +31,8 @@ export function onServerPositionUpdate(
   if (from.x === to.x && from.y === to.y) return;
 
   const queue = movementQueues.get(playerId) || [];
-  const lastPos = queue.length > 0 ? queue[queue.length - 1].to : from;
+  const lastStep = queue.at(-1);
+  const lastPos = lastStep ? lastStep.to : from;
 
   const gameState = getGameState();
   const clientPlayer = getPlayer();
@@ -37,46 +47,55 @@ export function onServerPositionUpdate(
   const isRunning = playerState?.action === CharacterAction.Run;
   const duration = isRunning ? RUN_MOVEMENT_DURATION : MOVEMENT_DURATION;
 
-  queue.push({
-    from: lastPos,
-    to,
-    startTime: performance.now(),
-    duration: duration,
-  });
+  // Chain from the previous step's end so a burst of updates plays as one
+  // continuous slide. Duration stays below the server's per-tile cadence so the
+  // queue always drains instead of drifting into the future (and freezing).
+  const startTime = lastStep
+    ? lastStep.startTime + lastStep.duration
+    : performance.now();
+
+  queue.push({ from: lastPos, to, startTime, duration });
+
+  const MAX_QUEUE = 2;
+  while (queue.length > MAX_QUEUE) {
+    const dropped = queue.shift()!;
+    for (const step of queue) step.startTime -= dropped.duration;
+  }
 
   movementQueues.set(playerId, queue);
 }
 
-export function getAnimatedPosition(playerId: string): Position {
-  const queue = movementQueues.get(playerId);
-
-  const gameState = getGameState();
-  const localPlayer = getPlayer();
-  let player: Player | PlayerPublic | null = null;
-  if (gameState?.players?.[playerId]) {
-    player = gameState.players[playerId];
-  } else if (localPlayer?.id === playerId) {
-    player = localPlayer;
-  }
+export function getAnimatedState(
+  entityId: string,
+  currentPos: Position,
+): AnimatedState {
+  const queue = movementQueues.get(entityId);
 
   if (!queue || queue.length === 0) {
-    return player ? player.position : { x: 0, y: 0 };
+    return { position: currentPos, moving: false };
+  }
+
+  const now = performance.now();
+
+  // Drain every finished step (covers dropped frames), remembering the last so
+  // a settled entity holds its final tile.
+  let lastPos = currentPos;
+  while (queue.length > 0 && now - queue[0].startTime >= queue[0].duration) {
+    lastPos = queue.shift()!.to;
+  }
+
+  if (queue.length === 0) {
+    return { position: lastPos, moving: false };
   }
 
   const step = queue[0];
-  const now = performance.now();
-  const elapsed = now - step.startTime;
-  const t = Math.min(elapsed / step.duration, 1);
+  const t = Math.min(Math.max((now - step.startTime) / step.duration, 0), 1);
 
-  const x = step.from.x + (step.to.x - step.from.x) * t;
-  const y = step.from.y + (step.to.y - step.from.y) * t;
-
-  if (t >= 1) {
-    queue.shift();
-    movementQueues.set(playerId, queue);
-
-    return step.to;
-  }
-
-  return { x, y };
+  return {
+    position: {
+      x: step.from.x + (step.to.x - step.from.x) * t,
+      y: step.from.y + (step.to.y - step.from.y) * t,
+    },
+    moving: true,
+  };
 }

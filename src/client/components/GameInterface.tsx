@@ -24,8 +24,6 @@ export const GameInterface = () => {
     const init = async () => {
       initialized.current = true;
 
-      // The HTTP login snapshot is a full map (static + dynamic); split it into
-      // the two layers the netcode now streams separately.
       setStaticMap({
         id: initialMap.id,
         name: initialMap.name,

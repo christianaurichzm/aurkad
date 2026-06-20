@@ -5,6 +5,7 @@ export { drawSpriteGeneric, drawSprite } from './spriteDrawing';
 export { onServerPositionUpdate } from './movementAnimation';
 export { renderPlayers } from './entityRendering';
 
+import { Tile } from '../../shared/types';
 import { getGameState, getPlayer } from '../core/gameState';
 import { renderHUD, updatePlayerHealthBar } from './hud';
 import {
@@ -15,9 +16,16 @@ import {
   playerCtx,
 } from './canvas';
 import { renderMap } from './tileset';
-import { getAnimatedPosition } from './movementAnimation';
-import { renderPlayers, renderNpcs, renderDroppedItems, renderEntityDirect } from './entityRendering';
+import {
+  renderPlayers,
+  renderNpcs,
+  renderDroppedItems,
+  renderEntityDirect,
+  animate,
+} from './entityRendering';
 import { useUIStore } from '../stores/uiStore';
+
+let lastDrawnTiles: Tile[][] | null = null;
 
 export const render = () => {
   const map = getGameState();
@@ -27,13 +35,18 @@ export const render = () => {
   if (map) {
     playerCtx.clearRect(0, 0, foregroundCanvas.width, foregroundCanvas.height);
     if (!mapEdited) {
-      foregroundCtx.clearRect(
-        0,
-        0,
-        foregroundCanvas.width,
-        foregroundCanvas.height,
-      );
-      renderMap(map.tiles);
+      if (map.tiles !== lastDrawnTiles) {
+        foregroundCtx.clearRect(
+          0,
+          0,
+          foregroundCanvas.width,
+          foregroundCanvas.height,
+        );
+        renderMap(map.tiles);
+        lastDrawnTiles = map.tiles;
+      }
+    } else {
+      lastDrawnTiles = null;
     }
     itemCtx.clearRect(0, 0, itemCanvas.width, itemCanvas.height);
 
@@ -42,12 +55,7 @@ export const render = () => {
     renderPlayers(map.players);
 
     if (currentPlayer) {
-      const smoothPosition = getAnimatedPosition(currentPlayer.id);
-
-      const player = {
-        ...currentPlayer,
-        position: smoothPosition,
-      };
+      const player = animate(currentPlayer);
 
       renderEntityDirect(player);
 

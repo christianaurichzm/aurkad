@@ -1,6 +1,9 @@
 import { create } from 'zustand';
-import type { ChatMessagePayload, ChatScope } from '../../shared/wsProtocol';
-import type { MapStateClient } from '../../shared/types';
+import type {
+  ChatMessagePayload,
+  ChatScope,
+  MapStateClient,
+} from '../../shared/types';
 
 interface ConnectionState {
   message: string;
