@@ -1,48 +1,39 @@
 import { loadImageFromBin } from './network';
 import { imageMap } from '../../shared/mappings';
 
-export let tileset: HTMLImageElement;
-export let spriteSheet: HTMLImageElement;
-export let items: HTMLImageElement;
+export let tileset: ImageBitmap;
+export let spriteSheet: ImageBitmap;
+export let items: ImageBitmap;
 
-const getUrl = (type: keyof typeof imageMap) => {
-  return `assets/${imageMap[type]}.bin`;
-};
+let _assetKey = '';
+
+export function setAssetKey(hexKey: string): void {
+  _assetKey = hexKey;
+}
+
+const getUrl = (type: keyof typeof imageMap) => `assets/${imageMap[type]}.bin`;
 
 export const initTileset = async () => {
-  try {
-    tileset = await loadImageFromBin(getUrl('tiles'));
-    return tileset;
-  } catch (err) {
-    throw new Error('Failed to load tileset');
-  }
+  tileset = await loadImageFromBin(getUrl('tiles'), _assetKey);
+  return tileset;
 };
 
 export const initSpriteSheet = async () => {
-  try {
-    spriteSheet = await loadImageFromBin(getUrl('sprites'));
-    return spriteSheet;
-  } catch (err) {
-    throw new Error('Failed to load spritesheet');
-  }
+  spriteSheet = await loadImageFromBin(getUrl('sprites'), _assetKey);
+  return spriteSheet;
 };
 
 export const initItems = async () => {
-  try {
-    items = await loadImageFromBin(getUrl('items'));
-    return items;
-  } catch (err) {
-    throw new Error('Failed to load items');
-  }
+  items = await loadImageFromBin(getUrl('items'), _assetKey);
+  return items;
 };
 
 export const initializeAssets = () => {
-  return Promise.all([initTileset(), initSpriteSheet(), initItems()])
-    .then(([loadedTileset, loadedSpriteSheet]) => {
-      return { tileset: loadedTileset, spriteSheet: loadedSpriteSheet };
-    })
-    .catch((error) => {
-      console.error('Error loading assets:', error);
-      throw error;
-    });
+  if (!_assetKey) throw new Error('Asset key not set - call setAssetKey first');
+  return Promise.all([initTileset(), initSpriteSheet(), initItems()]).then(
+    ([loadedTileset, loadedSpriteSheet]) => ({
+      tileset: loadedTileset,
+      spriteSheet: loadedSpriteSheet,
+    }),
+  );
 };

@@ -40,7 +40,7 @@ export function drawItemGeneric(
 ) {
   const { x: spriteX, y: spriteY } = getSpriteCoordinates(
     spriteId,
-    items.naturalWidth,
+    items.width,
   );
 
   ctx.drawImage(

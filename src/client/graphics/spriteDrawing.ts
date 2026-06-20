@@ -32,7 +32,7 @@ export function drawSpriteGeneric(
     characterIndex,
     column,
     row,
-    spriteSheet.naturalWidth,
+    spriteSheet.width,
   );
   const { SPRITE_WIDTH, SPRITE_HEIGHT } = getSpriteSize();
 

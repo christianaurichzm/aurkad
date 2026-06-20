@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { login } from '../io/network';
+import { setAssetKey } from '../io/files';
 import { MapStateClient, Player } from '../../shared/types';
 import { useGame } from '../context/GameContext';
 
@@ -21,7 +22,8 @@ export const Login = ({ onSwitch }: { onSwitch: () => void }) => {
     try {
       const data = await login(username, password);
 
-      if (data?.player && data?.map) {
+      if (data?.player && data?.map && data?.assetKey) {
+        setAssetKey(data.assetKey);
         loginSuccess(data as { map: MapStateClient; player: Player });
       } else {
         setError('Invalid response from server');

@@ -2,7 +2,11 @@ import type { Player, MapStateClient } from '../../../../shared/types';
 import { httpClient } from './httpClient';
 
 export const login = async (username: string, password: string) => {
-  return await httpClient<{ player: Player; map: MapStateClient }>('/login', {
+  return await httpClient<{
+    player: Player;
+    map: MapStateClient;
+    assetKey: string;
+  }>('/login', {
     method: 'POST',
     body: { username, password },
   });

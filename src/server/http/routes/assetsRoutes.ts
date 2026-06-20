@@ -1,48 +1,49 @@
-import { Router, type Request, type Response } from 'express';
-import https from 'https';
-import http from 'http';
+import fs from 'fs';
+import path from 'path';
+import { Router, type Response } from 'express';
 import { imageMap } from '../../../shared/mappings.js';
-import { config } from '../../config.js';
+import { logger } from '../../logger.js';
+import type { ExtendedRequest } from '../session.js';
+
+const ASSETS_DIR = process.env.ASSETS_PATH
+  ? path.resolve(process.env.ASSETS_PATH)
+  : path.resolve('assets');
 
 export function createAssetsRouter() {
   const router = Router();
 
-  router.get('/assets/:name.bin', async (req: Request, res: Response) => {
-    const { name } = req.params;
-    const imageId = imageMap[name];
-    if (!imageId) return res.status(404).send('Image not found');
+  router.get(
+    '/assets/:name.bin',
+    async (req: ExtendedRequest, res: Response) => {
+      if (!req.session.username) {
+        return res.status(401).json({ error: 'Unauthorized' });
+      }
 
-    const imageUrl = `${config.imagesBaseUrl}/${imageId}.png`;
+      const name = req.params['name']!;
+      const imageId = imageMap[name];
+      if (!imageId) return res.status(404).send('Image not found');
 
-    try {
-      const url = new URL(imageUrl);
-      const client = url.protocol === 'https:' ? https : http;
+      const assetKey = req.session.assetKey;
+      if (!assetKey) return res.status(401).json({ error: 'No asset key' });
 
-      client
-        .get(imageUrl, (imgRes) => {
-          if (imgRes.statusCode !== 200) {
-            return res.status(502).send('Failed to fetch image');
-          }
+      const filePath = path.join(ASSETS_DIR, `${imageId}.png`);
 
-          res.setHeader('Content-Type', 'application/octet-stream');
-          imgRes.on('data', (chunk) => {
-            const obfuscatedChunk = Buffer.from(chunk).map(
-              (byte) => byte ^ 0xa5,
-            );
-            res.write(obfuscatedChunk);
-          });
+      fs.readFile(filePath, (err, data) => {
+        if (err) {
+          logger.error('Asset read failed', { file: filePath, err });
+          return res.status(404).send('Asset not found');
+        }
 
-          imgRes.on('end', () => res.end());
-        })
-        .on('error', (err) => {
-          console.error('Image fetch failed:', err);
-          res.status(500).send('Internal error');
-        });
-    } catch (err) {
-      console.error('Request failed:', err);
-      res.status(500).send('Unexpected error');
-    }
-  });
+        const keyBytes = Buffer.from(assetKey, 'hex');
+        const keyLen = keyBytes.length;
+        const out = data.map((byte, i) => byte ^ (keyBytes[i % keyLen] ?? 0));
+
+        res.setHeader('Content-Type', 'application/octet-stream');
+        res.setHeader('Cache-Control', 'no-store');
+        res.send(out);
+      });
+    },
+  );
 
   return router;
 }
