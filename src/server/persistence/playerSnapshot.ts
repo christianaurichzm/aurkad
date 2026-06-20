@@ -1,12 +1,14 @@
 import { config } from '../config.js';
-import { players } from '../gameData.js';
+import { getPlayerById } from '../sim/world.js';
 import { persistPlayerSessionState } from '../services/playerService.js';
+import { drainDirtyPlayerIds } from './dirtyPlayers.js';
 
 type IntervalHandle = ReturnType<typeof setInterval>;
 
-async function persistAllPlayers(): Promise<void> {
-  for (const player of Object.values(players)) {
-    await persistPlayerSessionState(player);
+async function persistDirtyPlayers(): Promise<void> {
+  for (const id of drainDirtyPlayerIds()) {
+    const player = getPlayerById(id);
+    if (player) await persistPlayerSessionState(player);
   }
 }
 
@@ -22,9 +24,9 @@ export function startPlayerSnapshotLoop(): () => void {
     if (running) return;
 
     running = true;
-    persistAllPlayers()
+    persistDirtyPlayers()
       .catch((e) => {
-        console.error('[snapshot] persistAllPlayers failed:', e);
+        console.error('[snapshot] persistDirtyPlayers failed:', e);
       })
       .finally(() => {
         running = false;

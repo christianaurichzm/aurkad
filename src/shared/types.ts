@@ -115,25 +115,51 @@ export interface EquippedItemsDetailed {
   boots?: Item;
 }
 
-export interface CharacterBase {
+// Composable entity components; an entity is their flat intersection.
+
+export interface Identity {
   id: string;
   name: string;
   sprite: number;
   width: number;
   height: number;
+}
+
+export interface BaseStats {
   maxHealth: number;
   attack: number;
   attackRange: number;
 }
 
-export interface CharacterRuntime {
+export interface Transform {
   position: Position;
+  direction: Direction;
+  mapId: string;
+}
+
+export interface Movement {
   targetPosition?: Position;
   moving?: boolean;
   moveTick?: number;
   moveDurationTicks?: number;
-  mapId: string;
-  direction: Direction;
+}
+
+export interface Progression {
+  level: number;
+  experience: number;
+  experienceToNextLevel: number;
+  vitality: number;
+  unspentPoints: number;
+}
+
+export interface InventoryHolder {
+  inventory: Inventory;
+  equipped: EquippedItems;
+}
+
+export interface CharacterBase extends Identity, BaseStats {}
+
+export interface CharacterRuntime extends Transform, Movement {
   action: CharacterAction;
   health: number;
   kind: 'npc' | 'player';
@@ -151,15 +177,11 @@ export interface RuntimeNpc extends PersistentNpc, CharacterRuntime {
   kind: 'npc';
 }
 
-export interface PersistentPlayer extends CharacterBase {
-  level: number;
-  experience: number;
-  experienceToNextLevel: number;
-  inventory: Inventory;
-  equipped: EquippedItems;
+export interface PersistentPlayer
+  extends CharacterBase,
+    Progression,
+    InventoryHolder {
   access: Access;
-  vitality: number;
-  unspentPoints: number;
 }
 
 export interface PlayerServer extends PersistentPlayer, CharacterRuntime {

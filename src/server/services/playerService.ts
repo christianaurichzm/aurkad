@@ -6,6 +6,7 @@ import {
   TILE_SIZE,
   FIRST_GAME_MAP_ID,
   EQUIPMENT_SLOTS,
+  DEFAULT_INVENTORY_CAPACITY,
 } from '../../shared/constants.js';
 import {
   PlayerServer,
@@ -19,34 +20,31 @@ import {
   PlayerCold,
   PlayerHot,
 } from '../../shared/types.js';
-import PlayerModel from '../model/Player.js';
+import { playerRepository } from '../persistence/playerRepository.js';
 
-import { addPlayer, getPlayer, players, updatePlayer } from '../gameData.js';
+import { getPlayer, updatePlayer } from '../gameData.js';
+import { getPlayerByName as lookupPlayerByName } from '../sim/world.js';
 import { addPlayerOnMap, removePlayerFromMap } from './mapService.js';
 import { getItemById } from './inventoryService.js';
 import { broadcast } from '../wsServer.js';
 import { handlePlayerUpdate } from './gameService.js';
 
 export async function getPlayerById(id: string): Promise<PlayerRecord | null> {
-  return await PlayerModel.findOne({ id }).lean<PlayerRecord>().exec();
+  return playerRepository.findById(id);
 }
 
 export async function createOrUpdatePlayer(
   player: PlayerServer,
 ): Promise<void> {
-  await PlayerModel.findOneAndUpdate(
-    { id: player.id },
-    { $set: player },
-    { upsert: false },
-  );
+  await playerRepository.save(player);
 }
 
 export async function deletePlayer(id: string): Promise<void> {
-  await PlayerModel.deleteOne({ id });
+  await playerRepository.deleteById(id);
 }
 
-export async function listPlayers(): Promise<PlayerServer[]> {
-  return await PlayerModel.find().lean<PlayerServer[]>().exec();
+export async function listPlayers(): Promise<PlayerRecord[]> {
+  return playerRepository.list();
 }
 
 export const createPlayer = async (
@@ -58,7 +56,7 @@ export const createPlayer = async (
     bootstrapAdminUsername === username ||
     (!bootstrapAdminUsername &&
       process.env.NODE_ENV !== 'production' &&
-      !(await PlayerModel.exists({})));
+      !(await playerRepository.anyExists()));
 
   const newPlayer: PlayerServer = {
     id: Math.random().toString(36).substring(2, 9),
@@ -81,7 +79,7 @@ export const createPlayer = async (
     health: 100,
     inventory: {
       items: [],
-      maxCapacity: 10,
+      maxCapacity: DEFAULT_INVENTORY_CAPACITY,
     },
     equipped: {},
     access: isAdmin ? Access.ADMIN : Access.USER,
@@ -89,7 +87,7 @@ export const createPlayer = async (
     action: CharacterAction.Idle,
   };
 
-  await PlayerModel.create({ ...newPlayer, password });
+  await playerRepository.insert({ ...newPlayer, password });
   return newPlayer;
 };
 
@@ -223,12 +221,12 @@ export function enrichPlayer(player: PlayerServer): Player {
 }
 
 export const getPlayerByName = (username: string): PlayerServer | undefined =>
-  Object.values(players).find((player) => player.name === username);
+  lookupPlayerByName(username);
 
 export async function getPlayerByNameFromDb(
   name: string,
 ): Promise<PlayerRecord | null> {
-  return await PlayerModel.findOne({ name }).lean<PlayerRecord>().exec();
+  return playerRepository.findByName(name);
 }
 
 export const changeSprite = (spriteId: number, username: string) => {

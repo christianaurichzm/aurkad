@@ -4,19 +4,22 @@ import {
   Key,
   MapStateServer,
   PlayerServer,
-  PlayersServerMap,
   Tile,
 } from '../shared/types.js';
 
 import { createOrUpdateMap } from './services/mapService.js';
 import { deleteNpc } from './services/npcService.js';
 
+import { deletePlayer } from './services/playerService.js';
+import { runtimeState } from './sim/state.js';
 import {
-  createOrUpdatePlayer,
-  deletePlayer,
-} from './services/playerService.js';
+  getPlayerById,
+  unregisterPlayer,
+  upsertOnCurrentMap,
+} from './sim/world.js';
+import { markPlayerDirty } from './persistence/dirtyPlayers.js';
 
-export const players: PlayersServerMap = {};
+export { runtimeState } from './sim/state.js';
 
 export const pressedKeysMap = new Map<string, Set<Key>>();
 
@@ -32,10 +35,6 @@ export function createDefaultTiles(): Tile[][] {
 }
 
 export const defaultTiles = createDefaultTiles();
-
-export const runtimeState: GameState = {
-  maps: {},
-};
 
 export const getRuntimeState = (): GameState => runtimeState;
 
@@ -75,43 +74,24 @@ export const updateMapById = async (
 };
 
 export const addPlayer = async (player: PlayerServer): Promise<void> => {
-  players[player.id] = player;
-
-  const map = getMap(player.mapId);
-  if (map) {
-    map.players[player.id] = player;
-  } else {
-    console.warn('addPlayer: Map not found', player.mapId);
-  }
-
-  await createOrUpdatePlayer(player);
+  upsertOnCurrentMap(player);
+  markPlayerDirty(player.id);
 };
 
 export const getPlayer = (playerId: string): PlayerServer | undefined => {
-  const player = players[playerId];
+  const player = getPlayerById(playerId);
   if (!player) console.warn('getPlayer: Player not found', playerId);
   return player;
 };
 
 export const removePlayer = async (playerId: string): Promise<void> => {
-  delete players[playerId];
-  for (const map of Object.values(runtimeState.maps)) {
-    delete map.players[playerId];
-  }
+  unregisterPlayer(playerId);
   await deletePlayer(playerId);
 };
 
 export const updatePlayer = async (player: PlayerServer): Promise<void> => {
-  players[player.id] = player;
-
-  const map = getMap(player.mapId);
-  if (map) {
-    map.players[player.id] = player;
-  } else {
-    console.warn('updatePlayer: Map not found', player.mapId);
-  }
-
-  await createOrUpdatePlayer(player);
+  upsertOnCurrentMap(player);
+  markPlayerDirty(player.id);
 };
 
 export async function deleteNpcEverywhere(id: string): Promise<void> {

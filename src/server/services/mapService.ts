@@ -8,13 +8,11 @@ import {
   Direction,
   CharacterAction,
 } from '../../shared/types.js';
+import { getMap, getPlayer, runtimeState } from '../gameData.js';
 import {
-  getMap,
-  getPlayer,
-  players,
-  updateMap,
-  runtimeState,
-} from '../gameData.js';
+  placePlayerOnMap,
+  detachFromMap,
+} from '../sim/world.js';
 
 import GameMapModel from '../model/Map.js';
 import { getNextMapId } from './dbService.js';
@@ -161,38 +159,19 @@ export const insertNpcs = async (
 };
 
 export const updatePlayerMap = (
-  playerId: string,
+  _playerId: string,
   newState: PlayerServer,
   previousMapId?: string,
 ) => {
-  const prevMapId = previousMapId ?? getPlayer(playerId)?.mapId;
-
-  if (prevMapId && prevMapId !== newState.mapId) {
-    const prevMap = getMap(prevMapId);
-    if (prevMap?.players?.[playerId]) {
-      delete prevMap.players[playerId];
-    }
-  }
-
-  players[playerId] = newState;
-
-  const nextMap = getMap(newState.mapId);
-  if (!nextMap) return;
-  nextMap.players[playerId] = newState;
+  placePlayerOnMap(newState, previousMapId);
 };
 
 export const addPlayerOnMap = (playerId: string) => {
   const player = getPlayer(playerId);
-  const map = player && getMap(player.mapId);
-  if (!map) return;
-  map.players[playerId] = player;
-  return updateMap(map);
+  if (!player) return;
+  return placePlayerOnMap(player);
 };
 
 export const removePlayerFromMap = (playerId: string) => {
-  const player = getPlayer(playerId);
-  const map = player && getMap(player.mapId);
-  if (!map) return;
-  delete map.players[playerId];
-  return updateMap(map);
+  return detachFromMap(playerId);
 };

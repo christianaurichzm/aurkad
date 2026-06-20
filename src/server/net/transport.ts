@@ -94,10 +94,21 @@ function isRateLimited(username: string): boolean {
   return false;
 }
 
+function applyDroppedRelease(action: ActionQueueItem | undefined) {
+  if (
+    action &&
+    'type' in action &&
+    action.type === 'keyboard' &&
+    action.keyboardAction.type === 'release'
+  ) {
+    handleKeyAction(action);
+  }
+}
+
 function enqueueAction(action: ActionQueueItem) {
   const maxSize = config.limits.actionQueueMaxSize;
   if (maxSize > 0 && actionQueue.size >= maxSize) {
-    actionQueue.dequeue();
+    applyDroppedRelease(actionQueue.dequeue());
     droppedQueuedActions++;
 
     const now = Date.now();

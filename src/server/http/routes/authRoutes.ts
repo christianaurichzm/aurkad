@@ -1,9 +1,9 @@
 import bcrypt from 'bcrypt';
 import { Router, type Response } from 'express';
 import type { ExtendedRequest } from '../session.js';
-import { Access, PlayerServer } from '../../../shared/types.js';
+import { Access } from '../../../shared/types.js';
 import { TILE_SIZE } from '../../../shared/constants.js';
-import { players } from '../../gameData.js';
+import { getPlayerById, registerPlayer } from '../../sim/world.js';
 import { addPlayerOnMap } from '../../services/mapService.js';
 import { disconnectPlayer } from '../../services/gameService.js';
 import {
@@ -44,20 +44,15 @@ export function createAuthRouter() {
       await unbanPlayer(username);
     }
 
-    const { password: _pw, ...rest } = playerDoc;
-    const runtimePlayer: PlayerServer = {
-      ...rest,
-      equipped: rest.equipped ?? {},
-      inventory: rest.inventory ?? { items: [], maxCapacity: 10 },
-    };
+    const { password: _pw, ...runtimePlayer } = playerDoc;
 
     const player = enrichPlayer(runtimePlayer);
 
     req.session.username = username;
     req.session.accessLevel = player.access ?? Access.USER;
 
-    if (!players[player.id]) {
-      players[player.id] = runtimePlayer;
+    if (!getPlayerById(player.id)) {
+      registerPlayer(runtimePlayer);
     }
 
     const map = addPlayerOnMap(player.id);

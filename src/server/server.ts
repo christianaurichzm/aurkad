@@ -31,7 +31,7 @@ import {
   stopWebSocketServer,
 } from './wsServer.js';
 import { connectToDatabase, loadInitialData } from './initDb.js';
-import { players } from './gameData.js';
+import { getAllPlayers } from './sim/world.js';
 import { persistPlayerSessionState } from './services/playerService.js';
 import { startPlayerSnapshotLoop } from './persistence/playerSnapshot.js';
 
@@ -103,7 +103,7 @@ async function shutdown(signal: string) {
   await httpClose;
 
   console.log('[Shutdown] Persisting player states...');
-  for (const player of Object.values(players)) {
+  for (const player of getAllPlayers()) {
     await persistPlayerSessionState(player);
   }
 

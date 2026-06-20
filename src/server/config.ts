@@ -1,6 +1,7 @@
 import crypto from 'crypto';
 import { createRequire } from 'module';
 import type { CorsOptions } from 'cors';
+import { TICK_RATE } from '../shared/constants.js';
 
 export type NodeEnv = 'development' | 'production' | 'test';
 
@@ -103,7 +104,7 @@ export const config = {
     }),
   },
   gameLoop: {
-    tickRate: parseIntEnv('TICK_RATE', 20, { min: 1, max: 240 }),
+    tickRate: parseIntEnv('TICK_RATE', TICK_RATE, { min: 1, max: 240 }),
     maxUpdatesPerTick: parseIntEnv('MAX_UPDATES_PER_TICK', 2, {
       min: 1,
       max: 20,
