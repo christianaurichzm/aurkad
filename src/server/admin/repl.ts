@@ -4,7 +4,7 @@ import { banPlayer, unbanPlayer, getBan } from '../services/banService.js';
 import { broadcastChat } from '../net/index.js';
 import { getMetrics } from '../metrics.js';
 import { getChatLog } from '../services/chatService.js';
-import { serverState, type ServerMode } from '../serverState.js';
+import { serverState, isMuted, type ServerMode } from '../serverState.js';
 
 const PROMPT = 'admin> ';
 
@@ -21,7 +21,8 @@ async function handleCommand(cmd: string, args: string[]): Promise<void> {
   switch (cmd) {
     case 'help':
     case '?':
-      out(`
+      out(
+        `
 Commands:
   players              list online players
   maps                 list active maps and entity counts
@@ -34,9 +35,13 @@ Commands:
   stats                show server metrics
   mode [normal|maintenance|gm_only]  get or set server access mode
   motd [message|clear]               get, set or clear the MOTD
+  mute <user> [minutes]              mute a player (permanent if no minutes)
+  unmute <user>                      remove a mute
+  muteinfo <user>                    check if a player is muted
   help                 show this message
   exit | quit          close admin console (server keeps running)
-`.trim());
+`.trim(),
+      );
       break;
 
     case 'players': {
@@ -76,7 +81,10 @@ Commands:
 
     case 'kick': {
       const username = args[0];
-      if (!username) { out('Usage: kick <username>'); break; }
+      if (!username) {
+        out('Usage: kick <username>');
+        break;
+      }
       await kickPlayer(username, 'You were kicked by a server administrator.');
       out(`Kicked ${username}.`);
       break;
@@ -84,16 +92,24 @@ Commands:
 
     case 'ban': {
       const username = args[0];
-      if (!username) { out('Usage: ban <username> [reason] [hours]'); break; }
+      if (!username) {
+        out('Usage: ban <username> [reason] [hours]');
+        break;
+      }
       const hoursArg = args[args.length - 1];
-      const hours = hoursArg && !isNaN(Number(hoursArg)) ? Number(hoursArg) : undefined;
-      const reasonParts = hours !== undefined ? args.slice(1, -1) : args.slice(1);
+      const hours =
+        hoursArg && !isNaN(Number(hoursArg)) ? Number(hoursArg) : undefined;
+      const reasonParts =
+        hours !== undefined ? args.slice(1, -1) : args.slice(1);
       const reason = reasonParts.length > 0 ? reasonParts.join(' ') : undefined;
-      const until = hours !== undefined ? Date.now() + hours * 3600_000 : undefined;
+      const until =
+        hours !== undefined ? Date.now() + hours * 3600_000 : undefined;
       await banPlayer(username, reason, until);
       await kickPlayer(
         username,
-        reason ? `You were banned: ${reason}` : 'You were banned from the game.',
+        reason
+          ? `You were banned: ${reason}`
+          : 'You were banned from the game.',
       );
       const duration = hours !== undefined ? `for ${hours}h` : 'permanently';
       out(`Banned ${username} ${duration}${reason ? `: ${reason}` : ''}.`);
@@ -102,7 +118,10 @@ Commands:
 
     case 'unban': {
       const username = args[0];
-      if (!username) { out('Usage: unban <username>'); break; }
+      if (!username) {
+        out('Usage: unban <username>');
+        break;
+      }
       await unbanPlayer(username);
       out(`Unbanned ${username}.`);
       break;
@@ -110,7 +129,10 @@ Commands:
 
     case 'baninfo': {
       const username = args[0];
-      if (!username) { out('Usage: baninfo <username>'); break; }
+      if (!username) {
+        out('Usage: baninfo <username>');
+        break;
+      }
       const ban = await getBan(username);
       if (!ban) {
         out(`${username} is not banned.`);
@@ -118,15 +140,25 @@ Commands:
         const until = ban.until
           ? `until ${new Date(ban.until).toLocaleString()}`
           : 'permanent';
-        out(`${username} is banned (${until})${ban.reason ? ` - ${ban.reason}` : ''}.`);
+        out(
+          `${username} is banned (${until})${ban.reason ? ` - ${ban.reason}` : ''}.`,
+        );
       }
       break;
     }
 
     case 'broadcast': {
       const message = args.join(' ');
-      if (!message) { out('Usage: broadcast <message>'); break; }
-      broadcastChat({ type: 'chat', scope: 'global', message, username: '[SERVER]' });
+      if (!message) {
+        out('Usage: broadcast <message>');
+        break;
+      }
+      broadcastChat({
+        type: 'chat',
+        scope: 'global',
+        message,
+        username: '[SERVER]',
+      });
       out(`Broadcast sent: ${message}`);
       break;
     }
@@ -162,7 +194,11 @@ Commands:
         out(`Server mode: ${serverState.mode}`);
         break;
       }
-      if (newMode !== 'normal' && newMode !== 'maintenance' && newMode !== 'gm_only') {
+      if (
+        newMode !== 'normal' &&
+        newMode !== 'maintenance' &&
+        newMode !== 'gm_only'
+      ) {
         out('Usage: mode [normal|maintenance|gm_only]');
         break;
       }
@@ -173,7 +209,12 @@ Commands:
           newMode === 'maintenance'
             ? 'Server entering maintenance mode. New logins are restricted.'
             : 'Server is now GM-only. New logins are restricted.';
-        broadcastChat({ type: 'chat', scope: 'global', message: msg, username: '[SERVER]' });
+        broadcastChat({
+          type: 'chat',
+          scope: 'global',
+          message: msg,
+          username: '[SERVER]',
+        });
       }
       break;
     }
@@ -190,6 +231,52 @@ Commands:
       }
       serverState.motd = args.join(' ');
       out(`MOTD set: ${serverState.motd}`);
+      break;
+    }
+
+    case 'mute': {
+      const username = args[0];
+      if (!username) {
+        out('Usage: mute <username> [minutes]');
+        break;
+      }
+      const minutes =
+        args[1] && !isNaN(Number(args[1])) ? Number(args[1]) : undefined;
+      const expiry = minutes !== undefined ? Date.now() + minutes * 60_000 : 0;
+      serverState.mutes.set(username, expiry);
+      const duration =
+        minutes !== undefined ? `for ${minutes}min` : 'permanently';
+      out(`Muted ${username} ${duration}.`);
+      break;
+    }
+
+    case 'unmute': {
+      const username = args[0];
+      if (!username) {
+        out('Usage: unmute <username>');
+        break;
+      }
+      serverState.mutes.delete(username);
+      out(`Unmuted ${username}.`);
+      break;
+    }
+
+    case 'muteinfo': {
+      const username = args[0];
+      if (!username) {
+        out('Usage: muteinfo <username>');
+        break;
+      }
+      if (!isMuted(username)) {
+        out(`${username} is not muted.`);
+      } else {
+        const expiry = serverState.mutes.get(username)!;
+        const until =
+          expiry === 0
+            ? 'permanent'
+            : `until ${new Date(expiry).toLocaleString()}`;
+        out(`${username} is muted (${until}).`);
+      }
       break;
     }
 

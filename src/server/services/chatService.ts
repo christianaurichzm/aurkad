@@ -2,6 +2,9 @@ import { ServerChatAction, ChatMessagePayload } from '../../shared/types.js';
 import type { ClientChatAction } from '../engine/actions.js';
 import { logger } from '../logger.js';
 import { emitGameEvent } from '../engine/eventBus.js';
+import { isMuted } from '../serverState.js';
+import { playersWsMap } from '../net/connections.js';
+import { WebSocket } from 'ws';
 
 export type ChatLogEntry = {
   ts: number;
@@ -29,7 +32,24 @@ function isServerChatAction(
   return !('username' in action);
 }
 
+function sendMutedNotice(username: string) {
+  const ws = playersWsMap.get(username);
+  if (ws?.readyState === WebSocket.OPEN) {
+    const notice: ChatMessagePayload = {
+      type: 'chat',
+      scope: 'player',
+      message: 'You are muted and cannot send messages.',
+    };
+    ws.send(JSON.stringify(notice));
+  }
+}
+
 export function handleChatAction(action: ClientChatAction | ServerChatAction) {
+  if (isClientChatAction(action) && isMuted(action.username)) {
+    sendMutedNotice(action.username);
+    return;
+  }
+
   const payload: ChatMessagePayload = {
     type: 'chat',
     scope: action.scope,
