@@ -78,9 +78,11 @@ export const TilesetModeControls: React.FC = () => {
 
   const handleSave = async () => {
     if (!mapEdited) return;
-    if (confirm('You have unsaved changes. Save now?')) {
+    try {
       await saveCurrentMap(mapName, mapType);
       await loadMapData();
+    } catch {
+      alert('Failed to save map. Please try again.');
     }
   };
 
@@ -121,6 +123,7 @@ export const TilesetModeControls: React.FC = () => {
     <div className="tileset-controls">
       <div style={{ display: 'flex', gap: '15px', alignItems: 'center' }}>
         <button
+          id="saveButton"
           className="editor-btn save-btn"
           onClick={handleSave}
           disabled={!mapEdited}

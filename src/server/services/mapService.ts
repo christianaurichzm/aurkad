@@ -22,7 +22,7 @@ export async function getMapById(id: string): Promise<MapStateServer | null> {
 
 export async function createOrUpdateMap(
   map: Partial<MapStateServer>,
-): Promise<void> {
+): Promise<string> {
   if (!map.id) {
     map.id = (await getNextMapId()).toString();
   }
@@ -43,6 +43,8 @@ export async function createOrUpdateMap(
     upsert: true,
     new: true,
   });
+
+  return map.id;
 }
 
 export async function deleteMap(id: string): Promise<void> {

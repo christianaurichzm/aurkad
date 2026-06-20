@@ -1,21 +1,45 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
   toggleTilesetEditor,
   tilesetEditorInitialized,
+  resetToOriginalMap,
 } from '../../graphics/tileset';
+import { useUIStore } from '../../stores/uiStore';
 import { TilesetModeControls } from './TilesetModeControls';
 import { useDraggable } from '../../hooks/useDraggable';
 
 export const TilesetEditor: React.FC = () => {
   const [visible, setVisible] = useState(false);
+  const visibleRef = useRef(false);
 
   const { ref, pos, onMouseDown } = useDraggable(100, 100);
 
   useEffect(() => {
-    const onToggle = () => setVisible((v) => !v);
+    visibleRef.current = visible;
+  }, [visible]);
+
+  const handleClose = () => {
+    const { mapEdited, setMapEdited } = useUIStore.getState();
+    if (mapEdited) {
+      const discard = confirm('You have unsaved changes. Discard them?');
+      if (!discard) return;
+      resetToOriginalMap();
+      setMapEdited(false);
+    }
+    setVisible(false);
+  };
+
+  useEffect(() => {
+    const onToggle = () => {
+      if (visibleRef.current) {
+        handleClose();
+      } else {
+        setVisible(true);
+      }
+    };
     window.addEventListener('toggleTilesetEditor', onToggle);
     return () => window.removeEventListener('toggleTilesetEditor', onToggle);
-  }, []);
+  }, []); // stable: handleClose reads store/ref directly
 
   useEffect(() => {
     if (visible) {
@@ -53,7 +77,7 @@ export const TilesetEditor: React.FC = () => {
             }}
             onClick={(e) => {
               e.stopPropagation();
-              window.dispatchEvent(new Event('toggleTilesetEditor'));
+              handleClose();
             }}
           >
             X

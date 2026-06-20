@@ -427,14 +427,14 @@ const drawMarker = (col: number, row: number, text: string, color: string) => {
 
 export const saveCurrentMap = async (name: string, type: MapType) => {
   await withLoading('saveButton', async () => {
-    try {
-      await saveMap(map, name, type);
-      setMapEdited(false);
-      originalMap = map.map((row) => row.map((tile) => ({ ...tile })));
-    } catch (error) {
-      console.error('Error saving map:', error);
-    }
+    await saveMap(map, name, type);
+    setMapEdited(false);
+    originalMap = map.map((row) => row.map((tile) => ({ ...tile })));
   });
+};
+
+export const resetToOriginalMap = () => {
+  map = originalMap.map((row) => row.map((t) => ({ ...t })));
 };
 
 export const toggleTilesetEditor = (shouldShow: boolean) => {
@@ -449,22 +449,10 @@ export const toggleTilesetEditor = (shouldShow: boolean) => {
     }
     show('gridCanvas', 'block');
   } else {
-    const mapEdited = useUIStore.getState().mapEdited;
-    if (mapEdited) {
-      const discard = confirm(
-        'You have unsaved changes. Are you sure you want to exit without saving?',
-      );
-      if (discard) {
-        map = originalMap.map((row) => row.map((t) => ({ ...t })));
-      } else {
-        return;
-      }
-    }
     removeEventListeners();
     hide('gridCanvas');
     setMapEdited(false);
     activeMode = null;
-
     tilesetEditorInitialized = false;
   }
 

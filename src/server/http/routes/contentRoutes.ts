@@ -300,8 +300,8 @@ export function createContentRouter() {
     };
 
     try {
-      await createOrUpdateMap({ ...defaultMap, ...mapData });
-      res.status(201).json({ success: true });
+      const mapId = await createOrUpdateMap({ ...defaultMap, ...mapData });
+      res.status(201).json({ success: true, mapId });
     } catch (error) {
       logger.error('Error creating map', { err: error });
       res.status(500).json({ error: 'Failed to create map' });
