@@ -13,6 +13,8 @@
     "db:up": "docker compose up -d",
     "db:down": "docker compose down",
     "db:reset": "docker compose down -v && docker compose up -d",
+    "seed": "node --loader ts-node/esm src/server/model/seed.ts",
+    "dev:seed": "npm run db:reset && sleep 2 && npm run seed && npm run dev",
     "fresh": "npm run db:reset && npm run build && npm start",
     "typecheck": "tsc -p tsconfig.server.json --noEmit && tsc -p tsconfig.client.json --noEmit",
     "lint": "eslint src --ext .ts,.tsx",
