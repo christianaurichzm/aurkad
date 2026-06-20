@@ -10,7 +10,7 @@ import {
 } from '../../utils/domHelpers';
 import { TILE_SIZE } from '../../../shared/constants';
 import { MapType, Tile, TileEditMode } from '../../../shared/types';
-import { tileset } from '../../io/assets';
+import { tileset, tilesetAlpha } from '../../io/assets';
 import { saveMap } from '../../io/network';
 import { foregroundCanvas, foregroundCtx, fringeCtx } from '../canvas';
 import { useUIStore } from '../../stores/uiStore';
@@ -434,7 +434,7 @@ export const renderMapFringe = (tiles: Tile[][]) => {
         const tileX = (tile.tileIndex % tilesPerRow) * TILE_SIZE;
         const tileY = Math.floor(tile.tileIndex / tilesPerRow) * TILE_SIZE;
         fringeCtx.drawImage(
-          tileset,
+          tilesetAlpha,
           tileX,
           tileY,
           TILE_SIZE,
