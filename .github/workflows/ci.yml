@@ -1,0 +1,29 @@
+name: ci
+
+on:
+  push:
+    branches: [main, 'feature/**', 'refactor/**', 'fix/**']
+  pull_request:
+    branches: [main]
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - run: npm ci
+
+      - name: type-check server
+        run: npx tsc -p tsconfig.server.json --noEmit
+
+      - name: type-check client
+        run: npx tsc -p tsconfig.client.json --noEmit
+
+      - name: test
+        run: npm run test:run
