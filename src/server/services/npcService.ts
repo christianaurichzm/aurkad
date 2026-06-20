@@ -8,7 +8,7 @@ export {
 } from './npc/persistenceOps.js';
 
 import { TILE_SIZE } from '../../shared/constants.js';
-import { getRandomPosition } from '../../shared/utils.js';
+import { randomPick } from '../sim/rng.js';
 import {
   MapStateServer,
   Position,
@@ -31,7 +31,7 @@ export const respawnNpc = (mapId: string, npc: RuntimeNpc) => {
   if (!map) return;
 
   const positions = findNpcSpawnPositions(map, npc.id);
-  const newPosition = getRandomPosition(positions);
+  const newPosition = randomPick(positions);
   if (!newPosition) return;
 
   npc.health = npc.maxHealth;

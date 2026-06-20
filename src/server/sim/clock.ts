@@ -6,6 +6,10 @@ export function advanceTick() {
   currentTick++;
 }
 
+export function resetClock() {
+  currentTick = 0;
+}
+
 export function getTick(): number {
   return currentTick;
 }

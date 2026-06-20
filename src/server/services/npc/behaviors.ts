@@ -11,6 +11,7 @@ import { hasCollision } from '../physicsService.js';
 import { respawnPlayer } from '../playerService.js';
 import { updatePlayer } from '../../gameData.js';
 import { queryEntitiesInRadius } from '../../spatial/SpatialManager.js';
+import { randomInt } from '../../sim/rng.js';
 
 export function calculateDirection(
   from: { position: Position },
@@ -78,8 +79,7 @@ export function moveNpcRandomly(npc: RuntimeNpc) {
     { dx: TILE_SIZE, dy: 0, dir: Direction.Right },
   ];
 
-  const { dx, dy, dir } =
-    directions[Math.floor(Math.random() * directions.length)];
+  const { dx, dy, dir } = directions[randomInt(directions.length)];
   const newX = npc.position.x + dx;
   const newY = npc.position.y + dy;
 

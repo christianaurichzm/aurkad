@@ -8,9 +8,22 @@ import { getGameState } from '../services/gameService.js';
 import { ServerActionType } from '../engine/actions.js';
 import { processActions, enqueueServerAction } from '../net/transport.js';
 import { broadcastGameState, flushGameEvents } from '../net/snapshot.js';
-import { advanceTick } from './clock.js';
+import { advanceTick, getTick, msToTicks } from './clock.js';
 
 type TimeoutHandle = ReturnType<typeof setTimeout>;
+
+const NPC_UPDATE_TICKS = msToTicks(1250);
+const REGEN_TICKS = msToTicks(5000);
+
+function scheduledServerActions() {
+  const tick = getTick();
+  if (tick % NPC_UPDATE_TICKS === 0) {
+    enqueueServerAction(ServerActionType.UpdateNpcPositions);
+  }
+  if (tick % REGEN_TICKS === 0) {
+    enqueueServerAction(ServerActionType.RegeneratePlayersHP);
+  }
+}
 
 function rebuildSpatialIndexes() {
   try {
@@ -29,10 +42,11 @@ function rebuildSpatialIndexes() {
 
 const tickSystems: Array<{ name: string; run: () => unknown }> = [
   { name: 'advanceTick', run: advanceTick },
+  { name: 'scheduledServerActions', run: scheduledServerActions },
   { name: 'rebuildSpatialIndexes', run: rebuildSpatialIndexes },
   { name: 'processActions', run: processActions },
-  { name: 'processMovementIntent', run: processMovementIntent },
   { name: 'processMovementCompletion', run: processMovementCompletion },
+  { name: 'processMovementIntent', run: processMovementIntent },
   { name: 'flushGameEvents', run: flushGameEvents },
   { name: 'broadcastGameState', run: broadcastGameState },
 ];
@@ -81,18 +95,8 @@ export function startGameLoops(): () => void {
 
   tick();
 
-  const npcInterval = setInterval(() => {
-    enqueueServerAction(ServerActionType.UpdateNpcPositions);
-  }, 1250);
-
-  const regenInterval = setInterval(() => {
-    enqueueServerAction(ServerActionType.RegeneratePlayersHP);
-  }, 5000);
-
   return () => {
     running = false;
     if (tickTimeout) clearTimeout(tickTimeout);
-    clearInterval(npcInterval);
-    clearInterval(regenInterval);
   };
 }
