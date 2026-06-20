@@ -64,9 +64,7 @@ export function rebuildQuadtree(mapId: string, map: MapStateServer): void {
  * Query entities that could collide with the given character
  * Returns only nearby entities instead of ALL entities
  */
-export function queryNearbyEntities(
-  character: CombatTarget,
-): QuadtreeEntity[] {
+export function queryNearbyEntities(character: CombatTarget): QuadtreeEntity[] {
   if (!character.mapId) return [];
 
   const quadtree = mapQuadtrees.get(character.mapId);

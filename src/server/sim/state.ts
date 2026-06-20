@@ -1,4 +1,8 @@
-import { GameState, PlayerServer, PlayersServerMap } from '../../shared/types.js';
+import {
+  GameState,
+  PlayerServer,
+  PlayersServerMap,
+} from '../../shared/types.js';
 
 export const runtimeState: GameState = {
   maps: {},

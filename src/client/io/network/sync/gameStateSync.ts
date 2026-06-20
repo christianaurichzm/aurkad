@@ -44,7 +44,10 @@ function trackInterpolation(
 ): void {
   for (const [id, entity] of Object.entries(entities)) {
     const prev = store.get(id);
-    if (prev && (prev.x !== entity.position.x || prev.y !== entity.position.y)) {
+    if (
+      prev &&
+      (prev.x !== entity.position.x || prev.y !== entity.position.y)
+    ) {
       onServerPositionUpdate(id, prev, entity.position);
     }
     store.set(id, { ...entity.position });

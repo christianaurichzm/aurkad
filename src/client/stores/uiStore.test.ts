@@ -64,7 +64,8 @@ describe('UIStore - Connection Status', () => {
   });
 
   it('should hide connection status', () => {
-    const { showConnectionStatus, hideConnectionStatus } = useUIStore.getState();
+    const { showConnectionStatus, hideConnectionStatus } =
+      useUIStore.getState();
 
     showConnectionStatus('Test message');
     expect(useUIStore.getState().connectionStatus.visible).toBe(true);
@@ -74,7 +75,8 @@ describe('UIStore - Connection Status', () => {
   });
 
   it('should preserve message when hiding', () => {
-    const { showConnectionStatus, hideConnectionStatus } = useUIStore.getState();
+    const { showConnectionStatus, hideConnectionStatus } =
+      useUIStore.getState();
 
     showConnectionStatus('Test message', true);
     hideConnectionStatus();
@@ -202,7 +204,8 @@ describe('UIStore - Chat State', () => {
   });
 
   it('should preserve messages when clearing input', () => {
-    const { addChatMessage, setChatInput, clearChatInput } = useUIStore.getState();
+    const { addChatMessage, setChatInput, clearChatInput } =
+      useUIStore.getState();
 
     addChatMessage({ type: 'chat', scope: 'map', message: 'Test' });
     setChatInput('New message');

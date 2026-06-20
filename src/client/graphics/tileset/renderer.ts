@@ -7,7 +7,10 @@ let gridCanvas: HTMLCanvasElement;
 let gridCtx: CanvasRenderingContext2D;
 let hoveredCell: { row: number; col: number } | null = null;
 
-export function initRenderer(canvas: HTMLCanvasElement, ctx: CanvasRenderingContext2D) {
+export function initRenderer(
+  canvas: HTMLCanvasElement,
+  ctx: CanvasRenderingContext2D,
+) {
   gridCanvas = canvas;
   gridCtx = ctx;
 }
@@ -16,7 +19,11 @@ export function setHoveredCell(cell: { row: number; col: number } | null) {
   hoveredCell = cell;
 }
 
-export const drawTileOnCanvas = (col: number, row: number, tileIndex: number) => {
+export const drawTileOnCanvas = (
+  col: number,
+  row: number,
+  tileIndex: number,
+) => {
   const tilesPerRow = tileset.width / TILE_SIZE;
   const tileX = (tileIndex % tilesPerRow) * TILE_SIZE;
   const tileY = Math.floor(tileIndex / tilesPerRow) * TILE_SIZE;

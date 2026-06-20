@@ -1,5 +1,9 @@
 import { describe, it, expect } from 'vitest';
-import { CharacterAction, Direction, PlayerServer } from '../../shared/types.js';
+import {
+  CharacterAction,
+  Direction,
+  PlayerServer,
+} from '../../shared/types.js';
 import { toPlayerCold } from './playerService.js';
 
 function mkPlayer(overrides: Partial<PlayerServer> = {}): PlayerServer {

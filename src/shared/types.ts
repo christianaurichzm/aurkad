@@ -211,8 +211,7 @@ export interface PlayerPublic {
   kind: 'player';
 }
 
-export interface Player
-  extends Omit<PlayerServer, 'inventory' | 'equipped'> {
+export interface Player extends Omit<PlayerServer, 'inventory' | 'equipped'> {
   inventory: InventoryItemDetailed[];
   equipped: EquippedItemsDetailed;
 }

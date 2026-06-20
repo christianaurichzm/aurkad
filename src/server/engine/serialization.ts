@@ -96,4 +96,3 @@ export function toMapStateClient(
     ...toMapDynamicClient(map, viewer, interestRadiusPx),
   };
 }
-

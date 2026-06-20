@@ -121,7 +121,9 @@ export function createFixture(seed = 0) {
     items.set(item.id, item);
   }
 
-  function addMap(partial: Partial<MapStateServer> & { id: string }): MapStateServer {
+  function addMap(
+    partial: Partial<MapStateServer> & { id: string },
+  ): MapStateServer {
     const { id, ...rest } = partial;
     const m: MapStateServer = {
       id,
@@ -158,7 +160,11 @@ export function createFixture(seed = 0) {
 
       // Flush key events now that the spatial index is up to date
       for (const ev of pendingKeys) {
-        handleKeyAction({ username: ev.username, type: 'keyboard', keyboardAction: { key: ev.key, type: ev.type } });
+        handleKeyAction({
+          username: ev.username,
+          type: 'keyboard',
+          keyboardAction: { key: ev.key, type: ev.type },
+        });
       }
       pendingKeys.length = 0;
 
@@ -173,5 +179,16 @@ export function createFixture(seed = 0) {
     return p;
   }
 
-  return { map, mapId, addPlayer, addNpc, addItem, addMap, press, release, step, getPlayer };
+  return {
+    map,
+    mapId,
+    addPlayer,
+    addNpc,
+    addItem,
+    addMap,
+    press,
+    release,
+    step,
+    getPlayer,
+  };
 }

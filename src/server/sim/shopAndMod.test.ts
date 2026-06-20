@@ -2,13 +2,14 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import { CharacterAction } from '../../shared/types.js';
 import { TILE_SIZE } from '../../shared/constants.js';
 import { buyShopItem } from '../services/shopService.js';
-import {
-  useItem,
-  equipItem,
-} from '../services/inventoryService.js';
+import { useItem, equipItem } from '../services/inventoryService.js';
 import { changeSprite } from '../services/playerService.js';
 import { updatePlayerMap } from '../services/mapService.js';
-import { getPlayerByName, getAllPlayers, unregisterPlayer } from '../sim/world.js';
+import {
+  getPlayerByName,
+  getAllPlayers,
+  unregisterPlayer,
+} from '../sim/world.js';
 import { createFixture } from './simFixture.js';
 
 let sim: ReturnType<typeof createFixture>;
@@ -23,8 +24,20 @@ beforeEach(() => {
 
 describe('shop', () => {
   it('deducts currency and adds item to inventory on purchase', async () => {
-    const coin = { id: 10, name: 'Coin', description: '', sprite: 0, type: 'money' as const };
-    const sword = { id: 20, name: 'Sword', description: '', sprite: 0, type: 'weapon' as const };
+    const coin = {
+      id: 10,
+      name: 'Coin',
+      description: '',
+      sprite: 0,
+      type: 'money' as const,
+    };
+    const sword = {
+      id: 20,
+      name: 'Sword',
+      description: '',
+      sprite: 0,
+      type: 'weapon' as const,
+    };
     sim.addItem(coin);
     sim.addItem(sword);
 
@@ -45,8 +58,20 @@ describe('shop', () => {
   });
 
   it('refuses purchase when player has insufficient currency', async () => {
-    const coin = { id: 10, name: 'Coin', description: '', sprite: 0, type: 'money' as const };
-    const sword = { id: 20, name: 'Sword', description: '', sprite: 0, type: 'weapon' as const };
+    const coin = {
+      id: 10,
+      name: 'Coin',
+      description: '',
+      sprite: 0,
+      type: 'money' as const,
+    };
+    const sword = {
+      id: 20,
+      name: 'Sword',
+      description: '',
+      sprite: 0,
+      type: 'weapon' as const,
+    };
     sim.addItem(coin);
     sim.addItem(sword);
 
@@ -67,8 +92,20 @@ describe('shop', () => {
   });
 
   it('stacks item quantity if already owned', async () => {
-    const coin = { id: 10, name: 'Coin', description: '', sprite: 0, type: 'money' as const };
-    const potion = { id: 30, name: 'Potion', description: '', sprite: 0, type: 'consumable' as const };
+    const coin = {
+      id: 10,
+      name: 'Coin',
+      description: '',
+      sprite: 0,
+      type: 'money' as const,
+    };
+    const potion = {
+      id: 30,
+      name: 'Potion',
+      description: '',
+      sprite: 0,
+      type: 'consumable' as const,
+    };
     sim.addItem(coin);
     sim.addItem(potion);
 
@@ -100,7 +137,9 @@ describe('inventory', () => {
       description: '',
       sprite: 0,
       type: 'weapon' as const,
-      effects: [{ attribute: 'attack' as const, type: 'add' as const, value: 15 }],
+      effects: [
+        { attribute: 'attack' as const, type: 'add' as const, value: 15 },
+      ],
     };
     sim.addItem(sword);
 
@@ -121,7 +160,9 @@ describe('inventory', () => {
       description: '',
       sprite: 0,
       type: 'weapon' as const,
-      effects: [{ attribute: 'attack' as const, type: 'add' as const, value: 15 }],
+      effects: [
+        { attribute: 'attack' as const, type: 'add' as const, value: 15 },
+      ],
     };
     sim.addItem(sword);
 
@@ -143,7 +184,9 @@ describe('inventory', () => {
       description: '',
       sprite: 0,
       type: 'consumable' as const,
-      effects: [{ attribute: 'health' as const, type: 'add' as const, value: 30 }],
+      effects: [
+        { attribute: 'health' as const, type: 'add' as const, value: 30 },
+      ],
     };
     sim.addItem(potion);
 
@@ -163,7 +206,9 @@ describe('inventory', () => {
       description: '',
       sprite: 0,
       type: 'consumable' as const,
-      effects: [{ attribute: 'health' as const, type: 'add' as const, value: 10 }],
+      effects: [
+        { attribute: 'health' as const, type: 'add' as const, value: 10 },
+      ],
     };
     sim.addItem(potion);
 

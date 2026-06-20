@@ -2,7 +2,12 @@ import {
   MOVEMENT_DURATION,
   RUN_MOVEMENT_DURATION,
 } from '../../shared/constants';
-import { CharacterAction, Player, PlayerPublic, Position } from '../../shared/types';
+import {
+  CharacterAction,
+  Player,
+  PlayerPublic,
+  Position,
+} from '../../shared/types';
 import { getGameState, getPlayer } from '../core/gameState';
 
 interface MovementStep {

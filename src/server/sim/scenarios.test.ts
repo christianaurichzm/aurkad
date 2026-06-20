@@ -39,7 +39,10 @@ describe('player movement', () => {
 
   it('two players cannot overlap on the same tile', () => {
     sim.addPlayer({ name: 'Alice', position: { x: TILE_SIZE, y: TILE_SIZE } });
-    sim.addPlayer({ name: 'Bob', position: { x: 2 * TILE_SIZE, y: TILE_SIZE } });
+    sim.addPlayer({
+      name: 'Bob',
+      position: { x: 2 * TILE_SIZE, y: TILE_SIZE },
+    });
 
     sim.press('Alice', Key.ArrowRight);
     sim.step(10);
@@ -116,7 +119,13 @@ describe('combat', () => {
   });
 
   it('npc dies, drops its item, and respawns at its spawn tile', () => {
-    sim.addItem({ id: 1, name: 'Herb', description: '', sprite: 0, type: 'consumable' });
+    sim.addItem({
+      id: 1,
+      name: 'Herb',
+      description: '',
+      sprite: 0,
+      type: 'consumable',
+    });
 
     sim.addPlayer({
       name: 'Alice',
@@ -180,8 +189,17 @@ describe('combat', () => {
 
 describe('item pickup', () => {
   it('player picks up item on the same tile', () => {
-    sim.addItem({ id: 5, name: 'Potion', description: '', sprite: 0, type: 'consumable' });
-    sim.addPlayer({ name: 'Alice', position: { x: 3 * TILE_SIZE, y: 3 * TILE_SIZE } });
+    sim.addItem({
+      id: 5,
+      name: 'Potion',
+      description: '',
+      sprite: 0,
+      type: 'consumable',
+    });
+    sim.addPlayer({
+      name: 'Alice',
+      position: { x: 3 * TILE_SIZE, y: 3 * TILE_SIZE },
+    });
     sim.map.droppedItems.push({
       itemId: 5,
       sprite: 0,
@@ -197,7 +215,13 @@ describe('item pickup', () => {
   });
 
   it('player ignores item on a different tile', () => {
-    sim.addItem({ id: 6, name: 'Herb', description: '', sprite: 0, type: 'consumable' });
+    sim.addItem({
+      id: 6,
+      name: 'Herb',
+      description: '',
+      sprite: 0,
+      type: 'consumable',
+    });
     sim.addPlayer({ name: 'Alice', position: { x: TILE_SIZE, y: TILE_SIZE } });
     sim.map.droppedItems.push({
       itemId: 6,

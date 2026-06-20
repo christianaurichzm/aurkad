@@ -13,7 +13,12 @@ import {
 } from './world.js';
 
 function mkPlayer(id: string, name: string, mapId: string): PlayerServer {
-  return { id, name, mapId, position: { x: 0, y: 0 } } as unknown as PlayerServer;
+  return {
+    id,
+    name,
+    mapId,
+    position: { x: 0, y: 0 },
+  } as unknown as PlayerServer;
 }
 
 function mkMap(id: string): MapStateServer {

@@ -66,4 +66,3 @@ export const render = () => {
     renderNpcs(map.npcs);
   }
 };
-

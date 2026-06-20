@@ -9,7 +9,11 @@ import { beforeAll, afterAll, beforeEach, describe, it, expect } from 'vitest';
 import mongoose from 'mongoose';
 import { MongoMemoryServer } from 'mongodb-memory-server';
 import { playerRepository } from '../persistence/playerRepository.js';
-import { createPlayer, persistPlayerSessionState, getPlayerByNameFromDb } from '../services/playerService.js';
+import {
+  createPlayer,
+  persistPlayerSessionState,
+  getPlayerByNameFromDb,
+} from '../services/playerService.js';
 import { banPlayer, getBan, unbanPlayer } from '../services/banService.js';
 
 let mongod: MongoMemoryServer;
@@ -42,7 +46,10 @@ describe('player persistence', () => {
     expect(record).not.toBeNull();
     // Mongoose minimize drops `equipped: {}` so the repository must fill it back
     expect(record!.equipped).toEqual({});
-    expect(record!.inventory).toMatchObject({ items: [], maxCapacity: expect.any(Number) });
+    expect(record!.inventory).toMatchObject({
+      items: [],
+      maxCapacity: expect.any(Number),
+    });
   });
 
   it('first registered player gets ADMIN access in non-production', async () => {

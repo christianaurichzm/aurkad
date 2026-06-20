@@ -61,9 +61,7 @@ export const hasCollision = (character: CombatTarget): boolean => {
   const characterCollision = [
     ...Object.values(map.npcs),
     ...Object.values(map.players),
-  ].some(
-    (other) => other.id !== character.id && isColliding(character, other),
-  );
+  ].some((other) => other.id !== character.id && isColliding(character, other));
 
   if (characterCollision) return true;
 

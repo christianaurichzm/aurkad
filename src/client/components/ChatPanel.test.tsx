@@ -37,8 +37,18 @@ describe('ChatPanel Component', () => {
     useUIStore.setState({
       chat: {
         messages: [
-          { type: 'chat', scope: 'map', message: 'Hello world', username: 'Player1' },
-          { type: 'chat', scope: 'global', message: 'Test message', username: 'Player2' },
+          {
+            type: 'chat',
+            scope: 'map',
+            message: 'Hello world',
+            username: 'Player1',
+          },
+          {
+            type: 'chat',
+            scope: 'global',
+            message: 'Test message',
+            username: 'Player2',
+          },
         ],
         inputValue: '',
         scope: 'map',
@@ -55,7 +65,9 @@ describe('ChatPanel Component', () => {
     const user = userEvent.setup();
     render(<ChatPanel />);
 
-    const input = screen.getByPlaceholderText('Mensagem...') as HTMLInputElement;
+    const input = screen.getByPlaceholderText(
+      'Mensagem...',
+    ) as HTMLInputElement;
 
     await user.type(input, 'Hello');
 
@@ -77,7 +89,12 @@ describe('ChatPanel Component', () => {
     useUIStore.setState({
       chat: {
         messages: [
-          { type: 'chat', scope: 'map', message: 'Map message', username: 'Player1' },
+          {
+            type: 'chat',
+            scope: 'map',
+            message: 'Map message',
+            username: 'Player1',
+          },
         ],
         inputValue: '',
         scope: 'map',
@@ -94,7 +111,12 @@ describe('ChatPanel Component', () => {
     useUIStore.setState({
       chat: {
         messages: [
-          { type: 'chat', scope: 'global', message: 'Global message', username: 'Player1' },
+          {
+            type: 'chat',
+            scope: 'global',
+            message: 'Global message',
+            username: 'Player1',
+          },
         ],
         inputValue: '',
         scope: 'map',
@@ -128,7 +150,12 @@ describe('ChatPanel Component', () => {
     useUIStore.setState({
       chat: {
         messages: [
-          { type: 'chat', scope: 'map', message: 'Player1 died', subtype: 'death' },
+          {
+            type: 'chat',
+            scope: 'map',
+            message: 'Player1 died',
+            subtype: 'death',
+          },
         ],
         inputValue: '',
         scope: 'map',
@@ -145,7 +172,12 @@ describe('ChatPanel Component', () => {
     useUIStore.setState({
       chat: {
         messages: [
-          { type: 'chat', scope: 'map', message: 'Hello', username: 'TestUser' },
+          {
+            type: 'chat',
+            scope: 'map',
+            message: 'Hello',
+            username: 'TestUser',
+          },
         ],
         inputValue: '',
         scope: 'map',
@@ -181,7 +213,12 @@ describe('ChatPanel Component', () => {
     useUIStore.setState({
       chat: {
         messages: [
-          { type: 'chat', scope: 'map', message: 'First message', username: 'User1' },
+          {
+            type: 'chat',
+            scope: 'map',
+            message: 'First message',
+            username: 'User1',
+          },
         ],
         inputValue: '',
         scope: 'map',
@@ -194,8 +231,18 @@ describe('ChatPanel Component', () => {
     useUIStore.setState({
       chat: {
         messages: [
-          { type: 'chat', scope: 'map', message: 'First message', username: 'User1' },
-          { type: 'chat', scope: 'map', message: 'Second message', username: 'User2' },
+          {
+            type: 'chat',
+            scope: 'map',
+            message: 'First message',
+            username: 'User1',
+          },
+          {
+            type: 'chat',
+            scope: 'map',
+            message: 'Second message',
+            username: 'User2',
+          },
         ],
         inputValue: '',
         scope: 'map',

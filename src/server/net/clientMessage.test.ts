@@ -33,28 +33,46 @@ describe('ClientMessageSchema', () => {
     });
 
     it('rejects a missing keyboardAction', () => {
-      expect(ClientMessageSchema.safeParse({ type: 'keyboard' }).success).toBe(false);
+      expect(ClientMessageSchema.safeParse({ type: 'keyboard' }).success).toBe(
+        false,
+      );
     });
   });
 
   describe('item', () => {
     it('accepts a use action', () => {
-      const result = ClientMessageSchema.safeParse({ type: 'item', item: 0, action: 'use' });
+      const result = ClientMessageSchema.safeParse({
+        type: 'item',
+        item: 0,
+        action: 'use',
+      });
       expect(result.success).toBe(true);
     });
 
     it('accepts a drop action', () => {
-      const result = ClientMessageSchema.safeParse({ type: 'item', item: 3, action: 'drop' });
+      const result = ClientMessageSchema.safeParse({
+        type: 'item',
+        item: 3,
+        action: 'drop',
+      });
       expect(result.success).toBe(true);
     });
 
     it('rejects an unknown action', () => {
-      const result = ClientMessageSchema.safeParse({ type: 'item', item: 0, action: 'equip' });
+      const result = ClientMessageSchema.safeParse({
+        type: 'item',
+        item: 0,
+        action: 'equip',
+      });
       expect(result.success).toBe(false);
     });
 
     it('rejects a negative item index', () => {
-      const result = ClientMessageSchema.safeParse({ type: 'item', item: -1, action: 'use' });
+      const result = ClientMessageSchema.safeParse({
+        type: 'item',
+        item: -1,
+        action: 'use',
+      });
       expect(result.success).toBe(false);
     });
   });

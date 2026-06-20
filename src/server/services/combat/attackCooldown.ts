@@ -5,7 +5,10 @@ const lastAttackTick = new Map<string, number>();
 
 export function tryConsumeAttackCooldown(id: string, tick: number): boolean {
   const last = lastAttackTick.get(id);
-  if (last !== undefined && tick - last < msToTicks(PLAYER_ATTACK_COOLDOWN_MS)) {
+  if (
+    last !== undefined &&
+    tick - last < msToTicks(PLAYER_ATTACK_COOLDOWN_MS)
+  ) {
     return false;
   }
   lastAttackTick.set(id, tick);

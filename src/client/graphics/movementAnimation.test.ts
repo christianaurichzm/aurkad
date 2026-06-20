@@ -12,10 +12,7 @@ vi.mock('../core/gameState', () => ({
   getPlayer: getPlayerMock,
 }));
 
-import {
-  onServerPositionUpdate,
-  getAnimatedState,
-} from './movementAnimation';
+import { onServerPositionUpdate, getAnimatedState } from './movementAnimation';
 
 const D = MOVEMENT_DURATION;
 let now = 1000;
@@ -49,7 +46,10 @@ describe('movement interpolation', () => {
     expect(pos('e2', { x: TILE_SIZE, y: 0 })).toEqual({ x: 0, y: 0 });
 
     now = 1000 + D / 2;
-    expect(pos('e2', { x: TILE_SIZE, y: 0 })).toEqual({ x: TILE_SIZE / 2, y: 0 });
+    expect(pos('e2', { x: TILE_SIZE, y: 0 })).toEqual({
+      x: TILE_SIZE / 2,
+      y: 0,
+    });
 
     now = 1000 + D;
     expect(pos('e2', { x: TILE_SIZE, y: 0 })).toEqual({ x: TILE_SIZE, y: 0 });
@@ -84,7 +84,11 @@ describe('movement interpolation', () => {
     now = 1000 + D;
     expect(pos('e5', { x: TILE_SIZE, y: 0 })).toEqual({ x: TILE_SIZE, y: 0 });
 
-    onServerPositionUpdate('e5', { x: TILE_SIZE, y: 0 }, { x: 2 * TILE_SIZE, y: 0 });
+    onServerPositionUpdate(
+      'e5',
+      { x: TILE_SIZE, y: 0 },
+      { x: 2 * TILE_SIZE, y: 0 },
+    );
 
     now = 1000 + D + D / 2;
     expect(pos('e5', { x: 2 * TILE_SIZE, y: 0 })).toEqual({
