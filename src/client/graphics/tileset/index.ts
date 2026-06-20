@@ -16,22 +16,11 @@ import { foregroundCanvas, foregroundCtx } from '../canvas';
 import { useUIStore } from '../../stores/uiStore';
 
 type ModeConfig = {
-  button: HTMLButtonElement;
-  textOn: string;
-  textOff: string;
-  styleOn: string;
-  styleOff: string;
   place: (row: number, col: number) => void;
 };
 
 let gridCanvas: HTMLCanvasElement;
 let gridCtx: CanvasRenderingContext2D;
-const blockButton = getEl<HTMLButtonElement>('blockButton')!;
-const warpButton = getEl<HTMLButtonElement>('warpButton')!;
-const npcButton = getEl<HTMLButtonElement>('npcButton')!;
-const itemButton = getEl<HTMLButtonElement>('itemButton')!;
-const shopButton = getEl<HTMLButtonElement>('shopButton')!;
-const avoidNpcButton = getEl<HTMLButtonElement>('avoidNpcButton')!;
 
 let tilesetCanvas: HTMLCanvasElement;
 let tilesetCtx: CanvasRenderingContext2D;
@@ -78,11 +67,6 @@ const handleHover = (event: MouseEvent) => {
 
 const modes: Record<TileEditMode, ModeConfig> = {
   blocking: {
-    button: blockButton,
-    textOn: 'Blocking Mode: ON',
-    textOff: 'Blocking Mode: OFF',
-    styleOn: 'red',
-    styleOff: '',
     place: (row: number, col: number) => {
       map[row][col].blocked = !map[row][col].blocked;
       setMapEdited(true);
@@ -90,11 +74,6 @@ const modes: Record<TileEditMode, ModeConfig> = {
     },
   },
   warping: {
-    button: warpButton,
-    textOn: 'Warp Mode: ON',
-    textOff: 'Warp Mode: OFF',
-    styleOn: 'red',
-    styleOff: '',
     place: (row: number, col: number) => {
       const mapTo = getInputValue('mapTo');
       const xTo = safeParseInt(getInputValue('xTo'));
@@ -114,11 +93,6 @@ const modes: Record<TileEditMode, ModeConfig> = {
     },
   },
   npc: {
-    button: npcButton,
-    textOn: 'Npc Mode: ON',
-    textOff: 'Npc Mode: OFF',
-    styleOn: 'red',
-    styleOff: '',
     place: (row: number, col: number) => {
       const npc = getInputValue('npc');
       if (npc) {
@@ -133,11 +107,6 @@ const modes: Record<TileEditMode, ModeConfig> = {
     },
   },
   item: {
-    button: itemButton,
-    textOn: 'Item Mode: ON',
-    textOff: 'Item Mode: OFF',
-    styleOn: 'red',
-    styleOff: '',
     place: (row: number, col: number) => {
       const item = getInputValue('item');
       if (item) {
@@ -152,11 +121,6 @@ const modes: Record<TileEditMode, ModeConfig> = {
     },
   },
   shop: {
-    button: shopButton,
-    textOn: 'Shop Mode: ON',
-    textOff: 'Shop Mode: OFF',
-    styleOn: 'red',
-    styleOff: '',
     place: (row: number, col: number) => {
       const shop = getInputValue('shop');
       if (shop) {
@@ -171,11 +135,6 @@ const modes: Record<TileEditMode, ModeConfig> = {
     },
   },
   avoidNpc: {
-    button: avoidNpcButton,
-    textOn: 'Avoid NPC Mode: ON',
-    textOff: 'Avoid NPC Mode: OFF',
-    styleOn: 'red',
-    styleOff: '',
     place: (row: number, col: number) => {
       map[row][col].avoidNpc = !map[row][col].avoidNpc;
       setMapEdited(true);
@@ -186,14 +145,6 @@ const modes: Record<TileEditMode, ModeConfig> = {
 
 const toggleMode = (mode: TileEditMode) => {
   activeMode = activeMode === mode ? null : mode;
-  (Object.keys(modes) as TileEditMode[]).forEach((key) => {
-    const isActive = activeMode === key;
-    const m = modes[key];
-    m.button.textContent = isActive ? m.textOn : m.textOff;
-    m.button.style.backgroundColor = isActive ? m.styleOn : m.styleOff;
-    const group = getEl(`${key}Group`);
-    if (group) group.classList.toggle('active', isActive);
-  });
 };
 
 const getMousePosition = (event: MouseEvent, canvas: HTMLCanvasElement) => {

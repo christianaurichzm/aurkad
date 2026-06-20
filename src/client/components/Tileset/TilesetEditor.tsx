@@ -71,7 +71,6 @@ export const TilesetEditor: React.FC = () => {
           }}
         >
           <button
-            className="editor-btn"
             style={{
               position: 'absolute',
               top: 8,
@@ -80,7 +79,7 @@ export const TilesetEditor: React.FC = () => {
               background: 'transparent',
               fontSize: '1.2rem',
               cursor: 'pointer',
-              color: 'black',
+              color: 'inherit',
             }}
             onClick={(e) => {
               e.stopPropagation();
