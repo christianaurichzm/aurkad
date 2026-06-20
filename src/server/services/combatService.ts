@@ -8,6 +8,7 @@ import {
 import { getMap, updatePlayer } from '../gameData.js';
 import { getTick } from '../sim/clock.js';
 import { randomChance } from '../sim/rng.js';
+import { queryEntitiesInRadius } from '../spatial/SpatialManager.js';
 import { tryConsumeAttackCooldown } from './combat/attackCooldown.js';
 import { handleChatAction } from './chatService.js';
 import { getItemById } from './inventoryService.js';
@@ -50,29 +51,29 @@ const findAttackTarget = (
   attacker: PlayerServer,
   map: MapStateServer,
 ): CombatTarget | undefined => {
-  if (map.type === 'pvp') {
-    const opponentPlayers = Object.values(map.players).filter(
-      (player) =>
-        player.id !== attacker.id &&
-        player.health > 0 &&
-        isInAttackRange(attacker, player) &&
-        isFacingTarget(attacker, player),
-    );
-
-    if (opponentPlayers.length > 0) {
-      return opponentPlayers[0];
-    }
-  }
-
-  const npcTargets = Object.values(map.npcs).filter(
-    (npc) =>
-      npc.behavior !== 'neutral' &&
-      npc.health > 0 &&
-      isInAttackRange(attacker, npc) &&
-      isFacingTarget(attacker, npc),
+  const nearby = queryEntitiesInRadius(
+    attacker.mapId,
+    attacker.position.x,
+    attacker.position.y,
+    attacker.attackRange,
   );
 
-  return npcTargets[0];
+  for (const entity of nearby) {
+    if (!entity.id || entity.id === attacker.id) continue;
+
+    const target: CombatTarget | undefined =
+      (map.type === 'pvp' ? map.players[entity.id] : undefined) ??
+      map.npcs[entity.id];
+
+    if (!target || target.health <= 0) continue;
+    if (target.kind === 'npc' && target.behavior === 'neutral') continue;
+    if (!isInAttackRange(attacker, target)) continue;
+    if (!isFacingTarget(attacker, target)) continue;
+
+    return target;
+  }
+
+  return undefined;
 };
 
 export const handleAttack = async (attacker: PlayerServer): Promise<void> => {
