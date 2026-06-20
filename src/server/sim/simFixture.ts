@@ -137,8 +137,8 @@ export function createFixture(seed = 0) {
     return m;
   }
 
-  // Queue key events, processed AFTER the spatial rebuild each tick to match
-  // the real server's order: rebuild → processActions → movement.
+  // Queue key events; processed AFTER the spatial rebuild each tick,
+  // matching the real server's order: rebuild, processActions, movement.
   function press(username: string, key: Key) {
     pendingKeys.push({ username, key, type: 'press' });
   }
