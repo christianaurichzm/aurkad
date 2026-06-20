@@ -41,8 +41,18 @@ describe('Quadtree - Basic Operations', () => {
   });
 
   it('should clear all entities', () => {
-    quadtree.insert({ id: '1', position: { x: 100, y: 100 }, width: 32, height: 32 });
-    quadtree.insert({ id: '2', position: { x: 200, y: 200 }, width: 32, height: 32 });
+    quadtree.insert({
+      id: '1',
+      position: { x: 100, y: 100 },
+      width: 32,
+      height: 32,
+    });
+    quadtree.insert({
+      id: '2',
+      position: { x: 200, y: 200 },
+      width: 32,
+      height: 32,
+    });
 
     quadtree.clear();
     const stats = quadtree.getStats();
@@ -57,16 +67,36 @@ describe('Quadtree - Rectangle Query', () => {
     quadtree = new Quadtree({ x: 0, y: 0, width: 1000, height: 1000 });
 
     // Insert entities at different positions
-    quadtree.insert({ id: '1', position: { x: 100, y: 100 }, width: 32, height: 32 });
-    quadtree.insert({ id: '2', position: { x: 200, y: 200 }, width: 32, height: 32 });
-    quadtree.insert({ id: '3', position: { x: 500, y: 500 }, width: 32, height: 32 });
-    quadtree.insert({ id: '4', position: { x: 900, y: 900 }, width: 32, height: 32 });
+    quadtree.insert({
+      id: '1',
+      position: { x: 100, y: 100 },
+      width: 32,
+      height: 32,
+    });
+    quadtree.insert({
+      id: '2',
+      position: { x: 200, y: 200 },
+      width: 32,
+      height: 32,
+    });
+    quadtree.insert({
+      id: '3',
+      position: { x: 500, y: 500 },
+      width: 32,
+      height: 32,
+    });
+    quadtree.insert({
+      id: '4',
+      position: { x: 900, y: 900 },
+      width: 32,
+      height: 32,
+    });
   });
 
   it('should query entities in small rectangle', () => {
     const results = quadtree.query({ x: 90, y: 90, width: 50, height: 50 });
     expect(results).toHaveLength(1);
-    expect(results[0].id).toBe('1');
+    expect(results[0]!.id).toBe('1');
   });
 
   it('should query entities in medium rectangle', () => {
@@ -93,11 +123,36 @@ describe('Quadtree - Radius Query', () => {
     quadtree = new Quadtree({ x: 0, y: 0, width: 1000, height: 1000 });
 
     // Insert entities in a grid pattern
-    quadtree.insert({ id: '1', position: { x: 500, y: 500 }, width: 32, height: 32 });
-    quadtree.insert({ id: '2', position: { x: 550, y: 500 }, width: 32, height: 32 });
-    quadtree.insert({ id: '3', position: { x: 600, y: 500 }, width: 32, height: 32 });
-    quadtree.insert({ id: '4', position: { x: 500, y: 600 }, width: 32, height: 32 });
-    quadtree.insert({ id: '5', position: { x: 900, y: 900 }, width: 32, height: 32 });
+    quadtree.insert({
+      id: '1',
+      position: { x: 500, y: 500 },
+      width: 32,
+      height: 32,
+    });
+    quadtree.insert({
+      id: '2',
+      position: { x: 550, y: 500 },
+      width: 32,
+      height: 32,
+    });
+    quadtree.insert({
+      id: '3',
+      position: { x: 600, y: 500 },
+      width: 32,
+      height: 32,
+    });
+    quadtree.insert({
+      id: '4',
+      position: { x: 500, y: 600 },
+      width: 32,
+      height: 32,
+    });
+    quadtree.insert({
+      id: '5',
+      position: { x: 900, y: 900 },
+      width: 32,
+      height: 32,
+    });
   });
 
   it('should find entities within small radius', () => {
@@ -193,8 +248,18 @@ describe('Quadtree - Edge Cases', () => {
   });
 
   it('should handle entity at boundary', () => {
-    quadtree.insert({ id: '1', position: { x: 0, y: 0 }, width: 32, height: 32 });
-    quadtree.insert({ id: '2', position: { x: 1000, y: 1000 }, width: 32, height: 32 });
+    quadtree.insert({
+      id: '1',
+      position: { x: 0, y: 0 },
+      width: 32,
+      height: 32,
+    });
+    quadtree.insert({
+      id: '2',
+      position: { x: 1000, y: 1000 },
+      width: 32,
+      height: 32,
+    });
 
     const stats = quadtree.getStats();
     expect(stats.totalEntities).toBe(2);
@@ -202,8 +267,18 @@ describe('Quadtree - Edge Cases', () => {
 
   it('should handle entities outside boundaries', () => {
     // Entities outside bounds might be accepted depending on implementation
-    quadtree.insert({ id: '1', position: { x: -100, y: -100 }, width: 32, height: 32 });
-    quadtree.insert({ id: '2', position: { x: 2000, y: 2000 }, width: 32, height: 32 });
+    quadtree.insert({
+      id: '1',
+      position: { x: -100, y: -100 },
+      width: 32,
+      height: 32,
+    });
+    quadtree.insert({
+      id: '2',
+      position: { x: 2000, y: 2000 },
+      width: 32,
+      height: 32,
+    });
 
     const stats = quadtree.getStats();
     // Implementation may or may not accept out-of-bounds entities
@@ -211,8 +286,18 @@ describe('Quadtree - Edge Cases', () => {
   });
 
   it('should handle overlapping entities', () => {
-    quadtree.insert({ id: '1', position: { x: 100, y: 100 }, width: 64, height: 64 });
-    quadtree.insert({ id: '2', position: { x: 120, y: 120 }, width: 64, height: 64 });
+    quadtree.insert({
+      id: '1',
+      position: { x: 100, y: 100 },
+      width: 64,
+      height: 64,
+    });
+    quadtree.insert({
+      id: '2',
+      position: { x: 120, y: 120 },
+      width: 64,
+      height: 64,
+    });
 
     const results = quadtree.query({ x: 110, y: 110, width: 40, height: 40 });
     // Both entities overlap this query area
@@ -220,9 +305,19 @@ describe('Quadtree - Edge Cases', () => {
   });
 
   it('should handle query outside bounds', () => {
-    quadtree.insert({ id: '1', position: { x: 100, y: 100 }, width: 32, height: 32 });
+    quadtree.insert({
+      id: '1',
+      position: { x: 100, y: 100 },
+      width: 32,
+      height: 32,
+    });
 
-    const results = quadtree.query({ x: 2000, y: 2000, width: 100, height: 100 });
+    const results = quadtree.query({
+      x: 2000,
+      y: 2000,
+      width: 100,
+      height: 100,
+    });
     expect(results).toHaveLength(0);
   });
 });

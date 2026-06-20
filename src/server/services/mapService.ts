@@ -9,10 +9,7 @@ import {
   CharacterAction,
 } from '../../shared/types.js';
 import { getMap, getPlayer, runtimeState } from '../gameData.js';
-import {
-  placePlayerOnMap,
-  detachFromMap,
-} from '../sim/world.js';
+import { placePlayerOnMap, detachFromMap } from '../sim/world.js';
 
 import GameMapModel from '../model/Map.js';
 import { getNextMapId } from './dbService.js';
@@ -32,15 +29,10 @@ export async function createOrUpdateMap(
 
   const previous = runtimeState.maps[map.id];
 
-  const merged: MapStateServer = {
-    ...previous,
-    ...map,
-  };
+  const merged = { ...previous, ...map } as MapStateServer;
 
   const staticChanged =
-    map.tiles !== undefined ||
-    map.name !== undefined ||
-    map.type !== undefined;
+    map.tiles !== undefined || map.name !== undefined || map.type !== undefined;
   if (staticChanged) {
     merged.tilesRevision = (previous?.tilesRevision ?? 0) + 1;
   }
@@ -86,9 +78,9 @@ export const insertItems = async (
   const droppedItems: DroppedItem[] = [];
 
   for (let rowIndex = 0; rowIndex < tiles.length; rowIndex++) {
-    const row = tiles[rowIndex];
+    const row = tiles[rowIndex]!;
     for (let colIndex = 0; colIndex < row.length; colIndex++) {
-      const tile = row[colIndex];
+      const tile = row[colIndex]!;
       if (tile.item) {
         const item = await getItemById(tile.item);
         if (!item) continue;
@@ -117,9 +109,9 @@ export const insertNpcs = async (
   const npcCache = new Map<string, RuntimeNpc | null>();
 
   for (let rowIndex = 0; rowIndex < tiles.length; rowIndex++) {
-    const row = tiles[rowIndex];
+    const row = tiles[rowIndex]!;
     for (let colIndex = 0; colIndex < row.length; colIndex++) {
-      const tile = row[colIndex];
+      const tile = row[colIndex]!;
       const npcId = tile.npcSpawn;
       if (!npcId) continue;
 

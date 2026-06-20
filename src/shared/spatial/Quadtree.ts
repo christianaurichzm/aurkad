@@ -60,7 +60,7 @@ export class Quadtree {
     if (node.children !== null) {
       const index = this.getQuadrant(node, entity);
       if (index !== -1) {
-        this.insertIntoNode(node.children[index], entity);
+        this.insertIntoNode(node.children[index]!, entity);
         return;
       }
     }
@@ -131,7 +131,7 @@ export class Quadtree {
     for (const entity of entitiesToRedistribute) {
       const index = this.getQuadrant(node, entity);
       if (index !== -1) {
-        this.insertIntoNode(node.children[index], entity);
+        this.insertIntoNode(node.children[index]!, entity);
       } else {
         node.entities.push(entity);
       }

@@ -1,7 +1,4 @@
-import {
-  CharacterAction,
-  PersistentNpc,
-} from '../../../shared/types.js';
+import { CharacterAction, PersistentNpc } from '../../../shared/types.js';
 import { runtimeState } from '../../gameData.js';
 import NpcModel from '../../model/Npc.js';
 import { getNextNpcId } from '../dbService.js';
@@ -50,7 +47,7 @@ export async function refreshNpcInRuntime(id: string): Promise<void> {
     for (const [runtimeId, npc] of Object.entries(map.npcs)) {
       if (npc.id === id) {
         map.npcs[runtimeId] = {
-          ...map.npcs[runtimeId],
+          ...map.npcs[runtimeId]!,
           ...updated,
           health: updated.maxHealth,
           action: CharacterAction.Idle,
