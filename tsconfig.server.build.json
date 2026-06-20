@@ -1,0 +1,4 @@
+{
+  "extends": "./tsconfig.server.json",
+  "exclude": ["node_modules", "dist", "**/*.test.ts", "src/server/sim/simFixture.ts"]
+}

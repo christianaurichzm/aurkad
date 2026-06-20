@@ -1,6 +1,7 @@
 {
   "extends": "./tsconfig.base.json",
   "compilerOptions": {
+    "noUncheckedIndexedAccess": true,
     "module": "NodeNext",
     "moduleResolution": "NodeNext",
     "target": "ES2022",
