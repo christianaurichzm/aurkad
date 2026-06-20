@@ -1,11 +1,22 @@
 import { Router, type Request, type Response } from 'express';
 import type { ExtendedRequest } from '../session.js';
-import { Access, type PersistentNpc } from '../../../shared/types.js';
+import { Access } from '../../../shared/types.js';
+import { logger } from '../../logger.js';
 import {
   SPRITE_HEIGHT,
   SPRITE_WIDTH,
   TILE_SIZE,
 } from '../../../shared/constants.js';
+import {
+  parseBody,
+  SaveMapBodySchema,
+  CreateNpcBodySchema,
+  CreateMapBodySchema,
+  UpdateMapBodySchema,
+  CreateItemBodySchema,
+  BuyShopItemBodySchema,
+  AssignPointsBodySchema,
+} from '../bodySchemas.js';
 import checkAccess from '../../checkAccess.js';
 import {
   createDefaultTiles,
@@ -47,12 +58,14 @@ export function createContentRouter() {
     '/saveMap',
     checkAccess(Access.ADMIN),
     async (req: Request, res: Response) => {
-      const { mapId, tiles, name, type } = req.body ?? {};
+      const body = parseBody(SaveMapBodySchema, req.body, res);
+      if (!body) return;
+      const { mapId, tiles, name, type } = body;
       try {
         await mapSave(mapId, tiles, name, type);
         res.status(200).send('Success');
       } catch (e) {
-        console.error('mapSave failed:', e);
+        logger.error('mapSave failed', { err: e });
         res.status(500).send('Failed to save map');
       }
     },
@@ -123,7 +136,7 @@ export function createContentRouter() {
 
   router.get('/maps/:mapId', async (req: Request, res: Response) => {
     try {
-      const { mapId } = req.params;
+      const mapId = req.params['mapId']!;
       const map = await getMapById(mapId);
 
       if (!map) {
@@ -137,11 +150,8 @@ export function createContentRouter() {
         type: map.type,
       });
     } catch (e) {
-      console.error('Error in route /maps/:mapId:', e);
-      res.status(500).json({
-        error: 'Internal server error',
-        details: String(e),
-      });
+      logger.error('Error in route /maps/:mapId', { err: e });
+      res.status(500).json({ error: 'Internal server error' });
     }
   });
 
@@ -160,7 +170,7 @@ export function createContentRouter() {
 
   router.get('/shop/:shopId', async (req: Request, res: Response) => {
     try {
-      const { shopId } = req.params;
+      const shopId = req.params['shopId']!;
       const shop = await getShopById(shopId);
 
       if (!shop) {
@@ -205,40 +215,20 @@ export function createContentRouter() {
         products,
       });
     } catch (e) {
-      console.error('Error in route /shop/:shopId:', e);
-      res.status(500).json({
-        error: 'Internal server error',
-        details: String(e),
-      });
+      logger.error('Error in route /shop/:shopId', { err: e });
+      res.status(500).json({ error: 'Internal server error' });
     }
   });
 
   router.post('/npcs', checkAccess(Access.ADMIN), async (req, res) => {
-    const {
-      name,
-      sprite,
-      maxHealth,
-      attack,
-      behavior,
-      experienceValue,
-      itemsToDrop,
-    }: PersistentNpc = req.body;
+    const body = parseBody(CreateNpcBodySchema, req.body, res);
+    if (!body) return;
 
-    const defaults = {
+    const npcData = {
       width: SPRITE_WIDTH,
       height: SPRITE_HEIGHT,
       attackRange: TILE_SIZE,
-    };
-
-    const npcData = {
-      ...defaults,
-      name,
-      sprite,
-      maxHealth,
-      attack,
-      behavior,
-      experienceValue,
-      itemsToDrop,
+      ...body,
     };
 
     await createOrUpdateNpc(npcData);
@@ -249,14 +239,16 @@ export function createContentRouter() {
     '/players/:id/assignPoints',
     checkAccess(Access.USER),
     async (req: ExtendedRequest, res: Response) => {
-      const { vitality = 0, attack = 0 } = req.body ?? {};
+      const body = parseBody(AssignPointsBodySchema, req.body, res);
+      if (!body) return;
+      const { vitality, attack } = body;
 
       const totalAssigned = vitality + attack;
-      if (totalAssigned <= 0) {
+      if (totalAssigned === 0) {
         return res.status(400).json({ error: 'No points assigned' });
       }
 
-      const player = await getPlayerById(req.params.id);
+      const player = await getPlayerById(req.params['id']!);
       if (!player) {
         return res.status(404).json({ error: 'Player not found' });
       }
@@ -291,11 +283,9 @@ export function createContentRouter() {
   );
 
   router.post('/maps', checkAccess(Access.ADMIN), async (req, res) => {
-    const { name, type } = req.body ?? {};
-
-    if (!name || !type) {
-      return res.status(400).json({ error: 'Missing map name or type' });
-    }
+    const body = parseBody(CreateMapBodySchema, req.body, res);
+    if (!body) return;
+    const { name, type } = body;
 
     const defaultMap = {
       players: {},
@@ -313,14 +303,16 @@ export function createContentRouter() {
       await createOrUpdateMap({ ...defaultMap, ...mapData });
       res.status(201).json({ success: true });
     } catch (error) {
-      console.error('Error creating map:', error);
+      logger.error('Error creating map', { err: error });
       res.status(500).json({ error: 'Failed to create map' });
     }
   });
 
   router.put('/maps/:id', checkAccess(Access.ADMIN), async (req, res) => {
-    const { id } = req.params;
-    const { name, type } = req.body ?? {};
+    const body = parseBody(UpdateMapBodySchema, req.body, res);
+    if (!body) return;
+    const id = req.params['id']!;
+    const { name, type } = body;
 
     try {
       await createOrUpdateMap({
@@ -334,34 +326,33 @@ export function createContentRouter() {
 
       res.status(200).json({ message: 'Map updated successfully.' });
     } catch (error) {
-      console.error('Error updating map:', error);
+      logger.error('Error updating map', { err: error });
       res.status(500).json({ error: 'Failed to update map.' });
     }
   });
 
   router.put('/npcs/:id', checkAccess(Access.ADMIN), async (req, res) => {
-    const { id } = req.params;
-    const updated = await updateNpcAll(id, req.body);
+    const body = parseBody(CreateNpcBodySchema, req.body, res);
+    if (!body) return;
+    const id = req.params['id']!;
+    const updated = await updateNpcAll(id, body);
     if (!updated) {
       return res.status(404).json({ error: 'NPC not found.' });
     }
     res.status(200).json(updated);
   });
   router.delete('/npcs/:id', checkAccess(Access.ADMIN), async (req, res) => {
-    const { id } = req.params;
+    const id = req.params['id']!;
     await deleteNpcEverywhere(id);
     res.status(204).send();
   });
 
   router.post('/items', checkAccess(Access.ADMIN), async (req, res) => {
+    const body = parseBody(CreateItemBodySchema, req.body, res);
+    if (!body) return;
     try {
-      const item = req.body;
-      if (!item?.name || item.sprite === undefined || !item.type) {
-        return res.status(400).json({ error: 'Missing required item fields' });
-      }
-
-      await createOrUpdateItem(item);
-      res.status(201).json(item);
+      await createOrUpdateItem(body);
+      res.status(201).json(body);
     } catch (err) {
       res.status(500).json({ error: 'Failed to create item.' });
     }
@@ -372,8 +363,10 @@ export function createContentRouter() {
     if (Number.isNaN(id)) {
       return res.status(400).json({ error: 'Invalid item id.' });
     }
+    const body = parseBody(CreateItemBodySchema, req.body, res);
+    if (!body) return;
     try {
-      await createOrUpdateItem({ ...req.body, id });
+      await createOrUpdateItem({ ...body, id });
       res.status(200).json({ success: true });
     } catch (err) {
       res.status(500).json({ error: 'Failed to update item.' });
@@ -394,7 +387,9 @@ export function createContentRouter() {
   });
 
   router.post('/shop/buy', checkAccess(Access.USER), async (req, res) => {
-    const { shopId, itemId } = req.body ?? {};
+    const body = parseBody(BuyShopItemBodySchema, req.body, res);
+    if (!body) return;
+    const { shopId, itemId } = body;
     const username = (req as ExtendedRequest).session.username;
 
     if (!username) {

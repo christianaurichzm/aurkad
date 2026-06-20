@@ -1,15 +1,23 @@
 import { Router, type Request, type Response } from 'express';
 import type { ExtendedRequest } from '../session.js';
 import { Access, CharacterAction } from '../../../shared/types.js';
+import {
+  parseBody,
+  PlayerNameBodySchema,
+  ChangeSpriteBodySchema,
+  BanBodySchema,
+  SetSpriteBodySchema,
+  SetAccessBodySchema,
+  GoMapBodySchema,
+  SetMyAccessBodySchema,
+} from '../bodySchemas.js';
 import checkAccess from '../../checkAccess.js';
 import { playersWsMap, broadcast } from '../../wsServer.js';
 import {
   disconnectPlayer,
   handlePlayerUpdate,
 } from '../../services/gameService.js';
-import {
-  updatePlayerMap,
-} from '../../services/mapService.js';
+import { updatePlayerMap } from '../../services/mapService.js';
 import { banPlayer } from '../../services/banService.js';
 import { getPlayerByName, changeSprite } from '../../services/playerService.js';
 
@@ -20,8 +28,10 @@ export function createModRouter() {
     '/mod/changeSprite',
     checkAccess(Access.MOD),
     (req: ExtendedRequest, res: Response) => {
+      const body = parseBody(ChangeSpriteBodySchema, req.body, res);
+      if (!body) return;
       if (req.session.username) {
-        changeSprite(req.body.spriteId, req.session.username);
+        changeSprite(body.spriteId, req.session.username);
         res.status(200).send('Sucess');
       }
     },
@@ -31,7 +41,9 @@ export function createModRouter() {
     '/mod/kick',
     checkAccess(Access.MOD),
     async (req: Request, res: Response) => {
-      const { playerName } = req.body ?? {};
+      const body = parseBody(PlayerNameBodySchema, req.body, res);
+      if (!body) return;
+      const { playerName } = body;
       const player = getPlayerByName(playerName);
 
       if (!player) {
@@ -61,8 +73,9 @@ export function createModRouter() {
     '/mod/ban',
     checkAccess(Access.ADMIN),
     async (req: Request, res: Response) => {
-      const { playerName, reason, until } = req.body ?? {};
-      if (!playerName) return res.status(400).json({ error: 'No player name' });
+      const body = parseBody(BanBodySchema, req.body, res);
+      if (!body) return;
+      const { playerName, reason, until } = body;
       banPlayer(playerName, reason, until);
       const ws = playersWsMap.get(playerName);
       if (ws && ws.readyState === ws.OPEN) {
@@ -87,7 +100,9 @@ export function createModRouter() {
     '/mod/bring',
     checkAccess(Access.MOD),
     (req: ExtendedRequest, res: Response) => {
-      const { playerName } = req.body ?? {};
+      const body = parseBody(PlayerNameBodySchema, req.body, res);
+      if (!body) return;
+      const { playerName } = body;
       const me = getPlayerByName(req.session.username!);
       const target = getPlayerByName(playerName);
 
@@ -113,7 +128,9 @@ export function createModRouter() {
     '/mod/goto',
     checkAccess(Access.MOD),
     (req: ExtendedRequest, res: Response) => {
-      const { playerName } = req.body ?? {};
+      const body = parseBody(PlayerNameBodySchema, req.body, res);
+      if (!body) return;
+      const { playerName } = body;
       const me = getPlayerByName(req.session.username!);
       const target = getPlayerByName(playerName);
 
@@ -139,11 +156,13 @@ export function createModRouter() {
     '/mod/setSprite',
     checkAccess(Access.MOD),
     (req: Request, res: Response) => {
-      const { playerName, spriteId } = req.body ?? {};
+      const body = parseBody(SetSpriteBodySchema, req.body, res);
+      if (!body) return;
+      const { playerName, spriteId } = body;
       const target = getPlayerByName(playerName);
       if (!target) return res.status(404).send('Player not found');
 
-      target.sprite = Number(spriteId);
+      target.sprite = spriteId;
       handlePlayerUpdate(target);
       broadcast();
 
@@ -155,11 +174,13 @@ export function createModRouter() {
     '/mod/setAccess',
     checkAccess(Access.ADMIN),
     (req: Request, res: Response) => {
-      const { playerName, accessLevel } = req.body ?? {};
+      const body = parseBody(SetAccessBodySchema, req.body, res);
+      if (!body) return;
+      const { playerName, accessLevel } = body;
       const target = getPlayerByName(playerName);
       if (!target) return res.status(404).send('Player not found');
 
-      target.access = accessLevel as Access;
+      target.access = accessLevel;
       handlePlayerUpdate(target);
       broadcast();
 
@@ -171,7 +192,9 @@ export function createModRouter() {
     '/mod/gomap',
     checkAccess(Access.MOD),
     (req: ExtendedRequest, res: Response) => {
-      const { mapId } = req.body ?? {};
+      const body = parseBody(GoMapBodySchema, req.body, res);
+      if (!body) return;
+      const { mapId } = body;
       const me = getPlayerByName(req.session.username!);
       if (!me) return res.status(404).send('Player not found');
 
@@ -195,13 +218,15 @@ export function createModRouter() {
     '/mod/setMyAccess',
     checkAccess(Access.ADMIN),
     (req: ExtendedRequest, res: Response) => {
-      const { accessLevel } = req.body ?? {};
+      const body = parseBody(SetMyAccessBodySchema, req.body, res);
+      if (!body) return;
+      const { accessLevel } = body;
       const me = getPlayerByName(req.session.username!);
       if (!me) return res.status(404).send('Player not found');
 
-      me.access = accessLevel as Access;
+      me.access = accessLevel;
       handlePlayerUpdate(me);
-      req.session.accessLevel = accessLevel as Access;
+      req.session.accessLevel = accessLevel;
       req.session.save(() => {});
       broadcast();
 

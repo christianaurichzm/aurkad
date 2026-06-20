@@ -7,6 +7,7 @@ declare module 'express-session' {
   interface SessionData {
     username: PlayerServer['name'];
     accessLevel: Access;
+    assetKey: string;
   }
 }
 

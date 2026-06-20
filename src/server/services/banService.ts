@@ -6,7 +6,7 @@ export async function getBan(username: string) {
 
 export async function banPlayer(
   username: string,
-  reason: string,
+  reason?: string,
   until?: number,
 ) {
   await BanModel.findOneAndUpdate(

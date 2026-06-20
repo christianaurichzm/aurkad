@@ -52,21 +52,20 @@ function parseCsvEnv(key: string): string[] | undefined {
 
 const corsAllowedOrigins = parseCsvEnv('CORS_ALLOWED_ORIGINS') ?? ['*'];
 
+if (nodeEnv === 'production' && !process.env.SESSION_SECRET) {
+  throw new Error(
+    '[config] SESSION_SECRET must be set in production. Use a secure random string (e.g. openssl rand -hex 32).',
+  );
+}
+
+if (nodeEnv === 'production' && !process.env.CORS_ALLOWED_ORIGINS) {
+  process.stderr.write(
+    '[config] WARN: CORS_ALLOWED_ORIGINS not set; allowing any Origin in production.\n',
+  );
+}
+
 const sessionSecret =
   process.env.SESSION_SECRET ?? crypto.randomBytes(32).toString('hex');
-
-if (nodeEnv === 'production') {
-  if (!process.env.SESSION_SECRET) {
-    console.warn(
-      '[config] SESSION_SECRET not set; using an ephemeral secret (sessions will reset on restart).',
-    );
-  }
-  if (!process.env.CORS_ALLOWED_ORIGINS) {
-    console.warn(
-      '[config] CORS_ALLOWED_ORIGINS not set; allowing any Origin (set a comma-separated allowlist in production).',
-    );
-  }
-}
 
 export const config = {
   nodeEnv,
