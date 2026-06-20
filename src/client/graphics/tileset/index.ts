@@ -209,6 +209,7 @@ const getMousePosition = (event: MouseEvent, canvas: HTMLCanvasElement) => {
 };
 
 const startSelecting = (event: MouseEvent) => {
+  event.stopPropagation();
   const { x, y } = getMousePosition(event, tilesetCanvas);
   selectedTile.startX = Math.floor(x / TILE_SIZE);
   selectedTile.startY = Math.floor(y / TILE_SIZE);
