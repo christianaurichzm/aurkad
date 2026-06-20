@@ -28,6 +28,22 @@ interface MapState {
   type: 'normal' | 'pvp';
 }
 
+export type DialogKind = 'info' | 'error' | 'confirm';
+
+export interface DialogOptions {
+  title: string;
+  message: string;
+  kind?: DialogKind;
+  confirmLabel?: string;
+  cancelLabel?: string;
+}
+
+interface DialogState extends Required<Omit<DialogOptions, 'kind'>> {
+  visible: boolean;
+  kind: DialogKind;
+  resolve?: (confirmed: boolean) => void;
+}
+
 interface UIState {
   mapEdited: boolean;
   setMapEdited: (edited: boolean) => void;
@@ -47,6 +63,10 @@ interface UIState {
   setChatInput: (value: string) => void;
   setChatScope: (scope: ChatScope) => void;
   clearChatInput: () => void;
+
+  dialog: DialogState;
+  showDialog: (options: DialogOptions) => Promise<boolean>;
+  closeDialog: (confirmed: boolean) => void;
 }
 
 export const useUIStore = create<UIState>((set) => ({
@@ -126,4 +146,41 @@ export const useUIStore = create<UIState>((set) => ({
         inputValue: '',
       },
     })),
+
+  dialog: {
+    visible: false,
+    title: '',
+    message: '',
+    kind: 'info',
+    confirmLabel: 'OK',
+    cancelLabel: 'Cancel',
+  },
+  showDialog: (options) =>
+    new Promise<boolean>((resolve) => {
+      set({
+        dialog: {
+          visible: true,
+          title: options.title,
+          message: options.message,
+          kind: options.kind ?? 'info',
+          confirmLabel: options.confirmLabel ?? 'OK',
+          cancelLabel: options.cancelLabel ?? 'Cancel',
+          resolve,
+        },
+      });
+    }),
+  closeDialog: (confirmed) =>
+    set((state) => {
+      state.dialog.resolve?.(confirmed);
+      return {
+        dialog: {
+          visible: false,
+          title: '',
+          message: '',
+          kind: 'info',
+          confirmLabel: 'OK',
+          cancelLabel: 'Cancel',
+        },
+      };
+    }),
 }));

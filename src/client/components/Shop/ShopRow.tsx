@@ -3,6 +3,8 @@ import { ITEM_SIZE } from '../../../shared/constants';
 import { ProductDetailed } from '../../../shared/types';
 import { drawItemGeneric } from '../../graphics/render';
 import { buyShopItem } from '../../io/network';
+import { useUIStore } from '../../stores/uiStore';
+import { colors, radius } from '../../theme';
 
 interface ShopRowProps {
   shopId: string;
@@ -51,7 +53,11 @@ export const ShopRow: React.FC<ShopRowProps> = ({
     if (res?.success) {
       onBought();
     } else {
-      alert(res?.message || 'Error purchasing.');
+      await useUIStore.getState().showDialog({
+        title: 'Purchase failed',
+        message: res?.message || 'Error purchasing.',
+        kind: 'error',
+      });
       setBuying(false);
     }
   };
@@ -62,10 +68,10 @@ export const ShopRow: React.FC<ShopRowProps> = ({
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'space-between',
-        background: '#f5f5f5',
-        border: '1px solid #ddd',
+        background: colors.surfaceMuted,
+        border: `1px solid ${colors.border}`,
         padding: 8,
-        borderRadius: 8,
+        borderRadius: radius.lg,
       }}
     >
       <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
@@ -85,10 +91,10 @@ export const ShopRow: React.FC<ShopRowProps> = ({
         disabled={buying}
         style={{
           padding: '4px 10px',
-          background: '#4caf50',
+          background: colors.primary,
           color: '#fff',
           border: 'none',
-          borderRadius: 6,
+          borderRadius: radius.md,
           cursor: 'pointer',
         }}
       >

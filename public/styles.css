@@ -4,6 +4,24 @@
   padding: 0;
 }
 
+:root {
+  --color-primary: #2ecc40;
+  --color-primary-hover: #219b3a;
+  --color-danger: #e74c3c;
+  --color-info: #3498db;
+  --color-warning: #f1c40f;
+  --color-surface: #ffffff;
+  --color-text: #333333;
+  --z-canvas-base: 1;
+  --z-canvas-items: 2;
+  --z-canvas-grid: 3;
+  --z-canvas-actors: 4;
+  --z-game-overlay: 50;
+  --z-hud: 100;
+  --z-panel: 150;
+  --z-editor: 500;
+}
+
 body {
   font-family: Arial, sans-serif;
   overflow: hidden;
@@ -50,23 +68,23 @@ body {
 }
 
 #foregroundCanvas {
-  z-index: 1;
+  z-index: var(--z-canvas-base);
   background-color: #666;
 }
 #itemCanvas {
-  z-index: 2;
+  z-index: var(--z-canvas-items);
   pointer-events: none;
   background: transparent;
 }
 #gridCanvas {
-  z-index: 3;
+  z-index: var(--z-canvas-grid);
   pointer-events: none;
   background: transparent;
   position: absolute;
   display: none;
 }
 #playerCanvas {
-  z-index: 4;
+  z-index: var(--z-canvas-actors);
   pointer-events: none;
   background: transparent;
 }
@@ -76,14 +94,14 @@ body {
   display: none;
   width: 64px;
   height: 64px;
-  z-index: 50;
+  z-index: var(--z-game-overlay);
 }
 
 #tilesetContainer {
   position: fixed;
   top: 0;
   left: 0;
-  z-index: 500;
+  z-index: var(--z-editor);
   width: 512px;
   height: 896px;
   background: rgba(255, 255, 255, 0.95);
@@ -101,7 +119,7 @@ body {
 #tilesetContainer > button#saveButton {
   align-self: flex-end;
   padding: 6px 12px;
-  background: #2ecc40;
+  background: var(--color-primary);
   color: #fff;
   border: none;
   border-radius: 4px;
@@ -124,7 +142,7 @@ body {
   padding: 8px 15px;
   border-radius: 6px;
   color: white;
-  z-index: 100;
+  z-index: var(--z-hud);
   font-size: 14px;
   display: flex;
   align-items: center;
@@ -144,7 +162,7 @@ body {
 
 #health-bar {
   height: 100%;
-  background: #2ecc40;
+  background: var(--color-primary);
   width: 71%;
   transition: width 0.3s ease;
   position: absolute;
@@ -176,7 +194,7 @@ body {
   bottom: 15px;
   left: 15px;
   width: 320px;
-  z-index: 100;
+  z-index: var(--z-hud);
   background: rgba(0, 0, 0, 0.4);
   border-radius: 8px;
   padding: 10px;
@@ -185,19 +203,19 @@ body {
 }
 
 #chatBox .chat-global {
-  color: #2ecc40;
+  color: var(--color-primary);
 }
 
 #chatBox .chat-map {
-  color: #3498db;
+  color: var(--color-info);
 }
 
 #chatBox .chat-player {
-  color: #f1c40f;
+  color: var(--color-warning);
 }
 
 #chatBox .chat-death {
-  color: #e74c3c;
+  color: var(--color-danger);
 }
 
 #chatBox .chat-global,
@@ -263,8 +281,8 @@ body {
 }
 
 .editor-menu {
-  background: #fff;
-  border: 2px solid #2ecc40;
+  background: var(--color-surface);
+  border: 2px solid var(--color-primary);
   border-radius: 16px;
   box-shadow: 0 5px 25px rgba(0, 0, 0, 0.3);
   padding: 25px 20px;
@@ -276,8 +294,8 @@ body {
   flex-direction: column;
   gap: 20px;
   position: absolute;
-  z-index: 150;
-  color: #333;
+  z-index: var(--z-panel);
+  color: var(--color-text);
 }
 
 #modContainer {
@@ -297,7 +315,7 @@ body {
   width: 100%;
   height: 100%;
   pointer-events: none;
-  z-index: 50;
+  z-index: var(--z-game-overlay);
   display: flex;
   flex-direction: column;
   align-items: center;

@@ -1,5 +1,6 @@
 import type { WsClientMessage } from '../../../shared/wsProtocol';
 import { hideConnectionStatus, showConnectionStatus } from '../../graphics/hud';
+import { useUIStore } from '../../stores/uiStore';
 import { enqueueGameStateMessage } from './sync/gameStateSync';
 import { enqueueChatMessage, setChatSocketSender } from './sync/chatSync';
 
@@ -10,6 +11,7 @@ export const WS_URL = `${clientWsProtocol}://${clientHost}/ws`;
 
 let socket: WebSocket;
 let reconnectAttempts = 0;
+let kicked = false;
 
 const scheduleReconnect = () => {
   if (socket && socket.readyState === WebSocket.OPEN) {
@@ -27,6 +29,7 @@ const scheduleReconnect = () => {
 
 export const initializeWebSocket = () => {
   try {
+    kicked = false;
     socket = new WebSocket(WS_URL);
   } catch (err) {
     console.error('Failed to create WebSocket:', err);
@@ -52,8 +55,17 @@ export const initializeWebSocket = () => {
           enqueueChatMessage(data);
           break;
         case 'kick':
-          alert(data.message || 'You have been kicked from the game.');
-          window.location.reload();
+          kicked = true;
+          void useUIStore
+            .getState()
+            .showDialog({
+              title: 'Disconnected',
+              message: data.message || 'You have been kicked from the game.',
+              kind: 'error',
+              confirmLabel: 'Reload',
+            })
+            .finally(() => window.location.reload());
+          socket.close();
           break;
         case 'openShop':
           if (data.shopId) {
@@ -76,6 +88,7 @@ export const initializeWebSocket = () => {
 
   socket.onclose = () => {
     console.warn('WebSocket closed');
+    if (kicked) return;
     showConnectionStatus('Disconnected. Reconnecting...', true);
     scheduleReconnect();
   };

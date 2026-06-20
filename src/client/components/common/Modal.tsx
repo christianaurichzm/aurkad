@@ -1,5 +1,6 @@
 import React, { ReactNode } from 'react';
 import { useDraggable } from '../../hooks/useDraggable';
+import { colors, radius, shadow, zIndex } from '../../theme';
 
 interface ModalProps {
   title: string;
@@ -24,15 +25,15 @@ export const Modal: React.FC<ModalProps> = ({
       position: 'fixed' as const,
       inset: 0,
       backgroundColor: 'rgba(0, 0, 0, 0)',
-      zIndex: 1000,
+      zIndex: zIndex.modalOverlay,
     },
     container: {
       position: 'fixed' as const,
-      backgroundColor: '#fff',
-      border: '1px solid #ccc',
-      borderRadius: 12,
-      boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)',
-      zIndex: 1001,
+      backgroundColor: colors.surface,
+      border: `1px solid ${colors.border}`,
+      borderRadius: radius.lg,
+      boxShadow: shadow.modal,
+      zIndex: zIndex.modal,
       display: 'flex',
       flexDirection: 'column' as const,
       maxHeight: '80vh',
@@ -47,7 +48,7 @@ export const Modal: React.FC<ModalProps> = ({
       justifyContent: 'center',
       padding: 12,
       position: 'relative' as const,
-      borderBottom: '1px solid #ddd',
+      borderBottom: `1px solid ${colors.border}`,
       cursor: 'move',
       userSelect: 'none' as const,
     },
@@ -63,7 +64,7 @@ export const Modal: React.FC<ModalProps> = ({
       transform: 'translateY(-50%)',
       width: 24,
       height: 24,
-      backgroundColor: '#eee',
+      backgroundColor: colors.surfaceMuted,
       border: 'none',
       borderRadius: '50%',
       fontWeight: 'bold' as const,
@@ -88,10 +89,10 @@ export const Modal: React.FC<ModalProps> = ({
             style={styles.closeButton}
             onClick={onClose}
             onMouseEnter={(e) =>
-              (e.currentTarget.style.backgroundColor = '#ddd')
+              (e.currentTarget.style.backgroundColor = colors.border)
             }
             onMouseLeave={(e) =>
-              (e.currentTarget.style.backgroundColor = '#eee')
+              (e.currentTarget.style.backgroundColor = colors.surfaceMuted)
             }
           >
             x

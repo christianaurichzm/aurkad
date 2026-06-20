@@ -3,6 +3,7 @@ import { MapStateClient, MapType } from '../../../shared/types';
 import { AsyncSelect } from '../common/Select/AsyncSelect';
 import { chatResultMsg } from '../ChatPanel';
 import { updateMap, createMap } from '../../io/network';
+import { colors, radius } from '../../theme';
 
 interface MapEditorProps {
   maps: MapStateClient[];
@@ -130,11 +131,11 @@ const styles = {
     marginTop: 5,
   },
   btn: {
-    background: '#2ecc40',
+    background: colors.primary,
     color: '#fff',
     border: 'none',
     padding: '9px 16px',
-    borderRadius: 6,
+    borderRadius: radius.md,
     cursor: 'pointer',
     fontWeight: 600,
     fontSize: 14,

@@ -5,6 +5,7 @@ import { updateItem, createItem, deleteItem } from '../../io/network';
 import { chatResultMsg } from '../ChatPanel';
 import { AsyncSelect } from '../common/Select/AsyncSelect';
 import { ItemIcon } from '../Inventory/ItemIcon';
+import { colors, radius } from '../../theme';
 
 interface ItemEditorProps {
   items: Item[];
@@ -180,11 +181,11 @@ const styles = {
     marginTop: 5,
   },
   btn: {
-    background: '#2ecc40',
+    background: colors.primary,
     color: '#fff',
     border: 'none',
     padding: '9px 16px',
-    borderRadius: 6,
+    borderRadius: radius.md,
     cursor: 'pointer',
     fontWeight: 600,
     fontSize: 14,
@@ -193,6 +194,6 @@ const styles = {
     textAlign: 'center' as const,
   },
   btnDanger: {
-    background: '#e74c3c',
+    background: colors.danger,
   },
 };

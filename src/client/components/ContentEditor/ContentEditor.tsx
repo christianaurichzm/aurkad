@@ -6,6 +6,7 @@ import { MapEditor } from './MapEditor';
 import { RuntimeNpc, Item, MapStateClient } from '../../../shared/types';
 import { fetchNpcs, fetchItems, fetchMaps } from '../../io/network';
 import { useGame } from '../../context/GameContext';
+import { colors, radius, shadow, zIndex } from '../../theme';
 
 export const ContentEditor: React.FC = () => {
   const { map: currentMap } = useGame();
@@ -78,10 +79,10 @@ const styles = {
     position: 'absolute' as const,
     top: 15,
     right: 15,
-    background: '#fff',
-    border: '2px solid #2ecc40',
-    borderRadius: 16,
-    boxShadow: '0 5px 25px rgba(0,0,0,0.3)',
+    background: colors.surface,
+    border: `2px solid ${colors.primary}`,
+    borderRadius: radius.lg,
+    boxShadow: shadow.panel,
     padding: '25px 20px',
     width: 400,
     maxWidth: '95vw',
@@ -90,7 +91,7 @@ const styles = {
     display: 'flex' as const,
     flexDirection: 'column' as const,
     gap: 20,
-    zIndex: 150,
+    zIndex: zIndex.panel,
   },
   closeBtn: {
     position: 'absolute' as const,
@@ -103,7 +104,7 @@ const styles = {
   },
   title: {
     margin: 0,
-    color: '#16913c',
+    color: colors.primary,
     fontWeight: 700,
     textAlign: 'center' as const,
     fontSize: '1.4rem',

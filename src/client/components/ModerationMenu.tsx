@@ -13,6 +13,7 @@ import {
 } from '../io/network';
 import { displayChatMessage, chatResultMsg } from './ChatPanel';
 import { SelectOption, Select } from './common/Select/Select';
+import { colors, radius, shadow, zIndex } from '../theme';
 
 export const ModerationMenu: React.FC = () => {
   const [visible, setVisible] = useState(false);
@@ -73,10 +74,7 @@ export const ModerationMenu: React.FC = () => {
 
   return (
     <div style={styles.container}>
-      <button
-        style={styles.closeBtn}
-        onClick={() => window.dispatchEvent(new Event('closeModMenu'))}
-      >
+      <button style={styles.closeBtn} onClick={() => setVisible(false)}>
         x
       </button>
       <h3 style={styles.title}>Moderation Menu</h3>
@@ -286,12 +284,12 @@ const styles = {
     display: 'flex' as const,
     flexDirection: 'column' as const,
     gap: 15,
-    background: '#fff',
+    background: colors.surface,
     padding: 20,
-    borderRadius: 8,
-    boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+    borderRadius: radius.lg,
+    boxShadow: shadow.raised,
     maxWidth: 320,
-    zIndex: 100,
+    zIndex: zIndex.hud,
   },
   closeBtn: {
     position: 'absolute' as const,
@@ -304,14 +302,14 @@ const styles = {
   },
   title: {
     margin: 0,
-    color: '#16913c',
+    color: colors.primary,
     fontWeight: 700,
     textAlign: 'center' as const,
     fontSize: '1.2rem',
   },
   group: {
     background: '#f9f9f9',
-    borderRadius: 12,
+    borderRadius: radius.lg,
     padding: '18px 15px',
     display: 'flex' as const,
     flexDirection: 'column' as const,
@@ -321,7 +319,7 @@ const styles = {
   groupTitle: {
     margin: 0,
     marginBottom: 5,
-    color: '#333',
+    color: colors.text,
     fontWeight: 700,
     fontSize: '1rem',
     textAlign: 'left' as const,
@@ -351,11 +349,11 @@ const styles = {
     flexWrap: 'wrap' as const,
   },
   btn: {
-    background: '#2ecc40',
+    background: colors.primary,
     color: '#fff',
     border: 'none',
     padding: '9px 16px',
-    borderRadius: 6,
+    borderRadius: radius.md,
     cursor: 'pointer',
     fontWeight: 600,
     fontSize: 14,
@@ -369,7 +367,7 @@ const styles = {
     flexGrow: 0,
   },
   btnDanger: {
-    background: '#e74c3c',
+    background: colors.danger,
   },
   divider: {
     border: 'none',
@@ -388,7 +386,7 @@ const styles = {
     alignItems: 'stretch' as const,
     backgroundColor: '#fff0f0',
     padding: 10,
-    borderRadius: 5,
+    borderRadius: radius.sm,
     border: '1px solid #f0c0c0',
   },
 };

@@ -7,6 +7,7 @@ import {
 import { useUIStore } from '../../stores/uiStore';
 import { TilesetModeControls } from './TilesetModeControls';
 import { useDraggable } from '../../hooks/useDraggable';
+import { zIndex } from '../../theme';
 
 export const TilesetEditor: React.FC = () => {
   const [visible, setVisible] = useState(false);
@@ -18,10 +19,16 @@ export const TilesetEditor: React.FC = () => {
     visibleRef.current = visible;
   }, [visible]);
 
-  const handleClose = () => {
+  const handleClose = async () => {
     const { mapEdited, setMapEdited } = useUIStore.getState();
     if (mapEdited) {
-      const discard = confirm('You have unsaved changes. Discard them?');
+      const discard = await useUIStore.getState().showDialog({
+        title: 'Discard map changes?',
+        message: 'You have unsaved changes. Discard them?',
+        kind: 'confirm',
+        confirmLabel: 'Discard',
+        cancelLabel: 'Keep editing',
+      });
       if (!discard) return;
       resetToOriginalMap();
       setMapEdited(false);
@@ -32,7 +39,7 @@ export const TilesetEditor: React.FC = () => {
   useEffect(() => {
     const onToggle = () => {
       if (visibleRef.current) {
-        handleClose();
+        void handleClose();
       } else {
         setVisible(true);
       }
@@ -60,7 +67,7 @@ export const TilesetEditor: React.FC = () => {
             position: 'fixed',
             top: pos.y,
             left: pos.x,
-            zIndex: 500,
+            zIndex: zIndex.editor,
           }}
         >
           <button
@@ -77,7 +84,7 @@ export const TilesetEditor: React.FC = () => {
             }}
             onClick={(e) => {
               e.stopPropagation();
-              handleClose();
+              void handleClose();
             }}
           >
             X

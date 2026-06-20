@@ -1,5 +1,6 @@
 import React from 'react';
 import { useUIStore } from '../../stores/uiStore';
+import { colors, radius, shadow, zIndex } from '../../theme';
 
 export const ConnectionStatus: React.FC = () => {
   const connectionStatus = useUIStore((state) => state.connectionStatus);
@@ -15,13 +16,15 @@ export const ConnectionStatus: React.FC = () => {
         left: '50%',
         transform: 'translateX(-50%)',
         padding: '10px 20px',
-        background: connectionStatus.isError ? '#c0392b' : '#27ae60',
+        background: connectionStatus.isError
+          ? colors.dangerDark
+          : colors.success,
         color: 'white',
-        borderRadius: 4,
+        borderRadius: radius.sm,
         fontWeight: 'bold',
         fontSize: 14,
-        zIndex: 10000,
-        boxShadow: '0 2px 8px rgba(0,0,0,0.2)',
+        zIndex: zIndex.toast,
+        boxShadow: shadow.raised,
       }}
     >
       {connectionStatus.message}

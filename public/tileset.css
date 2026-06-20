@@ -5,12 +5,12 @@
 }
 
 .close-btn {
-  background: #2ecc40;
+  background: var(--color-primary);
   margin-bottom: 12px;
 }
 
 .save-btn {
-  background: #2ecc40;
+  background: var(--color-primary);
   margin-bottom: 12px;
 }
 
@@ -41,7 +41,7 @@
 }
 
 .editor-btn {
-  background: #2ecc40;
+  background: var(--color-primary);
   color: #fff;
   border: none;
   padding: 8px 14px;
@@ -57,10 +57,9 @@
 }
 
 .editor-btn:hover {
-  background: #219b3a;
+  background: var(--color-primary-hover);
 }
 
 .editor-btn.active {
-  background: #e74c3c !important;
+  background: var(--color-danger) !important;
 }
-

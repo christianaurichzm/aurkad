@@ -216,3 +216,63 @@ describe('UIStore - Chat State', () => {
     expect(chat.inputValue).toBe('');
   });
 });
+
+describe('UIStore - Dialog State', () => {
+  beforeEach(() => {
+    useUIStore.setState({
+      dialog: {
+        visible: false,
+        title: '',
+        message: '',
+        kind: 'info',
+        confirmLabel: 'OK',
+        cancelLabel: 'Cancel',
+      },
+    });
+  });
+
+  it('should show an error dialog with default labels', () => {
+    useUIStore.getState().showDialog({
+      title: 'Purchase failed',
+      message: 'Not enough coins',
+      kind: 'error',
+    });
+
+    const { dialog } = useUIStore.getState();
+    expect(dialog.visible).toBe(true);
+    expect(dialog.title).toBe('Purchase failed');
+    expect(dialog.message).toBe('Not enough coins');
+    expect(dialog.kind).toBe('error');
+    expect(dialog.confirmLabel).toBe('OK');
+    expect(dialog.cancelLabel).toBe('Cancel');
+    useUIStore.getState().closeDialog(true);
+  });
+
+  it('should resolve true when confirmed', async () => {
+    const result = useUIStore.getState().showDialog({
+      title: 'Reload',
+      message: 'Reload the page?',
+      kind: 'confirm',
+      confirmLabel: 'Reload',
+      cancelLabel: 'Stay',
+    });
+
+    useUIStore.getState().closeDialog(true);
+
+    await expect(result).resolves.toBe(true);
+    expect(useUIStore.getState().dialog.visible).toBe(false);
+  });
+
+  it('should resolve false when cancelled', async () => {
+    const result = useUIStore.getState().showDialog({
+      title: 'Discard changes?',
+      message: 'You have unsaved changes.',
+      kind: 'confirm',
+    });
+
+    useUIStore.getState().closeDialog(false);
+
+    await expect(result).resolves.toBe(false);
+    expect(useUIStore.getState().dialog.visible).toBe(false);
+  });
+});

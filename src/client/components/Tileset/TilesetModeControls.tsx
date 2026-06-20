@@ -17,7 +17,7 @@ import { MapType, TileEditMode } from '../../../shared/types';
 import { getGameState } from '../../core/gameState';
 import { useGame } from '../../context/GameContext';
 
-export const TilesetModeControls: React.FC = () => {
+const TilesetModeControlsComponent: React.FC = () => {
   const { setMap } = useGame();
   const mapEdited = useUIStore((state) => state.mapEdited);
 
@@ -61,20 +61,20 @@ export const TilesetModeControls: React.FC = () => {
     (window as any).selectedShop = selectedShop;
   }, [selectedShop]);
 
-  const loadNpcs = async () => {
+  const loadNpcs = useCallback(async () => {
     const npcs = await fetchNpcs();
     return npcs.map((n) => ({ value: n.id, label: `${n.id} - ${n.name}` }));
-  };
+  }, []);
 
-  const loadItems = async () => {
+  const loadItems = useCallback(async () => {
     const items = await fetchItems();
     return items.map((i) => ({ value: i.id, label: `${i.id} - ${i.name}` }));
-  };
+  }, []);
 
-  const loadShops = async () => {
+  const loadShops = useCallback(async () => {
     const shops = await fetchShops();
     return shops.map((s) => ({ value: s.id, label: `${s.id} - ${s.name}` }));
-  };
+  }, []);
 
   const handleSave = async () => {
     if (!mapEdited) return;
@@ -82,7 +82,11 @@ export const TilesetModeControls: React.FC = () => {
       await saveCurrentMap(mapName, mapType);
       await loadMapData();
     } catch {
-      alert('Failed to save map. Please try again.');
+      await useUIStore.getState().showDialog({
+        title: 'Save failed',
+        message: 'Failed to save map. Please try again.',
+        kind: 'error',
+      });
     }
   };
 
@@ -229,3 +233,5 @@ export const TilesetModeControls: React.FC = () => {
     </div>
   );
 };
+
+export const TilesetModeControls = React.memo(TilesetModeControlsComponent);

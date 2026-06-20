@@ -6,6 +6,7 @@ import { ItemIcon } from './ItemIcon';
 import { useStyles } from './styles';
 import { usePlayerForceUpdate } from '../../hooks/usePlayerForceUpdate';
 import { isEquipped } from '../../utils/isEquipped';
+import { colors } from '../../theme';
 
 type Selection = { item: Item; quantity: number };
 
@@ -86,7 +87,7 @@ export const InventoryPanel: React.FC = () => {
               selected?.item.id === inv.item.id
                 ? '2px solid #e67e22'
                 : isEquipped(player, inv.item.id)
-                  ? '2px solid #2ecc40'
+                  ? `2px solid ${colors.primary}`
                   : '1px solid #333';
             return (
               <div

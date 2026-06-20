@@ -3,6 +3,7 @@ import { login } from '../io/network';
 import { setAssetKey } from '../io/assets';
 import { MapStateClient, Player } from '../../shared/types';
 import { useGame } from '../context/GameContext';
+import { colors, radius, zIndex } from '../theme';
 
 export const Login = ({ onSwitch }: { onSwitch: () => void }) => {
   const { loginSuccess } = useGame();
@@ -80,15 +81,15 @@ const styles: Record<string, React.CSSProperties> = {
     width: '100%',
     height: '100%',
     backgroundColor: '#f0f0f0',
-    zIndex: 2000,
+    zIndex: zIndex.auth,
     display: 'flex',
     justifyContent: 'center',
     alignItems: 'center',
   },
   form: {
-    background: '#fff',
+    background: colors.surface,
     padding: '40px 30px',
-    borderRadius: '8px',
+    borderRadius: radius.lg,
     boxShadow: '0 4px 15px rgba(0, 0, 0, 0.1)',
     width: '320px',
     textAlign: 'center',
@@ -97,17 +98,17 @@ const styles: Record<string, React.CSSProperties> = {
     width: '100%',
     padding: '12px',
     marginBottom: '20px',
-    border: '1px solid #ccc',
-    borderRadius: '4px',
+    border: `1px solid ${colors.border}`,
+    borderRadius: radius.sm,
     fontSize: '1rem',
   },
   button: {
     width: '100%',
     padding: '12px',
-    backgroundColor: '#2ecc40',
+    backgroundColor: colors.primary,
     color: 'white',
     border: 'none',
-    borderRadius: '4px',
+    borderRadius: radius.sm,
     cursor: 'pointer',
     fontSize: '1rem',
     fontWeight: 'bold',
@@ -120,14 +121,14 @@ const styles: Record<string, React.CSSProperties> = {
   linkButton: {
     background: 'none',
     border: 'none',
-    color: '#3498db',
+    color: colors.info,
     cursor: 'pointer',
     textDecoration: 'underline',
     fontSize: 'inherit',
   },
   error: {
     marginTop: '15px',
-    color: 'red',
+    color: colors.danger,
     fontSize: '0.9rem',
   },
 };

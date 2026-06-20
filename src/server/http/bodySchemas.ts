@@ -24,7 +24,7 @@ const WarpSchema = z.object({
 });
 
 const TileSchema = z.object({
-  tileIndex: z.number().int().nonnegative(),
+  tileIndex: z.number().int().nonnegative().default(0),
   blocked: z.boolean().optional(),
   warp: WarpSchema.optional(),
   npcSpawn: z.string().optional(),

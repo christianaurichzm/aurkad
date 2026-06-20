@@ -1,4 +1,5 @@
 import { ITEM_SIZE } from '../../../shared/constants';
+import { colors, radius, zIndex } from '../../theme';
 
 const btnStyle = (bg: string, enabled: boolean) => ({
   flex: 1,
@@ -6,7 +7,7 @@ const btnStyle = (bg: string, enabled: boolean) => ({
   background: enabled ? bg : '#555',
   color: '#fff',
   border: 'none',
-  borderRadius: 4,
+  borderRadius: radius.sm,
   cursor: enabled ? 'pointer' : 'not-allowed',
   fontWeight: 600,
   opacity: enabled ? 1 : 0.6,
@@ -18,7 +19,7 @@ export const useStyles = () => ({
     position: 'absolute' as const,
     bottom: 260,
     left: 15,
-    zIndex: 1002,
+    zIndex: zIndex.floatingPanel,
     display: 'flex' as const,
     flexDirection: 'column' as const,
     gap: 9,
@@ -42,7 +43,7 @@ export const useStyles = () => ({
   title: {
     fontSize: 17,
     fontWeight: 700,
-    color: '#2ecc40',
+    color: colors.primary,
     textAlign: 'center' as const,
     marginBottom: 7,
     letterSpacing: 1,
@@ -54,7 +55,7 @@ export const useStyles = () => ({
     justifyContent: 'center' as const,
     padding: 5,
     background: 'rgba(0,0,0,0.32)',
-    borderRadius: 4,
+    borderRadius: radius.sm,
   },
   cell: (border: string) => ({
     width: ITEM_SIZE,
@@ -92,8 +93,8 @@ export const useStyles = () => ({
     marginBottom: 1,
     alignItems: 'center',
   },
-  useBtn: btnStyle.bind(null, '#2ecc40'),
-  dropBtn: btnStyle.bind(null, '#e74c3c'),
+  useBtn: btnStyle.bind(null, colors.primary),
+  dropBtn: btnStyle.bind(null, colors.danger),
   unequipBtn: btnStyle.bind(null, '#e67e22'),
   tooltip: {
     position: 'fixed' as const,
@@ -101,9 +102,9 @@ export const useStyles = () => ({
     background: 'rgba(10,10,10,0.95)',
     border: '1px solid #333',
     color: '#fff',
-    borderRadius: 6,
+    borderRadius: radius.md,
     fontSize: 14,
-    zIndex: 1100,
+    zIndex: zIndex.tooltip,
     maxWidth: 235,
     lineHeight: 1.4,
     pointerEvents: 'none' as const,
