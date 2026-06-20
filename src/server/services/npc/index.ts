@@ -5,26 +5,26 @@ export {
   refreshNpcInRuntime,
   deleteNpc,
   listNpcs,
-} from './npc/persistenceOps.js';
+} from './persistenceOps.js';
 
-import { TILE_SIZE } from '../../shared/constants.js';
-import { randomPick } from '../sim/rng.js';
+import { TILE_SIZE } from '../../../shared/constants.js';
+import { randomPick } from '../../sim/rng.js';
 import {
   MapStateServer,
   Position,
   CharacterAction,
   RuntimeNpc,
-} from '../../shared/types.js';
-import { getMap } from '../gameData.js';
-import { getOrInitNpcAi, transitionNpcAi, resetNpcAi } from './npc/aiBrain.js';
-import { getTick, msToTicks } from '../sim/clock.js';
+} from '../../../shared/types.js';
+import { getMap } from '../../gameData.js';
+import { getOrInitNpcAi, transitionNpcAi, resetNpcAi } from './aiBrain.js';
+import { getTick, msToTicks } from '../../sim/clock.js';
 import {
   findClosestPlayer,
   isPlayerInAttackRange,
   attackPlayer,
   moveNpcTowardsPlayer,
   moveNpcRandomly,
-} from './npc/behaviors.js';
+} from './behaviors.js';
 
 export const respawnNpc = (mapId: string, npc: RuntimeNpc) => {
   const map = getMap(mapId);

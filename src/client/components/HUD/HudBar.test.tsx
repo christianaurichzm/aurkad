@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import { HudBar } from './HudBar';
-import { useUIStore } from '../stores/uiStore';
+import { useUIStore } from '../../stores/uiStore';
 
 describe('HudBar Component', () => {
   beforeEach(() => {

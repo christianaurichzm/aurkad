@@ -10,7 +10,7 @@ import {
 import { hasCollision } from '../physicsService.js';
 import { respawnPlayer } from '../playerService.js';
 import { updatePlayer } from '../../gameData.js';
-import { queryEntitiesInRadius } from '../../spatial/SpatialManager.js';
+import { queryEntitiesInRadius } from '../../spatial/spatialManager.js';
 import { randomInt } from '../../sim/rng.js';
 import { logger } from '../../logger.js';
 

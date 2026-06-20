@@ -11,8 +11,8 @@ import {
   GoMapBodySchema,
   SetMyAccessBodySchema,
 } from '../bodySchemas.js';
-import checkAccess from '../../checkAccess.js';
-import { playersWsMap, broadcast } from '../../wsServer.js';
+import checkAccess from '../middleware/checkAccess.js';
+import { playersWsMap, broadcast } from '../../net/index.js';
 import {
   disconnectPlayer,
   handlePlayerUpdate,

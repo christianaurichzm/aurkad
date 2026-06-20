@@ -26,7 +26,7 @@ import { getPlayer, updatePlayer } from '../gameData.js';
 import { getPlayerByName as lookupPlayerByName } from '../sim/world.js';
 import { addPlayerOnMap, removePlayerFromMap } from './mapService.js';
 import { getItemById } from './inventoryService.js';
-import { broadcast } from '../wsServer.js';
+import { broadcast } from '../net/index.js';
 import { handlePlayerUpdate } from './gameService.js';
 import { logger } from '../logger.js';
 

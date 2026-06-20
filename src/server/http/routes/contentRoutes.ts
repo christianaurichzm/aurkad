@@ -17,7 +17,7 @@ import {
   BuyShopItemBodySchema,
   AssignPointsBodySchema,
 } from '../bodySchemas.js';
-import checkAccess from '../../checkAccess.js';
+import checkAccess from '../middleware/checkAccess.js';
 import {
   createDefaultTiles,
   deleteNpcEverywhere,
@@ -49,7 +49,7 @@ import {
   createOrUpdateNpc,
   listNpcs,
   updateNpcAll,
-} from '../../services/npcService.js';
+} from '../../services/npc/index.js';
 
 export function createContentRouter() {
   const router = Router();
@@ -321,7 +321,7 @@ export function createContentRouter() {
         ...(type && { type }),
       });
 
-      const { broadcast } = await import('../../wsServer.js');
+      const { broadcast } = await import('../../net/index.js');
       broadcast();
 
       res.status(200).json({ message: 'Map updated successfully.' });

@@ -1,5 +1,5 @@
 import { ITEM_SIZE, TILE_SIZE } from '../../shared/constants';
-import { items } from '../io/files';
+import { items } from '../io/assets';
 import { getSpriteCoordinates } from './spriteCoordinates';
 
 export const renderItemIcon = (

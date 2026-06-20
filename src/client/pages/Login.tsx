@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { login } from '../io/network';
-import { setAssetKey } from '../io/files';
+import { setAssetKey } from '../io/assets';
 import { MapStateClient, Player } from '../../shared/types';
 import { useGame } from '../context/GameContext';
 

@@ -31,7 +31,7 @@ import { clearPlayerDirty } from '../persistence/dirtyPlayers.js';
 import { clearAttackCooldown } from './combat/attackCooldown.js';
 import { resetPlayerNetState } from '../net/snapshot.js';
 import { emitGameEvent } from '../engine/eventBus.js';
-import { handleAttack } from './combatService.js';
+import { handleAttack } from './combat/index.js';
 import { pickUpItem } from './inventoryService.js';
 import { insertModeCell, updatePlayerMap } from './mapService.js';
 import { hasCollision, hasWarp } from './physicsService.js';

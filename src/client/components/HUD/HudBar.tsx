@@ -1,5 +1,5 @@
-import { useUIStore } from '../stores/uiStore';
-import { getHealthBarInfo } from '../graphics/hud';
+import { useUIStore } from '../../stores/uiStore';
+import { getHealthBarInfo } from '../../graphics/hud';
 
 export const HudBar = () => {
   const { current, max } = useUIStore((state) => state.playerHealth);

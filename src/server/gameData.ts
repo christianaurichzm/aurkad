@@ -9,7 +9,7 @@ import {
 import { logger } from './logger.js';
 
 import { createOrUpdateMap } from './services/mapService.js';
-import { deleteNpc } from './services/npcService.js';
+import { deleteNpc } from './services/npc/index.js';
 
 import { deletePlayer } from './services/playerService.js';
 import { runtimeState } from './sim/state.js';

@@ -14,7 +14,7 @@ import { placePlayerOnMap, detachFromMap } from '../sim/world.js';
 import GameMapModel from '../model/Map.js';
 import { getNextMapId } from './dbService.js';
 import { getItemById } from './inventoryService.js';
-import { getNpcById } from './npcService.js';
+import { getNpcById } from './npc/index.js';
 
 export async function getMapById(id: string): Promise<MapStateServer | null> {
   return await GameMapModel.findOne({ id }).lean<MapStateServer>().exec();

@@ -9,8 +9,8 @@ import {
   processMovementCompletion,
 } from '../services/gameService.js';
 import { clearAllAttackCooldowns } from '../services/combat/attackCooldown.js';
-import { updateNpcs } from '../services/npcService.js';
-import { rebuildQuadtree } from '../spatial/SpatialManager.js';
+import { updateNpcs } from '../services/npc/index.js';
+import { rebuildQuadtree } from '../spatial/spatialManager.js';
 import {
   CharacterAction,
   Direction,

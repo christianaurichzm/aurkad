@@ -20,7 +20,7 @@ import {
   getGameState,
 } from '../services/gameService.js';
 import { handleItemAction } from '../services/inventoryService.js';
-import { updateNpcs } from '../services/npcService.js';
+import { updateNpcs } from '../services/npc/index.js';
 import { REGEN_PERCENT, MIN_REGEN } from '../../shared/constants.js';
 import { playersWsMap } from './connections.js';
 

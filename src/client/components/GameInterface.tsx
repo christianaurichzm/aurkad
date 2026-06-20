@@ -1,5 +1,5 @@
 import { useLayoutEffect, useRef } from 'react';
-import { initializeAssets } from '../io/files';
+import { initializeAssets } from '../io/assets';
 import { initTilesetEditor, renderMap } from '../graphics/tileset';
 import { handleInput } from '../io/keyboard';
 import { initializeWebSocket } from '../io/network';

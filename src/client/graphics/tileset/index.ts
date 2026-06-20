@@ -7,13 +7,13 @@ import {
   safeParseInt,
   withLoading,
   removeEvent,
-} from '../utils/domHelpers';
-import { TILE_SIZE } from '../../shared/constants';
-import { MapType, Tile, TileEditMode } from '../../shared/types';
-import { tileset } from '../io/files';
-import { saveMap } from '../io/network';
-import { foregroundCanvas, foregroundCtx } from './canvas';
-import { useUIStore } from '../stores/uiStore';
+} from '../../utils/domHelpers';
+import { TILE_SIZE } from '../../../shared/constants';
+import { MapType, Tile, TileEditMode } from '../../../shared/types';
+import { tileset } from '../../io/assets';
+import { saveMap } from '../../io/network';
+import { foregroundCanvas, foregroundCtx } from '../canvas';
+import { useUIStore } from '../../stores/uiStore';
 
 type ModeConfig = {
   button: HTMLButtonElement;

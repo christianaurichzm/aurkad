@@ -1,5 +1,5 @@
 import { TILE_SIZE } from '../../shared/constants';
-import { spriteSheet } from '../io/files';
+import { spriteSheet } from '../io/assets';
 import { getCharacterSpriteCoordinates, getSpriteSize } from './sprite';
 import { playerCtx } from './canvas';
 

@@ -30,7 +30,7 @@ import {
   startGameLoops,
   startWebSocketServer,
   stopWebSocketServer,
-} from './wsServer.js';
+} from './net/index.js';
 import { connectToDatabase, loadInitialData } from './initDb.js';
 import { getAllPlayers } from './sim/world.js';
 import { persistPlayerSessionState } from './services/playerService.js';

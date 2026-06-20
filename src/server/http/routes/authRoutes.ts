@@ -21,7 +21,7 @@ import {
 } from '../../services/playerService.js';
 import { getBan, unbanPlayer } from '../../services/banService.js';
 import { config } from '../../config.js';
-import { toMapStateClient } from '../../engine/serialization.js';
+import { toMapStateClient } from '../../net/serialization.js';
 
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,

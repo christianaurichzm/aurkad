@@ -14,7 +14,7 @@ import { drainGameEvents } from '../engine/eventBus.js';
 import {
   toMapDynamicClient,
   toMapStaticClient,
-} from '../engine/serialization.js';
+} from './serialization.js';
 import {
   getPlayerByName,
   playerColdSignature,

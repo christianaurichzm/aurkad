@@ -4,17 +4,17 @@ import {
   MapStateServer,
   DroppedItem,
   CombatTarget,
-} from '../../shared/types.js';
-import { getMap, updatePlayer } from '../gameData.js';
-import { logger } from '../logger.js';
-import { getTick } from '../sim/clock.js';
-import { randomChance } from '../sim/rng.js';
-import { queryEntitiesInRadius } from '../spatial/SpatialManager.js';
-import { tryConsumeAttackCooldown } from './combat/attackCooldown.js';
-import { handleChatAction } from './chatService.js';
-import { getItemById } from './inventoryService.js';
-import { respawnNpc } from './npcService.js';
-import { respawnPlayer, levelUpPlayer } from './playerService.js';
+} from '../../../shared/types.js';
+import { getMap, updatePlayer } from '../../gameData.js';
+import { logger } from '../../logger.js';
+import { getTick } from '../../sim/clock.js';
+import { randomChance } from '../../sim/rng.js';
+import { queryEntitiesInRadius } from '../../spatial/spatialManager.js';
+import { tryConsumeAttackCooldown } from './attackCooldown.js';
+import { handleChatAction } from '../chatService.js';
+import { getItemById } from '../inventoryService.js';
+import { respawnNpc } from '../npc/index.js';
+import { respawnPlayer, levelUpPlayer } from '../playerService.js';
 
 const isInAttackRange = (
   attacker: PlayerServer,
@@ -105,7 +105,7 @@ export const handleAttack = async (attacker: PlayerServer): Promise<void> => {
       respawnPlayer(attackTarget);
       await updatePlayer(attackTarget);
 
-      const { broadcast } = await import('../wsServer.js');
+      const { broadcast } = await import('../../net/index.js');
       broadcast();
 
       handleChatAction({
