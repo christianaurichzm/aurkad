@@ -12,9 +12,9 @@ import {
   SetMyAccessBodySchema,
 } from '../bodySchemas.js';
 import checkAccess from '../middleware/checkAccess.js';
-import { playersWsMap, broadcast } from '../../net/index.js';
+import { broadcast } from '../../net/index.js';
 import {
-  disconnectPlayer,
+  kickPlayer,
   handlePlayerUpdate,
 } from '../../services/gameService.js';
 import { updatePlayerMap } from '../../services/mapService.js';
@@ -50,21 +50,7 @@ export function createModRouter() {
         return res.status(404).json({ error: 'Player not found' });
       }
 
-      const ws = playersWsMap.get(playerName);
-      if (ws && ws.readyState === ws.OPEN) {
-        ws.send(
-          JSON.stringify({
-            type: 'kick',
-            message: 'You were kicked from the game by a moderator.',
-          }),
-        );
-        ws.close();
-      }
-
-      await disconnectPlayer(playerName);
-      playersWsMap.delete(playerName);
-      broadcast();
-
+      await kickPlayer(playerName, 'You were kicked from the game by a moderator.');
       res.status(200).json({ success: true });
     },
   );
@@ -77,21 +63,10 @@ export function createModRouter() {
       if (!body) return;
       const { playerName, reason, until } = body;
       banPlayer(playerName, reason, until);
-      const ws = playersWsMap.get(playerName);
-      if (ws && ws.readyState === ws.OPEN) {
-        ws.send(
-          JSON.stringify({
-            type: 'kick',
-            message: reason
-              ? `You were banned: ${reason}`
-              : 'You were banned from the game.',
-          }),
-        );
-        ws.close();
-      }
-      await disconnectPlayer(playerName);
-      playersWsMap.delete(playerName);
-      broadcast();
+      await kickPlayer(
+        playerName,
+        reason ? `You were banned: ${reason}` : 'You were banned from the game.',
+      );
       res.status(200).json({ success: true });
     },
   );

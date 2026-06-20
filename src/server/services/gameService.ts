@@ -29,7 +29,8 @@ import {
 } from '../sim/world.js';
 import { clearPlayerDirty } from '../persistence/dirtyPlayers.js';
 import { clearAttackCooldown } from './combat/attackCooldown.js';
-import { resetPlayerNetState } from '../net/snapshot.js';
+import { resetPlayerNetState, broadcastGameState as broadcast } from '../net/snapshot.js';
+import { playersWsMap } from '../net/connections.js';
 import { emitGameEvent } from '../engine/eventBus.js';
 import { handleAttack } from './combat/index.js';
 import { pickUpItem } from './inventoryService.js';
@@ -254,6 +255,21 @@ export const getGameState = () => getRuntimeState();
 export const handlePlayerUpdate = (player: PlayerServer): void => {
   handlePlayerUpdates(player);
 };
+
+export async function kickPlayer(
+  username: string,
+  reason = 'You were kicked from the server.',
+): Promise<boolean> {
+  const ws = playersWsMap.get(username);
+  if (ws && ws.readyState === ws.OPEN) {
+    ws.send(JSON.stringify({ type: 'kick', message: reason }));
+    ws.close();
+  }
+  playersWsMap.delete(username);
+  await disconnectPlayer(username);
+  broadcast();
+  return true;
+}
 
 export const disconnectPlayer = async (username?: string) => {
   const player = username ? getPlayerByName(username) : undefined;

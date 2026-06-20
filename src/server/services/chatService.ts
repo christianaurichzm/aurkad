@@ -3,6 +3,20 @@ import type { ClientChatAction } from '../engine/actions.js';
 import { logger } from '../logger.js';
 import { emitGameEvent } from '../engine/eventBus.js';
 
+export type ChatLogEntry = {
+  ts: number;
+  username?: string;
+  scope: ChatMessagePayload['scope'];
+  message: string;
+};
+
+const CHAT_LOG_LIMIT = 200;
+const chatLog: ChatLogEntry[] = [];
+
+export function getChatLog(n = 20): ChatLogEntry[] {
+  return chatLog.slice(-n);
+}
+
 function isClientChatAction(
   action: ClientChatAction | ServerChatAction,
 ): action is ClientChatAction {
@@ -25,6 +39,21 @@ export function handleChatAction(action: ClientChatAction | ServerChatAction) {
       : {}),
     ...(isClientChatAction(action) ? { username: action.username } : {}),
   };
+
+  const entry: ChatLogEntry = {
+    ts: Date.now(),
+    username: payload.username,
+    scope: payload.scope,
+    message: payload.message,
+  };
+  chatLog.push(entry);
+  if (chatLog.length > CHAT_LOG_LIMIT) chatLog.shift();
+
+  logger.info('chat', {
+    scope: entry.scope,
+    username: entry.username,
+    message: entry.message,
+  });
 
   if (payload.scope === 'global') {
     emitGameEvent({ type: 'chatGlobal', payload });

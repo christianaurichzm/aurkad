@@ -36,6 +36,7 @@ import { getAllPlayers } from './sim/world.js';
 import { persistPlayerSessionState } from './services/playerService.js';
 import { startPlayerSnapshotLoop } from './persistence/playerSnapshot.js';
 import { logger } from './logger.js';
+import { startAdminRepl } from './admin/repl.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -73,6 +74,7 @@ async function startServer() {
     stopSnapshots = startPlayerSnapshotLoop();
     server.listen(port, () => {
       logger.info('Server is listening', { port });
+      startAdminRepl();
     });
   } catch (err) {
     logger.error('Failed to start server', { err });
