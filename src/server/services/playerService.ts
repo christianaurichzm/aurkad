@@ -151,7 +151,7 @@ export function toPlayerHot(player: PlayerServer): PlayerHot {
 }
 
 export function toPlayerCold(player: PlayerServer): PlayerCold {
-  const inventory: InventoryItemDetailed[] = player.inventory.items.map(
+  const inventory: InventoryItemDetailed[] = (player.inventory?.items ?? []).map(
     (entry) => {
       const item = getItemById(entry.item);
 
@@ -160,9 +160,10 @@ export function toPlayerCold(player: PlayerServer): PlayerCold {
     },
   );
 
+  const equippedSource = player.equipped ?? {};
   const equipped: EquippedItemsDetailed = {};
   for (const slot of EQUIPMENT_SLOTS) {
-    const itemId = player.equipped[slot];
+    const itemId = equippedSource[slot];
     if (itemId) {
       const item = getItemById(itemId);
       if (item) equipped[slot] = item;

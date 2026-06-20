@@ -1,7 +1,7 @@
 import bcrypt from 'bcrypt';
 import { Router, type Response } from 'express';
 import type { ExtendedRequest } from '../session.js';
-import { Access } from '../../../shared/types.js';
+import { Access, PlayerServer } from '../../../shared/types.js';
 import { TILE_SIZE } from '../../../shared/constants.js';
 import { players } from '../../gameData.js';
 import { addPlayerOnMap } from '../../services/mapService.js';
@@ -44,7 +44,12 @@ export function createAuthRouter() {
       await unbanPlayer(username);
     }
 
-    const { password: _pw, ...runtimePlayer } = playerDoc;
+    const { password: _pw, ...rest } = playerDoc;
+    const runtimePlayer: PlayerServer = {
+      ...rest,
+      equipped: rest.equipped ?? {},
+      inventory: rest.inventory ?? { items: [], maxCapacity: 10 },
+    };
 
     const player = enrichPlayer(runtimePlayer);
 
