@@ -1,5 +1,5 @@
 const currentNodeVersion = process.versions.node;
-const [major] = currentNodeVersion.split('.').map(Number);
+const major = currentNodeVersion.split('.').map(Number)[0] ?? 0;
 
 const REQUIRED_MAJOR_VERSION = 18;
 
@@ -24,6 +24,7 @@ import { createAuthRouter } from './http/routes/authRoutes.js';
 import { createContentRouter } from './http/routes/contentRoutes.js';
 import { createModRouter } from './http/routes/modRoutes.js';
 import { createAssetsRouter } from './http/routes/assetsRoutes.js';
+import { getMetrics } from './metrics.js';
 import {
   markServerShuttingDown,
   startGameLoops,
@@ -34,6 +35,7 @@ import { connectToDatabase, loadInitialData } from './initDb.js';
 import { getAllPlayers } from './sim/world.js';
 import { persistPlayerSessionState } from './services/playerService.js';
 import { startPlayerSnapshotLoop } from './persistence/playerSnapshot.js';
+import { logger } from './logger.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -42,6 +44,8 @@ const port = config.port;
 
 const sessionMiddleware = createSessionMiddleware();
 app.use(sessionMiddleware);
+
+app.get('/healthz', (_req, res) => res.json(getMetrics()));
 
 app.use(createAuthRouter());
 app.use(createContentRouter());
@@ -68,10 +72,10 @@ async function startServer() {
     stopGameLoops = startGameLoops();
     stopSnapshots = startPlayerSnapshotLoop();
     server.listen(port, () => {
-      console.log(`Server is listening on port ${port}`);
+      logger.info('Server is listening', { port });
     });
   } catch (err) {
-    console.error('Falha ao iniciar o servidor:', err);
+    logger.error('Failed to start server', { err });
     process.exit(1);
   }
 }
@@ -84,12 +88,12 @@ async function shutdown(signal: string) {
   isShuttingDown = true;
 
   const forceExitTimer = setTimeout(() => {
-    console.error('[Shutdown] Forced exit after timeout.');
+    logger.error('[Shutdown] Forced exit after timeout');
     process.exit(1);
   }, 10_000);
   forceExitTimer.unref?.();
 
-  console.log(`[Shutdown] Received ${signal}. Closing server...`);
+  logger.info('[Shutdown] Received signal; closing server', { signal });
 
   stopGameLoops?.();
   stopSnapshots?.();
@@ -102,7 +106,7 @@ async function shutdown(signal: string) {
   await stopWebSocketServer();
   await httpClose;
 
-  console.log('[Shutdown] Persisting player states...');
+  logger.info('[Shutdown] Persisting player states...');
   for (const player of getAllPlayers()) {
     await persistPlayerSessionState(player);
   }
@@ -110,16 +114,20 @@ async function shutdown(signal: string) {
   try {
     await mongoose.disconnect();
   } catch (e) {
-    console.error('[Shutdown] mongoose.disconnect failed:', e);
+    logger.error('[Shutdown] mongoose.disconnect failed', { err: e });
   }
 
-  console.log('[Shutdown] Server exiting cleanly.');
+  logger.info('[Shutdown] Server exiting cleanly');
   process.exit(0);
 }
 
 process.on('SIGINT', () => {
-  shutdown('SIGINT').catch((e) => console.error('[Shutdown] failed:', e));
+  shutdown('SIGINT').catch((e) =>
+    logger.error('[Shutdown] failed', { err: e }),
+  );
 });
 process.on('SIGTERM', () => {
-  shutdown('SIGTERM').catch((e) => console.error('[Shutdown] failed:', e));
+  shutdown('SIGTERM').catch((e) =>
+    logger.error('[Shutdown] failed', { err: e }),
+  );
 });

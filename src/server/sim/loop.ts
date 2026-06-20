@@ -1,4 +1,6 @@
 import { config } from '../config.js';
+import { logger } from '../logger.js';
+import { recordTick } from '../metrics.js';
 import {
   processMovementIntent,
   processMovementCompletion,
@@ -6,7 +8,11 @@ import {
 import { rebuildQuadtree } from '../spatial/SpatialManager.js';
 import { getGameState } from '../services/gameService.js';
 import { ServerActionType } from '../engine/actions.js';
-import { processActions, enqueueServerAction } from '../net/transport.js';
+import {
+  processActions,
+  enqueueServerAction,
+  getActionQueueSize,
+} from '../net/transport.js';
 import { broadcastGameState, flushGameEvents } from '../net/snapshot.js';
 import { advanceTick, getTick, msToTicks } from './clock.js';
 
@@ -36,7 +42,7 @@ function rebuildSpatialIndexes() {
       }
     }
   } catch (err) {
-    console.error('[spatial] Failed to rebuild quadtree:', err);
+    logger.error('[spatial] Failed to rebuild quadtree', { err });
   }
 }
 
@@ -57,11 +63,11 @@ function runTickSystems() {
       const result = system.run();
       if (result instanceof Promise) {
         result.catch((e) => {
-          console.error(`[tick] system failed: ${system.name}`, e);
+          logger.error(`[tick] system failed: ${system.name}`, { err: e });
         });
       }
     } catch (e) {
-      console.error(`[tick] system failed: ${system.name}`, e);
+      logger.error(`[tick] system failed: ${system.name}`, { err: e });
     }
   }
 }
@@ -84,7 +90,9 @@ export function startGameLoops(): () => void {
       now - lastUpdateTime >= tickInterval &&
       updates < MAX_UPDATES_PER_TICK
     ) {
+      const tickStart = Date.now();
       runTickSystems();
+      recordTick(Date.now() - tickStart, getActionQueueSize());
       lastUpdateTime += tickInterval;
       updates++;
     }
