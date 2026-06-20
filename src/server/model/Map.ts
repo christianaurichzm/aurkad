@@ -14,10 +14,10 @@ const DroppedItemSchema = new mongoose.Schema(
 
 const WarpSchema = new mongoose.Schema(
   {
-    to: String,
+    to: { type: String, required: true },
     position: {
-      x: Number,
-      y: Number,
+      x: { type: Number, required: true },
+      y: { type: Number, required: true },
     },
   },
   { _id: false },
@@ -25,7 +25,7 @@ const WarpSchema = new mongoose.Schema(
 
 const TileSchema = new mongoose.Schema(
   {
-    tileIndex: Number,
+    tileIndex: { type: Number, required: true, min: 0 },
     blocked: Boolean,
     warp: WarpSchema,
     npcSpawn: String,
@@ -37,8 +37,8 @@ const TileSchema = new mongoose.Schema(
 
 const MapSchema = new mongoose.Schema({
   id: { type: String, required: true, unique: true },
-  name: String,
-  type: String,
+  name: { type: String, required: true },
+  type: { type: String, required: true, enum: ['pvp', 'normal'] },
   tiles: [[TileSchema]],
   droppedItems: [DroppedItemSchema],
 });

@@ -2,8 +2,8 @@ import mongoose from 'mongoose';
 
 const NpcItemDropSchema = new mongoose.Schema(
   {
-    itemId: Number,
-    chance: Number,
+    itemId: { type: Number, required: true },
+    chance: { type: Number, required: true, min: 0, max: 1 },
   },
   { _id: false },
 );
@@ -11,15 +11,19 @@ const NpcItemDropSchema = new mongoose.Schema(
 const NpcSchema = new mongoose.Schema(
   {
     id: { type: String, required: true, unique: true },
-    name: String,
-    width: Number,
-    height: Number,
-    sprite: Number,
-    maxHealth: Number,
-    attack: Number,
-    attackRange: Number,
-    behavior: String,
-    experienceValue: Number,
+    name: { type: String, required: true },
+    width: { type: Number, min: 0 },
+    height: { type: Number, min: 0 },
+    sprite: { type: Number, min: 0 },
+    maxHealth: { type: Number, min: 1 },
+    attack: { type: Number, min: 0 },
+    attackRange: { type: Number, min: 0 },
+    behavior: {
+      type: String,
+      required: true,
+      enum: ['aggressive', 'hostile', 'neutral'],
+    },
+    experienceValue: { type: Number, min: 0 },
     itemsToDrop: [NpcItemDropSchema],
   },
   { _id: false },
