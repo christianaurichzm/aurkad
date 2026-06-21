@@ -16,7 +16,7 @@ export const Modal: React.FC<ModalProps> = ({
   onClose,
   children,
 }) => {
-  const initialX = window.innerWidth / 2 - width / 2;
+  const initialX = Math.max(12, window.innerWidth / 2 - width / 2);
   const initialY = window.innerHeight * 0.15;
 
   const { ref, pos, onPointerDown } = useDraggable(initialX, initialY);
@@ -41,6 +41,7 @@ export const Modal: React.FC<ModalProps> = ({
       maxHeight: '80vh',
       overflowY: 'auto' as const,
       width,
+      maxWidth: 'calc(100vw - 24px)',
       left: pos.x,
       top: pos.y,
     },

@@ -33,6 +33,14 @@ const quickActions: QuickAction[] = [
     className: 'action-button-primary',
   },
   {
+    id: 'onlinePlayers',
+    label: 'Online players',
+    keyLabel: 'O',
+    eventName: 'toggleOnlinePlayers',
+    minAccess: Access.USER,
+    className: 'action-button-primary',
+  },
+  {
     id: 'map',
     label: 'Map editor',
     keyLabel: 'Z',

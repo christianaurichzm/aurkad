@@ -68,49 +68,64 @@ export const AttributeDistributorModal: React.FC = () => {
     },
   ];
 
+  const assigned = atk + vit;
+
   return (
-    <Modal title="Attributes" onClose={() => setVisible(false)} width={380}>
+    <Modal title="Attributes" onClose={() => setVisible(false)} width={460}>
       <div style={layout}>
-        <div style={badge(player.unspentPoints > 0)}>
-          {player.unspentPoints} unspent point
-          {player.unspentPoints !== 1 ? 's' : ''}
+        <div style={summaryGrid}>
+          <div style={summaryCard(player.unspentPoints > 0)}>
+            <span style={summaryLabel}>Available</span>
+            <strong style={summaryValue(player.unspentPoints > 0)}>
+              {player.unspentPoints}
+            </strong>
+          </div>
+          <div style={summaryCard(assigned > 0)}>
+            <span style={summaryLabel}>Queued</span>
+            <strong style={summaryValue(assigned > 0)}>{assigned}</strong>
+          </div>
         </div>
 
-        {stats.map(({ label, base, delta, setDelta, adjust }) => (
-          <div key={label} style={statRow}>
-            <span style={statLabel}>{label}</span>
-            <span style={statBase}>{base}</span>
-            <div style={stepper}>
-              <button
-                style={{ ...stepBtn, opacity: delta === 0 ? 0.4 : 1 }}
-                onClick={() => adjust(-1)}
-                disabled={delta === 0}
-              >
-                −
-              </button>
-              <input
-                style={stepInput}
-                type="number"
-                min={0}
-                value={delta}
-                onChange={(e) => {
-                  const v = Math.max(0, parseInt(e.target.value || '0'));
-                  const other = setDelta === setAtk ? vit : atk;
-                  setDelta(Math.min(v, player.unspentPoints - other));
-                }}
-              />
-              <button
-                style={{ ...stepBtn, opacity: remaining <= 0 ? 0.4 : 1 }}
-                onClick={() => adjust(1)}
-                disabled={remaining <= 0}
-              >
-                +
-              </button>
+        <div style={statsList}>
+          {stats.map(({ label, base, delta, setDelta, adjust }) => (
+            <div key={label} style={statRow}>
+              <span style={statLabel}>{label}</span>
+              <span style={statBase}>{base}</span>
+              <div style={stepper}>
+                <button
+                  style={{ ...stepBtn, opacity: delta === 0 ? 0.4 : 1 }}
+                  onClick={() => adjust(-1)}
+                  disabled={delta === 0}
+                  title={`Decrease ${label}`}
+                >
+                  −
+                </button>
+                <input
+                  style={stepInput}
+                  type="number"
+                  min={0}
+                  value={delta}
+                  aria-label={`${label} points`}
+                  onChange={(e) => {
+                    const v = Math.max(0, parseInt(e.target.value || '0'));
+                    const other = setDelta === setAtk ? vit : atk;
+                    setDelta(Math.min(v, player.unspentPoints - other));
+                  }}
+                />
+                <button
+                  style={{ ...stepBtn, opacity: remaining <= 0 ? 0.4 : 1 }}
+                  onClick={() => adjust(1)}
+                  disabled={remaining <= 0}
+                  title={`Increase ${label}`}
+                >
+                  +
+                </button>
+              </div>
+              <span style={arrow}>→</span>
+              <span style={result(delta > 0)}>{base + delta}</span>
             </div>
-            <span style={arrow}>→</span>
-            <span style={result(delta > 0)}>{base + delta}</span>
-          </div>
-        ))}
+          ))}
+        </div>
 
         <div style={remainingText(remaining)}>
           {remaining >= 0
@@ -135,35 +150,60 @@ export const AttributeDistributorModal: React.FC = () => {
 const layout: React.CSSProperties = {
   display: 'flex',
   flexDirection: 'column',
-  gap: 14,
+  gap: 16,
 };
 
-const badge = (active: boolean): React.CSSProperties => ({
-  background: active ? '#e8fdf0' : colors.surfaceMuted,
-  color: active ? colors.success : colors.textMuted,
-  border: `1px solid ${active ? colors.success : colors.border}`,
-  borderRadius: radius.md,
-  padding: '8px 14px',
-  fontWeight: 700,
-  fontSize: 15,
-  textAlign: 'center',
-});
-
-const statRow: React.CSSProperties = {
-  display: 'flex',
-  alignItems: 'center',
+const summaryGrid: React.CSSProperties = {
+  display: 'grid',
+  gridTemplateColumns: 'repeat(2, minmax(0, 1fr))',
   gap: 10,
 };
 
+const summaryCard = (active: boolean): React.CSSProperties => ({
+  background: active ? '#e8fdf0' : colors.surfaceMuted,
+  border: `1px solid ${active ? colors.success : colors.border}`,
+  borderRadius: radius.lg,
+  padding: '10px 12px',
+  minHeight: 54,
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'space-between',
+});
+
+const summaryLabel: React.CSSProperties = {
+  color: colors.textMuted,
+  fontSize: 12,
+  fontWeight: 700,
+  textTransform: 'uppercase',
+};
+
+const summaryValue = (active: boolean): React.CSSProperties => ({
+  color: active ? colors.success : colors.textMuted,
+  fontSize: 22,
+  lineHeight: 1,
+});
+
+const statsList: React.CSSProperties = {
+  display: 'flex',
+  flexDirection: 'column',
+  gap: 10,
+};
+
+const statRow: React.CSSProperties = {
+  display: 'grid',
+  gridTemplateColumns: 'minmax(58px, 76px) 30px minmax(84px, 1fr) 14px 34px',
+  alignItems: 'center',
+  gap: 8,
+  padding: '2px 0',
+};
+
 const statLabel: React.CSSProperties = {
-  width: 68,
   fontWeight: 600,
   fontSize: 14,
   color: colors.text,
 };
 
 const statBase: React.CSSProperties = {
-  width: 32,
   textAlign: 'right',
   fontWeight: 700,
   fontSize: 18,
@@ -174,7 +214,7 @@ const stepper: React.CSSProperties = {
   display: 'flex',
   alignItems: 'center',
   gap: 4,
-  flex: 1,
+  minWidth: 0,
 };
 
 const stepBtn: React.CSSProperties = {

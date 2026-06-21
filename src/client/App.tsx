@@ -14,6 +14,7 @@ import { useGame } from './context/GameContext';
 import { AttributeDistributorModal } from './components/AttributeDistributorModal';
 import { GameCanvas } from './components/GameCanvas';
 import { DialogHost } from './components/common/DialogHost';
+import { OnlinePlayersModal } from './components/OnlinePlayersModal';
 
 function App() {
   const { isLoggedIn } = useGame();
@@ -38,6 +39,7 @@ function App() {
           </div>
           <ShopModal />
           <AttributeDistributorModal />
+          <OnlinePlayersModal />
           <ModerationMenu />
           <InventoryPanel />
           <TilesetEditor />

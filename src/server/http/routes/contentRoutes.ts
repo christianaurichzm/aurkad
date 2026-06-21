@@ -1,4 +1,5 @@
 import { Router, type Request, type Response } from 'express';
+import { WebSocket } from 'ws';
 import type { ExtendedRequest } from '../session.js';
 import { Access } from '../../../shared/types.js';
 import { logger } from '../../logger.js';
@@ -50,6 +51,7 @@ import {
   listNpcs,
   updateNpcAll,
 } from '../../services/npc/index.js';
+import { playersWsMap } from '../../net/connections.js';
 
 export function createContentRouter() {
   const router = Router();
@@ -234,6 +236,22 @@ export function createContentRouter() {
     await createOrUpdateNpc(npcData);
     res.status(201).json(npcData);
   });
+
+  router.get(
+    '/players/online',
+    checkAccess(Access.USER),
+    (_: Request, res: Response) => {
+      const players = Array.from(playersWsMap.entries())
+        .filter(([, ws]) => ws.readyState === WebSocket.OPEN)
+        .map(([username]) => username)
+        .sort((a, b) => a.localeCompare(b));
+
+      res.status(200).json({
+        players,
+        count: players.length,
+      });
+    },
+  );
 
   router.post(
     '/players/:id/assignPoints',

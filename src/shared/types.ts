@@ -11,6 +11,7 @@ export enum Key {
   x = 'x',
   z = 'z',
   i = 'i',
+  o = 'o',
   e = 'e',
   v = 'v',
 }
@@ -327,6 +328,11 @@ export type PlayersServerMap = { [key: string]: PlayerServer };
 export type PlayersMap = { [key: string]: PlayerPublic };
 export type RuntimeNpcsMap = { [key: string]: RuntimeNpc };
 export type ItemsMap = { [key: number]: Item };
+
+export interface OnlinePlayersResponse {
+  players: string[];
+  count: number;
+}
 
 export interface NpcItemDrop {
   itemId: Item['id'];

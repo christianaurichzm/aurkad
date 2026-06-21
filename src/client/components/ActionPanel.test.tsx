@@ -48,6 +48,9 @@ describe('ActionPanel', () => {
       screen.getByRole('button', { name: /attributes/i }),
     ).toBeInTheDocument();
     expect(
+      screen.getByRole('button', { name: /online players/i }),
+    ).toBeInTheDocument();
+    expect(
       screen.queryByRole('button', { name: /moderation/i }),
     ).not.toBeInTheDocument();
     expect(
@@ -105,5 +108,19 @@ describe('ActionPanel', () => {
     expect(onToggle).toHaveBeenCalledTimes(1);
 
     window.removeEventListener('toggleTilesetEditor', onToggle);
+  });
+
+  it('dispatches the online players event', async () => {
+    const user = userEvent.setup();
+    const onToggle = vi.fn();
+    window.addEventListener('toggleOnlinePlayers', onToggle);
+
+    render(<ActionPanel />);
+
+    await user.click(screen.getByRole('button', { name: /online players/i }));
+
+    expect(onToggle).toHaveBeenCalledTimes(1);
+
+    window.removeEventListener('toggleOnlinePlayers', onToggle);
   });
 });

@@ -54,7 +54,7 @@ export {
 export { buyShopItem } from './http/shopClient';
 
 // Player
-export { assignPointsPlayer } from './http/playerClient';
+export { assignPointsPlayer, fetchOnlinePlayers } from './http/playerClient';
 
 // File Loader
 export { loadImageFromBin } from './fileLoader';

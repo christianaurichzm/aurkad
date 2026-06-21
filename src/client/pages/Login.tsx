@@ -16,7 +16,7 @@ export const Login = ({ onSwitch }: { onSwitch: () => void }) => {
   useEffect(() => {
     fetch('/healthz')
       .then((r) => r.json())
-      .then((d) => setOnlinePlayers(d.players))
+      .then((d) => setOnlinePlayers(d.wsConnections ?? d.players))
       .catch(() => {});
   }, []);
 
