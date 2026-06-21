@@ -21,6 +21,7 @@ import {
 } from '../../services/playerService.js';
 import { getBan, unbanPlayer } from '../../services/banService.js';
 import { config } from '../../config.js';
+import { emit } from '../../engine/hooks.js';
 import { toMapStateClient } from '../../net/serialization.js';
 import { serverState } from '../../serverState.js';
 import { playersWsMap } from '../../net/connections.js';
@@ -101,6 +102,7 @@ export function createAuthRouter() {
       }
 
       const map = addPlayerOnMap(player.id);
+      emit('playerJoin', { player: runtimePlayer });
 
       const mapClient =
         map &&

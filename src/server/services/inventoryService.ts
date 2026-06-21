@@ -11,6 +11,7 @@ import ItemModel from '../model/Item.js';
 import { getNextItemId } from './dbService.js';
 import { EQUIPMENT_SLOTS } from '../../shared/constants.js';
 import { getPlayerByName } from './playerService.js';
+import { emit } from '../engine/hooks.js';
 
 export function getItemById(id: number): Item | null {
   return items.get(id) ?? null;
@@ -60,6 +61,7 @@ export const pickUpItem = async (map: MapStateServer, player: PlayerServer) => {
   }
 
   map.droppedItems.splice(dropIndex, 1);
+  emit('itemPickup', { player, itemId: drop.itemId, quantity: drop.quantity });
   await updatePlayer(player);
   updateMap(map);
 };
@@ -155,6 +157,7 @@ export async function useItem(
   if (item.type === 'consumable') {
     if (!invItem || invItem.quantity <= 0) return false;
 
+    emit('itemUse', { player, itemId });
     await applyItemEffects(player, itemId);
     invItem.quantity--;
     if (invItem.quantity <= 0) {

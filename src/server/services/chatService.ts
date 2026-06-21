@@ -2,9 +2,11 @@ import { ServerChatAction, ChatMessagePayload } from '../../shared/types.js';
 import type { ClientChatAction } from '../engine/actions.js';
 import { logger } from '../logger.js';
 import { emitGameEvent } from '../engine/eventBus.js';
+import { emit } from '../engine/hooks.js';
 import { isMuted } from '../serverState.js';
 import { playersWsMap } from '../net/connections.js';
 import { WebSocket } from 'ws';
+import { getPlayerByName } from './playerService.js';
 
 export type ChatLogEntry = {
   ts: number;
@@ -68,6 +70,11 @@ export function handleChatAction(action: ClientChatAction | ServerChatAction) {
   };
   chatLog.push(entry);
   if (chatLog.length > CHAT_LOG_LIMIT) chatLog.shift();
+
+  if (isClientChatAction(action)) {
+    const player = getPlayerByName(action.username);
+    if (player) emit('chatMessage', { player, scope: action.scope, message: action.message });
+  }
 
   logger.info('chat', {
     scope: entry.scope,

@@ -13,6 +13,7 @@ import { updatePlayer } from '../../gameData.js';
 import { queryEntitiesInRadius } from '../../spatial/spatialManager.js';
 import { randomInt } from '../../sim/rng.js';
 import { logger } from '../../logger.js';
+import { emit } from '../../engine/hooks.js';
 
 export function calculateDirection(
   from: { position: Position },
@@ -118,8 +119,11 @@ export function isPlayerInAttackRange(
 }
 
 export function attackPlayer(npc: RuntimeNpc, player: PlayerServer) {
-  player.health -= npc.attack;
+  const damageCtx = { value: npc.attack };
+  emit('beforeDamage', { attacker: npc, target: player, damage: damageCtx });
+  player.health -= damageCtx.value;
   if (player.health <= 0) {
+    emit('playerDeath', { player, killer: npc });
     respawnPlayer(player);
   }
   updatePlayer(player).catch((e) => {

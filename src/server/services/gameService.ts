@@ -35,6 +35,7 @@ import {
 } from '../net/snapshot.js';
 import { playersWsMap } from '../net/connections.js';
 import { emitGameEvent } from '../engine/eventBus.js';
+import { emit } from '../engine/hooks.js';
 import { handleAttack } from './combat/index.js';
 import { pickUpItem } from './inventoryService.js';
 import { insertModeCell, updatePlayerMap } from './mapService.js';
@@ -71,6 +72,7 @@ const handleWarpAndShops = (player: PlayerServer): void => {
     const tileX = Math.round(player.position.x / TILE_SIZE);
     const tileY = Math.round(player.position.y / TILE_SIZE);
     const tile = map.tiles?.[tileY]?.[tileX];
+    if (tile) emit('tileEnter', { player, tile, map });
     if (tile?.shop) {
       emitGameEvent({
         type: 'openShop',
@@ -83,6 +85,7 @@ const handleWarpAndShops = (player: PlayerServer): void => {
     }
     if (tile?.death) {
       player.health = 0;
+      emit('playerDeath', { player });
       respawnPlayer(player);
       handleChatAction({
         scope: 'global',
@@ -320,6 +323,7 @@ export const disconnectPlayer = async (username?: string) => {
   clearPlayerDirty(player.id);
   clearAttackCooldown(player.id);
   if (getPlayerById(player.id)) {
+    emit('playerLeave', { player });
     unregisterPlayer(player.id);
     resetPlayerNetState(player.name);
   }

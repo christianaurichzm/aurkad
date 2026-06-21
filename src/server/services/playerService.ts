@@ -21,6 +21,7 @@ import { playerRepository } from '../persistence/playerRepository.js';
 
 import { getPlayer, updatePlayer } from '../gameData.js';
 import { getPlayerByName as lookupPlayerByName } from '../sim/world.js';
+import { emit } from '../engine/hooks.js';
 import { addPlayerOnMap, removePlayerFromMap } from './mapService.js';
 import { getItemById } from './inventoryService.js';
 import { broadcast } from '../net/index.js';
@@ -114,6 +115,7 @@ export const levelUpPlayer = (player: PlayerServer): void => {
       baseXp * Math.pow(xpGrowthRate, player.level - 1),
     );
     player.unspentPoints += pointsPerLevel;
+    emit('playerLevelUp', { player, level: player.level });
   }
 };
 
