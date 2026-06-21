@@ -60,9 +60,8 @@ export const handleInput = () => {
     if (isInputActive()) return;
     if (!document.hasFocus()) return;
     if (e.key in keyRecord) e.preventDefault();
-    // Ignore OS key auto-repeat: a held key stays "down" server-side and the
-    // client keeps moving via tickPrediction, so repeating presses would just
-    // flood the socket (and trip the rate limit, dropping releases).
+    // OS auto-repeat is ignored: the server keeps moving while a key is held,
+    // and repeats would trip the rate limit, which drops releases too.
     if (e.repeat) return;
     if (!isValidKey(e.key)) return;
 

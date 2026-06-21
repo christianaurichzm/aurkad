@@ -31,9 +31,7 @@ import {
   Tile,
 } from '../src/shared/types.js';
 
-// ---------------------------------------------------------------------------
 // Faithful copies of the player serializers (see playerService.ts).
-// ---------------------------------------------------------------------------
 const items = new Map<number, Item>();
 const getItemById = (id: number): Item | null => items.get(id) ?? null;
 
@@ -121,9 +119,7 @@ const diffPatcher = jsondiffpatch.create({
   arrays: { detectMove: true, includeValueOnMove: false },
 });
 
-// ---------------------------------------------------------------------------
 // Synthetic world.
-// ---------------------------------------------------------------------------
 function buildItems() {
   items.clear();
   items.set(1, { id: 1, name: 'Potion', description: 'Heals', sprite: 10, type: 'consumable' });
@@ -227,9 +223,7 @@ function stepWorld(map: MapStateServer, rows: number, cols: number) {
   }
 }
 
-// ---------------------------------------------------------------------------
 // Broadcast orchestrations (faithful to wsServer before/after).
-// ---------------------------------------------------------------------------
 function runOld(map: MapStateServer, ticks: number, rows: number, cols: number) {
   const lastSent = new Map<string, any>();
   let bytes = 0;
@@ -302,9 +296,7 @@ function runNew(map: MapStateServer, ticks: number, rows: number, cols: number) 
   return { ms: performance.now() - t0, bytes };
 }
 
-// ---------------------------------------------------------------------------
 // Runner.
-// ---------------------------------------------------------------------------
 function bench(label: string, rows: number, cols: number, nPlayers: number, nNpcs: number) {
   const WARMUP = 30;
   const TICKS = 300;

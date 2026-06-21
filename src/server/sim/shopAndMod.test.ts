@@ -18,9 +18,7 @@ beforeEach(() => {
   sim = createFixture(0);
 });
 
-// ---------------------------------------------------------------------------
 // Shop
-// ---------------------------------------------------------------------------
 
 describe('shop', () => {
   it('deducts currency and adds item to inventory on purchase', async () => {
@@ -125,9 +123,7 @@ describe('shop', () => {
   });
 });
 
-// ---------------------------------------------------------------------------
 // Inventory: equip and use
-// ---------------------------------------------------------------------------
 
 describe('inventory', () => {
   it('equipping a weapon moves it to the equipped slot and applies stat effects', async () => {
@@ -221,9 +217,7 @@ describe('inventory', () => {
   });
 });
 
-// ---------------------------------------------------------------------------
 // Mod actions
-// ---------------------------------------------------------------------------
 
 describe('mod actions', () => {
   it('bring: teleports target to the mod position on the same map', () => {

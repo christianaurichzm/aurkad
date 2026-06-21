@@ -6,8 +6,12 @@ export const TILE_SIZE = 64;
 export const ITEM_SIZE = 48;
 export const DEFAULT_PLAYER_SPEED = 1;
 export const BOOST_MULTIPLIER = 1.5;
-export const MOVEMENT_DURATION = 220;
-export const RUN_MOVEMENT_DURATION = 130;
+// Per-tile move durations. Keep these exact multiples of the tick interval
+// (1000 / TICK_RATE = 50ms) so the server cadence (msToTicks rounds up) and the
+// client slide duration agree; otherwise the client finishes each slide early
+// and the entity hitches on the tile until the next update.
+export const MOVEMENT_DURATION = 250;
+export const RUN_MOVEMENT_DURATION = 150;
 export const TICK_RATE = 20;
 export const REGEN_PERCENT = 0.01;
 export const MIN_REGEN = 1;

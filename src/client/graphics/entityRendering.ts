@@ -6,6 +6,10 @@ import {
   Position,
   RuntimeNpcsMap,
 } from '../../shared/types';
+import {
+  MOVEMENT_DURATION,
+  RUN_MOVEMENT_DURATION,
+} from '../../shared/constants';
 import { playerActionToActionColumnRecord } from '../../shared/mappings';
 import { drawSprite } from './spriteDrawing';
 import { renderItemIcon } from './itemDrawing';
@@ -32,6 +36,22 @@ export function animate<T extends AnimatableEntity>(entity: T): T {
   return { ...entity, position: anim.position, action };
 }
 
+// The 4 sprite columns are a sequential walk cycle. Cycle through them while
+// moving (two frames per tile) so legs animate; the per-frame interval tracks
+// the move speed so running steps faster. Idle/Attack keep their fixed column.
+const WALK_CYCLE = [0, 1, 2, 3];
+
+const animationColumn = (action: CharacterAction): number => {
+  if (action !== CharacterAction.Walk && action !== CharacterAction.Run) {
+    return playerActionToActionColumnRecord[action];
+  }
+  const tileDuration =
+    action === CharacterAction.Run ? RUN_MOVEMENT_DURATION : MOVEMENT_DURATION;
+  const frameMs = tileDuration / 2;
+  const frame = Math.floor(performance.now() / frameMs) % WALK_CYCLE.length;
+  return WALK_CYCLE[frame];
+};
+
 const renderEntity = (entity: {
   position: Position;
   direction: Direction;
@@ -40,7 +60,7 @@ const renderEntity = (entity: {
 }) => {
   drawSprite(
     entity.sprite,
-    playerActionToActionColumnRecord[entity.action],
+    animationColumn(entity.action),
     entity.direction,
     entity.position.x,
     entity.position.y,

@@ -33,9 +33,7 @@ beforeEach(async () => {
   await Promise.all(Object.values(cols).map((c) => c.deleteMany({})));
 });
 
-// ---------------------------------------------------------------------------
 // Player lifecycle
-// ---------------------------------------------------------------------------
 
 describe('player persistence', () => {
   it('newly created player loads from DB with equipped and inventory filled', async () => {
@@ -93,9 +91,7 @@ describe('player persistence', () => {
   });
 });
 
-// ---------------------------------------------------------------------------
 // Ban workflow
-// ---------------------------------------------------------------------------
 
 describe('ban workflow', () => {
   it('banned player has a ban record in the DB', async () => {

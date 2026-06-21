@@ -9,9 +9,7 @@ beforeEach(() => {
   sim = createFixture(42);
 });
 
-// ---------------------------------------------------------------------------
 // Movement
-// ---------------------------------------------------------------------------
 
 describe('player movement', () => {
   it('moves one tile right after holding arrow right for a full move cycle', () => {
@@ -59,9 +57,7 @@ describe('player movement', () => {
   });
 });
 
-// ---------------------------------------------------------------------------
 // NPC behaviour
-// ---------------------------------------------------------------------------
 
 describe('npc behaviour', () => {
   it('aggressive npc moves toward the player over time', () => {
@@ -92,9 +88,7 @@ describe('npc behaviour', () => {
   });
 });
 
-// ---------------------------------------------------------------------------
 // Combat
-// ---------------------------------------------------------------------------
 
 describe('combat', () => {
   it('player attack damages npc on the tile directly below', () => {
@@ -183,9 +177,7 @@ describe('combat', () => {
   });
 });
 
-// ---------------------------------------------------------------------------
 // Items
-// ---------------------------------------------------------------------------
 
 describe('item pickup', () => {
   it('player picks up item on the same tile', () => {
@@ -237,9 +229,7 @@ describe('item pickup', () => {
   });
 });
 
-// ---------------------------------------------------------------------------
 // Warps
-// ---------------------------------------------------------------------------
 
 describe('map warp', () => {
   it('player teleports to the destination map when stepping on a warp tile', () => {
