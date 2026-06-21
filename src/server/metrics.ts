@@ -1,3 +1,4 @@
+import { WebSocket } from 'ws';
 import { getRuntimeState } from './gameData.js';
 import { playersWsMap } from './net/connections.js';
 
@@ -37,7 +38,9 @@ export function getMetrics() {
 
   return {
     uptime: Math.floor(process.uptime()),
-    wsConnections: playersWsMap.size,
+    wsConnections: [...playersWsMap.values()].filter(
+      (ws) => ws.readyState === WebSocket.OPEN,
+    ).length,
     players: totalPlayers,
     npcs: totalNpcs,
     maps: maps.length,
