@@ -9,6 +9,7 @@ import { ShopModal } from './components/Shop/ShopModal';
 import { TilesetEditor } from './components/Tileset/TilesetEditor';
 import { ModerationMenu } from './components/ModerationMenu';
 import { ChatPanel } from './components/ChatPanel';
+import { ActionPanel } from './components/ActionPanel';
 import { useGame } from './context/GameContext';
 import { AttributeDistributorModal } from './components/AttributeDistributorModal';
 import { GameCanvas } from './components/GameCanvas';
@@ -22,11 +23,20 @@ function App() {
     <>
       {isLoggedIn ? (
         <div id="ui">
-          <GameCanvas />
-          <GameInterface />
+          <div id="gameShell">
+            <main id="gameMain" aria-label="Game map">
+              <div id="canvasFrame">
+                <GameCanvas />
+                <GameInterface />
+              </div>
+            </main>
+            <aside id="sidePanel" aria-label="Game controls">
+              <HudBar />
+              <ActionPanel />
+              <ChatPanel />
+            </aside>
+          </div>
           <ShopModal />
-          <HudBar />
-          <ChatPanel />
           <AttributeDistributorModal />
           <ModerationMenu />
           <InventoryPanel />

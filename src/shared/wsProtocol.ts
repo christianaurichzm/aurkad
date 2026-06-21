@@ -18,6 +18,7 @@ export interface WsClientItemMessage {
   type: 'item';
   item: number;
   action: 'use' | 'drop';
+  quantity?: number;
 }
 
 export interface WsClientChatMessage {

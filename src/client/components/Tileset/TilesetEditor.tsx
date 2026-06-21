@@ -13,7 +13,7 @@ export const TilesetEditor: React.FC = () => {
   const [visible, setVisible] = useState(false);
   const visibleRef = useRef(false);
 
-  const { ref, pos, onMouseDown } = useDraggable(100, 80);
+  const { ref, pos, onPointerDown } = useDraggable(100, 80);
 
   useEffect(() => {
     visibleRef.current = visible;
@@ -78,7 +78,7 @@ export const TilesetEditor: React.FC = () => {
       }}
     >
       <div
-        onMouseDown={onMouseDown}
+        onPointerDown={onPointerDown}
         style={{
           display: 'flex',
           alignItems: 'center',

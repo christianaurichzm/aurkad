@@ -70,13 +70,12 @@ export function createAuthRouter() {
       const { password: _pw, ...runtimePlayer } = playerDoc;
       const player = enrichPlayer(runtimePlayer);
 
-      if (
-        serverState.mode === 'maintenance' &&
-        player.access < Access.ADMIN
-      ) {
+      if (serverState.mode === 'maintenance' && player.access < Access.ADMIN) {
         return res
           .status(503)
-          .json({ message: 'Server is under maintenance. Please try again later.' });
+          .json({
+            message: 'Server is under maintenance. Please try again later.',
+          });
       }
       if (serverState.mode === 'gm_only' && player.access < Access.MOD) {
         return res
@@ -88,7 +87,9 @@ export function createAuthRouter() {
       if (existingWs?.readyState === WebSocket.OPEN) {
         return res
           .status(409)
-          .json({ message: 'This account is already logged in from another session.' });
+          .json({
+            message: 'This account is already logged in from another session.',
+          });
       }
 
       req.session.username = username;

@@ -1,6 +1,7 @@
 import { useRef, useState, useEffect } from 'react';
 import { ITEM_SIZE } from '../../../shared/constants';
 import { ProductDetailed } from '../../../shared/types';
+import { updatePlayerInventory } from '../../core/gameState';
 import { drawItemGeneric } from '../../graphics/render';
 import { buyShopItem } from '../../io/network';
 import { useUIStore } from '../../stores/uiStore';
@@ -49,13 +50,26 @@ export const ShopRow: React.FC<ShopRowProps> = ({
 
   const handleBuy = async () => {
     setBuying(true);
-    const res = await buyShopItem(shopId, product.item.id).catch(() => null);
-    if (res?.success) {
+    try {
+      const res = await buyShopItem(shopId, product.item.id);
+      if (!res?.success) {
+        throw new Error(res?.message || 'Error purchasing.');
+      }
+
+      if (res.inventory) {
+        updatePlayerInventory(res.inventory);
+      }
+
+      useUIStore.getState().addChatMessage({
+        message: res.message || `${product.item.name} purchased.`,
+        scope: 'player',
+        type: 'chat',
+      });
       onBought();
-    } else {
+    } catch (error: any) {
       await useUIStore.getState().showDialog({
         title: 'Purchase failed',
-        message: res?.message || 'Error purchasing.',
+        message: error?.message || 'Error purchasing.',
         kind: 'error',
       });
       setBuying(false);

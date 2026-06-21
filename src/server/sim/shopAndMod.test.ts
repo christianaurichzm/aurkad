@@ -2,7 +2,11 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import { CharacterAction } from '../../shared/types.js';
 import { TILE_SIZE } from '../../shared/constants.js';
 import { buyShopItem } from '../services/shopService.js';
-import { useItem, equipItem } from '../services/inventoryService.js';
+import {
+  useItem,
+  equipItem,
+  dropItemFromInventory,
+} from '../services/inventoryService.js';
 import { changeSprite } from '../services/playerService.js';
 import { updatePlayerMap } from '../services/mapService.js';
 import {
@@ -214,6 +218,35 @@ describe('inventory', () => {
     await useItem('Alice', 30);
 
     expect(player.inventory.items.find((i) => i.item === 30)).toBeUndefined();
+  });
+
+  it('dropping part of a stack creates dropped items on the map', async () => {
+    const potion = {
+      id: 30,
+      name: 'Potion',
+      description: '',
+      sprite: 4,
+      type: 'consumable' as const,
+    };
+    sim.addItem(potion);
+
+    const player = sim.addPlayer({ name: 'Alice' });
+    player.inventory.items.push({ item: 30, quantity: 5 });
+
+    const ok = await dropItemFromInventory('Alice', 30, 3);
+
+    expect(ok).toBe(true);
+    expect(player.inventory.items.find((i) => i.item === 30)?.quantity).toBe(2);
+    expect(sim.map.droppedItems).toHaveLength(3);
+    expect(sim.map.droppedItems).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          itemId: 30,
+          sprite: 4,
+          position: player.position,
+        }),
+      ]),
+    );
   });
 });
 

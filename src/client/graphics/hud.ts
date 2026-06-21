@@ -5,10 +5,13 @@ import { playerNameColorRecord } from '../../shared/mappings';
 import { useUIStore } from '../stores/uiStore';
 import { renderSpeechBubble } from './speechBubble';
 
+export const getPlayerHudText = (name: string, level: number) =>
+  `${name} (${level})`;
+
 export const renderHUD = (player: Player | PlayerPublic) => {
   const { name, level, position, access } = player;
   const { x, y } = position;
-  const text = `${name} - Level: ${level}`;
+  const text = getPlayerHudText(name, level);
 
   playerCtx.font = 'bold 14px Arial';
   playerCtx.strokeStyle = 'black';
@@ -38,7 +41,9 @@ export function getHealthBarInfo(current: number, max: number) {
 }
 
 export const updatePlayerHealthBar = (player: Player) => {
-  useUIStore.getState().setPlayerHealth(player.health, player.maxHealth);
+  useUIStore
+    .getState()
+    .setPlayerHealth(player.health, player.maxHealth, player.level);
 };
 
 export const renderHealthBar = (npc: RuntimeNpc) => {

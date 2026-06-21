@@ -17,6 +17,7 @@ export interface ClientItemAction extends ClientActionBase {
   type: 'item';
   item: number;
   action: 'use' | 'drop';
+  quantity?: number;
 }
 
 export interface ClientChatAction extends ClientActionBase {

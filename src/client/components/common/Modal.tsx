@@ -18,7 +18,7 @@ export const Modal: React.FC<ModalProps> = ({
   const initialX = window.innerWidth / 2 - width / 2;
   const initialY = window.innerHeight * 0.15;
 
-  const { ref, pos, onMouseDown } = useDraggable(initialX, initialY);
+  const { ref, pos, onPointerDown } = useDraggable(initialX, initialY);
 
   const styles = {
     overlay: {
@@ -83,7 +83,7 @@ export const Modal: React.FC<ModalProps> = ({
     <>
       <div style={styles.overlay} />
       <div ref={ref} style={styles.container}>
-        <div style={styles.titlebar} onMouseDown={onMouseDown}>
+        <div style={styles.titlebar} onPointerDown={onPointerDown}>
           <h2 style={styles.title}>{title}</h2>
           <button
             style={styles.closeButton}

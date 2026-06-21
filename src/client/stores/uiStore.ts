@@ -14,6 +14,7 @@ interface ConnectionState {
 interface PlayerHealthState {
   current: number;
   max: number;
+  level?: number;
 }
 
 interface ChatState {
@@ -53,7 +54,7 @@ interface UIState {
   hideConnectionStatus: () => void;
 
   playerHealth: PlayerHealthState;
-  setPlayerHealth: (current: number, max: number) => void;
+  setPlayerHealth: (current: number, max: number, level?: number) => void;
 
   currentMap: MapState | null;
   setCurrentMap: (map: MapStateClient) => void;
@@ -97,11 +98,16 @@ export const useUIStore = create<UIState>((set) => ({
   playerHealth: {
     current: 100,
     max: 100,
+    level: 1,
   },
-  setPlayerHealth: (current, max) =>
-    set({
-      playerHealth: { current, max },
-    }),
+  setPlayerHealth: (current, max, level) =>
+    set((state) => ({
+      playerHealth: {
+        current,
+        max,
+        level: level ?? state.playerHealth.level,
+      },
+    })),
 
   currentMap: null,
   setCurrentMap: (map) =>

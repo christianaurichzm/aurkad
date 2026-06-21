@@ -7,12 +7,18 @@ import { useStyles } from './styles';
 import { usePlayerForceUpdate } from '../../hooks/usePlayerForceUpdate';
 import { isEquipped } from '../../utils/isEquipped';
 import { colors } from '../../theme';
+import { useDraggable } from '../../hooks/useDraggable';
 
 type Selection = { item: Item; quantity: number };
+type InventoryTab = 'bag' | 'equipment';
 
 export const InventoryPanel: React.FC = () => {
   const styles = useStyles();
+  const { ref, pos, onPointerDown } = useDraggable(24, 120);
   const [selected, setSelected] = useState<Selection | null>(null);
+  const [activeTab, setActiveTab] = useState<InventoryTab>('bag');
+  const [dropTarget, setDropTarget] = useState<Selection | null>(null);
+  const [dropQuantity, setDropQuantity] = useState('1');
   const [tooltip, setTooltip] = useState<{
     x: number;
     y: number;
@@ -55,12 +61,24 @@ export const InventoryPanel: React.FC = () => {
 
   const handleDrop = () => {
     if (!player || !selected) return;
+    if (selected.quantity > 1) {
+      setDropTarget(selected);
+      setDropQuantity('1');
+      return;
+    }
+
+    dropSelectedItem(selected, 1);
+  };
+
+  const dropSelectedItem = (selection: Selection, quantity: number) => {
     sendAction({
       type: 'item',
       action: 'drop',
-      item: selected.item.id,
+      item: selection.item.id,
+      quantity,
     });
     setSelected(null);
+    setDropTarget(null);
   };
 
   const selectItemByEquip = (sel: Selection) => setSelected(sel);
@@ -72,52 +90,121 @@ export const InventoryPanel: React.FC = () => {
     return isEquipped(player, selected.item.id) ? 'Use (Unequip)' : 'Equip';
   };
 
+  const showTooltip = (item: Item, qty: number, x: number, y: number) =>
+    setTooltip({ x, y, item, qty });
+
+  const moveTooltip = (x: number, y: number) =>
+    setTooltip((current) => (current ? { ...current, x, y } : current));
+
+  const confirmDropQuantity = () => {
+    if (!dropTarget) return;
+    const parsedQuantity = Number(dropQuantity || 1);
+    const quantity = Math.max(
+      1,
+      Math.min(Math.floor(parsedQuantity), dropTarget.quantity),
+    );
+    dropSelectedItem(dropTarget, quantity);
+  };
+
   if (!player) return null;
 
   if (!visible) return null;
 
   return (
-    <div style={styles.container}>
-      <EquipmentPanel selectItem={selectItemByEquip} />
+    <div ref={ref} style={{ ...styles.container, left: pos.x, top: pos.y }}>
       <div style={styles.panel}>
-        <div style={styles.title}>Inventory</div>
-        <div style={styles.grid}>
-          {player.inventory.map((inv) => {
-            const border =
-              selected?.item.id === inv.item.id
-                ? '2px solid #e67e22'
-                : isEquipped(player, inv.item.id)
-                  ? `2px solid ${colors.primary}`
-                  : '1px solid #333';
-            return (
-              <div
-                key={inv.item.id}
-                style={styles.cell(border)}
-                onMouseEnter={(e) =>
-                  setTooltip({
-                    x: e.clientX,
-                    y: e.clientY,
-                    item: inv.item,
-                    qty: inv.quantity,
-                  })
-                }
-                onMouseMove={(e) =>
-                  tooltip &&
-                  setTooltip({ ...tooltip, x: e.clientX, y: e.clientY })
-                }
-                onMouseLeave={() => setTooltip(null)}
-                onClick={() =>
-                  setSelected({ item: inv.item, quantity: inv.quantity })
-                }
-              >
-                <ItemIcon spriteId={inv.item.sprite} />
-                {inv.quantity > 1 && (
-                  <span style={styles.qty}>{inv.quantity}</span>
-                )}
-              </div>
-            );
-          })}
+        <div style={styles.header} onPointerDown={onPointerDown}>
+          <div style={styles.title}>Inventory</div>
+          <button
+            type="button"
+            style={styles.closeBtn}
+            onClick={() => setVisible(false)}
+          >
+            x
+          </button>
         </div>
+        <div style={styles.tabs}>
+          {[
+            ['bag', 'Bag'],
+            ['equipment', 'Equipment'],
+          ].map(([tab, label]) => (
+            <button
+              key={tab}
+              type="button"
+              style={styles.tabBtn(activeTab === tab)}
+              onClick={() => {
+                setActiveTab(tab as InventoryTab);
+                setSelected(null);
+                setTooltip(null);
+              }}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+
+        {activeTab === 'bag' ? (
+          player.inventory.length > 0 ? (
+            <div style={styles.grid}>
+              {player.inventory.map((inv) => {
+                const border =
+                  selected?.item.id === inv.item.id
+                    ? '2px solid #e67e22'
+                    : isEquipped(player, inv.item.id)
+                      ? `2px solid ${colors.primary}`
+                      : '1px solid #333';
+                return (
+                  <div
+                    key={inv.item.id}
+                    style={styles.cell(border)}
+                    title={inv.item.name}
+                    onMouseEnter={(e) =>
+                      setTooltip({
+                        x: e.clientX,
+                        y: e.clientY,
+                        item: inv.item,
+                        qty: inv.quantity,
+                      })
+                    }
+                    onMouseMove={(e) =>
+                      tooltip && moveTooltip(e.clientX, e.clientY)
+                    }
+                    onMouseLeave={() => setTooltip(null)}
+                    onClick={() =>
+                      setSelected({ item: inv.item, quantity: inv.quantity })
+                    }
+                  >
+                    <ItemIcon spriteId={inv.item.sprite} />
+                    {inv.quantity > 1 && (
+                      <span style={styles.qty}>{inv.quantity}</span>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          ) : (
+            <div style={styles.emptyState}>Bag is empty</div>
+          )
+        ) : (
+          <EquipmentPanel
+            player={player}
+            selectItem={selectItemByEquip}
+            onItemHover={showTooltip}
+            onItemHoverMove={moveTooltip}
+            onItemHoverLeave={() => setTooltip(null)}
+          />
+        )}
+
+        {activeTab === 'bag' && selected && (
+          <div style={styles.selectedItem}>
+            <strong>{selected.item.name}</strong>
+            <span>{selected.item.description}</span>
+            {selected.quantity > 1 && (
+              <span>Quantity: {selected.quantity}</span>
+            )}
+          </div>
+        )}
+
         <div style={styles.row}>
           <button
             style={styles.useBtn(!!selected)}
@@ -134,6 +221,41 @@ export const InventoryPanel: React.FC = () => {
             Drop
           </button>
         </div>
+        {dropTarget && (
+          <div style={styles.dropPromptBackdrop}>
+            <div style={styles.dropPrompt}>
+              <strong>Drop quantity</strong>
+              <span>
+                {dropTarget.item.name} ({dropTarget.quantity} available)
+              </span>
+              <input
+                type="number"
+                min={1}
+                max={dropTarget.quantity}
+                value={dropQuantity}
+                style={styles.dropQuantityInput}
+                onChange={(event) => setDropQuantity(event.target.value)}
+                autoFocus
+              />
+              <div style={styles.dropPromptActions}>
+                <button
+                  type="button"
+                  style={styles.cancelDropBtn}
+                  onClick={() => setDropTarget(null)}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  style={styles.confirmDropBtn}
+                  onClick={confirmDropQuantity}
+                >
+                  Drop
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
         {tooltip && (
           <div
             style={{

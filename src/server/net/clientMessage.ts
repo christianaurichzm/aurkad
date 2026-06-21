@@ -16,6 +16,7 @@ const ItemMessageSchema = z.object({
   type: z.literal('item'),
   item: z.number().int().nonnegative(),
   action: z.enum(['use', 'drop']),
+  quantity: z.number().int().positive().optional(),
 });
 
 const MAX_CHAT_LENGTH = 200;

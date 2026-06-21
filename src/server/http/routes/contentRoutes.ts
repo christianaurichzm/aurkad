@@ -408,12 +408,14 @@ export function createContentRouter() {
     if (success) {
       const enrichedPlayer = enrichPlayer(player);
       return res.status(200).json({
+        success: true,
         message: 'Purchase completed successfully!',
         inventory: enrichedPlayer.inventory,
       });
     } else {
       return res.status(400).json({
-        error: 'Purchase failed: insufficient coins/item',
+        success: false,
+        message: 'Purchase failed: insufficient coins/item',
       });
     }
   });

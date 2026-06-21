@@ -32,6 +32,7 @@ export const httpClient = async <T>(
       status: response.status,
       message:
         data?.message ||
+        data?.error ||
         `Error: ${response.status} - ${response.statusText} - ${data}`,
     };
   }

@@ -58,6 +58,26 @@ describe('ClientMessageSchema', () => {
       expect(result.success).toBe(true);
     });
 
+    it('accepts a drop quantity', () => {
+      const result = ClientMessageSchema.safeParse({
+        type: 'item',
+        item: 3,
+        action: 'drop',
+        quantity: 4,
+      });
+      expect(result.success).toBe(true);
+    });
+
+    it('rejects an invalid drop quantity', () => {
+      const result = ClientMessageSchema.safeParse({
+        type: 'item',
+        item: 3,
+        action: 'drop',
+        quantity: 0,
+      });
+      expect(result.success).toBe(false);
+    });
+
     it('rejects an unknown action', () => {
       const result = ClientMessageSchema.safeParse({
         type: 'item',

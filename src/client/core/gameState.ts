@@ -65,6 +65,14 @@ export const setPlayerStats = (payload: PlayerCold) => {
   playerCold = payload;
 };
 
+export const updatePlayerInventory = (inventory: PlayerCold['inventory']) => {
+  if (!playerCold) return;
+  playerCold = {
+    ...playerCold,
+    inventory,
+  };
+};
+
 export const setFullGameState = (payload: FullGameStatePayload) => {
   dynamic = payload;
 };

@@ -87,10 +87,8 @@ export const GameInterface = () => {
       <ConnectionStatus />
       <div id="gameInfo">
         <p
-          id="mapName"
+          id="currentMapName"
           style={{
-            textAlign: 'center',
-            margin: '20px',
             color: currentMap?.type === 'normal' ? 'black' : 'red',
           }}
         >

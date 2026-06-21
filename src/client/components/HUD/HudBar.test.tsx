@@ -20,6 +20,35 @@ describe('HudBar Component', () => {
     expect(text).toBeInTheDocument();
   });
 
+  it('should render level with hp label', () => {
+    useUIStore.setState({
+      playerHealth: {
+        current: 100,
+        max: 100,
+        level: 5,
+      },
+    });
+
+    render(<HudBar />);
+
+    expect(screen.getByText('Level 5')).toBeInTheDocument();
+    expect(screen.getByText('HP')).toBeInTheDocument();
+  });
+
+  it('should render current and max hp next to the bar', () => {
+    useUIStore.setState({
+      playerHealth: {
+        current: 75,
+        max: 120,
+        level: 4,
+      },
+    });
+
+    render(<HudBar />);
+
+    expect(screen.getByText('75/120')).toBeInTheDocument();
+  });
+
   it('should render health bar with 75% health (green)', () => {
     useUIStore.setState({
       playerHealth: {

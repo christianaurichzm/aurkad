@@ -13,10 +13,7 @@ import {
 } from '../bodySchemas.js';
 import checkAccess from '../middleware/checkAccess.js';
 import { broadcast } from '../../net/index.js';
-import {
-  kickPlayer,
-  handlePlayerUpdate,
-} from '../../services/gameService.js';
+import { kickPlayer, handlePlayerUpdate } from '../../services/gameService.js';
 import { updatePlayerMap } from '../../services/mapService.js';
 import { banPlayer } from '../../services/banService.js';
 import { getPlayerByName, changeSprite } from '../../services/playerService.js';
@@ -50,7 +47,10 @@ export function createModRouter() {
         return res.status(404).json({ error: 'Player not found' });
       }
 
-      await kickPlayer(playerName, 'You were kicked from the game by a moderator.');
+      await kickPlayer(
+        playerName,
+        'You were kicked from the game by a moderator.',
+      );
       res.status(200).json({ success: true });
     },
   );
@@ -65,7 +65,9 @@ export function createModRouter() {
       banPlayer(playerName, reason, until);
       await kickPlayer(
         playerName,
-        reason ? `You were banned: ${reason}` : 'You were banned from the game.',
+        reason
+          ? `You were banned: ${reason}`
+          : 'You were banned from the game.',
       );
       res.status(200).json({ success: true });
     },

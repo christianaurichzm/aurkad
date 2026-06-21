@@ -5,7 +5,7 @@ import {
   ModifiablePlayerAttribute,
 } from '../../shared/types.js';
 import type { ClientItemAction } from '../engine/actions.js';
-import { updatePlayer, updateMap, items } from '../gameData.js';
+import { getMap, updatePlayer, updateMap, items } from '../gameData.js';
 import { logger } from '../logger.js';
 import ItemModel from '../model/Item.js';
 import { getNextItemId } from './dbService.js';
@@ -62,7 +62,7 @@ export const pickUpItem = async (map: MapStateServer, player: PlayerServer) => {
 };
 
 export const handleItemAction = (action: ClientItemAction) => {
-  const { username, item, action: itemAction } = action;
+  const { username, item, action: itemAction, quantity } = action;
 
   switch (itemAction) {
     case 'use':
@@ -71,8 +71,8 @@ export const handleItemAction = (action: ClientItemAction) => {
       });
       break;
     case 'drop':
-      removeItemFromInventory(username, item).catch((e) => {
-        logger.error('removeItemFromInventory failed', { err: e });
+      dropItemFromInventory(username, item, quantity).catch((e) => {
+        logger.error('dropItemFromInventory failed', { err: e });
       });
       break;
     default:
@@ -91,6 +91,48 @@ export async function removeItemFromInventory(
   player.inventory.items = player.inventory.items.filter(
     (i) => i.item !== itemId,
   );
+
+  await updatePlayer(player);
+  return true;
+}
+
+export async function dropItemFromInventory(
+  username: string,
+  itemId: number,
+  requestedQuantity = 1,
+): Promise<boolean> {
+  const player = getPlayerByName(username);
+  if (!player) return false;
+
+  const invItem = player.inventory.items.find((i) => i.item === itemId);
+  if (!invItem || invItem.quantity <= 0) return false;
+
+  const item = getItemById(itemId);
+  if (!item) return false;
+
+  const map = getMap(player.mapId);
+  if (!map) return false;
+
+  const quantity = Math.max(
+    1,
+    Math.min(Math.floor(requestedQuantity), invItem.quantity),
+  );
+
+  invItem.quantity -= quantity;
+  if (invItem.quantity <= 0) {
+    player.inventory.items = player.inventory.items.filter(
+      (i) => i.item !== itemId,
+    );
+  }
+
+  for (let i = 0; i < quantity; i++) {
+    map.droppedItems.push({
+      itemId,
+      sprite: item.sprite,
+      position: { ...player.position },
+    });
+  }
+  updateMap(map);
 
   await updatePlayer(player);
   return true;

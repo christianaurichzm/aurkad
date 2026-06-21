@@ -1,5 +1,11 @@
 import { describe, it, expect } from 'vitest';
-import { getHealthBarInfo } from './hud';
+import { getHealthBarInfo, getPlayerHudText } from './hud';
+
+describe('getPlayerHudText', () => {
+  it('renders level in parentheses without the level label', () => {
+    expect(getPlayerHudText('Alice', 5)).toBe('Alice (5)');
+  });
+});
 
 describe('getHealthBarInfo', () => {
   it('should return green color for 100% health', () => {
