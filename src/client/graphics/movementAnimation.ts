@@ -23,9 +23,12 @@ export interface AnimatedState {
 }
 
 const movementQueues = new Map<string, MovementStep[]>();
+const lastSettle = new Map<string, number>();
+const BRIDGE_MS = 60;
 
 export function clearMovementQueues() {
   movementQueues.clear();
+  lastSettle.clear();
 }
 
 export function onServerPositionUpdate(
@@ -52,16 +55,19 @@ export function onServerPositionUpdate(
   const isRunning = playerState?.action === CharacterAction.Run;
   const duration = isRunning ? RUN_MOVEMENT_DURATION : MOVEMENT_DURATION;
 
-  // Chain from the previous step's end so a burst of updates plays as one
-  // continuous slide. Duration stays below the server's per-tile cadence so the
-  // queue always drains instead of drifting into the future (and freezing).
-  const startTime = lastStep
-    ? lastStep.startTime + lastStep.duration
-    : performance.now();
+  let startTime: number;
+  if (lastStep) {
+    startTime = lastStep.startTime + lastStep.duration;
+  } else {
+    const now = performance.now();
+    const settled = lastSettle.get(playerId);
+    const gap = settled !== undefined ? now - settled : Infinity;
+    startTime = gap > 0 && gap < BRIDGE_MS ? settled! : now;
+  }
 
   queue.push({ from: lastPos, to, startTime, duration });
 
-  const MAX_QUEUE = 2;
+  const MAX_QUEUE = 6;
   while (queue.length > MAX_QUEUE) {
     const dropped = queue.shift()!;
     for (const step of queue) step.startTime -= dropped.duration;
@@ -81,20 +87,14 @@ export function getAnimatedState(
   }
 
   const now = performance.now();
-
-  // Drain every finished step (covers dropped frames), remembering the last so
-  // a settled entity holds its final tile.
-  let lastPos = currentPos;
-  while (queue.length > 0 && now - queue[0].startTime >= queue[0].duration) {
-    lastPos = queue.shift()!.to;
-  }
-
-  if (queue.length === 0) {
-    return { position: lastPos, moving: false };
-  }
-
   const step = queue[0];
   const t = Math.min(Math.max((now - step.startTime) / step.duration, 0), 1);
+
+  if (t >= 1) {
+    queue.shift();
+    lastSettle.set(entityId, step.startTime + step.duration);
+    return { position: step.to, moving: queue.length > 0 };
+  }
 
   return {
     position: {

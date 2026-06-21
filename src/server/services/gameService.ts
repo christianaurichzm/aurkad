@@ -140,7 +140,12 @@ export const processMovementIntent = () => {
     else if (keySet.has(Key.ArrowRight)) activeMoveDir = Direction.Right;
 
     if (activeMoveDir === null) {
-      if (player.action !== CharacterAction.Idle) {
+      // Leave an in-progress attack alone (Control release resets it to Idle);
+      // otherwise this would overwrite it every tick before the client sees it.
+      if (
+        player.action !== CharacterAction.Idle &&
+        player.action !== CharacterAction.Attack
+      ) {
         player.action = CharacterAction.Idle;
       }
       return;
