@@ -265,6 +265,11 @@ export interface Warp {
   position: Position;
 }
 
+export type TileAction =
+  | { action: 'heal' }
+  | { action: 'kill' }
+  | { action: 'message'; text: string };
+
 export interface Tile {
   tileIndex: number;
   blocked?: boolean;
@@ -274,9 +279,7 @@ export interface Tile {
   shop?: Shop['id'];
   avoidNpc?: boolean;
   fringe?: boolean;
-  heal?: boolean;
-  death?: boolean;
-  warn?: boolean;
+  triggers?: TileAction[];
 }
 
 export interface DroppedItem {
@@ -391,7 +394,7 @@ export type TileEditMode =
   | 'avoidNpc'
   | 'fringe'
   | 'heal'
-  | 'death'
+  | 'kill'
   | 'warn';
 
 export interface HttpRequestOptions {

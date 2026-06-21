@@ -11,7 +11,7 @@ import {
   toggleAvoidNpc,
   toggleFringe,
   toggleHeal,
-  toggleDeath,
+  toggleKill,
   toggleWarn,
 } from '../../graphics/tileset';
 import { useUIStore } from '../../stores/uiStore';
@@ -61,7 +61,7 @@ const modes: TileEditMode[] = [
   'avoidNpc',
   'fringe',
   'heal',
-  'death',
+  'kill',
   'warn',
 ];
 const modeLabels: Record<TileEditMode, string> = {
@@ -73,7 +73,7 @@ const modeLabels: Record<TileEditMode, string> = {
   avoidNpc: 'Avoid',
   fringe: 'Fringe',
   heal: 'Heal',
-  death: 'Death',
+  kill: 'Kill',
   warn: 'Warn',
 };
 
@@ -158,7 +158,7 @@ const TilesetModeControlsComponent: React.FC = () => {
       avoidNpc: toggleAvoidNpc,
       fringe: toggleFringe,
       heal: toggleHeal,
-      death: toggleDeath,
+      kill: toggleKill,
       warn: toggleWarn,
     };
     toggleMap[mode]?.();

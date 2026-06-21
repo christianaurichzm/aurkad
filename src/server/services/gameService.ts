@@ -80,30 +80,26 @@ const handleWarpAndShops = (player: PlayerServer): void => {
         shopId: tile.shop,
       });
     }
-    if (tile?.heal) {
-      player.health = player.maxHealth;
-    }
-    if (tile?.death) {
-      player.health = 0;
-      emit('playerDeath', { player });
-      respawnPlayer(player);
-      handleChatAction({
-        scope: 'global',
-        type: 'chat',
-        subtype: 'death',
-        message: `${player.name} fell into a deadly trap!`,
-      });
-    }
-    if (tile?.warn) {
-      emitGameEvent({
-        type: 'chatPlayer',
-        username: player.name,
-        payload: {
+    for (const trigger of tile?.triggers ?? []) {
+      if (trigger.action === 'heal') {
+        player.health = player.maxHealth;
+      } else if (trigger.action === 'kill') {
+        player.health = 0;
+        emit('playerDeath', { player });
+        respawnPlayer(player);
+        handleChatAction({
+          scope: 'global',
           type: 'chat',
-          scope: 'player',
-          message: '⚠️ Entering a dangerous area!',
-        },
-      });
+          subtype: 'death',
+          message: `${player.name} fell into a deadly trap!`,
+        });
+      } else if (trigger.action === 'message') {
+        emitGameEvent({
+          type: 'chatPlayer',
+          username: player.name,
+          payload: { type: 'chat', scope: 'player', message: trigger.text },
+        });
+      }
     }
   }
 };

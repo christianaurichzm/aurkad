@@ -23,6 +23,12 @@ const WarpSchema = z.object({
   position: PositionSchema,
 });
 
+const TileActionSchema = z.discriminatedUnion('action', [
+  z.object({ action: z.literal('heal') }),
+  z.object({ action: z.literal('kill') }),
+  z.object({ action: z.literal('message'), text: z.string() }),
+]);
+
 const TileSchema = z.object({
   tileIndex: z.number().int().nonnegative().default(0),
   blocked: z.boolean().optional(),
@@ -32,9 +38,7 @@ const TileSchema = z.object({
   shop: z.string().optional(),
   avoidNpc: z.boolean().optional(),
   fringe: z.boolean().optional(),
-  heal: z.boolean().optional(),
-  death: z.boolean().optional(),
-  warn: z.boolean().optional(),
+  triggers: z.array(TileActionSchema).optional(),
 });
 
 const NpcItemDropSchema = z.object({

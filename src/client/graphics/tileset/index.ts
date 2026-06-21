@@ -9,7 +9,7 @@ import {
   removeEvent,
 } from '../../utils/domHelpers';
 import { TILE_SIZE } from '../../../shared/constants';
-import { MapType, Tile, TileEditMode } from '../../../shared/types';
+import { MapType, Tile, TileAction, TileEditMode } from '../../../shared/types';
 import { tileset, tilesetAlpha } from '../../io/assets';
 import { saveMap } from '../../io/network';
 import { foregroundCanvas, foregroundCtx, fringeCtx } from '../canvas';
@@ -54,6 +54,17 @@ let mapHeight: number;
 let originalMap: Tile[][] = [];
 let map: Tile[][] = [];
 let hoveredCell: { row: number; col: number } | null = null;
+
+function toggleTrigger(tile: Tile, action: TileAction['action'], text?: string) {
+  const triggers = tile.triggers ?? [];
+  const i = triggers.findIndex((t) => t.action === action);
+  if (i >= 0) {
+    triggers.splice(i, 1);
+  } else {
+    triggers.push(action === 'message' ? { action, text: text ?? '' } : { action } as TileAction);
+  }
+  tile.triggers = triggers.length ? triggers : undefined;
+}
 
 const handleHover = (event: MouseEvent) => {
   const { x, y } = getMousePosition(event, foregroundCanvas);
@@ -150,21 +161,21 @@ const modes: Record<TileEditMode, ModeConfig> = {
   },
   heal: {
     place: (row: number, col: number) => {
-      map[row][col].heal = !map[row][col].heal;
+      toggleTrigger(map[row][col], 'heal');
       setMapEdited(true);
       renderMap(map);
     },
   },
-  death: {
+  kill: {
     place: (row: number, col: number) => {
-      map[row][col].death = !map[row][col].death;
+      toggleTrigger(map[row][col], 'kill');
       setMapEdited(true);
       renderMap(map);
     },
   },
   warn: {
     place: (row: number, col: number) => {
-      map[row][col].warn = !map[row][col].warn;
+      toggleTrigger(map[row][col], 'message', '⚠️ Entering a dangerous area!');
       setMapEdited(true);
       renderMap(map);
     },
@@ -318,7 +329,7 @@ export const toggleShop = () => toggleMode('shop');
 export const toggleAvoidNpc = () => toggleMode('avoidNpc');
 export const toggleFringe = () => toggleMode('fringe');
 export const toggleHeal = () => toggleMode('heal');
-export const toggleDeath = () => toggleMode('death');
+export const toggleKill = () => toggleMode('kill');
 export const toggleWarn = () => toggleMode('warn');
 
 const setupEventListeners = () => {
@@ -414,9 +425,9 @@ const drawMarkers = (tiles: Tile[][]) => {
       if (tile.shop) drawMarker(colIndex, rowIndex, 'S', 'green');
       if (tile.avoidNpc) drawMarker(colIndex, rowIndex, 'A', 'purple');
       if (tile.fringe) drawMarker(colIndex, rowIndex, 'F', 'cyan');
-      if (tile.heal) drawMarker(colIndex, rowIndex, 'H', '#00e676');
-      if (tile.death) drawMarker(colIndex, rowIndex, 'D', '#ff1744');
-      if (tile.warn) drawMarker(colIndex, rowIndex, '!', '#ff9100');
+      if (tile.triggers?.some((t) => t.action === 'heal')) drawMarker(colIndex, rowIndex, 'H', '#00e676');
+      if (tile.triggers?.some((t) => t.action === 'kill')) drawMarker(colIndex, rowIndex, 'K', '#ff1744');
+      if (tile.triggers?.some((t) => t.action === 'message')) drawMarker(colIndex, rowIndex, '!', '#ff9100');
     });
   });
 };

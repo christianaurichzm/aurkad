@@ -284,3 +284,58 @@ describe('map warp', () => {
     expect(sim.getPlayer('Alice').mapId).toBe(dest.id);
   });
 });
+
+// Tile triggers
+
+describe('tile triggers', () => {
+  it('heal trigger restores health to max on entry', () => {
+    sim.map.tiles[1]![2]!.triggers = [{ action: 'heal' }];
+    const player = sim.addPlayer({
+      name: 'Alice',
+      health: 10,
+      maxHealth: 100,
+      position: { x: TILE_SIZE, y: TILE_SIZE },
+    });
+
+    sim.press('Alice', Key.ArrowRight);
+    sim.step(10);
+
+    expect(player.health).toBe(100);
+  });
+
+  it('kill trigger resets health to 0 and respawns player', () => {
+    sim.map.tiles[1]![2]!.triggers = [{ action: 'kill' }];
+    const player = sim.addPlayer({
+      name: 'Alice',
+      health: 50,
+      maxHealth: 100,
+      position: { x: TILE_SIZE, y: TILE_SIZE },
+    });
+    const startPos = { ...player.position };
+
+    sim.press('Alice', Key.ArrowRight);
+    sim.step(10);
+
+    // Player is alive (respawned) and moved back to spawn
+    expect(player.health).toBeGreaterThan(0);
+    expect(player.position).not.toEqual(startPos);
+  });
+
+  it('multiple triggers all apply on entry', () => {
+    sim.map.tiles[1]![2]!.triggers = [
+      { action: 'heal' },
+      { action: 'message', text: 'Welcome!' },
+    ];
+    const player = sim.addPlayer({
+      name: 'Alice',
+      health: 50,
+      maxHealth: 100,
+      position: { x: TILE_SIZE, y: TILE_SIZE },
+    });
+
+    sim.press('Alice', Key.ArrowRight);
+    sim.step(10);
+
+    expect(player.health).toBe(100);
+  });
+});
