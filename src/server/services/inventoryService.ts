@@ -251,7 +251,11 @@ export async function applyItemEffects(
     if (type === 'add') {
       player[attribute] += reverse ? -value : value;
     } else if (type === 'multiply') {
-      player[attribute] *= reverse ? 1 / value : value;
+      if (reverse) {
+        player[attribute] /= value;
+      } else {
+        player[attribute] *= value;
+      }
     }
   }
 }

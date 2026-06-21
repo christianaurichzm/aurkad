@@ -10,6 +10,7 @@ import {
 } from '../services/gameService.js';
 import { clearAllAttackCooldowns } from '../services/combat/attackCooldown.js';
 import { updateNpcs } from '../services/npc/index.js';
+import { clearAllNpcAiState } from '../services/npc/aiBrain.js';
 import { rebuildQuadtree } from '../spatial/spatialManager.js';
 import {
   CharacterAction,
@@ -25,6 +26,10 @@ import { TILE_SIZE } from '../../shared/constants.js';
 
 let _nextId = 1;
 const uid = () => `e${_nextId++}`;
+
+export function tile(col: number, row: number): Position {
+  return { x: col * TILE_SIZE, y: row * TILE_SIZE };
+}
 
 export function makeTiles(rows: number, cols: number): Tile[][] {
   return Array.from({ length: rows }, () =>
@@ -45,6 +50,7 @@ export function createFixture(seed = 0) {
   pressedKeysMap.clear();
   items.clear();
   clearAllAttackCooldowns();
+  clearAllNpcAiState();
 
   const mapId = 'map1';
   const map: MapStateServer = {

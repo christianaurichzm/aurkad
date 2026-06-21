@@ -1,6 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { CharacterAction } from '../../shared/types.js';
-import { TILE_SIZE } from '../../shared/constants.js';
 import { buyShopItem } from '../services/shopService.js';
 import {
   useItem,
@@ -15,7 +14,7 @@ import {
   getAllPlayers,
   unregisterPlayer,
 } from '../sim/world.js';
-import { createFixture } from './simFixture.js';
+import { createFixture, tile } from './simFixture.js';
 
 let sim: ReturnType<typeof createFixture>;
 
@@ -249,6 +248,87 @@ describe('inventory', () => {
     );
   });
 
+  it('equipping a weapon with a multiply effect scales the stat', async () => {
+    const sword = {
+      id: 21,
+      name: 'PowerSword',
+      description: '',
+      sprite: 0,
+      type: 'weapon' as const,
+      effects: [
+        { attribute: 'attack' as const, type: 'multiply' as const, value: 1.5 },
+      ],
+    };
+    sim.addItem(sword);
+
+    const player = sim.addPlayer({ name: 'Bob', attack: 10 });
+    player.inventory.items.push({ item: 21, quantity: 1 });
+
+    await equipItem(player, 21);
+
+    expect(player.attack).toBe(15);
+  });
+
+  it('unequipping a multiply-effect weapon restores original stat exactly', async () => {
+    const sword = {
+      id: 21,
+      name: 'PowerSword',
+      description: '',
+      sprite: 0,
+      type: 'weapon' as const,
+      effects: [
+        { attribute: 'attack' as const, type: 'multiply' as const, value: 1.5 },
+      ],
+    };
+    sim.addItem(sword);
+
+    const player = sim.addPlayer({ name: 'Bob', attack: 10 });
+    player.inventory.items.push({ item: 21, quantity: 1 });
+
+    await equipItem(player, 21);
+    await equipItem(player, 21);
+
+    expect(player.attack).toBe(10);
+  });
+
+  it('swapping equipped weapon unequips old and equips new', async () => {
+    const sword = {
+      id: 20,
+      name: 'Sword',
+      description: '',
+      sprite: 0,
+      type: 'weapon' as const,
+      effects: [
+        { attribute: 'attack' as const, type: 'add' as const, value: 5 },
+      ],
+    };
+    const axe = {
+      id: 22,
+      name: 'Axe',
+      description: '',
+      sprite: 0,
+      type: 'weapon' as const,
+      effects: [
+        { attribute: 'attack' as const, type: 'add' as const, value: 20 },
+      ],
+    };
+    sim.addItem(sword);
+    sim.addItem(axe);
+
+    const player = sim.addPlayer({ name: 'Charlie', attack: 10 });
+    player.inventory.items.push({ item: 20, quantity: 1 });
+    player.inventory.items.push({ item: 22, quantity: 1 });
+
+    await equipItem(player, 20);
+    expect(player.attack).toBe(15);
+    expect(player.equipped['weapon']).toBe(20);
+
+    await equipItem(player, 22);
+    expect(player.equipped['weapon']).toBe(22);
+    expect(player.attack).toBe(30);
+    expect(player.inventory.items.find((i) => i.item === 20)?.quantity).toBe(1);
+  });
+
   it('picking up a stacked drop recovers the whole quantity at once', async () => {
     sim.addItem({
       id: 31,
@@ -277,14 +357,8 @@ describe('inventory', () => {
 
 describe('mod actions', () => {
   it('bring: teleports target to the mod position on the same map', () => {
-    const mod = sim.addPlayer({
-      name: 'Mod',
-      position: { x: 8 * TILE_SIZE, y: 8 * TILE_SIZE },
-    });
-    const target = sim.addPlayer({
-      name: 'Bob',
-      position: { x: 2 * TILE_SIZE, y: 2 * TILE_SIZE },
-    });
+    const mod = sim.addPlayer({ name: 'Mod', position: tile(8, 8) });
+    const target = sim.addPlayer({ name: 'Bob', position: tile(2, 2) });
 
     // replicate /mod/bring route logic
     const prevMap = target.mapId;
@@ -303,15 +377,8 @@ describe('mod actions', () => {
 
   it('goto: mod teleports to the target position on the target map', () => {
     const map2 = sim.addMap({ id: 'map2' });
-    const mod = sim.addPlayer({
-      name: 'Mod',
-      position: { x: 1 * TILE_SIZE, y: 1 * TILE_SIZE },
-    });
-    const target = sim.addPlayer({
-      name: 'Bob',
-      position: { x: 7 * TILE_SIZE, y: 7 * TILE_SIZE },
-      mapId: map2.id,
-    });
+    const mod = sim.addPlayer({ name: 'Mod', position: tile(1, 1) });
+    const target = sim.addPlayer({ name: 'Bob', position: tile(7, 7), mapId: map2.id });
     map2.players[target.id] = target;
 
     // replicate /mod/goto route logic

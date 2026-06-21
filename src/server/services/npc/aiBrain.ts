@@ -32,3 +32,7 @@ export function resetNpcAi(npc: RuntimeNpc) {
   const key = getNpcAiKey(npc);
   npcAiState.delete(key);
 }
+
+export function clearAllNpcAiState() {
+  npcAiState.clear();
+}
