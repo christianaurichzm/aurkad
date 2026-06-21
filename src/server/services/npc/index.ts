@@ -18,6 +18,7 @@ import {
 import { getMap } from '../../gameData.js';
 import { getOrInitNpcAi, transitionNpcAi, resetNpcAi } from './aiBrain.js';
 import { getTick, msToTicks } from '../../sim/clock.js';
+import { gameConfig } from '../../gameConfig.js';
 import {
   findClosestPlayer,
   isPlayerInAttackRange,
@@ -86,7 +87,7 @@ export function updateNpcs(npc: RuntimeNpc, map: MapStateServer) {
 
   const ai = getOrInitNpcAi(npc);
   const tick = getTick();
-  const ATTACK_COOLDOWN_TICKS = msToTicks(900);
+  const ATTACK_COOLDOWN_TICKS = msToTicks(gameConfig.combat.npcAttackCooldownMs);
 
   if (npc.behavior === 'aggressive') {
     transitionNpcAi(ai, canAttack ? 'attack' : 'chase');

@@ -15,11 +15,12 @@ import {
 } from '../net/transport.js';
 import { broadcastGameState, flushGameEvents } from '../net/snapshot.js';
 import { advanceTick, getTick, msToTicks } from './clock.js';
+import { gameConfig } from '../gameConfig.js';
 
 type TimeoutHandle = ReturnType<typeof setTimeout>;
 
-const NPC_UPDATE_TICKS = msToTicks(1250);
-const REGEN_TICKS = msToTicks(5000);
+const NPC_UPDATE_TICKS = msToTicks(gameConfig.combat.npcUpdateIntervalMs);
+const REGEN_TICKS = msToTicks(gameConfig.combat.regenIntervalMs);
 
 function scheduledServerActions() {
   const tick = getTick();

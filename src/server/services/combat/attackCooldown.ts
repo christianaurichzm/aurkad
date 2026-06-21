@@ -1,5 +1,5 @@
 import { msToTicks } from '../../sim/clock.js';
-import { PLAYER_ATTACK_COOLDOWN_MS } from '../../../shared/constants.js';
+import { gameConfig } from '../../gameConfig.js';
 
 const lastAttackTick = new Map<string, number>();
 
@@ -7,7 +7,7 @@ export function tryConsumeAttackCooldown(id: string, tick: number): boolean {
   const last = lastAttackTick.get(id);
   if (
     last !== undefined &&
-    tick - last < msToTicks(PLAYER_ATTACK_COOLDOWN_MS)
+    tick - last < msToTicks(gameConfig.combat.playerAttackCooldownMs)
   ) {
     return false;
   }

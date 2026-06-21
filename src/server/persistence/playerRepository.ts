@@ -1,6 +1,6 @@
 import PlayerModel from '../model/Player.js';
 import { PlayerRecord, PlayerServer } from '../../shared/types.js';
-import { DEFAULT_INVENTORY_CAPACITY } from '../../shared/constants.js';
+import { gameConfig } from '../gameConfig.js';
 
 // Integrity boundary for player documents leaving the DB. Mongoose minimize
 // drops empty objects (e.g. an unequipped player's `equipped: {}`), so loaded
@@ -12,7 +12,7 @@ export function normalizePlayerRecord(record: PlayerRecord): PlayerRecord {
     equipped: record.equipped ?? {},
     inventory: record.inventory ?? {
       items: [],
-      maxCapacity: DEFAULT_INVENTORY_CAPACITY,
+      maxCapacity: gameConfig.player.startingInventoryCapacity,
     },
   };
 }

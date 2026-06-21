@@ -1,13 +1,10 @@
 import {
-  RESPAWN_POSITION,
   SPRITE_WIDTH,
   SPRITE_HEIGHT,
-  DEFAULT_PLAYER_SPEED,
   TILE_SIZE,
-  FIRST_GAME_MAP_ID,
   EQUIPMENT_SLOTS,
-  DEFAULT_INVENTORY_CAPACITY,
 } from '../../shared/constants.js';
+import { gameConfig, respawnPosition } from '../gameConfig.js';
 import {
   PlayerServer,
   PlayerRecord,
@@ -59,28 +56,32 @@ export const createPlayer = async (
       process.env.NODE_ENV !== 'production' &&
       !(await playerRepository.anyExists()));
 
+  const { startingAttack, startingMaxHealth, startingSpeed, startingInventoryCapacity } =
+    gameConfig.player;
+  const { baseXp } = gameConfig.leveling;
+
   const newPlayer: PlayerServer = {
     id: Math.random().toString(36).substring(2, 9),
     name: username,
-    position: RESPAWN_POSITION,
+    position: respawnPosition,
     width: SPRITE_WIDTH,
     height: SPRITE_HEIGHT,
-    speed: DEFAULT_PLAYER_SPEED,
+    speed: startingSpeed,
     kind: 'player',
-    attack: 100,
+    attack: startingAttack,
     vitality: 0,
     unspentPoints: 0,
     level: 1,
     experience: 0,
-    experienceToNextLevel: 100,
+    experienceToNextLevel: baseXp,
     attackRange: TILE_SIZE,
-    mapId: FIRST_GAME_MAP_ID,
+    mapId: gameConfig.world.startMapId,
     sprite: 0,
-    maxHealth: 100,
-    health: 100,
+    maxHealth: startingMaxHealth,
+    health: startingMaxHealth,
     inventory: {
       items: [],
-      maxCapacity: DEFAULT_INVENTORY_CAPACITY,
+      maxCapacity: startingInventoryCapacity,
     },
     equipped: {},
     access: isAdmin ? Access.ADMIN : Access.USER,
@@ -104,16 +105,15 @@ export const persistPlayerSessionState = async (player: PlayerServer) => {
 };
 
 export const levelUpPlayer = (player: PlayerServer): void => {
-  const POINTS_PER_LEVEL = 5;
+  const { baseXp, xpGrowthRate, pointsPerLevel } = gameConfig.leveling;
 
   while (player.experience >= player.experienceToNextLevel) {
     player.experience -= player.experienceToNextLevel;
     player.level++;
     player.experienceToNextLevel = Math.floor(
-      100 * Math.pow(1.5, player.level - 1),
+      baseXp * Math.pow(xpGrowthRate, player.level - 1),
     );
-
-    player.unspentPoints += POINTS_PER_LEVEL;
+    player.unspentPoints += pointsPerLevel;
   }
 };
 
@@ -129,8 +129,8 @@ export const handlePlayerUpdates = (player: PlayerServer): void => {
 export const respawnPlayer = (player: PlayerServer): void => {
   player.health = player.maxHealth;
   removePlayerFromMap(player.id);
-  player.mapId = FIRST_GAME_MAP_ID;
-  player.position = RESPAWN_POSITION;
+  player.mapId = gameConfig.world.startMapId;
+  player.position = respawnPosition;
   addPlayerOnMap(player.id);
 };
 

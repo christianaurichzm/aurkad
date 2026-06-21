@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { PlayerRecord } from '../../shared/types.js';
-import { DEFAULT_INVENTORY_CAPACITY } from '../../shared/constants.js';
+import { gameConfig } from '../gameConfig.js';
 import { normalizePlayerRecord } from './playerRepository.js';
 
 function mkRecord(overrides: Partial<PlayerRecord>): PlayerRecord {
@@ -24,7 +24,7 @@ describe('normalizePlayerRecord', () => {
     expect(normalized.equipped).toEqual({});
     expect(normalized.inventory).toEqual({
       items: [],
-      maxCapacity: DEFAULT_INVENTORY_CAPACITY,
+      maxCapacity: gameConfig.player.startingInventoryCapacity,
     });
   });
 

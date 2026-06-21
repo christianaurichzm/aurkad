@@ -21,7 +21,7 @@ import {
 } from '../services/gameService.js';
 import { handleItemAction } from '../services/inventoryService.js';
 import { updateNpcs } from '../services/npc/index.js';
-import { REGEN_PERCENT, MIN_REGEN } from '../../shared/constants.js';
+import { gameConfig } from '../gameConfig.js';
 import { playersWsMap } from './connections.js';
 
 type IntervalHandle = ReturnType<typeof setInterval>;
@@ -148,9 +148,10 @@ function handleServerAction(action: ServerAction) {
       Object.values(getGameState().maps).forEach((map) => {
         Object.values(map.players).forEach((player) => {
           if (player.health < player.maxHealth) {
+            const { regenPercent, minRegen } = gameConfig.combat;
             const regenAmount = Math.max(
-              Math.floor(player.maxHealth * REGEN_PERCENT),
-              MIN_REGEN,
+              Math.floor(player.maxHealth * regenPercent),
+              minRegen,
             );
             player.health = Math.min(
               player.health + regenAmount,
