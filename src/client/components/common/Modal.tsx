@@ -1,11 +1,12 @@
 import React, { ReactNode } from 'react';
 import { useDraggable } from '../../hooks/useDraggable';
+import { useEscapeClose } from '../../hooks/useEscapeClose';
 import { colors, radius, shadow, zIndex } from '../../theme';
 
 interface ModalProps {
   title: string;
   width?: number;
-  onClose: () => void;
+  onClose: () => void | Promise<void>;
   children: ReactNode;
 }
 
@@ -19,6 +20,7 @@ export const Modal: React.FC<ModalProps> = ({
   const initialY = window.innerHeight * 0.15;
 
   const { ref, pos, onPointerDown } = useDraggable(initialX, initialY);
+  useEscapeClose(true, onClose);
 
   const styles = {
     overlay: {

@@ -72,7 +72,7 @@ const styles = {
   overlay: {
     position: 'fixed' as const,
     inset: 0,
-    zIndex: zIndex.modalOverlay,
+    zIndex: zIndex.dialogOverlay,
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
@@ -87,7 +87,7 @@ const styles = {
     borderTop: `4px solid ${colors.primary}`,
     boxShadow: shadow.modal,
     padding: 20,
-    zIndex: zIndex.modal,
+    zIndex: zIndex.dialog,
   },
   title: {
     margin: 0,

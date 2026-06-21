@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { ItemEditor } from './ItemEditor';
 import { NpcEditor } from './NpcEditor';
 import { MapEditor } from './MapEditor';
@@ -7,6 +7,7 @@ import { fetchNpcs, fetchItems, fetchMaps } from '../../io/network';
 import { useGame } from '../../context/GameContext';
 import { Modal } from '../common/Modal';
 import { colors, radius } from '../../theme';
+import { useUIStore } from '../../stores/uiStore';
 
 type Tab = 'npcs' | 'items' | 'maps';
 
@@ -17,12 +18,53 @@ export const ContentEditor: React.FC = () => {
   const [npcs, setNpcs] = useState<RuntimeNpc[]>([]);
   const [items, setItems] = useState<Item[]>([]);
   const [maps, setMaps] = useState<MapStateClient[]>([]);
+  const [contentDirty, setContentDirty] = useState(false);
+  const visibleRef = useRef(false);
+  const dirtyRef = useRef(false);
 
   useEffect(() => {
-    const toggle = () => setVisible((v) => !v);
+    visibleRef.current = visible;
+  }, [visible]);
+
+  useEffect(() => {
+    dirtyRef.current = contentDirty;
+  }, [contentDirty]);
+
+  const confirmDiscard = useCallback(async () => {
+    if (!dirtyRef.current) return true;
+
+    const discard = await useUIStore.getState().showDialog({
+      title: 'Discard changes?',
+      message: 'You have unsaved editor changes. Discard them?',
+      kind: 'confirm',
+      confirmLabel: 'Discard',
+      cancelLabel: 'Keep editing',
+    });
+
+    if (discard) {
+      setContentDirty(false);
+    }
+
+    return discard;
+  }, []);
+
+  const close = useCallback(async () => {
+    if (!(await confirmDiscard())) return;
+    setContentDirty(false);
+    setVisible(false);
+  }, [confirmDiscard]);
+
+  useEffect(() => {
+    const toggle = () => {
+      if (visibleRef.current) {
+        void close();
+      } else {
+        setVisible(true);
+      }
+    };
     window.addEventListener('toggleContentEditor', toggle);
     return () => window.removeEventListener('toggleContentEditor', toggle);
-  }, []);
+  }, [close]);
 
   const filterMaps = useCallback(
     (data: MapStateClient[]) => data.filter((m) => m.id !== currentMap?.id),
@@ -65,6 +107,12 @@ export const ContentEditor: React.FC = () => {
 
   if (!visible) return null;
 
+  const selectTab = async (nextTab: Tab) => {
+    if (nextTab === tab) return;
+    if (!(await confirmDiscard())) return;
+    setTab(nextTab);
+  };
+
   const tabs: { id: Tab; label: string }[] = [
     { id: 'npcs', label: 'NPCs' },
     { id: 'items', label: 'Items' },
@@ -72,14 +120,14 @@ export const ContentEditor: React.FC = () => {
   ];
 
   return (
-    <Modal title="Content Editor" onClose={() => setVisible(false)} width={560}>
+    <Modal title="Content Editor" onClose={close} width={560}>
       <div style={layout}>
         <div style={tabBar}>
           {tabs.map((t) => (
             <button
               key={t.id}
               style={{ ...tabBtn, ...(tab === t.id ? tabBtnActive : {}) }}
-              onClick={() => setTab(t.id)}
+              onClick={() => void selectTab(t.id)}
             >
               {t.label}
             </button>
@@ -93,6 +141,8 @@ export const ContentEditor: React.FC = () => {
               refreshData={refreshData}
               items={items}
               loadItems={loadItems}
+              onDirtyChange={setContentDirty}
+              requestDiscard={confirmDiscard}
             />
           )}
           {tab === 'items' && (
@@ -100,6 +150,8 @@ export const ContentEditor: React.FC = () => {
               items={items}
               loadItems={loadItems}
               refreshData={refreshData}
+              onDirtyChange={setContentDirty}
+              requestDiscard={confirmDiscard}
             />
           )}
           {tab === 'maps' && (
@@ -107,6 +159,8 @@ export const ContentEditor: React.FC = () => {
               maps={maps}
               loadMaps={loadMaps}
               refreshData={refreshData}
+              onDirtyChange={setContentDirty}
+              requestDiscard={confirmDiscard}
             />
           )}
         </div>

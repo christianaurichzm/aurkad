@@ -11,8 +11,8 @@ export const ConnectionStatus: React.FC = () => {
     <div
       id="connection-status"
       style={{
-        position: 'fixed',
-        top: 20,
+        position: 'absolute',
+        top: 52,
         left: '50%',
         transform: 'translateX(-50%)',
         padding: '10px 20px',

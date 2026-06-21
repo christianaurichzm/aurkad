@@ -7,6 +7,7 @@ import {
 import { useUIStore } from '../../stores/uiStore';
 import { TilesetModeControls } from './TilesetModeControls';
 import { useDraggable } from '../../hooks/useDraggable';
+import { useEscapeClose } from '../../hooks/useEscapeClose';
 import { colors, radius, shadow, zIndex } from '../../theme';
 
 export const TilesetEditor: React.FC = () => {
@@ -35,6 +36,8 @@ export const TilesetEditor: React.FC = () => {
     }
     setVisible(false);
   };
+
+  useEscapeClose(visible, handleClose);
 
   useEffect(() => {
     const onToggle = () => {

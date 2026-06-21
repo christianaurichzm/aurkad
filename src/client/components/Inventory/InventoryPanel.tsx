@@ -8,6 +8,7 @@ import { usePlayerForceUpdate } from '../../hooks/usePlayerForceUpdate';
 import { isEquipped } from '../../utils/isEquipped';
 import { colors } from '../../theme';
 import { useDraggable } from '../../hooks/useDraggable';
+import { useEscapeClose } from '../../hooks/useEscapeClose';
 
 type Selection = { item: Item; quantity: number };
 type InventoryTab = 'bag' | 'equipment';
@@ -34,6 +35,8 @@ export const InventoryPanel: React.FC = () => {
     window.addEventListener('toggleInventory', onToggle);
     return () => window.removeEventListener('toggleInventory', onToggle);
   }, []);
+
+  useEscapeClose(visible, () => setVisible(false));
 
   useEffect(() => {
     if (!selected || !player) return;

@@ -34,6 +34,8 @@ export const zIndex = {
   floatingPanel: 1002,
   tooltip: 1100,
   auth: 2000,
+  dialogOverlay: 9000,
+  dialog: 9001,
   toast: 10000,
 } as const;
 

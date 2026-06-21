@@ -1,4 +1,5 @@
 import React, { useRef, useState, useEffect, useCallback } from 'react';
+import { Controller, useForm } from 'react-hook-form';
 import { RuntimeNpc, NpcBehavior, Item } from '../../../shared/types';
 import { drawSpriteGeneric } from '../../graphics/render';
 import { updateNpc, createNpc, deleteNpc } from '../../io/network';
@@ -13,7 +14,46 @@ interface NpcEditorProps {
   loadNpcs: () => Promise<any>;
   loadItems: () => Promise<any>;
   refreshData: () => void;
+  onDirtyChange: (dirty: boolean) => void;
+  requestDiscard: () => Promise<boolean>;
 }
+
+type NpcFormValues = {
+  name: string;
+  sprite: number;
+  health: number;
+  attack: number;
+  behavior: NpcBehavior;
+  exp: number;
+  dropItemId: number;
+  dropChance: number;
+};
+
+const defaultValues: NpcFormValues = {
+  name: '',
+  sprite: 0,
+  health: 1,
+  attack: 1,
+  behavior: 'neutral',
+  exp: 0,
+  dropItemId: 0,
+  dropChance: 100,
+};
+
+const npcToFormValues = (npc: RuntimeNpc): NpcFormValues => {
+  const drop = npc.itemsToDrop?.[0];
+
+  return {
+    name: npc.name,
+    sprite: npc.sprite,
+    health: npc.maxHealth ?? 1,
+    attack: npc.attack ?? 1,
+    behavior: npc.behavior,
+    exp: npc.experienceValue ?? 0,
+    dropItemId: drop?.itemId ?? 0,
+    dropChance: drop ? Math.round(drop.chance * 100) : 100,
+  };
+};
 
 export const NpcEditor: React.FC<NpcEditorProps> = ({
   npcs,
@@ -21,29 +61,31 @@ export const NpcEditor: React.FC<NpcEditorProps> = ({
   loadNpcs,
   loadItems,
   refreshData,
+  onDirtyChange,
+  requestDiscard,
 }) => {
   const [selectedId, setSelectedId] = useState('');
-  const [name, setName] = useState('');
-  const [sprite, setSprite] = useState(0);
-  const [health, setHealth] = useState(1);
-  const [attack, setAttack] = useState(1);
-  const [behavior, setBehavior] = useState<NpcBehavior>('neutral');
-  const [exp, setExp] = useState(0);
-  const [dropItemId, setDropItemId] = useState<number | null>(null);
-  const [dropChance, setDropChance] = useState(100);
-
+  const {
+    control,
+    formState: { isDirty },
+    handleSubmit,
+    register,
+    reset: resetForm,
+    watch,
+  } = useForm<NpcFormValues>({ defaultValues });
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
-  const reset = () => {
+  const sprite = watch('sprite');
+  const dropItemId = watch('dropItemId');
+
+  useEffect(() => {
+    onDirtyChange(isDirty);
+  }, [isDirty, onDirtyChange]);
+
+  const reset = async () => {
+    if (!(await requestDiscard())) return;
     setSelectedId('');
-    setName('');
-    setSprite(0);
-    setHealth(1);
-    setAttack(1);
-    setBehavior('neutral');
-    setExp(0);
-    setDropItemId(null);
-    setDropChance(100);
+    resetForm(defaultValues);
   };
 
   const drawPreview = useCallback(
@@ -62,27 +104,25 @@ export const NpcEditor: React.FC<NpcEditorProps> = ({
     drawPreview(ctx);
   }, [drawPreview]);
 
-  const selectNpc = (id: string) => {
+  const selectNpc = async (id: string) => {
+    if (!(await requestDiscard())) return;
     setSelectedId(id);
     const npc = npcs.find((n) => n.id === id);
     if (npc) {
-      setName(npc.name);
-      setSprite(npc.sprite);
-      setHealth(npc.maxHealth ?? 1);
-      setAttack(npc.attack ?? 1);
-      setBehavior(npc.behavior);
-      setExp(npc.experienceValue ?? 0);
-      if (npc.itemsToDrop?.length) {
-        setDropItemId(npc.itemsToDrop[0].itemId);
-        setDropChance(Math.round(npc.itemsToDrop[0].chance * 100));
-      } else {
-        setDropItemId(null);
-        setDropChance(100);
-      }
+      resetForm(npcToFormValues(npc));
     }
   };
 
-  const saveNpc = async () => {
+  const saveNpc = async ({
+    name,
+    sprite,
+    health,
+    attack,
+    behavior,
+    exp,
+    dropItemId,
+    dropChance,
+  }: NpcFormValues) => {
     const data = {
       name,
       sprite,
@@ -99,7 +139,8 @@ export const NpcEditor: React.FC<NpcEditorProps> = ({
       : await createNpc(data);
     chatResultMsg(!!result, 'NPC saved!', 'Error saving NPC');
     refreshData();
-    reset();
+    setSelectedId('');
+    resetForm(defaultValues);
   };
 
   const removeNpc = async () => {
@@ -107,10 +148,11 @@ export const NpcEditor: React.FC<NpcEditorProps> = ({
     await deleteNpc(selectedId);
     chatResultMsg(true, 'NPC deleted!', 'Error deleting NPC');
     refreshData();
-    reset();
+    setSelectedId('');
+    resetForm(defaultValues);
   };
 
-  const behaviorOptions = [
+  const behaviorOptions: { value: NpcBehavior; label: string }[] = [
     { value: 'neutral', label: 'Neutral' },
     { value: 'aggressive', label: 'Aggressive' },
     { value: 'hostile', label: 'Hostile' },
@@ -119,10 +161,10 @@ export const NpcEditor: React.FC<NpcEditorProps> = ({
     { value: 'guard', label: 'Guard' },
   ];
 
-  const dropItem = items.find((i) => i.id === dropItemId);
+  const dropItem = dropItemId ? items.find((i) => i.id === dropItemId) : null;
 
   return (
-    <div style={container}>
+    <form style={container} onSubmit={handleSubmit(saveNpc)}>
       <div style={field}>
         <label style={label}>NPC</label>
         <div style={{ display: 'flex', gap: 8 }}>
@@ -130,11 +172,11 @@ export const NpcEditor: React.FC<NpcEditorProps> = ({
             <AsyncSelect
               loadOptions={loadNpcs}
               value={selectedId}
-              onChange={selectNpc}
+              onChange={(id) => void selectNpc(id)}
             />
           </div>
           {selectedId && (
-            <button style={resetBtn} onClick={reset}>
+            <button type="button" style={resetBtn} onClick={() => void reset()}>
               New
             </button>
           )}
@@ -154,8 +196,7 @@ export const NpcEditor: React.FC<NpcEditorProps> = ({
             <input
               style={input}
               type="number"
-              value={sprite}
-              onChange={(e) => setSprite(+e.target.value)}
+              {...register('sprite', { setValueAs: Number })}
             />
           </div>
         </div>
@@ -163,19 +204,20 @@ export const NpcEditor: React.FC<NpcEditorProps> = ({
         <div style={rightCol}>
           <div style={field}>
             <label style={label}>Name</label>
-            <input
-              style={input}
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              placeholder="NPC name"
-            />
+            <input style={input} {...register('name')} placeholder="NPC name" />
           </div>
           <div style={field}>
             <label style={label}>Behavior</label>
-            <AsyncSelect
-              loadOptions={async () => behaviorOptions}
-              value={behavior}
-              onChange={(v) => setBehavior(v as NpcBehavior)}
+            <Controller
+              control={control}
+              name="behavior"
+              render={({ field }) => (
+                <AsyncSelect<NpcBehavior>
+                  loadOptions={async () => behaviorOptions}
+                  value={field.value}
+                  onChange={field.onChange}
+                />
+              )}
             />
           </div>
           <div style={triRow}>
@@ -184,8 +226,7 @@ export const NpcEditor: React.FC<NpcEditorProps> = ({
               <input
                 style={input}
                 type="number"
-                value={health}
-                onChange={(e) => setHealth(+e.target.value)}
+                {...register('health', { setValueAs: Number })}
               />
             </div>
             <div style={field}>
@@ -193,8 +234,7 @@ export const NpcEditor: React.FC<NpcEditorProps> = ({
               <input
                 style={input}
                 type="number"
-                value={attack}
-                onChange={(e) => setAttack(+e.target.value)}
+                {...register('attack', { setValueAs: Number })}
               />
             </div>
             <div style={field}>
@@ -202,8 +242,7 @@ export const NpcEditor: React.FC<NpcEditorProps> = ({
               <input
                 style={input}
                 type="number"
-                value={exp}
-                onChange={(e) => setExp(+e.target.value)}
+                {...register('exp', { setValueAs: Number })}
               />
             </div>
           </div>
@@ -214,10 +253,16 @@ export const NpcEditor: React.FC<NpcEditorProps> = ({
         <div style={dropRow}>
           <div style={{ flex: 1 }}>
             <label style={label}>Drop item</label>
-            <AsyncSelect<number>
-              loadOptions={loadItems}
-              value={dropItemId ?? 0}
-              onChange={(id) => setDropItemId(id)}
+            <Controller
+              control={control}
+              name="dropItemId"
+              render={({ field }) => (
+                <AsyncSelect<number>
+                  loadOptions={loadItems}
+                  value={field.value}
+                  onChange={field.onChange}
+                />
+              )}
             />
           </div>
           {dropItemId && (
@@ -228,10 +273,10 @@ export const NpcEditor: React.FC<NpcEditorProps> = ({
                 type="number"
                 min={0}
                 max={100}
-                value={dropChance}
-                onChange={(e) =>
-                  setDropChance(Math.min(100, Math.max(0, +e.target.value)))
-                }
+                {...register('dropChance', {
+                  setValueAs: (value) =>
+                    Math.min(100, Math.max(0, Number(value))),
+                })}
               />
             </div>
           )}
@@ -240,16 +285,16 @@ export const NpcEditor: React.FC<NpcEditorProps> = ({
       </div>
 
       <div style={actions}>
-        <button style={saveBtn} onClick={saveNpc}>
+        <button type="submit" style={saveBtn}>
           {selectedId ? 'Save NPC' : 'Create NPC'}
         </button>
         {selectedId && (
-          <button style={deleteBtn} onClick={removeNpc}>
+          <button type="button" style={deleteBtn} onClick={removeNpc}>
             Delete
           </button>
         )}
       </div>
-    </div>
+    </form>
   );
 };
 

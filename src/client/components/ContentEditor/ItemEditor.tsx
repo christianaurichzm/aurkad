@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
+import { Controller, useForm } from 'react-hook-form';
 import { Item } from '../../../shared/types';
 import { updateItem, createItem, deleteItem } from '../../io/network';
 import { chatResultMsg } from '../ChatPanel';
@@ -10,46 +11,78 @@ interface ItemEditorProps {
   items: Item[];
   loadItems: () => Promise<any>;
   refreshData: () => void;
+  onDirtyChange: (dirty: boolean) => void;
+  requestDiscard: () => Promise<boolean>;
 }
+
+type ItemFormValues = {
+  name: string;
+  sprite: number;
+  desc: string;
+  type: Item['type'];
+};
+
+const defaultValues: ItemFormValues = {
+  name: '',
+  sprite: 0,
+  desc: '',
+  type: 'weapon',
+};
+
+const itemToFormValues = (item: Item): ItemFormValues => ({
+  name: item.name,
+  sprite: item.sprite,
+  desc: item.description ?? '',
+  type: item.type,
+});
 
 export const ItemEditor: React.FC<ItemEditorProps> = ({
   items,
   loadItems,
   refreshData,
+  onDirtyChange,
+  requestDiscard,
 }) => {
   const [selectedId, setSelectedId] = useState('');
-  const [name, setName] = useState('');
-  const [sprite, setSprite] = useState(0);
-  const [desc, setDesc] = useState('');
-  const [type, setType] = useState<Item['type']>('weapon');
+  const {
+    control,
+    formState: { isDirty },
+    handleSubmit,
+    register,
+    reset: resetForm,
+    watch,
+  } = useForm<ItemFormValues>({ defaultValues });
 
-  const reset = () => {
+  const sprite = watch('sprite');
+
+  useEffect(() => {
+    onDirtyChange(isDirty);
+  }, [isDirty, onDirtyChange]);
+
+  const reset = async () => {
+    if (!(await requestDiscard())) return;
     setSelectedId('');
-    setName('');
-    setSprite(0);
-    setDesc('');
-    setType('weapon');
+    resetForm(defaultValues);
   };
 
-  const selectItem = (id: number) => {
+  const selectItem = async (id: number) => {
+    if (!(await requestDiscard())) return;
     setSelectedId(String(id));
     const item = items.find((i) => i.id === id);
     if (item) {
-      setName(item.name);
-      setSprite(item.sprite);
-      setDesc(item.description ?? '');
-      setType(item.type);
+      resetForm(itemToFormValues(item));
     }
   };
 
-  const saveItem = async () => {
+  const saveItem = async ({ name, sprite, desc, type }: ItemFormValues) => {
     const data = { name, sprite, description: desc, type };
     const result = selectedId
       ? await updateItem(Number(selectedId), data)
       : await createItem(data);
     chatResultMsg(!!result, 'Item saved!', 'Error saving item');
     refreshData();
-    reset();
+    setSelectedId('');
+    resetForm(defaultValues);
   };
 
   const removeItem = async () => {
@@ -57,10 +90,11 @@ export const ItemEditor: React.FC<ItemEditorProps> = ({
     await deleteItem(Number(selectedId));
     chatResultMsg(true, 'Item deleted!', 'Error deleting item');
     refreshData();
-    reset();
+    setSelectedId('');
+    resetForm(defaultValues);
   };
 
-  const typeOptions = [
+  const typeOptions: { value: Item['type']; label: string }[] = [
     { value: 'weapon', label: 'Weapon' },
     { value: 'helmet', label: 'Helmet' },
     { value: 'chestplate', label: 'Chestplate' },
@@ -71,7 +105,7 @@ export const ItemEditor: React.FC<ItemEditorProps> = ({
   ];
 
   return (
-    <div style={container}>
+    <form style={container} onSubmit={handleSubmit(saveItem)}>
       <div style={field}>
         <label style={label}>Item</label>
         <div style={{ display: 'flex', gap: 8 }}>
@@ -79,11 +113,11 @@ export const ItemEditor: React.FC<ItemEditorProps> = ({
             <AsyncSelect<Item['id']>
               loadOptions={loadItems}
               value={selectedId ? Number(selectedId) : 0}
-              onChange={selectItem}
+              onChange={(id) => void selectItem(id)}
             />
           </div>
           {selectedId && (
-            <button style={resetBtn} onClick={reset}>
+            <button type="button" style={resetBtn} onClick={() => void reset()}>
               New
             </button>
           )}
@@ -92,14 +126,13 @@ export const ItemEditor: React.FC<ItemEditorProps> = ({
 
       <div style={cols}>
         <div style={leftCol}>
-          <ItemIcon spriteId={sprite} style={previewIcon} />
+          <ItemIcon spriteId={sprite ?? 0} style={previewIcon} />
           <div style={field}>
             <label style={label}>Sprite ID</label>
             <input
               style={input}
               type="number"
-              value={sprite}
-              onChange={(e) => setSprite(+e.target.value)}
+              {...register('sprite', { setValueAs: Number })}
               placeholder="0"
             />
           </div>
@@ -110,25 +143,29 @@ export const ItemEditor: React.FC<ItemEditorProps> = ({
             <label style={label}>Name</label>
             <input
               style={input}
-              value={name}
-              onChange={(e) => setName(e.target.value)}
+              {...register('name')}
               placeholder="Item name"
             />
           </div>
           <div style={field}>
             <label style={label}>Type</label>
-            <AsyncSelect
-              loadOptions={async () => typeOptions}
-              value={type}
-              onChange={(v) => setType(v as Item['type'])}
+            <Controller
+              control={control}
+              name="type"
+              render={({ field }) => (
+                <AsyncSelect<Item['type']>
+                  loadOptions={async () => typeOptions}
+                  value={field.value}
+                  onChange={field.onChange}
+                />
+              )}
             />
           </div>
           <div style={field}>
             <label style={label}>Description</label>
             <input
               style={input}
-              value={desc}
-              onChange={(e) => setDesc(e.target.value)}
+              {...register('desc')}
               placeholder="Optional description"
             />
           </div>
@@ -136,16 +173,16 @@ export const ItemEditor: React.FC<ItemEditorProps> = ({
       </div>
 
       <div style={actions}>
-        <button style={saveBtn} onClick={saveItem}>
+        <button type="submit" style={saveBtn}>
           {selectedId ? 'Save Item' : 'Create Item'}
         </button>
         {selectedId && (
-          <button style={deleteBtn} onClick={removeItem}>
+          <button type="button" style={deleteBtn} onClick={removeItem}>
             Delete
           </button>
         )}
       </div>
-    </div>
+    </form>
   );
 };
 

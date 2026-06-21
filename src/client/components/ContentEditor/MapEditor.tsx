@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
+import { Controller, useForm } from 'react-hook-form';
 import { MapStateClient, MapType } from '../../../shared/types';
 import { AsyncSelect } from '../common/Select/AsyncSelect';
 import { chatResultMsg } from '../ChatPanel';
@@ -9,48 +10,80 @@ interface MapEditorProps {
   maps: MapStateClient[];
   loadMaps: () => Promise<any>;
   refreshData: () => void;
+  onDirtyChange: (dirty: boolean) => void;
+  requestDiscard: () => Promise<boolean>;
 }
+
+type MapFormValues = {
+  name: string;
+  type: MapType;
+};
+
+const defaultValues: MapFormValues = {
+  name: '',
+  type: 'normal',
+};
+
+const mapToFormValues = (map: MapStateClient): MapFormValues => ({
+  name: map.name ?? '',
+  type: map.type ?? 'normal',
+});
 
 export const MapEditor: React.FC<MapEditorProps> = ({
   maps,
   refreshData,
   loadMaps,
+  onDirtyChange,
+  requestDiscard,
 }) => {
   const [selectedId, setSelectedId] = useState<string>('');
-  const [name, setName] = useState('');
-  const [type, setType] = useState<MapType>('normal');
+  const {
+    control,
+    formState: { isDirty },
+    handleSubmit,
+    register,
+    reset: resetForm,
+    watch,
+  } = useForm<MapFormValues>({ defaultValues });
 
-  const mapTypeOptions = [
+  const name = watch('name');
+
+  useEffect(() => {
+    onDirtyChange(isDirty);
+  }, [isDirty, onDirtyChange]);
+
+  const mapTypeOptions: { value: MapType; label: string }[] = [
     { value: 'normal', label: 'Normal' },
     { value: 'pvp', label: 'PvP' },
   ];
 
-  const handleSelect = (mapId: string) => {
+  const handleSelect = async (mapId: string) => {
+    if (!(await requestDiscard())) return;
     setSelectedId(mapId);
     const map = maps.find((m) => m.id === mapId);
     if (map) {
-      setName(map.name ?? '');
-      setType(map.type ?? 'normal');
+      resetForm(mapToFormValues(map));
     }
   };
 
-  const reset = () => {
+  const reset = async () => {
+    if (!(await requestDiscard())) return;
     setSelectedId('');
-    setName('');
-    setType('normal');
+    resetForm(defaultValues);
   };
 
-  const handleSave = async () => {
+  const handleSave = async ({ name, type }: MapFormValues) => {
     const result = selectedId
       ? await updateMap(selectedId, { name, type })
       : await createMap({ name, type });
     chatResultMsg(!!result, 'Map saved!', 'Error saving map');
     refreshData();
-    reset();
+    setSelectedId('');
+    resetForm(defaultValues);
   };
 
   return (
-    <div style={container}>
+    <form style={container} onSubmit={handleSubmit(handleSave)}>
       <div style={field}>
         <label style={label}>Map</label>
         <div style={{ display: 'flex', gap: 8 }}>
@@ -58,11 +91,11 @@ export const MapEditor: React.FC<MapEditorProps> = ({
             <AsyncSelect
               loadOptions={loadMaps}
               value={selectedId}
-              onChange={handleSelect}
+              onChange={(id) => void handleSelect(id)}
             />
           </div>
           {selectedId && (
-            <button style={resetBtn} onClick={reset}>
+            <button type="button" style={resetBtn} onClick={() => void reset()}>
               New
             </button>
           )}
@@ -71,27 +104,28 @@ export const MapEditor: React.FC<MapEditorProps> = ({
 
       <div style={field}>
         <label style={label}>Map Name</label>
-        <input
-          style={input}
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-          placeholder="Map name"
-        />
+        <input style={input} {...register('name')} placeholder="Map name" />
       </div>
 
       <div style={field}>
         <label style={label}>Map Type</label>
-        <AsyncSelect
-          loadOptions={async () => mapTypeOptions}
-          value={type}
-          onChange={(v) => setType(v as MapType)}
+        <Controller
+          control={control}
+          name="type"
+          render={({ field }) => (
+            <AsyncSelect<MapType>
+              loadOptions={async () => mapTypeOptions}
+              value={field.value}
+              onChange={field.onChange}
+            />
+          )}
         />
       </div>
 
-      <button style={saveBtn} onClick={handleSave} disabled={!name.trim()}>
+      <button type="submit" style={saveBtn} disabled={!name.trim()}>
         {selectedId ? 'Save Map' : 'Create Map'}
       </button>
-    </div>
+    </form>
   );
 };
 
