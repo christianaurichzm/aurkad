@@ -149,8 +149,44 @@ describe('combat', () => {
       (d) => d.position.x === killPos.x && d.position.y === killPos.y,
     );
     expect(drop?.itemId).toBe(1);
+    expect(drop?.quantity).toBe(1);
     expect(npc.health).toBe(npc.maxHealth);
     expect(npc.position).toEqual({ x: 10 * TILE_SIZE, y: 10 * TILE_SIZE });
+  });
+
+  it('npc drops the configured quantity of an item', () => {
+    sim.addItem({
+      id: 1,
+      name: 'Gold',
+      description: '',
+      sprite: 0,
+      type: 'consumable',
+    });
+
+    sim.addPlayer({
+      name: 'Alice',
+      position: { x: 3 * TILE_SIZE, y: 3 * TILE_SIZE },
+      direction: Direction.Down,
+      attack: 999,
+      attackRange: TILE_SIZE,
+    });
+
+    const npc = sim.addNpc({
+      position: { x: 3 * TILE_SIZE, y: 4 * TILE_SIZE },
+      health: 1,
+      maxHealth: 30,
+      itemsToDrop: [{ itemId: 1, chance: 100, quantity: 5 }],
+    });
+    const killPos = { ...npc.position };
+
+    sim.press('Alice', Key.Control);
+    sim.step(1);
+
+    const drop = sim.map.droppedItems.find(
+      (d) => d.position.x === killPos.x && d.position.y === killPos.y,
+    );
+    expect(drop?.itemId).toBe(1);
+    expect(drop?.quantity).toBe(5);
   });
 
   it('attack cooldown prevents hitting more than once per window', () => {
@@ -196,6 +232,7 @@ describe('item pickup', () => {
       itemId: 5,
       sprite: 0,
       position: { x: 3 * TILE_SIZE, y: 3 * TILE_SIZE },
+      quantity: 1,
     });
 
     sim.press('Alice', Key.e);
@@ -219,6 +256,7 @@ describe('item pickup', () => {
       itemId: 6,
       sprite: 0,
       position: { x: 5 * TILE_SIZE, y: 5 * TILE_SIZE },
+      quantity: 1,
     });
 
     sim.press('Alice', Key.e);

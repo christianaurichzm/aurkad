@@ -27,6 +27,7 @@ type NpcFormValues = {
   exp: number;
   dropItemId: number;
   dropChance: number;
+  dropQuantity: number;
 };
 
 const defaultValues: NpcFormValues = {
@@ -38,6 +39,7 @@ const defaultValues: NpcFormValues = {
   exp: 0,
   dropItemId: 0,
   dropChance: 100,
+  dropQuantity: 1,
 };
 
 const npcToFormValues = (npc: RuntimeNpc): NpcFormValues => {
@@ -52,6 +54,7 @@ const npcToFormValues = (npc: RuntimeNpc): NpcFormValues => {
     exp: npc.experienceValue ?? 0,
     dropItemId: drop?.itemId ?? 0,
     dropChance: drop ? Math.round(drop.chance * 100) : 100,
+    dropQuantity: drop?.quantity ?? 1,
   };
 };
 
@@ -122,6 +125,7 @@ export const NpcEditor: React.FC<NpcEditorProps> = ({
     exp,
     dropItemId,
     dropChance,
+    dropQuantity,
   }: NpcFormValues) => {
     const data = {
       name,
@@ -131,7 +135,13 @@ export const NpcEditor: React.FC<NpcEditorProps> = ({
       behavior,
       experienceValue: exp,
       itemsToDrop: dropItemId
-        ? [{ itemId: dropItemId, chance: dropChance / 100 }]
+        ? [
+            {
+              itemId: dropItemId,
+              chance: dropChance / 100,
+              quantity: Math.max(1, Math.floor(dropQuantity)),
+            },
+          ]
         : [],
     };
     const result = selectedId
@@ -276,6 +286,19 @@ export const NpcEditor: React.FC<NpcEditorProps> = ({
                 {...register('dropChance', {
                   setValueAs: (value) =>
                     Math.min(100, Math.max(0, Number(value))),
+                })}
+              />
+            </div>
+          )}
+          {dropItemId && (
+            <div style={{ width: 80 }}>
+              <label style={label}>Quantity</label>
+              <input
+                style={input}
+                type="number"
+                min={1}
+                {...register('dropQuantity', {
+                  setValueAs: (value) => Math.max(1, Math.floor(Number(value))),
                 })}
               />
             </div>

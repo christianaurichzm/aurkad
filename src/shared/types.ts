@@ -282,6 +282,7 @@ export interface DroppedItem {
   itemId: Item['id'];
   position: Position;
   sprite: number;
+  quantity: number;
 }
 
 export type MapType = 'pvp' | 'normal';
@@ -330,6 +331,7 @@ export type ItemsMap = { [key: number]: Item };
 export interface NpcItemDrop {
   itemId: Item['id'];
   chance: number;
+  quantity?: number;
 }
 
 export type ChatScope = 'player' | 'map' | 'global';

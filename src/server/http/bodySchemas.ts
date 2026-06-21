@@ -40,6 +40,7 @@ const TileSchema = z.object({
 const NpcItemDropSchema = z.object({
   itemId: z.number().int().nonnegative(),
   chance: z.number().min(0).max(1),
+  quantity: z.number().int().positive().optional(),
 });
 
 const MODIFIABLE_ATTRS = [

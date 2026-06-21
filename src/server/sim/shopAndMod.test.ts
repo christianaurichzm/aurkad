@@ -6,6 +6,7 @@ import {
   useItem,
   equipItem,
   dropItemFromInventory,
+  pickUpItem,
 } from '../services/inventoryService.js';
 import { changeSprite } from '../services/playerService.js';
 import { updatePlayerMap } from '../services/mapService.js';
@@ -220,7 +221,7 @@ describe('inventory', () => {
     expect(player.inventory.items.find((i) => i.item === 30)).toBeUndefined();
   });
 
-  it('dropping part of a stack creates dropped items on the map', async () => {
+  it('dropping part of a stack creates a single stacked drop on the map', async () => {
     const potion = {
       id: 30,
       name: 'Potion',
@@ -237,16 +238,38 @@ describe('inventory', () => {
 
     expect(ok).toBe(true);
     expect(player.inventory.items.find((i) => i.item === 30)?.quantity).toBe(2);
-    expect(sim.map.droppedItems).toHaveLength(3);
-    expect(sim.map.droppedItems).toEqual(
-      expect.arrayContaining([
-        expect.objectContaining({
-          itemId: 30,
-          sprite: 4,
-          position: player.position,
-        }),
-      ]),
+    expect(sim.map.droppedItems).toHaveLength(1);
+    expect(sim.map.droppedItems[0]).toEqual(
+      expect.objectContaining({
+        itemId: 30,
+        sprite: 4,
+        quantity: 3,
+        position: player.position,
+      }),
     );
+  });
+
+  it('picking up a stacked drop recovers the whole quantity at once', async () => {
+    sim.addItem({
+      id: 31,
+      name: 'Arrow',
+      description: '',
+      sprite: 9,
+      type: 'consumable' as const,
+    });
+
+    const player = sim.addPlayer({ name: 'Alice' });
+    sim.map.droppedItems.push({
+      itemId: 31,
+      sprite: 9,
+      position: { ...player.position },
+      quantity: 7,
+    });
+
+    await pickUpItem(sim.map, player);
+
+    expect(player.inventory.items.find((i) => i.item === 31)?.quantity).toBe(7);
+    expect(sim.map.droppedItems).toHaveLength(0);
   });
 });
 

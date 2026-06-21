@@ -36,14 +36,7 @@ export const ShopModal: React.FC = () => {
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
           {shop.products.map((prod) => (
-            <ShopRow
-              key={prod.item.id}
-              shopId={shop.id}
-              product={prod}
-              onBought={() => {
-                close();
-              }}
-            />
+            <ShopRow key={prod.item.id} shopId={shop.id} product={prod} />
           ))}
         </div>
       )}

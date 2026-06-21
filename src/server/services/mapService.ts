@@ -94,6 +94,7 @@ export const insertItems = async (
             x: colIndex * TILE_SIZE,
             y: rowIndex * TILE_SIZE,
           },
+          quantity: 1,
         });
       }
     }

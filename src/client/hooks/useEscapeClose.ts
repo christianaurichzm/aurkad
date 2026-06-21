@@ -1,10 +1,15 @@
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { useUIStore } from '../stores/uiStore';
 
 export const useEscapeClose = (
   active: boolean,
   onClose: () => void | Promise<void>,
 ) => {
+  // Keep the latest callback in a ref so callers can pass an inline onClose
+  // without the listener re-subscribing on every render.
+  const onCloseRef = useRef(onClose);
+  onCloseRef.current = onClose;
+
   useEffect(() => {
     if (!active) return;
 
@@ -13,10 +18,10 @@ export const useEscapeClose = (
       if (useUIStore.getState().dialog.visible) return;
 
       event.preventDefault();
-      void onClose();
+      void onCloseRef.current();
     };
 
     window.addEventListener('keydown', onKeyDown);
     return () => window.removeEventListener('keydown', onKeyDown);
-  }, [active, onClose]);
+  }, [active]);
 };

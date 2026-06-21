@@ -38,8 +38,8 @@ describe('renderDroppedItems', () => {
 
   it('draws each dropped item from map state', () => {
     renderDroppedItems([
-      { itemId: 1, sprite: 7, position: { x: 64, y: 128 } },
-      { itemId: 2, sprite: 8, position: { x: 192, y: 256 } },
+      { itemId: 1, sprite: 7, position: { x: 64, y: 128 }, quantity: 1 },
+      { itemId: 2, sprite: 8, position: { x: 192, y: 256 }, quantity: 1 },
     ]);
 
     expect(renderItemIcon).toHaveBeenCalledTimes(2);

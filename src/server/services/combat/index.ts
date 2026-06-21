@@ -149,6 +149,7 @@ export const handleAttack = async (attacker: PlayerServer): Promise<void> => {
               x: attackTarget.position.x,
               y: attackTarget.position.y,
             },
+            quantity: Math.max(1, Math.floor(drop.quantity ?? 1)),
           });
         }
       }

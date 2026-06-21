@@ -4,6 +4,7 @@ const NpcItemDropSchema = new mongoose.Schema(
   {
     itemId: { type: Number, required: true },
     chance: { type: Number, required: true, min: 0, max: 1 },
+    quantity: { type: Number, min: 1, default: 1 },
   },
   { _id: false },
 );

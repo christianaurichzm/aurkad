@@ -51,9 +51,12 @@ export const pickUpItem = async (map: MapStateServer, player: PlayerServer) => {
   const existing = player.inventory.items.find((i) => i.item === drop.itemId);
 
   if (existing) {
-    existing.quantity += 1;
+    existing.quantity += drop.quantity;
   } else if (player.inventory.items.length < player.inventory.maxCapacity) {
-    player.inventory.items.push({ item: drop.itemId, quantity: 1 });
+    player.inventory.items.push({ item: drop.itemId, quantity: drop.quantity });
+  } else {
+    // Leave it on the ground rather than deleting it when there is no room.
+    return;
   }
 
   map.droppedItems.splice(dropIndex, 1);
@@ -125,13 +128,12 @@ export async function dropItemFromInventory(
     );
   }
 
-  for (let i = 0; i < quantity; i++) {
-    map.droppedItems.push({
-      itemId,
-      sprite: item.sprite,
-      position: { ...player.position },
-    });
-  }
+  map.droppedItems.push({
+    itemId,
+    sprite: item.sprite,
+    position: { ...player.position },
+    quantity,
+  });
   updateMap(map);
 
   await updatePlayer(player);

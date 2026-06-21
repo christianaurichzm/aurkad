@@ -10,7 +10,7 @@ import { colors, radius } from '../../theme';
 interface ShopRowProps {
   shopId: string;
   product: ProductDetailed;
-  onBought: () => void;
+  onBought?: () => void;
 }
 
 export const ShopRow: React.FC<ShopRowProps> = ({
@@ -65,13 +65,14 @@ export const ShopRow: React.FC<ShopRowProps> = ({
         scope: 'player',
         type: 'chat',
       });
-      onBought();
+      onBought?.();
     } catch (error: any) {
       await useUIStore.getState().showDialog({
         title: 'Purchase failed',
         message: error?.message || 'Error purchasing.',
         kind: 'error',
       });
+    } finally {
       setBuying(false);
     }
   };

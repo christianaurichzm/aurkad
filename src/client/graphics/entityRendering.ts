@@ -36,23 +36,31 @@ export function animate<T extends AnimatableEntity>(entity: T): T {
   return { ...entity, position: anim.position, action };
 }
 
-// The 4 sprite columns are a sequential walk cycle. Cycle through them while
-// moving (two frames per tile) so legs animate; the per-frame interval tracks
-// the move speed so running steps faster. Idle/Attack keep their fixed column.
-const WALK_CYCLE = [0, 1, 2, 3];
+// The 4 sprite columns are a sequential walk cycle. While moving we advance two
+// columns per tile so the legs animate; the per-frame interval tracks the move
+// speed so running steps faster. The cycle is anchored to when each entity
+// started moving (reset once it stops) so every walk begins at column 0 instead
+// of a random wall-clock phase. Idle/Attack keep their fixed column.
+const WALK_CYCLE_LENGTH = 4;
+const walkStartById = new Map<string, number>();
 
-const animationColumn = (action: CharacterAction): number => {
+const animationColumn = (id: string, action: CharacterAction): number => {
   if (action !== CharacterAction.Walk && action !== CharacterAction.Run) {
+    walkStartById.delete(id);
     return playerActionToActionColumnRecord[action];
   }
+  const now = performance.now();
+  const start = walkStartById.get(id) ?? now;
+  if (!walkStartById.has(id)) walkStartById.set(id, now);
+
   const tileDuration =
     action === CharacterAction.Run ? RUN_MOVEMENT_DURATION : MOVEMENT_DURATION;
   const frameMs = tileDuration / 2;
-  const frame = Math.floor(performance.now() / frameMs) % WALK_CYCLE.length;
-  return WALK_CYCLE[frame];
+  return Math.floor((now - start) / frameMs) % WALK_CYCLE_LENGTH;
 };
 
 const renderEntity = (entity: {
+  id: string;
   position: Position;
   direction: Direction;
   sprite: number;
@@ -60,7 +68,7 @@ const renderEntity = (entity: {
 }) => {
   drawSprite(
     entity.sprite,
-    animationColumn(entity.action),
+    animationColumn(entity.id, entity.action),
     entity.direction,
     entity.position.x,
     entity.position.y,
