@@ -18,6 +18,7 @@
 //   sendEvent(player, channel, payload)     - custom event to one client
 //   sendMapEvent(mapId, channel, payload)   - custom event to a map
 //   broadcastEvent(channel, payload)        - custom event to all clients
+//   command(name, { access }, handler)      - chat (/name) + REPL command
 //   setTimeout(fn, ms)
 //   setInterval(fn, ms)
 //   log(...args)
@@ -47,14 +48,21 @@ on('npcDeath', ({ npc, killer }) => {
 //   giveItem(player, 1, 1);
 // });
 
-// VIP perks via the per-player data bag (set player.data.vip elsewhere,
-// e.g. an admin tool or purchase flow). Gold name + double XP:
+// VIP, a complete example: grant it with a command, then react to it.
+// Run from in-game chat as "/vip Bob" (admins only) or from the terminal
+// REPL as "vip Bob" (operator always allowed).
 //
+// command('vip', { access: Access.ADMIN, description: 'Grant VIP to a player' }, ({ args, reply }) => {
+//   const target = getPlayer(args[0]);
+//   if (!target) return reply('Usage: vip <player>');
+//   setPlayerData(target, 'vip', true);
+//   setNameColor(target, 'gold');           // gold name above the sprite, for everyone
+//   reply(`${target.name} is now VIP.`);
+// });
+//
+// // Perks: keep the gold name on reconnect, and double all XP.
 // on('playerJoin', ({ player }) => {
-//   if (getPlayerData(player, 'vip')) {
-//     setNameColor(player, 'gold');          // shown above the sprite for everyone
-//     sendMessage(player, 'Welcome back, VIP!');
-//   }
+//   if (getPlayerData(player, 'vip')) setNameColor(player, 'gold');
 // });
 // on('beforeXpGain', (ctx) => {
 //   if (getPlayerData(ctx.player, 'vip')) ctx.amount *= 2;

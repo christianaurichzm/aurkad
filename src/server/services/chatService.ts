@@ -3,6 +3,7 @@ import type { ClientChatAction } from '../engine/actions.js';
 import { logger } from '../logger.js';
 import { emitGameEvent } from '../engine/eventBus.js';
 import { emit } from '../engine/hooks.js';
+import { handleChatCommand } from '../engine/commands.js';
 import { isMuted } from '../serverState.js';
 import { playersWsMap } from '../net/connections.js';
 import { WebSocket } from 'ws';
@@ -50,6 +51,13 @@ export function handleChatAction(action: ClientChatAction | ServerChatAction) {
   if (isClientChatAction(action) && isMuted(action.username)) {
     sendMutedNotice(action.username);
     return;
+  }
+
+  // A "/command" from a player is consumed here (handled + suppressed), so it
+  // never broadcasts as chat.
+  if (isClientChatAction(action)) {
+    const sender = getPlayerByName(action.username);
+    if (sender && handleChatCommand(sender, action.message)) return;
   }
 
   const payload: ChatMessagePayload = {

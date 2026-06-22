@@ -13,6 +13,7 @@ import { banPlayer, unbanPlayer, getBan } from '../services/banService.js';
 import { broadcast, broadcastChat, playersWsMap } from '../net/index.js';
 import { getMetrics } from '../metrics.js';
 import { getChatLog } from '../services/chatService.js';
+import { handleReplCommand } from '../engine/commands.js';
 import { serverState, isMuted, type ServerMode } from '../serverState.js';
 import { updatePlayer } from '../gameData.js';
 import { updatePlayerMap } from '../services/mapService.js';
@@ -846,6 +847,7 @@ async function handleCommand(cmd: string, args: string[]): Promise<void> {
       break;
 
     default:
+      if (handleReplCommand(cmd, args, out)) break;
       out(ui.error(`Unknown command: ${cmd}. Type 'help' for a list.`));
   }
 }

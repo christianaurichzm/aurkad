@@ -8,10 +8,13 @@ import { levelUpPlayer, awardExperience } from '../../services/playerService.js'
 import { kvGet, clearKvStoreMemory } from '../../persistence/kvStore.js';
 import { handleCustomAction } from '../../services/customEventService.js';
 import { drainGameEvents } from '../eventBus.js';
+import { handleChatCommand, clearCommands } from '../commands.js';
+import { Access } from '../../../shared/types.js';
 
 beforeEach(() => {
   clearAll();
   clearKvStoreMemory();
+  clearCommands();
   drainGameEvents();
 });
 
@@ -445,6 +448,50 @@ describe('VIP perks (vertical slice)', () => {
     expect(bob.experience).toBe(50);
 
     handle.cleanup();
+  });
+});
+
+describe('script-registered commands', () => {
+  it('a script /vip command grants VIP from chat (admin only)', () => {
+    const sim = createFixture(0);
+    const admin = sim.addPlayer({ name: 'Admin', access: Access.ADMIN });
+    const bob = sim.addPlayer({ name: 'Bob' });
+
+    const handle = runInSandbox(`
+      command('vip', { access: Access.ADMIN }, ({ args, reply }) => {
+        const target = getPlayer(args[0]);
+        if (!target) return reply('not found');
+        setPlayerData(target, 'vip', true);
+        setNameColor(target, 'gold');
+        reply(target.name + ' is VIP');
+      });
+    `, 'vip-cmd.js');
+
+    const handled = handleChatCommand(admin, '/vip Bob');
+
+    expect(handled).toBe(true);
+    expect(bob.data?.vip).toBe(true);
+    expect(bob.nameColor).toBe('gold');
+
+    handle.cleanup();
+  });
+
+  it('cleanup unregisters the script command', () => {
+    const sim = createFixture(0);
+    const admin = sim.addPlayer({ name: 'Admin', access: Access.ADMIN });
+    const bob = sim.addPlayer({ name: 'Bob' });
+
+    const handle = runInSandbox(`
+      command('vip', { access: Access.ADMIN }, ({ args }) => {
+        const t = getPlayer(args[0]);
+        if (t) setPlayerData(t, 'vip', true);
+      });
+    `, 'vip-cleanup.js');
+
+    handle.cleanup();
+    handleChatCommand(admin, '/vip Bob');
+
+    expect(bob.data?.vip).toBeUndefined(); // command no longer registered
   });
 });
 

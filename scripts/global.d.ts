@@ -70,6 +70,8 @@ interface PlayerServer {
   unspentPoints: number;
   inventory: Inventory;
   equipped: EquippedItems;
+  /** Permission level: 0 = user, 1 = mod, 2 = admin. */
+  access: 0 | 1 | 2;
   mapId: string;
   position: Position;
   direction: Direction;
@@ -201,6 +203,35 @@ declare function sendMapEvent(mapId: string, channel: string, payload?: unknown)
 
 /** Send a custom event to all connected clients. */
 declare function broadcastEvent(channel: string, payload?: unknown): void;
+
+/** Permission levels for command access. */
+declare const Access: { readonly USER: 0; readonly MOD: 1; readonly ADMIN: 2 };
+
+interface CommandContext {
+  /** Present when run from chat; undefined when run from the terminal REPL. */
+  player?: PlayerServer;
+  args: string[];
+  reply: (message: string) => void;
+  source: 'chat' | 'repl';
+}
+
+interface CommandOptions {
+  /** Minimum access for chat use (REPL bypasses). Defaults to everyone. */
+  access?: number;
+  description?: string;
+}
+
+/**
+ * Register a command runnable from chat (/name args) and the REPL (name args).
+ * Chat enforces `access`; the REPL operator always passes. Auto-unregistered
+ * on script reload.
+ */
+declare function command(name: string, handler: (ctx: CommandContext) => void): void;
+declare function command(
+  name: string,
+  options: CommandOptions,
+  handler: (ctx: CommandContext) => void,
+): void;
 
 /** Runs a callback once after `ms` milliseconds; cancelled on reload. */
 declare function setTimeout(callback: () => void, ms: number): void;

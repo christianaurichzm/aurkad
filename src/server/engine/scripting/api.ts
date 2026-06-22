@@ -21,6 +21,9 @@ import {
   sendMapCustomEvent,
   broadcastCustomEvent,
 } from '../../services/customEventService.js';
+import { registerCommand } from '../commands.js';
+import { Access } from '../../../shared/types.js';
+import type { CommandContext, CommandOptions } from '../commands.js';
 import { TILE_SIZE } from '../../../shared/constants.js';
 import { CharacterAction } from '../../../shared/types.js';
 import { logger } from '../../logger.js';
@@ -175,6 +178,24 @@ export function buildApi(
       sendMapCustomEvent(String(mapId), String(channel), payload),
     broadcastEvent: (channel: string, payload?: unknown): void =>
       broadcastCustomEvent(String(channel), payload),
+
+    // Access levels, for command permissions.
+    Access,
+
+    // Register a command, runnable from chat (/name) and the REPL (name).
+    // command(name, handler) or command(name, { access }, handler).
+    command: (
+      name: string,
+      optsOrHandler: CommandOptions | ((ctx: CommandContext) => void),
+      maybeHandler?: (ctx: CommandContext) => void,
+    ): void => {
+      const opts = typeof optsOrHandler === 'function' ? {} : optsOrHandler;
+      const handler =
+        typeof optsOrHandler === 'function' ? optsOrHandler : maybeHandler;
+      if (!handler) return;
+      const unregister = registerCommand(String(name), opts, handler);
+      trackUnsub(unregister);
+    },
 
     // Timers (auto-cleaned on script reload / unload)
     setTimeout: (fn: () => void, ms: number): void => {
