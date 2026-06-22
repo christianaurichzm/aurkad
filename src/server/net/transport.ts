@@ -213,7 +213,9 @@ export const startWebSocketServer = (
       if (aliveWs.isAlive === false) {
         try {
           ws.terminate();
-        } catch {}
+        } catch {
+          // socket already dead; nothing to clean up
+        }
         playersWsMap.delete(username);
         continue;
       }
@@ -310,7 +312,9 @@ export async function stopWebSocketServer(): Promise<void> {
   for (const ws of playersWsMap.values()) {
     try {
       ws.close(1001, 'Server shutting down');
-    } catch {}
+    } catch {
+      // already closing; ignore
+    }
   }
 
   playersWsMap.clear();

@@ -156,7 +156,7 @@ export const resolveDamage = async (
   target.health = 0;
 
   switch (target.kind) {
-    case 'player':
+    case 'player': {
       emit('playerDeath', { player: target, killer: attacker });
       respawnPlayer(target);
       await updatePlayer(target);
@@ -173,6 +173,7 @@ export const resolveDamage = async (
         });
       }
       break;
+    }
 
     case 'npc': {
       if (attacker?.kind === 'player') {

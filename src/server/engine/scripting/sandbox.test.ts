@@ -97,8 +97,6 @@ describe('vm context - host objects ARE escapable (known trust boundary)', () =>
 
 describe('hook registration', () => {
   it('script can register a hook via on() and it fires', () => {
-    const log: string[] = [];
-
     const handle = runInSandbox(
       `
       on('playerJoin', ({ player }) => {
@@ -110,7 +108,6 @@ describe('hook registration', () => {
 
     // Tested through hook firing, not by patching the logger: a real hook
     // from outside shows whether the sandbox hook ran.
-    const fired: string[] = [];
     const outer = runInSandbox(
       `
       on('playerJoin', ({ player }) => {});

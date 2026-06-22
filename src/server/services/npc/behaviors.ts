@@ -1,6 +1,5 @@
 import { TILE_SIZE } from '../../../shared/constants.js';
 import {
-  MapStateServer,
   Position,
   Direction,
   CharacterAction,

@@ -30,6 +30,29 @@
     "react": { "version": "detect" }
   },
   "rules": {
+    "react/prop-types": "off",
+    "@typescript-eslint/no-unused-vars": [
+      "warn",
+      {
+        "argsIgnorePattern": "^_",
+        "varsIgnorePattern": "^_",
+        "caughtErrorsIgnorePattern": "^_"
+      }
+    ]
   },
-  "ignorePatterns": ["dist/", "node_modules/", "*.cjs", "bundle.js"]
+  "overrides": [
+    {
+      "files": ["src/server/**/*.ts"],
+      "rules": {
+        "react-hooks/rules-of-hooks": "off"
+      }
+    }
+  ],
+  "ignorePatterns": [
+    "dist/",
+    "node_modules/",
+    "*.cjs",
+    "bundle.js",
+    "src/server/model/seed.ts"
+  ]
 }

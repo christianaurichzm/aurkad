@@ -83,7 +83,7 @@ export const Login = ({ onSwitch }: { onSwitch: () => void }) => {
           </p>
         )}
         <p style={styles.registerText}>
-          Don't have an account?{' '}
+          Don&apos;t have an account?{' '}
           <button type="button" onClick={onSwitch} style={styles.linkButton}>
             Register
           </button>

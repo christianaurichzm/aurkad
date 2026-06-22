@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { on, off, emit, clearAll } from './hooks.js';
+import { on, off, clearAll } from './hooks.js';
 import { createFixture, tile } from '../sim/simFixture.js';
 import { Direction, Key } from '../../shared/types.js';
 import { msToTicks } from '../sim/clock.js';
