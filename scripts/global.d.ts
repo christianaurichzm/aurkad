@@ -147,6 +147,27 @@ declare function getPlayer(name: string): PlayerServer | undefined;
 /** Get all online players across all maps. */
 declare function getPlayers(): PlayerServer[];
 
+interface SpawnNpcOptions {
+  mapId: string;
+  col: number;
+  row: number;
+  name?: string;
+  sprite?: number;
+  maxHealth?: number;
+  attack?: number;
+  attackRange?: number;
+  behavior?: NpcBehavior;
+}
+
+/**
+ * Spawn a runtime NPC (pet, summon, boss). Not persisted. Returns the NPC
+ * to drive from on('tick'), such as moving it toward its owner.
+ */
+declare function spawnNpc(opts: SpawnNpcOptions): RuntimeNpc | undefined;
+
+/** Remove a spawned NPC. */
+declare function despawnNpc(npc: { id: string }): void;
+
 /** Add items to a player's inventory. */
 declare function giveItem(player: PlayerServer, itemId: number, quantity?: number): void;
 

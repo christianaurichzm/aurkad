@@ -5,6 +5,7 @@
 //   on(event, handler)          - listen to a lifecycle event
 //   getPlayer(name)             - PlayerServer | undefined
 //   getPlayers()                - PlayerServer[]
+//   spawnNpc(opts) / despawnNpc(npc) - runtime NPCs (pets, summons, bosses)
 //   giveItem(player, id, qty)   - add item to inventory
 //   removeItem(player, id, qty) - remove item from inventory
 //   healPlayer(player)          - restore full health
@@ -144,5 +145,27 @@ on('npcInteract', ({ player, npc }) => {
 //   if (tick % 20 !== 0) return;        // ~once per second
 //   for (const p of getPlayers()) {
 //     // e.g. a regen buff, a pet step, a poison tick...
+//   }
+// });
+
+// Pet: spawn a follower that walks toward its owner each tick, and clean
+// it up when they leave, with spawnNpc, the tick hook and per-player data.
+//
+// const pets = {};
+// on('playerJoin', ({ player }) => {
+//   pets[player.id] = spawnNpc({ mapId: player.mapId, col: 1, row: 1, name: player.name + "'s Pet" });
+// });
+// on('playerLeave', ({ player }) => {
+//   if (pets[player.id]) { despawnNpc(pets[player.id]); delete pets[player.id]; }
+// });
+// on('tick', ({ tick }) => {
+//   if (tick % 4 !== 0) return;                 // move ~5x/sec
+//   for (const p of getPlayers()) {
+//     const pet = pets[p.id];
+//     if (!pet) continue;
+//     if (pet.position.x < p.position.x) pet.position.x += 4;
+//     else if (pet.position.x > p.position.x) pet.position.x -= 4;
+//     if (pet.position.y < p.position.y) pet.position.y += 4;
+//     else if (pet.position.y > p.position.y) pet.position.y -= 4;
 //   }
 // });

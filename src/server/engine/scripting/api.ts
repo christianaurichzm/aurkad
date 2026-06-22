@@ -24,6 +24,9 @@ import {
 import { registerCommand } from '../commands.js';
 import { provideApi, useApi } from '../modules/registry.js';
 import { setCosmetic, clearCosmetic } from '../../services/cosmeticsService.js';
+import { spawnNpc, despawnNpc } from '../../services/npc/spawn.js';
+import type { SpawnNpcOptions } from '../../services/npc/spawn.js';
+import type { RuntimeNpc } from '../../../shared/types.js';
 import { Access } from '../../../shared/types.js';
 import type { CommandContext, CommandOptions } from '../commands.js';
 import { TILE_SIZE } from '../../../shared/constants.js';
@@ -74,6 +77,12 @@ export function buildApi(
       getPlayerByName(name) ?? undefined,
     getPlayers: (): PlayerServer[] =>
       Object.values(runtimeState.maps).flatMap((m) => Object.values(m.players)),
+
+    // Spawn/despawn runtime NPCs (pets, summons, bosses). Returns the NPC so
+    // you can drive it from on('tick') (e.g. move it toward its owner).
+    spawnNpc: (opts: SpawnNpcOptions): RuntimeNpc | undefined =>
+      spawnNpc({ ...opts, mapId: String(opts.mapId) }),
+    despawnNpc: (npc: { id: string }): void => despawnNpc(npc),
 
     // Inventory
     giveItem: (player: PlayerServer, itemId: number, quantity = 1): void => {

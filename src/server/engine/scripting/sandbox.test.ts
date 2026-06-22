@@ -522,6 +522,36 @@ describe('custom network events (full loop through a script)', () => {
   });
 });
 
+describe('pet: spawnNpc + tick (vertical slice)', () => {
+  it('a script spawns a pet that walks each tick', () => {
+    const sim = createFixture(0);
+    const alice = sim.addPlayer({ name: 'Alice', position: tile(5, 5) });
+
+    const handle = runInSandbox(`
+      let pet = null;
+      on('playerJoin', ({ player }) => {
+        pet = spawnNpc({ mapId: player.mapId, col: 2, row: 5, name: 'Wolf', behavior: 'neutral' });
+      });
+      on('tick', () => {
+        if (pet && pet.position.x < 9999) pet.position.x += 4; // walk east
+      });
+    `, 'pet.js');
+
+    emit('playerJoin', { player: alice });
+
+    const spawned = Object.values(sim.map.npcs).find((n) => n.name === 'Wolf');
+    expect(spawned).toBeDefined();
+    const startX = spawned!.position.x;
+
+    sim.step(3);
+
+    const pet = Object.values(sim.map.npcs).find((n) => n.name === 'Wolf')!;
+    expect(pet.position.x).toBe(startX + 12); // moved 3 ticks
+
+    handle.cleanup();
+  });
+});
+
 describe('tick hook', () => {
   it('fires once per simulated tick', () => {
     const sim = createFixture(0);
