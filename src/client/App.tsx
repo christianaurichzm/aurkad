@@ -7,6 +7,7 @@ import { Login } from './pages/Login';
 import { Register } from './pages/Register';
 import { ShopModal } from './components/Shop/ShopModal';
 import { DialogBox } from './components/Dialog/DialogBox';
+import { QuestTracker } from './components/Quest/QuestTracker';
 import { TilesetEditor } from './components/Tileset/TilesetEditor';
 import { ModerationMenu } from './components/ModerationMenu';
 import { ChatPanel } from './components/ChatPanel';
@@ -30,6 +31,7 @@ function App() {
               <div id="canvasFrame">
                 <GameCanvas />
                 <GameInterface />
+                <QuestTracker />
               </div>
             </main>
             <aside id="sidePanel" aria-label="Game controls">

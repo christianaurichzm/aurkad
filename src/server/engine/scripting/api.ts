@@ -23,9 +23,17 @@ import {
 } from '../../services/customEventService.js';
 import { registerCommand } from '../commands.js';
 import { showDialog } from '../../services/dialogService.js';
+import {
+  defineQuest,
+  startQuest,
+  advanceQuest,
+  completeQuest,
+  getQuest,
+} from '../../services/questService.js';
 import { Access } from '../../../shared/types.js';
 import type { CommandContext, CommandOptions } from '../commands.js';
 import type { DialogOptions } from '../../services/dialogService.js';
+import type { QuestDef } from '../../services/questService.js';
 import { TILE_SIZE } from '../../../shared/constants.js';
 import { CharacterAction } from '../../../shared/types.js';
 import { logger } from '../../logger.js';
@@ -187,6 +195,19 @@ export function buildApi(
       options: DialogOptions,
       onChoice?: (choiceIndex: number) => void,
     ): void => showDialog(player, options, onChoice),
+
+    // Quests. defineQuest registers the quest; start/advance/complete track
+    // per-player progress (persisted) and update the player's quest log.
+    defineQuest: (def: QuestDef): void => {
+      trackUnsub(defineQuest(def));
+    },
+    startQuest: (player: PlayerServer, id: string): boolean =>
+      startQuest(player, String(id)),
+    advanceQuest: (player: PlayerServer, id: string, amount?: number): void =>
+      advanceQuest(player, String(id), amount),
+    completeQuest: (player: PlayerServer, id: string): void =>
+      completeQuest(player, String(id)),
+    getQuest: (player: PlayerServer, id: string) => getQuest(player, String(id)),
 
     // Access levels, for command permissions.
     Access,

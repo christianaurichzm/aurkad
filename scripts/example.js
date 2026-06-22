@@ -20,6 +20,7 @@
 //   broadcastEvent(channel, payload)        - custom event to all clients
 //   command(name, { access }, handler)      - chat (/name) + REPL command
 //   showDialog(player, { text, choices }, onChoice) - dialog box (press F at an NPC)
+//   defineQuest(def) / startQuest / advanceQuest / completeQuest / getQuest
 //   setTimeout(fn, ms)
 //   setInterval(fn, ms)
 //   log(...args)
@@ -62,6 +63,31 @@ on('npcInteract', ({ player, npc }) => {
 //
 // on('playerJoin', ({ player }) => {
 //   giveItem(player, 1, 1);
+// });
+
+// A kill quest wired from dialog and npcDeath. The engine tracks progress
+// (shown in the quest log) and grants the reward, and the script only
+// defines and advances it.
+//
+// defineQuest({
+//   id: 'goblinHunt', name: 'Goblin Hunt', description: 'Defeat 3 goblins',
+//   target: 3, reward: (player) => giveExperience(player, 100),
+// });
+// on('npcInteract', ({ player, npc }) => {
+//   if (npc.name !== 'Quest Giver') return;
+//   const q = getQuest(player, 'goblinHunt');
+//   if (!q) {
+//     showDialog(player, { text: 'Slay 3 goblins?', choices: ['Accept', 'Decline'] }, (i) => {
+//       if (i === 0) startQuest(player, 'goblinHunt');
+//     });
+//   } else if (q.status === 'completed') {
+//     showDialog(player, { text: 'You have my thanks, hero.' });
+//   } else {
+//     showDialog(player, { text: `Progress: ${q.progress}/${q.target}` });
+//   }
+// });
+// on('npcDeath', ({ npc, killer }) => {
+//   if (npc.name === 'Goblin') advanceQuest(killer, 'goblinHunt', 1);
 // });
 
 // VIP, a complete example: grant it with a command, then react to it.
