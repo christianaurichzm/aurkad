@@ -22,6 +22,7 @@ export type HookMap = {
   beforeDamage:  { attacker: CombatTarget; target: CombatTarget; damage: { value: number } };
   beforeXpGain:  { player: PlayerServer; amount: number; source: string };
   customAction:  { player: PlayerServer; channel: string; payload: unknown };
+  tick:          { tick: number };
 };
 
 type Handler<K extends keyof HookMap> = (payload: HookMap[K]) => void;

@@ -16,6 +16,7 @@ import {
 import { broadcastGameState, flushGameEvents } from '../net/snapshot.js';
 import { advanceTick, getTick, msToTicks } from './clock.js';
 import { gameConfig } from '../gameConfig.js';
+import { emit } from '../engine/hooks.js';
 
 type TimeoutHandle = ReturnType<typeof setTimeout>;
 
@@ -50,6 +51,12 @@ function rebuildSpatialIndexes() {
   }
 }
 
+// Per-tick hook for scripts and modules. Runs after movement so the world
+// is settled, and before the flush so handler output ships this tick.
+function emitTick() {
+  emit('tick', { tick: getTick() });
+}
+
 const tickSystems: Array<{ name: string; run: () => unknown }> = [
   { name: 'advanceTick', run: advanceTick },
   { name: 'scheduledServerActions', run: scheduledServerActions },
@@ -57,6 +64,7 @@ const tickSystems: Array<{ name: string; run: () => unknown }> = [
   { name: 'processActions', run: processActions },
   { name: 'processMovementCompletion', run: processMovementCompletion },
   { name: 'processMovementIntent', run: processMovementIntent },
+  { name: 'tickHook', run: emitTick },
   { name: 'flushGameEvents', run: flushGameEvents },
   { name: 'broadcastGameState', run: broadcastGameState },
 ];

@@ -30,7 +30,7 @@
 //
 // Events: playerJoin, playerLeave, playerDeath, playerLevelUp, npcDeath,
 //         npcInteract, tileEnter, itemUse, itemPickup, chatMessage,
-//         beforeDamage, beforeXpGain, customAction
+//         beforeDamage, beforeXpGain, customAction, tick
 
 on('playerJoin', ({ player }) => {
   sendMessage(player, `Welcome to the game, ${player.name}!`);
@@ -135,4 +135,14 @@ on('npcInteract', ({ player, npc }) => {
 // on('beforeDamage', ({ damage }) => {
 //   const day = new Date().getDay();
 //   if (day === 0 || day === 6) damage.value *= 2;
+// });
+
+// Tick: runs every game tick (~20/sec), the base for pets, projectiles,
+// damage over time and timed buffs. Throttle with the tick number.
+//
+// on('tick', ({ tick }) => {
+//   if (tick % 20 !== 0) return;        // ~once per second
+//   for (const p of getPlayers()) {
+//     // e.g. a regen buff, a pet step, a poison tick...
+//   }
 // });

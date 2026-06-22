@@ -1,5 +1,6 @@
-import { resetClock, advanceTick } from './clock.js';
+import { resetClock, advanceTick, getTick } from './clock.js';
 import { seedRng } from './rng.js';
+import { emit } from '../engine/hooks.js';
 import { players, playersByName, runtimeState } from './state.js';
 import { registerPlayer, getPlayerByName } from './world.js';
 import { pressedKeysMap, items } from '../gameData.js';
@@ -177,6 +178,7 @@ export function createFixture(seed = 0) {
 
       processMovementCompletion();
       processMovementIntent();
+      emit('tick', { tick: getTick() });
     }
   }
 

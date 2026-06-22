@@ -126,6 +126,8 @@ interface HookPayloads {
   beforeXpGain:  { player: PlayerServer; amount: number; source: string };
   /** A custom message from client code. The payload is untrusted input. */
   customAction:  { player: PlayerServer; channel: string; payload: unknown };
+  /** Fires every game tick (~20/sec). Throttle with `if (tick % n === 0)`. */
+  tick:          { tick: number };
 }
 
 type HookEvent = keyof HookPayloads;

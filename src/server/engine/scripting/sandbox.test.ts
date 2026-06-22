@@ -521,3 +521,27 @@ describe('custom network events (full loop through a script)', () => {
     handle.cleanup();
   });
 });
+
+describe('tick hook', () => {
+  it('fires once per simulated tick', () => {
+    const sim = createFixture(0);
+    const alice = sim.addPlayer({ name: 'Alice' });
+
+    // A pet-like behavior: nudge a counter every tick (throttled to every 2).
+    const handle = runInSandbox(`
+      let n = 0;
+      on('tick', ({ tick }) => {
+        n++;
+        setPlayerData(getPlayers()[0], 'ticks', n);
+        if (tick % 2 === 0) setPlayerData(getPlayers()[0], 'evenHits', (getPlayerData(getPlayers()[0], 'evenHits') || 0) + 1);
+      });
+    `, 'ticker.js');
+
+    sim.step(4);
+
+    expect(alice.data?.ticks).toBe(4); // ran every tick
+    expect(alice.data?.evenHits).toBeGreaterThan(0); // throttle pattern works
+
+    handle.cleanup();
+  });
+});
