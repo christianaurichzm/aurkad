@@ -19,7 +19,7 @@
 //   sendMapEvent(mapId, channel, payload)   - custom event to a map
 //   broadcastEvent(channel, payload)        - custom event to all clients
 //   command(name, { access }, handler)      - chat (/name) + REPL command
-//   showDialog(player, { text, choices }, onChoice) - dialog box (press F at an NPC)
+//   use('dialog').show(player, { text, choices }, onChoice) - dialog box (press F)
 //   defineQuest(def) / startQuest / advanceQuest / completeQuest / getQuest
 //   setTimeout(fn, ms)
 //   setInterval(fn, ms)
@@ -44,10 +44,11 @@ on('npcDeath', ({ npc, killer }) => {
   log(`${killer.name} defeated ${npc.name}`);
 });
 
-// Talk to an NPC: face it and press F. The server decides what to say; the
-// engine renders the box and routes the choice back to onChoice.
+// Talk to an NPC: face it and press F. Dialog comes from the dialog module.
+const dialog = use('dialog');
 on('npcInteract', ({ player, npc }) => {
-  showDialog(
+  if (!dialog) return;
+  dialog.show(
     player,
     { text: `${npc.name}: Greetings, traveler. Need anything?`, choices: ['Heal me', 'Nothing'] },
     (choice) => {
@@ -75,15 +76,16 @@ on('npcInteract', ({ player, npc }) => {
 // });
 // on('npcInteract', ({ player, npc }) => {
 //   if (npc.name !== 'Quest Giver') return;
+//   const dialog = use('dialog');
 //   const q = getQuest(player, 'goblinHunt');
 //   if (!q) {
-//     showDialog(player, { text: 'Slay 3 goblins?', choices: ['Accept', 'Decline'] }, (i) => {
+//     dialog.show(player, { text: 'Slay 3 goblins?', choices: ['Accept', 'Decline'] }, (i) => {
 //       if (i === 0) startQuest(player, 'goblinHunt');
 //     });
 //   } else if (q.status === 'completed') {
-//     showDialog(player, { text: 'You have my thanks, hero.' });
+//     dialog.show(player, { text: 'You have my thanks, hero.' });
 //   } else {
-//     showDialog(player, { text: `Progress: ${q.progress}/${q.target}` });
+//     dialog.show(player, { text: `Progress: ${q.progress}/${q.target}` });
 //   }
 // });
 // on('npcDeath', ({ npc, killer }) => {

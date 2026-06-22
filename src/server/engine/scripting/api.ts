@@ -23,7 +23,6 @@ import {
 } from '../../services/customEventService.js';
 import { registerCommand } from '../commands.js';
 import { provideApi, useApi } from '../modules/registry.js';
-import { showDialog } from '../../services/dialogService.js';
 import {
   defineQuest,
   startQuest,
@@ -33,7 +32,6 @@ import {
 } from '../../services/questService.js';
 import { Access } from '../../../shared/types.js';
 import type { CommandContext, CommandOptions } from '../commands.js';
-import type { DialogOptions } from '../../services/dialogService.js';
 import type { QuestDef } from '../../services/questService.js';
 import { TILE_SIZE } from '../../../shared/constants.js';
 import { CharacterAction } from '../../../shared/types.js';
@@ -189,13 +187,6 @@ export function buildApi(
       sendMapCustomEvent(String(mapId), String(channel), payload),
     broadcastEvent: (channel: string, payload?: unknown): void =>
       broadcastCustomEvent(String(channel), payload),
-
-    // Show a dialog box to a player; onChoice(index) fires when they pick.
-    showDialog: (
-      player: PlayerServer,
-      options: DialogOptions,
-      onChoice?: (choiceIndex: number) => void,
-    ): void => showDialog(player, options, onChoice),
 
     // Quests. defineQuest registers the quest; start/advance/complete track
     // per-player progress (persisted) and update the player's quest log.

@@ -23,6 +23,7 @@
     "npcUpdateIntervalMs": 1250
   },
   "modules": {
+    "dialog": { "enabled": true },
     "guild": { "enabled": true, "config": { "maxMembers": 50 } }
   }
 }

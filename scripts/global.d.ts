@@ -212,12 +212,17 @@ interface DialogOptions {
   choices?: string[];
 }
 
-/** Show a dialog box to a player; onChoice(index) fires when they pick. */
-declare function showDialog(
-  player: PlayerServer,
-  options: DialogOptions,
-  onChoice?: (choiceIndex: number) => void,
-): void;
+/**
+ * Dialog API, from the dialog module: `const dialog = use('dialog')`.
+ * Shows a box and runs onChoice(index) when the player picks.
+ */
+interface DialogApi {
+  show(
+    player: PlayerServer,
+    options: DialogOptions,
+    onChoice?: (choiceIndex: number) => void,
+  ): void;
+}
 
 interface QuestDef {
   id: string;
