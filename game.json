@@ -21,5 +21,8 @@
     "regenPercent": 0.01,
     "minRegen": 1,
     "npcUpdateIntervalMs": 1250
+  },
+  "modules": {
+    "guild": { "enabled": true, "config": { "maxMembers": 50 } }
   }
 }

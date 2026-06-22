@@ -1,0 +1,89 @@
+import fs from 'fs';
+import os from 'os';
+import path from 'path';
+import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { loadModules, unloadAllModules } from './moduleLoader.js';
+import { handleReplCommand, clearCommands } from '../commands.js';
+
+let tmpDir: string;
+
+function writeModule(id: string, manifest: object, server: string) {
+  const dir = path.join(tmpDir, id);
+  fs.mkdirSync(dir, { recursive: true });
+  fs.writeFileSync(path.join(dir, 'module.json'), JSON.stringify({ id, name: id, version: '1.0.0', server: 'server.js', ...manifest }));
+  fs.writeFileSync(path.join(dir, 'server.js'), server);
+}
+
+function repl(name: string, args: string[] = []): string[] {
+  const out: string[] = [];
+  handleReplCommand(name, args, (s) => out.push(s));
+  return out;
+}
+
+beforeEach(() => {
+  clearCommands();
+  tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'modules-'));
+  process.env.MODULES_PATH = tmpDir;
+});
+
+afterEach(() => {
+  unloadAllModules();
+  clearCommands();
+  delete process.env.MODULES_PATH;
+  fs.rmSync(tmpDir, { recursive: true, force: true });
+});
+
+describe('loadModules', () => {
+  it('loads an enabled module and injects its config', () => {
+    writeModule(
+      'echo',
+      { config: { greeting: 'hello' } },
+      `command('echo', {}, ({ reply }) => reply(config.greeting));`,
+    );
+
+    loadModules();
+
+    expect(repl('echo')).toEqual(['hello']);
+  });
+
+  it('does not load a module disabled by default', () => {
+    writeModule(
+      'secret',
+      { enabledByDefault: false },
+      `command('secret', {}, ({ reply }) => reply('loaded'));`,
+    );
+
+    loadModules();
+
+    // Command was never registered, so the REPL reports it as unhandled.
+    const out: string[] = [];
+    expect(handleReplCommand('secret', [], (s) => out.push(s))).toBe(false);
+  });
+
+  it('unloadAllModules unregisters what a module registered', () => {
+    writeModule('echo', {}, `command('echo', {}, ({ reply }) => reply('hi'));`);
+    loadModules();
+    expect(repl('echo')).toEqual(['hi']);
+
+    unloadAllModules();
+
+    const out: string[] = [];
+    expect(handleReplCommand('echo', [], (s) => out.push(s))).toBe(false);
+  });
+
+  it('skips a module folder with an invalid manifest', () => {
+    const dir = path.join(tmpDir, 'broken');
+    fs.mkdirSync(dir, { recursive: true });
+    fs.writeFileSync(path.join(dir, 'module.json'), '{ not valid json');
+    fs.writeFileSync(path.join(dir, 'server.js'), `command('broken', {}, () => {});`);
+
+    expect(() => loadModules()).not.toThrow();
+    const out: string[] = [];
+    expect(handleReplCommand('broken', [], (s) => out.push(s))).toBe(false);
+  });
+
+  it('does nothing when modules dir is absent', () => {
+    fs.rmSync(tmpDir, { recursive: true, force: true });
+    expect(() => loadModules()).not.toThrow();
+  });
+});

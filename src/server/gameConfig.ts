@@ -30,11 +30,18 @@ interface CombatConfig {
   npcUpdateIntervalMs: number;
 }
 
+export interface ModuleConfigEntry {
+  enabled?: boolean;
+  config?: Record<string, unknown>;
+}
+
 export interface GameConfig {
   player: PlayerConfig;
   leveling: LevelingConfig;
   world: WorldConfig;
   combat: CombatConfig;
+  // Per-module toggle + config overrides, keyed by module id.
+  modules: Record<string, ModuleConfigEntry>;
 }
 
 const defaults: GameConfig = {
@@ -61,6 +68,7 @@ const defaults: GameConfig = {
     minRegen: 1,
     npcUpdateIntervalMs: 1250,
   },
+  modules: {},
 };
 
 function loadGameJson(): Partial<GameConfig> {
@@ -81,6 +89,7 @@ function merge(overrides: Partial<GameConfig>): GameConfig {
     leveling: { ...defaults.leveling, ...overrides.leveling },
     world: { ...defaults.world, ...overrides.world },
     combat: { ...defaults.combat, ...overrides.combat },
+    modules: { ...defaults.modules, ...overrides.modules },
   };
 }
 

@@ -36,6 +36,7 @@ services:
       - ./scripts:/app/scripts:ro
       - ./assets:/app/assets:ro
       - ./content:/app/content:ro
+      - ./modules:/app/modules:ro
 
 volumes:
   mongo-data:

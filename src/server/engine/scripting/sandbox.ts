@@ -25,7 +25,11 @@ export interface ScriptHandle {
 
 const INIT_TIMEOUT_MS = 5_000;
 
-export function runInSandbox(code: string, filename: string): ScriptHandle {
+export function runInSandbox(
+  code: string,
+  filename: string,
+  extraGlobals: Record<string, unknown> = {},
+): ScriptHandle {
   const unsubs: Cleanup[] = [];
   const timers: Set<TimerId> = new Set();
 
@@ -34,10 +38,12 @@ export function runInSandbox(code: string, filename: string): ScriptHandle {
 
   const api = buildApi(filename, trackUnsub, trackTimer);
 
-  // The VM context gets only our API. ECMAScript intrinsics (Math, JSON,
-  // Array, ...) come from the new V8 context, isolated from the main realm.
+  // The VM context gets only our API plus extra globals (e.g. a module's
+  // `config`). ECMAScript intrinsics (Math, JSON, Array, ...) come from the
+  // new V8 context, isolated.
   const ctx = vm.createContext({
     ...api,
+    ...extraGlobals,
     console: { log: api.log, warn: api.warn, error: api.error },
   });
 

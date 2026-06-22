@@ -41,6 +41,7 @@ import { startPlayerSnapshotLoop } from './persistence/playerSnapshot.js';
 import { logger } from './logger.js';
 import { startAdminRepl } from './admin/repl.js';
 import { loadScripts, unloadAllScripts } from './engine/scripting/index.js';
+import { loadModules, unloadAllModules } from './engine/modules/moduleLoader.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -78,6 +79,7 @@ async function startServer() {
     await loadInitialData();
     stopKv = startKvStore();
     registerDialogHandlers();
+    loadModules();
     await loadScripts();
     startWebSocketServer(server, sessionMiddleware);
     stopGameLoops = startGameLoops();
@@ -110,6 +112,7 @@ async function shutdown(signal: string) {
   stopGameLoops?.();
   stopSnapshots?.();
   unloadAllScripts();
+  unloadAllModules();
   markServerShuttingDown();
 
   const httpClose = new Promise<void>((resolve) => {
