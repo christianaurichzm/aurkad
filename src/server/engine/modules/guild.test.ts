@@ -6,6 +6,7 @@ import { handleChatCommand, clearCommands } from '../commands.js';
 import { useApi, clearProvides } from './registry.js';
 import { kvGet, clearKvStoreMemory } from '../../persistence/kvStore.js';
 import { drainGameEvents } from '../eventBus.js';
+import { handleCustomAction } from '../../services/customEventService.js';
 import { createFixture } from '../../sim/simFixture.js';
 import { Access, PlayerServer } from '../../../shared/types.js';
 
@@ -79,6 +80,34 @@ describe('guild module', () => {
     // Bob's create was rejected, so he has no guild and is not in Dragons.
     expect(bob.data?.guild).toBeUndefined();
     expect(kvGet<Guild>('guild', 'Dragons')?.members).toEqual(['Alice']);
+  });
+
+  it('pushes guild:update to members (drives the client panel)', () => {
+    const sim = createFixture(0);
+    const alice = sim.addPlayer({ name: 'Alice' });
+    drainGameEvents();
+
+    handleChatCommand(alice, '/guild create Dragons');
+
+    const ev = drainGameEvents().find(
+      (e) => e.type === 'customPlayer' && e.channel === 'guild:update',
+    ) as { username: string; payload: { name: string } } | undefined;
+    expect(ev?.username).toBe('Alice');
+    expect(ev?.payload.name).toBe('Dragons');
+  });
+
+  it('answers guild:request with the player current guild', () => {
+    const sim = createFixture(0);
+    const alice = sim.addPlayer({ name: 'Alice' });
+    handleChatCommand(alice, '/guild create Dragons');
+    drainGameEvents();
+
+    handleCustomAction({ type: 'custom', username: 'Alice', channel: 'guild:request' });
+
+    const ev = drainGameEvents().find(
+      (e) => e.type === 'customPlayer' && e.channel === 'guild:update',
+    ) as { payload: { name: string } | null } | undefined;
+    expect(ev?.payload?.name).toBe('Dragons');
   });
 
   it('exposes a guild API via use("guild")', () => {

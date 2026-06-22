@@ -7,6 +7,16 @@ const maxMembers = (config && config.maxMembers) || 50;
 const myGuildName = (player) => getPlayerData(player, 'guild');
 const getGuild = (name) => (name ? store.get('guild', name) : undefined);
 
+// Push the live guild record to every online member (drives the client panel).
+function pushGuild(name) {
+  const g = getGuild(name);
+  if (!g) return;
+  for (const member of g.members) {
+    const p = getPlayer(member);
+    if (p) sendEvent(p, 'guild:update', g);
+  }
+}
+
 command(
   'guild',
   { description: 'Guilds: /guild create|join|leave|list [name]' },
@@ -22,6 +32,7 @@ command(
       if (getGuild(name)) return reply('That guild name is taken.');
       store.set('guild', name, { name, leader: player.name, members: [player.name] });
       setPlayerData(player, 'guild', name);
+      pushGuild(name);
       return reply(`Guild "${name}" created.`);
     }
 
@@ -34,6 +45,7 @@ command(
       g.members.push(player.name);
       store.set('guild', name, g);
       setPlayerData(player, 'guild', name);
+      pushGuild(name);
       return reply(`Joined "${name}".`);
     }
 
@@ -43,11 +55,13 @@ command(
       if (!g) return reply('You are not in a guild.');
       g.members = g.members.filter((m) => m !== player.name);
       setPlayerData(player, 'guild', undefined);
+      sendEvent(player, 'guild:update', null); // clear the leaver's panel
       if (g.members.length === 0) {
         store.delete('guild', gn);
       } else {
         if (g.leader === player.name) g.leader = g.members[0];
         store.set('guild', gn, g);
+        pushGuild(gn);
       }
       return reply(`You left "${gn}".`);
     }
@@ -61,6 +75,13 @@ command(
     reply('Usage: /guild create|join|leave|list [name]');
   },
 );
+
+// The client panel asks for the current guild when it loads (and after
+// reconnect), since it may have missed earlier guild:update pushes.
+on('customAction', ({ player, channel }) => {
+  if (channel !== 'guild:request') return;
+  sendEvent(player, 'guild:update', getGuild(myGuildName(player)) || null);
+});
 
 // Expose a small API so other modules/scripts can query guild membership
 // without knowing how guilds are stored. Consume it with: use('guild').

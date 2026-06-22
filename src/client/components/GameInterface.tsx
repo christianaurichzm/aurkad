@@ -3,6 +3,7 @@ import { initializeAssets } from '../io/assets';
 import { initTilesetEditor, renderMap } from '../graphics/tileset';
 import { handleInput } from '../io/keyboard';
 import { initializeWebSocket } from '../io/network';
+import { loadClientModules } from '../io/modules/moduleClient';
 import { gameLoop } from '../core/game';
 import {
   setFullGameState,
@@ -75,6 +76,7 @@ export const GameInterface = () => {
       handleInput();
       await initializeAssets();
       initializeWebSocket();
+      void loadClientModules();
       await renderMap(initialMap.tiles);
       requestAnimationFrame(gameLoop);
     };

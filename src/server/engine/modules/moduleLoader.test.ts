@@ -2,7 +2,12 @@ import fs from 'fs';
 import os from 'os';
 import path from 'path';
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import { loadModules, unloadAllModules } from './moduleLoader.js';
+import {
+  loadModules,
+  unloadAllModules,
+  getClientModules,
+  readModuleClientFile,
+} from './moduleLoader.js';
 import { handleReplCommand, clearCommands } from '../commands.js';
 import { clearProvides, isProvided } from './registry.js';
 
@@ -136,5 +141,51 @@ describe('inter-module API', () => {
 
     unloadAllModules();
     expect(isProvided('greeter')).toBe(false);
+  });
+});
+
+describe('client entries', () => {
+  function writeClientModule(id: string, clientCode: string) {
+    const dir = path.join(tmpDir, id);
+    fs.mkdirSync(dir, { recursive: true });
+    fs.writeFileSync(
+      path.join(dir, 'module.json'),
+      JSON.stringify({ id, name: id, version: '1.0.0', server: 'server.js', client: 'client.js' }),
+    );
+    fs.writeFileSync(path.join(dir, 'server.js'), '');
+    fs.writeFileSync(path.join(dir, 'client.js'), clientCode);
+  }
+
+  it('lists only loaded modules that declare a client entry', () => {
+    writeClientModule('hasclient', `engine.log('hi');`);
+    writeModule('noclient', {}, '');
+    loadModules();
+
+    expect(getClientModules()).toEqual([{ id: 'hasclient', client: 'client.js' }]);
+  });
+
+  it('serves the declared client file', () => {
+    writeClientModule('hasclient', `engine.mount();`);
+    loadModules();
+
+    expect(readModuleClientFile('hasclient')).toBe('engine.mount();');
+  });
+
+  it('returns null for a module that is not loaded', () => {
+    expect(readModuleClientFile('ghost')).toBeNull();
+  });
+
+  it('refuses a client path that escapes the module dir', () => {
+    const dir = path.join(tmpDir, 'evil');
+    fs.mkdirSync(dir, { recursive: true });
+    fs.writeFileSync(
+      path.join(dir, 'module.json'),
+      JSON.stringify({ id: 'evil', name: 'evil', version: '1', server: 'server.js', client: '../../secret.js' }),
+    );
+    fs.writeFileSync(path.join(dir, 'server.js'), '');
+    loadModules();
+
+    // The traversal guard rejects before ever touching the filesystem.
+    expect(readModuleClientFile('evil')).toBeNull();
   });
 });

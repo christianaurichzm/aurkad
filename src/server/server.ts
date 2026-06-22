@@ -24,6 +24,7 @@ import { createAuthRouter } from './http/routes/authRoutes.js';
 import { createContentRouter } from './http/routes/contentRoutes.js';
 import { createModRouter } from './http/routes/modRoutes.js';
 import { createAssetsRouter } from './http/routes/assetsRoutes.js';
+import { createModulesRouter } from './http/routes/modulesRoutes.js';
 import { getMetrics } from './metrics.js';
 import {
   markServerShuttingDown,
@@ -56,6 +57,7 @@ app.use(createAuthRouter());
 app.use(createContentRouter());
 app.use(createModRouter());
 app.use(createAssetsRouter());
+app.use(createModulesRouter());
 
 if (config.nodeEnv === 'production') {
   const clientDist = path.join(__dirname, '../client');

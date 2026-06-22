@@ -8,7 +8,8 @@ export interface ModuleManifest {
   id: string;
   name: string;
   version: string;
-  server: string; // entry file, relative to the module dir
+  server: string; // server entry file, relative to the module dir
+  client?: string; // optional browser entry, served to clients
   description?: string;
   enabledByDefault?: boolean;
   config?: Record<string, unknown>;

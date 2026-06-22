@@ -48,6 +48,7 @@ function App() {
           <InventoryPanel />
           <TilesetEditor />
           <ContentEditor />
+          <div id="module-ui" />
         </div>
       ) : showRegister ? (
         <Register onSwitch={() => setShowRegister(false)} />

@@ -68,3 +68,27 @@ if (guild && guild.guildOf(player)) { /* ... */ }
 If a module declares another in `dependencies`, that dependency loads first (so
 its API is available at load time) and the dependent is skipped if the
 dependency is disabled or fails to load.
+
+## Client UI (`client` entry)
+
+A module can ship browser code too. Add `"client": "client.js"` to the
+manifest; the server serves it and the client loads it after connecting. It
+runs with an `engine` API injected, under the server entry's trust model and
+with no import system:
+
+```js
+// modules/guild/client.js
+const panel = engine.mount();               // a DOM element this module owns
+engine.onServerEvent('guild:update', (g) => { panel.innerHTML = render(g); });
+engine.sendServerEvent('guild:request');    // talk back to the server entry
+```
+
+`engine`:
+- `mount()` → an `HTMLElement` to render into (vanilla DOM, or your own bundle).
+- `onServerEvent(channel, handler)` / `sendServerEvent(channel, payload)` - the
+  same custom-event channels the server entry uses (`sendEvent` / `customAction`).
+- `log` / `warn` / `error`.
+
+The server pushes state on a channel; the client renders it. Because the client
+may connect after the first push, have the client request current state on load
+(see `guild:request` above).

@@ -3,6 +3,7 @@
   "name": "Guild System",
   "version": "1.0.0",
   "server": "server.js",
+  "client": "client.js",
   "description": "Player guilds: create, join, leave, list. Built on commands + the KV store.",
   "enabledByDefault": true,
   "config": {

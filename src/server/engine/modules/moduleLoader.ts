@@ -26,6 +26,7 @@ const ManifestSchema = z.object({
   name: z.string().min(1),
   version: z.string().min(1),
   server: z.string().min(1),
+  client: z.string().min(1).optional(),
   description: z.string().optional(),
   enabledByDefault: z.boolean().optional(),
   config: z.record(z.string(), z.unknown()).optional(),
@@ -33,6 +34,8 @@ const ManifestSchema = z.object({
 });
 
 const handles = new Map<string, ScriptHandle>();
+// Manifests of successfully loaded modules, for serving client entries.
+const loadedManifests = new Map<string, ModuleManifest>();
 
 function readManifests(dir: string): ModuleManifest[] {
   const manifests: ModuleManifest[] = [];
@@ -67,6 +70,7 @@ export function loadModules(): void {
     return;
   }
 
+  loadedManifests.clear();
   const all = readManifests(dir);
   const enabled = all.filter((m) => isModuleEnabled(m, gameConfig.modules));
   const ordered = orderModules(enabled);
@@ -100,6 +104,7 @@ export function loadModules(): void {
     const config = resolveModuleConfig(manifest, gameConfig.modules);
     const handle = runInSandbox(code, `module:${manifest.id}`, { config });
     handles.set(manifest.id, handle);
+    loadedManifests.set(manifest.id, manifest);
     loaded.add(manifest.id);
     logger.info(`[modules] Loaded ${manifest.id} v${manifest.version}`);
   }
@@ -108,4 +113,26 @@ export function loadModules(): void {
 export function unloadAllModules(): void {
   for (const [, handle] of handles) handle.cleanup();
   handles.clear();
+  loadedManifests.clear();
+}
+
+// Loaded modules that ship a browser entry, for the client loader.
+export function getClientModules(): { id: string; client: string }[] {
+  return [...loadedManifests.values()]
+    .filter((m): m is ModuleManifest & { client: string } => !!m.client)
+    .map((m) => ({ id: m.id, client: m.client }));
+}
+
+// Reads a loaded module's declared client file. Returns null if the module
+// isn't loaded or has no client entry; resolves strictly within the module dir.
+export function readModuleClientFile(id: string): string | null {
+  const manifest = loadedManifests.get(id);
+  if (!manifest?.client) return null;
+  const moduleDir = path.resolve(modulesDir(), id);
+  const filePath = path.resolve(moduleDir, manifest.client);
+  if (filePath !== moduleDir && !filePath.startsWith(moduleDir + path.sep)) {
+    return null; // traversal guard: must stay within the module dir
+  }
+  if (!fs.existsSync(filePath)) return null;
+  return fs.readFileSync(filePath, 'utf-8');
 }
