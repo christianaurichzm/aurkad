@@ -119,6 +119,12 @@ export function buildApi(
       persist(scriptName, player);
     },
 
+    // Cosmetic tag above the name (a guild name, say); undefined clears it.
+    setNameTag: (player: PlayerServer, tag: string | undefined): void => {
+      player.nameTag = tag;
+      persist(scriptName, player);
+    },
+
     // Per-player custom data (persisted with the player record)
     getPlayerData: <T = unknown>(player: PlayerServer, key: string): T | undefined =>
       (player.data?.[key] as T | undefined),

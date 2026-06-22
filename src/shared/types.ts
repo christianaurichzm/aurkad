@@ -202,6 +202,8 @@ export interface PlayerServer extends PersistentPlayer, CharacterRuntime {
   // Optional override for the colour of the name above the sprite.
   // Runtime-only; scripts set it (on join, say). Falls back to access colour.
   nameColor?: string;
+  // Optional tag drawn above the name (e.g. a guild name). Runtime-only.
+  nameTag?: string;
 }
 
 export interface PlayerRecord extends PlayerServer {
@@ -223,6 +225,7 @@ export interface PlayerPublic {
   direction: Direction;
   action: CharacterAction;
   nameColor?: string;
+  nameTag?: string;
   kind: 'player';
 }
 
@@ -264,6 +267,7 @@ export interface PlayerCold {
   speed: number;
   mapId: string;
   nameColor?: string;
+  nameTag?: string;
   kind: 'player';
 }
 

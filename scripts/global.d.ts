@@ -80,6 +80,8 @@ interface PlayerServer {
   data?: Record<string, unknown>;
   /** Cosmetic name color above the sprite; overrides the default access color. */
   nameColor?: string;
+  /** Cosmetic tag drawn above the name (e.g. a guild name). */
+  nameTag?: string;
   kind: 'player';
 }
 
@@ -160,6 +162,9 @@ declare function giveExperience(player: PlayerServer, amount: number): void;
 
 /** Set the cosmetic name color above a player (undefined clears it). */
 declare function setNameColor(player: PlayerServer, color: string | undefined): void;
+
+/** Set the cosmetic tag drawn above a player's name (undefined clears it). */
+declare function setNameTag(player: PlayerServer, tag: string | undefined): void;
 
 /** Read a custom data field from a player. */
 declare function getPlayerData<T = unknown>(player: PlayerServer, key: string): T | undefined;

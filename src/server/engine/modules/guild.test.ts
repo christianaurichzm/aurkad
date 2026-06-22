@@ -110,6 +110,28 @@ describe('guild module', () => {
     expect(ev?.payload?.name).toBe('Dragons');
   });
 
+  it('creates and leaves a guild via UI custom actions, and sets the name tag', () => {
+    const sim = createFixture(0);
+    const alice = sim.addPlayer({ name: 'Alice' });
+
+    handleCustomAction({
+      type: 'custom',
+      username: 'Alice',
+      channel: 'guild:create',
+      payload: { name: 'Dragons' },
+    });
+
+    expect(kvGet<Guild>('guild', 'Dragons')?.members).toEqual(['Alice']);
+    expect(alice.data?.guild).toBe('Dragons');
+    expect(alice.nameTag).toBe('Dragons'); // shown above the name on the canvas
+
+    handleCustomAction({ type: 'custom', username: 'Alice', channel: 'guild:leave' });
+
+    expect(alice.data?.guild).toBeUndefined();
+    expect(alice.nameTag).toBeUndefined(); // tag cleared on leave
+    expect(kvGet('guild', 'Dragons')).toBeUndefined();
+  });
+
   it('exposes a guild API via use("guild")', () => {
     const sim = createFixture(0);
     const alice = sim.addPlayer({ name: 'Alice' });

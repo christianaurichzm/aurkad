@@ -209,6 +209,7 @@ export function toPlayerCold(player: PlayerServer): PlayerCold {
     speed: player.speed,
     mapId: player.mapId,
     nameColor: player.nameColor,
+    nameTag: player.nameTag,
     kind: 'player',
   };
 }
@@ -231,6 +232,7 @@ export function playerColdSignature(player: PlayerServer): string {
     player.speed,
     player.mapId,
     player.nameColor,
+    player.nameTag,
     player.inventory,
     player.equipped,
   ]);

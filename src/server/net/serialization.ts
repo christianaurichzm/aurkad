@@ -26,6 +26,7 @@ export function toPlayerPublic(player: PlayerServer): PlayerPublic {
     direction: player.direction,
     action: player.action,
     nameColor: player.nameColor,
+    nameTag: player.nameTag,
     kind: 'player',
   };
 }
