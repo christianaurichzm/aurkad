@@ -1,0 +1,11 @@
+{
+  "id": "pk",
+  "name": "Player Killer flagging",
+  "version": "1.0.0",
+  "server": "server.js",
+  "description": "Flags killers on 'normal' PvP maps with a red name (a PK skull).",
+  "enabledByDefault": true,
+  "config": {
+    "flagMinutes": 10
+  }
+}

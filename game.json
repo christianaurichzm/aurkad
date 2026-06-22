@@ -33,6 +33,7 @@
     "dialog": { "enabled": true },
     "quest": { "enabled": true },
     "guild": { "enabled": true, "config": { "maxMembers": 50 } },
-    "magic": { "enabled": true }
+    "magic": { "enabled": true },
+    "pk": { "enabled": true, "config": { "flagMinutes": 10 } }
   }
 }
