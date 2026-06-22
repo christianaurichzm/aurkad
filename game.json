@@ -24,6 +24,7 @@
   },
   "modules": {
     "dialog": { "enabled": true },
+    "quest": { "enabled": true },
     "guild": { "enabled": true, "config": { "maxMembers": 50 } }
   }
 }

@@ -241,16 +241,21 @@ interface QuestState {
   status: 'active' | 'completed';
 }
 
-/** Register a quest definition (id, name, target, reward). */
-declare function defineQuest(def: QuestDef): void;
-/** Starts a defined quest for a player; false if unknown or already taken. */
-declare function startQuest(player: PlayerServer, id: string): boolean;
-/** Add to a quest's progress; auto-completes and rewards at the target. */
-declare function advanceQuest(player: PlayerServer, id: string, amount?: number): void;
-/** Force-complete a quest and grant its reward. */
-declare function completeQuest(player: PlayerServer, id: string): void;
-/** Read a player's state for one quest. */
-declare function getQuest(player: PlayerServer, id: string): QuestState | undefined;
+/**
+ * Quest API, from the quest module: `const quest = use('quest')`.
+ */
+interface QuestApi {
+  /** Register a quest definition (id, name, target, reward). */
+  define(def: QuestDef): void;
+  /** Start a defined quest for a player. False if unknown or already taken. */
+  start(player: PlayerServer, id: string): boolean;
+  /** Add to progress; auto-completes and rewards at the target. */
+  advance(player: PlayerServer, id: string, amount?: number): void;
+  /** Force-complete a quest and grant its reward. */
+  complete(player: PlayerServer, id: string): void;
+  /** Read a player's state for one quest. */
+  get(player: PlayerServer, id: string): QuestState | undefined;
+}
 
 /** Publish an API for other modules/scripts to consume via use(name). */
 declare function provide(name: string, api: unknown): void;

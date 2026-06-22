@@ -20,7 +20,7 @@
 //   broadcastEvent(channel, payload)        - custom event to all clients
 //   command(name, { access }, handler)      - chat (/name) + REPL command
 //   use('dialog').show(player, { text, choices }, onChoice) - dialog box (press F)
-//   defineQuest(def) / startQuest / advanceQuest / completeQuest / getQuest
+//   use('quest').define/start/advance/complete/get - quests (quest module)
 //   setTimeout(fn, ms)
 //   setInterval(fn, ms)
 //   log(...args)
@@ -66,21 +66,22 @@ on('npcInteract', ({ player, npc }) => {
 //   giveItem(player, 1, 1);
 // });
 
-// A kill quest wired from dialog and npcDeath. The engine tracks progress
-// (shown in the quest log) and grants the reward, and the script only
-// defines and advances it.
+// A kill quest wired from dialog and npcDeath through the quest and dialog
+// modules. The quest module tracks progress (shown in the quest log) and
+// grants the reward; the script defines and advances it.
 //
-// defineQuest({
+// const quest = use('quest');
+// const dialog = use('dialog');
+// quest.define({
 //   id: 'goblinHunt', name: 'Goblin Hunt', description: 'Defeat 3 goblins',
 //   target: 3, reward: (player) => giveExperience(player, 100),
 // });
 // on('npcInteract', ({ player, npc }) => {
 //   if (npc.name !== 'Quest Giver') return;
-//   const dialog = use('dialog');
-//   const q = getQuest(player, 'goblinHunt');
+//   const q = quest.get(player, 'goblinHunt');
 //   if (!q) {
 //     dialog.show(player, { text: 'Slay 3 goblins?', choices: ['Accept', 'Decline'] }, (i) => {
-//       if (i === 0) startQuest(player, 'goblinHunt');
+//       if (i === 0) quest.start(player, 'goblinHunt');
 //     });
 //   } else if (q.status === 'completed') {
 //     dialog.show(player, { text: 'You have my thanks, hero.' });
@@ -89,7 +90,7 @@ on('npcInteract', ({ player, npc }) => {
 //   }
 // });
 // on('npcDeath', ({ npc, killer }) => {
-//   if (npc.name === 'Goblin') advanceQuest(killer, 'goblinHunt', 1);
+//   if (npc.name === 'Goblin') quest.advance(killer, 'goblinHunt', 1);
 // });
 
 // VIP, a complete example: grant it with a command, then react to it.

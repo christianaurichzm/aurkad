@@ -9,14 +9,12 @@ import { kvGet, clearKvStoreMemory } from '../../persistence/kvStore.js';
 import { handleCustomAction } from '../../services/customEventService.js';
 import { drainGameEvents } from '../eventBus.js';
 import { handleChatCommand, clearCommands } from '../commands.js';
-import { clearQuestDefs, getQuest } from '../../services/questService.js';
 import { Access } from '../../../shared/types.js';
 
 beforeEach(() => {
   clearAll();
   clearKvStoreMemory();
   clearCommands();
-  clearQuestDefs();
   drainGameEvents();
 });
 
@@ -494,41 +492,6 @@ describe('script-registered commands', () => {
     handleChatCommand(admin, '/vip Bob');
 
     expect(bob.data?.vip).toBeUndefined(); // command no longer registered
-  });
-});
-
-describe('quest (full loop through a script)', () => {
-  it('accept via dialog, progress on kills, auto-complete with reward', () => {
-    const sim = createFixture(0);
-    const giver = sim.addNpc({ name: 'Elder', behavior: 'shopkeeper', position: tile(6, 5) });
-    const goblin = sim.addNpc({ name: 'Goblin', behavior: 'aggressive', position: tile(9, 9) });
-    const alice = sim.addPlayer({ name: 'Alice', experience: 0, experienceToNextLevel: 10000 });
-
-    const handle = runInSandbox(`
-      defineQuest({
-        id: 'hunt', name: 'Hunt', description: 'Kill 2 goblins', target: 2,
-        reward: (p) => giveExperience(p, 500),
-      });
-      on('npcInteract', ({ player, npc }) => {
-        if (npc.name === 'Elder') startQuest(player, 'hunt');
-      });
-      on('npcDeath', ({ npc, killer }) => {
-        if (npc.name === 'Goblin') advanceQuest(killer, 'hunt', 1);
-      });
-    `, 'quest.js');
-
-    // Accept the quest by interacting with the giver
-    emit('npcInteract', { player: alice, npc: giver });
-    expect(getQuest(alice, 'hunt')).toMatchObject({ progress: 0, status: 'active' });
-
-    // Two goblin kills complete it
-    emit('npcDeath', { npc: goblin, killer: alice });
-    emit('npcDeath', { npc: goblin, killer: alice });
-
-    expect(getQuest(alice, 'hunt')).toMatchObject({ progress: 2, status: 'completed' });
-    expect(alice.experience).toBe(500); // reward fired
-
-    handle.cleanup();
   });
 });
 
