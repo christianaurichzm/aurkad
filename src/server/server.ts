@@ -32,6 +32,7 @@ import {
   stopWebSocketServer,
 } from './net/index.js';
 import { connectToDatabase, loadInitialData } from './initDb.js';
+import { importContentPack } from './content/contentPack.js';
 import { getAllPlayers } from './sim/world.js';
 import { persistPlayerSessionState } from './services/playerService.js';
 import { startPlayerSnapshotLoop } from './persistence/playerSnapshot.js';
@@ -69,6 +70,7 @@ let stopSnapshots: (() => void) | undefined;
 async function startServer() {
   try {
     await connectToDatabase();
+    await importContentPack();
     await loadInitialData();
     await loadScripts();
     startWebSocketServer(server, sessionMiddleware);

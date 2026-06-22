@@ -23,13 +23,13 @@ const WarpSchema = z.object({
   position: PositionSchema,
 });
 
-const TileActionSchema = z.discriminatedUnion('action', [
+export const TileActionSchema = z.discriminatedUnion('action', [
   z.object({ action: z.literal('heal') }),
   z.object({ action: z.literal('kill') }),
   z.object({ action: z.literal('message'), text: z.string() }),
 ]);
 
-const TileSchema = z.object({
+export const TileSchema = z.object({
   tileIndex: z.number().int().nonnegative().default(0),
   blocked: z.boolean().optional(),
   warp: WarpSchema.optional(),

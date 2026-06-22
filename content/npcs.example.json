@@ -1,0 +1,20 @@
+[
+  {
+    "id": "goblin",
+    "name": "Goblin",
+    "sprite": 3,
+    "maxHealth": 30,
+    "attack": 5,
+    "behavior": "aggressive",
+    "experienceValue": 10,
+    "itemsToDrop": [{ "itemId": 3, "chance": 0.5, "quantity": 1 }]
+  },
+  {
+    "id": "shopkeeper",
+    "name": "Shopkeeper",
+    "sprite": 4,
+    "maxHealth": 100,
+    "attack": 0,
+    "behavior": "shopkeeper"
+  }
+]

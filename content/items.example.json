@@ -1,0 +1,25 @@
+[
+  {
+    "id": 1,
+    "name": "Health Potion",
+    "description": "Restores 20 health.",
+    "sprite": 0,
+    "type": "consumable",
+    "effects": [{ "attribute": "health", "type": "add", "value": 20 }]
+  },
+  {
+    "id": 2,
+    "name": "Iron Sword",
+    "description": "A sturdy blade. +5 attack.",
+    "sprite": 1,
+    "type": "weapon",
+    "effects": [{ "attribute": "attack", "type": "add", "value": 5 }]
+  },
+  {
+    "id": 3,
+    "name": "Gold Coin",
+    "description": "Currency.",
+    "sprite": 2,
+    "type": "money"
+  }
+]
