@@ -1,9 +1,10 @@
-// Guild module, client entry, built on the engine UI toolkit so it
-// matches the core look: a create or join form without a guild, the member
-// list and Leave with one.
+// Guild module, client entry. A Guild button in the Actions menu opens a
+// panel: a create or join form without a guild, the member list and Leave
+// with one. Actions go to the server entry, which pushes guild:update.
 
 const ui = engine.ui;
-const panel = ui.panel({ title: 'Guild', anchor: 'bottom-left' });
+const panel = ui.panel({ title: 'Guild' });
+ui.actionButton('Guild', () => panel.toggle());
 
 function renderForm() {
   const name = ui.input('Guild name');
@@ -15,6 +16,7 @@ function renderForm() {
     const v = name.value.trim();
     if (v) engine.sendServerEvent('guild:join', { name: v });
   });
+  panel.setTitle('Guild');
   panel.setBody(name, ui.row(create, join));
 }
 
@@ -28,15 +30,10 @@ function renderGuild(guild) {
   panel.setBody(members, leave);
 }
 
-function render(guild) {
-  if (guild) {
-    renderGuild(guild);
-  } else {
-    panel.setTitle('Guild');
-    renderForm();
-  }
-}
+engine.onServerEvent('guild:update', (guild) => {
+  if (guild) renderGuild(guild);
+  else renderForm();
+});
 
-engine.onServerEvent('guild:update', render);
 engine.sendServerEvent('guild:request');
-render(null); // show the form while we wait for the server's reply
+renderForm(); // populate the panel so it's ready when opened

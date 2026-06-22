@@ -1,9 +1,10 @@
-// Magic module, client entry: a spell hotbar (engine.ui) with mana and
-// castable spells, a click casting through the spell:cast custom action.
-// It redraws on magic:update and on a timer to keep cooldowns current.
+// Magic module, client entry. A Spells button in the Actions menu opens a
+// panel with mana and castable spells, and a click casts one. It redraws
+// on magic:update and on a timer so cooldown and mana stay current.
 
 const ui = engine.ui;
-const panel = ui.panel({ title: 'Spells', anchor: 'bottom-right' });
+const panel = ui.panel({ title: 'Spells' });
+ui.actionButton('Spells', () => panel.toggle());
 
 let state = null;
 
@@ -37,7 +38,7 @@ engine.onServerEvent('magic:update', (s) => {
   render();
 });
 
-// Keep cooldown/mana gating visually fresh between server pushes.
+// Keep cooldown/mana gating fresh between server pushes.
 setInterval(render, 500);
 
 engine.sendServerEvent('magic:request');

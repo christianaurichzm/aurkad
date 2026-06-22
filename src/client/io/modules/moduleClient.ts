@@ -1,5 +1,6 @@
 import { onServerEvent, sendServerEvent } from '../network/customEvents';
-import { colors, radius, shadow } from '../../theme';
+import { colors, radius, shadow, zIndex } from '../../theme';
+import { registerModuleAction } from './moduleActions';
 
 // Loads the module browser entries the server serves and runs them with an
 // `engine` API. Like server scripts, this is the server owner's code, so it
@@ -26,15 +27,6 @@ function moduleContainer(id: string): HTMLElement {
   }
   return el;
 }
-
-type Anchor = 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right';
-
-const anchorCss: Record<Anchor, string> = {
-  'top-left': 'top:12px;left:12px;',
-  'top-right': 'top:12px;right:12px;',
-  'bottom-left': 'bottom:12px;left:12px;',
-  'bottom-right': 'bottom:12px;right:12px;',
-};
 
 // A small styled UI toolkit so module client code doesn't hand-roll CSS and
 // matches the core look (theme colors/radius/shadow).
@@ -67,40 +59,82 @@ function makeUi(container: HTMLElement) {
     return d;
   };
 
-  const panel = (opts: { title?: string; anchor?: Anchor } = {}) => {
+  // A draggable, closable floating panel, hidden by default. Pair it with
+  // ui.actionButton(...) so it opens from the Actions menu like the built-ins.
+  const panel = (opts: { title?: string } = {}) => {
     const el = document.createElement('div');
     el.style.cssText =
-      `position:absolute;${anchorCss[opts.anchor ?? 'bottom-left']}min-width:180px;` +
+      `position:fixed;top:90px;left:calc(50% - 120px);min-width:220px;display:none;` +
       `background:${colors.surface};color:${colors.text};border:1px solid ${colors.border};` +
-      `border-radius:${radius.md}px;box-shadow:${shadow.panel};font:13px sans-serif;overflow:hidden;`;
+      `border-radius:${radius.md}px;box-shadow:${shadow.panel};font:13px sans-serif;` +
+      `overflow:hidden;z-index:${zIndex.floatingPanel};`;
 
-    let header: HTMLElement | null = null;
-    if (opts.title) {
-      header = document.createElement('div');
-      header.textContent = opts.title;
-      header.style.cssText =
-        `padding:8px 12px;font-weight:bold;border-bottom:1px solid ${colors.border};` +
-        `background:${colors.surfaceMuted};`;
-      el.append(header);
-    }
+    const header = document.createElement('div');
+    header.style.cssText =
+      `display:flex;align-items:center;justify-content:space-between;gap:12px;` +
+      `padding:6px 10px;font-weight:bold;cursor:move;user-select:none;` +
+      `border-bottom:1px solid ${colors.border};background:${colors.surfaceMuted};`;
+    const titleEl = document.createElement('span');
+    titleEl.textContent = opts.title ?? '';
+    const closeEl = document.createElement('span');
+    closeEl.textContent = '×';
+    closeEl.style.cssText = 'cursor:pointer;padding:0 4px;font-size:16px;line-height:1;';
+    header.append(titleEl, closeEl);
 
     const body = document.createElement('div');
     body.style.cssText = 'padding:10px 12px;display:flex;flex-direction:column;gap:6px;';
-    el.append(body);
+    el.append(header, body);
     container.append(el);
+
+    const show = () => (el.style.display = 'block');
+    const hide = () => (el.style.display = 'none');
+    const isOpen = () => el.style.display !== 'none';
+    closeEl.onclick = hide;
+
+    // Drag by the header.
+    let dragging = false;
+    let offX = 0;
+    let offY = 0;
+    header.addEventListener('mousedown', (e) => {
+      if (e.target === closeEl) return;
+      const r = el.getBoundingClientRect();
+      dragging = true;
+      offX = e.clientX - r.left;
+      offY = e.clientY - r.top;
+      el.style.left = `${r.left}px`;
+      el.style.top = `${r.top}px`;
+      e.preventDefault();
+    });
+    window.addEventListener('mousemove', (e) => {
+      if (!dragging) return;
+      el.style.left = `${e.clientX - offX}px`;
+      el.style.top = `${e.clientY - offY}px`;
+    });
+    window.addEventListener('mouseup', () => (dragging = false));
 
     return {
       el,
       body,
-      setTitle: (text: string) => header && (header.textContent = text),
+      setTitle: (text: string) => (titleEl.textContent = text),
       setBody: (...nodes: Node[]) => body.replaceChildren(...nodes),
-      show: () => (el.style.display = ''),
-      hide: () => (el.style.display = 'none'),
+      show,
+      hide,
+      toggle: () => (isOpen() ? hide() : show()),
+      isOpen,
       remove: () => el.remove(),
     };
   };
 
-  return { button, input, row: (...c: Node[]) => flex('row', ...c), column: (...c: Node[]) => flex('column', ...c), panel };
+  return {
+    button,
+    input,
+    row: (...c: Node[]) => flex('row', ...c),
+    column: (...c: Node[]) => flex('column', ...c),
+    panel,
+    // Add a button to the in-game Actions menu (e.g. to toggle a panel).
+    actionButton: (label: string, onClick: () => void) =>
+      registerModuleAction(label, onClick),
+  };
 }
 
 function makeEngineApi(id: string) {

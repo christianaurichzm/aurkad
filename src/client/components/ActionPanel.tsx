@@ -1,8 +1,12 @@
-import React, { useState } from 'react';
+import React, { useEffect, useReducer, useState } from 'react';
 import { Access } from '../../shared/types';
 import { useGame } from '../context/GameContext';
 import { usePlayerForceUpdate } from '../hooks/usePlayerForceUpdate';
 import { openContentEditor, openMapEditor, openModEditor } from '../io/network';
+import {
+  getModuleActions,
+  subscribeModuleActions,
+} from '../io/modules/moduleActions';
 import { useUIStore } from '../stores/uiStore';
 
 type QuickAction = {
@@ -76,6 +80,11 @@ export const ActionPanel: React.FC = () => {
     (action) => access >= action.minAccess,
   );
 
+  // Buttons contributed by client modules (engine.ui.actionButton).
+  const [, forceUpdate] = useReducer((n: number) => n + 1, 0);
+  useEffect(() => subscribeModuleActions(forceUpdate), []);
+  const moduleActions = getModuleActions();
+
   const togglePanel = (eventName: string) => {
     window.dispatchEvent(new Event(eventName));
   };
@@ -127,6 +136,17 @@ export const ActionPanel: React.FC = () => {
             <span>
               {loadingPanel === action.id ? 'Opening...' : action.label}
             </span>
+          </button>
+        ))}
+        {moduleActions.map((action) => (
+          <button
+            key={action.id}
+            type="button"
+            className="action-button action-button-primary"
+            onClick={action.onClick}
+            title={`Open ${action.label}`}
+          >
+            <span>{action.label}</span>
           </button>
         ))}
       </div>
