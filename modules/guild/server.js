@@ -62,4 +62,12 @@ command(
   },
 );
 
+// Expose a small API so other modules/scripts can query guild membership
+// without knowing how guilds are stored. Consume it with: use('guild').
+provide('guild', {
+  guildOf: (player) => getGuild(myGuildName(player)),
+  isMember: (player, name) => myGuildName(player) === name,
+  members: (name) => getGuild(name)?.members ?? [],
+});
+
 log(`Guild module ready (maxMembers=${maxMembers}).`);

@@ -4,6 +4,7 @@ import path from 'path';
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { loadModules, unloadAllModules } from './moduleLoader.js';
 import { handleReplCommand, clearCommands } from '../commands.js';
+import { clearProvides, isProvided } from './registry.js';
 
 let tmpDir: string;
 
@@ -22,6 +23,7 @@ function repl(name: string, args: string[] = []): string[] {
 
 beforeEach(() => {
   clearCommands();
+  clearProvides();
   tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'modules-'));
   process.env.MODULES_PATH = tmpDir;
 });
@@ -29,6 +31,7 @@ beforeEach(() => {
 afterEach(() => {
   unloadAllModules();
   clearCommands();
+  clearProvides();
   delete process.env.MODULES_PATH;
   fs.rmSync(tmpDir, { recursive: true, force: true });
 });
@@ -85,5 +88,53 @@ describe('loadModules', () => {
   it('does nothing when modules dir is absent', () => {
     fs.rmSync(tmpDir, { recursive: true, force: true });
     expect(() => loadModules()).not.toThrow();
+  });
+});
+
+describe('inter-module API', () => {
+  it('a dependent loads after its dependency and consumes its API', () => {
+    writeModule(
+      'provider',
+      {},
+      `provide('greeter', { hello: () => 'hi from provider' });`,
+    );
+    writeModule(
+      'consumer',
+      { dependencies: ['provider'] },
+      `const g = use('greeter');
+       command('greet', {}, ({ reply }) => reply(g.hello()));`,
+    );
+
+    loadModules();
+
+    expect(repl('greet')).toEqual(['hi from provider']);
+  });
+
+  it('skips a module whose dependency is disabled', () => {
+    writeModule(
+      'provider',
+      { enabledByDefault: false }, // disabled
+      `provide('greeter', { hello: () => 'hi' });`,
+    );
+    writeModule(
+      'consumer',
+      { dependencies: ['provider'] },
+      `command('greet', {}, ({ reply }) => reply('loaded'));`,
+    );
+
+    loadModules();
+
+    expect(isProvided('greeter')).toBe(false);
+    const out: string[] = [];
+    expect(handleReplCommand('greet', [], (s) => out.push(s))).toBe(false); // consumer skipped
+  });
+
+  it('unload withdraws a module provided API', () => {
+    writeModule('provider', {}, `provide('greeter', { hello: () => 'hi' });`);
+    loadModules();
+    expect(isProvided('greeter')).toBe(true);
+
+    unloadAllModules();
+    expect(isProvided('greeter')).toBe(false);
   });
 });

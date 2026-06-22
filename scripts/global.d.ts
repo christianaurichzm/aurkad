@@ -247,6 +247,12 @@ declare function completeQuest(player: PlayerServer, id: string): void;
 /** Read a player's state for one quest. */
 declare function getQuest(player: PlayerServer, id: string): QuestState | undefined;
 
+/** Publish an API for other modules/scripts to consume via use(name). */
+declare function provide(name: string, api: unknown): void;
+
+/** An API a module published with provide(name), or undefined. */
+declare function use<T = unknown>(name: string): T | undefined;
+
 /** Permission levels for command access. */
 declare const Access: { readonly USER: 0; readonly MOD: 1; readonly ADMIN: 2 };
 

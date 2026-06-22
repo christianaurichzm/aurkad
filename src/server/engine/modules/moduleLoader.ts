@@ -74,7 +74,17 @@ export function loadModules(): void {
   const skipped = all.length - enabled.length;
   logger.info(`[modules] ${enabled.length} enabled, ${skipped} disabled`);
 
+  const loaded = new Set<string>();
+
   for (const manifest of ordered) {
+    const missingDep = (manifest.dependencies ?? []).find((d) => !loaded.has(d));
+    if (missingDep) {
+      logger.error(
+        `[modules] ${manifest.id}: skipped - dependency "${missingDep}" is not loaded`,
+      );
+      continue;
+    }
+
     const entryPath = path.join(dir, manifest.id, manifest.server);
     if (!fs.existsSync(entryPath)) {
       logger.error(`[modules] ${manifest.id}: entry not found: ${manifest.server}`);
@@ -90,6 +100,7 @@ export function loadModules(): void {
     const config = resolveModuleConfig(manifest, gameConfig.modules);
     const handle = runInSandbox(code, `module:${manifest.id}`, { config });
     handles.set(manifest.id, handle);
+    loaded.add(manifest.id);
     logger.info(`[modules] Loaded ${manifest.id} v${manifest.version}`);
   }
 }

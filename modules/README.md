@@ -50,3 +50,21 @@ own `config`. Anything it registers is unregistered automatically on shutdown.
 
 Modules load at boot, before game scripts. Unlike scripts they are not
 hot-reloaded; restart to apply changes.
+
+## Sharing an API between modules
+
+A module publishes an API with `provide(name, api)`; other modules and scripts
+consume it with `use(name)`:
+
+```js
+// modules/guild/server.js
+provide('guild', { guildOf: (p) => /* ... */ });
+
+// another module or a game script
+const guild = use('guild');
+if (guild && guild.guildOf(player)) { /* ... */ }
+```
+
+If a module declares another in `dependencies`, that dependency loads first (so
+its API is available at load time) and the dependent is skipped if the
+dependency is disabled or fails to load.

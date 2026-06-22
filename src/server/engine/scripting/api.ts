@@ -22,6 +22,7 @@ import {
   broadcastCustomEvent,
 } from '../../services/customEventService.js';
 import { registerCommand } from '../commands.js';
+import { provideApi, useApi } from '../modules/registry.js';
 import { showDialog } from '../../services/dialogService.js';
 import {
   defineQuest,
@@ -208,6 +209,13 @@ export function buildApi(
     completeQuest: (player: PlayerServer, id: string): void =>
       completeQuest(player, String(id)),
     getQuest: (player: PlayerServer, id: string) => getQuest(player, String(id)),
+
+    // Inter-module API. provide publishes an API under a name; use consumes
+    // another module's API. Provided APIs are withdrawn on reload/unload.
+    provide: (name: string, api: unknown): void => {
+      trackUnsub(provideApi(String(name), api));
+    },
+    use: <T = unknown>(name: string): T | undefined => useApi<T>(String(name)),
 
     // Access levels, for command permissions.
     Access,

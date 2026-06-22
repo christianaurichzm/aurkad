@@ -3,10 +3,11 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { loadModules, unloadAllModules } from './moduleLoader.js';
 import { handleChatCommand, clearCommands } from '../commands.js';
+import { useApi, clearProvides } from './registry.js';
 import { kvGet, clearKvStoreMemory } from '../../persistence/kvStore.js';
 import { drainGameEvents } from '../eventBus.js';
 import { createFixture } from '../../sim/simFixture.js';
-import { Access } from '../../../shared/types.js';
+import { Access, PlayerServer } from '../../../shared/types.js';
 
 interface Guild {
   name: string;
@@ -16,6 +17,7 @@ interface Guild {
 
 beforeEach(() => {
   clearCommands();
+  clearProvides();
   clearKvStoreMemory();
   drainGameEvents();
   loadModules(); // real modules/ (guild enabled in game.json)
@@ -24,6 +26,7 @@ beforeEach(() => {
 afterEach(() => {
   unloadAllModules();
   clearCommands();
+  clearProvides();
 });
 
 describe('guild module', () => {
@@ -76,5 +79,21 @@ describe('guild module', () => {
     // Bob's create was rejected, so he has no guild and is not in Dragons.
     expect(bob.data?.guild).toBeUndefined();
     expect(kvGet<Guild>('guild', 'Dragons')?.members).toEqual(['Alice']);
+  });
+
+  it('exposes a guild API via use("guild")', () => {
+    const sim = createFixture(0);
+    const alice = sim.addPlayer({ name: 'Alice' });
+    handleChatCommand(alice, '/guild create Dragons');
+
+    const api = useApi<{
+      guildOf: (p: PlayerServer) => Guild | undefined;
+      isMember: (p: PlayerServer, name: string) => boolean;
+      members: (name: string) => string[];
+    }>('guild');
+
+    expect(api?.guildOf(alice)?.name).toBe('Dragons');
+    expect(api?.isMember(alice, 'Dragons')).toBe(true);
+    expect(api?.members('Dragons')).toEqual(['Alice']);
   });
 });
