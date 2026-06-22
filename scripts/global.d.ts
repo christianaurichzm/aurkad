@@ -174,6 +174,16 @@ declare function spawnNpc(opts: SpawnNpcOptions): RuntimeNpc | undefined;
 /** Remove a spawned NPC. */
 declare function despawnNpc(npc: { id: string }): void;
 
+/**
+ * Move an NPC one tile toward (x, y) like the engine moves NPCs: sets facing,
+ * respects wall collision, animates. Call at the NPC cadence (~every 25 ticks),
+ * not every tick, or it teleports.
+ */
+declare function moveNpcToward(npc: RuntimeNpc, x: number, y: number): void;
+
+/** Tile size in pixels (positions are pixels; tiles are TILE_SIZE apart). */
+declare const TILE_SIZE: number;
+
 /** Add items to a player's inventory. */
 declare function giveItem(player: PlayerServer, itemId: number, quantity?: number): void;
 

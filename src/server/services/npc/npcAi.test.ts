@@ -3,7 +3,11 @@ import { CharacterAction, Direction } from '../../../shared/types.js';
 import { createFixture, tile } from '../../sim/simFixture.js';
 import { msToTicks } from '../../sim/clock.js';
 import { getOrInitNpcAi, resetNpcAi, transitionNpcAi } from './aiBrain.js';
-import { calculateDirection, isPlayerInAttackRange } from './behaviors.js';
+import {
+  calculateDirection,
+  isPlayerInAttackRange,
+  stepNpcToward,
+} from './behaviors.js';
 import { respawnNpc } from './index.js';
 import { TILE_SIZE } from '../../../shared/constants.js';
 
@@ -128,6 +132,32 @@ describe('isPlayerInAttackRange', () => {
     // Below but too far to the side
     const player = sim.addPlayer({ position: { x: tile(5, 6).x + TILE_SIZE * 2, y: tile(5, 6).y } });
     expect(isPlayerInAttackRange(npc, player)).toBe(false);
+  });
+});
+
+// stepNpcToward (the move primitive behind moveNpcToward)
+
+describe('stepNpcToward', () => {
+  it('moves one tile toward the target and faces it', () => {
+    const npc = sim.addNpc({ position: tile(5, 5), direction: Direction.Down });
+    stepNpcToward(npc, { position: tile(9, 5) });
+    expect(npc.position).toEqual(tile(6, 5));
+    expect(npc.direction).toBe(Direction.Right);
+    expect(npc.action).toBe(CharacterAction.Walk);
+  });
+
+  it('steps along the dominant axis (vertical)', () => {
+    const npc = sim.addNpc({ position: tile(5, 5) });
+    stepNpcToward(npc, { position: tile(5, 9) });
+    expect(npc.position).toEqual(tile(5, 6));
+    expect(npc.direction).toBe(Direction.Down);
+  });
+
+  it('does not move through a blocked tile', () => {
+    sim.map.tiles[5]![6]!.blocked = true; // wall to the right
+    const npc = sim.addNpc({ position: tile(5, 5), direction: Direction.Down });
+    stepNpcToward(npc, { position: tile(9, 5) });
+    expect(npc.position).toEqual(tile(5, 5)); // stayed put, didn't phase through
   });
 });
 

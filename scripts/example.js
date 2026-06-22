@@ -6,6 +6,7 @@
 //   getPlayer(name)             - PlayerServer | undefined
 //   getPlayers()                - PlayerServer[]
 //   spawnNpc(opts) / despawnNpc(npc) - runtime NPCs (pets, summons, bosses)
+//   moveNpcToward(npc, x, y)    - one tile-step toward a point (facing + collision)
 //   getNearbyNpcs(mapId, x, y, radius) - living NPCs near a point (AoE/targeting)
 //   dealDamage(target, amount, attacker?) - apply damage via the combat pipeline
 //   giveItem(player, id, qty)   - add item to inventory
@@ -150,24 +151,27 @@ on('npcInteract', ({ player, npc }) => {
 //   }
 // });
 
-// Pet: spawn a follower that walks toward its owner each tick, and clean
-// it up when they leave, with spawnNpc, the tick hook and per-player data.
+// Pet: a follower that walks like a real NPC (tile steps, facing,
+// collision) through moveNpcToward at the NPC cadence, stopping one tile
+// from its owner.
 //
 // const pets = {};
 // on('playerJoin', ({ player }) => {
-//   pets[player.id] = spawnNpc({ mapId: player.mapId, col: 1, row: 1, name: player.name + "'s Pet" });
+//   const col = Math.round(player.position.x / TILE_SIZE) + 1; // spawn beside the owner
+//   const row = Math.round(player.position.y / TILE_SIZE);
+//   pets[player.id] = spawnNpc({ mapId: player.mapId, col, row, name: player.name + "'s Pet" });
 // });
 // on('playerLeave', ({ player }) => {
 //   if (pets[player.id]) { despawnNpc(pets[player.id]); delete pets[player.id]; }
 // });
 // on('tick', ({ tick }) => {
-//   if (tick % 4 !== 0) return;                 // move ~5x/sec
+//   if (tick % 25 !== 0) return;                // match the NPC movement cadence
 //   for (const p of getPlayers()) {
 //     const pet = pets[p.id];
 //     if (!pet) continue;
-//     if (pet.position.x < p.position.x) pet.position.x += 4;
-//     else if (pet.position.x > p.position.x) pet.position.x -= 4;
-//     if (pet.position.y < p.position.y) pet.position.y += 4;
-//     else if (pet.position.y > p.position.y) pet.position.y -= 4;
+//     const far = Math.abs(pet.position.x - p.position.x) > TILE_SIZE ||
+//                 Math.abs(pet.position.y - p.position.y) > TILE_SIZE;
+//     if (far) moveNpcToward(pet, p.position.x, p.position.y); // stops one tile away
+//     else pet.action = 'Idle';
 //   }
 // });

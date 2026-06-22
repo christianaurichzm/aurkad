@@ -25,6 +25,7 @@ import { registerCommand } from '../commands.js';
 import { provideApi, useApi } from '../modules/registry.js';
 import { setCosmetic, clearCosmetic } from '../../services/cosmeticsService.js';
 import { spawnNpc, despawnNpc } from '../../services/npc/spawn.js';
+import { stepNpcToward } from '../../services/npc/behaviors.js';
 import { queryEntitiesInRadius } from '../../spatial/spatialManager.js';
 import type { SpawnNpcOptions } from '../../services/npc/spawn.js';
 import { resolveDamage } from '../../services/combat/index.js';
@@ -99,6 +100,15 @@ export function buildApi(
     spawnNpc: (opts: SpawnNpcOptions): RuntimeNpc | undefined =>
       spawnNpc({ ...opts, mapId: String(opts.mapId) }),
     despawnNpc: (npc: { id: string }): void => despawnNpc(npc),
+
+    // Move an NPC one tile toward (x, y) the way the engine moves NPCs: sets
+    // facing, respects wall collision, animates. Call at the NPC cadence
+    // (~every 25 ticks), NOT every tick, or it teleports.
+    moveNpcToward: (npc: RuntimeNpc, x: number, y: number): void =>
+      stepNpcToward(npc, { position: { x, y } }),
+
+    // Tile size in pixels (positions are in pixels; tiles are TILE_SIZE apart).
+    TILE_SIZE,
 
     // Inventory
     giveItem: (player: PlayerServer, itemId: number, quantity = 1): void => {

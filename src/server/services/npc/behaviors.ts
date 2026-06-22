@@ -24,7 +24,18 @@ export function calculateDirection(
 }
 
 export function moveNpcTowardsPlayer(npc: RuntimeNpc, player: PlayerServer) {
-  const { dx, dy } = calculateDirection(npc, player);
+  stepNpcToward(npc, player);
+}
+
+// One tile-aligned step toward a target position, setting facing direction
+// and respecting wall collision (Walk on success, Idle when blocked). It is
+// the unit of movement other NPCs use, called at the NPC movement cadence,
+// not every tick.
+export function stepNpcToward(
+  npc: RuntimeNpc,
+  target: { position: Position },
+) {
+  const { dx, dy } = calculateDirection(npc, target);
   let newX = npc.position.x;
   let newY = npc.position.y;
 
