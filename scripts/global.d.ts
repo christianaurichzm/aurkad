@@ -166,6 +166,25 @@ declare function setNameColor(player: PlayerServer, color: string | undefined): 
 /** Set the cosmetic tag drawn above a player's name (undefined clears it). */
 declare function setNameTag(player: PlayerServer, tag: string | undefined): void;
 
+/**
+ * Contribute a named source to a cosmetic field. The highest priority wins,
+ * so VIP, guild and PK can each set nameColor or nameTag; setNameColor and
+ * setNameTag are the low-priority base.
+ */
+declare function setCosmetic(
+  player: PlayerServer,
+  field: 'nameColor' | 'nameTag',
+  source: string,
+  value: string,
+  priority?: number,
+): void;
+/** Withdraw a source's contribution; the field falls back to the next highest. */
+declare function clearCosmetic(
+  player: PlayerServer,
+  field: 'nameColor' | 'nameTag',
+  source: string,
+): void;
+
 /** Read a custom data field from a player. */
 declare function getPlayerData<T = unknown>(player: PlayerServer, key: string): T | undefined;
 

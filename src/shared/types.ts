@@ -204,6 +204,12 @@ export interface PlayerServer extends PersistentPlayer, CharacterRuntime {
   nameColor?: string;
   // Optional tag drawn above the name (e.g. a guild name). Runtime-only.
   nameTag?: string;
+  // Runtime-only: per-source contributions to cosmetic fields, resolved by
+  // highest priority into nameColor/nameTag, so VIP, guild and PK flag can
+  // set the same cosmetic without clobbering each other.
+  cosmetics?: Partial<
+    Record<'nameColor' | 'nameTag', Record<string, { value: string; priority: number }>>
+  >;
 }
 
 export interface PlayerRecord extends PlayerServer {

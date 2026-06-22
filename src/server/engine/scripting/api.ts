@@ -23,6 +23,7 @@ import {
 } from '../../services/customEventService.js';
 import { registerCommand } from '../commands.js';
 import { provideApi, useApi } from '../modules/registry.js';
+import { setCosmetic, clearCosmetic } from '../../services/cosmeticsService.js';
 import { Access } from '../../../shared/types.js';
 import type { CommandContext, CommandOptions } from '../commands.js';
 import { TILE_SIZE } from '../../../shared/constants.js';
@@ -113,15 +114,39 @@ export function buildApi(
     },
 
     // Cosmetic name color drawn above the sprite (overrides the access color).
-    // Pass undefined to clear it.
+    // Pass undefined to clear it. Goes through the cosmetic resolver as the
+    // low-priority "base" source.
     setNameColor: (player: PlayerServer, color: string | undefined): void => {
-      player.nameColor = color;
+      if (color === undefined) clearCosmetic(player, 'nameColor', 'base');
+      else setCosmetic(player, 'nameColor', 'base', color, 0);
       persist(scriptName, player);
     },
 
     // Cosmetic tag above the name (a guild name, say); undefined clears it.
     setNameTag: (player: PlayerServer, tag: string | undefined): void => {
-      player.nameTag = tag;
+      if (tag === undefined) clearCosmetic(player, 'nameTag', 'base');
+      else setCosmetic(player, 'nameTag', 'base', tag, 0);
+      persist(scriptName, player);
+    },
+
+    // Conflict-safe cosmetics: add a named, prioritized source to a field
+    // ('nameColor' | 'nameTag'). Highest priority wins; clear withdraws it.
+    setCosmetic: (
+      player: PlayerServer,
+      field: 'nameColor' | 'nameTag',
+      source: string,
+      value: string,
+      priority?: number,
+    ): void => {
+      setCosmetic(player, field, String(source), value, priority);
+      persist(scriptName, player);
+    },
+    clearCosmetic: (
+      player: PlayerServer,
+      field: 'nameColor' | 'nameTag',
+      source: string,
+    ): void => {
+      clearCosmetic(player, field, String(source));
       persist(scriptName, player);
     },
 

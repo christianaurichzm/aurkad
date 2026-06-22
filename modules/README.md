@@ -87,7 +87,16 @@ engine.sendServerEvent('guild:request');    // talk back to the server entry
 - `mount()` → an `HTMLElement` to render into (vanilla DOM, or your own bundle).
 - `onServerEvent(channel, handler)` / `sendServerEvent(channel, payload)` - the
   same custom-event channels the server entry uses (`sendEvent` / `customAction`).
+- `ui` → styled helpers matching the core look:
+  - `ui.panel({ title?, anchor? })` → `{ body, setTitle, setBody(...nodes), show, hide, remove }`
+  - `ui.button(label, onClick)`, `ui.input(placeholder)`, `ui.row(...)`, `ui.column(...)`
 - `log` / `warn` / `error`.
+
+```js
+const ui = engine.ui;
+const panel = ui.panel({ title: 'Guild' });
+panel.setBody(ui.input('name'), ui.button('Create', () => engine.sendServerEvent('guild:create', ...)));
+```
 
 The server pushes state on a channel; the client renders it. Because the client
 may connect after the first push, have the client request current state on load
