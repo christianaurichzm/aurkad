@@ -1,0 +1,14 @@
+{
+  "//": "Editor support for game scripts. Not part of the server build (rootDir is src/). Provides autocomplete from global.d.ts.",
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "None",
+    "lib": ["ES2022"],
+    "strict": false,
+    "noEmit": true,
+    "checkJs": true,
+    "allowJs": true,
+    "types": []
+  },
+  "include": ["**/*.js", "**/*.ts"]
+}
