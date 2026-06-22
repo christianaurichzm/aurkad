@@ -22,6 +22,7 @@ export const keyRecord: Partial<Record<Key, Protocol>> = {
   Shift: Protocol.WS,
   Control: Protocol.WS,
   e: Protocol.WS,
+  f: Protocol.WS,
   c: Protocol.HTTP,
   x: Protocol.HTTP,
   z: Protocol.HTTP,

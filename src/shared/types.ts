@@ -14,6 +14,7 @@ export enum Key {
   o = 'o',
   e = 'e',
   v = 'v',
+  f = 'f',
 }
 
 export enum Direction {

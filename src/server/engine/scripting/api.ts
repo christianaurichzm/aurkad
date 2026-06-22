@@ -22,8 +22,10 @@ import {
   broadcastCustomEvent,
 } from '../../services/customEventService.js';
 import { registerCommand } from '../commands.js';
+import { showDialog } from '../../services/dialogService.js';
 import { Access } from '../../../shared/types.js';
 import type { CommandContext, CommandOptions } from '../commands.js';
+import type { DialogOptions } from '../../services/dialogService.js';
 import { TILE_SIZE } from '../../../shared/constants.js';
 import { CharacterAction } from '../../../shared/types.js';
 import { logger } from '../../logger.js';
@@ -178,6 +180,13 @@ export function buildApi(
       sendMapCustomEvent(String(mapId), String(channel), payload),
     broadcastEvent: (channel: string, payload?: unknown): void =>
       broadcastCustomEvent(String(channel), payload),
+
+    // Show a dialog box to a player; onChoice(index) fires when they pick.
+    showDialog: (
+      player: PlayerServer,
+      options: DialogOptions,
+      onChoice?: (choiceIndex: number) => void,
+    ): void => showDialog(player, options, onChoice),
 
     // Access levels, for command permissions.
     Access,

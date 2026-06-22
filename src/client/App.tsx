@@ -6,6 +6,7 @@ import { InventoryPanel } from './components/Inventory/InventoryPanel';
 import { Login } from './pages/Login';
 import { Register } from './pages/Register';
 import { ShopModal } from './components/Shop/ShopModal';
+import { DialogBox } from './components/Dialog/DialogBox';
 import { TilesetEditor } from './components/Tileset/TilesetEditor';
 import { ModerationMenu } from './components/ModerationMenu';
 import { ChatPanel } from './components/ChatPanel';
@@ -38,6 +39,7 @@ function App() {
             </aside>
           </div>
           <ShopModal />
+          <DialogBox />
           <AttributeDistributorModal />
           <OnlinePlayersModal />
           <ModerationMenu />

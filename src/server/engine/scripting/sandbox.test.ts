@@ -9,12 +9,14 @@ import { kvGet, clearKvStoreMemory } from '../../persistence/kvStore.js';
 import { handleCustomAction } from '../../services/customEventService.js';
 import { drainGameEvents } from '../eventBus.js';
 import { handleChatCommand, clearCommands } from '../commands.js';
+import { handleDialogChoice, clearDialogs } from '../../services/dialogService.js';
 import { Access } from '../../../shared/types.js';
 
 beforeEach(() => {
   clearAll();
   clearKvStoreMemory();
   clearCommands();
+  clearDialogs();
   drainGameEvents();
 });
 
@@ -492,6 +494,35 @@ describe('script-registered commands', () => {
     handleChatCommand(admin, '/vip Bob');
 
     expect(bob.data?.vip).toBeUndefined(); // command no longer registered
+  });
+});
+
+describe('dialog (full loop through a script)', () => {
+  it('npcInteract shows a dialog and the choice runs the callback', () => {
+    const sim = createFixture(0);
+    const npc = sim.addNpc({ name: 'Elder', behavior: 'shopkeeper', position: tile(6, 5) });
+    const alice = sim.addPlayer({ name: 'Alice' });
+
+    const handle = runInSandbox(`
+      on('npcInteract', ({ player, npc }) => {
+        showDialog(player, { text: 'Take this?', choices: ['Yes', 'No'] }, (i) => {
+          if (i === 0) setPlayerData(player, 'gotGift', true);
+        });
+      });
+    `, 'dialog.js');
+
+    emit('npcInteract', { player: alice, npc });
+
+    // The dialog:show event carries the id the client echoes back
+    const ev = drainGameEvents().find(
+      (e) => e.type === 'customPlayer' && e.channel === 'dialog:show',
+    ) as { payload: { id: number } } | undefined;
+    expect(ev).toBeDefined();
+
+    handleDialogChoice(alice, { id: ev!.payload.id, index: 0 });
+    expect(alice.data?.gotGift).toBe(true);
+
+    handle.cleanup();
   });
 });
 

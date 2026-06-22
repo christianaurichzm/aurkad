@@ -34,6 +34,7 @@ import {
 import { connectToDatabase, loadInitialData } from './initDb.js';
 import { importContentPack } from './content/contentPack.js';
 import { loadKvStore, startKvStore } from './persistence/kvStore.js';
+import { registerDialogHandlers } from './services/dialogService.js';
 import { getAllPlayers } from './sim/world.js';
 import { persistPlayerSessionState } from './services/playerService.js';
 import { startPlayerSnapshotLoop } from './persistence/playerSnapshot.js';
@@ -76,6 +77,7 @@ async function startServer() {
     await loadKvStore();
     await loadInitialData();
     stopKv = startKvStore();
+    registerDialogHandlers();
     await loadScripts();
     startWebSocketServer(server, sessionMiddleware);
     stopGameLoops = startGameLoops();

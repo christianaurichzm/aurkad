@@ -38,6 +38,7 @@ import { emitGameEvent } from '../engine/eventBus.js';
 import { emit } from '../engine/hooks.js';
 import { handleAttack } from './combat/index.js';
 import { pickUpItem } from './inventoryService.js';
+import { handleInteract } from './interactionService.js';
 import { insertModeCell, updatePlayerMap } from './mapService.js';
 import { hasCollision, hasWarp } from './physicsService.js';
 import {
@@ -243,6 +244,8 @@ export const handleKeyAction = (action: ClientKeyboardAction) => {
           .catch((e) => {
             logger.error('pickUpItem failed', { err: e });
           });
+      } else if (key === Key.f) {
+        handleInteract(player);
       }
       break;
     }

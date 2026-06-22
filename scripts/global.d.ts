@@ -110,6 +110,8 @@ interface HookPayloads {
   playerDeath:   { player: PlayerServer; killer?: CombatTarget };
   playerLevelUp: { player: PlayerServer; level: number };
   npcDeath:      { npc: RuntimeNpc; killer: PlayerServer };
+  /** Player pressed interact (F) while facing this NPC. */
+  npcInteract:   { player: PlayerServer; npc: RuntimeNpc };
   tileEnter:     { player: PlayerServer; tile: Tile; map: MapState };
   itemUse:       { player: PlayerServer; itemId: number };
   itemPickup:    { player: PlayerServer; itemId: number; quantity: number };
@@ -203,6 +205,19 @@ declare function sendMapEvent(mapId: string, channel: string, payload?: unknown)
 
 /** Send a custom event to all connected clients. */
 declare function broadcastEvent(channel: string, payload?: unknown): void;
+
+interface DialogOptions {
+  text: string;
+  /** Buttons. Omit for a single "Continue" (onChoice receives 0). */
+  choices?: string[];
+}
+
+/** Show a dialog box to a player; onChoice(index) fires when they pick. */
+declare function showDialog(
+  player: PlayerServer,
+  options: DialogOptions,
+  onChoice?: (choiceIndex: number) => void,
+): void;
 
 /** Permission levels for command access. */
 declare const Access: { readonly USER: 0; readonly MOD: 1; readonly ADMIN: 2 };

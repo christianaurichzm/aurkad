@@ -14,6 +14,7 @@ export type HookMap = {
   playerDeath:   { player: PlayerServer; killer?: CombatTarget };
   playerLevelUp: { player: PlayerServer; level: number };
   npcDeath:      { npc: RuntimeNpc; killer: PlayerServer };
+  npcInteract:   { player: PlayerServer; npc: RuntimeNpc };
   tileEnter:     { player: PlayerServer; tile: Tile; map: MapStateServer };
   itemUse:       { player: PlayerServer; itemId: number };
   itemPickup:    { player: PlayerServer; itemId: number; quantity: number };
