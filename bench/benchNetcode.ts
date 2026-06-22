@@ -8,14 +8,14 @@
  * hot/cold/enrich helpers are inlined copies of
  * src/server/services/playerService, so no DB, mongoose or ws is imported.
  *
- * Run: node --loader ts-node/esm scripts/benchNetcode.ts
+ * Run: npm run bench   (node --loader ts-node/esm bench/benchNetcode.ts)
  */
 import * as jsondiffpatch from 'jsondiffpatch';
 import {
   toMapStateClient,
   toMapDynamicClient,
   toMapStaticClient,
-} from '../src/server/engine/serialization.js';
+} from '../src/server/net/serialization.js';
 import { TILE_SIZE, EQUIPMENT_SLOTS } from '../src/shared/constants.js';
 import {
   Access,
@@ -41,8 +41,8 @@ function toPlayerHot(player: PlayerServer): PlayerHot {
     position: player.position,
     targetPosition: player.targetPosition,
     moving: player.moving,
-    moveStartTime: player.moveStartTime,
-    currentMoveDuration: player.currentMoveDuration,
+    moveTick: player.moveTick,
+    moveDurationTicks: player.moveDurationTicks,
     direction: player.direction,
     action: player.action,
     health: player.health,
@@ -78,6 +78,9 @@ function toPlayerCold(player: PlayerServer): PlayerCold {
     inventory,
     equipped,
     access: player.access,
+    strength: player.strength,
+    defense: player.defense,
+    agility: player.agility,
     vitality: player.vitality,
     unspentPoints: player.unspentPoints,
     speed: player.speed,
@@ -143,13 +146,15 @@ function buildPlayer(i: number, cols: number, rows: number): PlayerServer {
   return {
     id: `p${i}`,
     name: `player${i}`,
-    password: 'hash',
     position: { x, y },
     width: TILE_SIZE,
     height: TILE_SIZE,
     speed: 1,
     kind: 'player',
     attack: 100,
+    strength: 0,
+    defense: 0,
+    agility: 0,
     vitality: 0,
     unspentPoints: 0,
     level: 1,
@@ -202,6 +207,7 @@ function buildMap(rows: number, cols: number, players: PlayerServer[], npcCount:
     droppedItems: Array.from({ length: 8 }, (_, i) => ({
       itemId: 1,
       sprite: 10,
+      quantity: 1,
       position: { x: (i % cols) * TILE_SIZE, y: (i % rows) * TILE_SIZE },
     })),
     npcs,
