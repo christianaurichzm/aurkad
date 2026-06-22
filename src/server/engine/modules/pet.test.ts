@@ -9,7 +9,9 @@ import { drainGameEvents } from '../eventBus.js';
 import { createFixture, tile } from '../../sim/simFixture.js';
 import type { RuntimeNpc, PlayerServer } from '../../../shared/types.js';
 
-const findPet = (sim: ReturnType<typeof createFixture>): RuntimeNpc | undefined =>
+const findPet = (
+  sim: ReturnType<typeof createFixture>,
+): RuntimeNpc | undefined =>
   Object.values(sim.map.npcs).find((n) => n.name.includes('Pet'));
 
 beforeEach(() => {

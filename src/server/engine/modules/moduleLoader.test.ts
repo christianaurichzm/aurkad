@@ -16,7 +16,16 @@ let tmpDir: string;
 function writeModule(id: string, manifest: object, server: string) {
   const dir = path.join(tmpDir, id);
   fs.mkdirSync(dir, { recursive: true });
-  fs.writeFileSync(path.join(dir, 'module.json'), JSON.stringify({ id, name: id, version: '1.0.0', server: 'server.js', ...manifest }));
+  fs.writeFileSync(
+    path.join(dir, 'module.json'),
+    JSON.stringify({
+      id,
+      name: id,
+      version: '1.0.0',
+      server: 'server.js',
+      ...manifest,
+    }),
+  );
   fs.writeFileSync(path.join(dir, 'server.js'), server);
 }
 
@@ -83,7 +92,10 @@ describe('loadModules', () => {
     const dir = path.join(tmpDir, 'broken');
     fs.mkdirSync(dir, { recursive: true });
     fs.writeFileSync(path.join(dir, 'module.json'), '{ not valid json');
-    fs.writeFileSync(path.join(dir, 'server.js'), `command('broken', {}, () => {});`);
+    fs.writeFileSync(
+      path.join(dir, 'server.js'),
+      `command('broken', {}, () => {});`,
+    );
 
     expect(() => loadModules()).not.toThrow();
     const out: string[] = [];
@@ -150,7 +162,13 @@ describe('client entries', () => {
     fs.mkdirSync(dir, { recursive: true });
     fs.writeFileSync(
       path.join(dir, 'module.json'),
-      JSON.stringify({ id, name: id, version: '1.0.0', server: 'server.js', client: 'client.js' }),
+      JSON.stringify({
+        id,
+        name: id,
+        version: '1.0.0',
+        server: 'server.js',
+        client: 'client.js',
+      }),
     );
     fs.writeFileSync(path.join(dir, 'server.js'), '');
     fs.writeFileSync(path.join(dir, 'client.js'), clientCode);
@@ -161,7 +179,9 @@ describe('client entries', () => {
     writeModule('noclient', {}, '');
     loadModules();
 
-    expect(getClientModules()).toEqual([{ id: 'hasclient', client: 'client.js' }]);
+    expect(getClientModules()).toEqual([
+      { id: 'hasclient', client: 'client.js' },
+    ]);
   });
 
   it('serves the declared client file', () => {
@@ -180,7 +200,13 @@ describe('client entries', () => {
     fs.mkdirSync(dir, { recursive: true });
     fs.writeFileSync(
       path.join(dir, 'module.json'),
-      JSON.stringify({ id: 'evil', name: 'evil', version: '1', server: 'server.js', client: '../../secret.js' }),
+      JSON.stringify({
+        id: 'evil',
+        name: 'evil',
+        version: '1',
+        server: 'server.js',
+        client: '../../secret.js',
+      }),
     );
     fs.writeFileSync(path.join(dir, 'server.js'), '');
     loadModules();

@@ -12,7 +12,10 @@ interface Contribution {
   priority: number;
 }
 
-function sourcesFor(player: PlayerServer, field: CosmeticField): Record<string, Contribution> {
+function sourcesFor(
+  player: PlayerServer,
+  field: CosmeticField,
+): Record<string, Contribution> {
   const bag = (player.cosmetics ??= {});
   return (bag[field] ??= {});
 }

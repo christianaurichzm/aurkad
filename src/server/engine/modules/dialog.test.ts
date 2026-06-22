@@ -61,7 +61,11 @@ describe('dialog module', () => {
     const dialog = useApi<DialogApi>('dialog')!;
 
     let picked = -1;
-    dialog.show(alice, { text: 'Pick', choices: ['A', 'B'] }, (i) => (picked = i));
+    dialog.show(
+      alice,
+      { text: 'Pick', choices: ['A', 'B'] },
+      (i) => (picked = i),
+    );
 
     choose(alice, dialogId(), 1);
     expect(picked).toBe(1);

@@ -378,7 +378,11 @@ describe('mod actions', () => {
   it('goto: mod teleports to the target position on the target map', () => {
     const map2 = sim.addMap({ id: 'map2' });
     const mod = sim.addPlayer({ name: 'Mod', position: tile(1, 1) });
-    const target = sim.addPlayer({ name: 'Bob', position: tile(7, 7), mapId: map2.id });
+    const target = sim.addPlayer({
+      name: 'Bob',
+      position: tile(7, 7),
+      mapId: map2.id,
+    });
     map2.players[target.id] = target;
 
     // replicate /mod/goto route logic

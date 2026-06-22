@@ -41,7 +41,10 @@ import { startPlayerSnapshotLoop } from './persistence/playerSnapshot.js';
 import { logger } from './logger.js';
 import { startAdminRepl } from './admin/repl.js';
 import { loadScripts, unloadAllScripts } from './engine/scripting/index.js';
-import { loadModules, unloadAllModules } from './engine/modules/moduleLoader.js';
+import {
+  loadModules,
+  unloadAllModules,
+} from './engine/modules/moduleLoader.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);

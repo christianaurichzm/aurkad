@@ -37,14 +37,23 @@ describe('server -> client custom events', () => {
   it('sendMapCustomEvent queues a customMap event', () => {
     sendMapCustomEvent('map1', 'bossSpawn', { name: 'Dragon' });
     expect(drainGameEvents()).toEqual([
-      { type: 'customMap', mapId: 'map1', channel: 'bossSpawn', payload: { name: 'Dragon' } },
+      {
+        type: 'customMap',
+        mapId: 'map1',
+        channel: 'bossSpawn',
+        payload: { name: 'Dragon' },
+      },
     ]);
   });
 
   it('broadcastCustomEvent queues a customAll event', () => {
     broadcastCustomEvent('serverAnnounce', 'Event starting!');
     expect(drainGameEvents()).toEqual([
-      { type: 'customAll', channel: 'serverAnnounce', payload: 'Event starting!' },
+      {
+        type: 'customAll',
+        channel: 'serverAnnounce',
+        payload: 'Event starting!',
+      },
     ]);
   });
 });
@@ -56,7 +65,8 @@ describe('client -> server custom actions', () => {
     const sim = createFixture(0);
     sim.addPlayer({ name: 'Alice' });
 
-    const received: Array<{ name: string; channel: string; payload: unknown }> = [];
+    const received: Array<{ name: string; channel: string; payload: unknown }> =
+      [];
     on('customAction', ({ player, channel, payload }) =>
       received.push({ name: player.name, channel, payload }),
     );

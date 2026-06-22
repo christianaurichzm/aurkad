@@ -78,11 +78,13 @@ function makeUi(container: HTMLElement) {
     titleEl.textContent = opts.title ?? '';
     const closeEl = document.createElement('span');
     closeEl.textContent = '×';
-    closeEl.style.cssText = 'cursor:pointer;padding:0 4px;font-size:16px;line-height:1;';
+    closeEl.style.cssText =
+      'cursor:pointer;padding:0 4px;font-size:16px;line-height:1;';
     header.append(titleEl, closeEl);
 
     const body = document.createElement('div');
-    body.style.cssText = 'padding:10px 12px;display:flex;flex-direction:column;gap:6px;';
+    body.style.cssText =
+      'padding:10px 12px;display:flex;flex-direction:column;gap:6px;';
     el.append(header, body);
     container.append(el);
 

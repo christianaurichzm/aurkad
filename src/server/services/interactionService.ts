@@ -1,4 +1,9 @@
-import { Direction, PlayerServer, RuntimeNpc, MapStateServer } from '../../shared/types.js';
+import {
+  Direction,
+  PlayerServer,
+  RuntimeNpc,
+  MapStateServer,
+} from '../../shared/types.js';
 import { TILE_SIZE } from '../../shared/constants.js';
 import { getMap } from '../gameData.js';
 import { queryEntitiesInRadius } from '../spatial/spatialManager.js';

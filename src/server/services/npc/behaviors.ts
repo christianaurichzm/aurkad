@@ -31,10 +31,7 @@ export function moveNpcTowardsPlayer(npc: RuntimeNpc, player: PlayerServer) {
 // and respecting wall collision (Walk on success, Idle when blocked). It is
 // the unit of movement other NPCs use, called at the NPC movement cadence,
 // not every tick.
-export function stepNpcToward(
-  npc: RuntimeNpc,
-  target: { position: Position },
-) {
+export function stepNpcToward(npc: RuntimeNpc, target: { position: Position }) {
   const { dx, dy } = calculateDirection(npc, target);
   let newX = npc.position.x;
   let newY = npc.position.y;

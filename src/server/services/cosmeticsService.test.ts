@@ -1,6 +1,10 @@
 import { describe, it, expect } from 'vitest';
 import { setCosmetic, clearCosmetic } from './cosmeticsService.js';
-import { CharacterAction, Direction, PlayerServer } from '../../shared/types.js';
+import {
+  CharacterAction,
+  Direction,
+  PlayerServer,
+} from '../../shared/types.js';
 
 function mkPlayer(): PlayerServer {
   return {

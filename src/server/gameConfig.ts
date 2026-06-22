@@ -87,10 +87,7 @@ const defaults: GameConfig = {
 
 function loadGameJson(): Partial<GameConfig> {
   try {
-    const raw = readFileSync(
-      path.join(process.cwd(), 'game.json'),
-      'utf-8',
-    );
+    const raw = readFileSync(path.join(process.cwd(), 'game.json'), 'utf-8');
     return JSON.parse(raw) as Partial<GameConfig>;
   } catch {
     return {};

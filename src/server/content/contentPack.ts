@@ -4,14 +4,8 @@ import { z } from 'zod';
 import { logger } from '../logger.js';
 import { TileSchema } from '../http/bodySchemas.js';
 import { EQUIPMENT_SLOTS } from '../../shared/constants.js';
-import {
-  createOrUpdateItem,
-  listItems,
-} from '../services/inventoryService.js';
-import {
-  createOrUpdateNpc,
-  listNpcs,
-} from '../services/npc/persistenceOps.js';
+import { createOrUpdateItem, listItems } from '../services/inventoryService.js';
+import { createOrUpdateNpc, listNpcs } from '../services/npc/persistenceOps.js';
 import { createOrUpdateMap, listMaps } from '../services/mapService.js';
 import { createOrUpdateShop, listShops } from '../services/shopService.js';
 
@@ -188,7 +182,9 @@ export async function importContentPack(): Promise<void> {
       const result = spec.schema.safeParse(rows[i]);
       if (!result.success) {
         logger.warn(`[content] Invalid entry in ${spec.file}[${i}]`, {
-          issues: result.error.issues.map((x) => `${x.path.join('.')}: ${x.message}`),
+          issues: result.error.issues.map(
+            (x) => `${x.path.join('.')}: ${x.message}`,
+          ),
         });
         continue;
       }
@@ -196,7 +192,9 @@ export async function importContentPack(): Promise<void> {
         await spec.upsert(result.data as never);
         ok++;
       } catch (e) {
-        logger.error(`[content] Upsert failed for ${spec.file}[${i}]`, { err: e });
+        logger.error(`[content] Upsert failed for ${spec.file}[${i}]`, {
+          err: e,
+        });
       }
     }
     logger.info(`[content] Imported ${ok}/${rows.length} from ${spec.file}`);

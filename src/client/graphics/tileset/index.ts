@@ -74,13 +74,21 @@ export const loadEditorNpcNames = async () => {
   }
 };
 
-function toggleTrigger(tile: Tile, action: TileAction['action'], text?: string) {
+function toggleTrigger(
+  tile: Tile,
+  action: TileAction['action'],
+  text?: string,
+) {
   const triggers = tile.triggers ?? [];
   const i = triggers.findIndex((t) => t.action === action);
   if (i >= 0) {
     triggers.splice(i, 1);
   } else {
-    triggers.push(action === 'message' ? { action, text: text ?? '' } : { action } as TileAction);
+    triggers.push(
+      action === 'message'
+        ? { action, text: text ?? '' }
+        : ({ action } as TileAction),
+    );
   }
   tile.triggers = triggers.length ? triggers : undefined;
 }
@@ -447,9 +455,12 @@ const drawMarkers = (tiles: Tile[][]) => {
       if (tile.shop) drawMarker(colIndex, rowIndex, 'S', 'green');
       if (tile.avoidNpc) drawMarker(colIndex, rowIndex, 'A', 'purple');
       if (tile.fringe) drawMarker(colIndex, rowIndex, 'F', 'cyan');
-      if (tile.triggers?.some((t) => t.action === 'heal')) drawMarker(colIndex, rowIndex, 'H', '#00e676');
-      if (tile.triggers?.some((t) => t.action === 'kill')) drawMarker(colIndex, rowIndex, 'K', '#ff1744');
-      if (tile.triggers?.some((t) => t.action === 'message')) drawMarker(colIndex, rowIndex, '!', '#ff9100');
+      if (tile.triggers?.some((t) => t.action === 'heal'))
+        drawMarker(colIndex, rowIndex, 'H', '#00e676');
+      if (tile.triggers?.some((t) => t.action === 'kill'))
+        drawMarker(colIndex, rowIndex, 'K', '#ff1744');
+      if (tile.triggers?.some((t) => t.action === 'message'))
+        drawMarker(colIndex, rowIndex, '!', '#ff9100');
     });
   });
 };

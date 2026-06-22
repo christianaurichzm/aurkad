@@ -5,7 +5,10 @@ import { createFixture, tile } from '../../sim/simFixture.js';
 import { Direction, Key } from '../../../shared/types.js';
 import { msToTicks } from '../../sim/clock.js';
 import { gameConfig, respawnPosition } from '../../gameConfig.js';
-import { levelUpPlayer, awardExperience } from '../../services/playerService.js';
+import {
+  levelUpPlayer,
+  awardExperience,
+} from '../../services/playerService.js';
 import { kvGet, clearKvStoreMemory } from '../../persistence/kvStore.js';
 import { handleCustomAction } from '../../services/customEventService.js';
 import { drainGameEvents } from '../eventBus.js';
@@ -30,11 +33,14 @@ describe('vm context - bare Node globals are not bound', () => {
     const player = sim.addPlayer({ name: 'Alice', health: 1, maxHealth: 100 });
 
     // Script checks typeof process; if it were defined it would heal the player.
-    const handle = runInSandbox(`
+    const handle = runInSandbox(
+      `
       on('playerJoin', ({ player }) => {
         if (typeof process !== 'undefined') healPlayer(player);
       });
-    `, 'bare-process.js');
+    `,
+      'bare-process.js',
+    );
 
     emit('playerJoin', { player });
     expect(player.health).toBe(1); // not healed - process not bound
@@ -46,11 +52,14 @@ describe('vm context - bare Node globals are not bound', () => {
     const sim = createFixture(0);
     const player = sim.addPlayer({ name: 'Alice', health: 1, maxHealth: 100 });
 
-    const handle = runInSandbox(`
+    const handle = runInSandbox(
+      `
       on('playerJoin', ({ player }) => {
         if (typeof require !== 'undefined') healPlayer(player);
       });
-    `, 'bare-require.js');
+    `,
+      'bare-require.js',
+    );
 
     emit('playerJoin', { player });
     expect(player.health).toBe(1); // not healed - require not bound
@@ -67,12 +76,15 @@ describe('vm context - host objects ARE escapable (known trust boundary)', () =>
     // The trust boundary: a passed-in host object reaches the host realm's
     // Function and so `process`. The escape is asserted so the limit stays
     // known; closing it (e.g. isolated-vm) means updating this test.
-    const handle = runInSandbox(`
+    const handle = runInSandbox(
+      `
       on('playerJoin', ({ player }) => {
         const proc = player.constructor.constructor('return process')();
         if (proc && typeof proc.pid === 'number') healPlayer(player);
       });
-    `, 'escape.js');
+    `,
+      'escape.js',
+    );
 
     emit('playerJoin', { player });
     expect(player.health).toBe(100); // escape succeeded - trusted model only
@@ -87,18 +99,24 @@ describe('hook registration', () => {
   it('script can register a hook via on() and it fires', () => {
     const log: string[] = [];
 
-    const handle = runInSandbox(`
+    const handle = runInSandbox(
+      `
       on('playerJoin', ({ player }) => {
         log('joined:', player.name);
       });
-    `, 'test-hook.js');
+    `,
+      'test-hook.js',
+    );
 
     // Tested through hook firing, not by patching the logger: a real hook
     // from outside shows whether the sandbox hook ran.
     const fired: string[] = [];
-    const outer = runInSandbox(`
+    const outer = runInSandbox(
+      `
       on('playerJoin', ({ player }) => {});
-    `, 'outer.js');
+    `,
+      'outer.js',
+    );
 
     // Simulate the event
     emit('playerJoin', { player: { name: 'Alice' } as any });
@@ -113,13 +131,19 @@ describe('hook registration', () => {
     const calls: number[] = [];
 
     // Register an outer hook to count calls
-    const outerHandle = runInSandbox(`
+    const outerHandle = runInSandbox(
+      `
       on('playerLevelUp', ({ level }) => {});
-    `, 'outer-track.js');
+    `,
+      'outer-track.js',
+    );
 
-    const innerHandle = runInSandbox(`
+    const innerHandle = runInSandbox(
+      `
       on('playerLevelUp', ({ level }) => {});
-    `, 'inner-track.js');
+    `,
+      'inner-track.js',
+    );
 
     innerHandle.cleanup();
 
@@ -135,9 +159,12 @@ describe('hook registration', () => {
 
 describe('hook error isolation', () => {
   it('a throwing hook handler does not propagate to emit caller', () => {
-    const handle = runInSandbox(`
+    const handle = runInSandbox(
+      `
       on('playerLevelUp', () => { throw new Error('script bug'); });
-    `, 'error-script.js');
+    `,
+      'error-script.js',
+    );
 
     // Should not throw
     expect(() => {
@@ -150,9 +177,12 @@ describe('hook error isolation', () => {
   it('a throwing handler does not prevent other handlers from running', () => {
     const fired: boolean[] = [];
 
-    const bad = runInSandbox(`
+    const bad = runInSandbox(
+      `
       on('playerLevelUp', () => { throw new Error('bad'); });
-    `, 'bad.js');
+    `,
+      'bad.js',
+    );
 
     // Register a second hook from outside the sandbox
     const { clearAll: _unused, ..._ } = { clearAll };
@@ -170,7 +200,10 @@ describe('hook error isolation', () => {
 describe('init-time syntax error', () => {
   it('script with syntax error does not crash the loader', () => {
     expect(() => {
-      const handle = runInSandbox(`this is not valid javascript !!!`, 'bad-syntax.js');
+      const handle = runInSandbox(
+        `this is not valid javascript !!!`,
+        'bad-syntax.js',
+      );
       handle.cleanup();
     }).not.toThrow();
   });
@@ -182,12 +215,15 @@ describe('scripted levelUp hook via fixture', () => {
   it('fires when player levels up through the game loop', () => {
     const received: number[] = [];
 
-    const handle = runInSandbox(`
+    const handle = runInSandbox(
+      `
       on('playerLevelUp', ({ level }) => {
         // capture via outer closure is not possible in VM;
         // test verifies no crash
       });
-    `, 'level-hook.js');
+    `,
+      'level-hook.js',
+    );
 
     const sim = createFixture(0);
     const player = sim.addPlayer({ name: 'Alice' });
@@ -201,11 +237,14 @@ describe('scripted levelUp hook via fixture', () => {
 
 describe('scripted npcDeath hook via fixture', () => {
   it('fires when player kills NPC without crashing', async () => {
-    const handle = runInSandbox(`
+    const handle = runInSandbox(
+      `
       on('npcDeath', ({ npc, killer }) => {
         log('npc killed:', npc.name, 'by', killer.name);
       });
-    `, 'npc-death.js');
+    `,
+      'npc-death.js',
+    );
 
     const sim = createFixture(0);
     sim.addNpc({
@@ -236,9 +275,12 @@ describe('scripted npcDeath hook via fixture', () => {
 
 describe('scripted beforeDamage via fixture', () => {
   it('script can zero out incoming damage', () => {
-    const handle = runInSandbox(`
+    const handle = runInSandbox(
+      `
       on('beforeDamage', ({ damage }) => { damage.value = 0; });
-    `, 'zero-damage.js');
+    `,
+      'zero-damage.js',
+    );
 
     const sim = createFixture(0);
     sim.addNpc({
@@ -266,14 +308,23 @@ describe('scripted beforeDamage via fixture', () => {
 describe('API helpers', () => {
   it('giveItem adds the item to inventory', () => {
     const sim = createFixture(0);
-    sim.addItem({ id: 42, name: 'Gold', description: '', sprite: 0, type: 'money' });
+    sim.addItem({
+      id: 42,
+      name: 'Gold',
+      description: '',
+      sprite: 0,
+      type: 'money',
+    });
     const player = sim.addPlayer({ name: 'Alice' });
 
-    const handle = runInSandbox(`
+    const handle = runInSandbox(
+      `
       on('playerJoin', ({ player }) => {
         giveItem(player, 42, 5);
       });
-    `, 'give-item.js');
+    `,
+      'give-item.js',
+    );
 
     emit('playerJoin', { player });
 
@@ -285,15 +336,25 @@ describe('API helpers', () => {
 
   it('removeItem reduces inventory quantity', () => {
     const sim = createFixture(0);
-    sim.addItem({ id: 7, name: 'Potion', description: '', sprite: 0, type: 'consumable', effects: [] });
+    sim.addItem({
+      id: 7,
+      name: 'Potion',
+      description: '',
+      sprite: 0,
+      type: 'consumable',
+      effects: [],
+    });
     const player = sim.addPlayer({ name: 'Alice' });
     player.inventory.items.push({ item: 7, quantity: 3 });
 
-    const handle = runInSandbox(`
+    const handle = runInSandbox(
+      `
       on('playerJoin', ({ player }) => {
         removeItem(player, 7, 2);
       });
-    `, 'remove-item.js');
+    `,
+      'remove-item.js',
+    );
 
     emit('playerJoin', { player });
 
@@ -307,11 +368,14 @@ describe('API helpers', () => {
     const sim = createFixture(0);
     const player = sim.addPlayer({ name: 'Alice', health: 10, maxHealth: 100 });
 
-    const handle = runInSandbox(`
+    const handle = runInSandbox(
+      `
       on('playerJoin', ({ player }) => {
         healPlayer(player);
       });
-    `, 'heal.js');
+    `,
+      'heal.js',
+    );
 
     emit('playerJoin', { player });
     expect(player.health).toBe(100);
@@ -323,9 +387,12 @@ describe('API helpers', () => {
     const sim = createFixture(0);
     const alice = sim.addPlayer({ name: 'Alice', experience: 0 });
     const deaths: string[] = [];
-    on('npcDeath', ({ npc, killer }) => deaths.push(`${killer.name}:${npc.name}`));
+    on('npcDeath', ({ npc, killer }) =>
+      deaths.push(`${killer.name}:${npc.name}`),
+    );
 
-    const handle = runInSandbox(`
+    const handle = runInSandbox(
+      `
       on('playerJoin', ({ player }) => {
         const npc = spawnNpc({
           mapId: player.mapId,
@@ -338,11 +405,15 @@ describe('API helpers', () => {
         npc.experienceValue = 7;
         dealDamage(npc, 5, player);
       });
-    `, 'deal-damage-npc.js');
+    `,
+      'deal-damage-npc.js',
+    );
 
     emit('playerJoin', { player: alice });
 
-    const npc = Object.values(sim.map.npcs).find((n) => n.name === 'Training Dummy');
+    const npc = Object.values(sim.map.npcs).find(
+      (n) => n.name === 'Training Dummy',
+    );
     expect(deaths).toEqual(['Alice:Training Dummy']);
     expect(alice.experience).toBe(7);
     expect(npc?.health).toBe(0);
@@ -357,12 +428,15 @@ describe('API helpers', () => {
     const attackers: Array<string | undefined> = [];
     on('beforeDamage', ({ attacker }) => attackers.push(attacker?.id));
 
-    const handle = runInSandbox(`
+    const handle = runInSandbox(
+      `
       on('playerJoin', () => {
         const target = getPlayer('Bob');
         dealDamage(target, 15);
       });
-    `, 'deal-damage-player.js');
+    `,
+      'deal-damage-player.js',
+    );
 
     emit('playerJoin', { player: alice });
 
@@ -375,14 +449,22 @@ describe('API helpers', () => {
   it('dealDamage applies strength and defense before hooks', () => {
     const sim = createFixture(0);
     const alice = sim.addPlayer({ name: 'Alice', strength: 7 });
-    const bob = sim.addPlayer({ name: 'Bob', defense: 3, health: 40, maxHealth: 100 });
+    const bob = sim.addPlayer({
+      name: 'Bob',
+      defense: 3,
+      health: 40,
+      maxHealth: 100,
+    });
 
-    const handle = runInSandbox(`
+    const handle = runInSandbox(
+      `
       on('playerJoin', ({ player }) => {
         const target = getPlayer('Bob');
         dealDamage(target, 10, player);
       });
-    `, 'deal-damage-formula.js');
+    `,
+      'deal-damage-formula.js',
+    );
 
     emit('playerJoin', { player: alice });
 
@@ -394,17 +476,25 @@ describe('API helpers', () => {
   it('beforeDamage can still override formula damage', () => {
     const sim = createFixture(0);
     const alice = sim.addPlayer({ name: 'Alice', strength: 7 });
-    const bob = sim.addPlayer({ name: 'Bob', defense: 3, health: 40, maxHealth: 100 });
+    const bob = sim.addPlayer({
+      name: 'Bob',
+      defense: 3,
+      health: 40,
+      maxHealth: 100,
+    });
     on('beforeDamage', ({ damage }) => {
       damage.value = 2;
     });
 
-    const handle = runInSandbox(`
+    const handle = runInSandbox(
+      `
       on('playerJoin', ({ player }) => {
         const target = getPlayer('Bob');
         dealDamage(target, 10, player);
       });
-    `, 'deal-damage-before-hook.js');
+    `,
+      'deal-damage-before-hook.js',
+    );
 
     emit('playerJoin', { player: alice });
 
@@ -424,14 +514,19 @@ describe('API helpers', () => {
       position: tile(2, 2),
     });
     const deaths: string[] = [];
-    on('playerDeath', ({ player, killer }) => deaths.push(`${player.name}:${killer?.name ?? 'none'}`));
+    on('playerDeath', ({ player, killer }) =>
+      deaths.push(`${player.name}:${killer?.name ?? 'none'}`),
+    );
 
-    const handle = runInSandbox(`
+    const handle = runInSandbox(
+      `
       on('playerJoin', ({ player }) => {
         const target = getPlayer('Bob');
         dealDamage(target, 10, player);
       });
-    `, 'deal-damage-player-lethal.js');
+    `,
+      'deal-damage-player-lethal.js',
+    );
 
     emit('playerJoin', { player: alice });
 
@@ -447,12 +542,15 @@ describe('API helpers', () => {
     const sim = createFixture(0);
     const alice = sim.addPlayer({ name: 'Alice', health: 40, maxHealth: 100 });
 
-    const handle = runInSandbox(`
+    const handle = runInSandbox(
+      `
       on('playerJoin', ({ player }) => {
         dealDamage(player, -10);
         dealDamage(player, NaN);
       });
-    `, 'deal-damage-clamp.js');
+    `,
+      'deal-damage-clamp.js',
+    );
 
     emit('playerJoin', { player: alice });
 
@@ -465,11 +563,14 @@ describe('API helpers', () => {
     const sim = createFixture(0);
     const player = sim.addPlayer({ name: 'Alice', health: 50, maxHealth: 100 });
 
-    const handle = runInSandbox(`
+    const handle = runInSandbox(
+      `
       on('playerJoin', ({ player }) => {
         setTimeout(() => { healPlayer(player); }, 10);
       });
-    `, 'timeout-heal.js');
+    `,
+      'timeout-heal.js',
+    );
 
     emit('playerJoin', { player });
     expect(player.health).toBe(50); // not yet
@@ -484,11 +585,14 @@ describe('API helpers', () => {
     const sim = createFixture(0);
     const player = sim.addPlayer({ name: 'Alice', health: 50, maxHealth: 100 });
 
-    const handle = runInSandbox(`
+    const handle = runInSandbox(
+      `
       on('playerJoin', ({ player }) => {
         setTimeout(() => { healPlayer(player); }, 10);
       });
-    `, 'timer-cancel.js');
+    `,
+      'timer-cancel.js',
+    );
 
     emit('playerJoin', { player });
     handle.cleanup(); // cancel before timer fires
@@ -503,12 +607,15 @@ describe('player data bag', () => {
     const sim = createFixture(0);
     const player = sim.addPlayer({ name: 'Alice' });
 
-    const handle = runInSandbox(`
+    const handle = runInSandbox(
+      `
       on('playerJoin', ({ player }) => {
         setPlayerData(player, 'vip', true);
         if (getPlayerData(player, 'vip')) setPlayerData(player, 'rank', 'gold');
       });
-    `, 'data-bag.js');
+    `,
+      'data-bag.js',
+    );
 
     emit('playerJoin', { player });
 
@@ -524,11 +631,14 @@ describe('scoped KV store', () => {
     const sim = createFixture(0);
     const player = sim.addPlayer({ name: 'Alice' });
 
-    const handle = runInSandbox(`
+    const handle = runInSandbox(
+      `
       on('playerJoin', ({ player }) => {
         store.set('guild:dragons', 'leader', player.name);
       });
-    `, 'store-set.js');
+    `,
+      'store-set.js',
+    );
 
     emit('playerJoin', { player });
 
@@ -541,15 +651,21 @@ describe('scoped KV store', () => {
     const sim = createFixture(0);
     const player = sim.addPlayer({ name: 'Alice' });
 
-    const writer = runInSandbox(`
+    const writer = runInSandbox(
+      `
       on('playerJoin', ({ player }) => { store.set('world', 'kills', 5); });
-    `, 'writer.js');
-    const reader = runInSandbox(`
+    `,
+      'writer.js',
+    );
+    const reader = runInSandbox(
+      `
       on('playerLevelUp', ({ player }) => {
         const k = store.get('world', 'kills');
         store.set('world', 'doubled', k * 2);
       });
-    `, 'reader.js');
+    `,
+      'reader.js',
+    );
 
     emit('playerJoin', { player });
     emit('playerLevelUp', { player, level: 2 });
@@ -564,18 +680,29 @@ describe('scoped KV store', () => {
 describe('VIP perks (vertical slice)', () => {
   it('a VIP script colors the name and doubles XP', () => {
     const sim = createFixture(0);
-    const alice = sim.addPlayer({ name: 'Alice', experience: 0, experienceToNextLevel: 1000 });
+    const alice = sim.addPlayer({
+      name: 'Alice',
+      experience: 0,
+      experienceToNextLevel: 1000,
+    });
     alice.data = { vip: true };
-    const bob = sim.addPlayer({ name: 'Bob', experience: 0, experienceToNextLevel: 1000 });
+    const bob = sim.addPlayer({
+      name: 'Bob',
+      experience: 0,
+      experienceToNextLevel: 1000,
+    });
 
-    const handle = runInSandbox(`
+    const handle = runInSandbox(
+      `
       on('playerJoin', ({ player }) => {
         if (getPlayerData(player, 'vip')) setNameColor(player, 'gold');
       });
       on('beforeXpGain', (ctx) => {
         if (getPlayerData(ctx.player, 'vip')) ctx.amount *= 2;
       });
-    `, 'vip.js');
+    `,
+      'vip.js',
+    );
 
     emit('playerJoin', { player: alice });
     emit('playerJoin', { player: bob });
@@ -600,7 +727,8 @@ describe('script-registered commands', () => {
     const admin = sim.addPlayer({ name: 'Admin', access: Access.ADMIN });
     const bob = sim.addPlayer({ name: 'Bob' });
 
-    const handle = runInSandbox(`
+    const handle = runInSandbox(
+      `
       command('vip', { access: Access.ADMIN }, ({ args, reply }) => {
         const target = getPlayer(args[0]);
         if (!target) return reply('not found');
@@ -608,7 +736,9 @@ describe('script-registered commands', () => {
         setNameColor(target, 'gold');
         reply(target.name + ' is VIP');
       });
-    `, 'vip-cmd.js');
+    `,
+      'vip-cmd.js',
+    );
 
     const handled = handleChatCommand(admin, '/vip Bob');
 
@@ -624,12 +754,15 @@ describe('script-registered commands', () => {
     const admin = sim.addPlayer({ name: 'Admin', access: Access.ADMIN });
     const bob = sim.addPlayer({ name: 'Bob' });
 
-    const handle = runInSandbox(`
+    const handle = runInSandbox(
+      `
       command('vip', { access: Access.ADMIN }, ({ args }) => {
         const t = getPlayer(args[0]);
         if (t) setPlayerData(t, 'vip', true);
       });
-    `, 'vip-cleanup.js');
+    `,
+      'vip-cleanup.js',
+    );
 
     handle.cleanup();
     handleChatCommand(admin, '/vip Bob');
@@ -644,11 +777,14 @@ describe('custom network events (full loop through a script)', () => {
     sim.addPlayer({ name: 'Alice' });
 
     // Script: on a client "ping" action, reply to that player on "pong".
-    const handle = runInSandbox(`
+    const handle = runInSandbox(
+      `
       on('customAction', ({ player, channel, payload }) => {
         if (channel === 'ping') sendEvent(player, 'pong', { echo: payload });
       });
-    `, 'ping-pong.js');
+    `,
+      'ping-pong.js',
+    );
 
     handleCustomAction({
       type: 'custom',
@@ -658,7 +794,12 @@ describe('custom network events (full loop through a script)', () => {
     });
 
     expect(drainGameEvents()).toEqual([
-      { type: 'customPlayer', username: 'Alice', channel: 'pong', payload: { echo: 42 } },
+      {
+        type: 'customPlayer',
+        username: 'Alice',
+        channel: 'pong',
+        payload: { echo: 42 },
+      },
     ]);
 
     handle.cleanup();
@@ -670,7 +811,8 @@ describe('pet: spawnNpc + tick (vertical slice)', () => {
     const sim = createFixture(0);
     const alice = sim.addPlayer({ name: 'Alice', position: tile(5, 5) });
 
-    const handle = runInSandbox(`
+    const handle = runInSandbox(
+      `
       let pet = null;
       on('playerJoin', ({ player }) => {
         pet = spawnNpc({ mapId: player.mapId, col: 2, row: 5, name: 'Wolf', behavior: 'neutral' });
@@ -678,7 +820,9 @@ describe('pet: spawnNpc + tick (vertical slice)', () => {
       on('tick', () => {
         if (pet && pet.position.x < 9999) pet.position.x += 4; // walk east
       });
-    `, 'pet.js');
+    `,
+      'pet.js',
+    );
 
     emit('playerJoin', { player: alice });
 
@@ -701,14 +845,17 @@ describe('tick hook', () => {
     const alice = sim.addPlayer({ name: 'Alice' });
 
     // A pet-like behavior: nudge a counter every tick (throttled to every 2).
-    const handle = runInSandbox(`
+    const handle = runInSandbox(
+      `
       let n = 0;
       on('tick', ({ tick }) => {
         n++;
         setPlayerData(getPlayers()[0], 'ticks', n);
         if (tick % 2 === 0) setPlayerData(getPlayers()[0], 'evenHits', (getPlayerData(getPlayers()[0], 'evenHits') || 0) + 1);
       });
-    `, 'ticker.js');
+    `,
+      'ticker.js',
+    );
 
     sim.step(4);
 

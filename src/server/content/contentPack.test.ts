@@ -5,7 +5,15 @@
 import fs from 'fs';
 import os from 'os';
 import path from 'path';
-import { beforeAll, afterAll, beforeEach, afterEach, describe, it, expect } from 'vitest';
+import {
+  beforeAll,
+  afterAll,
+  beforeEach,
+  afterEach,
+  describe,
+  it,
+  expect,
+} from 'vitest';
 import mongoose from 'mongoose';
 import { MongoMemoryServer } from 'mongodb-memory-server';
 import { importContentPack, exportContentPack } from './contentPack.js';
@@ -46,17 +54,39 @@ function write(file: string, data: unknown) {
 describe('importContentPack', () => {
   it('imports valid items, npcs, shops and maps into the DB', async () => {
     write('items.json', [
-      { id: 1, name: 'Potion', sprite: 0, type: 'consumable', effects: [{ attribute: 'health', type: 'add', value: 20 }] },
+      {
+        id: 1,
+        name: 'Potion',
+        sprite: 0,
+        type: 'consumable',
+        effects: [{ attribute: 'health', type: 'add', value: 20 }],
+      },
       { id: 2, name: 'Sword', sprite: 1, type: 'weapon' },
     ]);
     write('npcs.json', [
-      { id: 'goblin', name: 'Goblin', sprite: 2, maxHealth: 30, attack: 5, behavior: 'aggressive' },
+      {
+        id: 'goblin',
+        name: 'Goblin',
+        sprite: 2,
+        maxHealth: 30,
+        attack: 5,
+        behavior: 'aggressive',
+      },
     ]);
     write('shops.json', [
-      { id: 'general', name: 'General Store', products: [{ itemId: 1, currency: 2, price: 10 }] },
+      {
+        id: 'general',
+        name: 'General Store',
+        products: [{ itemId: 1, currency: 2, price: 10 }],
+      },
     ]);
     write('maps.json', [
-      { id: 'overworld', name: 'Overworld', type: 'normal', tiles: [[{ tileIndex: 0 }]] },
+      {
+        id: 'overworld',
+        name: 'Overworld',
+        type: 'normal',
+        tiles: [[{ tileIndex: 0 }]],
+      },
     ]);
 
     await importContentPack();
@@ -102,9 +132,13 @@ describe('importContentPack', () => {
   });
 
   it('is idempotent - re-importing upserts by id, no duplicates', async () => {
-    write('items.json', [{ id: 1, name: 'Potion', sprite: 0, type: 'consumable' }]);
+    write('items.json', [
+      { id: 1, name: 'Potion', sprite: 0, type: 'consumable' },
+    ]);
     await importContentPack();
-    write('items.json', [{ id: 1, name: 'Potion v2', sprite: 0, type: 'consumable' }]);
+    write('items.json', [
+      { id: 1, name: 'Potion v2', sprite: 0, type: 'consumable' },
+    ]);
     await importContentPack();
 
     const items = await listItems();
@@ -141,7 +175,14 @@ describe('exportContentPack', () => {
 
   it('export then import round-trips', async () => {
     write('npcs.json', [
-      { id: 'orc', name: 'Orc', sprite: 3, maxHealth: 50, attack: 8, behavior: 'hostile' },
+      {
+        id: 'orc',
+        name: 'Orc',
+        sprite: 3,
+        maxHealth: 50,
+        attack: 8,
+        behavior: 'hostile',
+      },
     ]);
     await importContentPack();
     await exportContentPack();
@@ -153,6 +194,10 @@ describe('exportContentPack', () => {
     await importContentPack();
     const npcs = await listNpcs();
     expect(npcs).toHaveLength(1);
-    expect(npcs[0]).toMatchObject({ id: 'orc', name: 'Orc', behavior: 'hostile' });
+    expect(npcs[0]).toMatchObject({
+      id: 'orc',
+      name: 'Orc',
+      behavior: 'hostile',
+    });
   });
 });

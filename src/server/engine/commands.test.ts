@@ -17,7 +17,9 @@ beforeEach(() => {
 
 function lastReplyTo(): string | undefined {
   const ev = drainGameEvents().find((e) => e.type === 'chatPlayer');
-  return ev && 'payload' in ev ? (ev.payload as { message: string }).message : undefined;
+  return ev && 'payload' in ev
+    ? (ev.payload as { message: string }).message
+    : undefined;
 }
 
 describe('registry', () => {
@@ -38,18 +40,29 @@ describe('chat dispatch', () => {
   it('runs the handler with parsed args for a permitted player', () => {
     const sim = createFixture(0);
     const admin = sim.addPlayer({ name: 'Admin', access: Access.ADMIN });
-    const seen: { args: string[]; source: string; name?: string } = { args: [], source: '' };
+    const seen: { args: string[]; source: string; name?: string } = {
+      args: [],
+      source: '',
+    };
 
-    registerCommand('vip', { access: Access.ADMIN }, ({ args, source, player }) => {
-      seen.args = args;
-      seen.source = source;
-      seen.name = player?.name;
-    });
+    registerCommand(
+      'vip',
+      { access: Access.ADMIN },
+      ({ args, source, player }) => {
+        seen.args = args;
+        seen.source = source;
+        seen.name = player?.name;
+      },
+    );
 
     const handled = handleChatCommand(admin, '/vip Bob extra');
 
     expect(handled).toBe(true);
-    expect(seen).toEqual({ args: ['Bob', 'extra'], source: 'chat', name: 'Admin' });
+    expect(seen).toEqual({
+      args: ['Bob', 'extra'],
+      source: 'chat',
+      name: 'Admin',
+    });
   });
 
   it('denies a player below the required access and does not run the handler', () => {
@@ -121,12 +134,16 @@ describe('repl dispatch', () => {
       source: '',
       hasPlayer: true,
     };
-    registerCommand('vip', { access: Access.ADMIN }, ({ args, source, player, reply }) => {
-      seen.args = args;
-      seen.source = source;
-      seen.hasPlayer = !!player;
-      reply('done');
-    });
+    registerCommand(
+      'vip',
+      { access: Access.ADMIN },
+      ({ args, source, player, reply }) => {
+        seen.args = args;
+        seen.source = source;
+        seen.hasPlayer = !!player;
+        reply('done');
+      },
+    );
 
     const handled = handleReplCommand('vip', ['Bob'], (s) => out.push(s));
 
@@ -146,7 +163,9 @@ describe('error isolation', () => {
     registerCommand('boom', {}, () => {
       throw new Error('kaboom');
     });
-    expect(() => handleReplCommand('boom', [], (s) => out.push(s))).not.toThrow();
+    expect(() =>
+      handleReplCommand('boom', [], (s) => out.push(s)),
+    ).not.toThrow();
     expect(out).toEqual(['Command error.']);
   });
 });

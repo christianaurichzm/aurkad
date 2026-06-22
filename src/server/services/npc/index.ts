@@ -87,7 +87,9 @@ export function updateNpcs(npc: RuntimeNpc, map: MapStateServer) {
 
   const ai = getOrInitNpcAi(npc);
   const tick = getTick();
-  const ATTACK_COOLDOWN_TICKS = msToTicks(gameConfig.combat.npcAttackCooldownMs);
+  const ATTACK_COOLDOWN_TICKS = msToTicks(
+    gameConfig.combat.npcAttackCooldownMs,
+  );
 
   if (npc.behavior === 'aggressive') {
     transitionNpcAi(ai, canAttack ? 'attack' : 'chase');

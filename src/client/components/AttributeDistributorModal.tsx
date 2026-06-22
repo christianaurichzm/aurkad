@@ -36,10 +36,12 @@ export const AttributeDistributorModal: React.FC = () => {
 
   const setAttribute = (key: AttributeKey, value: number) =>
     setQueued((prev) => {
-      const otherAssigned =
-        Object.entries(prev).reduce((sum, [entryKey, entryValue]) => {
+      const otherAssigned = Object.entries(prev).reduce(
+        (sum, [entryKey, entryValue]) => {
           return entryKey === key ? sum : sum + entryValue;
-        }, 0);
+        },
+        0,
+      );
       return {
         ...prev,
         [key]: Math.max(

@@ -53,7 +53,10 @@ describe('in-memory semantics', () => {
 
   it('stores structured values', () => {
     kvSet('guild:dragons', 'members', ['Alice', 'Bob']);
-    expect(kvGet<string[]>('guild:dragons', 'members')).toEqual(['Alice', 'Bob']);
+    expect(kvGet<string[]>('guild:dragons', 'members')).toEqual([
+      'Alice',
+      'Bob',
+    ]);
   });
 
   it('delete removes the key', () => {

@@ -58,20 +58,40 @@ describe('quest module', () => {
     quest.start(alice, 'hunt');
     quest.advance(alice, 'hunt', 1);
 
-    expect(quest.get(alice, 'hunt')).toMatchObject({ progress: 1, status: 'active' });
+    expect(quest.get(alice, 'hunt')).toMatchObject({
+      progress: 1,
+      status: 'active',
+    });
     // Persisted in the data bag (so it survives a reload/restart)
-    expect((alice.data as { quests: Record<string, QuestState> }).quests.hunt!.progress).toBe(1);
+    expect(
+      (alice.data as { quests: Record<string, QuestState> }).quests.hunt!
+        .progress,
+    ).toBe(1);
     // A quest:update was pushed to the client tracker
     expect(
-      drainGameEvents().some((e) => e.type === 'customPlayer' && e.channel === 'quest:update'),
+      drainGameEvents().some(
+        (e) => e.type === 'customPlayer' && e.channel === 'quest:update',
+      ),
     ).toBe(true);
   });
 
   it('a consumer script: accept + kills complete it and fire the reward', () => {
     const sim = createFixture(0);
-    const giver = sim.addNpc({ name: 'Elder', behavior: 'shopkeeper', position: tile(6, 5) });
-    const goblin = sim.addNpc({ name: 'Goblin', behavior: 'aggressive', position: tile(9, 9) });
-    const alice = sim.addPlayer({ name: 'Alice', experience: 0, experienceToNextLevel: 10000 });
+    const giver = sim.addNpc({
+      name: 'Elder',
+      behavior: 'shopkeeper',
+      position: tile(6, 5),
+    });
+    const goblin = sim.addNpc({
+      name: 'Goblin',
+      behavior: 'aggressive',
+      position: tile(9, 9),
+    });
+    const alice = sim.addPlayer({
+      name: 'Alice',
+      experience: 0,
+      experienceToNextLevel: 10000,
+    });
 
     const handle = runInSandbox(
       `
@@ -95,7 +115,10 @@ describe('quest module', () => {
     emit('npcDeath', { npc: goblin, killer: alice });
 
     const quest = useApi<QuestApi>('quest')!;
-    expect(quest.get(alice, 'hunt')).toMatchObject({ progress: 2, status: 'completed' });
+    expect(quest.get(alice, 'hunt')).toMatchObject({
+      progress: 2,
+      status: 'completed',
+    });
     expect(alice.experience).toBe(500); // reward (a sandbox fn) fired across the boundary
 
     handle.cleanup();

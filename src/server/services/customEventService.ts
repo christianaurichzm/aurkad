@@ -15,7 +15,12 @@ export function sendCustomEvent(
   channel: string,
   payload: unknown,
 ): void {
-  emitGameEvent({ type: 'customPlayer', username: player.name, channel, payload });
+  emitGameEvent({
+    type: 'customPlayer',
+    username: player.name,
+    channel,
+    payload,
+  });
 }
 
 export function sendMapCustomEvent(

@@ -63,7 +63,10 @@ export function buildApi(
       try {
         handler(payload);
       } catch (e) {
-        logger.error(`[script:${scriptName}] hook handler threw`, { event, err: e });
+        logger.error(`[script:${scriptName}] hook handler threw`, {
+          event,
+          err: e,
+        });
       }
     };
     const unsub = hookOn(event, wrapped as any);
@@ -134,7 +137,9 @@ export function buildApi(
       if (!slot) return;
       slot.quantity -= quantity;
       if (slot.quantity <= 0)
-        player.inventory.items = player.inventory.items.filter((i) => i.item !== itemId);
+        player.inventory.items = player.inventory.items.filter(
+          (i) => i.item !== itemId,
+        );
       persist(scriptName, player);
     },
 
@@ -206,9 +211,15 @@ export function buildApi(
     },
 
     // Per-player custom data (persisted with the player record)
-    getPlayerData: <T = unknown>(player: PlayerServer, key: string): T | undefined =>
-      (player.data?.[key] as T | undefined),
-    setPlayerData: (player: PlayerServer, key: string, value: unknown): void => {
+    getPlayerData: <T = unknown>(
+      player: PlayerServer,
+      key: string,
+    ): T | undefined => player.data?.[key] as T | undefined,
+    setPlayerData: (
+      player: PlayerServer,
+      key: string,
+      value: unknown,
+    ): void => {
       (player.data ??= {})[key] = value;
       persist(scriptName, player);
     },
@@ -259,8 +270,11 @@ export function buildApi(
 
     // Custom network events (server -> client); pair with on('customAction')
     // for client -> server. `channel` and `payload` are game-defined.
-    sendEvent: (player: PlayerServer, channel: string, payload?: unknown): void =>
-      sendCustomEvent(player, String(channel), payload),
+    sendEvent: (
+      player: PlayerServer,
+      channel: string,
+      payload?: unknown,
+    ): void => sendCustomEvent(player, String(channel), payload),
     sendMapEvent: (mapId: string, channel: string, payload?: unknown): void =>
       sendMapCustomEvent(String(mapId), String(channel), payload),
     broadcastEvent: (channel: string, payload?: unknown): void =>
@@ -297,7 +311,9 @@ export function buildApi(
         try {
           fn();
         } catch (e) {
-          logger.error(`[script:${scriptName}] setTimeout callback threw`, { err: e });
+          logger.error(`[script:${scriptName}] setTimeout callback threw`, {
+            err: e,
+          });
         }
       }, ms);
       trackTimer(id as unknown as TimerId);
@@ -307,7 +323,9 @@ export function buildApi(
         try {
           fn();
         } catch (e) {
-          logger.error(`[script:${scriptName}] setInterval callback threw`, { err: e });
+          logger.error(`[script:${scriptName}] setInterval callback threw`, {
+            err: e,
+          });
         }
       }, ms);
       trackTimer(id);

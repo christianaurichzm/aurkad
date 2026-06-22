@@ -104,7 +104,10 @@ describe('calculateDirection', () => {
 
 describe('isPlayerInAttackRange', () => {
   it('returns true when player is directly in front (Right)', () => {
-    const npc = sim.addNpc({ position: tile(2, 2), direction: Direction.Right });
+    const npc = sim.addNpc({
+      position: tile(2, 2),
+      direction: Direction.Right,
+    });
     const player = sim.addPlayer({ position: tile(3, 2) });
     expect(isPlayerInAttackRange(npc, player)).toBe(true);
   });
@@ -116,13 +119,19 @@ describe('isPlayerInAttackRange', () => {
   });
 
   it('returns false when player is behind the npc', () => {
-    const npc = sim.addNpc({ position: tile(5, 5), direction: Direction.Right });
+    const npc = sim.addNpc({
+      position: tile(5, 5),
+      direction: Direction.Right,
+    });
     const player = sim.addPlayer({ position: tile(4, 5) });
     expect(isPlayerInAttackRange(npc, player)).toBe(false);
   });
 
   it('returns false when player is out of range', () => {
-    const npc = sim.addNpc({ position: tile(0, 0), direction: Direction.Right });
+    const npc = sim.addNpc({
+      position: tile(0, 0),
+      direction: Direction.Right,
+    });
     const player = sim.addPlayer({ position: tile(5, 0) });
     expect(isPlayerInAttackRange(npc, player)).toBe(false);
   });
@@ -130,7 +139,9 @@ describe('isPlayerInAttackRange', () => {
   it('returns false when player is perpendicular and outside hitbox width', () => {
     const npc = sim.addNpc({ position: tile(5, 5), direction: Direction.Down });
     // Below but too far to the side
-    const player = sim.addPlayer({ position: { x: tile(5, 6).x + TILE_SIZE * 2, y: tile(5, 6).y } });
+    const player = sim.addPlayer({
+      position: { x: tile(5, 6).x + TILE_SIZE * 2, y: tile(5, 6).y },
+    });
     expect(isPlayerInAttackRange(npc, player)).toBe(false);
   });
 });
@@ -182,7 +193,11 @@ describe('updateNpcs', () => {
       position: tile(5, 5),
       direction: Direction.Right,
     });
-    const player = sim.addPlayer({ name: 'Target', health: 100, position: tile(6, 5) });
+    const player = sim.addPlayer({
+      name: 'Target',
+      health: 100,
+      position: tile(6, 5),
+    });
 
     sim.step(msToTicks(900));
 
@@ -196,7 +211,11 @@ describe('updateNpcs', () => {
       position: tile(5, 5),
       direction: Direction.Right,
     });
-    const player = sim.addPlayer({ name: 'Target', health: 100, position: tile(6, 5) });
+    const player = sim.addPlayer({
+      name: 'Target',
+      health: 100,
+      position: tile(6, 5),
+    });
 
     sim.step(1);
 
@@ -248,7 +267,12 @@ describe('updateNpcs', () => {
 
 describe('respawnNpc', () => {
   it('restores health and resets ai state when a spawn tile exists', () => {
-    const npc = sim.addNpc({ id: 'goblin', behavior: 'aggressive', maxHealth: 30, health: 1 });
+    const npc = sim.addNpc({
+      id: 'goblin',
+      behavior: 'aggressive',
+      maxHealth: 30,
+      health: 1,
+    });
     sim.map.tiles[3]![3]!.npcSpawn = npc.id;
 
     const ai = getOrInitNpcAi(npc);

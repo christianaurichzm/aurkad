@@ -48,13 +48,17 @@ function readManifests(dir: string): ModuleManifest[] {
     try {
       raw = JSON.parse(fs.readFileSync(manifestPath, 'utf-8'));
     } catch (e) {
-      logger.error(`[modules] Invalid JSON in ${entry.name}/module.json`, { err: e });
+      logger.error(`[modules] Invalid JSON in ${entry.name}/module.json`, {
+        err: e,
+      });
       continue;
     }
     const parsed = ManifestSchema.safeParse(raw);
     if (!parsed.success) {
       logger.error(`[modules] Invalid manifest in ${entry.name}`, {
-        issues: parsed.error.issues.map((i) => `${i.path.join('.')}: ${i.message}`),
+        issues: parsed.error.issues.map(
+          (i) => `${i.path.join('.')}: ${i.message}`,
+        ),
       });
       continue;
     }
@@ -81,7 +85,9 @@ export function loadModules(): void {
   const loaded = new Set<string>();
 
   for (const manifest of ordered) {
-    const missingDep = (manifest.dependencies ?? []).find((d) => !loaded.has(d));
+    const missingDep = (manifest.dependencies ?? []).find(
+      (d) => !loaded.has(d),
+    );
     if (missingDep) {
       logger.error(
         `[modules] ${manifest.id}: skipped - dependency "${missingDep}" is not loaded`,
@@ -91,14 +97,18 @@ export function loadModules(): void {
 
     const entryPath = path.join(dir, manifest.id, manifest.server);
     if (!fs.existsSync(entryPath)) {
-      logger.error(`[modules] ${manifest.id}: entry not found: ${manifest.server}`);
+      logger.error(
+        `[modules] ${manifest.id}: entry not found: ${manifest.server}`,
+      );
       continue;
     }
     let code: string;
     try {
       code = fs.readFileSync(entryPath, 'utf-8');
     } catch (e) {
-      logger.error(`[modules] ${manifest.id}: failed to read entry`, { err: e });
+      logger.error(`[modules] ${manifest.id}: failed to read entry`, {
+        err: e,
+      });
       continue;
     }
     const config = resolveModuleConfig(manifest, gameConfig.modules);

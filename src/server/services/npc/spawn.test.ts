@@ -6,7 +6,13 @@ import { TILE_SIZE } from '../../../shared/constants.js';
 describe('spawnNpc', () => {
   it('adds a runtime NPC to the map at the given tile', () => {
     const sim = createFixture(0);
-    const npc = spawnNpc({ mapId: sim.mapId, col: 3, row: 4, name: 'Wolf', maxHealth: 20 });
+    const npc = spawnNpc({
+      mapId: sim.mapId,
+      col: 3,
+      row: 4,
+      name: 'Wolf',
+      maxHealth: 20,
+    });
 
     expect(npc).toBeDefined();
     expect(npc!.name).toBe('Wolf');

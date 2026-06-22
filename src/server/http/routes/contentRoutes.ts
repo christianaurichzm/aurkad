@@ -290,7 +290,8 @@ export function createContentRouter() {
       player.agility += agility;
       player.unspentPoints -= totalAssigned;
 
-      player.maxHealth = gameConfig.player.startingMaxHealth + player.vitality * 10;
+      player.maxHealth =
+        gameConfig.player.startingMaxHealth + player.vitality * 10;
 
       await updatePlayer(player);
 

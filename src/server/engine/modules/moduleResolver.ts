@@ -33,7 +33,10 @@ export function resolveModuleConfig(
   manifest: ModuleManifest,
   gameModules: GameModules,
 ): Record<string, unknown> {
-  return { ...(manifest.config ?? {}), ...(gameModules[manifest.id]?.config ?? {}) };
+  return {
+    ...(manifest.config ?? {}),
+    ...(gameModules[manifest.id]?.config ?? {}),
+  };
 }
 
 // Orders modules so each loads after its dependencies. Deterministic (id sort),

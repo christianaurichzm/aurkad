@@ -102,7 +102,11 @@ describe('guild module', () => {
     handleChatCommand(alice, '/guild create Dragons');
     drainGameEvents();
 
-    handleCustomAction({ type: 'custom', username: 'Alice', channel: 'guild:request' });
+    handleCustomAction({
+      type: 'custom',
+      username: 'Alice',
+      channel: 'guild:request',
+    });
 
     const ev = drainGameEvents().find(
       (e) => e.type === 'customPlayer' && e.channel === 'guild:update',
@@ -125,7 +129,11 @@ describe('guild module', () => {
     expect(alice.data?.guild).toBe('Dragons');
     expect(alice.nameTag).toBe('Dragons'); // shown above the name on the canvas
 
-    handleCustomAction({ type: 'custom', username: 'Alice', channel: 'guild:leave' });
+    handleCustomAction({
+      type: 'custom',
+      username: 'Alice',
+      channel: 'guild:leave',
+    });
 
     expect(alice.data?.guild).toBeUndefined();
     expect(alice.nameTag).toBeUndefined(); // tag cleared on leave

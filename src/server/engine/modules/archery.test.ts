@@ -14,7 +14,9 @@ const shoot = (username: string) =>
   handleCustomAction({ type: 'custom', username, channel: 'shoot' });
 
 const firedProjectile = () =>
-  drainGameEvents().find((e) => e.type === 'customMap' && e.channel === 'projectile:fire');
+  drainGameEvents().find(
+    (e) => e.type === 'customMap' && e.channel === 'projectile:fire',
+  );
 
 beforeEach(() => {
   clearAll();
@@ -33,7 +35,11 @@ afterEach(() => {
 describe('archery module', () => {
   it('hits the enemy you face and fires the arrow', () => {
     const sim = createFixture(0);
-    sim.addPlayer({ name: 'Alice', position: tile(5, 5), direction: Direction.Right });
+    sim.addPlayer({
+      name: 'Alice',
+      position: tile(5, 5),
+      direction: Direction.Right,
+    });
     const enemy = sim.addNpc({
       name: 'Goblin',
       behavior: 'aggressive',
@@ -53,7 +59,11 @@ describe('archery module', () => {
 
   it('a miss still fires the arrow visual', () => {
     const sim = createFixture(0);
-    sim.addPlayer({ name: 'Alice', position: tile(5, 5), direction: Direction.Right });
+    sim.addPlayer({
+      name: 'Alice',
+      position: tile(5, 5),
+      direction: Direction.Right,
+    });
     sim.step(1);
     drainGameEvents();
 
@@ -64,7 +74,11 @@ describe('archery module', () => {
 
   it('respects the cooldown', () => {
     const sim = createFixture(0);
-    sim.addPlayer({ name: 'Alice', position: tile(5, 5), direction: Direction.Right });
+    sim.addPlayer({
+      name: 'Alice',
+      position: tile(5, 5),
+      direction: Direction.Right,
+    });
     const enemy = sim.addNpc({
       name: 'Goblin',
       behavior: 'aggressive',

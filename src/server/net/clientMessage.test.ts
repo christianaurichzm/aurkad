@@ -154,7 +154,10 @@ describe('ClientMessageSchema', () => {
     });
 
     it('rejects an empty channel', () => {
-      const result = ClientMessageSchema.safeParse({ type: 'custom', channel: '' });
+      const result = ClientMessageSchema.safeParse({
+        type: 'custom',
+        channel: '',
+      });
       expect(result.success).toBe(false);
     });
 

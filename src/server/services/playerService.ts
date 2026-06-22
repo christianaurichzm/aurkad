@@ -126,7 +126,8 @@ export const awardExperience = (
 ): number => {
   const ctx = { player, amount, source };
   emit('beforeXpGain', ctx);
-  const gained = Number.isFinite(ctx.amount) && ctx.amount > 0 ? Math.floor(ctx.amount) : 0;
+  const gained =
+    Number.isFinite(ctx.amount) && ctx.amount > 0 ? Math.floor(ctx.amount) : 0;
   if (gained <= 0) return 0;
   player.experience += gained;
   levelUpPlayer(player);

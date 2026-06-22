@@ -26,7 +26,9 @@ async function initTsSupport(): Promise<void> {
     };
     logger.info('[scripting] TypeScript transpilation available');
   } catch {
-    logger.info('[scripting] TypeScript package not found - .ts scripts will be skipped');
+    logger.info(
+      '[scripting] TypeScript package not found - .ts scripts will be skipped',
+    );
   }
 }
 
@@ -34,7 +36,9 @@ function prepareCode(filePath: string): string | null {
   const raw = fs.readFileSync(filePath, 'utf-8');
   if (filePath.endsWith('.ts')) {
     if (!tsTranspile) {
-      logger.warn(`[scripting] Skipping ${path.basename(filePath)}: TypeScript not available`);
+      logger.warn(
+        `[scripting] Skipping ${path.basename(filePath)}: TypeScript not available`,
+      );
       return null;
     }
     return tsTranspile(raw, path.basename(filePath));
@@ -74,7 +78,9 @@ export async function loadScripts(): Promise<void> {
   await initTsSupport();
 
   if (!fs.existsSync(SCRIPTS_DIR)) {
-    logger.info('[scripting] No scripts/ directory found - create it to add game scripts');
+    logger.info(
+      '[scripting] No scripts/ directory found - create it to add game scripts',
+    );
     return;
   }
 
@@ -102,7 +108,8 @@ export async function loadScripts(): Promise<void> {
 
   // Suppress ENOENT errors if scripts/ is removed while watching
   watcher.on('error', (e: NodeJS.ErrnoException) => {
-    if (e.code !== 'ENOENT') logger.error('[scripting] Watcher error', { err: e });
+    if (e.code !== 'ENOENT')
+      logger.error('[scripting] Watcher error', { err: e });
   });
 
   logger.info('[scripting] Watching scripts/ for changes');

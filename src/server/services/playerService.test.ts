@@ -53,7 +53,9 @@ describe('toPlayerCold', () => {
   });
 
   it('carries nameColor and nameTag through serialization', () => {
-    const cold = toPlayerCold(mkPlayer({ nameColor: 'gold', nameTag: '[Dragons]' }));
+    const cold = toPlayerCold(
+      mkPlayer({ nameColor: 'gold', nameTag: '[Dragons]' }),
+    );
     expect(cold.nameColor).toBe('gold');
     expect(cold.nameTag).toBe('[Dragons]');
   });
@@ -63,7 +65,11 @@ describe('awardExperience', () => {
   beforeEach(() => clearAll());
 
   it('adds the amount and triggers level up past the threshold', () => {
-    const player = mkPlayer({ experience: 0, experienceToNextLevel: 100, level: 1 });
+    const player = mkPlayer({
+      experience: 0,
+      experienceToNextLevel: 100,
+      level: 1,
+    });
     awardExperience(player, 120, 'kill');
     expect(player.level).toBe(2);
     expect(player.experience).toBe(20);

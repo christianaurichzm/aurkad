@@ -16,7 +16,12 @@ interface MagicApi {
 }
 
 function castVia(action: string, username: string, id: string) {
-  handleCustomAction({ type: 'custom', username, channel: action, payload: { id } });
+  handleCustomAction({
+    type: 'custom',
+    username,
+    channel: action,
+    payload: { id },
+  });
 }
 
 beforeEach(() => {
@@ -100,7 +105,11 @@ describe('magic module', () => {
     sim.addPlayer({ name: 'Alice' });
     drainGameEvents();
 
-    handleCustomAction({ type: 'custom', username: 'Alice', channel: 'magic:request' });
+    handleCustomAction({
+      type: 'custom',
+      username: 'Alice',
+      channel: 'magic:request',
+    });
 
     const ev = drainGameEvents().find(
       (e) => e.type === 'customPlayer' && e.channel === 'magic:update',

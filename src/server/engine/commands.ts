@@ -53,7 +53,9 @@ export function registerCommand(
   };
 }
 
-export function listCommands(): ReadonlyArray<Pick<CommandDef, 'name' | 'access' | 'description'>> {
+export function listCommands(): ReadonlyArray<
+  Pick<CommandDef, 'name' | 'access' | 'description'>
+> {
   return [...commands.values()].map(({ name, access, description }) => ({
     name,
     access,
@@ -76,7 +78,10 @@ function runHandler(cmd: CommandDef, ctx: CommandContext): void {
 
 // Chat entry point. Returns true if the message was a command attempt, so the
 // caller suppresses the normal chat broadcast. Replies privately to the player.
-export function handleChatCommand(player: PlayerServer, message: string): boolean {
+export function handleChatCommand(
+  player: PlayerServer,
+  message: string,
+): boolean {
   if (!message.startsWith('/')) return false;
   const parts = message.slice(1).trim().split(/\s+/);
   const name = parts[0]?.toLowerCase() ?? '';

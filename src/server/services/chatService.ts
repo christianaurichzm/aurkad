@@ -81,7 +81,12 @@ export function handleChatAction(action: ClientChatAction | ServerChatAction) {
 
   if (isClientChatAction(action)) {
     const player = getPlayerByName(action.username);
-    if (player) emit('chatMessage', { player, scope: action.scope, message: action.message });
+    if (player)
+      emit('chatMessage', {
+        player,
+        scope: action.scope,
+        message: action.message,
+      });
   }
 
   logger.info('chat', {

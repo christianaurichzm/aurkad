@@ -56,7 +56,8 @@ describe('hooks bus', () => {
 
   it('off() removes a specific handler', () => {
     const calls: number[] = [];
-    const handler = ({ level }: { player: any; level: number }) => calls.push(level);
+    const handler = ({ level }: { player: any; level: number }) =>
+      calls.push(level);
     on('playerLevelUp', handler);
 
     const sim = createFixture(0);
@@ -115,7 +116,9 @@ describe('playerLevelUp hook', () => {
 describe('npcDeath hook', () => {
   it('fires when a player kills an NPC', async () => {
     const events: string[] = [];
-    on('npcDeath', ({ npc, killer }) => events.push(`${killer.name}>${npc.name}`));
+    on('npcDeath', ({ npc, killer }) =>
+      events.push(`${killer.name}>${npc.name}`),
+    );
 
     const sim = createFixture(0);
     sim.addNpc({
@@ -169,7 +172,9 @@ describe('playerDeath hook', () => {
 
 describe('beforeDamage hook', () => {
   it('handler can modify damage before it is applied', () => {
-    on('beforeDamage', ({ damage }) => { damage.value = 1; });
+    on('beforeDamage', ({ damage }) => {
+      damage.value = 1;
+    });
 
     const sim = createFixture(0);
     sim.addNpc({
@@ -194,10 +199,18 @@ describe('beforeDamage hook', () => {
 describe('itemPickup hook', () => {
   it('fires when a player picks up a dropped item', async () => {
     const picked: Array<{ itemId: number; quantity: number }> = [];
-    on('itemPickup', ({ itemId, quantity }) => picked.push({ itemId, quantity }));
+    on('itemPickup', ({ itemId, quantity }) =>
+      picked.push({ itemId, quantity }),
+    );
 
     const sim = createFixture(0);
-    sim.addItem({ id: 5, name: 'Coin', description: '', sprite: 0, type: 'money' });
+    sim.addItem({
+      id: 5,
+      name: 'Coin',
+      description: '',
+      sprite: 0,
+      type: 'money',
+    });
     const player = sim.addPlayer({ name: 'Alice' });
     sim.map.droppedItems.push({
       itemId: 5,

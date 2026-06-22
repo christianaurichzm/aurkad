@@ -58,8 +58,13 @@ export function runInSandbox(
     script.runInContext(ctx, { timeout: INIT_TIMEOUT_MS });
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e);
-    if (msg.includes('timed out') || msg.includes('Script execution timed out')) {
-      logger.error(`[scripting] Init timed out after ${INIT_TIMEOUT_MS}ms: ${filename}`);
+    if (
+      msg.includes('timed out') ||
+      msg.includes('Script execution timed out')
+    ) {
+      logger.error(
+        `[scripting] Init timed out after ${INIT_TIMEOUT_MS}ms: ${filename}`,
+      );
     } else {
       logger.error(`[scripting] Runtime error in ${filename}`, { err: e });
     }
