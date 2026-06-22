@@ -28,7 +28,7 @@ import { spawnNpc, despawnNpc } from '../../services/npc/spawn.js';
 import { stepNpcToward } from '../../services/npc/behaviors.js';
 import { queryEntitiesInRadius } from '../../spatial/spatialManager.js';
 import type { SpawnNpcOptions } from '../../services/npc/spawn.js';
-import { resolveDamage } from '../../services/combat/index.js';
+import { resolveDamage, mapPvpMorale } from '../../services/combat/index.js';
 import type { CombatTarget, RuntimeNpc } from '../../../shared/types.js';
 import { Access } from '../../../shared/types.js';
 import type { CommandContext, CommandOptions } from '../commands.js';
@@ -80,6 +80,13 @@ export function buildApi(
       getPlayerByName(name) ?? undefined,
     getPlayers: (): PlayerServer[] =>
       Object.values(runtimeState.maps).flatMap((m) => Object.values(m.players)),
+
+    // A map's PvP morale: 'safe' | 'normal' | 'no-penalty' (e.g. a PK module
+    // checks this on playerDeath to decide whether to penalize the killer).
+    getMapPvp: (mapId: string): 'safe' | 'normal' | 'no-penalty' => {
+      const map = runtimeState.maps[String(mapId)];
+      return map ? mapPvpMorale(map) : 'safe';
+    },
 
     // Living NPCs within `radius` px of a point (AoE spells, pet targeting).
     getNearbyNpcs: (

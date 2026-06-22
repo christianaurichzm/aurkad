@@ -48,6 +48,7 @@ export function toMapStaticClient(map: MapStateServer): MapStaticClient {
     id: map.id,
     name: map.name,
     type: map.type,
+    pvp: map.pvp,
     tiles: map.tiles,
   };
 }

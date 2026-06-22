@@ -50,6 +50,7 @@ const MapSchema = new mongoose.Schema({
   id: { type: String, required: true, unique: true },
   name: { type: String, required: true },
   type: { type: String, required: true, enum: ['pvp', 'normal'] },
+  pvp: { type: String, enum: ['safe', 'normal', 'no-penalty'] },
   tiles: [[TileSchema]],
   droppedItems: [DroppedItemSchema],
 });

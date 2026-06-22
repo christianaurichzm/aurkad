@@ -88,6 +88,7 @@ const MapSchema = z.object({
   id: z.string().min(1),
   name: z.string().min(1),
   type: z.enum(['pvp', 'normal']),
+  pvp: z.enum(['safe', 'normal', 'no-penalty']).optional(),
   tiles: z.array(z.array(TileSchema)),
   droppedItems: z
     .array(

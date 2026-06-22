@@ -11,6 +11,7 @@ import { EQUIPMENT_SLOTS } from '../../shared/constants.js';
 const PositionSchema = z.object({ x: z.number(), y: z.number() });
 const AccessSchema = z.nativeEnum(Access);
 const MapTypeSchema = z.enum(['pvp', 'normal']);
+const PvpMoraleSchema = z.enum(['safe', 'normal', 'no-penalty']);
 const NpcBehaviorSchema = z.enum(['aggressive', 'hostile', 'neutral']);
 
 const ITEM_TYPE_TUPLE = [...EQUIPMENT_SLOTS, 'consumable', 'money'] as const;
@@ -118,6 +119,7 @@ export const SaveMapBodySchema = z.object({
   tiles: z.array(z.array(TileSchema)),
   name: z.string().min(1),
   type: MapTypeSchema,
+  pvp: PvpMoraleSchema.optional(),
 });
 
 export const CreateNpcBodySchema = z.object({
@@ -138,6 +140,7 @@ export const CreateMapBodySchema = z.object({
 export const UpdateMapBodySchema = z.object({
   name: z.string().min(1).optional(),
   type: MapTypeSchema.optional(),
+  pvp: PvpMoraleSchema.optional(),
 });
 
 export const CreateItemBodySchema = z.object({

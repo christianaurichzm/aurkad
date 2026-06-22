@@ -153,6 +153,11 @@ declare function getPlayers(): PlayerServer[];
 /** Living NPCs within `radius` px of a point (AoE spells, pet targeting). */
 declare function getNearbyNpcs(mapId: string, x: number, y: number, radius: number): RuntimeNpc[];
 
+type PvpMorale = 'safe' | 'normal' | 'no-penalty';
+
+/** A map's PvP morale (e.g. a PK module reads this on playerDeath). */
+declare function getMapPvp(mapId: string): PvpMorale;
+
 interface SpawnNpcOptions {
   mapId: string;
   col: number;

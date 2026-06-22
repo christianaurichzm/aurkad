@@ -320,10 +320,16 @@ export interface DroppedItem {
 
 export type MapType = 'pvp' | 'normal';
 
+// Map "morale": safe = no player-vs-player; normal = PvP with a PK penalty;
+// no-penalty = free PvP. When unset it derives from `type` (pvp -> no-penalty,
+// else safe) for back-compat.
+export type PvpMorale = 'safe' | 'normal' | 'no-penalty';
+
 export interface MapStateBase {
   id: string;
   name: string;
   type: MapType;
+  pvp?: PvpMorale;
   tiles: Tile[][];
   droppedItems: DroppedItem[];
   npcs: Record<string, RuntimeNpc>;
@@ -342,6 +348,7 @@ export interface MapStaticClient {
   id: string;
   name: string;
   type: MapType;
+  pvp?: PvpMorale;
   tiles: Tile[][];
 }
 

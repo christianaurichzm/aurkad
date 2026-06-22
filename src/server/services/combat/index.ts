@@ -4,6 +4,7 @@ import {
   MapStateServer,
   DroppedItem,
   CombatTarget,
+  PvpMorale,
 } from '../../../shared/types.js';
 import { getMap, updatePlayer } from '../../gameData.js';
 import { logger } from '../../logger.js';
@@ -23,6 +24,17 @@ export type ResolveDamageOptions = {
   attacker?: CombatTarget;
   map?: MapStateServer;
 };
+
+// A map's PvP morale, deriving from `type` when unset (back-compat).
+export const mapPvpMorale = (map: {
+  type: MapStateServer['type'];
+  pvp?: PvpMorale;
+}): PvpMorale => map.pvp ?? (map.type === 'pvp' ? 'no-penalty' : 'safe');
+
+export const mapAllowsPvp = (map: {
+  type: MapStateServer['type'];
+  pvp?: PvpMorale;
+}): boolean => mapPvpMorale(map) !== 'safe';
 
 const playerStat = (
   entity: CombatTarget | undefined,
@@ -98,7 +110,7 @@ const findAttackTarget = (
     if (!entity.id || entity.id === attacker.id) continue;
 
     const target: CombatTarget | undefined =
-      (map.type === 'pvp' ? map.players[entity.id] : undefined) ??
+      (mapAllowsPvp(map) ? map.players[entity.id] : undefined) ??
       map.npcs[entity.id];
 
     if (!target || target.health <= 0) continue;
