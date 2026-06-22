@@ -1,10 +1,11 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, beforeEach } from 'vitest';
 import {
   CharacterAction,
   Direction,
   PlayerServer,
 } from '../../shared/types.js';
-import { toPlayerCold } from './playerService.js';
+import { toPlayerCold, awardExperience } from './playerService.js';
+import { on, clearAll } from '../engine/hooks.js';
 
 function mkPlayer(overrides: Partial<PlayerServer> = {}): PlayerServer {
   return {
@@ -46,5 +47,47 @@ describe('toPlayerCold', () => {
 
     expect(cold.equipped).toEqual({});
     expect(cold.inventory).toEqual([]);
+  });
+
+  it('carries nameColor through serialization', () => {
+    const cold = toPlayerCold(mkPlayer({ nameColor: 'gold' }));
+    expect(cold.nameColor).toBe('gold');
+  });
+});
+
+describe('awardExperience', () => {
+  beforeEach(() => clearAll());
+
+  it('adds the amount and triggers level up past the threshold', () => {
+    const player = mkPlayer({ experience: 0, experienceToNextLevel: 100, level: 1 });
+    awardExperience(player, 120, 'kill');
+    expect(player.level).toBe(2);
+    expect(player.experience).toBe(20);
+  });
+
+  it('lets a beforeXpGain handler scale the amount (VIP 2x)', () => {
+    on('beforeXpGain', (ctx) => {
+      ctx.amount *= 2;
+    });
+    const player = mkPlayer({ experience: 0, experienceToNextLevel: 1000 });
+    const gained = awardExperience(player, 50, 'kill');
+    expect(gained).toBe(100);
+    expect(player.experience).toBe(100);
+  });
+
+  it('passes the source to the hook', () => {
+    let seen = '';
+    on('beforeXpGain', (ctx) => {
+      seen = ctx.source;
+    });
+    awardExperience(mkPlayer(), 10, 'quest');
+    expect(seen).toBe('quest');
+  });
+
+  it('clamps negative or non-finite amounts to zero', () => {
+    const player = mkPlayer({ experience: 5 });
+    awardExperience(player, -100, 'script');
+    awardExperience(player, NaN, 'script');
+    expect(player.experience).toBe(5);
   });
 });

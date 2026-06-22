@@ -1,6 +1,10 @@
 import { on as hookOn } from '../hooks.js';
 import { emitGameEvent } from '../eventBus.js';
-import { getPlayerByName, respawnPlayer } from '../../services/playerService.js';
+import {
+  getPlayerByName,
+  respawnPlayer,
+  awardExperience,
+} from '../../services/playerService.js';
 import { runtimeState } from '../../sim/state.js';
 import { updatePlayer } from '../../gameData.js';
 import { handleChatAction } from '../../services/chatService.js';
@@ -95,6 +99,19 @@ export function buildApi(
     killPlayer: (player: PlayerServer): void => {
       player.health = 0;
       respawnPlayer(player);
+      persist(scriptName, player);
+    },
+
+    // Grant XP (routes through the beforeXpGain hook, so multipliers apply).
+    giveExperience: (player: PlayerServer, amount: number): void => {
+      awardExperience(player, amount, 'script');
+      persist(scriptName, player);
+    },
+
+    // Cosmetic name color drawn above the sprite (overrides the access color).
+    // Pass undefined to clear it.
+    setNameColor: (player: PlayerServer, color: string | undefined): void => {
+      player.nameColor = color;
       persist(scriptName, player);
     },
 

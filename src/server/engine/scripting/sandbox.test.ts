@@ -4,7 +4,7 @@ import { clearAll, emit } from '../hooks.js';
 import { createFixture, tile } from '../../sim/simFixture.js';
 import { Direction, Key } from '../../../shared/types.js';
 import { msToTicks } from '../../sim/clock.js';
-import { levelUpPlayer } from '../../services/playerService.js';
+import { levelUpPlayer, awardExperience } from '../../services/playerService.js';
 import { kvGet, clearKvStoreMemory } from '../../persistence/kvStore.js';
 import { handleCustomAction } from '../../services/customEventService.js';
 import { drainGameEvents } from '../eventBus.js';
@@ -412,6 +412,39 @@ describe('scoped KV store', () => {
 
     writer.cleanup();
     reader.cleanup();
+  });
+});
+
+describe('VIP perks (vertical slice)', () => {
+  it('a VIP script colors the name and doubles XP', () => {
+    const sim = createFixture(0);
+    const alice = sim.addPlayer({ name: 'Alice', experience: 0, experienceToNextLevel: 1000 });
+    alice.data = { vip: true };
+    const bob = sim.addPlayer({ name: 'Bob', experience: 0, experienceToNextLevel: 1000 });
+
+    const handle = runInSandbox(`
+      on('playerJoin', ({ player }) => {
+        if (getPlayerData(player, 'vip')) setNameColor(player, 'gold');
+      });
+      on('beforeXpGain', (ctx) => {
+        if (getPlayerData(ctx.player, 'vip')) ctx.amount *= 2;
+      });
+    `, 'vip.js');
+
+    emit('playerJoin', { player: alice });
+    emit('playerJoin', { player: bob });
+
+    // Cosmetic applied only to the VIP
+    expect(alice.nameColor).toBe('gold');
+    expect(bob.nameColor).toBeUndefined();
+
+    // VIP gets double XP, non-VIP gets base
+    awardExperience(alice, 50, 'kill');
+    awardExperience(bob, 50, 'kill');
+    expect(alice.experience).toBe(100);
+    expect(bob.experience).toBe(50);
+
+    handle.cleanup();
   });
 });
 

@@ -76,6 +76,8 @@ interface PlayerServer {
   action: CharacterAction;
   /** Free-form per-player data, persisted with the player. */
   data?: Record<string, unknown>;
+  /** Cosmetic name color above the sprite; overrides the default access color. */
+  nameColor?: string;
   kind: 'player';
 }
 
@@ -111,6 +113,11 @@ interface HookPayloads {
   itemPickup:    { player: PlayerServer; itemId: number; quantity: number };
   chatMessage:   { player: PlayerServer; scope: ChatScope; message: string };
   beforeDamage:  { attacker: CombatTarget; target: CombatTarget; damage: { value: number } };
+  /**
+   * Mutate `amount` to scale XP gain (VIP 2x, say). `source` is 'kill',
+   * 'script' or another tag.
+   */
+  beforeXpGain:  { player: PlayerServer; amount: number; source: string };
   /** A custom message from client code. The payload is untrusted input. */
   customAction:  { player: PlayerServer; channel: string; payload: unknown };
 }
@@ -143,6 +150,12 @@ declare function healPlayer(player: PlayerServer): void;
 
 /** Kill and respawn a player. */
 declare function killPlayer(player: PlayerServer): void;
+
+/** Grant XP (passes through the beforeXpGain hook, so multipliers apply). */
+declare function giveExperience(player: PlayerServer, amount: number): void;
+
+/** Set the cosmetic name color above a player (undefined clears it). */
+declare function setNameColor(player: PlayerServer, color: string | undefined): void;
 
 /** Read a custom data field from a player. */
 declare function getPlayerData<T = unknown>(player: PlayerServer, key: string): T | undefined;

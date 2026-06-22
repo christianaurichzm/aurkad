@@ -9,13 +9,13 @@ export const getPlayerHudText = (name: string, level: number) =>
   `${name} (${level})`;
 
 export const renderHUD = (player: Player | PlayerPublic) => {
-  const { name, level, position, access } = player;
+  const { name, level, position, access, nameColor } = player;
   const { x, y } = position;
   const text = getPlayerHudText(name, level);
 
   playerCtx.font = 'bold 14px Arial';
   playerCtx.strokeStyle = 'black';
-  playerCtx.fillStyle = playerNameColorRecord[access];
+  playerCtx.fillStyle = nameColor ?? playerNameColorRecord[access];
 
   playerCtx.strokeText(text, x, y);
   playerCtx.fillText(text, x, y);

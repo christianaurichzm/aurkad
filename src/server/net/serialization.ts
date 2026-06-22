@@ -25,6 +25,7 @@ export function toPlayerPublic(player: PlayerServer): PlayerPublic {
     targetPosition: player.targetPosition,
     direction: player.direction,
     action: player.action,
+    nameColor: player.nameColor,
     kind: 'player',
   };
 }

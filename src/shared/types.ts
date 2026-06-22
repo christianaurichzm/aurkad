@@ -198,6 +198,9 @@ export interface PlayerServer extends PersistentPlayer, CharacterRuntime {
   speed: number;
   kind: 'player';
   lastProcessedSeq?: number;
+  // Optional override for the colour of the name above the sprite.
+  // Runtime-only; scripts set it (on join, say). Falls back to access colour.
+  nameColor?: string;
 }
 
 export interface PlayerRecord extends PlayerServer {
@@ -218,6 +221,7 @@ export interface PlayerPublic {
   targetPosition?: Position;
   direction: Direction;
   action: CharacterAction;
+  nameColor?: string;
   kind: 'player';
 }
 
@@ -258,6 +262,7 @@ export interface PlayerCold {
   unspentPoints: number;
   speed: number;
   mapId: string;
+  nameColor?: string;
   kind: 'player';
 }
 

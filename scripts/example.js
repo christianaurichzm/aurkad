@@ -47,13 +47,17 @@ on('npcDeath', ({ npc, killer }) => {
 //   giveItem(player, 1, 1);
 // });
 
-// VIP perk via the per-player data bag (set vip elsewhere, e.g. admin tool):
+// VIP perks via the per-player data bag (set player.data.vip elsewhere,
+// e.g. an admin tool or purchase flow). Gold name + double XP:
 //
 // on('playerJoin', ({ player }) => {
 //   if (getPlayerData(player, 'vip')) {
+//     setNameColor(player, 'gold');          // shown above the sprite for everyone
 //     sendMessage(player, 'Welcome back, VIP!');
-//     healPlayer(player);
 //   }
+// });
+// on('beforeXpGain', (ctx) => {
+//   if (getPlayerData(ctx.player, 'vip')) ctx.amount *= 2;
 // });
 
 // Tiny kill leaderboard using the shared store (scope "leaderboard"):

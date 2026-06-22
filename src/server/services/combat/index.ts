@@ -15,7 +15,7 @@ import { clampDamage } from './damage.js';
 import { handleChatAction } from '../chatService.js';
 import { getItemById } from '../inventoryService.js';
 import { respawnNpc } from '../npc/index.js';
-import { respawnPlayer, levelUpPlayer } from '../playerService.js';
+import { respawnPlayer, awardExperience } from '../playerService.js';
 import { emit } from '../../engine/hooks.js';
 
 const isInAttackRange = (
@@ -133,8 +133,7 @@ export const handleAttack = async (attacker: PlayerServer): Promise<void> => {
     case 'npc': {
       emit('npcDeath', { npc: attackTarget, killer: attacker });
       if (attackTarget.experienceValue) {
-        attacker.experience += attackTarget.experienceValue;
-        levelUpPlayer(attacker);
+        awardExperience(attacker, attackTarget.experienceValue, 'kill');
         await updatePlayer(attacker);
       }
 

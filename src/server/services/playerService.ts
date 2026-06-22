@@ -106,6 +106,23 @@ export const persistPlayerSessionState = async (player: PlayerServer) => {
   });
 };
 
+// Single funnel for all experience gain. Emits a mutable beforeXpGain hook
+// (scripts scale it, as in VIP 2x or a weekend bonus), then applies it and
+// processes level-ups. Clamps to a finite amount >= 0.
+export const awardExperience = (
+  player: PlayerServer,
+  amount: number,
+  source = 'script',
+): number => {
+  const ctx = { player, amount, source };
+  emit('beforeXpGain', ctx);
+  const gained = Number.isFinite(ctx.amount) && ctx.amount > 0 ? Math.floor(ctx.amount) : 0;
+  if (gained <= 0) return 0;
+  player.experience += gained;
+  levelUpPlayer(player);
+  return gained;
+};
+
 export const levelUpPlayer = (player: PlayerServer): void => {
   const { baseXp, xpGrowthRate, pointsPerLevel } = gameConfig.leveling;
 
@@ -191,6 +208,7 @@ export function toPlayerCold(player: PlayerServer): PlayerCold {
     unspentPoints: player.unspentPoints,
     speed: player.speed,
     mapId: player.mapId,
+    nameColor: player.nameColor,
     kind: 'player',
   };
 }
@@ -212,6 +230,7 @@ export function playerColdSignature(player: PlayerServer): string {
     player.unspentPoints,
     player.speed,
     player.mapId,
+    player.nameColor,
     player.inventory,
     player.equipped,
   ]);
