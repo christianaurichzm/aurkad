@@ -10,6 +10,7 @@ import { logger } from '../../logger.js';
 import { getTick } from '../../sim/clock.js';
 import { randomChance } from '../../sim/rng.js';
 import { queryEntitiesInRadius } from '../../spatial/spatialManager.js';
+import { gameConfig } from '../../gameConfig.js';
 import { tryConsumeAttackCooldown } from './attackCooldown.js';
 import { clampDamage } from './damage.js';
 import { handleChatAction } from '../chatService.js';
@@ -17,6 +18,38 @@ import { getItemById } from '../inventoryService.js';
 import { respawnNpc } from '../npc/index.js';
 import { respawnPlayer, awardExperience } from '../playerService.js';
 import { emit } from '../../engine/hooks.js';
+
+export type ResolveDamageOptions = {
+  attacker?: CombatTarget;
+  map?: MapStateServer;
+};
+
+const playerStat = (
+  entity: CombatTarget | undefined,
+  stat: 'strength' | 'defense' | 'agility',
+): number => (entity?.kind === 'player' ? entity[stat] : 0);
+
+const resolveBaseDamage = (
+  amount: number,
+  attacker: CombatTarget | undefined,
+  target: CombatTarget,
+): number => {
+  if (!Number.isFinite(amount) || amount <= 0) return amount;
+
+  const {
+    baseDamageMultiplier,
+    strengthDamageMultiplier,
+    defenseDamageReduction,
+    minimumDamage,
+  } = gameConfig.combat;
+
+  const value =
+    amount * baseDamageMultiplier +
+    playerStat(attacker, 'strength') * strengthDamageMultiplier -
+    playerStat(target, 'defense') * defenseDamageReduction;
+
+  return Math.max(minimumDamage, value);
+};
 
 const isInAttackRange = (
   attacker: PlayerServer,
@@ -84,6 +117,93 @@ const findAttackTarget = (
   return undefined;
 };
 
+export const resolveDamage = async (
+  target: CombatTarget,
+  amount: number,
+  options: ResolveDamageOptions = {},
+): Promise<number> => {
+  if (target.health <= 0) return 0;
+
+  const { attacker } = options;
+  const map = options.map ?? getMap(target.mapId);
+  const damageCtx = { value: resolveBaseDamage(amount, attacker, target) };
+  emit('beforeDamage', { attacker, target, damage: damageCtx });
+
+  const damage = clampDamage(damageCtx.value);
+  if (damage <= 0) return 0;
+
+  target.health -= damage;
+
+  if (target.health > 0) {
+    if (target.kind === 'player') {
+      await updatePlayer(target);
+    }
+    return damage;
+  }
+
+  target.health = 0;
+
+  switch (target.kind) {
+    case 'player':
+      emit('playerDeath', { player: target, killer: attacker });
+      respawnPlayer(target);
+      await updatePlayer(target);
+
+      const { broadcast } = await import('../../net/index.js');
+      broadcast();
+
+      if (attacker?.kind === 'player') {
+        handleChatAction({
+          scope: 'global',
+          type: 'chat',
+          subtype: 'death',
+          message: `${attacker.name} defeated ${target.name}`,
+        });
+      }
+      break;
+
+    case 'npc': {
+      if (attacker?.kind === 'player') {
+        emit('npcDeath', { npc: target, killer: attacker });
+        if (target.experienceValue) {
+          awardExperience(attacker, target.experienceValue, 'kill');
+          await updatePlayer(attacker);
+        }
+      }
+
+      const droppedItems: DroppedItem[] = [];
+
+      for (const drop of target.itemsToDrop ?? []) {
+        if (randomChance(drop.chance)) {
+          const item = getItemById(drop.itemId);
+          if (!item) {
+            logger.warn('[drop] Item not found', { itemId: drop.itemId });
+            continue;
+          }
+
+          droppedItems.push({
+            itemId: drop.itemId,
+            sprite: item.sprite,
+            position: {
+              x: target.position.x,
+              y: target.position.y,
+            },
+            quantity: Math.max(1, Math.floor(drop.quantity ?? 1)),
+          });
+        }
+      }
+
+      if (map) {
+        map.droppedItems.push(...droppedItems);
+      }
+      respawnNpc(map?.id ?? target.mapId, target);
+      break;
+    }
+  }
+
+  return damage;
+};
+
 export const handleAttack = async (attacker: PlayerServer): Promise<void> => {
   if (!attacker) return;
 
@@ -105,63 +225,5 @@ export const handleAttack = async (attacker: PlayerServer): Promise<void> => {
   )
     return;
 
-  const damageCtx = { value: attacker.attack };
-  emit('beforeDamage', { attacker, target: attackTarget, damage: damageCtx });
-  attackTarget.health -= clampDamage(damageCtx.value);
-
-  if (attackTarget.health > 0) return;
-
-  attackTarget.health = 0;
-
-  switch (attackTarget.kind) {
-    case 'player':
-      emit('playerDeath', { player: attackTarget, killer: attacker });
-      respawnPlayer(attackTarget);
-      await updatePlayer(attackTarget);
-
-      const { broadcast } = await import('../../net/index.js');
-      broadcast();
-
-      handleChatAction({
-        scope: 'global',
-        type: 'chat',
-        subtype: 'death',
-        message: `${attacker.name} defeated ${attackTarget.name}`,
-      });
-      break;
-
-    case 'npc': {
-      emit('npcDeath', { npc: attackTarget, killer: attacker });
-      if (attackTarget.experienceValue) {
-        awardExperience(attacker, attackTarget.experienceValue, 'kill');
-        await updatePlayer(attacker);
-      }
-
-      const droppedItems: DroppedItem[] = [];
-
-      for (const drop of attackTarget.itemsToDrop ?? []) {
-        if (randomChance(drop.chance)) {
-          const item = getItemById(drop.itemId);
-          if (!item) {
-            logger.warn('[drop] Item not found', { itemId: drop.itemId });
-            continue;
-          }
-
-          droppedItems.push({
-            itemId: drop.itemId,
-            sprite: item.sprite,
-            position: {
-              x: attackTarget.position.x,
-              y: attackTarget.position.y,
-            },
-            quantity: Math.max(1, Math.floor(drop.quantity ?? 1)),
-          });
-        }
-      }
-
-      map.droppedItems.push(...droppedItems);
-      respawnNpc(attacker.mapId, attackTarget);
-      break;
-    }
-  }
+  await resolveDamage(attackTarget, attacker.attack, { attacker, map });
 };

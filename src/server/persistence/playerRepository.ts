@@ -9,6 +9,9 @@ import { gameConfig } from '../gameConfig.js';
 export function normalizePlayerRecord(record: PlayerRecord): PlayerRecord {
   return {
     ...record,
+    strength: record.strength ?? gameConfig.player.startingStrength,
+    defense: record.defense ?? gameConfig.player.startingDefense,
+    agility: record.agility ?? gameConfig.player.startingAgility,
     equipped: record.equipped ?? {},
     data: record.data ?? {},
     inventory: record.inventory ?? {

@@ -53,6 +53,10 @@ export type ModifiablePlayerAttribute =
   | 'health'
   | 'maxHealth'
   | 'attack'
+  | 'strength'
+  | 'defense'
+  | 'agility'
+  | 'vitality'
   | 'speed'
   | 'attackRange'
   | 'experience'
@@ -150,6 +154,9 @@ export interface Progression {
   level: number;
   experience: number;
   experienceToNextLevel: number;
+  strength: number;
+  defense: number;
+  agility: number;
   vitality: number;
   unspentPoints: number;
 }
@@ -268,6 +275,9 @@ export interface PlayerCold {
   inventory: InventoryItemDetailed[];
   equipped: EquippedItemsDetailed;
   access: Access;
+  strength: number;
+  defense: number;
+  agility: number;
   vitality: number;
   unspentPoints: number;
   speed: number;

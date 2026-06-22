@@ -51,6 +51,10 @@ const MODIFIABLE_ATTRS = [
   'health',
   'maxHealth',
   'attack',
+  'strength',
+  'defense',
+  'agility',
+  'vitality',
   'speed',
   'attackRange',
   'experience',
@@ -152,6 +156,9 @@ export const BuyShopItemBodySchema = z.object({
 export const AssignPointsBodySchema = z.object({
   vitality: z.number().int().nonnegative().default(0),
   attack: z.number().int().nonnegative().default(0),
+  strength: z.number().int().nonnegative().default(0),
+  defense: z.number().int().nonnegative().default(0),
+  agility: z.number().int().nonnegative().default(0),
 });
 
 export function parseBody<S extends z.ZodType>(

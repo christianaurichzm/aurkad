@@ -5,6 +5,9 @@ import type { Position } from '../shared/types.js';
 
 interface PlayerConfig {
   startingAttack: number;
+  startingStrength: number;
+  startingDefense: number;
+  startingAgility: number;
   startingMaxHealth: number;
   startingSpeed: number;
   startingInventoryCapacity: number;
@@ -28,6 +31,10 @@ interface CombatConfig {
   regenPercent: number;
   minRegen: number;
   npcUpdateIntervalMs: number;
+  baseDamageMultiplier: number;
+  strengthDamageMultiplier: number;
+  defenseDamageReduction: number;
+  minimumDamage: number;
 }
 
 export interface ModuleConfigEntry {
@@ -47,6 +54,9 @@ export interface GameConfig {
 const defaults: GameConfig = {
   player: {
     startingAttack: 100,
+    startingStrength: 0,
+    startingDefense: 0,
+    startingAgility: 0,
     startingMaxHealth: 100,
     startingSpeed: DEFAULT_PLAYER_SPEED,
     startingInventoryCapacity: 10,
@@ -67,6 +77,10 @@ const defaults: GameConfig = {
     regenPercent: 0.01,
     minRegen: 1,
     npcUpdateIntervalMs: 1250,
+    baseDamageMultiplier: 1,
+    strengthDamageMultiplier: 1,
+    defenseDamageReduction: 1,
+    minimumDamage: 1,
   },
   modules: {},
 };

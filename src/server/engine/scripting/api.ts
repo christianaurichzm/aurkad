@@ -6,7 +6,7 @@ import {
   awardExperience,
 } from '../../services/playerService.js';
 import { runtimeState } from '../../sim/state.js';
-import { updatePlayer } from '../../gameData.js';
+import { getMap, updatePlayer } from '../../gameData.js';
 import { handleChatAction } from '../../services/chatService.js';
 import { updatePlayerMap } from '../../services/mapService.js';
 import {
@@ -26,7 +26,8 @@ import { provideApi, useApi } from '../modules/registry.js';
 import { setCosmetic, clearCosmetic } from '../../services/cosmeticsService.js';
 import { spawnNpc, despawnNpc } from '../../services/npc/spawn.js';
 import type { SpawnNpcOptions } from '../../services/npc/spawn.js';
-import type { RuntimeNpc } from '../../../shared/types.js';
+import { resolveDamage } from '../../services/combat/index.js';
+import type { CombatTarget, RuntimeNpc } from '../../../shared/types.js';
 import { Access } from '../../../shared/types.js';
 import type { CommandContext, CommandOptions } from '../commands.js';
 import { TILE_SIZE } from '../../../shared/constants.js';
@@ -114,6 +115,19 @@ export function buildApi(
       player.health = 0;
       respawnPlayer(player);
       persist(scriptName, player);
+    },
+    dealDamage: (
+      target: CombatTarget | null | undefined,
+      amount: number,
+      attacker?: CombatTarget | null,
+    ): void => {
+      if (!target) return;
+      void resolveDamage(target, amount, {
+        attacker: attacker ?? undefined,
+        map: getMap(target.mapId),
+      }).catch((e) =>
+        logger.error(`[script:${scriptName}] dealDamage failed`, { err: e }),
+      );
     },
 
     // Grant XP (routes through the beforeXpGain hook, so multipliers apply).

@@ -52,6 +52,7 @@ import {
   updateNpcAll,
 } from '../../services/npc/index.js';
 import { playersWsMap } from '../../net/connections.js';
+import { gameConfig } from '../../gameConfig.js';
 
 export function createContentRouter() {
   const router = Router();
@@ -259,9 +260,9 @@ export function createContentRouter() {
     async (req: ExtendedRequest, res: Response) => {
       const body = parseBody(AssignPointsBodySchema, req.body, res);
       if (!body) return;
-      const { vitality, attack } = body;
+      const { vitality, attack, strength, defense, agility } = body;
 
-      const totalAssigned = vitality + attack;
+      const totalAssigned = vitality + attack + strength + defense + agility;
       if (totalAssigned === 0) {
         return res.status(400).json({ error: 'No points assigned' });
       }
@@ -284,9 +285,12 @@ export function createContentRouter() {
 
       player.vitality += vitality;
       player.attack += attack;
+      player.strength += strength;
+      player.defense += defense;
+      player.agility += agility;
       player.unspentPoints -= totalAssigned;
 
-      player.maxHealth = 100 + player.vitality * 10;
+      player.maxHealth = gameConfig.player.startingMaxHealth + player.vitality * 10;
 
       await updatePlayer(player);
 
@@ -295,6 +299,9 @@ export function createContentRouter() {
         unspentPoints: player.unspentPoints,
         vitality: player.vitality,
         attack: player.attack,
+        strength: player.strength,
+        defense: player.defense,
+        agility: player.agility,
         maxHealth: player.maxHealth,
       });
     },

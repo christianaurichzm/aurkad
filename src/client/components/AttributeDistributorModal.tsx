@@ -4,10 +4,19 @@ import { assignPointsPlayer } from '../io/network';
 import { Modal } from './common/Modal';
 import { colors, radius } from '../theme';
 
+type AttributeKey = 'strength' | 'defense' | 'vitality' | 'agility';
+type QueuedAttributes = Record<AttributeKey, number>;
+
+const emptyQueued: QueuedAttributes = {
+  strength: 0,
+  defense: 0,
+  vitality: 0,
+  agility: 0,
+};
+
 export const AttributeDistributorModal: React.FC = () => {
   const [visible, setVisible] = useState(false);
-  const [atk, setAtk] = useState(0);
-  const [vit, setVit] = useState(0);
+  const [queued, setQueued] = useState<QueuedAttributes>(emptyQueued);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
@@ -22,16 +31,26 @@ export const AttributeDistributorModal: React.FC = () => {
 
   if (!player || !visible) return null;
 
-  const remaining = player.unspentPoints - (atk + vit);
+  const assigned = Object.values(queued).reduce((sum, value) => sum + value, 0);
+  const remaining = player.unspentPoints - assigned;
 
-  const adjustAtk = (delta: number) =>
-    setAtk((prev) =>
-      Math.max(0, Math.min(prev + delta, player.unspentPoints - vit)),
-    );
-  const adjustVit = (delta: number) =>
-    setVit((prev) =>
-      Math.max(0, Math.min(prev + delta, player.unspentPoints - atk)),
-    );
+  const setAttribute = (key: AttributeKey, value: number) =>
+    setQueued((prev) => {
+      const otherAssigned =
+        Object.entries(prev).reduce((sum, [entryKey, entryValue]) => {
+          return entryKey === key ? sum : sum + entryValue;
+        }, 0);
+      return {
+        ...prev,
+        [key]: Math.max(
+          0,
+          Math.min(value, player.unspentPoints - otherAssigned),
+        ),
+      };
+    });
+
+  const adjustAttribute = (key: AttributeKey, delta: number) =>
+    setAttribute(key, queued[key] + delta);
 
   const handleConfirm = async () => {
     if (remaining < 0) {
@@ -41,9 +60,8 @@ export const AttributeDistributorModal: React.FC = () => {
     setLoading(true);
     setError('');
     try {
-      await assignPointsPlayer(player.id, atk, vit);
-      setAtk(0);
-      setVit(0);
+      await assignPointsPlayer(player.id, queued);
+      setQueued({ ...emptyQueued });
     } catch (e: any) {
       setError(e.message || 'Failed to assign points');
     } finally {
@@ -53,22 +71,22 @@ export const AttributeDistributorModal: React.FC = () => {
 
   const stats = [
     {
-      label: 'Attack',
-      base: player.attack,
-      delta: atk,
-      setDelta: setAtk,
-      adjust: adjustAtk,
+      key: 'strength' as const,
+      label: 'Strength',
     },
     {
+      key: 'defense' as const,
+      label: 'Defense',
+    },
+    {
+      key: 'vitality' as const,
       label: 'Vitality',
-      base: player.vitality,
-      delta: vit,
-      setDelta: setVit,
-      adjust: adjustVit,
+    },
+    {
+      key: 'agility' as const,
+      label: 'Agility',
     },
   ];
-
-  const assigned = atk + vit;
 
   return (
     <Modal title="Attributes" onClose={() => setVisible(false)} width={460}>
@@ -87,44 +105,47 @@ export const AttributeDistributorModal: React.FC = () => {
         </div>
 
         <div style={statsList}>
-          {stats.map(({ label, base, delta, setDelta, adjust }) => (
-            <div key={label} style={statRow}>
-              <span style={statLabel}>{label}</span>
-              <span style={statBase}>{base}</span>
-              <div style={stepper}>
-                <button
-                  style={{ ...stepBtn, opacity: delta === 0 ? 0.4 : 1 }}
-                  onClick={() => adjust(-1)}
-                  disabled={delta === 0}
-                  title={`Decrease ${label}`}
-                >
-                  −
-                </button>
-                <input
-                  style={stepInput}
-                  type="number"
-                  min={0}
-                  value={delta}
-                  aria-label={`${label} points`}
-                  onChange={(e) => {
-                    const v = Math.max(0, parseInt(e.target.value || '0'));
-                    const other = setDelta === setAtk ? vit : atk;
-                    setDelta(Math.min(v, player.unspentPoints - other));
-                  }}
-                />
-                <button
-                  style={{ ...stepBtn, opacity: remaining <= 0 ? 0.4 : 1 }}
-                  onClick={() => adjust(1)}
-                  disabled={remaining <= 0}
-                  title={`Increase ${label}`}
-                >
-                  +
-                </button>
+          {stats.map(({ key, label }) => {
+            const base = player[key];
+            const delta = queued[key];
+            return (
+              <div key={label} style={statRow}>
+                <span style={statLabel}>{label}</span>
+                <span style={statBase}>{base}</span>
+                <div style={stepper}>
+                  <button
+                    style={{ ...stepBtn, opacity: delta === 0 ? 0.4 : 1 }}
+                    onClick={() => adjustAttribute(key, -1)}
+                    disabled={delta === 0}
+                    title={`Decrease ${label}`}
+                  >
+                    −
+                  </button>
+                  <input
+                    style={stepInput}
+                    type="number"
+                    min={0}
+                    value={delta}
+                    aria-label={`${label} points`}
+                    onChange={(e) => {
+                      const v = Math.max(0, parseInt(e.target.value || '0'));
+                      setAttribute(key, v);
+                    }}
+                  />
+                  <button
+                    style={{ ...stepBtn, opacity: remaining <= 0 ? 0.4 : 1 }}
+                    onClick={() => adjustAttribute(key, 1)}
+                    disabled={remaining <= 0}
+                    title={`Increase ${label}`}
+                  >
+                    +
+                  </button>
+                </div>
+                <span style={arrow}>→</span>
+                <span style={result(delta > 0)}>{base + delta}</span>
               </div>
-              <span style={arrow}>→</span>
-              <span style={result(delta > 0)}>{base + delta}</span>
-            </div>
-          ))}
+            );
+          })}
         </div>
 
         <div style={remainingText(remaining)}>
@@ -136,9 +157,9 @@ export const AttributeDistributorModal: React.FC = () => {
         {error && <p style={errorStyle}>{error}</p>}
 
         <button
-          style={confirmBtn(loading || atk + vit === 0 || remaining < 0)}
+          style={confirmBtn(loading || assigned === 0 || remaining < 0)}
           onClick={handleConfirm}
-          disabled={loading || atk + vit === 0 || remaining < 0}
+          disabled={loading || assigned === 0 || remaining < 0}
         >
           {loading ? 'Saving…' : 'Confirm'}
         </button>

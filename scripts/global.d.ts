@@ -66,6 +66,9 @@ interface PlayerServer {
   level: number;
   experience: number;
   experienceToNextLevel: number;
+  strength: number;
+  defense: number;
+  agility: number;
   vitality: number;
   unspentPoints: number;
   inventory: Inventory;
@@ -118,7 +121,7 @@ interface HookPayloads {
   itemUse:       { player: PlayerServer; itemId: number };
   itemPickup:    { player: PlayerServer; itemId: number; quantity: number };
   chatMessage:   { player: PlayerServer; scope: ChatScope; message: string };
-  beforeDamage:  { attacker: CombatTarget; target: CombatTarget; damage: { value: number } };
+  beforeDamage:  { attacker?: CombatTarget; target: CombatTarget; damage: { value: number } };
   /**
    * Mutate `amount` to scale XP gain (VIP 2x, say). `source` is 'kill',
    * 'script' or another tag.
@@ -179,6 +182,9 @@ declare function healPlayer(player: PlayerServer): void;
 
 /** Kill and respawn a player. */
 declare function killPlayer(player: PlayerServer): void;
+
+/** Apply damage through combat: beforeDamage, death hooks, drops, XP. */
+declare function dealDamage(target: CombatTarget, amount: number, attacker?: CombatTarget): void;
 
 /** Grant XP (passes through the beforeXpGain hook, so multipliers apply). */
 declare function giveExperience(player: PlayerServer, amount: number): void;

@@ -1,9 +1,10 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { runInSandbox } from './sandbox.js';
-import { clearAll, emit } from '../hooks.js';
+import { clearAll, emit, on } from '../hooks.js';
 import { createFixture, tile } from '../../sim/simFixture.js';
 import { Direction, Key } from '../../../shared/types.js';
 import { msToTicks } from '../../sim/clock.js';
+import { gameConfig, respawnPosition } from '../../gameConfig.js';
 import { levelUpPlayer, awardExperience } from '../../services/playerService.js';
 import { kvGet, clearKvStoreMemory } from '../../persistence/kvStore.js';
 import { handleCustomAction } from '../../services/customEventService.js';
@@ -314,6 +315,148 @@ describe('API helpers', () => {
 
     emit('playerJoin', { player });
     expect(player.health).toBe(100);
+
+    handle.cleanup();
+  });
+
+  it('dealDamage kills a spawned NPC and emits npcDeath', () => {
+    const sim = createFixture(0);
+    const alice = sim.addPlayer({ name: 'Alice', experience: 0 });
+    const deaths: string[] = [];
+    on('npcDeath', ({ npc, killer }) => deaths.push(`${killer.name}:${npc.name}`));
+
+    const handle = runInSandbox(`
+      on('playerJoin', ({ player }) => {
+        const npc = spawnNpc({
+          mapId: player.mapId,
+          col: 5,
+          row: 5,
+          name: 'Training Dummy',
+          maxHealth: 5,
+          behavior: 'neutral',
+        });
+        npc.experienceValue = 7;
+        dealDamage(npc, 5, player);
+      });
+    `, 'deal-damage-npc.js');
+
+    emit('playerJoin', { player: alice });
+
+    const npc = Object.values(sim.map.npcs).find((n) => n.name === 'Training Dummy');
+    expect(deaths).toEqual(['Alice:Training Dummy']);
+    expect(alice.experience).toBe(7);
+    expect(npc?.health).toBe(0);
+
+    handle.cleanup();
+  });
+
+  it('dealDamage damages a player without requiring an attacker', () => {
+    const sim = createFixture(0);
+    const alice = sim.addPlayer({ name: 'Alice' });
+    const bob = sim.addPlayer({ name: 'Bob', health: 40, maxHealth: 100 });
+    const attackers: Array<string | undefined> = [];
+    on('beforeDamage', ({ attacker }) => attackers.push(attacker?.id));
+
+    const handle = runInSandbox(`
+      on('playerJoin', () => {
+        const target = getPlayer('Bob');
+        dealDamage(target, 15);
+      });
+    `, 'deal-damage-player.js');
+
+    emit('playerJoin', { player: alice });
+
+    expect(bob.health).toBe(25);
+    expect(attackers).toEqual([undefined]);
+
+    handle.cleanup();
+  });
+
+  it('dealDamage applies strength and defense before hooks', () => {
+    const sim = createFixture(0);
+    const alice = sim.addPlayer({ name: 'Alice', strength: 7 });
+    const bob = sim.addPlayer({ name: 'Bob', defense: 3, health: 40, maxHealth: 100 });
+
+    const handle = runInSandbox(`
+      on('playerJoin', ({ player }) => {
+        const target = getPlayer('Bob');
+        dealDamage(target, 10, player);
+      });
+    `, 'deal-damage-formula.js');
+
+    emit('playerJoin', { player: alice });
+
+    expect(bob.health).toBe(26);
+
+    handle.cleanup();
+  });
+
+  it('beforeDamage can still override formula damage', () => {
+    const sim = createFixture(0);
+    const alice = sim.addPlayer({ name: 'Alice', strength: 7 });
+    const bob = sim.addPlayer({ name: 'Bob', defense: 3, health: 40, maxHealth: 100 });
+    on('beforeDamage', ({ damage }) => {
+      damage.value = 2;
+    });
+
+    const handle = runInSandbox(`
+      on('playerJoin', ({ player }) => {
+        const target = getPlayer('Bob');
+        dealDamage(target, 10, player);
+      });
+    `, 'deal-damage-before-hook.js');
+
+    emit('playerJoin', { player: alice });
+
+    expect(bob.health).toBe(38);
+
+    handle.cleanup();
+  });
+
+  it('dealDamage can kill and respawn a player', () => {
+    const sim = createFixture(0);
+    sim.addMap({ id: gameConfig.world.startMapId });
+    const alice = sim.addPlayer({ name: 'Alice' });
+    const bob = sim.addPlayer({
+      name: 'Bob',
+      health: 10,
+      maxHealth: 100,
+      position: tile(2, 2),
+    });
+    const deaths: string[] = [];
+    on('playerDeath', ({ player, killer }) => deaths.push(`${player.name}:${killer?.name ?? 'none'}`));
+
+    const handle = runInSandbox(`
+      on('playerJoin', ({ player }) => {
+        const target = getPlayer('Bob');
+        dealDamage(target, 10, player);
+      });
+    `, 'deal-damage-player-lethal.js');
+
+    emit('playerJoin', { player: alice });
+
+    expect(deaths).toEqual(['Bob:Alice']);
+    expect(bob.health).toBe(100);
+    expect(bob.position).toEqual(respawnPosition);
+    expect(bob.mapId).toBe(gameConfig.world.startMapId);
+
+    handle.cleanup();
+  });
+
+  it('dealDamage clamps negative and NaN damage', () => {
+    const sim = createFixture(0);
+    const alice = sim.addPlayer({ name: 'Alice', health: 40, maxHealth: 100 });
+
+    const handle = runInSandbox(`
+      on('playerJoin', ({ player }) => {
+        dealDamage(player, -10);
+        dealDamage(player, NaN);
+      });
+    `, 'deal-damage-clamp.js');
+
+    emit('playerJoin', { player: alice });
+
+    expect(alice.health).toBe(40);
 
     handle.cleanup();
   });

@@ -71,6 +71,22 @@ export const EquipmentPanel: React.FC<{
           <strong>{player.attack}</strong>
         </div>
         <div style={styles.statLine}>
+          <span>Strength</span>
+          <strong>{player.strength}</strong>
+        </div>
+        <div style={styles.statLine}>
+          <span>Defense</span>
+          <strong>{player.defense}</strong>
+        </div>
+        <div style={styles.statLine}>
+          <span>Agility</span>
+          <strong>{player.agility}</strong>
+        </div>
+        <div style={styles.statLine}>
+          <span>Vitality</span>
+          <strong>{player.vitality}</strong>
+        </div>
+        <div style={styles.statLine}>
           <span>Health</span>
           <strong>
             {player.health}/{player.maxHealth}

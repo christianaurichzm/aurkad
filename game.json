@@ -1,6 +1,9 @@
 {
   "player": {
     "startingAttack": 100,
+    "startingStrength": 0,
+    "startingDefense": 0,
+    "startingAgility": 0,
     "startingMaxHealth": 100,
     "startingSpeed": 1,
     "startingInventoryCapacity": 10
@@ -20,7 +23,11 @@
     "regenIntervalMs": 5000,
     "regenPercent": 0.01,
     "minRegen": 1,
-    "npcUpdateIntervalMs": 1250
+    "npcUpdateIntervalMs": 1250,
+    "baseDamageMultiplier": 1,
+    "strengthDamageMultiplier": 1,
+    "defenseDamageReduction": 1,
+    "minimumDamage": 1
   },
   "modules": {
     "dialog": { "enabled": true },

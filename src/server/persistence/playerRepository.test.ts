@@ -17,10 +17,16 @@ describe('normalizePlayerRecord', () => {
     const record = mkRecord({
       equipped: undefined as unknown as PlayerRecord['equipped'],
       inventory: undefined as unknown as PlayerRecord['inventory'],
+      strength: undefined as unknown as PlayerRecord['strength'],
+      defense: undefined as unknown as PlayerRecord['defense'],
+      agility: undefined as unknown as PlayerRecord['agility'],
     });
 
     const normalized = normalizePlayerRecord(record);
 
+    expect(normalized.strength).toBe(gameConfig.player.startingStrength);
+    expect(normalized.defense).toBe(gameConfig.player.startingDefense);
+    expect(normalized.agility).toBe(gameConfig.player.startingAgility);
     expect(normalized.equipped).toEqual({});
     expect(normalized.inventory).toEqual({
       items: [],

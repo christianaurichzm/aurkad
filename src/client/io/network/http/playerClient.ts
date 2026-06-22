@@ -11,11 +11,16 @@ export const fetchOnlinePlayers = async (): Promise<OnlinePlayersResponse> => {
 
 export const assignPointsPlayer = async (
   id: string,
-  attack: number,
-  vitality: number,
+  points: {
+    vitality?: number;
+    strength?: number;
+    defense?: number;
+    agility?: number;
+    attack?: number;
+  },
 ): Promise<void> => {
   await httpClient(`/players/${id}/assignPoints`, {
     method: 'POST',
-    body: { attack, vitality },
+    body: points,
   });
 };

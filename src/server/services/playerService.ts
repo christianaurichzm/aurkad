@@ -57,8 +57,15 @@ export const createPlayer = async (
       process.env.NODE_ENV !== 'production' &&
       !(await playerRepository.anyExists()));
 
-  const { startingAttack, startingMaxHealth, startingSpeed, startingInventoryCapacity } =
-    gameConfig.player;
+  const {
+    startingAttack,
+    startingStrength,
+    startingDefense,
+    startingAgility,
+    startingMaxHealth,
+    startingSpeed,
+    startingInventoryCapacity,
+  } = gameConfig.player;
   const { baseXp } = gameConfig.leveling;
 
   const newPlayer: PlayerServer = {
@@ -70,6 +77,9 @@ export const createPlayer = async (
     speed: startingSpeed,
     kind: 'player',
     attack: startingAttack,
+    strength: startingStrength,
+    defense: startingDefense,
+    agility: startingAgility,
     vitality: 0,
     unspentPoints: 0,
     level: 1,
@@ -204,6 +214,9 @@ export function toPlayerCold(player: PlayerServer): PlayerCold {
     inventory,
     equipped,
     access: player.access,
+    strength: player.strength,
+    defense: player.defense,
+    agility: player.agility,
     vitality: player.vitality,
     unspentPoints: player.unspentPoints,
     speed: player.speed,
@@ -227,6 +240,9 @@ export function playerColdSignature(player: PlayerServer): string {
     player.experience,
     player.experienceToNextLevel,
     player.access,
+    player.strength,
+    player.defense,
+    player.agility,
     player.vitality,
     player.unspentPoints,
     player.speed,

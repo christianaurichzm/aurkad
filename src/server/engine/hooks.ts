@@ -19,7 +19,7 @@ export type HookMap = {
   itemUse:       { player: PlayerServer; itemId: number };
   itemPickup:    { player: PlayerServer; itemId: number; quantity: number };
   chatMessage:   { player: PlayerServer; scope: ChatScope; message: string };
-  beforeDamage:  { attacker: CombatTarget; target: CombatTarget; damage: { value: number } };
+  beforeDamage:  { attacker?: CombatTarget; target: CombatTarget; damage: { value: number } };
   beforeXpGain:  { player: PlayerServer; amount: number; source: string };
   customAction:  { player: PlayerServer; channel: string; payload: unknown };
   tick:          { tick: number };

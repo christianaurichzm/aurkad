@@ -270,7 +270,12 @@ describe('AssignPointsBodySchema', () => {
   });
   it('accepts valid point distribution', () => {
     expect(
-      AssignPointsBodySchema.safeParse({ vitality: 3, attack: 2 }).success,
+      AssignPointsBodySchema.safeParse({
+        vitality: 3,
+        strength: 2,
+        defense: 1,
+        agility: 4,
+      }).success,
     ).toBe(true);
   });
   it('rejects negative points', () => {
