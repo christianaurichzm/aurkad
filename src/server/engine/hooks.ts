@@ -1,3 +1,4 @@
+import { logger } from '../logger.js';
 import type {
   PlayerServer,
   RuntimeNpc,
@@ -39,7 +40,22 @@ export function off<K extends keyof HookMap>(event: K, handler: Handler<K>): voi
 }
 
 export function emit<K extends keyof HookMap>(event: K, payload: HookMap[K]): void {
-  registry.get(event)?.forEach((h) => h(payload));
+  const set = registry.get(event);
+  if (!set) return;
+  // A throwing or rejecting handler must never break the game loop or
+  // stop sibling handlers. Isolate both sync throws and async rejections.
+  for (const handler of set) {
+    try {
+      const result = handler(payload) as unknown;
+      if (result instanceof Promise) {
+        result.catch((err) =>
+          logger.error('[hooks] async handler rejected', { event, err }),
+        );
+      }
+    } catch (err) {
+      logger.error('[hooks] handler threw', { event, err });
+    }
+  }
 }
 
 export function clearAll(): void {

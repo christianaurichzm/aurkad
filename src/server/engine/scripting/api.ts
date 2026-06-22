@@ -2,6 +2,7 @@ import { on as hookOn } from '../hooks.js';
 import { emitGameEvent } from '../eventBus.js';
 import { getPlayerByName, respawnPlayer } from '../../services/playerService.js';
 import { runtimeState } from '../../sim/state.js';
+import { updatePlayer } from '../../gameData.js';
 import { handleChatAction } from '../../services/chatService.js';
 import { updatePlayerMap } from '../../services/mapService.js';
 import { TILE_SIZE } from '../../../shared/constants.js';
@@ -9,6 +10,15 @@ import { CharacterAction } from '../../../shared/types.js';
 import { logger } from '../../logger.js';
 import type { HookMap } from '../hooks.js';
 import type { PlayerServer } from '../../../shared/types.js';
+
+// Mutations go through updatePlayer so state is marked dirty (persisted by the
+// snapshot loop) and broadcast to clients on the next tick. Fire-and-forget:
+// scripts run synchronously inside hooks, so we don't await DB writes here.
+function persist(scriptName: string, player: PlayerServer): void {
+  void updatePlayer(player).catch((e) =>
+    logger.error(`[script:${scriptName}] persist failed`, { err: e }),
+  );
+}
 
 type Cleanup = () => void;
 type TimerId = ReturnType<typeof setInterval>;
@@ -51,7 +61,10 @@ export function buildApi(
         existing.quantity += quantity;
       } else if (player.inventory.items.length < player.inventory.maxCapacity) {
         player.inventory.items.push({ item: itemId, quantity });
+      } else {
+        return;
       }
+      persist(scriptName, player);
     },
     removeItem: (player: PlayerServer, itemId: number, quantity = 1): void => {
       const slot = player.inventory.items.find((i) => i.item === itemId);
@@ -59,15 +72,18 @@ export function buildApi(
       slot.quantity -= quantity;
       if (slot.quantity <= 0)
         player.inventory.items = player.inventory.items.filter((i) => i.item !== itemId);
+      persist(scriptName, player);
     },
 
     // Health
     healPlayer: (player: PlayerServer): void => {
       player.health = player.maxHealth;
+      persist(scriptName, player);
     },
     killPlayer: (player: PlayerServer): void => {
       player.health = 0;
       respawnPlayer(player);
+      persist(scriptName, player);
     },
 
     // Teleport (same map or cross-map)
@@ -86,6 +102,7 @@ export function buildApi(
       player.moveTick = undefined;
       player.moveDurationTicks = undefined;
       updatePlayerMap(player.id, player, previousMapId);
+      persist(scriptName, player);
     },
 
     // Messaging

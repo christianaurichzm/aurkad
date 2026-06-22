@@ -5,6 +5,7 @@ import { runInSandbox, type ScriptHandle } from './sandbox.js';
 
 const SCRIPTS_DIR = path.join(process.cwd(), 'scripts');
 const handles = new Map<string, ScriptHandle>();
+let watcher: fs.FSWatcher | null = null;
 
 type TsTranspile = (code: string, filename: string) => string;
 let tsTranspile: TsTranspile | null = null;
@@ -66,7 +67,8 @@ function unloadFile(name: string): void {
 }
 
 const SCRIPT_EXT = ['.js', '.ts'];
-const isScriptFile = (f: string) => SCRIPT_EXT.some((ext) => f.endsWith(ext));
+const isScriptFile = (f: string) =>
+  !f.endsWith('.d.ts') && SCRIPT_EXT.some((ext) => f.endsWith(ext));
 
 export async function loadScripts(): Promise<void> {
   await initTsSupport();
@@ -87,7 +89,7 @@ export async function loadScripts(): Promise<void> {
   }
 
   // Hot reload: non-persistent watcher so it doesn't block process shutdown
-  const watcher = fs.watch(SCRIPTS_DIR, { persistent: false }, (event, filename) => {
+  watcher = fs.watch(SCRIPTS_DIR, { persistent: false }, (event, filename) => {
     if (!filename || !isScriptFile(filename)) return;
     const filePath = path.join(SCRIPTS_DIR, filename);
     if (fs.existsSync(filePath)) {
@@ -107,6 +109,8 @@ export async function loadScripts(): Promise<void> {
 }
 
 export function unloadAllScripts(): void {
+  watcher?.close();
+  watcher = null;
   for (const [, handle] of handles) handle.cleanup();
   handles.clear();
 }

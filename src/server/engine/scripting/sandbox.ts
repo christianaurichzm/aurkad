@@ -2,11 +2,19 @@ import vm from 'vm';
 import { logger } from '../../logger.js';
 import { buildApi } from './api.js';
 
-// Security note: vm.createContext provides ECMAScript-level isolation -
-// no process, require, Buffer, or Node globals leak in. For a fully
-// adversarial multi-tenant environment (strangers uploading scripts),
-// upgrade to isolated-vm or worker threads. For a self-hosted product
-// where the script author IS the server owner, this is sufficient.
+// TRUST MODEL: read before exposing this to untrusted code.
+//
+// This is trusted scripting, NOT a security sandbox. Bare Node globals
+// (process, require, Buffer) are not bound, but the API passes real host
+// objects (player, npc, map) in, and any of them is an easy escape:
+//
+//   player.constructor.constructor('return process')()
+//
+// returns the host realm's `process`, a known limit of node:vm with shared
+// objects. So only run scripts written by the server owner. Strangers
+// uploading scripts to shared infrastructure need isolated-vm or a worker
+// per tenant. The timeout below only guards init-time infinite loops, not
+// hook handlers at runtime.
 
 type Cleanup = () => void;
 type TimerId = ReturnType<typeof setInterval>;

@@ -19,6 +19,7 @@ import {
   Key,
   MapStateServer,
   PlayerServer,
+  Position,
   RuntimeNpc,
   Tile,
 } from '../../shared/types.js';

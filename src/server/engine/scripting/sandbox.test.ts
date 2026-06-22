@@ -10,44 +10,65 @@ beforeEach(() => {
   clearAll();
 });
 
-// Isolation
+// Trust model
+//
+// What the vm context does and does not guarantee: trusted scripting, not
+// a security sandbox (see sandbox.ts).
 
-describe('sandbox isolation', () => {
-  it('does not expose process', () => {
-    let threw = false;
-    runInSandbox(`
-      try { process.exit(0); } catch(e) { on('playerJoin', () => {}); }
-    `, 'test-isolation.js');
-    // If we reach here, process was not accessible
-    threw = true;
-    expect(threw).toBe(true);
-  });
+describe('vm context - bare Node globals are not bound', () => {
+  it('bare process is undefined inside a script', () => {
+    const sim = createFixture(0);
+    const player = sim.addPlayer({ name: 'Alice', health: 1, maxHealth: 100 });
 
-  it('does not expose require', () => {
+    // Script checks typeof process; if it were defined it would heal the player.
     const handle = runInSandbox(`
-      try {
-        require('fs');
-        on('playerJoin', () => {});
-      } catch(e) {
-        // expected - require not defined
-      }
-    `, 'test-require.js');
+      on('playerJoin', ({ player }) => {
+        if (typeof process !== 'undefined') healPlayer(player);
+      });
+    `, 'bare-process.js');
+
+    emit('playerJoin', { player });
+    expect(player.health).toBe(1); // not healed - process not bound
+
     handle.cleanup();
   });
 
-  it('does not expose global', () => {
-    const result: string[] = [];
-    emit('playerJoin', { player: null as any });
-    // If global were reachable, a script could register a handler via global.on
+  it('bare require is undefined inside a script', () => {
+    const sim = createFixture(0);
+    const player = sim.addPlayer({ name: 'Alice', health: 1, maxHealth: 100 });
+
     const handle = runInSandbox(`
-      try {
-        global.on('playerJoin', () => {});
-      } catch(e) {
-        // expected
-      }
-    `, 'test-global.js');
+      on('playerJoin', ({ player }) => {
+        if (typeof require !== 'undefined') healPlayer(player);
+      });
+    `, 'bare-require.js');
+
+    emit('playerJoin', { player });
+    expect(player.health).toBe(1); // not healed - require not bound
+
     handle.cleanup();
-    expect(result).toHaveLength(0);
+  });
+});
+
+describe('vm context - host objects ARE escapable (known trust boundary)', () => {
+  it('a host object reaches the host realm via constructor.constructor', () => {
+    const sim = createFixture(0);
+    const player = sim.addPlayer({ name: 'Alice', health: 1, maxHealth: 100 });
+
+    // The trust boundary: a passed-in host object reaches the host realm's
+    // Function and so `process`. The escape is asserted so the limit stays
+    // known; closing it (e.g. isolated-vm) means updating this test.
+    const handle = runInSandbox(`
+      on('playerJoin', ({ player }) => {
+        const proc = player.constructor.constructor('return process')();
+        if (proc && typeof proc.pid === 'number') healPlayer(player);
+      });
+    `, 'escape.js');
+
+    emit('playerJoin', { player });
+    expect(player.health).toBe(100); // escape succeeded - trusted model only
+
+    handle.cleanup();
   });
 });
 

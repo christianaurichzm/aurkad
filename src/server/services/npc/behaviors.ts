@@ -8,6 +8,7 @@ import {
   RuntimeNpc,
 } from '../../../shared/types.js';
 import { hasCollision } from '../physicsService.js';
+import { clampDamage } from '../combat/damage.js';
 import { respawnPlayer } from '../playerService.js';
 import { updatePlayer } from '../../gameData.js';
 import { queryEntitiesInRadius } from '../../spatial/spatialManager.js';
@@ -121,7 +122,7 @@ export function isPlayerInAttackRange(
 export function attackPlayer(npc: RuntimeNpc, player: PlayerServer) {
   const damageCtx = { value: npc.attack };
   emit('beforeDamage', { attacker: npc, target: player, damage: damageCtx });
-  player.health -= damageCtx.value;
+  player.health -= clampDamage(damageCtx.value);
   if (player.health <= 0) {
     emit('playerDeath', { player, killer: npc });
     respawnPlayer(player);

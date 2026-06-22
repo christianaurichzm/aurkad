@@ -11,6 +11,7 @@ import { getTick } from '../../sim/clock.js';
 import { randomChance } from '../../sim/rng.js';
 import { queryEntitiesInRadius } from '../../spatial/spatialManager.js';
 import { tryConsumeAttackCooldown } from './attackCooldown.js';
+import { clampDamage } from './damage.js';
 import { handleChatAction } from '../chatService.js';
 import { getItemById } from '../inventoryService.js';
 import { respawnNpc } from '../npc/index.js';
@@ -106,7 +107,7 @@ export const handleAttack = async (attacker: PlayerServer): Promise<void> => {
 
   const damageCtx = { value: attacker.attack };
   emit('beforeDamage', { attacker, target: attackTarget, damage: damageCtx });
-  attackTarget.health -= damageCtx.value;
+  attackTarget.health -= clampDamage(damageCtx.value);
 
   if (attackTarget.health > 0) return;
 

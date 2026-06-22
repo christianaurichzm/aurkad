@@ -23,6 +23,14 @@ const WarpSchema = new mongoose.Schema(
   { _id: false },
 );
 
+const TileActionSchema = new mongoose.Schema(
+  {
+    action: { type: String, required: true, enum: ['heal', 'kill', 'message'] },
+    text: String,
+  },
+  { _id: false },
+);
+
 const TileSchema = new mongoose.Schema(
   {
     tileIndex: { type: Number, required: true, min: 0 },
@@ -33,9 +41,7 @@ const TileSchema = new mongoose.Schema(
     shop: String,
     avoidNpc: Boolean,
     fringe: Boolean,
-    heal: Boolean,
-    death: Boolean,
-    warn: Boolean,
+    triggers: [TileActionSchema],
   },
   { _id: false },
 );
