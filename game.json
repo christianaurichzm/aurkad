@@ -34,6 +34,7 @@
     "quest": { "enabled": true },
     "guild": { "enabled": true, "config": { "maxMembers": 50 } },
     "magic": { "enabled": true },
-    "pk": { "enabled": true, "config": { "flagMinutes": 10 } }
+    "pk": { "enabled": true, "config": { "flagMinutes": 10 } },
+    "pet": { "enabled": true }
   }
 }

@@ -1,0 +1,13 @@
+{
+  "id": "pet",
+  "name": "Pet System",
+  "version": "1.0.0",
+  "server": "server.js",
+  "description": "Summon a pet that follows you and fights nearby enemies. /pet to toggle.",
+  "enabledByDefault": true,
+  "config": {
+    "attack": 5,
+    "aggroRadius": 120,
+    "moveEveryTicks": 25
+  }
+}
