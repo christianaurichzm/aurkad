@@ -1,0 +1,14 @@
+{
+  "id": "archery",
+  "name": "Archery",
+  "version": "1.0.0",
+  "server": "server.js",
+  "client": "client.js",
+  "description": "Ranged attack: press R to fire an arrow at the enemy you face.",
+  "enabledByDefault": true,
+  "config": {
+    "power": 8,
+    "rangeTiles": 6,
+    "cooldownMs": 600
+  }
+}

@@ -26,6 +26,7 @@ import {
   animate,
 } from './entityRendering';
 import { renderFloatingTexts } from './floatingText';
+import { renderProjectiles } from './projectiles';
 import { useUIStore } from '../stores/uiStore';
 
 let lastDrawnTiles: Tile[][] | null = null;
@@ -69,6 +70,7 @@ export const render = () => {
     }
 
     renderNpcs(map.npcs);
+    renderProjectiles(playerCtx);
 
     renderMapFringe(map.tiles);
     renderFloatingTexts(fringeCtx);

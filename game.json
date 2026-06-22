@@ -35,6 +35,7 @@
     "guild": { "enabled": true, "config": { "maxMembers": 50 } },
     "magic": { "enabled": true },
     "pk": { "enabled": true, "config": { "flagMinutes": 10 } },
-    "pet": { "enabled": true }
+    "pet": { "enabled": true },
+    "archery": { "enabled": true }
   }
 }
