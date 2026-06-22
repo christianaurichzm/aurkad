@@ -1,0 +1,57 @@
+import vm from 'vm';
+import { logger } from '../../logger.js';
+import { buildApi } from './api.js';
+
+// Security note: vm.createContext provides ECMAScript-level isolation -
+// no process, require, Buffer, or Node globals leak in. For a fully
+// adversarial multi-tenant environment (strangers uploading scripts),
+// upgrade to isolated-vm or worker threads. For a self-hosted product
+// where the script author IS the server owner, this is sufficient.
+
+type Cleanup = () => void;
+type TimerId = ReturnType<typeof setInterval>;
+
+export interface ScriptHandle {
+  cleanup: () => void;
+}
+
+const INIT_TIMEOUT_MS = 5_000;
+
+export function runInSandbox(code: string, filename: string): ScriptHandle {
+  const unsubs: Cleanup[] = [];
+  const timers: Set<TimerId> = new Set();
+
+  const trackUnsub = (fn: Cleanup) => unsubs.push(fn);
+  const trackTimer = (id: TimerId) => timers.add(id);
+
+  const api = buildApi(filename, trackUnsub, trackTimer);
+
+  // The VM context gets only our API. ECMAScript intrinsics (Math, JSON,
+  // Array, ...) come from the new V8 context, isolated from the main realm.
+  const ctx = vm.createContext({
+    ...api,
+    console: { log: api.log, warn: api.warn, error: api.error },
+  });
+
+  const cleanup = (): void => {
+    unsubs.forEach((fn) => fn());
+    timers.forEach((id) => clearInterval(id));
+    timers.clear();
+  };
+
+  try {
+    const script = new vm.Script(code, { filename });
+    script.runInContext(ctx, { timeout: INIT_TIMEOUT_MS });
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : String(e);
+    if (msg.includes('timed out') || msg.includes('Script execution timed out')) {
+      logger.error(`[scripting] Init timed out after ${INIT_TIMEOUT_MS}ms: ${filename}`);
+    } else {
+      logger.error(`[scripting] Runtime error in ${filename}`, { err: e });
+    }
+    cleanup();
+    return { cleanup: () => {} };
+  }
+
+  return { cleanup };
+}

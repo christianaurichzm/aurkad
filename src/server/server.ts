@@ -37,6 +37,7 @@ import { persistPlayerSessionState } from './services/playerService.js';
 import { startPlayerSnapshotLoop } from './persistence/playerSnapshot.js';
 import { logger } from './logger.js';
 import { startAdminRepl } from './admin/repl.js';
+import { loadScripts, unloadAllScripts } from './engine/scripting/index.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -69,6 +70,7 @@ async function startServer() {
   try {
     await connectToDatabase();
     await loadInitialData();
+    await loadScripts();
     startWebSocketServer(server, sessionMiddleware);
     stopGameLoops = startGameLoops();
     stopSnapshots = startPlayerSnapshotLoop();
@@ -99,6 +101,7 @@ async function shutdown(signal: string) {
 
   stopGameLoops?.();
   stopSnapshots?.();
+  unloadAllScripts();
   markServerShuttingDown();
 
   const httpClose = new Promise<void>((resolve) => {
