@@ -1,6 +1,6 @@
 import type { ChatScope, KeyboardAction } from '../../shared/types.js';
 
-export type ClientActionType = 'keyboard' | 'item' | 'chat';
+export type ClientActionType = 'keyboard' | 'item' | 'chat' | 'custom';
 
 export interface ClientActionBase {
   username: string;
@@ -26,6 +26,12 @@ export interface ClientChatAction extends ClientActionBase {
   message: string;
 }
 
+export interface ClientCustomAction extends ClientActionBase {
+  type: 'custom';
+  channel: string;
+  payload?: unknown;
+}
+
 export enum ServerActionType {
   UpdateNpcPositions = 'UpdateNpcPositions',
   RegeneratePlayersHP = 'RegeneratePlayersHP',
@@ -39,4 +45,5 @@ export type ActionQueueItem =
   | ClientKeyboardAction
   | ClientItemAction
   | ClientChatAction
+  | ClientCustomAction
   | ServerAction;

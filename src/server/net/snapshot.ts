@@ -199,8 +199,44 @@ export function flushGameEvents() {
         }
         break;
       }
+      case 'customPlayer': {
+        const ws = playersWsMap.get(event.username);
+        if (ws?.readyState === WebSocket.OPEN) {
+          ws.send(
+            JSON.stringify({
+              type: 'custom',
+              channel: event.channel,
+              payload: event.payload,
+            }),
+          );
+        }
+        break;
+      }
+      case 'customMap':
+        sendCustomToMap(event.mapId, event.channel, event.payload);
+        break;
+      case 'customAll':
+        broadcastCustom(event.channel, event.payload);
+        break;
     }
   }
+}
+
+function broadcastCustom(channel: string, payload: unknown) {
+  const data = JSON.stringify({ type: 'custom', channel, payload });
+  playersWsMap.forEach((ws) => {
+    if (ws.readyState === WebSocket.OPEN) ws.send(data);
+  });
+}
+
+function sendCustomToMap(mapId: string, channel: string, payload: unknown) {
+  const map = getMap(mapId);
+  if (!map) return;
+  const data = JSON.stringify({ type: 'custom', channel, payload });
+  Object.values(map.players).forEach((player) => {
+    const ws = playersWsMap.get(player.name);
+    if (ws?.readyState === WebSocket.OPEN) ws.send(data);
+  });
 }
 
 export { broadcastGameState as broadcast };

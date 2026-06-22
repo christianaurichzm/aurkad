@@ -12,6 +12,11 @@ import {
   kvKeys,
   kvEntries,
 } from '../../persistence/kvStore.js';
+import {
+  sendCustomEvent,
+  sendMapCustomEvent,
+  broadcastCustomEvent,
+} from '../../services/customEventService.js';
 import { TILE_SIZE } from '../../../shared/constants.js';
 import { CharacterAction } from '../../../shared/types.js';
 import { logger } from '../../logger.js';
@@ -144,6 +149,15 @@ export function buildApi(
     broadcastMessage: (message: string): void => {
       handleChatAction({ type: 'chat', scope: 'global', message });
     },
+
+    // Custom network events (server -> client); pair with on('customAction')
+    // for client -> server. `channel` and `payload` are game-defined.
+    sendEvent: (player: PlayerServer, channel: string, payload?: unknown): void =>
+      sendCustomEvent(player, String(channel), payload),
+    sendMapEvent: (mapId: string, channel: string, payload?: unknown): void =>
+      sendMapCustomEvent(String(mapId), String(channel), payload),
+    broadcastEvent: (channel: string, payload?: unknown): void =>
+      broadcastCustomEvent(String(channel), payload),
 
     // Timers (auto-cleaned on script reload / unload)
     setTimeout: (fn: () => void, ms: number): void => {

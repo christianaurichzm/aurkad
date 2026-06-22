@@ -15,9 +15,15 @@
 //   getPlayerData(player, key)  - read custom per-player data
 //   setPlayerData(player, key, value) - write custom per-player data (persisted)
 //   store.get/set/delete/keys/entries(scope, ...) - shared persistent store
+//   sendEvent(player, channel, payload)     - custom event to one client
+//   sendMapEvent(mapId, channel, payload)   - custom event to a map
+//   broadcastEvent(channel, payload)        - custom event to all clients
 //   setTimeout(fn, ms)
 //   setInterval(fn, ms)
 //   log(...args)
+//
+// Client code subscribes with onServerEvent(channel, handler) and sends with
+// sendServerEvent(channel, payload) (handled here via on('customAction', ...)).
 //
 // Events: playerJoin, playerLeave, playerDeath, playerLevelUp,
 //         npcDeath, tileEnter, itemUse, itemPickup, chatMessage,
@@ -56,6 +62,15 @@ on('npcDeath', ({ npc, killer }) => {
 //   const kills = (store.get('leaderboard', killer.name) ?? 0) + 1;
 //   store.set('leaderboard', killer.name, kills);
 //   if (kills === 100) broadcastMessage(`${killer.name} reached 100 kills!`);
+// });
+
+// Custom events: client asks for its kill count, server replies on a channel.
+// (client: sendServerEvent('stats:request'); onServerEvent('stats:reply', ...))
+//
+// on('customAction', ({ player, channel }) => {
+//   if (channel !== 'stats:request') return;
+//   const kills = store.get('leaderboard', player.name) ?? 0;
+//   sendEvent(player, 'stats:reply', { kills });
 // });
 
 // Uncomment to enable double damage on weekends:

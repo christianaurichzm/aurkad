@@ -3,6 +3,7 @@ import { hideConnectionStatus, showConnectionStatus } from '../../graphics/hud';
 import { useUIStore } from '../../stores/uiStore';
 import { enqueueGameStateMessage } from './sync/gameStateSync';
 import { enqueueChatMessage, setChatSocketSender } from './sync/chatSync';
+import { dispatchServerEvent } from './customEvents';
 
 const clientWsProtocol = window.location.protocol === 'https:' ? 'wss' : 'ws';
 const clientHost = window.location.host;
@@ -72,6 +73,11 @@ export const initializeWebSocket = () => {
             window.dispatchEvent(
               new CustomEvent<string>('open-shop', { detail: data.shopId }),
             );
+          }
+          break;
+        case 'custom':
+          if (typeof data.channel === 'string') {
+            dispatchServerEvent(data.channel, data.payload);
           }
           break;
         case 'mapStatic':

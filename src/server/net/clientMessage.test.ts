@@ -135,6 +135,38 @@ describe('ClientMessageSchema', () => {
     });
   });
 
+  describe('custom messages', () => {
+    it('accepts a custom message with channel and payload', () => {
+      const result = ClientMessageSchema.safeParse({
+        type: 'custom',
+        channel: 'guild:invite',
+        payload: { target: 'Bob' },
+      });
+      expect(result.success).toBe(true);
+    });
+
+    it('accepts a custom message without payload', () => {
+      const result = ClientMessageSchema.safeParse({
+        type: 'custom',
+        channel: 'ping',
+      });
+      expect(result.success).toBe(true);
+    });
+
+    it('rejects an empty channel', () => {
+      const result = ClientMessageSchema.safeParse({ type: 'custom', channel: '' });
+      expect(result.success).toBe(false);
+    });
+
+    it('rejects an over-long channel', () => {
+      const result = ClientMessageSchema.safeParse({
+        type: 'custom',
+        channel: 'c'.repeat(65),
+      });
+      expect(result.success).toBe(false);
+    });
+  });
+
   it('rejects an unknown message type', () => {
     const result = ClientMessageSchema.safeParse({ type: 'unknown' });
     expect(result.success).toBe(false);

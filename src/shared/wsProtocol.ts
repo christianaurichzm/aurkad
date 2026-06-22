@@ -27,10 +27,19 @@ export interface WsClientChatMessage {
   message: string;
 }
 
+// Game-defined message from a script/module's client code to its server code.
+// `channel` namespaces it; `payload` is opaque to the engine.
+export interface WsClientCustomMessage {
+  type: 'custom';
+  channel: string;
+  payload?: unknown;
+}
+
 export type WsClientMessage =
   | WsClientKeyboardMessage
   | WsClientItemMessage
-  | WsClientChatMessage;
+  | WsClientChatMessage
+  | WsClientCustomMessage;
 
 export interface FullGameStatePayload {
   map: MapDynamicClient;
@@ -75,10 +84,18 @@ export interface WsServerOpenShopMessage {
   shopId: string;
 }
 
+// Game-defined message from a script/module's server code to its client code.
+export interface WsServerCustomMessage {
+  type: 'custom';
+  channel: string;
+  payload?: unknown;
+}
+
 export type WsServerMessage =
   | WsServerChatMessage
   | WsServerKickMessage
   | WsServerOpenShopMessage
+  | WsServerCustomMessage
   | WsServerMapStaticMessage
   | WsServerPlayerStatsMessage
   | WsServerFullGameStateMessage

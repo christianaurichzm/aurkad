@@ -5,6 +5,7 @@ import { logger } from '../logger.js';
 import {
   ActionQueueItem,
   ClientChatAction,
+  ClientCustomAction,
   ClientItemAction,
   ClientKeyboardAction,
   ServerAction,
@@ -20,6 +21,7 @@ import {
   getGameState,
 } from '../services/gameService.js';
 import { handleItemAction } from '../services/inventoryService.js';
+import { handleCustomAction } from '../services/customEventService.js';
 import { updateNpcs } from '../services/npc/index.js';
 import { gameConfig } from '../gameConfig.js';
 import { playersWsMap } from './connections.js';
@@ -127,7 +129,11 @@ function enqueueAction(action: ActionQueueItem) {
 
 function isClientAction(
   action: ActionQueueItem,
-): action is ClientKeyboardAction | ClientItemAction | ClientChatAction {
+): action is
+  | ClientKeyboardAction
+  | ClientItemAction
+  | ClientChatAction
+  | ClientCustomAction {
   return 'username' in action;
 }
 
@@ -176,6 +182,8 @@ export function processActions() {
           handleItemAction(action);
         } else if (action.type === 'chat') {
           handleChatAction(action);
+        } else if (action.type === 'custom') {
+          handleCustomAction(action);
         }
       } else if (isServerAction(action)) {
         handleServerAction(action);

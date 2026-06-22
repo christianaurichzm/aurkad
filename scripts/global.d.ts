@@ -111,6 +111,8 @@ interface HookPayloads {
   itemPickup:    { player: PlayerServer; itemId: number; quantity: number };
   chatMessage:   { player: PlayerServer; scope: ChatScope; message: string };
   beforeDamage:  { attacker: CombatTarget; target: CombatTarget; damage: { value: number } };
+  /** A custom message from client code. The payload is untrusted input. */
+  customAction:  { player: PlayerServer; channel: string; payload: unknown };
 }
 
 type HookEvent = keyof HookPayloads;
@@ -174,6 +176,18 @@ declare function sendMessage(player: PlayerServer, message: string): void;
 
 /** Send a message to all online players. */
 declare function broadcastMessage(message: string): void;
+
+/**
+ * Sends a custom event to one player's client code. The channel and
+ * payload are yours.
+ */
+declare function sendEvent(player: PlayerServer, channel: string, payload?: unknown): void;
+
+/** Send a custom event to every client on a map. */
+declare function sendMapEvent(mapId: string, channel: string, payload?: unknown): void;
+
+/** Send a custom event to all connected clients. */
+declare function broadcastEvent(channel: string, payload?: unknown): void;
 
 /** Runs a callback once after `ms` milliseconds; cancelled on reload. */
 declare function setTimeout(callback: () => void, ms: number): void;

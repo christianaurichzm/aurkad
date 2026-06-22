@@ -24,4 +24,21 @@ export type GameEvent =
       type: 'chatPlayer';
       username: string;
       payload: ChatMessagePayload;
+    }
+  | {
+      type: 'customPlayer';
+      username: string;
+      channel: string;
+      payload: unknown;
+    }
+  | {
+      type: 'customMap';
+      mapId: string;
+      channel: string;
+      payload: unknown;
+    }
+  | {
+      type: 'customAll';
+      channel: string;
+      payload: unknown;
     };

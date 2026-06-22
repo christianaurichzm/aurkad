@@ -6,10 +6,13 @@ import { Direction, Key } from '../../../shared/types.js';
 import { msToTicks } from '../../sim/clock.js';
 import { levelUpPlayer } from '../../services/playerService.js';
 import { kvGet, clearKvStoreMemory } from '../../persistence/kvStore.js';
+import { handleCustomAction } from '../../services/customEventService.js';
+import { drainGameEvents } from '../eventBus.js';
 
 beforeEach(() => {
   clearAll();
   clearKvStoreMemory();
+  drainGameEvents();
 });
 
 // Trust model
@@ -409,5 +412,32 @@ describe('scoped KV store', () => {
 
     writer.cleanup();
     reader.cleanup();
+  });
+});
+
+describe('custom network events (full loop through a script)', () => {
+  it('receives a client custom action and replies with sendEvent', () => {
+    const sim = createFixture(0);
+    sim.addPlayer({ name: 'Alice' });
+
+    // Script: on a client "ping" action, reply to that player on "pong".
+    const handle = runInSandbox(`
+      on('customAction', ({ player, channel, payload }) => {
+        if (channel === 'ping') sendEvent(player, 'pong', { echo: payload });
+      });
+    `, 'ping-pong.js');
+
+    handleCustomAction({
+      type: 'custom',
+      username: 'Alice',
+      channel: 'ping',
+      payload: 42,
+    });
+
+    expect(drainGameEvents()).toEqual([
+      { type: 'customPlayer', username: 'Alice', channel: 'pong', payload: { echo: 42 } },
+    ]);
+
+    handle.cleanup();
   });
 });
