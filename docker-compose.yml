@@ -13,5 +13,28 @@ services:
       timeout: 5s
       retries: 5
 
+  app:
+    build: .
+    container_name: engine-app
+    restart: unless-stopped
+    depends_on:
+      mongo:
+        condition: service_healthy
+    ports:
+      - '8080:8080'
+    environment:
+      NODE_ENV: production
+      PORT: '8080'
+      MONGO_URI: mongodb://mongo:27017/game
+      ASSETS_PATH: /app/assets
+      SESSION_SECRET: ${SESSION_SECRET:?set SESSION_SECRET in .env}
+      BOOTSTRAP_ADMIN_USERNAME: ${BOOTSTRAP_ADMIN_USERNAME:-}
+    volumes:
+      # Creators edit these on the host - no image rebuild needed.
+      # scripts/ hot-reloads; game.json applies on restart.
+      - ./game.json:/app/game.json:ro
+      - ./scripts:/app/scripts:ro
+      - ./assets:/app/assets:ro
+
 volumes:
   mongo-data:

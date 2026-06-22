@@ -1,0 +1,14 @@
+node_modules
+dist
+.git
+.gitignore
+*.log
+logs
+coverage
+.env
+.env.*
+assets
+REFACTOR_PLAN.md
+.vscode
+.idea
+*.md
