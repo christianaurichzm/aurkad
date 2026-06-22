@@ -16,7 +16,7 @@ function spawnPet(player) {
     row,
     name: player.name + "'s Pet",
     maxHealth: 40,
-    behavior: 'neutral', // the AI leaves it alone; this module drives it
+    behavior: 'friendly', // passive AI (this module drives it); renders green
   });
   if (pet) pets[player.name] = pet;
   return pet;

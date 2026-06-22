@@ -1,19 +1,30 @@
-// Registry of action-menu buttons contributed by client modules (engine.ui
-// .actionButton). The core ActionPanel subscribes and renders one button each,
-// so module panels open like the built-in ones instead of being always on.
+// Action-menu buttons added by client modules (engine.ui.actionButton). The
+// core ActionPanel renders one button each, so module panels open like the
+// built-in ones. An optional hotkey shows as a badge and is bound here.
 
 export interface ModuleAction {
   id: string;
   label: string;
   onClick: () => void;
+  key?: string; // lowercase single char, shown as a badge and bound as a hotkey
 }
 
 const actions: ModuleAction[] = [];
 const listeners = new Set<() => void>();
 let seq = 0;
 
-export function registerModuleAction(label: string, onClick: () => void): void {
-  actions.push({ id: `module-action-${seq++}`, label, onClick });
+export function registerModuleAction(
+  label: string,
+  onClick: () => void,
+  key?: string,
+): void {
+  actions.push({
+    id: `module-action-${seq++}`,
+    label,
+    onClick,
+    key: key?.toLowerCase(),
+  });
+  ensureHotkeyListener();
   listeners.forEach((l) => l());
 }
 
@@ -24,4 +35,21 @@ export function getModuleActions(): ModuleAction[] {
 export function subscribeModuleActions(listener: () => void): () => void {
   listeners.add(listener);
   return () => listeners.delete(listener);
+}
+
+// One global keydown that toggles a module panel when its hotkey is pressed -
+// ignored while typing or with modifiers held, mirroring the core panel keys.
+let hotkeyListenerInstalled = false;
+function ensureHotkeyListener(): void {
+  if (hotkeyListenerInstalled) return;
+  hotkeyListenerInstalled = true;
+  window.addEventListener('keydown', (e) => {
+    if (e.repeat || e.ctrlKey || e.altKey || e.metaKey) return;
+    const a = document.activeElement;
+    if (a && (a.tagName === 'INPUT' || a.tagName === 'TEXTAREA')) return;
+    const action = actions.find((x) => x.key && x.key === e.key.toLowerCase());
+    if (!action) return;
+    e.preventDefault();
+    action.onClick();
+  });
 }

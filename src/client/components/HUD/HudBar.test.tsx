@@ -119,6 +119,20 @@ describe('HudBar Component', () => {
     expect(text).toBeInTheDocument();
   });
 
+  it('should render the xp bar with current/max experience', () => {
+    useUIStore.setState({
+      playerHealth: { current: 100, max: 100, level: 3 },
+      playerXp: { current: 40, max: 160 },
+    });
+
+    render(<HudBar />);
+
+    expect(screen.getByText('XP 40/160')).toBeInTheDocument();
+    const xpBar = document.getElementById('xp-bar');
+    expect(xpBar).toBeInTheDocument();
+    expect(xpBar).toHaveStyle({ width: '25%' });
+  });
+
   it('should render health bar element with correct id', () => {
     render(<HudBar />);
 

@@ -5,7 +5,8 @@ import type { PlayerServer } from '../../shared/types.js';
 
 // Command registry: game/module scripts register named commands that the engine
 // routes from BOTH in-game chat (/name args) and the terminal REPL (name args).
-// The engine enforces the access level for chat; the REPL operator bypasses it.
+// Chat enforces the access level AND an optional canRun predicate (e.g. a VIP
+// flag that isn't an access tier); the REPL operator bypasses both.
 
 export interface CommandContext {
   // Present when invoked from chat; absent when invoked from the REPL.
@@ -18,12 +19,17 @@ export interface CommandContext {
 export interface CommandOptions {
   access?: Access; // minimum access for CHAT invocation (REPL bypasses)
   description?: string;
+  // Extra gate for chat, on top of access (the REPL bypasses it), for player
+  // state that is not an access tier, e.g. a VIP flag:
+  // canRun: (p) => getPlayerData(p, 'vip') === true.
+  canRun?: (player: PlayerServer) => boolean;
 }
 
 interface CommandDef {
   name: string;
   access: number;
   description: string;
+  canRun?: (player: PlayerServer) => boolean;
   handler: (ctx: CommandContext) => void;
 }
 
@@ -39,6 +45,7 @@ export function registerCommand(
     name: key,
     access: options.access ?? Access.USER,
     description: options.description ?? '',
+    canRun: options.canRun,
     handler,
   });
   return () => {
@@ -87,7 +94,10 @@ export function handleChatCommand(player: PlayerServer, message: string): boolea
     reply(`Unknown command: /${name}`);
     return true;
   }
-  if ((player.access ?? 0) < cmd.access) {
+  if (
+    (player.access ?? 0) < cmd.access ||
+    (cmd.canRun && !cmd.canRun(player))
+  ) {
     reply(`You don't have permission to use /${name}.`);
     return true;
   }

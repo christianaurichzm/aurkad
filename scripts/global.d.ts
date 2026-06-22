@@ -349,6 +349,12 @@ interface CommandOptions {
   /** Minimum access for chat use (REPL bypasses). Defaults to everyone. */
   access?: number;
   description?: string;
+  /**
+   * Extra gate for chat use, checked on top of `access` (the REPL bypasses
+   * it). For permissions that aren't an access tier, e.g. a VIP flag:
+   * `canRun: (p) => getPlayerData(p, 'vip') === true`.
+   */
+  canRun?(player: PlayerServer): boolean;
 }
 
 /**

@@ -67,6 +67,31 @@ describe('chat dispatch', () => {
     expect(lastReplyTo()).toMatch(/permission/i);
   });
 
+  it('runs a canRun-gated command for a player that passes the predicate', () => {
+    const sim = createFixture(0);
+    const vip = sim.addPlayer({ name: 'Vip', data: { vip: true } });
+    let ran = false;
+    registerCommand('vipheal', { canRun: (p) => p.data?.vip === true }, () => {
+      ran = true;
+    });
+
+    expect(handleChatCommand(vip, '/vipheal')).toBe(true);
+    expect(ran).toBe(true);
+  });
+
+  it('denies a canRun-gated command when the predicate fails, even at full access', () => {
+    const sim = createFixture(0);
+    const admin = sim.addPlayer({ name: 'Admin', access: Access.ADMIN });
+    let ran = false;
+    registerCommand('vipheal', { canRun: (p) => p.data?.vip === true }, () => {
+      ran = true;
+    });
+
+    expect(handleChatCommand(admin, '/vipheal')).toBe(true);
+    expect(ran).toBe(false);
+    expect(lastReplyTo()).toMatch(/permission/i);
+  });
+
   it('replies "unknown" for an unregistered command but still consumes it', () => {
     const sim = createFixture(0);
     const p = sim.addPlayer({ name: 'P' });

@@ -131,9 +131,11 @@ function makeUi(container: HTMLElement) {
     row: (...c: Node[]) => flex('row', ...c),
     column: (...c: Node[]) => flex('column', ...c),
     panel,
-    // Add a button to the in-game Actions menu (e.g. to toggle a panel).
-    actionButton: (label: string, onClick: () => void) =>
-      registerModuleAction(label, onClick),
+    // A button in the in-game Actions menu, e.g. to toggle a panel. A
+    // one-char hotkey adds a key badge and global shortcut like the built-ins
+    // ("I" for Inventory).
+    actionButton: (label: string, onClick: () => void, key?: string) =>
+      registerModuleAction(label, onClick, key),
   };
 }
 

@@ -4,7 +4,7 @@
 
 const ui = engine.ui;
 const panel = ui.panel({ title: 'Guild' });
-ui.actionButton('Guild', () => panel.toggle());
+ui.actionButton('Guild', () => panel.toggle(), 'g'); // G opens/closes
 
 function renderForm() {
   const name = ui.input('Guild name');

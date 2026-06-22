@@ -17,6 +17,11 @@ interface PlayerHealthState {
   level?: number;
 }
 
+interface PlayerXpState {
+  current: number;
+  max: number;
+}
+
 interface ChatState {
   messages: ChatMessagePayload[];
   inputValue: string;
@@ -55,6 +60,9 @@ interface UIState {
 
   playerHealth: PlayerHealthState;
   setPlayerHealth: (current: number, max: number, level?: number) => void;
+
+  playerXp: PlayerXpState;
+  setPlayerXp: (current: number, max: number) => void;
 
   currentMap: MapState | null;
   setCurrentMap: (map: MapStateClient) => void;
@@ -108,6 +116,12 @@ export const useUIStore = create<UIState>((set) => ({
         level: level ?? state.playerHealth.level,
       },
     })),
+
+  playerXp: {
+    current: 0,
+    max: 100,
+  },
+  setPlayerXp: (current, max) => set({ playerXp: { current, max } }),
 
   currentMap: null,
   setCurrentMap: (map) =>

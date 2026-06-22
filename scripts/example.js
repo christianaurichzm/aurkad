@@ -97,10 +97,13 @@ on('npcInteract', ({ player, npc }) => {
 //   if (npc.name === 'Goblin') quest.advance(killer, 'goblinHunt', 1);
 // });
 
-// VIP, a complete example: grant it with a command, then react to it.
-// Run from in-game chat as "/vip Bob" (admins only) or from the terminal
-// REPL as "vip Bob" (operator always allowed).
+// VIP, a complete example: grant the flag, gate a command behind it, react
+// to it. VIP is a per-player flag, not an access tier: canRun lets VIPs run
+// a command normal players can't, without making them moderators.
 //
+// const isVip = (p) => getPlayerData(p, 'vip') === true;
+//
+// // Admins grant VIP. Chat: "/vip Bob"; REPL: "vip Bob" (operator always passes).
 // command('vip', { access: Access.ADMIN, description: 'Grant VIP to a player' }, ({ args, reply }) => {
 //   const target = getPlayer(args[0]);
 //   if (!target) return reply('Usage: vip <player>');
@@ -109,12 +112,19 @@ on('npcInteract', ({ player, npc }) => {
 //   reply(`${target.name} is now VIP.`);
 // });
 //
+// // A VIP-only command: any access level, but canRun gates it to the flag.
+// command('vipheal', { canRun: isVip, description: 'VIP perk: heal yourself' }, ({ player, reply }) => {
+//   if (!player) return reply('In-game only.');
+//   healPlayer(player);
+//   reply('VIP heal - full health.');
+// });
+//
 // // Perks: keep the gold name on reconnect, and double all XP.
 // on('playerJoin', ({ player }) => {
-//   if (getPlayerData(player, 'vip')) setNameColor(player, 'gold');
+//   if (isVip(player)) setNameColor(player, 'gold');
 // });
 // on('beforeXpGain', (ctx) => {
-//   if (getPlayerData(ctx.player, 'vip')) ctx.amount *= 2;
+//   if (isVip(ctx.player)) ctx.amount *= 2;
 // });
 
 // Tiny kill leaderboard using the shared store (scope "leaderboard"):

@@ -1,7 +1,10 @@
 import { RuntimeNpc, Player, PlayerPublic } from '../../shared/types';
 import { TILE_SIZE } from '../../shared/constants';
 import { playerCtx } from './canvas';
-import { playerNameColorRecord } from '../../shared/mappings';
+import {
+  playerNameColorRecord,
+  npcBehaviorColorRecord,
+} from '../../shared/mappings';
 import { useUIStore } from '../stores/uiStore';
 import { renderSpeechBubble } from './speechBubble';
 
@@ -12,23 +15,27 @@ export const renderHUD = (player: Player | PlayerPublic) => {
   const { name, level, position, access, nameColor, nameTag } = player;
   const { x, y } = position;
   const text = getPlayerHudText(name, level);
+  const cx = x + TILE_SIZE / 2; // sprite center: names are centered over it
 
   playerCtx.strokeStyle = 'black';
+  playerCtx.textAlign = 'center';
 
   if (nameTag) {
     playerCtx.font = 'bold 11px Arial';
     playerCtx.fillStyle = '#ffd24d';
-    playerCtx.strokeText(nameTag, x, y - 15);
-    playerCtx.fillText(nameTag, x, y - 15);
+    playerCtx.strokeText(nameTag, cx, y - 15);
+    playerCtx.fillText(nameTag, cx, y - 15);
   }
 
   playerCtx.font = 'bold 14px Arial';
   playerCtx.fillStyle = nameColor ?? playerNameColorRecord[access];
 
-  playerCtx.strokeText(text, x, y);
-  playerCtx.fillText(text, x, y);
+  playerCtx.strokeText(text, cx, y);
+  playerCtx.fillText(text, cx, y);
 
-  renderSpeechBubble(playerCtx, name, x + TILE_SIZE / 2, y - 2);
+  playerCtx.textAlign = 'left';
+
+  renderSpeechBubble(playerCtx, name, cx, y - 2);
 };
 
 export function getHealthBarInfo(current: number, max: number) {
@@ -49,9 +56,26 @@ export function getHealthBarInfo(current: number, max: number) {
 }
 
 export const updatePlayerHealthBar = (player: Player) => {
-  useUIStore
-    .getState()
-    .setPlayerHealth(player.health, player.maxHealth, player.level);
+  const ui = useUIStore.getState();
+  ui.setPlayerHealth(player.health, player.maxHealth, player.level);
+  ui.setPlayerXp(player.experience, player.experienceToNextLevel);
+};
+
+// The npc's name above its sprite, tinted by behavior and smaller than
+// player names, above the health bar for npcs that have one (aggressive),
+// otherwise at the sprite top.
+export const renderNpcLabel = (npc: RuntimeNpc, hasHealthBar: boolean) => {
+  if (!npc.name) return;
+  const cx = npc.position.x + TILE_SIZE / 2; // centered over the sprite
+  const y = hasHealthBar ? npc.position.y - 18 : npc.position.y;
+
+  playerCtx.font = 'bold 11px Arial';
+  playerCtx.fillStyle = npcBehaviorColorRecord[npc.behavior] ?? '#e5e7eb';
+  playerCtx.strokeStyle = 'black';
+  playerCtx.textAlign = 'center';
+  playerCtx.strokeText(npc.name, cx, y);
+  playerCtx.fillText(npc.name, cx, y);
+  playerCtx.textAlign = 'left';
 };
 
 export const renderHealthBar = (npc: RuntimeNpc) => {

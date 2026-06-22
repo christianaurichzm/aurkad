@@ -146,6 +146,9 @@ export const ActionPanel: React.FC = () => {
             onClick={action.onClick}
             title={`Open ${action.label}`}
           >
+            {action.key && (
+              <span className="action-key">{action.key.toUpperCase()}</span>
+            )}
             <span>{action.label}</span>
           </button>
         ))}

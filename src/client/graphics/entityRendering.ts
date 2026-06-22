@@ -13,7 +13,7 @@ import {
 import { playerActionToActionColumnRecord } from '../../shared/mappings';
 import { drawSprite } from './spriteDrawing';
 import { renderItemIcon } from './itemDrawing';
-import { renderHUD, renderHealthBar } from './hud';
+import { renderHUD, renderHealthBar, renderNpcLabel } from './hud';
 import { itemCtx } from './canvas';
 import { getAnimatedState } from './movementAnimation';
 
@@ -88,9 +88,11 @@ export const renderNpcs = (npcs: RuntimeNpcsMap) => {
     if (npc.health > 0) {
       const smoothed = animate(npc);
       renderEntity(smoothed);
-      if (npc.behavior === 'aggressive') {
+      const hasHealthBar = npc.behavior === 'aggressive';
+      if (hasHealthBar) {
         renderHealthBar(smoothed);
       }
+      renderNpcLabel(smoothed, hasHealthBar);
     }
   });
 };

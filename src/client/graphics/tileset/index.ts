@@ -11,7 +11,7 @@ import {
 import { TILE_SIZE } from '../../../shared/constants';
 import { MapType, Tile, TileAction, TileEditMode } from '../../../shared/types';
 import { tileset, tilesetAlpha } from '../../io/assets';
-import { saveMap } from '../../io/network';
+import { saveMap, fetchNpcs } from '../../io/network';
 import { foregroundCanvas, foregroundCtx, fringeCtx } from '../canvas';
 import { useUIStore } from '../../stores/uiStore';
 
@@ -40,6 +40,7 @@ export const initTilesetEditor = () => {
   tilesetCtx.drawImage(tileset, 0, 0);
   setupEventListeners();
   initializeGrid();
+  void loadEditorNpcNames();
   tilesetEditorInitialized = true;
   mapWidth = Math.floor(foregroundCanvas.width / TILE_SIZE);
   mapHeight = Math.floor(foregroundCanvas.height / TILE_SIZE);
@@ -54,6 +55,24 @@ let mapHeight: number;
 let originalMap: Tile[][] = [];
 let map: Tile[][] = [];
 let hoveredCell: { row: number; col: number } | null = null;
+
+// NPC id -> name, so spawn tiles can show which NPC they place (not just "N").
+let npcNameById: Record<string, string> = {};
+
+// Load NPC names once so spawn markers are legible, then repaint the overlay.
+export const loadEditorNpcNames = async () => {
+  try {
+    const npcs = await fetchNpcs();
+    npcNameById = Object.fromEntries(npcs.map((n) => [String(n.id), n.name]));
+  } catch {
+    return; // names are a nicety; the "N" marker still shows without them
+  }
+  if (gridCtx && map.length) {
+    clearAndDrawGrid();
+    drawMarkers(map);
+    drawHoverCell();
+  }
+};
 
 function toggleTrigger(tile: Tile, action: TileAction['action'], text?: string) {
   const triggers = tile.triggers ?? [];
@@ -420,7 +439,10 @@ const drawMarkers = (tiles: Tile[][]) => {
     row.forEach((tile, colIndex) => {
       if (tile.blocked) drawMarker(colIndex, rowIndex, 'B', 'red');
       if (tile.warp) drawMarker(colIndex, rowIndex, 'W', 'blue');
-      if (tile.npcSpawn) drawMarker(colIndex, rowIndex, 'N', 'yellow');
+      if (tile.npcSpawn) {
+        drawMarker(colIndex, rowIndex, 'N', 'yellow');
+        drawNpcSpawnName(colIndex, rowIndex, tile.npcSpawn);
+      }
       if (tile.item) drawMarker(colIndex, rowIndex, 'I', 'orange');
       if (tile.shop) drawMarker(colIndex, rowIndex, 'S', 'green');
       if (tile.avoidNpc) drawMarker(colIndex, rowIndex, 'A', 'purple');
@@ -436,6 +458,24 @@ const drawMarker = (col: number, row: number, text: string, color: string) => {
   gridCtx.fillStyle = color;
   gridCtx.font = '40px Arial';
   gridCtx.fillText(text, col * TILE_SIZE + 20, row * TILE_SIZE + 35);
+};
+
+// The NPC's name (or "#id" if not loaded yet) at the bottom of a spawn tile, so
+// you can tell which NPC the "N" marker places.
+const drawNpcSpawnName = (col: number, row: number, npcId: string) => {
+  if (!gridCtx) return;
+  const label = npcNameById[npcId] ?? `#${npcId}`;
+  gridCtx.font = 'bold 12px Arial';
+  gridCtx.textAlign = 'center';
+  gridCtx.lineWidth = 3;
+  gridCtx.strokeStyle = 'black';
+  gridCtx.fillStyle = 'yellow';
+  const x = col * TILE_SIZE + TILE_SIZE / 2;
+  const y = row * TILE_SIZE + TILE_SIZE - 6;
+  gridCtx.strokeText(label, x, y);
+  gridCtx.fillText(label, x, y);
+  gridCtx.textAlign = 'left';
+  gridCtx.lineWidth = 1;
 };
 
 export const saveCurrentMap = async (name: string, type: MapType) => {
