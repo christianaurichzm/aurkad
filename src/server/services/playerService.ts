@@ -88,6 +88,7 @@ export const createPlayer = async (
     access: isAdmin ? Access.ADMIN : Access.USER,
     direction: Direction.Down,
     action: CharacterAction.Idle,
+    data: {},
   };
 
   await playerRepository.insert({ ...newPlayer, password });

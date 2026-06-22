@@ -12,6 +12,9 @@
 //   teleportPlayer(p, mapId, col, row)
 //   sendMessage(player, text)   - private message
 //   broadcastMessage(text)      - global chat
+//   getPlayerData(player, key)  - read custom per-player data
+//   setPlayerData(player, key, value) - write custom per-player data (persisted)
+//   store.get/set/delete/keys/entries(scope, ...) - shared persistent store
 //   setTimeout(fn, ms)
 //   setInterval(fn, ms)
 //   log(...args)
@@ -36,6 +39,23 @@ on('npcDeath', ({ npc, killer }) => {
 //
 // on('playerJoin', ({ player }) => {
 //   giveItem(player, 1, 1);
+// });
+
+// VIP perk via the per-player data bag (set vip elsewhere, e.g. admin tool):
+//
+// on('playerJoin', ({ player }) => {
+//   if (getPlayerData(player, 'vip')) {
+//     sendMessage(player, 'Welcome back, VIP!');
+//     healPlayer(player);
+//   }
+// });
+
+// Tiny kill leaderboard using the shared store (scope "leaderboard"):
+//
+// on('npcDeath', ({ killer }) => {
+//   const kills = (store.get('leaderboard', killer.name) ?? 0) + 1;
+//   store.set('leaderboard', killer.name, kills);
+//   if (kills === 100) broadcastMessage(`${killer.name} reached 100 kills!`);
 // });
 
 // Uncomment to enable double damage on weekends:

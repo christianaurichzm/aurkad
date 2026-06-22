@@ -55,6 +55,7 @@ const PlayerSchema = new mongoose.Schema({
   inventory: InventorySchema,
   equipped: EquippedItemsSchema,
   access: { type: Number, enum: [0, 1, 2] },
+  data: { type: mongoose.Schema.Types.Mixed, default: {} },
   password: { type: String, required: true },
 });
 

@@ -89,6 +89,22 @@ describe('player persistence', () => {
     expect(record!.equipped).toBeDefined();
     expect(record!.inventory).toBeDefined();
   });
+
+  it('persists and reloads the custom data bag', async () => {
+    const player = await createPlayer('Alice', 'hash');
+
+    player.data = { vip: true, quest: { main: 3 } };
+    await persistPlayerSessionState(player);
+
+    const reloaded = await playerRepository.findByName('Alice');
+    expect(reloaded!.data).toEqual({ vip: true, quest: { main: 3 } });
+  });
+
+  it('normalizes a missing data bag to an empty object', async () => {
+    await createPlayer('Bob', 'hash');
+    const record = await playerRepository.findByName('Bob');
+    expect(record!.data).toEqual({});
+  });
 });
 
 // Ban workflow

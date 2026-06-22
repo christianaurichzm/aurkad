@@ -33,6 +33,7 @@ import {
 } from './net/index.js';
 import { connectToDatabase, loadInitialData } from './initDb.js';
 import { importContentPack } from './content/contentPack.js';
+import { loadKvStore, startKvStore } from './persistence/kvStore.js';
 import { getAllPlayers } from './sim/world.js';
 import { persistPlayerSessionState } from './services/playerService.js';
 import { startPlayerSnapshotLoop } from './persistence/playerSnapshot.js';
@@ -66,12 +67,15 @@ if (config.nodeEnv === 'production') {
 const server = createServer(app);
 let stopGameLoops: (() => void) | undefined;
 let stopSnapshots: (() => void) | undefined;
+let stopKv: (() => Promise<void>) | undefined;
 
 async function startServer() {
   try {
     await connectToDatabase();
     await importContentPack();
+    await loadKvStore();
     await loadInitialData();
+    stopKv = startKvStore();
     await loadScripts();
     startWebSocketServer(server, sessionMiddleware);
     stopGameLoops = startGameLoops();
@@ -117,6 +121,8 @@ async function shutdown(signal: string) {
   for (const player of getAllPlayers()) {
     await persistPlayerSessionState(player);
   }
+
+  await stopKv?.();
 
   try {
     await mongoose.disconnect();

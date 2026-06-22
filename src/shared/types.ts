@@ -189,6 +189,9 @@ export interface PersistentPlayer
     Progression,
     InventoryHolder {
   access: Access;
+  // Free-form per-player data for game scripts (a vip flag, quest progress).
+  // Server-side only, never serialized to clients.
+  data?: Record<string, unknown>;
 }
 
 export interface PlayerServer extends PersistentPlayer, CharacterRuntime {

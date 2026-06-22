@@ -74,6 +74,8 @@ interface PlayerServer {
   position: Position;
   direction: Direction;
   action: CharacterAction;
+  /** Free-form per-player data, persisted with the player. */
+  data?: Record<string, unknown>;
   kind: 'player';
 }
 
@@ -139,6 +141,25 @@ declare function healPlayer(player: PlayerServer): void;
 
 /** Kill and respawn a player. */
 declare function killPlayer(player: PlayerServer): void;
+
+/** Read a custom data field from a player. */
+declare function getPlayerData<T = unknown>(player: PlayerServer, key: string): T | undefined;
+
+/** Write a custom data field to a player (persisted). */
+declare function setPlayerData(player: PlayerServer, key: string, value: unknown): void;
+
+/**
+ * Scoped key-value store, shared across players and persisted.
+ * `scope` is any namespace you choose, e.g. "global", "guild:dragons".
+ * Reads and writes are synchronous (backed by an in-memory cache).
+ */
+declare const store: {
+  get<T = unknown>(scope: string, key: string): T | undefined;
+  set(scope: string, key: string, value: unknown): void;
+  delete(scope: string, key: string): void;
+  keys(scope: string): string[];
+  entries<T = unknown>(scope: string): Array<[string, T]>;
+};
 
 /** Teleport a player to a map tile (col, row). */
 declare function teleportPlayer(

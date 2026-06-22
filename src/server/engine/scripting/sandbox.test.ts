@@ -5,9 +5,11 @@ import { createFixture, tile } from '../../sim/simFixture.js';
 import { Direction, Key } from '../../../shared/types.js';
 import { msToTicks } from '../../sim/clock.js';
 import { levelUpPlayer } from '../../services/playerService.js';
+import { kvGet, clearKvStoreMemory } from '../../persistence/kvStore.js';
 
 beforeEach(() => {
   clearAll();
+  clearKvStoreMemory();
 });
 
 // Trust model
@@ -344,5 +346,68 @@ describe('API helpers', () => {
 
     await new Promise((r) => setTimeout(r, 30));
     expect(player.health).toBe(50); // timer was cancelled
+  });
+});
+
+describe('player data bag', () => {
+  it('setPlayerData writes a value readable by getPlayerData', () => {
+    const sim = createFixture(0);
+    const player = sim.addPlayer({ name: 'Alice' });
+
+    const handle = runInSandbox(`
+      on('playerJoin', ({ player }) => {
+        setPlayerData(player, 'vip', true);
+        if (getPlayerData(player, 'vip')) setPlayerData(player, 'rank', 'gold');
+      });
+    `, 'data-bag.js');
+
+    emit('playerJoin', { player });
+
+    expect(player.data?.vip).toBe(true);
+    expect(player.data?.rank).toBe('gold');
+
+    handle.cleanup();
+  });
+});
+
+describe('scoped KV store', () => {
+  it('store.set persists to the shared store', () => {
+    const sim = createFixture(0);
+    const player = sim.addPlayer({ name: 'Alice' });
+
+    const handle = runInSandbox(`
+      on('playerJoin', ({ player }) => {
+        store.set('guild:dragons', 'leader', player.name);
+      });
+    `, 'store-set.js');
+
+    emit('playerJoin', { player });
+
+    expect(kvGet('guild:dragons', 'leader')).toBe('Alice');
+
+    handle.cleanup();
+  });
+
+  it('two scripts share state through the store', () => {
+    const sim = createFixture(0);
+    const player = sim.addPlayer({ name: 'Alice' });
+
+    const writer = runInSandbox(`
+      on('playerJoin', ({ player }) => { store.set('world', 'kills', 5); });
+    `, 'writer.js');
+    const reader = runInSandbox(`
+      on('playerLevelUp', ({ player }) => {
+        const k = store.get('world', 'kills');
+        store.set('world', 'doubled', k * 2);
+      });
+    `, 'reader.js');
+
+    emit('playerJoin', { player });
+    emit('playerLevelUp', { player, level: 2 });
+
+    expect(kvGet('world', 'doubled')).toBe(10);
+
+    writer.cleanup();
+    reader.cleanup();
   });
 });

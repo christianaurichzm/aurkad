@@ -10,6 +10,7 @@ export function normalizePlayerRecord(record: PlayerRecord): PlayerRecord {
   return {
     ...record,
     equipped: record.equipped ?? {},
+    data: record.data ?? {},
     inventory: record.inventory ?? {
       items: [],
       maxCapacity: gameConfig.player.startingInventoryCapacity,

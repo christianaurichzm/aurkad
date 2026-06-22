@@ -5,6 +5,13 @@ import { runtimeState } from '../../sim/state.js';
 import { updatePlayer } from '../../gameData.js';
 import { handleChatAction } from '../../services/chatService.js';
 import { updatePlayerMap } from '../../services/mapService.js';
+import {
+  kvGet,
+  kvSet,
+  kvDelete,
+  kvKeys,
+  kvEntries,
+} from '../../persistence/kvStore.js';
 import { TILE_SIZE } from '../../../shared/constants.js';
 import { CharacterAction } from '../../../shared/types.js';
 import { logger } from '../../logger.js';
@@ -84,6 +91,27 @@ export function buildApi(
       player.health = 0;
       respawnPlayer(player);
       persist(scriptName, player);
+    },
+
+    // Per-player custom data (persisted with the player record)
+    getPlayerData: <T = unknown>(player: PlayerServer, key: string): T | undefined =>
+      (player.data?.[key] as T | undefined),
+    setPlayerData: (player: PlayerServer, key: string, value: unknown): void => {
+      (player.data ??= {})[key] = value;
+      persist(scriptName, player);
+    },
+
+    // Scoped key-value store (shared, persisted). Reads/writes are synchronous.
+    store: {
+      get: <T = unknown>(scope: string, key: string): T | undefined =>
+        kvGet<T>(String(scope), String(key)),
+      set: (scope: string, key: string, value: unknown): void =>
+        kvSet(String(scope), String(key), value),
+      delete: (scope: string, key: string): void =>
+        kvDelete(String(scope), String(key)),
+      keys: (scope: string): string[] => kvKeys(String(scope)),
+      entries: <T = unknown>(scope: string): Array<[string, T]> =>
+        kvEntries<T>(String(scope)),
     },
 
     // Teleport (same map or cross-map)
