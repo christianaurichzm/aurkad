@@ -32,6 +32,7 @@
   "modules": {
     "dialog": { "enabled": true },
     "quest": { "enabled": true },
-    "guild": { "enabled": true, "config": { "maxMembers": 50 } }
+    "guild": { "enabled": true, "config": { "maxMembers": 50 } },
+    "magic": { "enabled": true }
   }
 }

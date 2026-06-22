@@ -150,6 +150,9 @@ declare function getPlayer(name: string): PlayerServer | undefined;
 /** Get all online players across all maps. */
 declare function getPlayers(): PlayerServer[];
 
+/** Living NPCs within `radius` px of a point (AoE spells, pet targeting). */
+declare function getNearbyNpcs(mapId: string, x: number, y: number, radius: number): RuntimeNpc[];
+
 interface SpawnNpcOptions {
   mapId: string;
   col: number;

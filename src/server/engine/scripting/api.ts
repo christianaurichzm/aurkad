@@ -25,6 +25,7 @@ import { registerCommand } from '../commands.js';
 import { provideApi, useApi } from '../modules/registry.js';
 import { setCosmetic, clearCosmetic } from '../../services/cosmeticsService.js';
 import { spawnNpc, despawnNpc } from '../../services/npc/spawn.js';
+import { queryEntitiesInRadius } from '../../spatial/spatialManager.js';
 import type { SpawnNpcOptions } from '../../services/npc/spawn.js';
 import { resolveDamage } from '../../services/combat/index.js';
 import type { CombatTarget, RuntimeNpc } from '../../../shared/types.js';
@@ -78,6 +79,20 @@ export function buildApi(
       getPlayerByName(name) ?? undefined,
     getPlayers: (): PlayerServer[] =>
       Object.values(runtimeState.maps).flatMap((m) => Object.values(m.players)),
+
+    // Living NPCs within `radius` px of a point (AoE spells, pet targeting).
+    getNearbyNpcs: (
+      mapId: string,
+      x: number,
+      y: number,
+      radius: number,
+    ): RuntimeNpc[] => {
+      const map = runtimeState.maps[String(mapId)];
+      if (!map) return [];
+      return queryEntitiesInRadius(String(mapId), x, y, radius)
+        .map((e) => (e.id ? map.npcs[e.id] : undefined))
+        .filter((n): n is RuntimeNpc => !!n && n.health > 0);
+    },
 
     // Spawn/despawn runtime NPCs (pets, summons, bosses). Returns the NPC so
     // you can drive it from on('tick') (e.g. move it toward its owner).

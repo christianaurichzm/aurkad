@@ -6,6 +6,8 @@
 //   getPlayer(name)             - PlayerServer | undefined
 //   getPlayers()                - PlayerServer[]
 //   spawnNpc(opts) / despawnNpc(npc) - runtime NPCs (pets, summons, bosses)
+//   getNearbyNpcs(mapId, x, y, radius) - living NPCs near a point (AoE/targeting)
+//   dealDamage(target, amount, attacker?) - apply damage via the combat pipeline
 //   giveItem(player, id, qty)   - add item to inventory
 //   removeItem(player, id, qty) - remove item from inventory
 //   healPlayer(player)          - restore full health

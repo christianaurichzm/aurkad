@@ -8,7 +8,13 @@ modules/
   guild/
     module.json   # manifest
     server.js     # server entry (runs in the script sandbox)
+    client.js     # optional browser entry
 ```
+
+Bundled modules: **dialog** (NPC dialog boxes), **quest** (quests + tracker),
+**guild** (guilds + panel + name tag), **magic** (spells with mana/cooldowns +
+hotbar). All are opt-in via `game.json` and built on the script API + hooks -
+none of them live in the core.
 
 ## Manifest (`module.json`)
 
