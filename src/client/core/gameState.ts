@@ -115,6 +115,12 @@ export const applyMapChunk = (chunk: MapChunkPayload) => {
   staticMap = { ...staticMap, tiles: newTiles };
 };
 
+export const removeEntities = (playerIds: string[], npcIds: string[]) => {
+  if (!dynamic) return;
+  for (const id of playerIds) delete dynamic.map.players[id];
+  for (const id of npcIds) delete dynamic.map.npcs[id];
+};
+
 export const setPlayerStats = (payload: PlayerCold) => {
   playerCold = payload;
 };

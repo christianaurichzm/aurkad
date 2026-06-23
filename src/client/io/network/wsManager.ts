@@ -82,6 +82,7 @@ export const initializeWebSocket = () => {
           break;
         case 'mapMeta':
         case 'mapChunk':
+        case 'entityLeave':
         case 'playerStats':
         case 'fullGameState':
         case 'gameStateDelta':

@@ -76,6 +76,16 @@ export interface WsServerGameStateDeltaMessage {
   payload: GameStateDeltaPayload;
 }
 
+export interface EntityLeavePayload {
+  players: string[];
+  npcs: string[];
+}
+
+export interface WsServerEntityLeaveMessage {
+  type: 'entityLeave';
+  payload: EntityLeavePayload;
+}
+
 export type WsServerChatMessage = ChatMessagePayload;
 
 export interface WsServerKickMessage {
@@ -102,6 +112,7 @@ export type WsServerMessage =
   | WsServerCustomMessage
   | WsServerMapMetaMessage
   | WsServerMapChunkMessage
+  | WsServerEntityLeaveMessage
   | WsServerPlayerStatsMessage
   | WsServerFullGameStateMessage
   | WsServerGameStateDeltaMessage;

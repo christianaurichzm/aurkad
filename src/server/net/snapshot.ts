@@ -49,12 +49,19 @@ interface ChunkState {
 }
 const playerChunkState = new Map<string, ChunkState>();
 
+interface InterestSets {
+  players: Set<string>;
+  npcs: Set<string>;
+}
+const playerInterestSets = new Map<string, InterestSets>();
+
 const MAX_CHUNKS_PER_TICK = 8;
 
 export function resetPlayerNetState(name: string) {
   lastSentStates.delete(name);
   lastSentPlayerColdSig.delete(name);
   playerChunkState.delete(name);
+  playerInterestSets.delete(name);
 }
 
 function sendMapMetaIfNeeded(
@@ -73,6 +80,7 @@ function sendMapMetaIfNeeded(
     sent: new Set(),
   });
   lastSentStates.delete(player.name);
+  playerInterestSets.delete(player.name);
 }
 
 function sendViewportChunks(
@@ -135,8 +143,47 @@ function sendDynamicSnapshot(
     map.tiles,
     marginPx,
   );
+  const dynClient = toMapDynamicClient(map, player, viewport);
+
+  // Detect entities leaving the viewport and send explicit tombstones.
+  // This avoids jsondiffpatch generating costly delete deltas (which include
+  // the full previous entity state in the wire format).
+  const currentPlayerIds = new Set(Object.keys(dynClient.players));
+  const currentNpcIds = new Set(Object.keys(dynClient.npcs));
+  const prevSets = playerInterestSets.get(player.name);
+
+  if (prevSets) {
+    const leavingPlayers: string[] = [];
+    const leavingNpcs: string[] = [];
+    for (const id of prevSets.players) {
+      if (!currentPlayerIds.has(id)) leavingPlayers.push(id);
+    }
+    for (const id of prevSets.npcs) {
+      if (!currentNpcIds.has(id)) leavingNpcs.push(id);
+    }
+    if (leavingPlayers.length > 0 || leavingNpcs.length > 0) {
+      ws.send(
+        JSON.stringify({
+          type: 'entityLeave',
+          payload: { players: leavingPlayers, npcs: leavingNpcs },
+        }),
+      );
+      // Prune lastSentState so jsondiffpatch never sees these as deleted keys.
+      const lastState = lastSentStates.get(player.name);
+      if (lastState) {
+        for (const id of leavingPlayers) delete lastState.map.players[id];
+        for (const id of leavingNpcs) delete lastState.map.npcs[id];
+      }
+    }
+  }
+
+  playerInterestSets.set(player.name, {
+    players: currentPlayerIds,
+    npcs: currentNpcIds,
+  });
+
   const currentState: FullGameStatePayload = structuredClone({
-    map: toMapDynamicClient(map, player, viewport),
+    map: dynClient,
     player: toPlayerHot(player),
   });
 
