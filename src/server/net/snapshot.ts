@@ -22,6 +22,7 @@ import {
   toPlayerHot,
 } from '../services/playerService.js';
 import { TILE_SIZE } from '../../shared/constants.js';
+import { calcViewport } from '../../shared/mapGeometry.js';
 import { playersWsMap } from './connections.js';
 
 const diffPatcher = jsondiffpatch.create({
@@ -80,10 +81,16 @@ function sendDynamicSnapshot(
   player: PlayerServer,
   map: MapStateServer,
   ws: WebSocket,
-  interestRadiusPx: number,
+  marginPx: number,
 ) {
+  const viewport = calcViewport(
+    player.position.x,
+    player.position.y,
+    map.tiles,
+    marginPx,
+  );
   const currentState: FullGameStatePayload = structuredClone({
-    map: toMapDynamicClient(map, player, interestRadiusPx),
+    map: toMapDynamicClient(map, player, viewport),
     player: toPlayerHot(player),
   });
 
@@ -110,7 +117,7 @@ function sendDynamicSnapshot(
 
 export function broadcastGameState() {
   const gameState = getGameState();
-  const interestRadiusPx = config.net.interestRadiusTiles * TILE_SIZE;
+  const marginPx = config.net.aoiMarginTiles * TILE_SIZE;
 
   for (const map of Object.values(gameState.maps)) {
     const mapRevision = map.tilesRevision ?? 0;
@@ -122,7 +129,7 @@ export function broadcastGameState() {
       try {
         sendStaticMapIfNeeded(player, map, mapRevision, ws);
         sendPlayerStatsIfNeeded(player, ws);
-        sendDynamicSnapshot(player, map, ws, interestRadiusPx);
+        sendDynamicSnapshot(player, map, ws, marginPx);
       } catch (error) {
         logger.error('Error broadcasting to player', {
           player: player.name,

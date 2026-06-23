@@ -9,6 +9,7 @@ import type {
   Position,
   RuntimeNpc,
 } from '../../shared/types.js';
+import { type Viewport } from '../../shared/mapGeometry.js';
 
 export function toPlayerPublic(player: PlayerServer): PlayerPublic {
   return {
@@ -31,15 +32,12 @@ export function toPlayerPublic(player: PlayerServer): PlayerPublic {
   };
 }
 
-function withinInterestRadius(
-  viewerPos: Position,
-  targetPos: Position,
-  interestRadiusPx: number,
-) {
-  if (interestRadiusPx <= 0) return true;
+function withinViewport(pos: Position, vp: Viewport): boolean {
   return (
-    Math.abs(targetPos.x - viewerPos.x) <= interestRadiusPx &&
-    Math.abs(targetPos.y - viewerPos.y) <= interestRadiusPx
+    pos.x >= vp.left &&
+    pos.x <= vp.right &&
+    pos.y >= vp.top &&
+    pos.y <= vp.bottom
   );
 }
 
@@ -56,29 +54,25 @@ export function toMapStaticClient(map: MapStateServer): MapStaticClient {
 export function toMapDynamicClient(
   map: MapStateServer,
   viewer: PlayerServer,
-  interestRadiusPx: number,
+  viewport: Viewport,
 ): MapDynamicClient {
-  const viewerPos = viewer.position;
-
   const players = Object.fromEntries(
     Object.entries(map.players).flatMap(([id, other]) => {
       if (id === viewer.id) return [];
-      if (!withinInterestRadius(viewerPos, other.position, interestRadiusPx))
-        return [];
+      if (!withinViewport(other.position, viewport)) return [];
       return [[id, toPlayerPublic(other)]] as const;
     }),
   );
 
   const npcs = Object.fromEntries(
     Object.entries(map.npcs).flatMap(([id, npc]) => {
-      if (!withinInterestRadius(viewerPos, npc.position, interestRadiusPx))
-        return [];
+      if (!withinViewport(npc.position, viewport)) return [];
       return [[id, npc]] as const;
     }),
   ) as Record<string, RuntimeNpc>;
 
   const droppedItems = map.droppedItems.filter((item: DroppedItem) =>
-    withinInterestRadius(viewerPos, item.position, interestRadiusPx),
+    withinViewport(item.position, viewport),
   );
 
   return {
@@ -92,10 +86,10 @@ export function toMapDynamicClient(
 export function toMapStateClient(
   map: MapStateServer,
   viewer: PlayerServer,
-  interestRadiusPx: number,
+  viewport: Viewport,
 ): MapStateClient {
   return {
     ...toMapStaticClient(map),
-    ...toMapDynamicClient(map, viewer, interestRadiusPx),
+    ...toMapDynamicClient(map, viewer, viewport),
   };
 }

@@ -5,6 +5,7 @@ import rateLimit from 'express-rate-limit';
 import type { ExtendedRequest } from '../session.js';
 import { Access } from '../../../shared/types.js';
 import { TILE_SIZE } from '../../../shared/constants.js';
+import { calcViewport } from '../../../shared/mapGeometry.js';
 import {
   parseBody,
   LoginBodySchema,
@@ -100,12 +101,18 @@ export function createAuthRouter() {
       const map = addPlayerOnMap(player.id);
       emit('playerJoin', { player: runtimePlayer });
 
+      const marginPx = config.net.aoiMarginTiles * TILE_SIZE;
       const mapClient =
         map &&
         toMapStateClient(
           map,
           runtimePlayer,
-          config.net.interestRadiusTiles * TILE_SIZE,
+          calcViewport(
+            runtimePlayer.position.x,
+            runtimePlayer.position.y,
+            map.tiles,
+            marginPx,
+          ),
         );
       req.session.save((err) => {
         if (err) {

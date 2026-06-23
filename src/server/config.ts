@@ -110,9 +110,9 @@ export const config = {
     }),
   },
   net: {
-    interestRadiusTiles: parseIntEnv('NET_INTEREST_RADIUS_TILES', 0, {
+    aoiMarginTiles: parseIntEnv('NET_AOI_MARGIN_TILES', 2, {
       min: 0,
-      max: 200,
+      max: 20,
     }),
   },
   persistence: {
