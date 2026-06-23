@@ -28,6 +28,7 @@ import { renderFloatingTexts } from './floatingText';
 import { renderProjectiles } from './projectiles';
 import { useUIStore } from '../stores/uiStore';
 import { calcCamera, setCamera } from './camera';
+import { runOverlays } from './overlayRegistry';
 
 let lastDrawnTiles: Tile[][] | null = null;
 let lastCamX = 0;
@@ -88,6 +89,7 @@ export const render = () => {
     }
     renderNpcs(map.npcs);
     renderProjectiles(playerCtx);
+    runOverlays(playerCtx, cam);
     playerCtx.restore();
 
     if (currentPlayer) {

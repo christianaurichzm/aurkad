@@ -1,10 +1,11 @@
 import { onServerEvent, sendServerEvent } from '../network/customEvents';
 import { colors, radius, shadow, zIndex } from '../../theme';
 import { registerModuleAction } from './moduleActions';
-import { getGameState } from '../../core/gameState';
+import { getGameState, getPlayer } from '../../core/gameState';
 import { enqueueChatMessage } from '../network/sync/chatSync';
 import { TILE_SIZE } from '../../../shared/constants';
-import { screenToWorld } from '../../graphics/camera';
+import { getCamera, screenToWorld, worldToScreen } from '../../graphics/camera';
+import { registerOverlay } from '../../graphics/overlayRegistry';
 
 // Loads the module browser entries the server serves and runs them with an
 // `engine` API. Like server scripts, this is the server owner's code, so it
@@ -280,6 +281,43 @@ function makeEngineApi(id: string) {
     log: (...args: unknown[]) => console.log(`[module:${id}]`, ...args),
     warn: (...args: unknown[]) => console.warn(`[module:${id}]`, ...args),
     error: (...args: unknown[]) => console.error(`[module:${id}]`, ...args),
+    /** Current local player state (position, health, stats). */
+    getPlayer: () => getPlayer(),
+    /** Visible map + entity state (players, npcs, droppedItems, tiles). */
+    getGameState: () => getGameState(),
+    /** Current camera offset in world-space pixels. */
+    getCamera: () => ({ ...getCamera() }),
+    /**
+     * Convert a screen-space point (pixels from canvas top-left) to
+     * world-space coordinates. Use this when handling canvas click/drag
+     * events to find which tile or entity was hit.
+     */
+    screenToWorld: (sx: number, sy: number) => screenToWorld(sx, sy),
+    /**
+     * Convert a world-space point to screen-space. Use this to position
+     * DOM overlays (tooltips, floating labels) above a world entity.
+     */
+    worldToScreen: (wx: number, wy: number) => worldToScreen(wx, wy),
+    /** Tile size in pixels, for coordinate math and hit-testing. */
+    TILE_SIZE,
+    /**
+     * Register a per-frame draw callback that runs in world-space on the
+     * player canvas (above entities, below fringe tiles). The context
+     * already has `translate(-cam.x, -cam.y)` applied, so drawing at a
+     * tile position works directly. Returns an unregister function.
+     *
+     * @example
+     * const stop = engine.registerOverlay((ctx, cam) => {
+     *   ctx.fillStyle = 'rgba(255,0,0,0.3)';
+     *   ctx.fillRect(targetX, targetY, 64, 64);
+     * });
+     */
+    registerOverlay: (
+      fn: (
+        ctx: CanvasRenderingContext2D,
+        cam: { x: number; y: number },
+      ) => void,
+    ) => registerOverlay(fn),
   };
 }
 
