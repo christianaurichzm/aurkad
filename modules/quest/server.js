@@ -73,4 +73,15 @@ const get = (player, id) => bagOf(player)[id];
 
 provide('quest', { define, start, advance, complete, get });
 
+on('playerJoin', ({ player }) => {
+  const bag = bagOf(player);
+  if (Object.keys(bag).length > 0) save(player, bag);
+});
+
+on('customAction', ({ player, channel }) => {
+  if (channel === 'quest:request') {
+    save(player, bagOf(player));
+  }
+});
+
 log('Quest module ready.');
