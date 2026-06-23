@@ -1,16 +1,11 @@
-import {
-  MapStateServer,
-  PlayerServer,
-  Item,
-  ModifiablePlayerAttribute,
-} from '../../shared/types.js';
+import { MapStateServer, PlayerServer, Item } from '../../shared/types.js';
 import type { ClientItemAction } from '../engine/actions.js';
 import { getMap, updatePlayer, updateMap, items } from '../gameData.js';
 import { logger } from '../logger.js';
 import ItemModel from '../model/Item.js';
 import { getNextItemId } from './dbService.js';
 import { EQUIPMENT_SLOTS } from '../../shared/constants.js';
-import { getPlayerByName } from './playerService.js';
+import { getPlayerByName, levelUpPlayer } from './playerService.js';
 import { emit } from '../engine/hooks.js';
 
 export function getItemById(id: number): Item | null {
@@ -241,7 +236,7 @@ export async function unequipItem(
 }
 
 export async function applyItemEffects(
-  player: Pick<PlayerServer, ModifiablePlayerAttribute>,
+  player: PlayerServer,
   itemId: number,
   reverse = false,
 ): Promise<void> {
@@ -261,4 +256,7 @@ export async function applyItemEffects(
       }
     }
   }
+
+  player.health = Math.max(0, Math.min(player.health, player.maxHealth));
+  if (!reverse) levelUpPlayer(player);
 }
