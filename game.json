@@ -36,6 +36,11 @@
     "magic": { "enabled": true },
     "pk": { "enabled": true, "config": { "flagMinutes": 10 } },
     "pet": { "enabled": true },
-    "archery": { "enabled": true }
+    "archery": { "enabled": true },
+    "party": { "enabled": true, "config": { "maxMembers": 5, "shareRadius": 320 } },
+    "trade": { "enabled": true },
+    "equipment": { "enabled": true },
+    "status": { "enabled": true },
+    "bank": { "enabled": true, "config": { "maxSlots": 50 } }
   }
 }

@@ -1,0 +1,11 @@
+{
+  "id": "equipment",
+  "name": "Equipment Sets",
+  "version": "1.0.0",
+  "server": "server.js",
+  "description": "Configurable equipment set bonuses layered on top of core equipment stats.",
+  "enabledByDefault": true,
+  "config": {
+    "sets": []
+  }
+}

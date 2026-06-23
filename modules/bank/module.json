@@ -1,0 +1,12 @@
+{
+  "id": "bank",
+  "name": "Bank Storage",
+  "version": "1.0.0",
+  "server": "server.js",
+  "client": "client.js",
+  "description": "Per-player item storage backed by the shared KV store.",
+  "enabledByDefault": true,
+  "config": {
+    "maxSlots": 50
+  }
+}

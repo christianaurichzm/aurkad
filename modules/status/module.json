@@ -1,0 +1,12 @@
+{
+  "id": "status",
+  "name": "Status Effects",
+  "version": "1.0.0",
+  "server": "server.js",
+  "client": "client.js",
+  "description": "Timed buffs/debuffs powered by tick and beforeDamage hooks.",
+  "enabledByDefault": true,
+  "config": {
+    "effects": {}
+  }
+}
