@@ -27,6 +27,32 @@ let tilesetCtx: CanvasRenderingContext2D;
 
 export let tilesetEditorInitialized = false;
 
+const MAX_UNDO = 50;
+let undoStack: Tile[][][] = [];
+let redoStack: Tile[][][] = [];
+
+const snapshotForUndo = () => {
+  undoStack.push(map.map((row) => row.map((tile) => ({ ...tile }))));
+  if (undoStack.length > MAX_UNDO) undoStack.shift();
+  redoStack = [];
+};
+
+export const undo = () => {
+  if (!undoStack.length) return;
+  redoStack.push(map.map((row) => row.map((tile) => ({ ...tile }))));
+  map = undoStack.pop()!;
+  setMapEdited(true);
+  renderMap(map);
+};
+
+export const redo = () => {
+  if (!redoStack.length) return;
+  undoStack.push(map.map((row) => row.map((tile) => ({ ...tile }))));
+  map = redoStack.pop()!;
+  setMapEdited(true);
+  renderMap(map);
+};
+
 export const initTilesetEditor = () => {
   tilesetCanvas = getEl<HTMLCanvasElement>('tilesetCanvas')!;
   if (!tilesetCanvas) {
@@ -113,7 +139,7 @@ const modes: Record<TileEditMode, ModeConfig> = {
   },
   warping: {
     place: (row: number, col: number) => {
-      const mapTo = getInputValue('mapTo');
+      const mapTo = getInputValue('warpMap');
       const xTo = safeParseInt(getInputValue('xTo'));
       const yTo = safeParseInt(getInputValue('yTo'));
       if (mapTo && !isNaN(xTo) && !isNaN(yTo)) {
@@ -271,6 +297,7 @@ const highlightSelectedTile = () => {
 
 const startPlacing = (event: MouseEvent) => {
   isPlacing = true;
+  snapshotForUndo();
   placeTile(event);
 };
 const placeTileWhileDragging = (event: MouseEvent) => {
@@ -343,6 +370,7 @@ const drawTileOnCanvas = (col: number, row: number, tileIndex: number) => {
 
 export const fillMap = () => {
   if (!tilesetCanvas) return;
+  snapshotForUndo();
   const { startX, startY } = calculateSelectionBounds();
   const tilesPerRow = Math.floor(tilesetCanvas.width / TILE_SIZE);
   const tileIndex = startY * tilesPerRow + startX;
@@ -367,6 +395,17 @@ export const toggleHeal = () => toggleMode('heal');
 export const toggleKill = () => toggleMode('kill');
 export const toggleWarn = () => toggleMode('warn');
 
+const handleKeyDown = (e: KeyboardEvent) => {
+  if (e.ctrlKey && e.key === 'z' && !e.shiftKey) {
+    e.preventDefault();
+    undo();
+  }
+  if (e.ctrlKey && (e.key === 'y' || (e.shiftKey && e.key === 'z'))) {
+    e.preventDefault();
+    redo();
+  }
+};
+
 const setupEventListeners = () => {
   addEvent('tilesetCanvas', 'mousedown', startSelecting);
   addEvent('tilesetCanvas', 'mousemove', updateSelection);
@@ -375,6 +414,7 @@ const setupEventListeners = () => {
   addEvent('foregroundCanvas', 'mousemove', placeTileWhileDragging);
   addEvent('foregroundCanvas', 'mousemove', handleHover);
   addEvent('foregroundCanvas', 'mouseup', stopPlacing);
+  document.addEventListener('keydown', handleKeyDown);
 };
 
 const removeEventListeners = () => {
@@ -385,6 +425,7 @@ const removeEventListeners = () => {
   removeEvent('foregroundCanvas', 'mousemove', placeTileWhileDragging);
   removeEvent('foregroundCanvas', 'mousemove', handleHover);
   removeEvent('foregroundCanvas', 'mouseup', stopPlacing);
+  document.removeEventListener('keydown', handleKeyDown);
 };
 
 export const renderMap = (tiles: Tile[][]) => {
@@ -527,6 +568,8 @@ export const toggleTilesetEditor = (shouldShow: boolean) => {
     setMapEdited(false);
     activeMode = null;
     tilesetEditorInitialized = false;
+    undoStack = [];
+    redoStack = [];
   }
 
   renderMap(map);
