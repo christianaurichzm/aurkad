@@ -1,10 +1,10 @@
-import type { Player, MapStateClient } from '../../../../shared/types';
+import type { Player, MapMetaClient } from '../../../../shared/types';
 import { httpClient } from './httpClient';
 
 export const login = async (username: string, password: string) => {
   return await httpClient<{
     player: Player;
-    map: MapStateClient;
+    map: MapMetaClient;
     assetKey: string;
     motd?: string;
   }>('/login', {

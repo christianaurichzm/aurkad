@@ -14,15 +14,19 @@ import { logger } from '../logger.js';
 import { getMap } from '../gameData.js';
 import { getGameState } from '../services/gameService.js';
 import { drainGameEvents } from '../engine/eventBus.js';
-import { toMapDynamicClient, toMapStaticClient } from './serialization.js';
+import { toMapDynamicClient, toMapMeta, toMapChunk } from './serialization.js';
 import {
   getPlayerByName,
   playerColdSignature,
   toPlayerCold,
   toPlayerHot,
 } from '../services/playerService.js';
-import { TILE_SIZE } from '../../shared/constants.js';
-import { calcViewport } from '../../shared/mapGeometry.js';
+import { CHUNK_SIZE, TILE_SIZE } from '../../shared/constants.js';
+import {
+  calcViewport,
+  mapTileWidth,
+  mapTileHeight,
+} from '../../shared/mapGeometry.js';
 import { playersWsMap } from './connections.js';
 
 const diffPatcher = jsondiffpatch.create({
@@ -36,35 +40,77 @@ const diffPatcher = jsondiffpatch.create({
 });
 
 export const lastSentStates = new Map<string, FullGameStatePayload>();
-const lastSentMapId = new Map<string, string>();
-const lastSentMapRevision = new Map<string, number>();
 const lastSentPlayerColdSig = new Map<string, string>();
+
+interface ChunkState {
+  mapId: string;
+  revision: number;
+  sent: Set<string>;
+}
+const playerChunkState = new Map<string, ChunkState>();
+
+const MAX_CHUNKS_PER_TICK = 8;
 
 export function resetPlayerNetState(name: string) {
   lastSentStates.delete(name);
-  lastSentMapId.delete(name);
-  lastSentMapRevision.delete(name);
   lastSentPlayerColdSig.delete(name);
+  playerChunkState.delete(name);
 }
 
-function sendStaticMapIfNeeded(
+function sendMapMetaIfNeeded(
   player: PlayerServer,
   map: MapStateServer,
   mapRevision: number,
   ws: WebSocket,
 ) {
-  const needsStaticMap =
-    lastSentMapId.get(player.name) !== map.id ||
-    lastSentMapRevision.get(player.name) !== mapRevision;
+  const existing = playerChunkState.get(player.name);
+  if (existing?.mapId === map.id && existing.revision === mapRevision) return;
 
-  if (!needsStaticMap) return;
-
-  ws.send(
-    JSON.stringify({ type: 'mapStatic', payload: toMapStaticClient(map) }),
-  );
-  lastSentMapId.set(player.name, map.id);
-  lastSentMapRevision.set(player.name, mapRevision);
+  ws.send(JSON.stringify({ type: 'mapMeta', payload: toMapMeta(map) }));
+  playerChunkState.set(player.name, {
+    mapId: map.id,
+    revision: mapRevision,
+    sent: new Set(),
+  });
   lastSentStates.delete(player.name);
+}
+
+function sendViewportChunks(
+  player: PlayerServer,
+  map: MapStateServer,
+  ws: WebSocket,
+  marginPx: number,
+) {
+  const state = playerChunkState.get(player.name);
+  if (!state || state.mapId !== map.id) return;
+
+  const vp = calcViewport(
+    player.position.x,
+    player.position.y,
+    map.tiles,
+    marginPx,
+  );
+  const chunkPx = CHUNK_SIZE * TILE_SIZE;
+  const totalCols = Math.ceil(mapTileWidth(map.tiles) / CHUNK_SIZE);
+  const totalRows = Math.ceil(mapTileHeight(map.tiles) / CHUNK_SIZE);
+
+  const colFrom = Math.max(0, Math.floor(vp.left / chunkPx));
+  const colTo = Math.min(totalCols - 1, Math.floor(vp.right / chunkPx));
+  const rowFrom = Math.max(0, Math.floor(vp.top / chunkPx));
+  const rowTo = Math.min(totalRows - 1, Math.floor(vp.bottom / chunkPx));
+
+  let sent = 0;
+  for (let cy = rowFrom; cy <= rowTo && sent < MAX_CHUNKS_PER_TICK; cy++) {
+    for (let cx = colFrom; cx <= colTo && sent < MAX_CHUNKS_PER_TICK; cx++) {
+      const key = `${cx}:${cy}`;
+      if (state.sent.has(key)) continue;
+      ws.send(
+        JSON.stringify({ type: 'mapChunk', payload: toMapChunk(map, cx, cy) }),
+      );
+      state.sent.add(key);
+      sent++;
+    }
+  }
 }
 
 function sendPlayerStatsIfNeeded(player: PlayerServer, ws: WebSocket) {
@@ -127,7 +173,8 @@ export function broadcastGameState() {
       if (!ws || ws.readyState !== WebSocket.OPEN) continue;
 
       try {
-        sendStaticMapIfNeeded(player, map, mapRevision, ws);
+        sendMapMetaIfNeeded(player, map, mapRevision, ws);
+        sendViewportChunks(player, map, ws, marginPx);
         sendPlayerStatsIfNeeded(player, ws);
         sendDynamicSnapshot(player, map, ws, marginPx);
       } catch (error) {

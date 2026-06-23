@@ -4,8 +4,6 @@ import { Router, type Response } from 'express';
 import rateLimit from 'express-rate-limit';
 import type { ExtendedRequest } from '../session.js';
 import { Access } from '../../../shared/types.js';
-import { TILE_SIZE } from '../../../shared/constants.js';
-import { calcViewport } from '../../../shared/mapGeometry.js';
 import {
   parseBody,
   LoginBodySchema,
@@ -21,9 +19,8 @@ import {
   getPlayerByNameFromDb,
 } from '../../services/playerService.js';
 import { getBan, unbanPlayer } from '../../services/banService.js';
-import { config } from '../../config.js';
 import { emit } from '../../engine/hooks.js';
-import { toMapStateClient } from '../../net/serialization.js';
+import { toMapMeta } from '../../net/serialization.js';
 import { serverState } from '../../serverState.js';
 import { playersWsMap } from '../../net/connections.js';
 import { WebSocket } from 'ws';
@@ -101,19 +98,7 @@ export function createAuthRouter() {
       const map = addPlayerOnMap(player.id);
       emit('playerJoin', { player: runtimePlayer });
 
-      const marginPx = config.net.aoiMarginTiles * TILE_SIZE;
-      const mapClient =
-        map &&
-        toMapStateClient(
-          map,
-          runtimePlayer,
-          calcViewport(
-            runtimePlayer.position.x,
-            runtimePlayer.position.y,
-            map.tiles,
-            marginPx,
-          ),
-        );
+      const mapMeta = map ? toMapMeta(map) : null;
       req.session.save((err) => {
         if (err) {
           logger.error('Session save failed', { err });
@@ -121,7 +106,7 @@ export function createAuthRouter() {
         }
         res.status(200).json({
           player,
-          map: mapClient,
+          map: mapMeta,
           assetKey: req.session.assetKey,
           ...(serverState.motd ? { motd: serverState.motd } : {}),
         });

@@ -2,22 +2,25 @@ import type { MapStateClient, Position } from '../../../../shared/types';
 import type {
   WsServerFullGameStateMessage,
   WsServerGameStateDeltaMessage,
-  WsServerMapStaticMessage,
+  WsServerMapChunkMessage,
+  WsServerMapMetaMessage,
   WsServerPlayerStatsMessage,
 } from '../../../../shared/wsProtocol';
 import {
+  applyMapChunk,
   getPlayer,
   getGameState,
   patchGameState,
   setFullGameState,
+  setMapMeta,
   setPlayerStats,
-  setStaticMap,
 } from '../../../core/gameState';
 import { onServerPositionUpdate } from '../../../graphics/movementAnimation';
 import { useUIStore } from '../../../stores/uiStore';
 
 type GameStateMessage =
-  | WsServerMapStaticMessage
+  | WsServerMapMetaMessage
+  | WsServerMapChunkMessage
   | WsServerPlayerStatsMessage
   | WsServerFullGameStateMessage
   | WsServerGameStateDeltaMessage;
@@ -79,10 +82,11 @@ export function updateWebSocket(): void {
 
     if (!message?.payload) continue;
 
-    if (message.type === 'mapStatic') {
-      setStaticMap(message.payload);
-      // entering a new map: drop stale positions so we don't slide across it
+    if (message.type === 'mapMeta') {
+      setMapMeta(message.payload);
       resetInterpolation();
+    } else if (message.type === 'mapChunk') {
+      applyMapChunk(message.payload);
     } else if (message.type === 'playerStats') {
       setPlayerStats(message.payload);
     } else if (message.type === 'fullGameState') {

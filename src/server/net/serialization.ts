@@ -1,6 +1,8 @@
 import type {
   DroppedItem,
+  MapChunkPayload,
   MapDynamicClient,
+  MapMetaClient,
   MapStateClient,
   MapStaticClient,
   MapStateServer,
@@ -9,7 +11,12 @@ import type {
   Position,
   RuntimeNpc,
 } from '../../shared/types.js';
-import { type Viewport } from '../../shared/mapGeometry.js';
+import {
+  type Viewport,
+  mapTileWidth,
+  mapTileHeight,
+} from '../../shared/mapGeometry.js';
+import { CHUNK_SIZE } from '../../shared/constants.js';
 
 export function toPlayerPublic(player: PlayerServer): PlayerPublic {
   return {
@@ -48,6 +55,37 @@ export function toMapStaticClient(map: MapStateServer): MapStaticClient {
     type: map.type,
     pvp: map.pvp,
     tiles: map.tiles,
+  };
+}
+
+export function toMapMeta(map: MapStateServer): MapMetaClient {
+  return {
+    id: map.id,
+    name: map.name,
+    type: map.type,
+    pvp: map.pvp,
+    cols: mapTileWidth(map.tiles),
+    rows: mapTileHeight(map.tiles),
+    revision: map.tilesRevision ?? 0,
+  };
+}
+
+export function toMapChunk(
+  map: MapStateServer,
+  chunkX: number,
+  chunkY: number,
+): MapChunkPayload {
+  const rowStart = chunkY * CHUNK_SIZE;
+  const colStart = chunkX * CHUNK_SIZE;
+  const tiles = map.tiles
+    .slice(rowStart, rowStart + CHUNK_SIZE)
+    .map((row) => row.slice(colStart, colStart + CHUNK_SIZE));
+  return {
+    mapId: map.id,
+    revision: map.tilesRevision ?? 0,
+    chunkX,
+    chunkY,
+    tiles,
   };
 }
 

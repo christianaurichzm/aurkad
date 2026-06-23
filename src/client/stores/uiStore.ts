@@ -2,7 +2,7 @@ import { create } from 'zustand';
 import type {
   ChatMessagePayload,
   ChatScope,
-  MapStateClient,
+  MapType,
 } from '../../shared/types';
 
 interface ConnectionState {
@@ -65,7 +65,7 @@ interface UIState {
   setPlayerXp: (current: number, max: number) => void;
 
   currentMap: MapState | null;
-  setCurrentMap: (map: MapStateClient) => void;
+  setCurrentMap: (map: { id: string; name: string; type: MapType }) => void;
 
   chat: ChatState;
   addChatMessage: (message: ChatMessagePayload) => void;

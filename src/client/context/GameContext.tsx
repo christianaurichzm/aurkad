@@ -1,22 +1,22 @@
 import { createContext, useContext, useState } from 'react';
-import { MapStateClient, Player } from '../../shared/types';
+import { MapMetaClient, Player } from '../../shared/types';
 
 type GameContextType = {
   isLoggedIn: boolean;
-  map: MapStateClient | null;
+  map: MapMetaClient | null;
   player: Player | null;
-  loginSuccess: (data: { map: MapStateClient; player: Player }) => void;
-  setMap: (map: MapStateClient) => void;
+  loginSuccess: (data: { map: MapMetaClient; player: Player }) => void;
+  setMap: (map: MapMetaClient) => void;
 };
 
 const GameContext = createContext<GameContextType | null>(null);
 
 export const GameProvider = ({ children }: { children: React.ReactNode }) => {
-  const [map, setMap] = useState<MapStateClient | null>(null);
+  const [map, setMap] = useState<MapMetaClient | null>(null);
   const [player, setPlayer] = useState<Player | null>(null);
   const isLoggedIn = !!map && !!player;
 
-  const loginSuccess = (data: { map: MapStateClient; player: Player }) => {
+  const loginSuccess = (data: { map: MapMetaClient; player: Player }) => {
     setMap(data.map);
     setPlayer(data.player);
   };

@@ -1,11 +1,15 @@
 import type {
+  MapChunkPayload,
   MapDynamicClient,
+  MapMetaClient,
   MapStateClient,
   MapStaticClient,
   Player,
   PlayerCold,
+  Tile,
 } from '../../shared/types';
 import type { FullGameStatePayload } from '../../shared/wsProtocol';
+import { CHUNK_SIZE } from '../../shared/constants';
 import * as jsondiffpatch from 'jsondiffpatch';
 
 const diffPatcher = jsondiffpatch.create({
@@ -19,6 +23,7 @@ const diffPatcher = jsondiffpatch.create({
 });
 
 let staticMap: MapStaticClient | null = null;
+let staticMapRevision: number | null = null;
 let dynamic: FullGameStatePayload | null = null;
 let playerCold: PlayerCold | null = null;
 
@@ -59,6 +64,55 @@ export const getGameState = (): MapStateClient | null => {
 
 export const setStaticMap = (payload: MapStaticClient) => {
   staticMap = payload;
+};
+
+function createEmptyGrid(cols: number, rows: number): Tile[][] {
+  return Array.from({ length: rows }, () =>
+    Array.from({ length: cols }, () => ({ tileIndex: -1, blocked: false })),
+  );
+}
+
+export const setMapMeta = (meta: MapMetaClient) => {
+  if (staticMap?.id === meta.id && staticMapRevision === meta.revision) {
+    staticMap = {
+      ...staticMap,
+      name: meta.name,
+      type: meta.type,
+      pvp: meta.pvp,
+    };
+    return;
+  }
+  staticMap = {
+    id: meta.id,
+    name: meta.name,
+    type: meta.type,
+    pvp: meta.pvp,
+    tiles: createEmptyGrid(meta.cols, meta.rows),
+  };
+  staticMapRevision = meta.revision;
+};
+
+export const applyMapChunk = (chunk: MapChunkPayload) => {
+  if (
+    !staticMap ||
+    staticMap.id !== chunk.mapId ||
+    staticMapRevision !== chunk.revision
+  )
+    return;
+  const rowStart = chunk.chunkY * CHUNK_SIZE;
+  const colStart = chunk.chunkX * CHUNK_SIZE;
+  const newTiles = staticMap.tiles.slice();
+  for (let r = 0; r < chunk.tiles.length; r++) {
+    const mapRow = rowStart + r;
+    if (mapRow >= newTiles.length) break;
+    const newRow = newTiles[mapRow].slice();
+    for (let c = 0; c < chunk.tiles[r].length; c++) {
+      const mapCol = colStart + c;
+      if (mapCol < newRow.length) newRow[mapCol] = chunk.tiles[r][c];
+    }
+    newTiles[mapRow] = newRow;
+  }
+  staticMap = { ...staticMap, tiles: newTiles };
 };
 
 export const setPlayerStats = (payload: PlayerCold) => {

@@ -1,14 +1,13 @@
 import { useLayoutEffect, useRef } from 'react';
 import { initializeAssets } from '../io/assets';
-import { renderMap } from '../graphics/tileset';
 import { handleInput } from '../io/keyboard';
 import { initializeWebSocket } from '../io/network';
 import { loadClientModules } from '../io/modules/moduleClient';
 import { gameLoop } from '../core/game';
 import {
   setFullGameState,
+  setMapMeta,
   setPlayerStats,
-  setStaticMap,
 } from '../core/gameState';
 import { useGame } from '../context/GameContext';
 import { ConnectionStatus } from './HUD/ConnectionStatus';
@@ -25,12 +24,7 @@ export const GameInterface = () => {
     const init = async () => {
       initialized.current = true;
 
-      setStaticMap({
-        id: initialMap.id,
-        name: initialMap.name,
-        type: initialMap.type,
-        tiles: initialMap.tiles,
-      });
+      setMapMeta(initialMap);
       setPlayerStats({
         id: player.id,
         name: player.name,
@@ -58,9 +52,9 @@ export const GameInterface = () => {
       setFullGameState({
         map: {
           id: initialMap.id,
-          droppedItems: initialMap.droppedItems,
-          npcs: initialMap.npcs,
-          players: initialMap.players,
+          droppedItems: [],
+          npcs: {},
+          players: {},
         },
         player: {
           id: player.id,
@@ -80,7 +74,6 @@ export const GameInterface = () => {
       await initializeAssets();
       initializeWebSocket();
       void loadClientModules();
-      await renderMap(initialMap.tiles);
       requestAnimationFrame(gameLoop);
     };
 

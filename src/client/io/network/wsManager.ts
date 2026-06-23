@@ -80,7 +80,8 @@ export const initializeWebSocket = () => {
             dispatchServerEvent(data.channel, data.payload);
           }
           break;
-        case 'mapStatic':
+        case 'mapMeta':
+        case 'mapChunk':
         case 'playerStats':
         case 'fullGameState':
         case 'gameStateDelta':

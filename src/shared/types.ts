@@ -357,6 +357,24 @@ export interface MapStaticClient {
   tiles: Tile[][];
 }
 
+export interface MapMetaClient {
+  id: string;
+  name: string;
+  type: MapType;
+  pvp?: PvpMorale;
+  cols: number;
+  rows: number;
+  revision: number;
+}
+
+export interface MapChunkPayload {
+  mapId: string;
+  revision: number;
+  chunkX: number;
+  chunkY: number;
+  tiles: Tile[][];
+}
+
 export interface MapDynamicClient {
   id: string;
   droppedItems: DroppedItem[];

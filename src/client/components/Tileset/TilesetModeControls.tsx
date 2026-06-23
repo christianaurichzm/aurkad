@@ -29,7 +29,6 @@ import { AsyncSelect } from '../common/Select/AsyncSelect';
 import { Select } from '../common/Select/Select';
 import { MapType, RuntimeNpc, TileEditMode } from '../../../shared/types';
 import { getGameState } from '../../core/gameState';
-import { useGame } from '../../context/GameContext';
 import { SpritePreview } from '../common/SpritePreview';
 import { colors, radius } from '../../theme';
 
@@ -90,7 +89,6 @@ const modeLabels: Record<TileEditMode, string> = {
 };
 
 const TilesetModeControlsComponent: React.FC = () => {
-  const { setMap } = useGame();
   const mapEdited = useUIStore((state) => state.mapEdited);
 
   const [activeMode, setActiveMode] = useState<TileEditMode | null>(null);
@@ -109,13 +107,12 @@ const TilesetModeControlsComponent: React.FC = () => {
       if (map) {
         setMapType(map.type);
         setMapName(map.name);
-        setMap(map);
       } else {
         setMapType('normal');
         setMapName('New Map');
       }
     }
-  }, [setMap]);
+  }, []);
 
   useEffect(() => {
     loadMapData();
