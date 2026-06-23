@@ -133,6 +133,7 @@ engine.onServerEvent('trade:update', (data) => {
 
 engine.onServerEvent('trade:complete', (offer) => {
   const other = offer.from === myName ? offer.to : offer.from;
+  engine.chat(`Trade with ${other} completed.`);
   const msg = document.createElement('div');
   msg.textContent = `Trade complete with ${other}!`;
   msg.style.cssText =

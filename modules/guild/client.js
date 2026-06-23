@@ -166,6 +166,7 @@ engine.onServerEvent('guild:invite', ({ guildName, from }) => {
 });
 
 engine.onServerEvent('guild:kicked', ({ from }) => {
+  engine.chat(`You were kicked from guild "${from}".`);
   const msg = document.createElement('div');
   msg.textContent = `You were kicked from "${from}"`;
   msg.style.cssText =

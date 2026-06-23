@@ -2,11 +2,8 @@ import { onServerEvent, sendServerEvent } from '../network/customEvents';
 import { colors, radius, shadow, zIndex } from '../../theme';
 import { registerModuleAction } from './moduleActions';
 import { getGameState } from '../../core/gameState';
-import {
-  TILE_SIZE,
-  SPRITE_WIDTH,
-  SPRITE_HEIGHT,
-} from '../../../shared/constants';
+import { enqueueChatMessage } from '../network/sync/chatSync';
+import { TILE_SIZE } from '../../../shared/constants';
 
 // Loads the module browser entries the server serves and runs them with an
 // `engine` API. Like server scripts, this is the server owner's code, so it
@@ -75,35 +72,37 @@ function showContextMenu(name: string, x: number, y: number) {
 function installCanvasClickDetection() {
   if (canvasClickInstalled) return;
   canvasClickInstalled = true;
-  // Wait for the canvas to be in the DOM (modules load after game init).
+  // fringeCanvas sits on top in DOM order and captures events first; use the
+  // canvasStack parent so bubbling from any layer reaches the listener.
   const tryInstall = () => {
-    const canvas = document.getElementById(
+    const stack = document.getElementById('canvasStack');
+    const refCanvas = document.getElementById(
       'playerCanvas',
     ) as HTMLCanvasElement | null;
-    if (!canvas) {
+    if (!stack || !refCanvas) {
       setTimeout(tryInstall, 500);
       return;
     }
-    canvas.addEventListener('click', (e: MouseEvent) => {
+    stack.addEventListener('click', (e: MouseEvent) => {
       if (!playerActions.length) return;
-      const rect = canvas.getBoundingClientRect();
-      const scaleX = canvas.width / rect.width;
-      const scaleY = canvas.height / rect.height;
+      const rect = stack.getBoundingClientRect();
+      // refCanvas gives the logical canvas dimensions (1280×896)
+      const scaleX = refCanvas.width / rect.width;
+      const scaleY = refCanvas.height / rect.height;
       const cx = (e.clientX - rect.left) * scaleX;
       const cy = (e.clientY - rect.top) * scaleY;
       const state = getGameState();
       if (!state) return;
-      const offsetX = (TILE_SIZE - SPRITE_WIDTH) / 2;
-      const offsetY = (TILE_SIZE - SPRITE_HEIGHT) / 2;
       let hit: string | null = null;
       for (const p of Object.values(state.players)) {
-        const px = p.position.x + offsetX;
-        const py = p.position.y + offsetY;
+        // p.position is the tile-snapped pixel position; sprite fills the tile
+        const px = p.position.x;
+        const py = p.position.y;
         if (
           cx >= px &&
-          cx <= px + SPRITE_WIDTH &&
+          cx <= px + TILE_SIZE &&
           cy >= py &&
-          cy <= py + SPRITE_HEIGHT
+          cy <= py + TILE_SIZE
         ) {
           hit = p.name;
           break;
@@ -269,6 +268,13 @@ function makeEngineApi(id: string) {
     registerPlayerAction: (label: string, callback: (name: string) => void) => {
       playerActions.push({ label, callback });
       installCanvasClickDetection();
+    },
+    /**
+     * Append a system message to the chat log. Use for notifications that
+     * should persist in the log (e.g. "kicked from guild", "trade complete").
+     */
+    chat: (message: string) => {
+      enqueueChatMessage({ type: 'chat', scope: 'global', message });
     },
     log: (...args: unknown[]) => console.log(`[module:${id}]`, ...args),
     warn: (...args: unknown[]) => console.warn(`[module:${id}]`, ...args),

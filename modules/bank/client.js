@@ -1,16 +1,13 @@
-// Bank module, client entry. The Bank button (B) opens a storage panel.
-// The server pushes bank:update with the full contents, and deposit and
-// withdraw go through customAction events the server validates.
+// Bank module, client entry. The bank panel opens when the player steps
+// on a bank tile (the server sends bank:open). There is no action button:
+// the bank is only reached at its place on the map.
 
 const ui = engine.ui;
 const panel = ui.panel({ title: 'Bank' });
-ui.actionButton('Bank', () => {
-  panel.toggle();
-  if (panel.isOpen()) engine.sendServerEvent('bank:request');
-}, 'b');
 
 engine.onServerEvent('bank:open', () => {
   panel.show();
+  engine.sendServerEvent('bank:request');
 });
 
 let bank = { items: [], maxCapacity: 50 };
