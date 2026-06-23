@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import { Controller, useForm } from 'react-hook-form';
-import { Item } from '../../../shared/types';
+import { Controller, useFieldArray, useForm } from 'react-hook-form';
+import { Effect, Item, ModifiablePlayerAttribute } from '../../../shared/types';
 import { updateItem, createItem, deleteItem } from '../../io/network';
 import { chatResultMsg } from '../ChatPanel';
 import { AsyncSelect } from '../common/Select/AsyncSelect';
@@ -15,11 +15,18 @@ interface ItemEditorProps {
   requestDiscard: () => Promise<boolean>;
 }
 
+type EffectRow = {
+  attribute: ModifiablePlayerAttribute;
+  type: Effect['type'];
+  value: number;
+};
+
 type ItemFormValues = {
   name: string;
   sprite: number;
   desc: string;
   type: Item['type'];
+  effects: EffectRow[];
 };
 
 const defaultValues: ItemFormValues = {
@@ -27,6 +34,7 @@ const defaultValues: ItemFormValues = {
   sprite: 0,
   desc: '',
   type: 'weapon',
+  effects: [],
 };
 
 const itemToFormValues = (item: Item): ItemFormValues => ({
@@ -34,7 +42,26 @@ const itemToFormValues = (item: Item): ItemFormValues => ({
   sprite: item.sprite,
   desc: item.description ?? '',
   type: item.type,
+  effects: (item.effects ?? []).map((e) => ({
+    attribute: e.attribute,
+    type: e.type,
+    value: e.value,
+  })),
 });
+
+const ATTRIBUTES: { value: ModifiablePlayerAttribute; label: string }[] = [
+  { value: 'health', label: 'Health' },
+  { value: 'maxHealth', label: 'Max Health' },
+  { value: 'attack', label: 'Attack' },
+  { value: 'strength', label: 'Strength' },
+  { value: 'defense', label: 'Defense' },
+  { value: 'agility', label: 'Agility' },
+  { value: 'vitality', label: 'Vitality' },
+  { value: 'speed', label: 'Speed' },
+  { value: 'attackRange', label: 'Attack Range' },
+  { value: 'experience', label: 'Experience' },
+  { value: 'level', label: 'Level' },
+];
 
 export const ItemEditor: React.FC<ItemEditorProps> = ({
   items,
@@ -52,6 +79,10 @@ export const ItemEditor: React.FC<ItemEditorProps> = ({
     reset: resetForm,
     watch,
   } = useForm<ItemFormValues>({ defaultValues });
+  const { fields, append, remove } = useFieldArray({
+    control,
+    name: 'effects',
+  });
 
   const sprite = watch('sprite');
 
@@ -69,13 +100,17 @@ export const ItemEditor: React.FC<ItemEditorProps> = ({
     if (!(await requestDiscard())) return;
     setSelectedId(String(id));
     const item = items.find((i) => i.id === id);
-    if (item) {
-      resetForm(itemToFormValues(item));
-    }
+    if (item) resetForm(itemToFormValues(item));
   };
 
-  const saveItem = async ({ name, sprite, desc, type }: ItemFormValues) => {
-    const data = { name, sprite, description: desc, type };
+  const saveItem = async ({
+    name,
+    sprite,
+    desc,
+    type,
+    effects,
+  }: ItemFormValues) => {
+    const data = { name, sprite, description: desc, type, effects };
     const result = selectedId
       ? await updateItem(Number(selectedId), data)
       : await createItem(data);
@@ -172,6 +207,76 @@ export const ItemEditor: React.FC<ItemEditorProps> = ({
         </div>
       </div>
 
+      <div style={effectsBox}>
+        <div style={effectsHeader}>
+          <span style={label}>Effects</span>
+          <button
+            type="button"
+            style={addBtn}
+            onClick={() =>
+              append({ attribute: 'health', type: 'add', value: 0 })
+            }
+          >
+            + Add
+          </button>
+        </div>
+
+        {fields.length === 0 && (
+          <p style={emptyHint}>
+            No effects. Click + Add to define stat changes.
+          </p>
+        )}
+
+        {fields.map((f, i) => (
+          <div key={f.id} style={effectRow}>
+            <div style={{ flex: 3, minWidth: 0 }}>
+              <Controller
+                control={control}
+                name={`effects.${i}.attribute`}
+                render={({ field }) => (
+                  <AsyncSelect<ModifiablePlayerAttribute>
+                    loadOptions={async () => ATTRIBUTES}
+                    value={field.value}
+                    onChange={field.onChange}
+                  />
+                )}
+              />
+            </div>
+            <div style={{ width: 60, flexShrink: 0 }}>
+              <Controller
+                control={control}
+                name={`effects.${i}.type`}
+                render={({ field }) => (
+                  <AsyncSelect<Effect['type']>
+                    loadOptions={async () => [
+                      { value: 'add' as const, label: '+ add' },
+                      { value: 'multiply' as const, label: '× mul' },
+                    ]}
+                    value={field.value}
+                    onChange={field.onChange}
+                  />
+                )}
+              />
+            </div>
+            <div style={{ width: 68, flexShrink: 0 }}>
+              <input
+                style={input}
+                type="number"
+                {...register(`effects.${i}.value`, { setValueAs: Number })}
+              />
+            </div>
+            <button
+              type="button"
+              style={removeEffectBtn}
+              onClick={() => remove(i)}
+              title="Remove effect"
+            >
+              ✕
+            </button>
+          </div>
+        ))}
+      </div>
+
       <div style={actions}>
         <button type="submit" style={saveBtn}>
           {selectedId ? 'Save Item' : 'Create Item'}
@@ -245,6 +350,34 @@ const input: React.CSSProperties = {
   background: colors.surface,
 };
 
+const effectsBox: React.CSSProperties = {
+  background: colors.surfaceMuted,
+  border: `1px solid ${colors.border}`,
+  borderRadius: radius.md,
+  padding: '10px 12px',
+  display: 'flex',
+  flexDirection: 'column',
+  gap: 6,
+};
+
+const effectsHeader: React.CSSProperties = {
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'space-between',
+};
+
+const effectRow: React.CSSProperties = {
+  display: 'flex',
+  gap: 6,
+  alignItems: 'center',
+};
+
+const emptyHint: React.CSSProperties = {
+  fontSize: 13,
+  color: colors.textMuted,
+  margin: 0,
+};
+
 const actions: React.CSSProperties = { display: 'flex', gap: 8 };
 
 const saveBtn: React.CSSProperties = {
@@ -280,4 +413,24 @@ const resetBtn: React.CSSProperties = {
   fontWeight: 600,
   fontSize: 13,
   whiteSpace: 'nowrap',
+};
+
+const addBtn: React.CSSProperties = {
+  background: 'transparent',
+  color: colors.primary,
+  border: `1px solid ${colors.primary}`,
+  padding: '3px 10px',
+  borderRadius: radius.sm,
+  cursor: 'pointer',
+  fontWeight: 600,
+  fontSize: 12,
+};
+
+const removeEffectBtn: React.CSSProperties = {
+  background: 'transparent',
+  color: colors.textMuted,
+  border: 'none',
+  padding: '0 4px',
+  cursor: 'pointer',
+  fontSize: 14,
 };

@@ -36,6 +36,9 @@ export {
   deleteItem,
   fetchShops,
   fetchShop,
+  createShop,
+  updateShop,
+  deleteShop,
   changeSprite,
 } from './http/contentClient';
 

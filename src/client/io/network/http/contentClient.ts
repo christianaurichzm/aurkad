@@ -83,6 +83,23 @@ export const fetchShop = async (
   });
 };
 
+export const createShop = async (
+  data: Omit<Shop<ProductRaw>, never>,
+): Promise<Shop<ProductRaw> | null> => {
+  return httpClient<Shop<ProductRaw>>('/shops', { method: 'POST', body: data });
+};
+
+export const updateShop = async (
+  id: string,
+  data: Shop<ProductRaw>,
+): Promise<void> => {
+  await httpClient(`/shops/${id}`, { method: 'PUT', body: data });
+};
+
+export const deleteShop = async (id: string): Promise<void> => {
+  await httpClient(`/shops/${id}`, { method: 'DELETE' });
+};
+
 export const changeSprite = async (spriteId: number) => {
   return httpClient<Response>('/mod/changeSprite', {
     method: 'POST',

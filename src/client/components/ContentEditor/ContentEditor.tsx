@@ -2,21 +2,27 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { ItemEditor } from './ItemEditor';
 import { NpcEditor } from './NpcEditor';
 import { MapEditor } from './MapEditor';
-import { RuntimeNpc, Item, MapStateClient } from '../../../shared/types';
-import { fetchNpcs, fetchItems, fetchMaps } from '../../io/network';
-import { useGame } from '../../context/GameContext';
+import { ShopEditor } from './ShopEditor';
+import {
+  RuntimeNpc,
+  Item,
+  MapStateClient,
+  Shop,
+  ProductRaw,
+} from '../../../shared/types';
+import { fetchNpcs, fetchItems, fetchMaps, fetchShops } from '../../io/network';
 import { Modal } from '../common/Modal';
 import { colors, radius } from '../../theme';
 import { useUIStore } from '../../stores/uiStore';
 
-type Tab = 'npcs' | 'items' | 'maps';
+type Tab = 'npcs' | 'items' | 'shops' | 'maps';
 
 export const ContentEditor: React.FC = () => {
-  const { map: currentMap } = useGame();
   const [visible, setVisible] = useState(false);
   const [tab, setTab] = useState<Tab>('npcs');
   const [npcs, setNpcs] = useState<RuntimeNpc[]>([]);
   const [items, setItems] = useState<Item[]>([]);
+  const [shops, setShops] = useState<Shop<ProductRaw>[]>([]);
   const [maps, setMaps] = useState<MapStateClient[]>([]);
   const [contentDirty, setContentDirty] = useState(false);
   const visibleRef = useRef(false);
@@ -25,14 +31,12 @@ export const ContentEditor: React.FC = () => {
   useEffect(() => {
     visibleRef.current = visible;
   }, [visible]);
-
   useEffect(() => {
     dirtyRef.current = contentDirty;
   }, [contentDirty]);
 
   const confirmDiscard = useCallback(async () => {
     if (!dirtyRef.current) return true;
-
     const discard = await useUIStore.getState().showDialog({
       title: 'Discard changes?',
       message: 'You have unsaved editor changes. Discard them?',
@@ -40,11 +44,7 @@ export const ContentEditor: React.FC = () => {
       confirmLabel: 'Discard',
       cancelLabel: 'Keep editing',
     });
-
-    if (discard) {
-      setContentDirty(false);
-    }
-
+    if (discard) setContentDirty(false);
     return discard;
   }, []);
 
@@ -56,31 +56,24 @@ export const ContentEditor: React.FC = () => {
 
   useEffect(() => {
     const toggle = () => {
-      if (visibleRef.current) {
-        void close();
-      } else {
-        setVisible(true);
-      }
+      visibleRef.current ? void close() : setVisible(true);
     };
     window.addEventListener('toggleContentEditor', toggle);
     return () => window.removeEventListener('toggleContentEditor', toggle);
   }, [close]);
 
-  const filterMaps = useCallback(
-    (data: MapStateClient[]) => data.filter((m) => m.id !== currentMap?.id),
-    [currentMap?.id],
-  );
-
   const refreshData = useCallback(async () => {
-    const [npcData, itemData, mapData] = await Promise.all([
+    const [npcData, itemData, shopData, mapData] = await Promise.all([
       fetchNpcs(),
       fetchItems(),
+      fetchShops(),
       fetchMaps(),
     ]);
     setNpcs(npcData);
     setItems(itemData);
-    setMaps(filterMaps(mapData));
-  }, [filterMaps]);
+    setShops(shopData);
+    setMaps(mapData);
+  }, []);
 
   useEffect(() => {
     if (visible) refreshData();
@@ -98,12 +91,17 @@ export const ContentEditor: React.FC = () => {
     return data.map((i) => ({ value: i.id, label: `${i.id} - ${i.name}` }));
   }, []);
 
+  const loadShops = useCallback(async () => {
+    const data = await fetchShops();
+    setShops(data);
+    return data.map((s) => ({ value: s.id, label: `${s.id} - ${s.name}` }));
+  }, []);
+
   const loadMaps = useCallback(async () => {
     const data = await fetchMaps();
-    const filtered = filterMaps(data);
-    setMaps(filtered);
-    return filtered.map((m) => ({ value: m.id, label: `${m.id} - ${m.name}` }));
-  }, [filterMaps]);
+    setMaps(data);
+    return data.map((m) => ({ value: m.id, label: `${m.id} - ${m.name}` }));
+  }, []);
 
   if (!visible) return null;
 
@@ -116,11 +114,12 @@ export const ContentEditor: React.FC = () => {
   const tabs: { id: Tab; label: string }[] = [
     { id: 'npcs', label: 'NPCs' },
     { id: 'items', label: 'Items' },
+    { id: 'shops', label: 'Shops' },
     { id: 'maps', label: 'Maps' },
   ];
 
   return (
-    <Modal title="Content Editor" onClose={close} width={560}>
+    <Modal title="Content Editor" onClose={close} width={580}>
       <div style={layout}>
         <div style={tabBar}>
           {tabs.map((t) => (
@@ -148,6 +147,17 @@ export const ContentEditor: React.FC = () => {
           {tab === 'items' && (
             <ItemEditor
               items={items}
+              loadItems={loadItems}
+              refreshData={refreshData}
+              onDirtyChange={setContentDirty}
+              requestDiscard={confirmDiscard}
+            />
+          )}
+          {tab === 'shops' && (
+            <ShopEditor
+              shops={shops}
+              items={items}
+              loadShops={loadShops}
               loadItems={loadItems}
               refreshData={refreshData}
               onDirtyChange={setContentDirty}
@@ -183,7 +193,7 @@ const tabBar: React.CSSProperties = {
 };
 
 const tabBtn: React.CSSProperties = {
-  padding: '8px 22px',
+  padding: '8px 18px',
   border: 'none',
   background: 'transparent',
   color: colors.textMuted,

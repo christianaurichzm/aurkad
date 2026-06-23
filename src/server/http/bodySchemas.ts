@@ -156,6 +156,18 @@ export const BuyShopItemBodySchema = z.object({
   itemId: z.number().int().nonnegative(),
 });
 
+const ProductSchema = z.object({
+  itemId: z.number().int().nonnegative(),
+  currency: z.number().int().nonnegative(),
+  price: z.number().int().nonnegative(),
+});
+
+export const CreateShopBodySchema = z.object({
+  id: z.string().min(1),
+  name: z.string().min(1),
+  products: z.array(ProductSchema).default([]),
+});
+
 export const AssignPointsBodySchema = z.object({
   vitality: z.number().int().nonnegative().default(0),
   attack: z.number().int().nonnegative().default(0),

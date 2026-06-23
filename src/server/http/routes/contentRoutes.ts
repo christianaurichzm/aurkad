@@ -15,6 +15,7 @@ import {
   CreateMapBodySchema,
   UpdateMapBodySchema,
   CreateItemBodySchema,
+  CreateShopBodySchema,
   BuyShopItemBodySchema,
   AssignPointsBodySchema,
 } from '../bodySchemas.js';
@@ -34,6 +35,8 @@ import {
   buyShopItem,
   getShopById,
   listShops,
+  createOrUpdateShop,
+  deleteShop,
 } from '../../services/shopService.js';
 import {
   createOrUpdateItem,
@@ -409,6 +412,39 @@ export function createContentRouter() {
       res.status(204).send();
     } catch (err) {
       res.status(500).json({ error: 'Failed to delete item.' });
+    }
+  });
+
+  router.post('/shops', checkAccess(Access.ADMIN), async (req, res) => {
+    const body = parseBody(CreateShopBodySchema, req.body, res);
+    if (!body) return;
+    try {
+      await createOrUpdateShop(body);
+      res.status(201).json(body);
+    } catch {
+      res.status(500).json({ error: 'Failed to create shop.' });
+    }
+  });
+
+  router.put('/shops/:id', checkAccess(Access.ADMIN), async (req, res) => {
+    const id = req.params['id']!;
+    const body = parseBody(CreateShopBodySchema, req.body, res);
+    if (!body) return;
+    try {
+      await createOrUpdateShop({ ...body, id });
+      res.status(200).json({ success: true });
+    } catch {
+      res.status(500).json({ error: 'Failed to update shop.' });
+    }
+  });
+
+  router.delete('/shops/:id', checkAccess(Access.ADMIN), async (req, res) => {
+    const id = req.params['id']!;
+    try {
+      await deleteShop(id);
+      res.status(204).send();
+    } catch {
+      res.status(500).json({ error: 'Failed to delete shop.' });
     }
   });
 
