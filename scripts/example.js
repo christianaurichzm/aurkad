@@ -1,142 +1,239 @@
-// Game script, run on the server at boot. Saving this file applies the
-// changes at once, with no restart.
-//
-// Available API:
-//   on(event, handler)          - listen to a lifecycle event
-//   getPlayer(name)             - PlayerServer | undefined
-//   getPlayers()                - PlayerServer[]
-//   spawnNpc(opts) / despawnNpc(npc) - runtime NPCs (pets, summons, bosses)
-//   moveNpcToward(npc, x, y)    - one tile-step toward a point (facing + collision)
-//   getNearbyNpcs(mapId, x, y, radius) - living NPCs near a point (AoE/targeting)
-//   dealDamage(target, amount, attacker?) - apply damage via the combat pipeline
-//   giveItem(player, id, qty)   - add item to inventory
-//   removeItem(player, id, qty) - remove item from inventory
-//   healPlayer(player)          - restore full health
-//   killPlayer(player)          - kill + respawn
-//   teleportPlayer(p, mapId, col, row)
-//   sendMessage(player, text)   - private message
-//   broadcastMessage(text)      - global chat
-//   getPlayerData(player, key)  - read custom per-player data
-//   setPlayerData(player, key, value) - write custom per-player data (persisted)
-//   store.get/set/delete/keys/entries(scope, ...) - shared persistent store
-//   sendEvent(player, channel, payload)     - custom event to one client
-//   sendMapEvent(mapId, channel, payload)   - custom event to a map
-//   broadcastEvent(channel, payload)        - custom event to all clients
-//   command(name, { access }, handler)      - chat (/name) + REPL command
-//   use('dialog').show(player, { text, choices }, onChoice) - dialog box (press F)
-//   use('quest').define/start/advance/complete/get - quests (quest module)
-//   setTimeout(fn, ms)
-//   setInterval(fn, ms)
-//   log(...args)
-//
-// Client code subscribes with onServerEvent(channel, handler) and sends with
-// sendServerEvent(channel, payload) (handled here via on('customAction', ...)).
-//
-// Events: playerJoin, playerLeave, playerDeath, playerLevelUp, npcDeath,
-//         npcInteract, tileEnter, itemUse, itemPickup, chatMessage,
-//         beforeDamage, beforeXpGain, customAction, tick
+// Starter game script: edit this file to define your game's rules.
+// Everything here runs on the server, and saving hot-reloads it.
+// Full API reference at the bottom of this file; types in scripts/global.d.ts.
+
+// ─── MODULES ─────────────────────────────────────────────────────────────────
+// Grab module APIs once at load time. They are undefined if the module is
+// disabled in game.json. Guard with `if (dialog) ...` when in doubt.
+
+const dialog = use('dialog'); // NPC dialog boxes (press F near an NPC)
+const quest  = use('quest');  // quest tracker panel (Q key)
+
+// ─── QUESTS ──────────────────────────────────────────────────────────────────
+// Define all quests at load time. quest.define is safe to call again on
+// hot reload: progress lives in the player's data bag, not the definition.
+
+if (quest) {
+  quest.define({
+    id: 'goblinHunt',
+    name: 'Goblin Hunt',
+    description: 'Defeat 3 Goblins for the Elder.',
+    target: 3,
+    reward: (player) => {
+      giveExperience(player, 100);
+      giveItem(player, 1, 2); // 2× Health Potion (item id 1)
+      sendMessage(player, 'The Elder rewards you with potions and experience.');
+    },
+  });
+
+  quest.define({
+    id: 'orcSlayer',
+    name: 'Orc Slayer',
+    description: 'Prove yourself by defeating 5 Orcs.',
+    target: 5,
+    reward: (player) => {
+      giveExperience(player, 500);
+      giveItem(player, 8, 1); // Steel Sword (item id 8)
+      sendMessage(player, 'The Elder gives you a steel sword as reward!');
+    },
+  });
+}
+
+// ─── WELCOME ─────────────────────────────────────────────────────────────────
 
 on('playerJoin', ({ player }) => {
-  sendMessage(player, `Welcome to the game, ${player.name}!`);
+  sendMessage(player, `Welcome, ${player.name}! Press F near an NPC to interact.`);
+
+  // Give a starter kit to brand-new players (level 1, empty inventory).
+  if (player.level === 1 && player.inventory.items.length === 0) {
+    giveItem(player, 1, 3); // 3× Health Potion
+    giveItem(player, 3, 10); // 10 Gold Coins
+    sendMessage(player, 'You received a starter kit: 3 Health Potions and 10 Gold Coins.');
+  }
 });
 
 on('playerLevelUp', ({ player, level }) => {
-  broadcastMessage(`${player.name} reached level ${level}!`);
+  broadcastMessage(`★ ${player.name} reached level ${level}!`);
 });
 
-on('npcDeath', ({ npc, killer }) => {
-  log(`${killer.name} defeated ${npc.name}`);
-});
+// ─── NPC INTERACTIONS ────────────────────────────────────────────────────────
+// Press F while facing an NPC to trigger npcInteract.
 
-// Talk to an NPC: face it and press F. Dialog comes from the dialog module.
-const dialog = use('dialog');
 on('npcInteract', ({ player, npc }) => {
   if (!dialog) return;
-  dialog.show(
-    player,
-    { text: `${npc.name}: Greetings, traveler. Need anything?`, choices: ['Heal me', 'Nothing'] },
-    (choice) => {
-      if (choice === 0) {
-        healPlayer(player);
-        sendMessage(player, 'You feel restored.');
-      }
-    },
-  );
+
+  if (npc.name === 'Elder') {
+    handleElderDialog(player);
+    return;
+  }
+
+  // Default: any other friendly/neutral NPC gets a generic greeting.
+  dialog.show(player, { text: `${npc.name}: Greetings, traveler.` });
 });
 
-// Uncomment to give new players a starter item (use a real item id for 1):
-//
-// on('playerJoin', ({ player }) => {
-//   giveItem(player, 1, 1);
-// });
+function handleElderDialog(player) {
+  if (!quest || !dialog) return;
 
-// A kill quest wired from dialog and npcDeath through the quest and dialog
-// modules. The quest module tracks progress (shown in the quest log) and
-// grants the reward; the script defines and advances it.
-//
-// const quest = use('quest');
-// const dialog = use('dialog');
-// quest.define({
-//   id: 'goblinHunt', name: 'Goblin Hunt', description: 'Defeat 3 goblins',
-//   target: 3, reward: (player) => giveExperience(player, 100),
-// });
-// on('npcInteract', ({ player, npc }) => {
-//   if (npc.name !== 'Quest Giver') return;
-//   const q = quest.get(player, 'goblinHunt');
-//   if (!q) {
-//     dialog.show(player, { text: 'Slay 3 goblins?', choices: ['Accept', 'Decline'] }, (i) => {
-//       if (i === 0) quest.start(player, 'goblinHunt');
-//     });
-//   } else if (q.status === 'completed') {
-//     dialog.show(player, { text: 'You have my thanks, hero.' });
-//   } else {
-//     dialog.show(player, { text: `Progress: ${q.progress}/${q.target}` });
-//   }
-// });
-// on('npcDeath', ({ npc, killer }) => {
-//   if (npc.name === 'Goblin') quest.advance(killer, 'goblinHunt', 1);
-// });
+  const goblinQ = quest.get(player, 'goblinHunt');
+  const orcQ    = quest.get(player, 'orcSlayer');
 
-// VIP, a complete example: grant the flag, gate a command behind it, react
-// to it. VIP is a per-player flag, not an access tier: canRun lets VIPs run
-// a command normal players can't, without making them moderators.
+  if (!goblinQ) {
+    // First visit: offer the introductory quest.
+    dialog.show(
+      player,
+      {
+        text: 'Elder: Our village is overrun by goblins. Will you help us?',
+        choices: ['I will help', 'Maybe later'],
+      },
+      (choice) => {
+        if (choice === 0) {
+          quest.start(player, 'goblinHunt');
+          dialog.show(player, {
+            text: 'Elder: Slay 3 Goblins and return to me. Safe travels.',
+          });
+        }
+      },
+    );
+    return;
+  }
+
+  if (goblinQ.status === 'active') {
+    dialog.show(player, {
+      text: `Elder: You have defeated ${goblinQ.progress} of ${goblinQ.target} goblins. Keep going!`,
+    });
+    return;
+  }
+
+  // Goblin quest done: offer the next one if available.
+  if (!orcQ) {
+    dialog.show(
+      player,
+      {
+        text: 'Elder: You have my thanks! But stronger foes lurk to the east - Orcs. Will you face them?',
+        choices: ['I accept', 'Not yet'],
+      },
+      (choice) => {
+        if (choice === 0) quest.start(player, 'orcSlayer');
+      },
+    );
+    return;
+  }
+
+  if (orcQ.status === 'active') {
+    dialog.show(player, {
+      text: `Elder: ${orcQ.progress}/${orcQ.target} orcs defeated. You are almost there!`,
+    });
+    return;
+  }
+
+  dialog.show(player, { text: 'Elder: You are a true hero. The village is forever grateful.' });
+}
+
+// ─── QUEST PROGRESSION ───────────────────────────────────────────────────────
+
+on('npcDeath', ({ npc, killer }) => {
+  if (!quest) return;
+  if (npc.name === 'Goblin') quest.advance(killer, 'goblinHunt', 1);
+  if (npc.name === 'Orc')    quest.advance(killer, 'orcSlayer', 1);
+});
+
+// ─── DEATH ───────────────────────────────────────────────────────────────────
+
+on('playerDeath', ({ player, killer }) => {
+  const by = killer ? ` by ${killer.name}` : '';
+  broadcastMessage(`${player.name} was defeated${by}.`);
+});
+
+// ─── ADMIN COMMANDS ──────────────────────────────────────────────────────────
+
+command('heal', { access: Access.MOD, description: 'Fully heal a player' }, ({ args, reply }) => {
+  const target = args[0] ? getPlayer(args[0]) : null;
+  if (!target) return reply('Usage: /heal <player>');
+  healPlayer(target);
+  reply(`${target.name} healed.`);
+});
+
+command('give', { access: Access.ADMIN, description: 'Give item to a player: /give <player> <itemId> [qty]' }, ({ args, reply }) => {
+  const target = getPlayer(args[0]);
+  const itemId = parseInt(args[1]);
+  const qty    = parseInt(args[2]) || 1;
+  if (!target || !itemId) return reply('Usage: /give <player> <itemId> [qty]');
+  giveItem(target, itemId, qty);
+  reply(`Gave ${qty}× item #${itemId} to ${target.name}.`);
+});
+
+command('tp', { access: Access.ADMIN, description: 'Teleport: /tp <player> <mapId> <col> <row>' }, ({ args, reply }) => {
+  const target = getPlayer(args[0]);
+  const mapId  = args[1];
+  const col    = parseInt(args[2]);
+  const row    = parseInt(args[3]);
+  if (!target || !mapId || isNaN(col) || isNaN(row)) return reply('Usage: /tp <player> <mapId> <col> <row>');
+  teleportPlayer(target, mapId, col, row);
+  reply(`Teleported ${target.name} to map ${mapId} (${col}, ${row}).`);
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// COOKBOOK: copy any block above the dashed line to activate it
+// ─────────────────────────────────────────────────────────────────────────────
+
+// ── VIP system ───────────────────────────────────────────────────────────────
 //
 // const isVip = (p) => getPlayerData(p, 'vip') === true;
 //
-// // Admins grant VIP. Chat: "/vip Bob"; REPL: "vip Bob" (operator always passes).
-// command('vip', { access: Access.ADMIN, description: 'Grant VIP to a player' }, ({ args, reply }) => {
+// command('vip', { access: Access.ADMIN, description: 'Grant VIP' }, ({ args, reply }) => {
 //   const target = getPlayer(args[0]);
-//   if (!target) return reply('Usage: vip <player>');
+//   if (!target) return reply('Usage: /vip <player>');
 //   setPlayerData(target, 'vip', true);
-//   setNameColor(target, 'gold');           // gold name above the sprite, for everyone
+//   setNameColor(target, 'gold');
 //   reply(`${target.name} is now VIP.`);
 // });
 //
-// // A VIP-only command: any access level, but canRun gates it to the flag.
-// command('vipheal', { canRun: isVip, description: 'VIP perk: heal yourself' }, ({ player, reply }) => {
+// command('vipheal', { canRun: isVip, description: 'VIP-only heal' }, ({ player, reply }) => {
 //   if (!player) return reply('In-game only.');
 //   healPlayer(player);
-//   reply('VIP heal - full health.');
+//   reply('VIP perk: full health.');
 // });
 //
-// // Perks: keep the gold name on reconnect, and double all XP.
 // on('playerJoin', ({ player }) => {
 //   if (isVip(player)) setNameColor(player, 'gold');
 // });
+//
 // on('beforeXpGain', (ctx) => {
 //   if (isVip(ctx.player)) ctx.amount *= 2;
 // });
 
-// Tiny kill leaderboard using the shared store (scope "leaderboard"):
+// ── Kill leaderboard (shared store) ──────────────────────────────────────────
 //
 // on('npcDeath', ({ killer }) => {
 //   const kills = (store.get('leaderboard', killer.name) ?? 0) + 1;
 //   store.set('leaderboard', killer.name, kills);
-//   if (kills === 100) broadcastMessage(`${killer.name} reached 100 kills!`);
+//   if (kills % 100 === 0) broadcastMessage(`${killer.name} reached ${kills} kills!`);
+// });
+//
+// command('top', { description: 'Show top 5 killers' }, ({ reply }) => {
+//   const entries = store.entries('leaderboard')
+//     .sort((a, b) => b[1] - a[1]).slice(0, 5);
+//   if (!entries.length) return reply('No kills yet.');
+//   reply(entries.map(([name, n], i) => `${i + 1}. ${name}: ${n}`).join(' | '));
 // });
 
-// Custom events: client asks for its kill count, server replies on a channel.
-// (client: sendServerEvent('stats:request'); onServerEvent('stats:reply', ...))
+// ── Milestone item reward on level up ────────────────────────────────────────
+//
+// on('playerLevelUp', ({ player, level }) => {
+//   if (level === 10) {
+//     giveItem(player, 2, 1); // Iron Sword at level 10
+//     sendMessage(player, 'You earned an Iron Sword for reaching level 10!');
+//   }
+// });
+
+// ── Double XP on weekends ────────────────────────────────────────────────────
+//
+// on('beforeXpGain', (ctx) => {
+//   const day = new Date().getDay();
+//   if (day === 0 || day === 6) ctx.amount *= 2;
+// });
+
+// ── Custom client event: player requests their kill stats ────────────────────
 //
 // on('customAction', ({ player, channel }) => {
 //   if (channel !== 'stats:request') return;
@@ -144,44 +241,76 @@ on('npcInteract', ({ player, npc }) => {
 //   sendEvent(player, 'stats:reply', { kills });
 // });
 
-// Uncomment to enable double damage on weekends:
-//
-// on('beforeDamage', ({ damage }) => {
-//   const day = new Date().getDay();
-//   if (day === 0 || day === 6) damage.value *= 2;
-// });
-
-// Tick: runs every game tick (~20/sec), the base for pets, projectiles,
-// damage over time and timed buffs. Throttle with the tick number.
+// ── Tick loop: runs ~20×/sec; throttle with tick % n ────────────────────────
 //
 // on('tick', ({ tick }) => {
-//   if (tick % 20 !== 0) return;        // ~once per second
+//   if (tick % 20 !== 0) return; // ~once per second
 //   for (const p of getPlayers()) {
-//     // e.g. a regen buff, a pet step, a poison tick...
+//     // regen buff, poison tick, boss phases, etc.
 //   }
 // });
 
-// Pet: a follower that walks like a real NPC (tile steps, facing,
-// collision) through moveNpcToward at the NPC cadence, stopping one tile
-// from its owner.
+// ─────────────────────────────────────────────────────────────────────────────
+// API REFERENCE (quick look-up; full types in scripts/global.d.ts)
+// ─────────────────────────────────────────────────────────────────────────────
 //
-// const pets = {};
-// on('playerJoin', ({ player }) => {
-//   const col = Math.round(player.position.x / TILE_SIZE) + 1; // spawn beside the owner
-//   const row = Math.round(player.position.y / TILE_SIZE);
-//   pets[player.id] = spawnNpc({ mapId: player.mapId, col, row, name: player.name + "'s Pet" });
-// });
-// on('playerLeave', ({ player }) => {
-//   if (pets[player.id]) { despawnNpc(pets[player.id]); delete pets[player.id]; }
-// });
-// on('tick', ({ tick }) => {
-//   if (tick % 25 !== 0) return;                // match the NPC movement cadence
-//   for (const p of getPlayers()) {
-//     const pet = pets[p.id];
-//     if (!pet) continue;
-//     const far = Math.abs(pet.position.x - p.position.x) > TILE_SIZE ||
-//                 Math.abs(pet.position.y - p.position.y) > TILE_SIZE;
-//     if (far) moveNpcToward(pet, p.position.x, p.position.y); // stops one tile away
-//     else pet.action = 'Idle';
-//   }
-// });
+// HOOKS (on)
+//   playerJoin / playerLeave       { player }
+//   playerDeath                    { player, killer? }
+//   playerLevelUp                  { player, level }
+//   npcDeath                       { npc, killer }
+//   npcInteract                    { player, npc }         - player pressed F
+//   tileEnter                      { player, tile, map }
+//   itemUse / itemPickup           { player, itemId, quantity? }
+//   chatMessage                    { player, scope, message }
+//   beforeDamage                   { attacker?, target, damage: { value } }  - mutate damage.value
+//   beforeXpGain                   { player, amount }      - mutate amount
+//   customAction                   { player, channel, payload }  - from client sendServerEvent
+//   tick                           { tick }                - 20/s; throttle with tick % n
+//
+// PLAYERS
+//   getPlayer(name)                → PlayerServer | undefined
+//   getPlayers()                   → PlayerServer[]
+//   sendMessage(player, text)      private message
+//   broadcastMessage(text)         all players
+//   healPlayer(player)             full health
+//   killPlayer(player)             kill + respawn
+//   teleportPlayer(p, mapId, col, row)
+//   giveItem(player, itemId, qty)
+//   removeItem(player, itemId, qty)
+//   giveExperience(player, amount) - passes through beforeXpGain
+//   dealDamage(target, amount, attacker?)
+//   setNameColor(player, color)    - cosmetic name color (undefined to clear)
+//   setNameTag(player, tag)        - cosmetic tag above name (e.g. guild)
+//   getPlayerData(player, key)     - read persisted custom field
+//   setPlayerData(player, key, val)- write persisted custom field
+//
+// NPCS
+//   getNearbyNpcs(mapId, x, y, radius)  → RuntimeNpc[]
+//   spawnNpc({ mapId, col, row, name?, sprite?, maxHealth?, attack?, behavior? })
+//   despawnNpc(npc)
+//   moveNpcToward(npc, x, y)       - one tile step (call every ~25 ticks)
+//
+// STORE (shared, persisted KV)
+//   store.get(scope, key)          store.set(scope, key, value)
+//   store.delete(scope, key)       store.keys(scope)   store.entries(scope)
+//
+// EVENTS (to client)
+//   sendEvent(player, channel, payload)
+//   sendMapEvent(mapId, channel, payload)
+//   broadcastEvent(channel, payload)
+//
+// COMMANDS
+//   command(name, handler)
+//   command(name, { access, description, canRun }, handler)
+//   Access.USER = 0 | Access.MOD = 1 | Access.ADMIN = 2
+//
+// MODULES
+//   use('dialog').show(player, { text, choices? }, onChoice?)
+//   use('quest').define(def) / start(p, id) / advance(p, id, n?) / get(p, id)
+//   use('magic').defineSpell({ id, name, manaCost, cooldownMs, cast(player) })
+//   use('guild').guildOf(player) / isMember(p, name) / members(name)
+//   use('party').partyOf(player) / isMember(p, name) / members(name)
+//
+// CONSTANTS
+//   TILE_SIZE                      - tile size in pixels (positions are in pixels)

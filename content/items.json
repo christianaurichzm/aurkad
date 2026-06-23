@@ -1,0 +1,65 @@
+[
+  {
+    "id": 1,
+    "name": "Health Potion",
+    "description": "Restores 50 health.",
+    "sprite": 0,
+    "type": "consumable",
+    "effects": [{ "attribute": "health", "type": "add", "value": 50 }]
+  },
+  {
+    "id": 2,
+    "name": "Iron Sword",
+    "description": "A sturdy blade. +5 attack.",
+    "sprite": 1,
+    "type": "weapon",
+    "effects": [{ "attribute": "attack", "type": "add", "value": 5 }]
+  },
+  {
+    "id": 3,
+    "name": "Gold Coin",
+    "description": "Currency.",
+    "sprite": 2,
+    "type": "money"
+  },
+  {
+    "id": 4,
+    "name": "Leather Armor",
+    "description": "Light protection. +3 defense.",
+    "sprite": 3,
+    "type": "chestplate",
+    "effects": [{ "attribute": "defense", "type": "add", "value": 3 }]
+  },
+  {
+    "id": 5,
+    "name": "Iron Helmet",
+    "description": "A solid iron helmet. +2 defense.",
+    "sprite": 4,
+    "type": "helmet",
+    "effects": [{ "attribute": "defense", "type": "add", "value": 2 }]
+  },
+  {
+    "id": 6,
+    "name": "Iron Shield",
+    "description": "Blocks some blows. +4 defense.",
+    "sprite": 5,
+    "type": "shield",
+    "effects": [{ "attribute": "defense", "type": "add", "value": 4 }]
+  },
+  {
+    "id": 7,
+    "name": "Iron Boots",
+    "description": "Sturdy boots. +1 defense.",
+    "sprite": 6,
+    "type": "boots",
+    "effects": [{ "attribute": "defense", "type": "add", "value": 1 }]
+  },
+  {
+    "id": 8,
+    "name": "Steel Sword",
+    "description": "Sharper and heavier. +10 attack.",
+    "sprite": 7,
+    "type": "weapon",
+    "effects": [{ "attribute": "attack", "type": "add", "value": 10 }]
+  }
+]

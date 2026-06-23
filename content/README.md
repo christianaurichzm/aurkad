@@ -4,21 +4,18 @@ Versionable game content as JSON. Put files here and they are imported into
 MongoDB at server boot (files win for the ids they define). Mongo stays the
 runtime source of truth; commit these files to version your game.
 
-## Activating
+The starter pack (`items.json`, `npcs.json`, `shops.json`) is included and
+active. Maps are created in-game via the admin map editor and exported with
+`npm run content:export`.
 
-The server only reads these exact filenames:
+## Files loaded at boot
 
 - `items.json`
 - `npcs.json`
 - `shops.json`
 - `maps.json`
 
-The `*.example.json` files in this folder are **not** loaded - copy one to the
-real name to activate it:
-
-```bash
-cp content/items.example.json content/items.json
-```
+The `*.example.json` files are **not** loaded; they are reference templates.
 
 ## Workflow
 
