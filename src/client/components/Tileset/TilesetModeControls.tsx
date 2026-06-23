@@ -14,14 +14,23 @@ import {
   toggleHeal,
   toggleKill,
   toggleWarn,
+  undo,
+  redo,
 } from '../../graphics/tileset';
 import { useUIStore } from '../../stores/uiStore';
-import { fetchNpcs, fetchItems, fetchShops, fetchMap } from '../../io/network';
+import {
+  fetchNpcs,
+  fetchItems,
+  fetchShops,
+  fetchMap,
+  fetchMaps,
+} from '../../io/network';
 import { AsyncSelect } from '../common/Select/AsyncSelect';
 import { Select } from '../common/Select/Select';
-import { MapType, TileEditMode } from '../../../shared/types';
+import { MapType, RuntimeNpc, TileEditMode } from '../../../shared/types';
 import { getGameState } from '../../core/gameState';
 import { useGame } from '../../context/GameContext';
+import { SpritePreview } from '../common/SpritePreview';
 import { colors, radius } from '../../theme';
 
 const inputStyle: React.CSSProperties = {
@@ -88,6 +97,8 @@ const TilesetModeControlsComponent: React.FC = () => {
   const [selectedNpc, setSelectedNpc] = useState<string | number>('');
   const [selectedItem, setSelectedItem] = useState<string | number>('');
   const [selectedShop, setSelectedShop] = useState<string | number>('');
+  const [selectedWarpMap, setSelectedWarpMap] = useState<string>('');
+  const [npcList, setNpcList] = useState<RuntimeNpc[]>([]);
   const [mapType, setMapType] = useState<MapType>('normal');
   const [mapName, setMapName] = useState<string>('');
 
@@ -119,9 +130,13 @@ const TilesetModeControlsComponent: React.FC = () => {
   useEffect(() => {
     (window as any).selectedShop = selectedShop;
   }, [selectedShop]);
+  useEffect(() => {
+    (window as any).selectedWarpMap = selectedWarpMap;
+  }, [selectedWarpMap]);
 
   const loadNpcs = useCallback(async () => {
     const npcs = await fetchNpcs();
+    setNpcList(npcs);
     return npcs.map((n) => ({ value: n.id, label: `${n.id} - ${n.name}` }));
   }, []);
 
@@ -133,6 +148,11 @@ const TilesetModeControlsComponent: React.FC = () => {
   const loadShops = useCallback(async () => {
     const shops = await fetchShops();
     return shops.map((s) => ({ value: s.id, label: `${s.id} - ${s.name}` }));
+  }, []);
+
+  const loadMaps = useCallback(async () => {
+    const maps = await fetchMaps();
+    return maps.map((m) => ({ value: m.id, label: `${m.id} - ${m.name}` }));
   }, []);
 
   const handleSave = async () => {
@@ -215,23 +235,21 @@ const TilesetModeControlsComponent: React.FC = () => {
           />
         </div>
         <button
-          onClick={() => {
-            fillMap();
-          }}
-          style={{
-            background: colors.surfaceMuted,
-            color: colors.text,
-            border: `1px solid ${colors.border}`,
-            padding: '7px 10px',
-            borderRadius: radius.md,
-            cursor: 'pointer',
-            fontWeight: 600,
-            fontSize: 12,
-            flexShrink: 0,
-          }}
+          onClick={() => fillMap()}
+          style={ghostBtn}
           title="Fill entire map with selected tile"
         >
           Fill
+        </button>
+        <button onClick={() => undo()} style={ghostBtn} title="Undo (Ctrl+Z)">
+          ↩
+        </button>
+        <button
+          onClick={() => redo()}
+          style={ghostBtn}
+          title="Redo (Ctrl+Y / Ctrl+Shift+Z)"
+        >
+          ↪
         </button>
         <button
           id="saveButton"
@@ -287,10 +305,12 @@ const TilesetModeControlsComponent: React.FC = () => {
 
       {activeMode === 'warping' && (
         <div style={inputsBox}>
-          <label style={labelStyle} htmlFor="mapTo">
-            Map To
-          </label>
-          <input type="number" id="mapTo" name="mapTo" style={inputStyle} />
+          <label style={labelStyle}>Map</label>
+          <AsyncSelect
+            loadOptions={loadMaps}
+            value={selectedWarpMap}
+            onChange={setSelectedWarpMap}
+          />
           <label style={labelStyle} htmlFor="xTo">
             Tile X
           </label>
@@ -305,11 +325,24 @@ const TilesetModeControlsComponent: React.FC = () => {
       {activeMode === 'npc' && (
         <div style={inputsBox}>
           <label style={labelStyle}>NPC</label>
-          <AsyncSelect
-            loadOptions={loadNpcs}
-            value={selectedNpc}
-            onChange={setSelectedNpc}
-          />
+          <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+            <div style={{ flex: 1 }}>
+              <AsyncSelect
+                loadOptions={loadNpcs}
+                value={selectedNpc}
+                onChange={setSelectedNpc}
+              />
+            </div>
+            {!!selectedNpc &&
+              (() => {
+                const npc = npcList.find(
+                  (n) => String(n.id) === String(selectedNpc),
+                );
+                return npc ? (
+                  <SpritePreview spriteId={npc.sprite} size={36} />
+                ) : null;
+              })()}
+          </div>
         </div>
       )}
 
@@ -336,6 +369,18 @@ const TilesetModeControlsComponent: React.FC = () => {
       )}
     </div>
   );
+};
+
+const ghostBtn: React.CSSProperties = {
+  background: colors.surfaceMuted,
+  color: colors.text,
+  border: `1px solid ${colors.border}`,
+  padding: '7px 10px',
+  borderRadius: radius.md,
+  cursor: 'pointer',
+  fontWeight: 600,
+  fontSize: 12,
+  flexShrink: 0,
 };
 
 export const TilesetModeControls = React.memo(TilesetModeControlsComponent);

@@ -31,6 +31,10 @@ export function AsyncSelect<T extends string | number>({
   }, [loadOptions]);
 
   const handleChange = (val: string) => {
+    if (val === '') {
+      onChange((typeof value === 'number' ? 0 : '') as T);
+      return;
+    }
     const selected = options.find((opt) => String(opt.value) === val);
     if (selected) {
       onChange(selected.value);

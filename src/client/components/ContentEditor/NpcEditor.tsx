@@ -1,11 +1,11 @@
-import React, { useRef, useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Controller, useForm } from 'react-hook-form';
 import { RuntimeNpc, NpcBehavior, Item } from '../../../shared/types';
-import { drawSpriteGeneric } from '../../graphics/render';
 import { updateNpc, createNpc, deleteNpc } from '../../io/network';
 import { chatResultMsg } from '../ChatPanel';
 import { AsyncSelect } from '../common/Select/AsyncSelect';
 import { ItemIcon } from '../Inventory/ItemIcon';
+import { SpritePreview } from '../common/SpritePreview';
 import { colors, radius } from '../../theme';
 
 interface NpcEditorProps {
@@ -76,8 +76,6 @@ export const NpcEditor: React.FC<NpcEditorProps> = ({
     reset: resetForm,
     watch,
   } = useForm<NpcFormValues>({ defaultValues });
-  const canvasRef = useRef<HTMLCanvasElement>(null);
-
   const sprite = watch('sprite');
   const dropItemId = watch('dropItemId');
 
@@ -90,22 +88,6 @@ export const NpcEditor: React.FC<NpcEditorProps> = ({
     setSelectedId('');
     resetForm(defaultValues);
   };
-
-  const drawPreview = useCallback(
-    (ctx: CanvasRenderingContext2D) => {
-      drawSpriteGeneric(ctx, sprite, 0, 0, 0, 0, 64, 64);
-    },
-    [sprite],
-  );
-
-  useEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-    drawPreview(ctx);
-  }, [drawPreview]);
 
   const selectNpc = async (id: string) => {
     if (!(await requestDiscard())) return;
@@ -195,12 +177,7 @@ export const NpcEditor: React.FC<NpcEditorProps> = ({
 
       <div style={cols}>
         <div style={leftCol}>
-          <canvas
-            ref={canvasRef}
-            width={64}
-            height={64}
-            style={previewCanvas}
-          />
+          <SpritePreview spriteId={sprite} />
           <div style={field}>
             <label style={label}>Sprite ID</label>
             <input
@@ -275,7 +252,7 @@ export const NpcEditor: React.FC<NpcEditorProps> = ({
               )}
             />
           </div>
-          {dropItemId && (
+          {!!dropItemId && (
             <div style={{ width: 80 }}>
               <label style={label}>Chance %</label>
               <input
@@ -290,7 +267,7 @@ export const NpcEditor: React.FC<NpcEditorProps> = ({
               />
             </div>
           )}
-          {dropItemId && (
+          {!!dropItemId && (
             <div style={{ width: 80 }}>
               <label style={label}>Quantity</label>
               <input
@@ -350,12 +327,6 @@ const triRow: React.CSSProperties = {
   display: 'grid',
   gridTemplateColumns: '1fr 1fr 1fr',
   gap: 8,
-};
-
-const previewCanvas: React.CSSProperties = {
-  border: `1px solid ${colors.border}`,
-  borderRadius: radius.sm,
-  background: colors.surfaceMuted,
 };
 
 const dropSection: React.CSSProperties = {

@@ -123,7 +123,10 @@ export const TilesetEditor: React.FC = () => {
       </div>
 
       <div style={{ overflow: 'auto', flex: 1, minHeight: 0 }}>
-        <canvas id="tilesetCanvas" style={{ display: 'block' }} />
+        <canvas
+          id="tilesetCanvas"
+          style={{ display: 'block', width: '100%' }}
+        />
       </div>
     </div>
   );
