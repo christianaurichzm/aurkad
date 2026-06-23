@@ -17,16 +17,22 @@ interface MapEditorProps {
 type MapFormValues = {
   name: string;
   type: MapType;
+  cols: number;
+  rows: number;
 };
 
 const defaultValues: MapFormValues = {
   name: '',
   type: 'normal',
+  cols: 20,
+  rows: 14,
 };
 
 const mapToFormValues = (map: MapStateClient): MapFormValues => ({
   name: map.name ?? '',
   type: map.type ?? 'normal',
+  cols: map.tiles?.[0]?.length ?? 20,
+  rows: map.tiles?.length ?? 14,
 });
 
 export const MapEditor: React.FC<MapEditorProps> = ({
@@ -72,10 +78,10 @@ export const MapEditor: React.FC<MapEditorProps> = ({
     resetForm(defaultValues);
   };
 
-  const handleSave = async ({ name, type }: MapFormValues) => {
+  const handleSave = async ({ name, type, cols, rows }: MapFormValues) => {
     const result = selectedId
       ? await updateMap(selectedId, { name, type })
-      : await createMap({ name, type });
+      : await createMap({ name, type, cols, rows });
     chatResultMsg(!!result, 'Map saved!', 'Error saving map');
     refreshData();
     setSelectedId('');
@@ -121,6 +127,30 @@ export const MapEditor: React.FC<MapEditorProps> = ({
           )}
         />
       </div>
+
+      {!selectedId && (
+        <div style={field}>
+          <label style={label}>Size (cols × rows)</label>
+          <div style={{ display: 'flex', gap: 8 }}>
+            <input
+              style={{ ...input, width: 80 }}
+              type="number"
+              min={1}
+              max={200}
+              {...register('cols', { valueAsNumber: true })}
+              placeholder="Cols"
+            />
+            <input
+              style={{ ...input, width: 80 }}
+              type="number"
+              min={1}
+              max={200}
+              {...register('rows', { valueAsNumber: true })}
+              placeholder="Rows"
+            />
+          </div>
+        </div>
+      )}
 
       <button type="submit" style={saveBtn} disabled={!name.trim()}>
         {selectedId ? 'Save Map' : 'Create Map'}

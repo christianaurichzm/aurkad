@@ -1,4 +1,5 @@
-import { GAME_HEIGHT, GAME_WIDTH, TILE_SIZE } from '../../shared/constants.js';
+import { TILE_SIZE } from '../../shared/constants.js';
+import { mapPixelWidth, mapPixelHeight } from '../../shared/mapGeometry.js';
 import { CombatTarget, MapStateServer, Warp } from '../../shared/types.js';
 import { getMap } from '../gameData.js';
 
@@ -76,7 +77,10 @@ export const hasCollision = (character: CombatTarget): boolean => {
   if (tileCollision) return true;
 
   const borderCollision =
-    x < 0 || y < 0 || x + width > GAME_WIDTH || y + height > GAME_HEIGHT;
+    x < 0 ||
+    y < 0 ||
+    x + width > mapPixelWidth(map.tiles) ||
+    y + height > mapPixelHeight(map.tiles);
 
   return borderCollision;
 };

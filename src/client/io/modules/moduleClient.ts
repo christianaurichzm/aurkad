@@ -4,6 +4,7 @@ import { registerModuleAction } from './moduleActions';
 import { getGameState } from '../../core/gameState';
 import { enqueueChatMessage } from '../network/sync/chatSync';
 import { TILE_SIZE } from '../../../shared/constants';
+import { screenToWorld } from '../../graphics/camera';
 
 // Loads the module browser entries the server serves and runs them with an
 // `engine` API. Like server scripts, this is the server owner's code, so it
@@ -89,13 +90,13 @@ function installCanvasClickDetection() {
       // refCanvas gives the logical canvas dimensions (1280×896)
       const scaleX = refCanvas.width / rect.width;
       const scaleY = refCanvas.height / rect.height;
-      const cx = (e.clientX - rect.left) * scaleX;
-      const cy = (e.clientY - rect.top) * scaleY;
+      const sx = (e.clientX - rect.left) * scaleX;
+      const sy = (e.clientY - rect.top) * scaleY;
+      const { x: cx, y: cy } = screenToWorld(sx, sy);
       const state = getGameState();
       if (!state) return;
       let hit: string | null = null;
       for (const p of Object.values(state.players)) {
-        // p.position is the tile-snapped pixel position; sprite fills the tile
         const px = p.position.x;
         const py = p.position.y;
         if (

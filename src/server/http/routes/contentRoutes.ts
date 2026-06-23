@@ -314,13 +314,13 @@ export function createContentRouter() {
   router.post('/maps', checkAccess(Access.ADMIN), async (req, res) => {
     const body = parseBody(CreateMapBodySchema, req.body, res);
     if (!body) return;
-    const { name, type } = body;
+    const { name, type, cols, rows } = body;
 
     const defaultMap = {
       players: {},
       npcs: {},
       droppedItems: [],
-      tiles: createDefaultTiles(),
+      tiles: createDefaultTiles(cols, rows),
     };
 
     const mapData = {

@@ -14,6 +14,7 @@ import { tileset, tilesetAlpha } from '../../io/assets';
 import { saveMap, fetchNpcs } from '../../io/network';
 import { foregroundCanvas, foregroundCtx, fringeCtx } from '../canvas';
 import { useUIStore } from '../../stores/uiStore';
+import { getCamera } from '../camera';
 
 type ModeConfig = {
   place: (row: number, col: number) => void;
@@ -68,16 +69,14 @@ export const initTilesetEditor = () => {
   initializeGrid();
   void loadEditorNpcNames();
   tilesetEditorInitialized = true;
-  mapWidth = Math.floor(foregroundCanvas.width / TILE_SIZE);
-  mapHeight = Math.floor(foregroundCanvas.height / TILE_SIZE);
 };
 
 const selectedTile = { startX: 0, startY: 0, endX: 0, endY: 0 };
 let isSelecting = false;
 let isPlacing = false;
 let activeMode: TileEditMode | null = null;
-let mapWidth: number;
-let mapHeight: number;
+let mapWidth = 20;
+let mapHeight = 14;
 let originalMap: Tile[][] = [];
 let map: Tile[][] = [];
 let hoveredCell: { row: number; col: number } | null = null;
@@ -121,8 +120,9 @@ function toggleTrigger(
 
 const handleHover = (event: MouseEvent) => {
   const { x, y } = getMousePosition(event, foregroundCanvas);
-  const col = Math.floor(x / TILE_SIZE);
-  const row = Math.floor(y / TILE_SIZE);
+  const cam = getCamera();
+  const col = Math.floor((x + cam.x) / TILE_SIZE);
+  const row = Math.floor((y + cam.y) / TILE_SIZE);
   if (!hoveredCell || hoveredCell.row !== row || hoveredCell.col !== col) {
     hoveredCell = { row, col };
     renderMap(map);
@@ -308,8 +308,9 @@ const stopPlacing = () => {
 };
 const placeTile = (event: MouseEvent) => {
   const { x, y } = getMousePosition(event, foregroundCanvas);
-  const col = Math.floor(x / TILE_SIZE);
-  const row = Math.floor(y / TILE_SIZE);
+  const cam = getCamera();
+  const col = Math.floor((x + cam.x) / TILE_SIZE);
+  const row = Math.floor((y + cam.y) / TILE_SIZE);
   if (activeMode) {
     modes[activeMode].place(row, col);
   } else {
@@ -346,23 +347,28 @@ const calculateSelectionBounds = () => {
 };
 
 const drawTileOnCanvas = (col: number, row: number, tileIndex: number) => {
+  const cam = getCamera();
+  const sx = col * TILE_SIZE - cam.x;
+  const sy = row * TILE_SIZE - cam.y;
+  if (
+    sx + TILE_SIZE <= 0 ||
+    sx >= foregroundCanvas.width ||
+    sy + TILE_SIZE <= 0 ||
+    sy >= foregroundCanvas.height
+  )
+    return;
   const tilesPerRow = tileset.width / TILE_SIZE;
   const tileX = (tileIndex % tilesPerRow) * TILE_SIZE;
   const tileY = Math.floor(tileIndex / tilesPerRow) * TILE_SIZE;
-  foregroundCtx.clearRect(
-    col * TILE_SIZE,
-    row * TILE_SIZE,
-    TILE_SIZE,
-    TILE_SIZE,
-  );
+  foregroundCtx.clearRect(sx, sy, TILE_SIZE, TILE_SIZE);
   foregroundCtx.drawImage(
     tileset,
     tileX,
     tileY,
     TILE_SIZE,
     TILE_SIZE,
-    col * TILE_SIZE,
-    row * TILE_SIZE,
+    sx,
+    sy,
     TILE_SIZE,
     TILE_SIZE,
   );
@@ -430,6 +436,12 @@ const removeEventListeners = () => {
 
 export const renderMap = (tiles: Tile[][]) => {
   if (tiles) updateEditorMap(tiles);
+  foregroundCtx.clearRect(
+    0,
+    0,
+    foregroundCanvas.width,
+    foregroundCanvas.height,
+  );
   tiles.forEach((row, rowIndex) => {
     row.forEach((tile, colIndex) => {
       if (tile.tileIndex !== -1) {
@@ -444,30 +456,32 @@ export const renderMap = (tiles: Tile[][]) => {
 
 const drawHoverCell = () => {
   if (!hoveredCell || !gridCtx) return;
+  const cam = getCamera();
   const { row, col } = hoveredCell;
+  const sx = col * TILE_SIZE - cam.x;
+  const sy = row * TILE_SIZE - cam.y;
   gridCtx.fillStyle = 'rgba(255, 255, 255, 0.4)';
-  gridCtx.fillRect(col * TILE_SIZE, row * TILE_SIZE, TILE_SIZE, TILE_SIZE);
+  gridCtx.fillRect(sx, sy, TILE_SIZE, TILE_SIZE);
   gridCtx.fillStyle = 'black';
   gridCtx.font = '12px Arial';
-  gridCtx.fillText(
-    `(${col}, ${row})`,
-    col * TILE_SIZE + 4,
-    row * TILE_SIZE + 24,
-  );
+  gridCtx.fillText(`(${col}, ${row})`, sx + 4, sy + 24);
 };
 
 const drawGrid = () => {
+  const cam = getCamera();
   const width = gridCanvas.width;
   const height = gridCanvas.height;
   gridCtx.strokeStyle = '#ddd';
   gridCtx.lineWidth = 1;
-  for (let x = 0; x <= width; x += TILE_SIZE) {
+  const startX = -(cam.x % TILE_SIZE);
+  const startY = -(cam.y % TILE_SIZE);
+  for (let x = startX; x <= width; x += TILE_SIZE) {
     gridCtx.beginPath();
     gridCtx.moveTo(x, 0);
     gridCtx.lineTo(x, height);
     gridCtx.stroke();
   }
-  for (let y = 0; y <= height; y += TILE_SIZE) {
+  for (let y = startY; y <= height; y += TILE_SIZE) {
     gridCtx.beginPath();
     gridCtx.moveTo(0, y);
     gridCtx.lineTo(width, y);
@@ -516,25 +530,43 @@ const drawMarkers = (tiles: Tile[][]) => {
 };
 const drawMarker = (col: number, row: number, text: string, color: string) => {
   if (!gridCtx) return;
+  const cam = getCamera();
+  const sx = col * TILE_SIZE - cam.x;
+  const sy = row * TILE_SIZE - cam.y;
+  if (
+    sx + TILE_SIZE <= 0 ||
+    sx >= gridCanvas.width ||
+    sy + TILE_SIZE <= 0 ||
+    sy >= gridCanvas.height
+  )
+    return;
   gridCtx.fillStyle = color;
   gridCtx.font = '40px Arial';
-  gridCtx.fillText(text, col * TILE_SIZE + 20, row * TILE_SIZE + 35);
+  gridCtx.fillText(text, sx + 20, sy + 35);
 };
 
 // The NPC's name (or "#id" if not loaded yet) at the bottom of a spawn tile, so
 // you can tell which NPC the "N" marker places.
 const drawNpcSpawnName = (col: number, row: number, npcId: string) => {
   if (!gridCtx) return;
+  const cam = getCamera();
+  const sx = col * TILE_SIZE - cam.x;
+  const sy = row * TILE_SIZE - cam.y;
+  if (
+    sx + TILE_SIZE <= 0 ||
+    sx >= gridCanvas.width ||
+    sy + TILE_SIZE <= 0 ||
+    sy >= gridCanvas.height
+  )
+    return;
   const label = npcNameById[npcId] ?? `#${npcId}`;
   gridCtx.font = 'bold 12px Arial';
   gridCtx.textAlign = 'center';
   gridCtx.lineWidth = 3;
   gridCtx.strokeStyle = 'black';
   gridCtx.fillStyle = 'yellow';
-  const x = col * TILE_SIZE + TILE_SIZE / 2;
-  const y = row * TILE_SIZE + TILE_SIZE - 6;
-  gridCtx.strokeText(label, x, y);
-  gridCtx.fillText(label, x, y);
+  gridCtx.strokeText(label, sx + TILE_SIZE / 2, sy + TILE_SIZE - 6);
+  gridCtx.fillText(label, sx + TILE_SIZE / 2, sy + TILE_SIZE - 6);
   gridCtx.textAlign = 'left';
   gridCtx.lineWidth = 1;
 };
@@ -578,6 +610,8 @@ export const toggleTilesetEditor = (shouldShow: boolean) => {
 const updateEditorMap = (tiles: Tile[][]) => {
   map = tiles.map((row) => row.map((tile) => ({ ...tile })));
   originalMap = tiles.map((row) => row.map((tile) => ({ ...tile })));
+  mapWidth = tiles[0]?.length ?? 20;
+  mapHeight = tiles.length;
 };
 
 export const renderMapFringe = (tiles: Tile[][]) => {

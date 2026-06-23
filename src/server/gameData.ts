@@ -26,10 +26,7 @@ export const pressedKeysMap = new Map<string, Set<Key>>();
 
 export const items = new Map<number, Item>();
 
-export function createDefaultTiles(): Tile[][] {
-  const rows = 448 / 32;
-  const cols = 640 / 32;
-
+export function createDefaultTiles(cols = 20, rows = 14): Tile[][] {
   return Array.from({ length: rows }, () =>
     Array.from({ length: cols }, () => ({ tileIndex: -1, blocked: false })),
   );

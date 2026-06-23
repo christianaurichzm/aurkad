@@ -1,4 +1,3 @@
-// Re-export all public functions for backward compatibility
 export { getSpriteCoordinates } from './spriteCoordinates';
 export { renderItemIcon, drawItemGeneric } from './itemDrawing';
 export { drawSpriteGeneric, drawSprite } from './spriteDrawing';
@@ -28,8 +27,11 @@ import {
 import { renderFloatingTexts } from './floatingText';
 import { renderProjectiles } from './projectiles';
 import { useUIStore } from '../stores/uiStore';
+import { calcCamera, setCamera } from './camera';
 
 let lastDrawnTiles: Tile[][] | null = null;
+let lastCamX = 0;
+let lastCamY = 0;
 
 export const render = () => {
   const map = getGameState();
@@ -37,11 +39,25 @@ export const render = () => {
   const mapEdited = useUIStore.getState().mapEdited;
 
   if (map) {
+    const cam = currentPlayer
+      ? calcCamera(
+          currentPlayer.position.x,
+          currentPlayer.position.y,
+          map.tiles,
+        )
+      : { x: 0, y: 0 };
+    setCamera(cam);
+
     playerCtx.clearRect(0, 0, foregroundCanvas.width, foregroundCanvas.height);
     fringeCtx.clearRect(0, 0, fringeCanvas.width, fringeCanvas.height);
+    itemCtx.clearRect(0, 0, itemCanvas.width, itemCanvas.height);
 
     if (!mapEdited) {
-      if (map.tiles !== lastDrawnTiles) {
+      const tilesDirty =
+        map.tiles !== lastDrawnTiles ||
+        cam.x !== lastCamX ||
+        cam.y !== lastCamY;
+      if (tilesDirty) {
         foregroundCtx.clearRect(
           0,
           0,
@@ -50,29 +66,38 @@ export const render = () => {
         );
         renderMap(map.tiles);
         lastDrawnTiles = map.tiles;
+        lastCamX = cam.x;
+        lastCamY = cam.y;
       }
     } else {
       lastDrawnTiles = null;
     }
-    itemCtx.clearRect(0, 0, itemCanvas.width, itemCanvas.height);
 
+    itemCtx.save();
+    itemCtx.translate(-cam.x, -cam.y);
     renderDroppedItems(map.droppedItems);
+    itemCtx.restore();
 
+    playerCtx.save();
+    playerCtx.translate(-cam.x, -cam.y);
     renderPlayers(map.players);
-
     if (currentPlayer) {
       const player = animate(currentPlayer);
-
       renderEntityDirect(player);
-
       renderHUD(player);
+    }
+    renderNpcs(map.npcs);
+    renderProjectiles(playerCtx);
+    playerCtx.restore();
+
+    if (currentPlayer) {
       updatePlayerHealthBar(currentPlayer);
     }
 
-    renderNpcs(map.npcs);
-    renderProjectiles(playerCtx);
-
+    fringeCtx.save();
+    fringeCtx.translate(-cam.x, -cam.y);
     renderMapFringe(map.tiles);
     renderFloatingTexts(fringeCtx);
+    fringeCtx.restore();
   }
 };

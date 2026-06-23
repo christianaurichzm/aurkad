@@ -135,6 +135,8 @@ export const CreateNpcBodySchema = z.object({
 export const CreateMapBodySchema = z.object({
   name: z.string().min(1),
   type: MapTypeSchema,
+  cols: z.number().int().min(1).max(200).optional(),
+  rows: z.number().int().min(1).max(200).optional(),
 });
 
 export const UpdateMapBodySchema = z.object({

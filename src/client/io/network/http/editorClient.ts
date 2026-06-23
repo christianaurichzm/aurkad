@@ -67,6 +67,8 @@ export const updateMap = async (
 export const createMap = async (data: {
   name: string;
   type: MapType;
+  cols?: number;
+  rows?: number;
 }): Promise<MapStateClient | null> => {
   return httpClient<MapStateClient>(`/maps`, {
     method: 'POST',
