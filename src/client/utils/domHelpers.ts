@@ -26,11 +26,6 @@ export function hide(id: string) {
   setVisibility(id, false);
 }
 
-export function setText(id: string, text: string) {
-  const el = getEl(id);
-  if (el) el.textContent = text;
-}
-
 export function addEvent<T extends HTMLElement>(
   id: string,
   event: keyof HTMLElementEventMap,
@@ -51,10 +46,6 @@ export const removeEvent = (
 
 export function safeParseInt(value: any, fallback = 0): number {
   const n = parseInt(value, 10);
-  return isNaN(n) ? fallback : n;
-}
-export function safeParseFloat(value: any, fallback = 0): number {
-  const n = parseFloat(value);
   return isNaN(n) ? fallback : n;
 }
 

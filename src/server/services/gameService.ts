@@ -50,9 +50,6 @@ import {
 import { handleChatAction } from './chatService.js';
 import { logger } from '../logger.js';
 
-export const delay = (ms: number) =>
-  new Promise((resolve) => setTimeout(resolve, ms));
-
 const handleWarpAndShops = (player: PlayerServer): void => {
   const warp = hasWarp(player);
   if (warp) {

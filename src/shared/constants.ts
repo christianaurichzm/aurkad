@@ -3,7 +3,6 @@ export const SPRITE_HEIGHT = 64;
 export const TILE_SIZE = 64;
 export const ITEM_SIZE = 48;
 export const DEFAULT_PLAYER_SPEED = 1;
-export const BOOST_MULTIPLIER = 1.5;
 // Per-tile move durations, used as the client slide time. Kept a little
 // BELOW the server's real per-tile cadence (msToTicks rounds up to whole
 // ticks: 220 -> 5 ticks = 250ms, 130 -> 3 ticks = 150ms) so each slide
@@ -14,7 +13,6 @@ export const BOOST_MULTIPLIER = 1.5;
 export const MOVEMENT_DURATION = 220;
 export const RUN_MOVEMENT_DURATION = 130;
 export const TICK_RATE = 20;
-export const MOVE_STEP = 4;
 export const GAME_WIDTH = 1280;
 export const GAME_HEIGHT = 896;
 export const EQUIPMENT_SLOTS = [
