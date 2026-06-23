@@ -621,15 +621,18 @@ const updateEditorMap = (tiles: Tile[][]) => {
   mapHeight = tiles.length;
 };
 
-export const renderMapFringe = (tiles: Tile[][]) => {
-  if (!fringeCtx || !tiles) return;
+export const renderMapFringe = (
+  tiles: Tile[][],
+  ctx: CanvasRenderingContext2D | OffscreenCanvasRenderingContext2D = fringeCtx,
+) => {
+  if (!ctx || !tiles) return;
   const tilesPerRow = tileset.width / TILE_SIZE;
   tiles.forEach((row, rowIndex) => {
     row.forEach((tile, colIndex) => {
       if (tile.fringe && tile.tileIndex !== -1) {
         const tileX = (tile.tileIndex % tilesPerRow) * TILE_SIZE;
         const tileY = Math.floor(tile.tileIndex / tilesPerRow) * TILE_SIZE;
-        fringeCtx.drawImage(
+        ctx.drawImage(
           tilesetAlpha,
           tileX,
           tileY,

@@ -1,6 +1,7 @@
 import { GAME_HEIGHT, GAME_WIDTH, TILE_SIZE } from '../../shared/constants';
 import { mapPixelHeight, mapPixelWidth } from '../../shared/mapGeometry';
 import { Tile } from '../../shared/types';
+import { getMapPixelSize } from '../core/gameState';
 
 export interface Camera {
   x: number;
@@ -14,13 +15,29 @@ export const setCamera = (cam: Camera): void => {
   current = cam;
 };
 
-export const calcCamera = (
+// Overload: prefer the no-tiles form (uses dimensions cached in gameState) to
+// avoid array access on every render frame. The tiles overload is retained for
+// call-sites that don't have gameState available (e.g. the server-side viewport
+// or the map editor), or as a fallback when the cache is not yet populated.
+export function calcCamera(playerX: number, playerY: number): Camera;
+export function calcCamera(
   playerX: number,
   playerY: number,
   tiles: Tile[][],
-): Camera => {
-  const mapW = mapPixelWidth(tiles);
-  const mapH = mapPixelHeight(tiles);
+): Camera;
+export function calcCamera(
+  playerX: number,
+  playerY: number,
+  tiles?: Tile[][],
+): Camera {
+  let mapW: number;
+  let mapH: number;
+  if (tiles) {
+    mapW = mapPixelWidth(tiles);
+    mapH = mapPixelHeight(tiles);
+  } else {
+    ({ w: mapW, h: mapH } = getMapPixelSize());
+  }
   return {
     x: Math.max(
       0,
@@ -31,7 +48,7 @@ export const calcCamera = (
       Math.min(playerY + TILE_SIZE / 2 - GAME_HEIGHT / 2, mapH - GAME_HEIGHT),
     ),
   };
-};
+}
 
 export const worldToScreen = (
   wx: number,

@@ -9,7 +9,7 @@ import type {
   Tile,
 } from '../../shared/types';
 import type { FullGameStatePayload } from '../../shared/wsProtocol';
-import { CHUNK_SIZE } from '../../shared/constants';
+import { CHUNK_SIZE, TILE_SIZE } from '../../shared/constants';
 import * as jsondiffpatch from 'jsondiffpatch';
 
 const diffPatcher = jsondiffpatch.create({
@@ -26,6 +26,13 @@ let staticMap: MapStaticClient | null = null;
 let staticMapRevision: number | null = null;
 let dynamic: FullGameStatePayload | null = null;
 let playerCold: PlayerCold | null = null;
+
+let cachedMapW = 0;
+let cachedMapH = 0;
+export const getMapPixelSize = (): { w: number; h: number } => ({
+  w: cachedMapW,
+  h: cachedMapH,
+});
 
 let composedCache: MapStateClient | null = null;
 let composedFromStatic: MapStaticClient | null = null;
@@ -73,6 +80,9 @@ function createEmptyGrid(cols: number, rows: number): Tile[][] {
 }
 
 export const setMapMeta = (meta: MapMetaClient) => {
+  cachedMapW = meta.cols * TILE_SIZE;
+  cachedMapH = meta.rows * TILE_SIZE;
+
   if (staticMap?.id === meta.id && staticMapRevision === meta.revision) {
     staticMap = {
       ...staticMap,

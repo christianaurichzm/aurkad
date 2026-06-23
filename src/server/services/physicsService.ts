@@ -2,12 +2,7 @@ import { TILE_SIZE } from '../../shared/constants.js';
 import { mapPixelWidth, mapPixelHeight } from '../../shared/mapGeometry.js';
 import { CombatTarget, MapStateServer, Warp } from '../../shared/types.js';
 import { getMap } from '../gameData.js';
-
-const isColliding = (a: CombatTarget, b: CombatTarget): boolean =>
-  a.position.x < b.position.x + b.width &&
-  a.position.x + a.width > b.position.x &&
-  a.position.y < b.position.y + b.height &&
-  a.position.y + a.height > b.position.y;
+import { queryNearbyEntities } from '../spatial/spatialManager.js';
 
 const isTileBlocked = (
   map: MapStateServer,
@@ -59,10 +54,18 @@ export const hasCollision = (character: CombatTarget): boolean => {
   const { width, height, position } = character;
   const { x, y } = position;
 
-  const characterCollision = [
-    ...Object.values(map.npcs),
-    ...Object.values(map.players),
-  ].some((other) => other.id !== character.id && isColliding(character, other));
+  // The quadtree spatial index instead of a full O(n) scan. It is rebuilt at
+  // the start of each tick in rebuildSpatialIndexes, so positions here are the
+  // state at tick start (snapshot-based collision).
+  const nearby = queryNearbyEntities(character);
+  const characterCollision = nearby.some(
+    (other) =>
+      other.id !== character.id &&
+      x < other.position.x + other.width &&
+      x + width > other.position.x &&
+      y < other.position.y + other.height &&
+      y + height > other.position.y,
+  );
 
   if (characterCollision) return true;
 
@@ -76,13 +79,12 @@ export const hasCollision = (character: CombatTarget): boolean => {
 
   if (tileCollision) return true;
 
-  const borderCollision =
+  return (
     x < 0 ||
     y < 0 ||
     x + width > mapPixelWidth(map.tiles) ||
-    y + height > mapPixelHeight(map.tiles);
-
-  return borderCollision;
+    y + height > mapPixelHeight(map.tiles)
+  );
 };
 
 export const hasWarp = (character: CombatTarget): Warp | undefined => {

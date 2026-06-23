@@ -240,19 +240,20 @@ export class Quadtree {
   }
 
   /**
-   * Clear all entities from the quadtree
+   * Clears every entity. `length = 0` avoids a new array per node on every
+   * rebuild, and child nodes stay so the next insert pass reuses their bounds
+   * instead of splitting again while the entity count is stable.
    */
   clear(): void {
     this.clearNode(this.root);
   }
 
   private clearNode(node: QuadtreeNode): void {
-    node.entities = [];
+    node.entities.length = 0;
     if (node.children !== null) {
       for (const child of node.children) {
         this.clearNode(child);
       }
-      node.children = null;
     }
   }
 

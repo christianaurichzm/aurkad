@@ -8,11 +8,17 @@ export interface TickMetrics {
 }
 
 const WINDOW = 100;
-const tickWindow: TickMetrics[] = [];
+const tickWindow: TickMetrics[] = Array.from({ length: WINDOW }, () => ({
+  tickMs: 0,
+  queueSize: 0,
+}));
+let tickHead = 0;
+let tickFilled = 0;
 
 export function recordTick(ms: number, queueSize: number): void {
-  if (tickWindow.length >= WINDOW) tickWindow.shift();
-  tickWindow.push({ tickMs: ms, queueSize });
+  tickWindow[tickHead] = { tickMs: ms, queueSize };
+  tickHead = (tickHead + 1) % WINDOW;
+  if (tickFilled < WINDOW) tickFilled++;
 }
 
 export function getMetrics() {
@@ -26,15 +32,15 @@ export function getMetrics() {
     totalNpcs += Object.keys(map.npcs).length;
   }
 
-  const avgTickMs =
-    tickWindow.length === 0
-      ? 0
-      : tickWindow.reduce((s, t) => s + t.tickMs, 0) / tickWindow.length;
+  let sumTickMs = 0;
+  let sumQueueSize = 0;
+  for (let i = 0; i < tickFilled; i++) {
+    sumTickMs += tickWindow[i]!.tickMs;
+    sumQueueSize += tickWindow[i]!.queueSize;
+  }
 
-  const avgQueueSize =
-    tickWindow.length === 0
-      ? 0
-      : tickWindow.reduce((s, t) => s + t.queueSize, 0) / tickWindow.length;
+  const avgTickMs = tickFilled === 0 ? 0 : sumTickMs / tickFilled;
+  const avgQueueSize = tickFilled === 0 ? 0 : sumQueueSize / tickFilled;
 
   return {
     uptime: Math.floor(process.uptime()),

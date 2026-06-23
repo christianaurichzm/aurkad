@@ -168,7 +168,10 @@ describe('stepNpcToward', () => {
     sim.map.tiles[5]![6]!.blocked = true; // wall to the right
     const npc = sim.addNpc({ position: tile(5, 5), direction: Direction.Down });
     stepNpcToward(npc, { position: tile(9, 5) });
-    expect(npc.position).toEqual(tile(5, 5)); // stayed put, didn't phase through
+    // The NPC must not phase through the blocked tile. With the 4-direction
+    // greedy pathfinding it routes perpendicular (down) around the wall.
+    expect(npc.position).not.toEqual(tile(6, 5));
+    expect(npc.position).toEqual(tile(5, 6)); // navigated perpendicular to obstacle
   });
 });
 

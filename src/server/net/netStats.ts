@@ -28,7 +28,10 @@ function makeEmpty(): TickRecord {
   };
 }
 
-const records: TickRecord[] = [];
+// Circular buffer: O(1) write and evict, no array shifts.
+const records: TickRecord[] = Array.from({ length: WINDOW_SIZE }, makeEmpty);
+let head = 0;
+let filled = 0;
 let acc: TickRecord = makeEmpty();
 
 export function nsCountPlayer(): void {
@@ -62,13 +65,14 @@ export function nsCountChunk(bytes: number): void {
 }
 
 export function nsFlushTick(): void {
-  records.push({ ...acc });
-  if (records.length > WINDOW_SIZE) records.shift();
+  records[head] = { ...acc };
+  head = (head + 1) % WINDOW_SIZE;
+  if (filled < WINDOW_SIZE) filled++;
   acc = makeEmpty();
 }
 
 export function getNetStats(): Record<string, unknown> {
-  const n = records.length;
+  const n = filled;
   if (n === 0) return { windowTicks: 0, note: 'no data yet' };
 
   let players = 0,
@@ -82,7 +86,8 @@ export function getNetStats(): Record<string, unknown> {
     chunks = 0,
     chunkBytes = 0;
 
-  for (const r of records) {
+  for (let i = 0; i < n; i++) {
+    const r = records[i]!;
     players += r.players;
     bytes += r.bytesSent;
     fullStates += r.fullGameStates;
