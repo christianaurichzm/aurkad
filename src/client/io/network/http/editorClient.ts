@@ -24,11 +24,20 @@ export async function openContentEditor(): Promise<boolean> {
   return !!res;
 }
 
+export interface SaveMapResponse {
+  success: boolean;
+  warnings: string[];
+}
+
+export interface SaveMapError {
+  errors: string[];
+}
+
 export const saveMap = async (
   newMapTiles: MapStateClient['tiles'],
   name: string,
   type: MapType,
-) => {
+): Promise<SaveMapResponse | null> => {
   const mapData = {
     mapId: getGameState()?.id,
     tiles: newMapTiles,
@@ -36,7 +45,7 @@ export const saveMap = async (
     type,
   };
 
-  return httpClient<Response>('/saveMap', {
+  return httpClient<SaveMapResponse>('/saveMap', {
     method: 'POST',
     body: mapData,
   });
@@ -75,6 +84,13 @@ export const createMap = async (data: {
     body: data,
   });
 };
+
+export const resizeMap = async (
+  id: string,
+  cols: number,
+  rows: number,
+): Promise<{ success: boolean; cols: number; rows: number } | null> =>
+  httpClient(`/maps/${id}/resize`, { method: 'POST', body: { cols, rows } });
 
 export const modMoveMap = async (mapId: string) =>
   httpClient<Response>('/mod/gomap', {

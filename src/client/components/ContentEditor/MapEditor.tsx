@@ -3,7 +3,7 @@ import { Controller, useForm } from 'react-hook-form';
 import { MapStateClient, MapType } from '../../../shared/types';
 import { AsyncSelect } from '../common/Select/AsyncSelect';
 import { chatResultMsg } from '../ChatPanel';
-import { updateMap, createMap } from '../../io/network';
+import { updateMap, createMap, resizeMap } from '../../io/network';
 import { colors, radius } from '../../theme';
 
 interface MapEditorProps {
@@ -43,6 +43,9 @@ export const MapEditor: React.FC<MapEditorProps> = ({
   requestDiscard,
 }) => {
   const [selectedId, setSelectedId] = useState<string>('');
+  const [resizeCols, setResizeCols] = useState(20);
+  const [resizeRows, setResizeRows] = useState(14);
+  const [showResize, setShowResize] = useState(false);
   const {
     control,
     formState: { isDirty },
@@ -66,9 +69,12 @@ export const MapEditor: React.FC<MapEditorProps> = ({
   const handleSelect = async (mapId: string) => {
     if (!(await requestDiscard())) return;
     setSelectedId(mapId);
+    setShowResize(false);
     const map = maps.find((m) => m.id === mapId);
     if (map) {
       resetForm(mapToFormValues(map));
+      setResizeCols(map.tiles?.[0]?.length ?? 20);
+      setResizeRows(map.tiles?.length ?? 14);
     }
   };
 
@@ -85,7 +91,18 @@ export const MapEditor: React.FC<MapEditorProps> = ({
     chatResultMsg(!!result, 'Map saved!', 'Error saving map');
     refreshData();
     setSelectedId('');
+    setShowResize(false);
     resetForm(defaultValues);
+  };
+
+  const handleResize = async () => {
+    if (!selectedId) return;
+    const result = await resizeMap(selectedId, resizeCols, resizeRows);
+    chatResultMsg(!!result?.success, 'Map resized!', 'Error resizing map');
+    if (result?.success) {
+      setShowResize(false);
+      refreshData();
+    }
   };
 
   return (
@@ -149,6 +166,56 @@ export const MapEditor: React.FC<MapEditorProps> = ({
               placeholder="Rows"
             />
           </div>
+        </div>
+      )}
+
+      {selectedId && (
+        <div style={field}>
+          <div
+            style={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+            }}
+          >
+            <label style={label}>Resize map</label>
+            <button
+              type="button"
+              style={resetBtn}
+              onClick={() => setShowResize((v) => !v)}
+            >
+              {showResize ? 'Cancel' : 'Resize'}
+            </button>
+          </div>
+          {showResize && (
+            <div style={{ display: 'flex', gap: 8, marginTop: 6 }}>
+              <input
+                style={{ ...input, width: 80 }}
+                type="number"
+                min={1}
+                max={200}
+                value={resizeCols}
+                onChange={(e) => setResizeCols(Number(e.target.value))}
+                placeholder="Cols"
+              />
+              <input
+                style={{ ...input, width: 80 }}
+                type="number"
+                min={1}
+                max={200}
+                value={resizeRows}
+                onChange={(e) => setResizeRows(Number(e.target.value))}
+                placeholder="Rows"
+              />
+              <button
+                type="button"
+                style={saveBtn}
+                onClick={() => void handleResize()}
+              >
+                Apply
+              </button>
+            </div>
+          )}
         </div>
       )}
 

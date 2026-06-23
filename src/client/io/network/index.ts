@@ -17,11 +17,13 @@ export {
   openModEditor,
   openContentEditor,
   saveMap,
+  resizeMap,
   fetchMaps,
   fetchMap,
   updateMap,
   createMap,
   modMoveMap,
+  type SaveMapResponse,
 } from './http/editorClient';
 
 // Content (NPCs, Items, Shops)

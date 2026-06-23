@@ -11,7 +11,7 @@ import {
 import { TILE_SIZE } from '../../../shared/constants';
 import { MapType, Tile, TileAction, TileEditMode } from '../../../shared/types';
 import { tileset, tilesetAlpha } from '../../io/assets';
-import { saveMap, fetchNpcs } from '../../io/network';
+import { saveMap, type SaveMapResponse, fetchNpcs } from '../../io/network';
 import { foregroundCanvas, foregroundCtx, fringeCtx } from '../canvas';
 import { useUIStore } from '../../stores/uiStore';
 import { getCamera } from '../camera';
@@ -571,12 +571,19 @@ const drawNpcSpawnName = (col: number, row: number, npcId: string) => {
   gridCtx.lineWidth = 1;
 };
 
-export const saveCurrentMap = async (name: string, type: MapType) => {
+export const saveCurrentMap = async (
+  name: string,
+  type: MapType,
+): Promise<SaveMapResponse | null> => {
+  let result: SaveMapResponse | null = null;
   await withLoading('saveButton', async () => {
-    await saveMap(map, name, type);
-    setMapEdited(false);
-    originalMap = map.map((row) => row.map((tile) => ({ ...tile })));
+    result = await saveMap(map, name, type);
+    if (result?.success) {
+      setMapEdited(false);
+      originalMap = map.map((row) => row.map((tile) => ({ ...tile })));
+    }
   });
+  return result;
 };
 
 export const resetToOriginalMap = () => {

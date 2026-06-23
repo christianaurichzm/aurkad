@@ -145,6 +145,11 @@ export const UpdateMapBodySchema = z.object({
   pvp: PvpMoraleSchema.optional(),
 });
 
+export const ResizeMapBodySchema = z.object({
+  cols: z.number().int().min(1).max(200),
+  rows: z.number().int().min(1).max(200),
+});
+
 export const CreateItemBodySchema = z.object({
   name: z.string().min(1),
   description: z.string().default(''),

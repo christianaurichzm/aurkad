@@ -158,7 +158,23 @@ const TilesetModeControlsComponent: React.FC = () => {
   const handleSave = async () => {
     if (!mapEdited) return;
     try {
-      await saveCurrentMap(mapName, mapType);
+      const result = await saveCurrentMap(mapName, mapType);
+      if (!result?.success) {
+        const body = result as unknown as { errors?: string[] };
+        await useUIStore.getState().showDialog({
+          title: 'Save blocked',
+          message: body?.errors?.join('\n') ?? 'Validation failed.',
+          kind: 'error',
+        });
+        return;
+      }
+      if (result.warnings.length > 0) {
+        await useUIStore.getState().showDialog({
+          title: 'Map saved with warnings',
+          message: result.warnings.join('\n'),
+          kind: 'info',
+        });
+      }
       await loadMapData();
     } catch {
       await useUIStore.getState().showDialog({

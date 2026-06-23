@@ -14,6 +14,7 @@ import {
   CreateNpcBodySchema,
   CreateMapBodySchema,
   UpdateMapBodySchema,
+  ResizeMapBodySchema,
   CreateItemBodySchema,
   CreateShopBodySchema,
   BuyShopItemBodySchema,
@@ -23,6 +24,7 @@ import checkAccess from '../middleware/checkAccess.js';
 import {
   createDefaultTiles,
   deleteNpcEverywhere,
+  updateMapById,
   updatePlayer,
 } from '../../gameData.js';
 import { mapSave } from '../../services/gameService.js';
@@ -31,6 +33,7 @@ import {
   getMapById,
   listMaps,
 } from '../../services/mapService.js';
+import { validateMapTiles, resizeTiles } from '../../services/mapValidation.js';
 import {
   buyShopItem,
   getShopById,
@@ -68,8 +71,12 @@ export function createContentRouter() {
       if (!body) return;
       const { mapId, tiles, name, type } = body;
       try {
+        const validation = await validateMapTiles(tiles);
+        if (validation.errors.length > 0) {
+          return res.status(422).json({ errors: validation.errors });
+        }
         await mapSave(mapId, tiles, name, type);
-        res.status(200).send('Success');
+        res.status(200).json({ success: true, warnings: validation.warnings });
       } catch (e) {
         logger.error('mapSave failed', { err: e });
         res.status(500).send('Failed to save map');
@@ -359,6 +366,27 @@ export function createContentRouter() {
       res.status(500).json({ error: 'Failed to update map.' });
     }
   });
+
+  router.post(
+    '/maps/:id/resize',
+    checkAccess(Access.ADMIN),
+    async (req, res) => {
+      const body = parseBody(ResizeMapBodySchema, req.body, res);
+      if (!body) return;
+      const id = req.params['id']!;
+      const { cols, rows } = body;
+      try {
+        const map = await getMapById(id);
+        if (!map) return res.status(404).json({ error: 'Map not found.' });
+        const resized = resizeTiles(map.tiles, cols, rows);
+        await updateMapById({ ...map, tiles: resized });
+        res.status(200).json({ success: true, cols, rows });
+      } catch (error) {
+        logger.error('Error resizing map', { err: error });
+        res.status(500).json({ error: 'Failed to resize map.' });
+      }
+    },
+  );
 
   router.put('/npcs/:id', checkAccess(Access.ADMIN), async (req, res) => {
     const body = parseBody(CreateNpcBodySchema, req.body, res);
