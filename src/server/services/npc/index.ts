@@ -31,7 +31,7 @@ export const respawnNpc = (mapId: string, npc: RuntimeNpc) => {
   const map = getMap(mapId);
   if (!map) return;
 
-  const positions = findNpcSpawnPositions(map, npc.id);
+  const positions = findNpcSpawnPositions(map, npc.templateId ?? npc.id);
   const newPosition = randomPick(positions);
   if (!newPosition) return;
 

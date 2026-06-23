@@ -138,15 +138,18 @@ export const insertNpcs = async (
       const baseNpc = npcCache.get(npcId);
       if (!baseNpc) continue;
 
+      const instanceId = `${npcId}:${rowIndex}:${colIndex}`;
       const runtimeNpc: RuntimeNpc = {
         ...baseNpc,
+        id: instanceId,
+        templateId: npcId,
         position: {
           x: colIndex * TILE_SIZE,
           y: rowIndex * TILE_SIZE,
         },
       };
 
-      npcs[runtimeNpc.id] = runtimeNpc;
+      npcs[instanceId] = runtimeNpc;
     }
   }
 

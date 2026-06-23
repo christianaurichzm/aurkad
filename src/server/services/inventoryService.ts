@@ -228,8 +228,20 @@ export async function unequipItem(
   const existing = player.inventory.items.find((i) => i.item === itemId);
   if (existing) {
     existing.quantity++;
-  } else {
+  } else if (player.inventory.items.length < player.inventory.maxCapacity) {
     player.inventory.items.push({ item: itemId, quantity: 1 });
+  } else {
+    const item = getItemById(itemId);
+    const map = getMap(player.mapId);
+    if (item && map) {
+      map.droppedItems.push({
+        itemId,
+        sprite: item.sprite,
+        position: { ...player.position },
+        quantity: 1,
+      });
+      updateMap(map);
+    }
   }
 
   player.equipped[slot] = undefined;

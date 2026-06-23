@@ -81,6 +81,7 @@ const handleWarpAndShops = (player: PlayerServer): void => {
     for (const trigger of tile?.triggers ?? []) {
       if (trigger.action === 'heal') {
         player.health = player.maxHealth;
+        updatePlayerMap(player.id, player);
       } else if (trigger.action === 'kill') {
         player.health = 0;
         emit('playerDeath', { player });

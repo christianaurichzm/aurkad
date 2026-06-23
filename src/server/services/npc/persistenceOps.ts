@@ -45,7 +45,7 @@ export async function refreshNpcInRuntime(id: string): Promise<void> {
 
   for (const map of Object.values(runtimeState.maps)) {
     for (const [runtimeId, npc] of Object.entries(map.npcs)) {
-      if (npc.id === id) {
+      if ((npc.templateId ?? npc.id) === id) {
         map.npcs[runtimeId] = {
           ...map.npcs[runtimeId]!,
           ...updated,

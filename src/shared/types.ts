@@ -190,6 +190,7 @@ export interface PersistentNpc extends CharacterBase {
 
 export interface RuntimeNpc extends PersistentNpc, CharacterRuntime {
   kind: 'npc';
+  templateId?: string;
 }
 
 export interface PersistentPlayer
