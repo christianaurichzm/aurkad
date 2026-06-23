@@ -9,6 +9,10 @@ ui.actionButton('Bank', () => {
   if (panel.isOpen()) engine.sendServerEvent('bank:request');
 }, 'b');
 
+engine.onServerEvent('bank:open', () => {
+  panel.show();
+});
+
 let bank = { items: [], maxCapacity: 50 };
 
 function render() {

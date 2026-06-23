@@ -7,6 +7,8 @@
   "description": "Player guilds: create, join, leave, list. Built on commands + the KV store.",
   "enabledByDefault": true,
   "config": {
-    "maxMembers": 50
+    "maxMembers": 50,
+    "xpBonus": 0.1,
+    "xpBonusMinMembers": 3
   }
 }

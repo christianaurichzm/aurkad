@@ -75,5 +75,9 @@ engine.onServerEvent('party:invite', ({ from }) => {
   setTimeout(() => notif.remove(), 30_000);
 });
 
+engine.registerPlayerAction('Invite to Party', (name) => {
+  engine.sendServerEvent('party:invite', { name });
+});
+
 engine.sendServerEvent('party:request');
 render();

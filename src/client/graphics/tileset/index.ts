@@ -172,6 +172,13 @@ const modes: Record<TileEditMode, ModeConfig> = {
       }
     },
   },
+  bank: {
+    place: (row: number, col: number) => {
+      map[row][col].bank = !map[row][col].bank;
+      setMapEdited(true);
+      renderMap(map);
+    },
+  },
   avoidNpc: {
     place: (row: number, col: number) => {
       map[row][col].avoidNpc = !map[row][col].avoidNpc;
@@ -353,6 +360,7 @@ export const toggleWarping = () => toggleMode('warping');
 export const toggleNpc = () => toggleMode('npc');
 export const toggleItem = () => toggleMode('item');
 export const toggleShop = () => toggleMode('shop');
+export const toggleBank = () => toggleMode('bank');
 export const toggleAvoidNpc = () => toggleMode('avoidNpc');
 export const toggleFringe = () => toggleMode('fringe');
 export const toggleHeal = () => toggleMode('heal');
@@ -453,6 +461,7 @@ const drawMarkers = (tiles: Tile[][]) => {
       }
       if (tile.item) drawMarker(colIndex, rowIndex, 'I', 'orange');
       if (tile.shop) drawMarker(colIndex, rowIndex, 'S', 'green');
+      if (tile.bank) drawMarker(colIndex, rowIndex, '$', '#f59e0b');
       if (tile.avoidNpc) drawMarker(colIndex, rowIndex, 'A', 'purple');
       if (tile.fringe) drawMarker(colIndex, rowIndex, 'F', 'cyan');
       if (tile.triggers?.some((t) => t.action === 'heal'))

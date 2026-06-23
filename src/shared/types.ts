@@ -309,6 +309,7 @@ export interface Tile {
   npcSpawn?: PersistentNpc['id'];
   item?: Item['id'];
   shop?: Shop['id'];
+  bank?: boolean;
   avoidNpc?: boolean;
   fringe?: boolean;
   triggers?: TileAction[];
@@ -430,6 +431,7 @@ export type TileEditMode =
   | 'npc'
   | 'item'
   | 'shop'
+  | 'bank'
   | 'avoidNpc'
   | 'fringe'
   | 'heal'

@@ -109,6 +109,13 @@ on('customAction', ({ player, channel, payload }) => {
   else if (channel === 'bank:request') push(player);
 });
 
+on('tileEnter', ({ player, tile }) => {
+  if (tile.bank) {
+    push(player);
+    sendEvent(player, 'bank:open');
+  }
+});
+
 provide('bank', {
   get: getBank,
   deposit,

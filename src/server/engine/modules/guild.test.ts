@@ -10,10 +10,17 @@ import { handleCustomAction } from '../../services/customEventService.js';
 import { createFixture } from '../../sim/simFixture.js';
 import { Access, PlayerServer } from '../../../shared/types.js';
 
+interface GuildMember {
+  name: string;
+  role: 'owner' | 'moderator' | 'member';
+}
+
 interface Guild {
   name: string;
   leader: string;
-  members: string[];
+  privacy: 'public' | 'private';
+  members: GuildMember[];
+  invites: string[];
 }
 
 beforeEach(() => {
@@ -34,8 +41,7 @@ describe('guild module', () => {
   it('registers the /guild command', () => {
     const sim = createFixture(0);
     const p = sim.addPlayer({ name: 'Alice' });
-    // A non-player (REPL-less) check: chat command is handled (consumed).
-    expect(handleChatCommand(p, '/guild list')).toBe(true);
+    expect(handleChatCommand(p, '/guild info')).toBe(true);
   });
 
   it('create then join builds the member list, bounded by config', () => {
@@ -48,7 +54,9 @@ describe('guild module', () => {
 
     const g = kvGet<Guild>('guild', 'Dragons');
     expect(g?.leader).toBe('Alice');
-    expect(g?.members).toEqual(['Alice', 'Bob']);
+    expect(g?.members.map((m) => m.name)).toEqual(['Alice', 'Bob']);
+    expect(g?.members.find((m) => m.name === 'Alice')?.role).toBe('owner');
+    expect(g?.members.find((m) => m.name === 'Bob')?.role).toBe('member');
     expect(alice.data?.guild).toBe('Dragons');
     expect(bob.data?.guild).toBe('Dragons');
   });
@@ -62,7 +70,10 @@ describe('guild module', () => {
     handleChatCommand(bob, '/guild join Dragons');
 
     handleChatCommand(alice, '/guild leave');
-    expect(kvGet<Guild>('guild', 'Dragons')?.leader).toBe('Bob');
+    const afterLeave = kvGet<Guild>('guild', 'Dragons');
+    expect(afterLeave?.members.find((m) => m.role === 'owner')?.name).toBe(
+      'Bob',
+    );
     expect(alice.data?.guild).toBeUndefined();
 
     handleChatCommand(bob, '/guild leave');
@@ -77,9 +88,10 @@ describe('guild module', () => {
     handleChatCommand(alice, '/guild create Dragons');
     handleChatCommand(bob, '/guild create Dragons');
 
-    // Bob's create was rejected, so he has no guild and is not in Dragons.
     expect(bob.data?.guild).toBeUndefined();
-    expect(kvGet<Guild>('guild', 'Dragons')?.members).toEqual(['Alice']);
+    expect(
+      kvGet<Guild>('guild', 'Dragons')?.members.map((m) => m.name),
+    ).toEqual(['Alice']);
   });
 
   it('pushes guild:update to members (drives the client panel)', () => {
@@ -125,7 +137,9 @@ describe('guild module', () => {
       payload: { name: 'Dragons' },
     });
 
-    expect(kvGet<Guild>('guild', 'Dragons')?.members).toEqual(['Alice']);
+    expect(
+      kvGet<Guild>('guild', 'Dragons')?.members.map((m) => m.name),
+    ).toEqual(['Alice']);
     expect(alice.data?.guild).toBe('Dragons');
     expect(alice.nameTag).toBe('Dragons'); // shown above the name on the canvas
 
@@ -154,5 +168,56 @@ describe('guild module', () => {
     expect(api?.guildOf(alice)?.name).toBe('Dragons');
     expect(api?.isMember(alice, 'Dragons')).toBe(true);
     expect(api?.members('Dragons')).toEqual(['Alice']);
+  });
+
+  it('private guild rejects /guild join and requires invite', () => {
+    const sim = createFixture(0);
+    const alice = sim.addPlayer({ name: 'Alice' });
+    const bob = sim.addPlayer({ name: 'Bob' });
+
+    handleChatCommand(alice, '/guild create Secret private');
+    handleChatCommand(bob, '/guild join Secret');
+
+    expect(bob.data?.guild).toBeUndefined();
+    expect(kvGet<Guild>('guild', 'Secret')?.members).toHaveLength(1);
+  });
+
+  it('invite flow: invite → accept adds member', () => {
+    const sim = createFixture(0);
+    const alice = sim.addPlayer({ name: 'Alice' });
+    const bob = sim.addPlayer({ name: 'Bob' });
+
+    handleChatCommand(alice, '/guild create Dragons');
+    handleChatCommand(alice, '/guild invite Bob');
+
+    expect(kvGet<Guild>('guild', 'Dragons')?.invites).toContain('Bob');
+
+    handleChatCommand(bob, '/guild accept Dragons');
+
+    const g = kvGet<Guild>('guild', 'Dragons');
+    expect(g?.members.map((m) => m.name)).toContain('Bob');
+    expect(g?.invites).not.toContain('Bob');
+    expect(bob.data?.guild).toBe('Dragons');
+  });
+
+  it('owner can promote and demote members', () => {
+    const sim = createFixture(0);
+    const alice = sim.addPlayer({ name: 'Alice' });
+    const bob = sim.addPlayer({ name: 'Bob' });
+
+    handleChatCommand(alice, '/guild create Dragons');
+    handleChatCommand(bob, '/guild join Dragons');
+    handleChatCommand(alice, '/guild promote Bob');
+
+    expect(
+      kvGet<Guild>('guild', 'Dragons')?.members.find((m) => m.name === 'Bob')
+        ?.role,
+    ).toBe('moderator');
+
+    handleChatCommand(alice, '/guild demote Bob');
+    expect(
+      kvGet<Guild>('guild', 'Dragons')?.members.find((m) => m.name === 'Bob')
+        ?.role,
+    ).toBe('member');
   });
 });

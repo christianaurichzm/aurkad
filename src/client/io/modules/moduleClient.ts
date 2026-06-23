@@ -1,10 +1,122 @@
 import { onServerEvent, sendServerEvent } from '../network/customEvents';
 import { colors, radius, shadow, zIndex } from '../../theme';
 import { registerModuleAction } from './moduleActions';
+import { getGameState } from '../../core/gameState';
+import {
+  TILE_SIZE,
+  SPRITE_WIDTH,
+  SPRITE_HEIGHT,
+} from '../../../shared/constants';
 
 // Loads the module browser entries the server serves and runs them with an
 // `engine` API. Like server scripts, this is the server owner's code, so it
 // runs with no sandbox.
+
+// ---------- player context menu ----------------------------------------------
+
+interface PlayerAction {
+  label: string;
+  callback: (playerName: string) => void;
+}
+
+const playerActions: PlayerAction[] = [];
+let contextMenu: HTMLElement | null = null;
+let canvasClickInstalled = false;
+
+function hideContextMenu() {
+  contextMenu?.remove();
+  contextMenu = null;
+}
+
+function showContextMenu(name: string, x: number, y: number) {
+  hideContextMenu();
+  if (!playerActions.length) return;
+
+  const menu = document.createElement('div');
+  menu.style.cssText =
+    `position:fixed;left:${x}px;top:${y}px;z-index:${zIndex.floatingPanel};` +
+    `background:${colors.surface};border:1px solid ${colors.border};` +
+    `border-radius:${radius.md}px;box-shadow:${shadow.panel};` +
+    `display:flex;flex-direction:column;gap:4px;padding:6px;min-width:160px;font:13px sans-serif;`;
+
+  const title = document.createElement('div');
+  title.textContent = name;
+  title.style.cssText = `font-weight:bold;padding:2px 4px;border-bottom:1px solid ${colors.border};margin-bottom:2px;`;
+  menu.appendChild(title);
+
+  for (const action of playerActions) {
+    const btn = document.createElement('button');
+    btn.textContent = action.label;
+    btn.style.cssText =
+      `background:transparent;border:none;color:${colors.text};padding:5px 8px;` +
+      `text-align:left;cursor:pointer;border-radius:${radius.sm}px;width:100%;`;
+    btn.onmouseenter = () => (btn.style.background = colors.surfaceMuted);
+    btn.onmouseleave = () => (btn.style.background = 'transparent');
+    btn.onclick = () => {
+      action.callback(name);
+      hideContextMenu();
+    };
+    menu.appendChild(btn);
+  }
+
+  document.body.appendChild(menu);
+  contextMenu = menu;
+  setTimeout(() => {
+    const close = (e: MouseEvent) => {
+      if (!menu.contains(e.target as Node)) {
+        hideContextMenu();
+        document.removeEventListener('mousedown', close);
+      }
+    };
+    document.addEventListener('mousedown', close);
+  }, 0);
+}
+
+function installCanvasClickDetection() {
+  if (canvasClickInstalled) return;
+  canvasClickInstalled = true;
+  // Wait for the canvas to be in the DOM (modules load after game init).
+  const tryInstall = () => {
+    const canvas = document.getElementById(
+      'playerCanvas',
+    ) as HTMLCanvasElement | null;
+    if (!canvas) {
+      setTimeout(tryInstall, 500);
+      return;
+    }
+    canvas.addEventListener('click', (e: MouseEvent) => {
+      if (!playerActions.length) return;
+      const rect = canvas.getBoundingClientRect();
+      const scaleX = canvas.width / rect.width;
+      const scaleY = canvas.height / rect.height;
+      const cx = (e.clientX - rect.left) * scaleX;
+      const cy = (e.clientY - rect.top) * scaleY;
+      const state = getGameState();
+      if (!state) return;
+      const offsetX = (TILE_SIZE - SPRITE_WIDTH) / 2;
+      const offsetY = (TILE_SIZE - SPRITE_HEIGHT) / 2;
+      let hit: string | null = null;
+      for (const p of Object.values(state.players)) {
+        const px = p.position.x + offsetX;
+        const py = p.position.y + offsetY;
+        if (
+          cx >= px &&
+          cx <= px + SPRITE_WIDTH &&
+          cy >= py &&
+          cy <= py + SPRITE_HEIGHT
+        ) {
+          hit = p.name;
+          break;
+        }
+      }
+      if (hit) showContextMenu(hit, e.clientX + 8, e.clientY);
+      else hideContextMenu();
+    });
+  };
+  tryInstall();
+}
+
+// ---------- module API -------------------------------------------------------
 
 interface ClientModule {
   id: string;
@@ -150,6 +262,14 @@ function makeEngineApi(id: string) {
     mount: () => container,
     /** Styled UI helpers (panel/button/input/row/column) in the core look. */
     ui: makeUi(container),
+    /**
+     * Register an action shown in the player context menu when another player
+     * is clicked on the game canvas. `callback` receives the player's name.
+     */
+    registerPlayerAction: (label: string, callback: (name: string) => void) => {
+      playerActions.push({ label, callback });
+      installCanvasClickDetection();
+    },
     log: (...args: unknown[]) => console.log(`[module:${id}]`, ...args),
     warn: (...args: unknown[]) => console.warn(`[module:${id}]`, ...args),
     error: (...args: unknown[]) => console.error(`[module:${id}]`, ...args),
