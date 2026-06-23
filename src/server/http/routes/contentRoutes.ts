@@ -59,6 +59,7 @@ import {
 } from '../../services/npc/index.js';
 import { playersWsMap } from '../../net/connections.js';
 import { gameConfig } from '../../gameConfig.js';
+import { getNetStats } from '../../net/netStats.js';
 
 export function createContentRouter() {
   const router = Router();
@@ -508,6 +509,10 @@ export function createContentRouter() {
         message: 'Purchase failed: insufficient coins/item',
       });
     }
+  });
+
+  router.get('/debug/net', checkAccess(Access.ADMIN), (_req, res) => {
+    res.json(getNetStats());
   });
 
   return router;

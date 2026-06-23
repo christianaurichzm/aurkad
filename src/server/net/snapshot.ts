@@ -28,6 +28,15 @@ import {
   mapTileHeight,
 } from '../../shared/mapGeometry.js';
 import { playersWsMap } from './connections.js';
+import {
+  nsCountBytes,
+  nsCountChunk,
+  nsCountDelta,
+  nsCountEntityLeave,
+  nsCountFullState,
+  nsCountPlayer,
+  nsFlushTick,
+} from './netStats.js';
 
 const diffPatcher = jsondiffpatch.create({
   objectHash: (obj: any, index?: number): string | undefined => {
@@ -112,9 +121,12 @@ function sendViewportChunks(
     for (let cx = colFrom; cx <= colTo && sent < MAX_CHUNKS_PER_TICK; cx++) {
       const key = `${cx}:${cy}`;
       if (state.sent.has(key)) continue;
-      ws.send(
-        JSON.stringify({ type: 'mapChunk', payload: toMapChunk(map, cx, cy) }),
-      );
+      const chunkData = JSON.stringify({
+        type: 'mapChunk',
+        payload: toMapChunk(map, cx, cy),
+      });
+      ws.send(chunkData);
+      nsCountChunk(chunkData.length);
       state.sent.add(key);
       sent++;
     }
@@ -162,11 +174,14 @@ function sendDynamicSnapshot(
       if (!currentNpcIds.has(id)) leavingNpcs.push(id);
     }
     if (leavingPlayers.length > 0 || leavingNpcs.length > 0) {
-      ws.send(
-        JSON.stringify({
-          type: 'entityLeave',
-          payload: { players: leavingPlayers, npcs: leavingNpcs },
-        }),
+      const leaveData = JSON.stringify({
+        type: 'entityLeave',
+        payload: { players: leavingPlayers, npcs: leavingNpcs },
+      });
+      ws.send(leaveData);
+      nsCountEntityLeave(
+        leavingPlayers.length + leavingNpcs.length,
+        leaveData.length,
       );
       // Prune lastSentState so jsondiffpatch never sees these as deleted keys.
       const lastState = lastSentStates.get(player.name);
@@ -203,7 +218,11 @@ function sendDynamicSnapshot(
   }
 
   if (message) {
-    ws.send(JSON.stringify(message));
+    const data = JSON.stringify(message);
+    ws.send(data);
+    nsCountBytes(data.length);
+    if (message.type === 'fullGameState') nsCountFullState(data.length);
+    else nsCountDelta(data.length);
     lastSentStates.set(player.name, currentState);
   }
 }
@@ -220,6 +239,7 @@ export function broadcastGameState() {
       if (!ws || ws.readyState !== WebSocket.OPEN) continue;
 
       try {
+        nsCountPlayer();
         sendMapMetaIfNeeded(player, map, mapRevision, ws);
         sendViewportChunks(player, map, ws, marginPx);
         sendPlayerStatsIfNeeded(player, ws);
@@ -232,6 +252,7 @@ export function broadcastGameState() {
       }
     }
   }
+  nsFlushTick();
 }
 
 export function broadcastChat(message: ChatMessagePayload) {
