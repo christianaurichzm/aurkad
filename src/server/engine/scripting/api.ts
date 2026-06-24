@@ -122,6 +122,15 @@ export function buildApi(
     // Tile size in pixels (positions are in pixels; tiles are TILE_SIZE apart).
     TILE_SIZE,
 
+    // { blocked } for the tile at (col, row) on the map, or null out of
+    // bounds. For modules that check walkability (knockback, LOS).
+    getMapTile: (mapId: string, col: number, row: number) => {
+      const tile = getMap(String(mapId))?.tiles[Math.floor(row)]?.[
+        Math.floor(col)
+      ];
+      return tile ? { blocked: tile.blocked ?? false } : null;
+    },
+
     // Inventory
     giveItem: (player: PlayerServer, itemId: number, quantity = 1): void => {
       const existing = player.inventory.items.find((i) => i.item === itemId);

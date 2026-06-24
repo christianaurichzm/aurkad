@@ -1,4 +1,7 @@
+import { ObjectPool } from './objectPool';
+
 interface FloatingText {
+  active: boolean;
   text: string;
   x: number;
   y: number;
@@ -9,7 +12,16 @@ interface FloatingText {
   duration: number;
 }
 
-const active: FloatingText[] = [];
+const pool = new ObjectPool<FloatingText>(64, () => ({
+  active: false,
+  text: '',
+  x: 0,
+  y: 0,
+  color: '',
+  size: 0,
+  startTime: 0,
+  duration: 0,
+}));
 
 export function spawnFloatingText(
   x: number,
@@ -19,27 +31,27 @@ export function spawnFloatingText(
   duration = 1400,
   size = 16,
   getPos?: () => { x: number; y: number } | null,
-) {
-  active.push({
-    text,
-    x,
-    y,
-    getPos,
-    color,
-    size,
-    startTime: performance.now(),
-    duration,
-  });
+): void {
+  const ft = pool.acquire();
+  if (!ft) return;
+  ft.active = true;
+  ft.x = x;
+  ft.y = y;
+  ft.text = text;
+  ft.color = color;
+  ft.size = size;
+  ft.startTime = performance.now();
+  ft.duration = duration;
+  ft.getPos = getPos;
 }
 
-export function renderFloatingTexts(ctx: CanvasRenderingContext2D) {
+export function renderFloatingTexts(ctx: CanvasRenderingContext2D): void {
   const now = performance.now();
-  for (let i = active.length - 1; i >= 0; i--) {
-    const ft = active[i];
+  pool.forEach((ft) => {
     const elapsed = now - ft.startTime;
     if (elapsed >= ft.duration) {
-      active.splice(i, 1);
-      continue;
+      ft.active = false;
+      return;
     }
     const live = ft.getPos?.();
     const baseX = live ? live.x : ft.x;
@@ -58,5 +70,5 @@ export function renderFloatingTexts(ctx: CanvasRenderingContext2D) {
     ctx.strokeText(ft.text, baseX, baseY + offsetY);
     ctx.fillText(ft.text, baseX, baseY + offsetY);
     ctx.restore();
-  }
+  });
 }

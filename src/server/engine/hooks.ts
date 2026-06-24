@@ -24,6 +24,12 @@ export type HookMap = {
     target: CombatTarget;
     damage: { value: number };
   };
+  afterDamage: {
+    attacker?: CombatTarget;
+    target: CombatTarget;
+    damage: number;
+    lethal: boolean;
+  };
   beforeXpGain: { player: PlayerServer; amount: number; source: string };
   customAction: { player: PlayerServer; channel: string; payload: unknown };
   tick: { tick: number };

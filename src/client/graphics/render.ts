@@ -6,7 +6,7 @@ export { renderPlayers } from './entityRendering';
 
 import { Tile } from '../../shared/types';
 import { getGameState, getPlayer } from '../core/gameState';
-import { renderHUD, updatePlayerHealthBar } from './hud';
+import { updatePlayerHealthBar } from './hud';
 import {
   foregroundCanvas,
   foregroundCtx,
@@ -19,9 +19,8 @@ import {
 import { renderMap, renderMapFringe } from './tileset';
 import {
   renderPlayers,
-  renderNpcs,
+  renderEntitiesSorted,
   renderDroppedItems,
-  renderEntityDirect,
   animate,
 } from './entityRendering';
 import { renderFloatingTexts } from './floatingText';
@@ -119,12 +118,7 @@ export const render = () => {
 
     playerCtx.save();
     playerCtx.translate(-cam.x, -cam.y);
-    renderPlayers(map.players);
-    if (currentPlayer) {
-      renderEntityDirect(currentPlayer);
-      renderHUD(currentPlayer);
-    }
-    renderNpcs(map.npcs);
+    renderEntitiesSorted(map.players, map.npcs);
     renderProjectiles(playerCtx);
     runOverlays(playerCtx, cam);
     playerCtx.restore();

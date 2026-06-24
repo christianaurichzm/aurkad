@@ -14,9 +14,11 @@ import {
   Position,
   CharacterAction,
   RuntimeNpc,
+  PlayerServer,
 } from '../../../shared/types.js';
 import { getMap } from '../../gameData.js';
 import { getOrInitNpcAi, transitionNpcAi, resetNpcAi } from './aiBrain.js';
+import type { NpcAiState } from './types.js';
 import { getTick, msToTicks } from '../../sim/clock.js';
 import { gameConfig } from '../../gameConfig.js';
 import {
@@ -29,11 +31,86 @@ import {
   escapeMove,
   calculateDirection,
 } from './behaviors.js';
+import { selector, sequence, cond, act, type BtNode } from './bt.js';
+import { useApi } from '../../engine/modules/registry.js';
 
-// Consecutive stuck ticks before attempting an escape move.
 const STUCK_ESCAPE_TICKS = 2;
-// Hostile NPCs switch from wander to chase when a player enters this radius.
 const HOSTILE_NOTICE_RADIUS_SQ = (TILE_SIZE * 4) ** 2;
+
+// ---- BT context ----
+
+type LosApi = {
+  hasLOS: (from: Position, to: Position, map: MapStateServer) => boolean;
+};
+
+type NpcBtCtx = {
+  npc: RuntimeNpc;
+  player: PlayerServer;
+  map: MapStateServer;
+  ai: NpcAiState;
+  tick: number;
+  attackCooldownTicks: number;
+};
+
+// ---- shared leaf nodes ----
+
+// If player is in attack range, either attack (cooldown ready) or idle-wait in
+// position. Returns 'failure' only when out of range, letting the selector fall
+// through to the chase branch.
+const inRangeHandler: BtNode<NpcBtCtx> = (ctx) => {
+  if (!isPlayerInAttackRange(ctx.npc, ctx.player)) return 'failure';
+  if (ctx.tick - ctx.ai.lastAttackTick >= ctx.attackCooldownTicks) {
+    transitionNpcAi(ctx.ai, 'attack');
+    ctx.ai.lastAttackTick = ctx.tick;
+    attackPlayer(ctx.npc, ctx.player);
+  } else {
+    ctx.npc.action = CharacterAction.Idle;
+  }
+  return 'success';
+};
+
+const chaseWithStuck: BtNode<NpcBtCtx> = act((ctx) => {
+  transitionNpcAi(ctx.ai, 'chase');
+  moveNpcTowardsPlayer(ctx.npc, ctx.player, ctx.map);
+  if (ctx.npc.action === CharacterAction.Walk) {
+    ctx.ai.stuckTicks = 0;
+  } else {
+    ctx.ai.stuckTicks += 1;
+    if (ctx.ai.stuckTicks >= STUCK_ESCAPE_TICKS) {
+      ctx.ai.stuckTicks = 0;
+      escapeMove(ctx.npc);
+    }
+  }
+});
+
+// Succeeds when the player is within the hostile notice radius AND (if the LOS
+// module is loaded) has a clear line of sight. Without the LOS module, radius
+// alone determines visibility.
+const playerInSight: BtNode<NpcBtCtx> = cond((ctx) => {
+  const { distanceSq } = calculateDirection(ctx.npc, ctx.player);
+  if (distanceSq > HOSTILE_NOTICE_RADIUS_SQ) return false;
+  const los = useApi<LosApi>('los');
+  return !los || los.hasLOS(ctx.npc.position, ctx.player.position, ctx.map);
+});
+
+const doWander: BtNode<NpcBtCtx> = act((ctx) => {
+  transitionNpcAi(ctx.ai, 'wander');
+  moveNpcRandomly(ctx.npc);
+});
+
+// ---- behavior trees (built once, reused every tick) ----
+
+// aggressive: always chases; attacks on cooldown when in range.
+const aggressiveBt: BtNode<NpcBtCtx> = selector(inRangeHandler, chaseWithStuck);
+
+// hostile: notices the player only when close (+ LOS if module loaded).
+const hostileBt: BtNode<NpcBtCtx> = selector(
+  inRangeHandler,
+  sequence(playerInSight, chaseWithStuck),
+  doWander,
+);
+
+// ---- public API ----
 
 export const respawnNpc = (mapId: string, npc: RuntimeNpc) => {
   const map = getMap(mapId);
@@ -95,66 +172,21 @@ export function updateNpcs(npc: RuntimeNpc, map: MapStateServer) {
   // direction never delays the first hit by a full update interval.
   faceToward(npc, closestPlayer);
 
-  const canAttack = isPlayerInAttackRange(npc, closestPlayer);
   const ai = getOrInitNpcAi(npc);
   const tick = getTick();
-  const ATTACK_COOLDOWN_TICKS = msToTicks(
-    gameConfig.combat.npcAttackCooldownMs,
-  );
+  const attackCooldownTicks = msToTicks(gameConfig.combat.npcAttackCooldownMs);
+  const ctx: NpcBtCtx = {
+    npc,
+    player: closestPlayer,
+    map,
+    ai,
+    tick,
+    attackCooldownTicks,
+  };
 
   if (npc.behavior === 'aggressive') {
-    transitionNpcAi(ai, canAttack ? 'attack' : 'chase');
-
-    if (ai.state === 'attack') {
-      if (tick - ai.lastAttackTick >= ATTACK_COOLDOWN_TICKS) {
-        ai.lastAttackTick = tick;
-        attackPlayer(npc, closestPlayer);
-      } else {
-        npc.action = CharacterAction.Idle;
-      }
-    } else {
-      moveNpcTowardsPlayer(npc, closestPlayer, map);
-      if (npc.action === CharacterAction.Walk) {
-        ai.stuckTicks = 0;
-      } else {
-        ai.stuckTicks += 1;
-        if (ai.stuckTicks >= STUCK_ESCAPE_TICKS) {
-          ai.stuckTicks = 0;
-          escapeMove(npc);
-        }
-      }
-    }
-  }
-
-  if (npc.behavior === 'hostile') {
-    const { distanceSq } = calculateDirection(npc, closestPlayer);
-    const inNoticeRadius = distanceSq <= HOSTILE_NOTICE_RADIUS_SQ;
-
-    transitionNpcAi(
-      ai,
-      canAttack ? 'attack' : inNoticeRadius ? 'chase' : 'wander',
-    );
-
-    if (ai.state === 'attack') {
-      if (tick - ai.lastAttackTick >= ATTACK_COOLDOWN_TICKS) {
-        ai.lastAttackTick = tick;
-        attackPlayer(npc, closestPlayer);
-      } else {
-        npc.action = CharacterAction.Idle;
-      }
-    } else if (ai.state === 'chase') {
-      moveNpcTowardsPlayer(npc, closestPlayer, map);
-      if (npc.action === CharacterAction.Walk) {
-        ai.stuckTicks = 0;
-      } else {
-        ai.stuckTicks += 1;
-        if (ai.stuckTicks >= STUCK_ESCAPE_TICKS) {
-          ai.stuckTicks = 0;
-          escapeMove(npc);
-        }
-      }
-    } else {
-      moveNpcRandomly(npc);
-    }
+    aggressiveBt(ctx);
+  } else if (npc.behavior === 'hostile') {
+    hostileBt(ctx);
   }
 }

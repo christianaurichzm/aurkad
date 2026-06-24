@@ -1,0 +1,13 @@
+{
+  "id": "knockback",
+  "name": "Knockback",
+  "version": "1.0.0",
+  "server": "server.js",
+  "description": "Pushes entities 1 tile away from the attacker on non-lethal hits. Hooks into afterDamage. Applies to players by default; NPCs opt-in via config.",
+  "enabledByDefault": false,
+  "config": {
+    "force": 1,
+    "applyToPlayers": true,
+    "applyToNpcs": false
+  }
+}

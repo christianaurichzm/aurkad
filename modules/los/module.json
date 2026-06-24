@@ -1,0 +1,9 @@
+{
+  "id": "los",
+  "name": "Line of Sight",
+  "version": "1.0.0",
+  "server": "server.js",
+  "description": "Bresenham line-of-sight check for NPCs. Provides 'los' API used by NPC AI to detect players through walls. Without this module, hostile NPCs use radius-only detection.",
+  "enabledByDefault": false,
+  "config": {}
+}

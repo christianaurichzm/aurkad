@@ -146,6 +146,9 @@ export const resolveDamage = async (
 
   target.health -= damage;
 
+  const lethal = target.health <= 0;
+  emit('afterDamage', { attacker, target, damage, lethal });
+
   if (target.health > 0) {
     if (target.kind === 'player') {
       await updatePlayer(target);

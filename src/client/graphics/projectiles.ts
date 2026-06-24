@@ -1,4 +1,5 @@
 import { onServerEvent } from '../io/network/customEvents';
+import { ObjectPool } from './objectPool';
 
 // Core projectile renderer. Any module/script can show a flying projectile by
 // sending a `projectile:fire` event with centered pixel coords; the engine
@@ -6,6 +7,7 @@ import { onServerEvent } from '../io/network/customEvents';
 // the arrow is purely visual.)
 
 interface Projectile {
+  active: boolean;
   fromX: number;
   fromY: number;
   toX: number;
@@ -14,7 +16,15 @@ interface Projectile {
   duration: number;
 }
 
-const active: Projectile[] = [];
+const pool = new ObjectPool<Projectile>(32, () => ({
+  active: false,
+  fromX: 0,
+  fromY: 0,
+  toX: 0,
+  toY: 0,
+  start: 0,
+  duration: 0,
+}));
 
 onServerEvent('projectile:fire', (payload) => {
   const p = payload as Partial<Projectile>;
@@ -26,26 +36,26 @@ onServerEvent('projectile:fire', (payload) => {
   ) {
     return;
   }
-  active.push({
-    fromX: p.fromX,
-    fromY: p.fromY,
-    toX: p.toX,
-    toY: p.toY,
-    start: performance.now(),
-    duration: typeof p.duration === 'number' ? p.duration : 250,
-  });
+  const pr = pool.acquire();
+  if (!pr) return;
+  pr.active = true;
+  pr.fromX = p.fromX;
+  pr.fromY = p.fromY;
+  pr.toX = p.toX;
+  pr.toY = p.toY;
+  pr.start = performance.now();
+  pr.duration = typeof p.duration === 'number' ? p.duration : 250;
 });
 
 export function renderProjectiles(ctx: CanvasRenderingContext2D): void {
-  if (active.length === 0) return;
+  if (pool.activeCount() === 0) return;
   const now = performance.now();
 
-  for (let i = active.length - 1; i >= 0; i--) {
-    const pr = active[i]!;
+  pool.forEach((pr) => {
     const t = (now - pr.start) / pr.duration;
     if (t >= 1) {
-      active.splice(i, 1);
-      continue;
+      pr.active = false;
+      return;
     }
 
     const x = pr.fromX + (pr.toX - pr.fromX) * t;
@@ -66,5 +76,5 @@ export function renderProjectiles(ctx: CanvasRenderingContext2D): void {
     ctx.lineTo(4, 3);
     ctx.stroke();
     ctx.restore();
-  }
+  });
 }
