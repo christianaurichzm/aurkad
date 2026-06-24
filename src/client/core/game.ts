@@ -4,6 +4,7 @@ import { getPlayer } from './gameState';
 import { spawnFloatingText } from '../graphics/floatingText';
 import { getAnimatedPos } from '../graphics/entityRendering';
 import { TILE_SIZE } from '../../shared/constants';
+import { flushInputBuffer } from '../io/keyboard';
 
 let prevLevel = 0;
 
@@ -32,6 +33,8 @@ export const gameLoop = () => {
       prevLevel = player.level;
     }
   }
+
+  flushInputBuffer();
 
   try {
     render();

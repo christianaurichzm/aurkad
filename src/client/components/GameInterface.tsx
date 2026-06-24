@@ -4,6 +4,7 @@ import { handleInput } from '../io/keyboard';
 import { initializeWebSocket } from '../io/network';
 import { loadClientModules } from '../io/modules/moduleClient';
 import { gameLoop } from '../core/game';
+import { initDebugOverlay } from '../graphics/debugOverlay';
 import {
   setFullGameState,
   setMapMeta,
@@ -71,6 +72,7 @@ export const GameInterface = () => {
       });
       useUIStore.getState().setCurrentMap(initialMap);
       handleInput();
+      initDebugOverlay();
       await initializeAssets();
       initializeWebSocket();
       void loadClientModules();

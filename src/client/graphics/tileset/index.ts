@@ -442,13 +442,27 @@ export const renderMap = (tiles: Tile[][]) => {
     foregroundCanvas.width,
     foregroundCanvas.height,
   );
-  tiles.forEach((row, rowIndex) => {
-    row.forEach((tile, colIndex) => {
-      if (tile.tileIndex !== -1) {
+  const cam = getCamera();
+  const startCol = Math.max(0, Math.floor(cam.x / TILE_SIZE));
+  const endCol = Math.min(
+    (tiles[0]?.length ?? 0) - 1,
+    Math.ceil((cam.x + foregroundCanvas.width) / TILE_SIZE),
+  );
+  const startRow = Math.max(0, Math.floor(cam.y / TILE_SIZE));
+  const endRow = Math.min(
+    tiles.length - 1,
+    Math.ceil((cam.y + foregroundCanvas.height) / TILE_SIZE),
+  );
+  for (let rowIndex = startRow; rowIndex <= endRow; rowIndex++) {
+    const row = tiles[rowIndex];
+    if (!row) continue;
+    for (let colIndex = startCol; colIndex <= endCol; colIndex++) {
+      const tile = row[colIndex];
+      if (tile && tile.tileIndex !== -1) {
         drawTileOnCanvas(colIndex, rowIndex, tile.tileIndex);
       }
-    });
-  });
+    }
+  }
   clearAndDrawGrid();
   drawMarkers(tiles);
   drawHoverCell();
@@ -627,9 +641,23 @@ export const renderMapFringe = (
 ) => {
   if (!ctx || !tiles) return;
   const tilesPerRow = tileset.width / TILE_SIZE;
-  tiles.forEach((row, rowIndex) => {
-    row.forEach((tile, colIndex) => {
-      if (tile.fringe && tile.tileIndex !== -1) {
+  const cam = getCamera();
+  const startCol = Math.max(0, Math.floor(cam.x / TILE_SIZE));
+  const endCol = Math.min(
+    (tiles[0]?.length ?? 0) - 1,
+    Math.ceil((cam.x + ctx.canvas.width) / TILE_SIZE),
+  );
+  const startRow = Math.max(0, Math.floor(cam.y / TILE_SIZE));
+  const endRow = Math.min(
+    tiles.length - 1,
+    Math.ceil((cam.y + ctx.canvas.height) / TILE_SIZE),
+  );
+  for (let rowIndex = startRow; rowIndex <= endRow; rowIndex++) {
+    const row = tiles[rowIndex];
+    if (!row) continue;
+    for (let colIndex = startCol; colIndex <= endCol; colIndex++) {
+      const tile = row[colIndex];
+      if (tile?.fringe && tile.tileIndex !== -1) {
         const tileX = (tile.tileIndex % tilesPerRow) * TILE_SIZE;
         const tileY = Math.floor(tile.tileIndex / tilesPerRow) * TILE_SIZE;
         ctx.drawImage(
@@ -644,6 +672,6 @@ export const renderMapFringe = (
           TILE_SIZE,
         );
       }
-    });
-  });
+    }
+  }
 };

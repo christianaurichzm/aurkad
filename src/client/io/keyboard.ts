@@ -6,6 +6,8 @@ import {
   openModEditor,
   sendAction,
 } from './network';
+import { getAnimatedState } from '../graphics/movementAnimation';
+import { getPlayer } from '../core/gameState';
 
 const isValidKey = (value: string): value is Key =>
   Object.values(Key).includes(value as Key);
@@ -47,9 +49,32 @@ const handleKeyPress = async (key: Key) => {
 let inputSeq = 0;
 const heldKeys = new Set<Key>();
 
+// A press of these keys mid-slide waits in a one-slot buffer and is sent on
+// the first frame after the slide settles. Releasing first drops it.
+const BUFFERABLE_KEYS: ReadonlySet<Key> = new Set([Key.Control]);
+let bufferedPress: Key | null = null;
+
+function isLocalPlayerMoving(): boolean {
+  const player = getPlayer();
+  if (!player) return false;
+  return getAnimatedState(player.id, player.position).moving;
+}
+
+export function flushInputBuffer(): void {
+  if (!bufferedPress || isLocalPlayerMoving()) return;
+  const key = bufferedPress;
+  bufferedPress = null;
+  const seq = ++inputSeq;
+  sendAction({ type: 'keyboard', keyboardAction: { key, type: 'press' }, seq });
+}
+
 const releaseKey = (key: Key) => {
   if (!heldKeys.has(key)) return;
   heldKeys.delete(key);
+  if (bufferedPress === key) {
+    bufferedPress = null;
+    return;
+  }
   const seq = ++inputSeq;
   sendAction({
     type: 'keyboard',
@@ -71,6 +96,10 @@ export const handleInput = () => {
     if (keyRecord[e.key] === Protocol.WS) {
       if (heldKeys.has(e.key)) return;
       heldKeys.add(e.key);
+      if (BUFFERABLE_KEYS.has(e.key) && isLocalPlayerMoving()) {
+        bufferedPress = e.key;
+        return;
+      }
       const seq = ++inputSeq;
       sendAction({
         type: 'keyboard',
