@@ -28,9 +28,8 @@ export interface AnimatedState {
 
 const movementQueues = new Map<string, MovementStep[]>();
 const lastSettle = new Map<string, number>();
-// BRIDGE_MS reconnects consecutive slides without a position jump: when a new
-// step arrives while the queue is empty but the last settle was recent, the
-// step starts from raw=0 (no snap) with duration shortened by the elapsed gap.
+// Joins consecutive slides: a new step starts at raw=0 with its duration
+// shortened by the gap, so nothing snaps.
 const BRIDGE_MS = 100;
 
 export function clearMovementQueues() {
