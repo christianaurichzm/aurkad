@@ -1,5 +1,4 @@
 import { registerOverlay } from './overlayRegistry';
-import { getCamera } from './camera';
 import { getGameState, getPlayer } from '../core/gameState';
 import { getAnimatedState } from './movementAnimation';
 import { TILE_SIZE } from '../../shared/constants';
