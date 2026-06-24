@@ -3,6 +3,7 @@
   "name": "Dialog System",
   "version": "1.0.0",
   "server": "server.js",
+  "client": "client.js",
   "description": "NPC dialog boxes. Provides use('dialog').show(player, opts, onChoice).",
   "enabledByDefault": true
 }
