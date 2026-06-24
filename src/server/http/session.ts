@@ -1,4 +1,5 @@
 import session from 'express-session';
+import MongoStore from 'connect-mongo';
 import type { RequestHandler, Request } from 'express';
 import type { Access, PlayerServer } from '../../shared/types.js';
 import { config } from '../config.js';
@@ -20,6 +21,11 @@ export function createSessionMiddleware(): RequestHandler {
     secret: config.session.secret,
     resave: false,
     saveUninitialized: false,
+    store: MongoStore.create({
+      mongoUrl: config.mongoUri,
+      collectionName: 'sessions',
+      ttl: 7 * 24 * 60 * 60, // 7 days in seconds
+    }),
     cookie: {
       httpOnly: true,
       sameSite: 'lax',

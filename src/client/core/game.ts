@@ -33,6 +33,10 @@ export const gameLoop = () => {
     }
   }
 
-  render();
+  try {
+    render();
+  } catch (err) {
+    console.error('[gameLoop] render error:', err);
+  }
   requestAnimationFrame(gameLoop);
 };
