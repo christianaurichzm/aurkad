@@ -6,10 +6,6 @@ import {
   Position,
   RuntimeNpcsMap,
 } from '../../shared/types';
-import {
-  MOVEMENT_DURATION,
-  RUN_MOVEMENT_DURATION,
-} from '../../shared/constants';
 import { playerActionToActionColumnRecord } from '../../shared/mappings';
 import { drawSprite } from './spriteDrawing';
 import { renderItemIcon } from './itemDrawing';
@@ -24,39 +20,28 @@ type AnimatableEntity = {
   action: CharacterAction;
 };
 
-// Apply the interpolated position and force the walking pose while a slide is
-// in flight (the server may already report Idle by then). Facing comes straight
-// from the authoritative snapshot direction.
+const slideTById = new Map<string, number>();
+
+// Force Walk action while sliding even if the server already reports Idle.
 export function animate<T extends AnimatableEntity>(entity: T): T {
   const anim = getAnimatedState(entity.id, entity.position);
   const action =
     anim.moving && entity.action === CharacterAction.Idle
       ? CharacterAction.Walk
       : entity.action;
+  slideTById.set(entity.id, anim.slideT);
   return { ...entity, position: anim.position, action };
 }
 
-// The 4 sprite columns are a sequential walk cycle. While moving we advance two
-// columns per tile so the legs animate; the per-frame interval tracks the move
-// speed so running steps faster. The cycle is anchored to when each entity
-// started moving (reset once it stops) so every walk begins at column 0 instead
-// of a random wall-clock phase. Idle/Attack keep their fixed column.
 const WALK_CYCLE_LENGTH = 4;
-const walkStartById = new Map<string, number>();
 
 const animationColumn = (id: string, action: CharacterAction): number => {
   if (action !== CharacterAction.Walk && action !== CharacterAction.Run) {
-    walkStartById.delete(id);
+    slideTById.delete(id);
     return playerActionToActionColumnRecord[action];
   }
-  const now = performance.now();
-  const start = walkStartById.get(id) ?? now;
-  if (!walkStartById.has(id)) walkStartById.set(id, now);
-
-  const tileDuration =
-    action === CharacterAction.Run ? RUN_MOVEMENT_DURATION : MOVEMENT_DURATION;
-  const frameMs = tileDuration / 2;
-  return Math.floor((now - start) / frameMs) % WALK_CYCLE_LENGTH;
+  const slideT = slideTById.get(id) ?? 0;
+  return Math.floor(slideT * WALK_CYCLE_LENGTH) % WALK_CYCLE_LENGTH;
 };
 
 const renderEntity = (entity: {

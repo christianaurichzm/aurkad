@@ -15,16 +15,23 @@ interface MovementStep {
   to: Position;
   startTime: number;
   duration: number;
+  // False for mid-chain steps, linear so a walk keeps constant speed; true
+  // for isolated or first steps, eased in and out.
+  eased: boolean;
 }
 
 export interface AnimatedState {
   position: Position;
   moving: boolean;
+  slideT: number;
 }
 
 const movementQueues = new Map<string, MovementStep[]>();
 const lastSettle = new Map<string, number>();
-const BRIDGE_MS = 60;
+// BRIDGE_MS reconnects consecutive slides without a position jump: when a new
+// step arrives while the queue is empty but the last settle was recent, the
+// step starts from raw=0 (no snap) with duration shortened by the elapsed gap.
+const BRIDGE_MS = 100;
 
 export function clearMovementQueues() {
   movementQueues.clear();
@@ -56,16 +63,41 @@ export function onServerPositionUpdate(
   const duration = isRunning ? RUN_MOVEMENT_DURATION : MOVEMENT_DURATION;
 
   let startTime: number;
+  let eased: boolean;
+  let effectiveDuration = duration;
+
   if (lastStep) {
     startTime = lastStep.startTime + lastStep.duration;
+    eased = false;
   } else {
     const now = performance.now();
     const settled = lastSettle.get(playerId);
     const gap = settled !== undefined ? now - settled : Infinity;
-    startTime = gap > 0 && gap < BRIDGE_MS ? settled! : now;
+    const bridged = gap > 0 && gap < BRIDGE_MS;
+
+    startTime = now;
+
+    if (bridged) {
+      // Shortened to keep the server's cadence without snapping the start.
+      effectiveDuration = Math.max(
+        duration - Math.round(gap),
+        Math.round(duration / 2),
+      );
+      eased = false;
+    } else {
+      eased = true;
+    }
   }
 
-  queue.push({ from: lastPos, to, startTime, duration });
+  // Shallow-copy both positions so jsondiffpatch mutations on the live game
+  // state object do not corrupt step.from / step.to after the step is queued.
+  queue.push({
+    from: { ...lastPos },
+    to: { ...to },
+    startTime,
+    duration: effectiveDuration,
+    eased,
+  });
 
   const MAX_QUEUE = 6;
   while (queue.length > MAX_QUEUE) {
@@ -83,7 +115,7 @@ export function getAnimatedState(
   const queue = movementQueues.get(entityId);
 
   if (!queue || queue.length === 0) {
-    return { position: currentPos, moving: false };
+    return { position: currentPos, moving: false, slideT: 0 };
   }
 
   const now = performance.now();
@@ -93,12 +125,12 @@ export function getAnimatedState(
   if (raw >= 1) {
     queue.shift();
     lastSettle.set(entityId, step.startTime + step.duration);
-    return { position: step.to, moving: queue.length > 0 };
+    return { position: step.to, moving: queue.length > 0, slideT: 1 };
   }
 
-  // Smoothstep f(t) = t²(3−2t): velocity is zero at both endpoints, so
-  // consecutive steps don't produce visible velocity jumps at transitions.
-  const t = raw * raw * (3 - 2 * raw);
+  // Mid-chain steps are linear for constant speed; isolated or first steps
+  // use smoothstep t²(3−2t) to ease in and out.
+  const t = step.eased ? raw * raw * (3 - 2 * raw) : raw;
 
   return {
     position: {
@@ -106,5 +138,6 @@ export function getAnimatedState(
       y: step.from.y + (step.to.y - step.from.y) * t,
     },
     moving: true,
+    slideT: t,
   };
 }

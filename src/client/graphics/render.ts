@@ -34,8 +34,6 @@ let lastDrawnTiles: Tile[][] | null = null;
 let lastCamX = 0;
 let lastCamY = 0;
 
-// Fringe tile layer cached in an OffscreenCanvas. Fringe tiles are static for
-// a given (tiles, camera) pair; only floating texts need per-frame redraw.
 let fringeOffscreen: OffscreenCanvas | null = null;
 let lastFringeTiles: Tile[][] | null = null;
 let lastFringeCamX = -1;
@@ -43,8 +41,12 @@ let lastFringeCamY = -1;
 
 export const render = () => {
   const map = getGameState();
-  const currentPlayer = getPlayer();
+  const rawPlayer = getPlayer();
   const mapEdited = useUIStore.getState().mapEdited;
+
+  // Interpolate position before computing the camera so the background doesn't
+  // jump discretely while the player sprite slides smoothly between tiles.
+  const currentPlayer = rawPlayer ? animate(rawPlayer) : null;
 
   if (map) {
     const cam = currentPlayer
@@ -52,14 +54,18 @@ export const render = () => {
       : { x: 0, y: 0 };
     setCamera(cam);
 
+    // Whole pixels for the dirty check, valid across sub-pixel moves.
+    const camXi = Math.round(cam.x);
+    const camYi = Math.round(cam.y);
+
     playerCtx.clearRect(0, 0, foregroundCanvas.width, foregroundCanvas.height);
     itemCtx.clearRect(0, 0, itemCanvas.width, itemCanvas.height);
 
     if (!mapEdited) {
       const tilesDirty =
         map.tiles !== lastDrawnTiles ||
-        cam.x !== lastCamX ||
-        cam.y !== lastCamY;
+        camXi !== lastCamX ||
+        camYi !== lastCamY;
       if (tilesDirty) {
         foregroundCtx.clearRect(
           0,
@@ -69,8 +75,8 @@ export const render = () => {
         );
         renderMap(map.tiles);
         lastDrawnTiles = map.tiles;
-        lastCamX = cam.x;
-        lastCamY = cam.y;
+        lastCamX = camXi;
+        lastCamY = camYi;
       }
     } else {
       lastDrawnTiles = null;
@@ -79,8 +85,8 @@ export const render = () => {
     // Fringe tiles, re-rendered offscreen only when tiles or camera change.
     const fringeTilesDirty =
       map.tiles !== lastFringeTiles ||
-      cam.x !== lastFringeCamX ||
-      cam.y !== lastFringeCamY;
+      camXi !== lastFringeCamX ||
+      camYi !== lastFringeCamY;
 
     if (fringeTilesDirty && !mapEdited) {
       if (
@@ -98,12 +104,12 @@ export const render = () => {
       ) as OffscreenCanvasRenderingContext2D;
       offCtx.clearRect(0, 0, fringeOffscreen.width, fringeOffscreen.height);
       offCtx.save();
-      offCtx.translate(-cam.x, -cam.y);
+      offCtx.translate(-camXi, -camYi);
       renderMapFringe(map.tiles, offCtx);
       offCtx.restore();
       lastFringeTiles = map.tiles;
-      lastFringeCamX = cam.x;
-      lastFringeCamY = cam.y;
+      lastFringeCamX = camXi;
+      lastFringeCamY = camYi;
     }
 
     itemCtx.save();
@@ -115,9 +121,8 @@ export const render = () => {
     playerCtx.translate(-cam.x, -cam.y);
     renderPlayers(map.players);
     if (currentPlayer) {
-      const player = animate(currentPlayer);
-      renderEntityDirect(player);
-      renderHUD(player);
+      renderEntityDirect(currentPlayer);
+      renderHUD(currentPlayer);
     }
     renderNpcs(map.npcs);
     renderProjectiles(playerCtx);
@@ -128,7 +133,6 @@ export const render = () => {
       updatePlayerHealthBar(currentPlayer);
     }
 
-    // Blit the cached fringe, then floating texts (always dynamic) on top.
     fringeCtx.clearRect(0, 0, fringeCanvas.width, fringeCanvas.height);
     if (fringeOffscreen && !mapEdited) {
       fringeCtx.drawImage(fringeOffscreen, 0, 0);
