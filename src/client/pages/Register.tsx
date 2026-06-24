@@ -1,13 +1,19 @@
-import { useState, useEffect } from 'react';
-import { register } from '../io/network';
+import { useEffect, useState } from 'react';
+import { useForm } from 'react-hook-form';
+import { register as registerUser } from '../io/network';
 import { colors, radius, zIndex } from '../theme';
 
+type FormValues = { username: string; password: string };
+
 export const Register = ({ onSwitch }: { onSwitch: () => void }) => {
-  const [username, setUsername] = useState('');
-  const [password, setPassword] = useState('');
-  const [error, setError] = useState('');
+  const [serverError, setServerError] = useState('');
   const [successMsg, setSuccessMsg] = useState('');
-  const [loading, setLoading] = useState(false);
+
+  const {
+    register,
+    handleSubmit,
+    formState: { errors, isSubmitting },
+  } = useForm<FormValues>();
 
   useEffect(() => {
     if (!successMsg) return;
@@ -15,47 +21,49 @@ export const Register = ({ onSwitch }: { onSwitch: () => void }) => {
     return () => clearTimeout(t);
   }, [successMsg, onSwitch]);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError('');
-    setSuccessMsg('');
-    setLoading(true);
-
+  const onSubmit = async ({ username, password }: FormValues) => {
+    setServerError('');
     try {
-      await register(username, password);
+      await registerUser(username, password);
       setSuccessMsg('Account created! Redirecting to login...');
     } catch (err: any) {
-      setError(err?.message || 'Registration failed');
-    } finally {
-      setLoading(false);
+      setServerError(err?.message || 'Registration failed');
     }
   };
 
   return (
     <div style={styles.container}>
-      <form style={styles.form} onSubmit={handleSubmit}>
-        <input
-          type="text"
-          placeholder="Choose a username"
-          value={username}
-          onChange={(e) => setUsername(e.target.value)}
-          required
-          style={styles.input}
-        />
-        <input
-          type="password"
-          placeholder="Choose a password"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          required
-          style={styles.input}
-        />
-        <button
-          type="submit"
-          style={styles.button}
-          disabled={!username || !password || loading}
-        >
-          {loading ? 'Registering...' : 'Register'}
+      <form style={styles.form} onSubmit={handleSubmit(onSubmit)}>
+        <div style={styles.field}>
+          <input
+            type="text"
+            placeholder="Choose a username"
+            style={styles.input}
+            {...register('username', {
+              required: 'Username is required',
+              maxLength: {
+                value: 24,
+                message: 'Username must be 24 characters or fewer',
+              },
+            })}
+          />
+          {errors.username && (
+            <span style={styles.fieldError}>{errors.username.message}</span>
+          )}
+        </div>
+        <div style={styles.field}>
+          <input
+            type="password"
+            placeholder="Choose a password"
+            style={styles.input}
+            {...register('password', { required: 'Password is required' })}
+          />
+          {errors.password && (
+            <span style={styles.fieldError}>{errors.password.message}</span>
+          )}
+        </div>
+        <button type="submit" disabled={isSubmitting} style={styles.button}>
+          {isSubmitting ? 'Registering...' : 'Register'}
         </button>
         <p style={styles.switchText}>
           Already have an account?{' '}
@@ -63,7 +71,7 @@ export const Register = ({ onSwitch }: { onSwitch: () => void }) => {
             Login
           </button>
         </p>
-        {error && <div style={styles.error}>{error}</div>}
+        {serverError && <div style={styles.error}>{serverError}</div>}
         {successMsg && <div style={styles.success}>{successMsg}</div>}
       </form>
     </div>
@@ -91,13 +99,23 @@ const styles: Record<string, React.CSSProperties> = {
     width: '320px',
     textAlign: 'center',
   },
+  field: {
+    marginBottom: '20px',
+    textAlign: 'left',
+  },
   input: {
     width: '100%',
     padding: '12px',
-    marginBottom: '20px',
     border: `1px solid ${colors.border}`,
     borderRadius: radius.sm,
     fontSize: '1rem',
+    boxSizing: 'border-box',
+  },
+  fieldError: {
+    display: 'block',
+    marginTop: '4px',
+    color: colors.danger,
+    fontSize: '0.8rem',
   },
   button: {
     width: '100%',
