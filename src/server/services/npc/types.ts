@@ -4,4 +4,5 @@ export type NpcAiState = {
   state: NpcAiStateName;
   lastStateChangeTick: number;
   lastAttackTick: number;
+  stuckTicks: number;
 };

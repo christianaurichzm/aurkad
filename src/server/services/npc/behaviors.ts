@@ -5,6 +5,7 @@ import {
   CharacterAction,
   PlayerServer,
   RuntimeNpc,
+  MapStateServer,
 } from '../../../shared/types.js';
 import { hasCollision } from '../physicsService.js';
 import { resolveDamage } from '../combat/index.js';
@@ -30,100 +31,139 @@ export function calculateDirection(
   return { dx, dy, distanceSq };
 }
 
-export function moveNpcTowardsPlayer(npc: RuntimeNpc, player: PlayerServer) {
-  stepNpcToward(npc, player);
+export function moveNpcTowardsPlayer(
+  npc: RuntimeNpc,
+  player: PlayerServer,
+  map: MapStateServer,
+) {
+  stepNpcToward(npc, player, map);
 }
 
-// One tile-aligned step toward a target position. Tries the 4 cardinal
-// directions sorted by the Manhattan distance they leave to the goal, and
-// takes the first that does not collide.
-//
-// Sort tiebreaker: among equal-distance directions, the direction opposite the
-// dominant axis is deprioritised so NPCs prefer perpendicular movement over
-// retreating when wall-hugging.
-//
-// Adjacent guard: when the target is already on an adjacent tile (≤ TILE_SIZE
-// away), alternative directions are suppressed: the NPC faces the target and
-// waits rather than routing sideways around it, which keeps it in attack
-// position instead of drifting away when the player blocks it.
-export function stepNpcToward(npc: RuntimeNpc, target: { position: Position }) {
-  const dx = target.position.x - npc.position.x;
-  const dy = target.position.y - npc.position.y;
+// Cardinal directions for BFS. Right/Down first so ties resolve toward the
+// south-east, which matches the typical RPG "forward" feel.
+const BFS_DIRS = [
+  { dc: 1, dr: 0, dir: Direction.Right },
+  { dc: 0, dr: 1, dir: Direction.Down },
+  { dc: -1, dr: 0, dir: Direction.Left },
+  { dc: 0, dr: -1, dir: Direction.Up },
+] as const;
 
-  if (dx === 0 && dy === 0) {
+// BFS on the tile grid returning the first pixel step on the shortest path to
+// targetPos. Only static tile blocking is checked here; dynamic entity
+// positions are handled by hasCollision at move time.
+// Returns null when already at the goal or no reachable path within maxDepth.
+function bfsNextStep(
+  npcPos: Position,
+  targetPos: Position,
+  map: MapStateServer,
+  maxDepth = 30,
+): { x: number; y: number; dir: Direction } | null {
+  const sc = Math.floor(npcPos.x / TILE_SIZE);
+  const sr = Math.floor(npcPos.y / TILE_SIZE);
+  const gc = Math.floor(targetPos.x / TILE_SIZE);
+  const gr = Math.floor(targetPos.y / TILE_SIZE);
+
+  if (sc === gc && sr === gr) return null;
+
+  const queue: Array<{
+    c: number;
+    r: number;
+    depth: number;
+    first: { x: number; y: number; dir: Direction } | null;
+  }> = [{ c: sc, r: sr, depth: 0, first: null }];
+
+  const visited = new Set<number>();
+  visited.add(sr * 10000 + sc);
+
+  while (queue.length > 0) {
+    const curr = queue.shift()!;
+
+    for (const { dc, dr, dir } of BFS_DIRS) {
+      const nc = curr.c + dc;
+      const nr = curr.r + dr;
+      const key = nr * 10000 + nc;
+      if (visited.has(key)) continue;
+
+      const isGoal = nc === gc && nr === gr;
+      if (!isGoal) {
+        const tile = map.tiles[nr]?.[nc];
+        if (!tile || tile.blocked || tile.avoidNpc) continue;
+      }
+
+      visited.add(key);
+      const first = curr.first ?? { x: nc * TILE_SIZE, y: nr * TILE_SIZE, dir };
+
+      if (isGoal) return first;
+
+      if (curr.depth + 1 < maxDepth) {
+        queue.push({ c: nc, r: nr, depth: curr.depth + 1, first });
+      }
+    }
+  }
+
+  return null;
+}
+
+// Takes one tile step toward target using BFS-derived optimal path.
+export function stepNpcToward(
+  npc: RuntimeNpc,
+  target: { position: Position },
+  map: MapStateServer,
+): void {
+  if (
+    target.position.x === npc.position.x &&
+    target.position.y === npc.position.y
+  ) {
     npc.action = CharacterAction.Idle;
     return;
   }
 
-  const px = npc.position.x;
-  const py = npc.position.y;
-  const currentDist = Math.abs(dx) + Math.abs(dy);
-  const adjacent = currentDist <= TILE_SIZE;
+  const step = bfsNextStep(npc.position, target.position, map);
 
-  // Steps and their resulting Manhattan distance to goal
-  const steps = [
-    {
-      nx: px + TILE_SIZE,
-      ny: py,
-      dist: Math.abs(dx - TILE_SIZE) + Math.abs(dy),
-    },
-    {
-      nx: px - TILE_SIZE,
-      ny: py,
-      dist: Math.abs(dx + TILE_SIZE) + Math.abs(dy),
-    },
-    {
-      nx: px,
-      ny: py + TILE_SIZE,
-      dist: Math.abs(dx) + Math.abs(dy - TILE_SIZE),
-    },
-    {
-      nx: px,
-      ny: py - TILE_SIZE,
-      dist: Math.abs(dx) + Math.abs(dy + TILE_SIZE),
-    },
-  ];
+  if (!step) {
+    npc.action = CharacterAction.Idle;
+    return;
+  }
 
-  // Penalise the direction that opposes the dominant axis so perpendicular
-  // movement is tried before retreating (tiebreaker on equal dist values).
-  const isBackward = (nx: number, ny: number): boolean =>
-    Math.abs(dx) >= Math.abs(dy) ? (nx - px) * dx < 0 : (ny - py) * dy < 0;
+  if (!hasCollision({ ...npc, position: { x: step.x, y: step.y } })) {
+    npc.position = { x: step.x, y: step.y };
+    npc.direction = step.dir;
+    npc.action = CharacterAction.Walk;
+  } else {
+    // Blocked by an entity; stuckTicks in the caller handles the escape.
+    npc.action = CharacterAction.Idle;
+  }
+}
 
-  steps.sort((a, b) =>
-    a.dist !== b.dist
-      ? a.dist - b.dist
-      : (isBackward(a.nx, a.ny) ? 1 : 0) - (isBackward(b.nx, b.ny) ? 1 : 0),
-  );
+// Orient the NPC to face the target based on dominant axis. Called before the
+// attack-range check each tick so the direction is always current.
+export function faceToward(
+  npc: RuntimeNpc,
+  target: { position: Position },
+): void {
+  const dx = target.position.x - npc.position.x;
+  const dy = target.position.y - npc.position.y;
+  if (Math.abs(dx) >= Math.abs(dy)) {
+    npc.direction = dx >= 0 ? Direction.Right : Direction.Left;
+  } else {
+    npc.direction = dy >= 0 ? Direction.Down : Direction.Up;
+  }
+}
 
-  for (const { nx, ny, dist } of steps) {
-    // When the target is on an adjacent tile, skip any step that increases
-    // distance: the NPC should face the target and wait, not route around it.
-    if (adjacent && dist > currentDist) continue;
-
+// Tries every cardinal direction and takes the first unblocked one, ignoring
+// distance ordering, to break out of stuck states where the greedy chase
+// path is completely obstructed.
+export function escapeMove(npc: RuntimeNpc): void {
+  for (const { dx, dy, dir } of WANDER_DIRECTIONS) {
+    const nx = npc.position.x + dx;
+    const ny = npc.position.y + dy;
     if (!hasCollision({ ...npc, position: { x: nx, y: ny } })) {
-      const mdx = nx - px;
-      const mdy = ny - py;
       npc.position = { x: nx, y: ny };
-      npc.direction =
-        mdx > 0
-          ? Direction.Right
-          : mdx < 0
-            ? Direction.Left
-            : mdy > 0
-              ? Direction.Down
-              : Direction.Up;
+      npc.direction = dir;
       npc.action = CharacterAction.Walk;
       return;
     }
   }
-
-  // Stuck: face the target even when blocked, so the NPC "looks at" its goal.
-  if (Math.abs(dx) >= Math.abs(dy)) {
-    npc.direction = dx > 0 ? Direction.Right : Direction.Left;
-  } else {
-    npc.direction = dy > 0 ? Direction.Down : Direction.Up;
-  }
-  npc.action = CharacterAction.Idle;
 }
 
 export function moveNpcRandomly(npc: RuntimeNpc) {

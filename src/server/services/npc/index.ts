@@ -25,7 +25,15 @@ import {
   attackPlayer,
   moveNpcTowardsPlayer,
   moveNpcRandomly,
+  faceToward,
+  escapeMove,
+  calculateDirection,
 } from './behaviors.js';
+
+// Consecutive stuck ticks before attempting an escape move.
+const STUCK_ESCAPE_TICKS = 2;
+// Hostile NPCs switch from wander to chase when a player enters this radius.
+const HOSTILE_NOTICE_RADIUS_SQ = (TILE_SIZE * 4) ** 2;
 
 export const respawnNpc = (mapId: string, npc: RuntimeNpc) => {
   const map = getMap(mapId);
@@ -83,8 +91,11 @@ export function updateNpcs(npc: RuntimeNpc, map: MapStateServer) {
     return;
   }
 
-  const canAttack = isPlayerInAttackRange(npc, closestPlayer);
+  // Orient toward the player before checking attack range so a stale facing
+  // direction never delays the first hit by a full update interval.
+  faceToward(npc, closestPlayer);
 
+  const canAttack = isPlayerInAttackRange(npc, closestPlayer);
   const ai = getOrInitNpcAi(npc);
   const tick = getTick();
   const ATTACK_COOLDOWN_TICKS = msToTicks(
@@ -102,12 +113,27 @@ export function updateNpcs(npc: RuntimeNpc, map: MapStateServer) {
         npc.action = CharacterAction.Idle;
       }
     } else {
-      moveNpcTowardsPlayer(npc, closestPlayer);
+      moveNpcTowardsPlayer(npc, closestPlayer, map);
+      if (npc.action === CharacterAction.Walk) {
+        ai.stuckTicks = 0;
+      } else {
+        ai.stuckTicks += 1;
+        if (ai.stuckTicks >= STUCK_ESCAPE_TICKS) {
+          ai.stuckTicks = 0;
+          escapeMove(npc);
+        }
+      }
     }
   }
 
   if (npc.behavior === 'hostile') {
-    transitionNpcAi(ai, canAttack ? 'attack' : 'wander');
+    const { distanceSq } = calculateDirection(npc, closestPlayer);
+    const inNoticeRadius = distanceSq <= HOSTILE_NOTICE_RADIUS_SQ;
+
+    transitionNpcAi(
+      ai,
+      canAttack ? 'attack' : inNoticeRadius ? 'chase' : 'wander',
+    );
 
     if (ai.state === 'attack') {
       if (tick - ai.lastAttackTick >= ATTACK_COOLDOWN_TICKS) {
@@ -115,6 +141,17 @@ export function updateNpcs(npc: RuntimeNpc, map: MapStateServer) {
         attackPlayer(npc, closestPlayer);
       } else {
         npc.action = CharacterAction.Idle;
+      }
+    } else if (ai.state === 'chase') {
+      moveNpcTowardsPlayer(npc, closestPlayer, map);
+      if (npc.action === CharacterAction.Walk) {
+        ai.stuckTicks = 0;
+      } else {
+        ai.stuckTicks += 1;
+        if (ai.stuckTicks >= STUCK_ESCAPE_TICKS) {
+          ai.stuckTicks = 0;
+          escapeMove(npc);
+        }
       }
     } else {
       moveNpcRandomly(npc);

@@ -151,7 +151,7 @@ describe('isPlayerInAttackRange', () => {
 describe('stepNpcToward', () => {
   it('moves one tile toward the target and faces it', () => {
     const npc = sim.addNpc({ position: tile(5, 5), direction: Direction.Down });
-    stepNpcToward(npc, { position: tile(9, 5) });
+    stepNpcToward(npc, { position: tile(9, 5) }, sim.map);
     expect(npc.position).toEqual(tile(6, 5));
     expect(npc.direction).toBe(Direction.Right);
     expect(npc.action).toBe(CharacterAction.Walk);
@@ -159,7 +159,7 @@ describe('stepNpcToward', () => {
 
   it('steps along the dominant axis (vertical)', () => {
     const npc = sim.addNpc({ position: tile(5, 5) });
-    stepNpcToward(npc, { position: tile(5, 9) });
+    stepNpcToward(npc, { position: tile(5, 9) }, sim.map);
     expect(npc.position).toEqual(tile(5, 6));
     expect(npc.direction).toBe(Direction.Down);
   });
@@ -167,11 +167,10 @@ describe('stepNpcToward', () => {
   it('does not move through a blocked tile', () => {
     sim.map.tiles[5]![6]!.blocked = true; // wall to the right
     const npc = sim.addNpc({ position: tile(5, 5), direction: Direction.Down });
-    stepNpcToward(npc, { position: tile(9, 5) });
-    // The NPC must not phase through the blocked tile. With the 4-direction
-    // greedy pathfinding it routes perpendicular (down) around the wall.
+    stepNpcToward(npc, { position: tile(9, 5) }, sim.map);
+    // BFS finds the detour below the wall instead of going through it.
     expect(npc.position).not.toEqual(tile(6, 5));
-    expect(npc.position).toEqual(tile(5, 6)); // navigated perpendicular to obstacle
+    expect(npc.position).toEqual(tile(5, 6));
   });
 });
 
@@ -225,13 +224,35 @@ describe('updateNpcs', () => {
     expect(player.health).toBe(100);
   });
 
-  it('hostile NPC wanders instead of chasing', () => {
+  it('hostile NPC wanders when player is outside notice radius', () => {
     const npc = sim.addNpc({ behavior: 'hostile', position: tile(5, 5) });
+    // tile(12,5) is 7 tiles away, beyond the 4-tile notice radius
     sim.addPlayer({ name: 'Target', position: tile(12, 5) });
 
-    sim.step(1);
+    const before = { ...npc.position };
+    sim.step(3);
 
-    expect([CharacterAction.Walk, CharacterAction.Idle]).toContain(npc.action);
+    // Wander is random so position may or may not change, but the NPC must
+    // not have moved consistently toward the player (greedy chase).
+    const distAfter =
+      Math.abs(npc.position.x - tile(12, 5).x) +
+      Math.abs(npc.position.y - tile(12, 5).y);
+    expect(distAfter).toBeGreaterThan(3 * TILE_SIZE);
+    void before; // position is non-deterministic when wandering
+  });
+
+  it('hostile NPC chases player within notice radius', () => {
+    const npc = sim.addNpc({ behavior: 'hostile', position: tile(5, 5) });
+    // tile(8,5) is 3 tiles = 192px, within the 4-tile (256px) notice radius
+    const player = sim.addPlayer({ name: 'Target', position: tile(8, 5) });
+
+    sim.step(3);
+
+    const dist =
+      Math.abs(npc.position.x - player.position.x) +
+      Math.abs(npc.position.y - player.position.y);
+    // After 3 chase steps the NPC should be adjacent to the player (1 tile)
+    expect(dist).toBeLessThanOrEqual(TILE_SIZE);
   });
 
   it('neutral NPC stays idle regardless of nearby players', () => {

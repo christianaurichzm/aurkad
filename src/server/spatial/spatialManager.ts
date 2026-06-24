@@ -18,6 +18,7 @@ function getOrCreateQuadtree(mapId: string, w: number, h: number): Quadtree {
 function toQuadtreeEntity(target: CombatTarget): QuadtreeEntity {
   return {
     id: target.id,
+    kind: target.kind,
     position: target.position,
     width: target.width,
     height: target.height,

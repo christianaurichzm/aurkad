@@ -114,8 +114,10 @@ export function buildApi(
     // Move an NPC one tile toward (x, y) the way the engine moves NPCs: sets
     // facing, respects wall collision, animates. Call at the NPC cadence
     // (~every 25 ticks), NOT every tick, or it teleports.
-    moveNpcToward: (npc: RuntimeNpc, x: number, y: number): void =>
-      stepNpcToward(npc, { position: { x, y } }),
+    moveNpcToward: (npc: RuntimeNpc, x: number, y: number): void => {
+      const map = npc.mapId ? getMap(npc.mapId) : undefined;
+      if (map) stepNpcToward(npc, { position: { x, y } }, map);
+    },
 
     // Tile size in pixels (positions are in pixels; tiles are TILE_SIZE apart).
     TILE_SIZE,

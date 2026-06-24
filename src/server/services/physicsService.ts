@@ -61,6 +61,8 @@ export const hasCollision = (character: CombatTarget): boolean => {
   const characterCollision = nearby.some(
     (other) =>
       other.id !== character.id &&
+      // NPCs pass through each other; only players block NPC movement.
+      !(character.kind === 'npc' && other.kind === 'npc') &&
       x < other.position.x + other.width &&
       x + width > other.position.x &&
       y < other.position.y + other.height &&

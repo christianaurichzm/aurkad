@@ -147,11 +147,11 @@ export const setFullGameState = (payload: FullGameStatePayload) => {
   dynamic = payload;
 };
 
-export const patchGameState = (delta: jsondiffpatch.Delta | undefined) => {
+export const patchGameState = (delta: unknown) => {
   if (dynamic && delta) {
     dynamic = diffPatcher.patch(
       dynamic,
-      delta,
+      delta as jsondiffpatch.Delta,
     ) as unknown as FullGameStatePayload;
   } else if (!dynamic) {
     console.warn('Attempted to patch but no dynamic game state exists.');

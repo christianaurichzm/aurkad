@@ -17,6 +17,7 @@ export function getOrInitNpcAi(npc: RuntimeNpc): NpcAiState {
     state: 'idle',
     lastStateChangeTick: getTick(),
     lastAttackTick: 0,
+    stuckTicks: 0,
   };
   npcAiState.set(key, created);
   return created;

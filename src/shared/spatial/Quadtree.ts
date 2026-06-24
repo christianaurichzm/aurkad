@@ -20,6 +20,7 @@ export interface QuadtreeEntity {
   width: number;
   height: number;
   id?: string;
+  kind?: string;
 }
 
 interface QuadtreeNode {
