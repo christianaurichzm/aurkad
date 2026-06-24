@@ -17,7 +17,7 @@ function calcFps(now: number): number {
 
 export function initDebugOverlay(): void {
   window.addEventListener('keydown', (e) => {
-    if (e.key === 'F3') {
+    if (e.key === '`') {
       e.preventDefault();
       visible = !visible;
     }
