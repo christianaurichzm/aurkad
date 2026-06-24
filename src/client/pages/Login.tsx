@@ -11,6 +11,7 @@ export const Login = ({ onSwitch }: { onSwitch: () => void }) => {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
   const [onlinePlayers, setOnlinePlayers] = useState<number | null>(null);
 
   useEffect(() => {
@@ -23,11 +24,7 @@ export const Login = ({ onSwitch }: { onSwitch: () => void }) => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
-
-    if (!username.trim() || !password.trim()) {
-      setError('Username and password are required');
-      return;
-    }
+    setLoading(true);
 
     try {
       const data = await login(username, password);
@@ -43,11 +40,12 @@ export const Login = ({ onSwitch }: { onSwitch: () => void }) => {
           });
         }
       } else {
-        setError('Invalid response from server');
+        setError('Unexpected response from server');
       }
     } catch (err: any) {
-      console.error(err);
-      setError(err.message || 'Login failed');
+      setError(err?.message || 'Login failed');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -72,10 +70,10 @@ export const Login = ({ onSwitch }: { onSwitch: () => void }) => {
         />
         <button
           type="submit"
-          disabled={!username || !password}
+          disabled={!username || !password || loading}
           style={styles.button}
         >
-          Login
+          {loading ? 'Logging in...' : 'Login'}
         </button>
         {onlinePlayers !== null && (
           <p style={styles.onlineCount}>

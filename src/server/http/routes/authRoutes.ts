@@ -46,7 +46,9 @@ export function createAuthRouter() {
 
       const playerDoc = await getPlayerByNameFromDb(username);
       if (!playerDoc) {
-        return res.status(404).send('User not found');
+        return res
+          .status(401)
+          .json({ message: 'Invalid username or password' });
       }
 
       const passwordMatches = await bcrypt.compare(
@@ -54,7 +56,9 @@ export function createAuthRouter() {
         playerDoc.password,
       );
       if (!passwordMatches) {
-        return res.status(401).send('Invalid password');
+        return res
+          .status(401)
+          .json({ message: 'Invalid username or password' });
       }
 
       const ban = await getBan(username);
@@ -102,7 +106,7 @@ export function createAuthRouter() {
       req.session.save((err) => {
         if (err) {
           logger.error('Session save failed', { err });
-          return res.status(500).send('Failed to save session');
+          return res.status(500).json({ message: 'Failed to save session' });
         }
         res.status(200).json({
           player,
@@ -139,7 +143,8 @@ export function createAuthRouter() {
       const { username, password } = body;
 
       const existing = await getPlayerByNameFromDb(username);
-      if (existing) return res.status(409).send('Username already taken');
+      if (existing)
+        return res.status(409).json({ message: 'Username already taken' });
 
       try {
         const saltRounds = 10;
@@ -149,7 +154,9 @@ export function createAuthRouter() {
         res.status(201).json({ success: true, playerId: newPlayer.id });
       } catch (err) {
         logger.error('Registration failed', { err });
-        res.status(500).send('Failed to register player');
+        res
+          .status(500)
+          .json({ message: 'Registration failed, please try again' });
       }
     },
   );

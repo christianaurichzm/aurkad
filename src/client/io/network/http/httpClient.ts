@@ -28,13 +28,11 @@ export const httpClient = async <T>(
   }
 
   if (!response.ok) {
-    throw {
-      status: response.status,
-      message:
-        data?.message ||
-        data?.error ||
-        `Error: ${response.status} - ${response.statusText} - ${data}`,
-    };
+    const message =
+      (typeof data === 'object' && (data?.message || data?.error)) ||
+      (typeof data === 'string' && data) ||
+      `Request failed (${response.status})`;
+    throw { status: response.status, message };
   }
 
   return data as T;

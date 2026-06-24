@@ -7,18 +7,21 @@ export const Register = ({ onSwitch }: { onSwitch: () => void }) => {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [successMsg, setSuccessMsg] = useState('');
+  const [loading, setLoading] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
     setSuccessMsg('');
+    setLoading(true);
 
     try {
       await register(username, password);
       setSuccessMsg('Account created! You can now log in.');
-    } catch (err) {
-      console.error(err);
-      setError('Registration failed. Try another username.');
+    } catch (err: any) {
+      setError(err?.message || 'Registration failed');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -44,9 +47,9 @@ export const Register = ({ onSwitch }: { onSwitch: () => void }) => {
         <button
           type="submit"
           style={styles.button}
-          disabled={!username || !password}
+          disabled={!username || !password || loading}
         >
-          Register
+          {loading ? 'Registering...' : 'Register'}
         </button>
         <p style={styles.switchText}>
           Already have an account?{' '}
