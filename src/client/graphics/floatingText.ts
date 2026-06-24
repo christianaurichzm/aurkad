@@ -2,6 +2,7 @@ interface FloatingText {
   text: string;
   x: number;
   y: number;
+  getPos?: () => { x: number; y: number } | null;
   color: string;
   size: number;
   startTime: number;
@@ -17,11 +18,13 @@ export function spawnFloatingText(
   color = '#ffffff',
   duration = 1400,
   size = 16,
+  getPos?: () => { x: number; y: number } | null,
 ) {
   active.push({
     text,
     x,
     y,
+    getPos,
     color,
     size,
     startTime: performance.now(),
@@ -38,6 +41,9 @@ export function renderFloatingTexts(ctx: CanvasRenderingContext2D) {
       active.splice(i, 1);
       continue;
     }
+    const live = ft.getPos?.();
+    const baseX = live ? live.x : ft.x;
+    const baseY = live ? live.y : ft.y;
     const progress = elapsed / ft.duration;
     const alpha = progress < 0.6 ? 1 : (1 - progress) / 0.4;
     const offsetY = -progress * 50;
@@ -49,8 +55,8 @@ export function renderFloatingTexts(ctx: CanvasRenderingContext2D) {
     ctx.lineWidth = 3;
     ctx.strokeStyle = 'rgba(0,0,0,0.55)';
     ctx.fillStyle = ft.color;
-    ctx.strokeText(ft.text, ft.x, ft.y + offsetY);
-    ctx.fillText(ft.text, ft.x, ft.y + offsetY);
+    ctx.strokeText(ft.text, baseX, baseY + offsetY);
+    ctx.fillText(ft.text, baseX, baseY + offsetY);
     ctx.restore();
   }
 }

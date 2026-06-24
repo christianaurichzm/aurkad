@@ -54,7 +54,7 @@ const port = config.port;
 const sessionMiddleware = createSessionMiddleware();
 app.use(sessionMiddleware);
 
-app.get('/healthz', (_req, res) => res.json(getMetrics()));
+app.get('/healthz', (_req, res) => res.json({ players: getMetrics().players }));
 
 app.use(createAuthRouter());
 app.use(createContentRouter());

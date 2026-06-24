@@ -21,6 +21,7 @@ type AnimatableEntity = {
 };
 
 const slideTById = new Map<string, number>();
+const animPosByEntityId = new Map<string, Position>();
 
 // Force Walk action while sliding even if the server already reports Idle.
 export function animate<T extends AnimatableEntity>(entity: T): T {
@@ -30,7 +31,12 @@ export function animate<T extends AnimatableEntity>(entity: T): T {
       ? CharacterAction.Walk
       : entity.action;
   slideTById.set(entity.id, anim.slideT);
+  animPosByEntityId.set(entity.id, anim.position);
   return { ...entity, position: anim.position, action };
+}
+
+export function getAnimatedPos(entityId: string): Position | undefined {
+  return animPosByEntityId.get(entityId);
 }
 
 const WALK_CYCLE_LENGTH = 4;
