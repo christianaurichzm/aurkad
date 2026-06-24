@@ -18,7 +18,6 @@ import {
 } from './canvas';
 import { renderMap, renderMapFringe } from './tileset';
 import {
-  renderPlayers,
   renderEntitiesSorted,
   renderDroppedItems,
   animate,
