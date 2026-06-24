@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { register } from '../io/network';
 import { colors, radius, zIndex } from '../theme';
 
@@ -9,6 +9,12 @@ export const Register = ({ onSwitch }: { onSwitch: () => void }) => {
   const [successMsg, setSuccessMsg] = useState('');
   const [loading, setLoading] = useState(false);
 
+  useEffect(() => {
+    if (!successMsg) return;
+    const t = setTimeout(onSwitch, 1500);
+    return () => clearTimeout(t);
+  }, [successMsg, onSwitch]);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
@@ -17,7 +23,7 @@ export const Register = ({ onSwitch }: { onSwitch: () => void }) => {
 
     try {
       await register(username, password);
-      setSuccessMsg('Account created! You can now log in.');
+      setSuccessMsg('Account created! Redirecting to login...');
     } catch (err: any) {
       setError(err?.message || 'Registration failed');
     } finally {
