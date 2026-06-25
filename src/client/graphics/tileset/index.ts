@@ -620,10 +620,10 @@ const drawMarkers = (tiles: Tile[][]) => {
       if (tile.shop) drawMarker(colIndex, rowIndex, 'S', 'green');
       if (tile.bank) drawMarker(colIndex, rowIndex, '$', '#f59e0b');
       if (tile.avoidNpc) drawMarker(colIndex, rowIndex, 'A', 'purple');
-      if (tile.fringeIndex !== undefined)
-        drawMarker(colIndex, rowIndex, 'F', 'cyan');
       if (tile.maskIndex !== undefined)
-        drawMarker(colIndex, rowIndex, 'M', '#80deea');
+        drawLayerDot(colIndex, rowIndex, '#00bcd4', 'bl');
+      if (tile.fringeIndex !== undefined)
+        drawLayerDot(colIndex, rowIndex, '#9c27b0', 'br');
       if (tile.triggers?.some((t) => t.action === 'heal'))
         drawMarker(colIndex, rowIndex, 'H', '#00e676');
       if (tile.triggers?.some((t) => t.action === 'kill'))
@@ -656,6 +656,30 @@ const drawMarker = (col: number, row: number, text: string, color: string) => {
   gridCtx.fillStyle = color;
   gridCtx.font = '40px Arial';
   gridCtx.fillText(text, sx + 20, sy + 35);
+};
+
+const DOT = 10;
+const drawLayerDot = (
+  col: number,
+  row: number,
+  color: string,
+  corner: 'bl' | 'br',
+) => {
+  if (!gridCtx) return;
+  const cam = getCamera();
+  const sx = col * TILE_SIZE - cam.x;
+  const sy = row * TILE_SIZE - cam.y;
+  if (
+    sx + TILE_SIZE <= 0 ||
+    sx >= gridCanvas.width ||
+    sy + TILE_SIZE <= 0 ||
+    sy >= gridCanvas.height
+  )
+    return;
+  const dx = corner === 'br' ? sx + TILE_SIZE - DOT - 2 : sx + 2;
+  const dy = sy + TILE_SIZE - DOT - 2;
+  gridCtx.fillStyle = color;
+  gridCtx.fillRect(dx, dy, DOT, DOT);
 };
 
 // The NPC's name (or "#id" if not loaded yet) at the bottom of a spawn tile, so
