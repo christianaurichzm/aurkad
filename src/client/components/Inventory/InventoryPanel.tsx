@@ -28,12 +28,24 @@ export const InventoryPanel: React.FC = () => {
   } | null>(null);
 
   const [visible, setVisible] = useState(false);
+  const [tradeMode, setTradeMode] = useState(false);
   const player = usePlayerForceUpdate(visible);
 
   useEffect(() => {
     const onToggle = () => setVisible((v) => !v);
+    const onTradeActive = () => {
+      setVisible(true);
+      setTradeMode(true);
+    };
+    const onTradeInactive = () => setTradeMode(false);
     window.addEventListener('toggleInventory', onToggle);
-    return () => window.removeEventListener('toggleInventory', onToggle);
+    window.addEventListener('trade:active', onTradeActive);
+    window.addEventListener('trade:inactive', onTradeInactive);
+    return () => {
+      window.removeEventListener('toggleInventory', onToggle);
+      window.removeEventListener('trade:active', onTradeActive);
+      window.removeEventListener('trade:inactive', onTradeInactive);
+    };
   }, []);
 
   useEscapeClose(visible, () => setVisible(false));
@@ -181,6 +193,26 @@ export const InventoryPanel: React.FC = () => {
                     {inv.quantity > 1 && (
                       <span style={styles.qty}>{inv.quantity}</span>
                     )}
+                    {tradeMode && (
+                      <button
+                        type="button"
+                        style={tradeSelectBtn}
+                        title="Offer in trade"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          window.dispatchEvent(
+                            new CustomEvent('inventory:item-for-trade', {
+                              detail: {
+                                itemId: inv.item.id,
+                                quantity: inv.quantity,
+                              },
+                            }),
+                          );
+                        }}
+                      >
+                        +
+                      </button>
+                    )}
                   </div>
                 );
               })}
@@ -275,4 +307,22 @@ export const InventoryPanel: React.FC = () => {
       </div>
     </div>
   );
+};
+
+const tradeSelectBtn: React.CSSProperties = {
+  position: 'absolute',
+  bottom: 1,
+  right: 1,
+  width: 14,
+  height: 14,
+  fontSize: 10,
+  lineHeight: '14px',
+  textAlign: 'center',
+  padding: 0,
+  border: 'none',
+  borderRadius: 2,
+  background: '#27ae60',
+  color: '#fff',
+  cursor: 'pointer',
+  zIndex: 1,
 };

@@ -52,6 +52,7 @@ function offerTrade(player, targetName, giveItemId, giveQty, wantItemId, wantQty
   const target = getPlayer(String(targetName || ''));
   if (!target) return 'Player not found.';
   if (target.name === player.name) return 'You cannot trade with yourself.';
+  if (target.mapId !== player.mapId) return 'You must be in the same map to trade.';
 
   const give = {
     itemId: positiveInt(giveItemId, 0),

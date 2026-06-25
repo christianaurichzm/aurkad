@@ -8,6 +8,8 @@ import {
 } from '../../io/network';
 import { chatResultMsg } from '../ChatPanel';
 import { AsyncSelect } from '../common/Select/AsyncSelect';
+import { SpritePreview } from '../common/SpritePreview';
+import { arrowSheet } from '../../io/assets';
 import { colors, radius } from '../../theme';
 
 interface ArrowEditorProps {
@@ -125,6 +127,12 @@ export const ArrowEditor: React.FC<ArrowEditorProps> = ({
             {...register('sprite', { valueAsNumber: true })}
           />
         </div>
+        <SpritePreview
+          spriteId={watch('sprite')}
+          sheet={arrowSheet}
+          tileSize={32}
+          size={48}
+        />
         <div style={field}>
           <label style={label}>Damage</label>
           <input

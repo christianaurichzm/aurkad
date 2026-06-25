@@ -8,6 +8,8 @@ import {
 } from '../../io/network';
 import { chatResultMsg } from '../ChatPanel';
 import { AsyncSelect } from '../common/Select/AsyncSelect';
+import { SpritePreview } from '../common/SpritePreview';
+import { spellSheet } from '../../io/assets';
 import { colors, radius } from '../../theme';
 
 interface SpellEditorProps {
@@ -124,7 +126,7 @@ export const SpellEditor: React.FC<SpellEditorProps> = ({
         <label style={label}>Description</label>
         <input style={input} {...register('description')} placeholder="..." />
       </div>
-      <div style={{ display: 'flex', gap: 8 }}>
+      <div style={{ display: 'flex', gap: 8, alignItems: 'flex-end' }}>
         <div style={field}>
           <label style={label}>Sprite</label>
           <input
@@ -133,6 +135,12 @@ export const SpellEditor: React.FC<SpellEditorProps> = ({
             {...register('sprite', { valueAsNumber: true })}
           />
         </div>
+        <SpritePreview
+          spriteId={watch('sprite')}
+          sheet={spellSheet}
+          tileSize={32}
+          size={48}
+        />
         <div style={field}>
           <label style={label}>MP Cost</label>
           <input

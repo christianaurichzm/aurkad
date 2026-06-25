@@ -18,7 +18,12 @@ import {
   fringeCanvas,
   fringeCtx,
 } from './canvas';
-import { renderMap, renderMapMask, renderMapFringe } from './tileset';
+import {
+  renderMap,
+  renderMapMask,
+  renderMapFringe,
+  getEditorTiles,
+} from './tileset';
 import {
   renderEntitiesSorted,
   renderDroppedItems,
@@ -141,7 +146,7 @@ export const render = () => {
     } else if (mapEdited) {
       maskCtx.save();
       maskCtx.translate(-cam.x, -cam.y);
-      renderMapMask(map.tiles);
+      renderMapMask(getEditorTiles());
       maskCtx.restore();
     }
 
@@ -172,7 +177,7 @@ export const render = () => {
     } else if (mapEdited) {
       fringeCtx.save();
       fringeCtx.translate(-cam.x, -cam.y);
-      renderMapFringe(map.tiles);
+      renderMapFringe(getEditorTiles());
       fringeCtx.restore();
     }
     fringeCtx.save();

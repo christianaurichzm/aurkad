@@ -40,6 +40,8 @@ const snapshotForUndo = () => {
   redoStack = [];
 };
 
+export const getEditorTiles = (): Tile[][] => map;
+
 export const undo = () => {
   if (!undoStack.length) return;
   redoStack.push(map.map((row) => row.map((tile) => ({ ...tile }))));
@@ -621,9 +623,9 @@ const drawMarkers = (tiles: Tile[][]) => {
       if (tile.bank) drawMarker(colIndex, rowIndex, '$', '#f59e0b');
       if (tile.avoidNpc) drawMarker(colIndex, rowIndex, 'A', 'purple');
       if (tile.maskIndex !== undefined)
-        drawLayerDot(colIndex, rowIndex, '#00bcd4', 'bl');
+        drawLayerInitial(colIndex, rowIndex, 'm', '#00bcd4', 'bl');
       if (tile.fringeIndex !== undefined)
-        drawLayerDot(colIndex, rowIndex, '#9c27b0', 'br');
+        drawLayerInitial(colIndex, rowIndex, 'f', '#9c27b0', 'br');
       if (tile.triggers?.some((t) => t.action === 'heal'))
         drawMarker(colIndex, rowIndex, 'H', '#00e676');
       if (tile.triggers?.some((t) => t.action === 'kill'))
@@ -658,10 +660,10 @@ const drawMarker = (col: number, row: number, text: string, color: string) => {
   gridCtx.fillText(text, sx + 20, sy + 35);
 };
 
-const DOT = 10;
-const drawLayerDot = (
+const drawLayerInitial = (
   col: number,
   row: number,
+  letter: string,
   color: string,
   corner: 'bl' | 'br',
 ) => {
@@ -676,10 +678,17 @@ const drawLayerDot = (
     sy >= gridCanvas.height
   )
     return;
-  const dx = corner === 'br' ? sx + TILE_SIZE - DOT - 2 : sx + 2;
-  const dy = sy + TILE_SIZE - DOT - 2;
+  const tx = corner === 'br' ? sx + TILE_SIZE - 3 : sx + 3;
+  const ty = sy + TILE_SIZE - 3;
+  gridCtx.font = 'bold 10px Arial';
+  gridCtx.textAlign = corner === 'br' ? 'right' : 'left';
+  gridCtx.lineWidth = 2.5;
+  gridCtx.strokeStyle = 'rgba(0,0,0,0.75)';
+  gridCtx.strokeText(letter, tx, ty);
   gridCtx.fillStyle = color;
-  gridCtx.fillRect(dx, dy, DOT, DOT);
+  gridCtx.fillText(letter, tx, ty);
+  gridCtx.textAlign = 'left';
+  gridCtx.lineWidth = 1;
 };
 
 // The NPC's name (or "#id" if not loaded yet) at the bottom of a spawn tile, so

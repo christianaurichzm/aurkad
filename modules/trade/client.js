@@ -6,8 +6,18 @@ const ui = engine.ui;
 const panel = ui.panel({ title: 'Trade' });
 ui.actionButton('Trade', () => {
   panel.toggle();
-  if (panel.isOpen()) engine.sendServerEvent('trade:request');
+  if (panel.isOpen()) {
+    engine.sendServerEvent('trade:request');
+    window.dispatchEvent(new CustomEvent('trade:active'));
+  } else {
+    window.dispatchEvent(new CustomEvent('trade:inactive'));
+  }
 }, 't');
+
+window.addEventListener('inventory:item-for-trade', function (e) {
+  giveItem.value = String(e.detail.itemId);
+  giveQty.value = '1';
+});
 
 let myName = null;
 let offers = [];
@@ -149,6 +159,7 @@ engine.registerPlayerAction('Trade', (name) => {
   toInput.value = name;
   panel.show();
   engine.sendServerEvent('trade:request');
+  window.dispatchEvent(new CustomEvent('trade:active'));
 });
 
 engine.sendServerEvent('trade:request');

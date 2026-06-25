@@ -68,7 +68,7 @@ const inputsBox: React.CSSProperties = {
   borderRadius: radius.md,
 };
 
-const modes: TileEditMode[] = [
+const propModes: TileEditMode[] = [
   'blocking',
   'warping',
   'npc',
@@ -76,8 +76,6 @@ const modes: TileEditMode[] = [
   'shop',
   'bank',
   'avoidNpc',
-  'fringe',
-  'mask',
   'heal',
   'kill',
   'warn',
@@ -87,6 +85,7 @@ const modes: TileEditMode[] = [
   'script',
   'conditionalBlock',
 ];
+const layerModes: TileEditMode[] = ['mask', 'fringe'];
 const modeLabels: Record<TileEditMode, string> = {
   blocking: 'Block',
   warping: 'Warp',
@@ -105,6 +104,10 @@ const modeLabels: Record<TileEditMode, string> = {
   changeSprite: 'Sprite',
   script: 'Script',
   conditionalBlock: 'CondBlk',
+};
+const layerActiveColor: Partial<Record<TileEditMode, string>> = {
+  mask: '#00bcd4',
+  fringe: '#9c27b0',
 };
 
 const TilesetModeControlsComponent: React.FC = () => {
@@ -343,7 +346,7 @@ const TilesetModeControlsComponent: React.FC = () => {
           gap: 5,
         }}
       >
-        {modes.map((mode) => {
+        {propModes.map((mode) => {
           const isActive = activeMode === mode;
           return (
             <button
@@ -365,6 +368,44 @@ const TilesetModeControlsComponent: React.FC = () => {
             </button>
           );
         })}
+      </div>
+
+      <div
+        style={{
+          borderTop: `1px solid ${colors.border}`,
+          paddingTop: 8,
+          display: 'flex',
+          flexDirection: 'column',
+          gap: 5,
+        }}
+      >
+        <span style={{ ...labelStyle, marginBottom: 0 }}>Layers</span>
+        <div style={{ display: 'flex', gap: 5 }}>
+          {layerModes.map((mode) => {
+            const isActive = activeMode === mode;
+            const activeColor = layerActiveColor[mode] ?? colors.danger;
+            return (
+              <button
+                key={mode}
+                onClick={() => handleToggle(mode)}
+                style={{
+                  flex: 1,
+                  padding: '6px 0',
+                  border: `1px solid ${isActive ? activeColor : colors.border}`,
+                  borderRadius: radius.sm,
+                  background: isActive ? activeColor : colors.surfaceMuted,
+                  color: isActive ? '#fff' : colors.text,
+                  fontWeight: 600,
+                  fontSize: 12,
+                  cursor: 'pointer',
+                  transition: 'all 0.12s',
+                }}
+              >
+                {modeLabels[mode]}
+              </button>
+            );
+          })}
+        </div>
       </div>
 
       {activeMode === 'warping' && (

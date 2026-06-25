@@ -37,8 +37,6 @@ import { useApi } from '../../engine/modules/registry.js';
 const STUCK_ESCAPE_TICKS = 2;
 const HOSTILE_NOTICE_RADIUS_SQ = (TILE_SIZE * 4) ** 2;
 
-// ---- BT context ----
-
 type LosApi = {
   hasLOS: (from: Position, to: Position, map: MapStateServer) => boolean;
 };
@@ -84,8 +82,7 @@ const chaseWithStuck: BtNode<NpcBtCtx> = act((ctx) => {
 });
 
 // Succeeds when the player is within the hostile notice radius AND (if the LOS
-// module is loaded) has a clear line of sight. Without the LOS module, radius
-// alone determines visibility.
+// module is loaded) has a clear line of sight.
 const playerInSight: BtNode<NpcBtCtx> = cond((ctx) => {
   const { distanceSq } = calculateDirection(ctx.npc, ctx.player);
   if (distanceSq > HOSTILE_NOTICE_RADIUS_SQ) return false;
@@ -103,7 +100,8 @@ const doWander: BtNode<NpcBtCtx> = act((ctx) => {
 // aggressive: always chases; attacks on cooldown when in range.
 const aggressiveBt: BtNode<NpcBtCtx> = selector(inRangeHandler, chaseWithStuck);
 
-// hostile: notices the player only when close (+ LOS if module loaded).
+// hostile: patrols (wanders), notices players within 4 tiles (LOS-aware),
+// chases when spotted, attacks in range. Reacts to proximity, doesn't hunt.
 const hostileBt: BtNode<NpcBtCtx> = selector(
   inRangeHandler,
   sequence(playerInSight, chaseWithStuck),

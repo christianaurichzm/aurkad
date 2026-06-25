@@ -77,7 +77,7 @@ export const TilesetEditor: React.FC = () => {
         overflow: 'hidden',
         display: 'flex',
         flexDirection: 'column',
-        maxHeight: 'min(92vh, 860px)',
+        maxHeight: '95vh',
       }}
     >
       <div
