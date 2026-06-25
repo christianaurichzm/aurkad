@@ -17,6 +17,7 @@ interface Projectile {
   toY: number;
   start: number;
   duration: number;
+  sprite: number;
 }
 
 const pool = new ObjectPool<Projectile>(32, () => ({
@@ -27,6 +28,7 @@ const pool = new ObjectPool<Projectile>(32, () => ({
   toY: 0,
   start: 0,
   duration: 0,
+  sprite: 0,
 }));
 
 onServerEvent('projectile:fire', (payload) => {
@@ -48,6 +50,7 @@ onServerEvent('projectile:fire', (payload) => {
   pr.toY = p.toY;
   pr.start = performance.now();
   pr.duration = typeof p.duration === 'number' ? p.duration : 250;
+  pr.sprite = typeof p.sprite === 'number' ? p.sprite : 0;
 });
 
 export function renderProjectiles(ctx: CanvasRenderingContext2D): void {
@@ -70,10 +73,16 @@ export function renderProjectiles(ctx: CanvasRenderingContext2D): void {
     ctx.rotate(angle);
     if (arrowSheet) {
       const half = ARROW_TILE / 2;
+      const tilesPerRow = Math.max(
+        1,
+        Math.floor(arrowSheet.width / ARROW_TILE),
+      );
+      const sx = (pr.sprite % tilesPerRow) * ARROW_TILE;
+      const sy = Math.floor(pr.sprite / tilesPerRow) * ARROW_TILE;
       ctx.drawImage(
         arrowSheet,
-        0,
-        0,
+        sx,
+        sy,
         ARROW_TILE,
         ARROW_TILE,
         -half,

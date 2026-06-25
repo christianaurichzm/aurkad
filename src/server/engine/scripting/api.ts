@@ -27,6 +27,7 @@ import { setCosmetic, clearCosmetic } from '../../services/cosmeticsService.js';
 import { spawnNpc, despawnNpc } from '../../services/npc/spawn.js';
 import { stepNpcToward } from '../../services/npc/behaviors.js';
 import { getItemById } from '../../services/inventoryService.js';
+import { getArrowSync, getAllArrows } from '../../services/arrowService.js';
 import { queryEntitiesInRadius } from '../../spatial/spatialManager.js';
 import type { SpawnNpcOptions } from '../../services/npc/spawn.js';
 import { resolveDamage, mapPvpMorale } from '../../services/combat/index.js';
@@ -131,6 +132,30 @@ export function buildApi(
       ];
       return tile ? { blocked: tile.blocked ?? false } : null;
     },
+
+    // Arrow metadata lookup
+    getArrow: (
+      id: number,
+    ):
+      | { id: number; name: string; sprite: number; damage: number }
+      | undefined => {
+      const a = getArrowSync(Number(id));
+      return a
+        ? { id: a.id, name: a.name, sprite: a.sprite, damage: a.damage }
+        : undefined;
+    },
+    getArrows: (): {
+      id: number;
+      name: string;
+      sprite: number;
+      damage: number;
+    }[] =>
+      getAllArrows().map((a) => ({
+        id: a.id,
+        name: a.name,
+        sprite: a.sprite,
+        damage: a.damage,
+      })),
 
     // Item metadata lookup (id, name, type: a safe subset for modules)
     getItem: (

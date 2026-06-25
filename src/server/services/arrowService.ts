@@ -41,3 +41,11 @@ export async function deleteArrow(id: number): Promise<void> {
   await ArrowModel.deleteOne({ id });
   arrows.delete(id);
 }
+
+export function getArrowSync(id: number): Arrow | undefined {
+  return arrows.get(id);
+}
+
+export function getAllArrows(): Arrow[] {
+  return [...arrows.values()];
+}
