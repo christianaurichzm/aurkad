@@ -315,8 +315,8 @@ export interface Tile {
   shop?: Shop['id'];
   bank?: boolean;
   avoidNpc?: boolean;
-  fringe?: boolean;
-  mask?: boolean;
+  fringeIndex?: number;
+  maskIndex?: number;
   triggers?: TileAction[];
   door?: { requiresItem: number; openTileIndex: number };
   conditionalBlock?: string;

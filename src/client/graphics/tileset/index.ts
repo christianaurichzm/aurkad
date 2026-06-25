@@ -223,14 +223,22 @@ const modes: Record<TileEditMode, ModeConfig> = {
   },
   fringe: {
     place: (row: number, col: number) => {
-      map[row][col].fringe = !map[row][col].fringe;
+      const { startX, startY } = calculateSelectionBounds();
+      const tilesPerRow = Math.floor(tilesetCanvas.width / TILE_SIZE);
+      const idx = startY * tilesPerRow + startX;
+      map[row][col].fringeIndex =
+        map[row][col].fringeIndex === idx ? undefined : idx;
       setMapEdited(true);
       renderMap(map);
     },
   },
   mask: {
     place: (row: number, col: number) => {
-      map[row][col].mask = !map[row][col].mask;
+      const { startX, startY } = calculateSelectionBounds();
+      const tilesPerRow = Math.floor(tilesetCanvas.width / TILE_SIZE);
+      const idx = startY * tilesPerRow + startX;
+      map[row][col].maskIndex =
+        map[row][col].maskIndex === idx ? undefined : idx;
       setMapEdited(true);
       renderMap(map);
     },
@@ -612,8 +620,10 @@ const drawMarkers = (tiles: Tile[][]) => {
       if (tile.shop) drawMarker(colIndex, rowIndex, 'S', 'green');
       if (tile.bank) drawMarker(colIndex, rowIndex, '$', '#f59e0b');
       if (tile.avoidNpc) drawMarker(colIndex, rowIndex, 'A', 'purple');
-      if (tile.fringe) drawMarker(colIndex, rowIndex, 'F', 'cyan');
-      if (tile.mask) drawMarker(colIndex, rowIndex, 'M', '#80deea');
+      if (tile.fringeIndex !== undefined)
+        drawMarker(colIndex, rowIndex, 'F', 'cyan');
+      if (tile.maskIndex !== undefined)
+        drawMarker(colIndex, rowIndex, 'M', '#80deea');
       if (tile.triggers?.some((t) => t.action === 'heal'))
         drawMarker(colIndex, rowIndex, 'H', '#00e676');
       if (tile.triggers?.some((t) => t.action === 'kill'))
@@ -751,9 +761,9 @@ export const renderMapMask = (
     if (!row) continue;
     for (let colIndex = startCol; colIndex <= endCol; colIndex++) {
       const tile = row[colIndex];
-      if (tile?.mask && tile.tileIndex !== -1) {
-        const tileX = (tile.tileIndex % tilesPerRow) * TILE_SIZE;
-        const tileY = Math.floor(tile.tileIndex / tilesPerRow) * TILE_SIZE;
+      if (tile?.maskIndex !== undefined) {
+        const tileX = (tile.maskIndex % tilesPerRow) * TILE_SIZE;
+        const tileY = Math.floor(tile.maskIndex / tilesPerRow) * TILE_SIZE;
         ctx.drawImage(
           tilesetAlpha,
           tileX,
@@ -792,9 +802,9 @@ export const renderMapFringe = (
     if (!row) continue;
     for (let colIndex = startCol; colIndex <= endCol; colIndex++) {
       const tile = row[colIndex];
-      if (tile?.fringe && tile.tileIndex !== -1) {
-        const tileX = (tile.tileIndex % tilesPerRow) * TILE_SIZE;
-        const tileY = Math.floor(tile.tileIndex / tilesPerRow) * TILE_SIZE;
+      if (tile?.fringeIndex !== undefined) {
+        const tileX = (tile.fringeIndex % tilesPerRow) * TILE_SIZE;
+        const tileY = Math.floor(tile.fringeIndex / tilesPerRow) * TILE_SIZE;
         ctx.drawImage(
           tilesetAlpha,
           tileX,

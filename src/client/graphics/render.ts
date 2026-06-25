@@ -36,10 +36,6 @@ let lastCamX = 0;
 let lastCamY = 0;
 
 let maskOffscreen: OffscreenCanvas | null = null;
-let lastMaskTiles: Tile[][] | null = null;
-let lastMaskCamX = -1;
-let lastMaskCamY = -1;
-
 let fringeOffscreen: OffscreenCanvas | null = null;
 let lastFringeTiles: Tile[][] | null = null;
 let lastFringeCamX = -1;
@@ -88,14 +84,13 @@ export const render = () => {
       lastDrawnTiles = null;
     }
 
-    // Mask tiles, above ground and below entities.
-    const maskTilesDirty =
-      map.tiles !== lastMaskTiles ||
-      camXi !== lastMaskCamX ||
-      camYi !== lastMaskCamY;
+    // Mask and fringe caches, rerendered only when tiles or camera change.
+    const overlayDirty =
+      map.tiles !== lastFringeTiles ||
+      camXi !== lastFringeCamX ||
+      camYi !== lastFringeCamY;
 
-    maskCtx.clearRect(0, 0, maskCanvas.width, maskCanvas.height);
-    if (maskTilesDirty && !mapEdited) {
+    if (overlayDirty && !mapEdited) {
       if (
         !maskOffscreen ||
         maskOffscreen.width !== maskCanvas.width ||
@@ -106,34 +101,15 @@ export const render = () => {
           maskCanvas.height,
         );
       }
-      const offMaskCtx = maskOffscreen.getContext(
+      const offMask = maskOffscreen.getContext(
         '2d',
       ) as OffscreenCanvasRenderingContext2D;
-      offMaskCtx.clearRect(0, 0, maskOffscreen.width, maskOffscreen.height);
-      offMaskCtx.save();
-      offMaskCtx.translate(-camXi, -camYi);
-      renderMapMask(map.tiles, offMaskCtx);
-      offMaskCtx.restore();
-      lastMaskTiles = map.tiles;
-      lastMaskCamX = camXi;
-      lastMaskCamY = camYi;
-    }
-    if (maskOffscreen && !mapEdited) {
-      maskCtx.drawImage(maskOffscreen, 0, 0);
-    } else if (mapEdited) {
-      maskCtx.save();
-      maskCtx.translate(-cam.x, -cam.y);
-      renderMapMask(map.tiles);
-      maskCtx.restore();
-    }
+      offMask.clearRect(0, 0, maskOffscreen.width, maskOffscreen.height);
+      offMask.save();
+      offMask.translate(-camXi, -camYi);
+      renderMapMask(map.tiles, offMask);
+      offMask.restore();
 
-    // Fringe tiles, re-rendered offscreen only when tiles or camera change.
-    const fringeTilesDirty =
-      map.tiles !== lastFringeTiles ||
-      camXi !== lastFringeCamX ||
-      camYi !== lastFringeCamY;
-
-    if (fringeTilesDirty && !mapEdited) {
       if (
         !fringeOffscreen ||
         fringeOffscreen.width !== fringeCanvas.width ||
@@ -144,17 +120,29 @@ export const render = () => {
           fringeCanvas.height,
         );
       }
-      const offCtx = fringeOffscreen.getContext(
+      const offFringe = fringeOffscreen.getContext(
         '2d',
       ) as OffscreenCanvasRenderingContext2D;
-      offCtx.clearRect(0, 0, fringeOffscreen.width, fringeOffscreen.height);
-      offCtx.save();
-      offCtx.translate(-camXi, -camYi);
-      renderMapFringe(map.tiles, offCtx);
-      offCtx.restore();
+      offFringe.clearRect(0, 0, fringeOffscreen.width, fringeOffscreen.height);
+      offFringe.save();
+      offFringe.translate(-camXi, -camYi);
+      renderMapFringe(map.tiles, offFringe);
+      offFringe.restore();
+
       lastFringeTiles = map.tiles;
       lastFringeCamX = camXi;
       lastFringeCamY = camYi;
+    }
+
+    // Mask canvas (above ground, below entities).
+    maskCtx.clearRect(0, 0, maskCanvas.width, maskCanvas.height);
+    if (maskOffscreen && !mapEdited) {
+      maskCtx.drawImage(maskOffscreen, 0, 0);
+    } else if (mapEdited) {
+      maskCtx.save();
+      maskCtx.translate(-cam.x, -cam.y);
+      renderMapMask(map.tiles);
+      maskCtx.restore();
     }
 
     itemCtx.save();
@@ -174,6 +162,7 @@ export const render = () => {
       updatePlayerHealthBar(currentPlayer);
     }
 
+    // Fringe canvas (above entities).
     fringeCtx.clearRect(0, 0, fringeCanvas.width, fringeCanvas.height);
     if (fringeOffscreen && !mapEdited) {
       fringeCtx.drawImage(fringeOffscreen, 0, 0);

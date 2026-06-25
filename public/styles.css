@@ -18,10 +18,11 @@
   --color-panel-text: #f2f5f8;
   --color-panel-muted: #9aa4b2;
   --z-canvas-base: 1;
-  --z-canvas-items: 2;
-  --z-canvas-grid: 3;
-  --z-canvas-actors: 4;
-  --z-canvas-fringe: 5;
+  --z-canvas-mask: 2;
+  --z-canvas-items: 3;
+  --z-canvas-grid: 4;
+  --z-canvas-actors: 5;
+  --z-canvas-fringe: 6;
   --z-game-overlay: 50;
   --z-hud: 100;
   --z-panel: 150;
@@ -116,6 +117,11 @@ body {
 #foregroundCanvas {
   z-index: var(--z-canvas-base);
   background-color: #666;
+}
+#maskCanvas {
+  z-index: var(--z-canvas-mask);
+  pointer-events: none;
+  background: transparent;
 }
 #itemCanvas {
   z-index: var(--z-canvas-items);
