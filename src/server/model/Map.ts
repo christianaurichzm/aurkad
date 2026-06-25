@@ -25,8 +25,23 @@ const WarpSchema = new mongoose.Schema(
 
 const TileActionSchema = new mongoose.Schema(
   {
-    action: { type: String, required: true, enum: ['heal', 'kill', 'message'] },
+    action: {
+      type: String,
+      required: true,
+      enum: ['heal', 'kill', 'message', 'sound', 'changeSprite', 'script'],
+    },
     text: String,
+    file: String,
+    spriteId: Number,
+    scriptId: String,
+  },
+  { _id: false },
+);
+
+const DoorSchema = new mongoose.Schema(
+  {
+    requiresItem: { type: Number, required: true },
+    openTileIndex: { type: Number, required: true },
   },
   { _id: false },
 );
@@ -42,6 +57,18 @@ const TileSchema = new mongoose.Schema(
     avoidNpc: Boolean,
     fringe: Boolean,
     triggers: [TileActionSchema],
+    door: DoorSchema,
+    conditionalBlock: String,
+  },
+  { _id: false },
+);
+
+const BorderLinksSchema = new mongoose.Schema(
+  {
+    up: WarpSchema,
+    down: WarpSchema,
+    left: WarpSchema,
+    right: WarpSchema,
   },
   { _id: false },
 );
@@ -53,6 +80,8 @@ const MapSchema = new mongoose.Schema({
   pvp: { type: String, enum: ['safe', 'normal', 'no-penalty'] },
   tiles: [[TileSchema]],
   droppedItems: [DroppedItemSchema],
+  music: String,
+  borderLinks: BorderLinksSchema,
 });
 
 export default mongoose.model('GameMap', MapSchema);

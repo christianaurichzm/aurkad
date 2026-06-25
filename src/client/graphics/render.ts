@@ -24,6 +24,7 @@ import {
 } from './entityRendering';
 import { renderFloatingTexts } from './floatingText';
 import { renderProjectiles } from './projectiles';
+import { renderAttackEffects } from './attackEffect';
 import { useUIStore } from '../stores/uiStore';
 import { calcCamera, setCamera } from './camera';
 import { runOverlays } from './overlayRegistry';
@@ -119,6 +120,7 @@ export const render = () => {
     playerCtx.translate(-cam.x, -cam.y);
     renderEntitiesSorted(map.players, map.npcs);
     renderProjectiles(playerCtx);
+    renderAttackEffects(playerCtx);
     runOverlays(playerCtx, cam);
     playerCtx.restore();
 

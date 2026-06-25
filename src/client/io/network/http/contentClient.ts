@@ -4,6 +4,8 @@ import type {
   Shop,
   ProductRaw,
   ProductDetailed,
+  Spell,
+  Arrow,
 } from '../../../../shared/types';
 import { httpClient } from './httpClient';
 
@@ -105,4 +107,46 @@ export const changeSprite = async (spriteId: number) => {
     method: 'POST',
     body: { spriteId },
   });
+};
+
+export const fetchSpells = async (): Promise<Spell[]> => {
+  return (await httpClient<Spell[]>('/spells', { method: 'GET' })) ?? [];
+};
+
+export const createSpell = async (
+  spell: Omit<Spell, 'id'>,
+): Promise<Spell | null> => {
+  return httpClient<Spell>('/spells', { method: 'POST', body: spell });
+};
+
+export const updateSpell = async (
+  id: number,
+  spell: Partial<Spell>,
+): Promise<void> => {
+  await httpClient(`/spells/${id}`, { method: 'PUT', body: spell });
+};
+
+export const deleteSpell = async (id: number): Promise<void> => {
+  await httpClient(`/spells/${id}`, { method: 'DELETE' });
+};
+
+export const fetchArrows = async (): Promise<Arrow[]> => {
+  return (await httpClient<Arrow[]>('/arrows', { method: 'GET' })) ?? [];
+};
+
+export const createArrow = async (
+  arrow: Omit<Arrow, 'id'>,
+): Promise<Arrow | null> => {
+  return httpClient<Arrow>('/arrows', { method: 'POST', body: arrow });
+};
+
+export const updateArrow = async (
+  id: number,
+  arrow: Partial<Arrow>,
+): Promise<void> => {
+  await httpClient(`/arrows/${id}`, { method: 'PUT', body: arrow });
+};
+
+export const deleteArrow = async (id: number): Promise<void> => {
+  await httpClient(`/arrows/${id}`, { method: 'DELETE' });
 };

@@ -14,6 +14,12 @@ import {
   toggleHeal,
   toggleKill,
   toggleWarn,
+  toggleDoor,
+  toggleSound,
+  toggleChangeSprite,
+  toggleScript,
+  toggleConditionalBlock,
+  setEditorMusic,
   undo,
   redo,
 } from '../../graphics/tileset';
@@ -73,6 +79,11 @@ const modes: TileEditMode[] = [
   'heal',
   'kill',
   'warn',
+  'door',
+  'sound',
+  'changeSprite',
+  'script',
+  'conditionalBlock',
 ];
 const modeLabels: Record<TileEditMode, string> = {
   blocking: 'Block',
@@ -86,6 +97,11 @@ const modeLabels: Record<TileEditMode, string> = {
   heal: 'Heal',
   kill: 'Kill',
   warn: 'Warn',
+  door: 'Door',
+  sound: 'Sound',
+  changeSprite: 'Sprite',
+  script: 'Script',
+  conditionalBlock: 'CondBlk',
 };
 
 const TilesetModeControlsComponent: React.FC = () => {
@@ -99,6 +115,7 @@ const TilesetModeControlsComponent: React.FC = () => {
   const [npcList, setNpcList] = useState<RuntimeNpc[]>([]);
   const [mapType, setMapType] = useState<MapType>('normal');
   const [mapName, setMapName] = useState<string>('');
+  const [mapMusic, setMapMusic] = useState<string>('');
 
   const loadMapData = useCallback(async () => {
     const state = getGameState();
@@ -107,9 +124,14 @@ const TilesetModeControlsComponent: React.FC = () => {
       if (map) {
         setMapType(map.type);
         setMapName(map.name);
+        const music = (map as any).music ?? '';
+        setMapMusic(music);
+        setEditorMusic(music);
       } else {
         setMapType('normal');
         setMapName('New Map');
+        setMapMusic('');
+        setEditorMusic('');
       }
     }
   }, []);
@@ -197,6 +219,11 @@ const TilesetModeControlsComponent: React.FC = () => {
       heal: toggleHeal,
       kill: toggleKill,
       warn: toggleWarn,
+      door: toggleDoor,
+      sound: toggleSound,
+      changeSprite: toggleChangeSprite,
+      script: toggleScript,
+      conditionalBlock: toggleConditionalBlock,
     };
     toggleMap[mode]?.();
   };
@@ -228,6 +255,26 @@ const TilesetModeControlsComponent: React.FC = () => {
               const name = e.target.value;
               setMapName(name);
               if (name !== mapName) setMapEdited(true);
+            }}
+          />
+        </div>
+        <div
+          style={{ display: 'flex', flexDirection: 'column', gap: 3, flex: 1 }}
+        >
+          <label style={labelStyle} htmlFor="mapMusic">
+            Music
+          </label>
+          <input
+            id="mapMusic"
+            type="text"
+            placeholder="music.mp3"
+            value={mapMusic}
+            style={inputStyle}
+            onChange={(e) => {
+              const music = e.target.value;
+              setMapMusic(music);
+              setEditorMusic(music);
+              setMapEdited(true);
             }}
           />
         </div>
@@ -377,6 +424,85 @@ const TilesetModeControlsComponent: React.FC = () => {
             loadOptions={loadShops}
             value={selectedShop}
             onChange={setSelectedShop}
+          />
+        </div>
+      )}
+
+      {activeMode === 'door' && (
+        <div style={inputsBox}>
+          <label style={labelStyle} htmlFor="doorItem">
+            Requires Item ID
+          </label>
+          <input
+            type="number"
+            id="doorItem"
+            style={inputStyle}
+            defaultValue={0}
+          />
+          <label style={labelStyle} htmlFor="doorOpenTile">
+            Open Tile Index
+          </label>
+          <input
+            type="number"
+            id="doorOpenTile"
+            style={inputStyle}
+            defaultValue={0}
+          />
+        </div>
+      )}
+
+      {activeMode === 'sound' && (
+        <div style={inputsBox}>
+          <label style={labelStyle} htmlFor="soundFile">
+            Sound file
+          </label>
+          <input
+            type="text"
+            id="soundFile"
+            placeholder="magiceffect.mp3"
+            style={inputStyle}
+          />
+        </div>
+      )}
+
+      {activeMode === 'changeSprite' && (
+        <div style={inputsBox}>
+          <label style={labelStyle} htmlFor="changeSpriteId">
+            Sprite ID
+          </label>
+          <input
+            type="number"
+            id="changeSpriteId"
+            style={inputStyle}
+            defaultValue={0}
+          />
+        </div>
+      )}
+
+      {activeMode === 'script' && (
+        <div style={inputsBox}>
+          <label style={labelStyle} htmlFor="scriptId">
+            Script ID
+          </label>
+          <input
+            type="text"
+            id="scriptId"
+            placeholder="myScript"
+            style={inputStyle}
+          />
+        </div>
+      )}
+
+      {activeMode === 'conditionalBlock' && (
+        <div style={inputsBox}>
+          <label style={labelStyle} htmlFor="conditionalBlockId">
+            Block ID
+          </label>
+          <input
+            type="text"
+            id="conditionalBlockId"
+            placeholder="myBlockScript"
+            style={inputStyle}
           />
         </div>
       )}

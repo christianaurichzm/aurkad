@@ -3,6 +3,8 @@ import { ItemEditor } from './ItemEditor';
 import { NpcEditor } from './NpcEditor';
 import { MapEditor } from './MapEditor';
 import { ShopEditor } from './ShopEditor';
+import { SpellEditor } from './SpellEditor';
+import { ArrowEditor } from './ArrowEditor';
 import {
   RuntimeNpc,
   Item,
@@ -15,7 +17,7 @@ import { Modal } from '../common/Modal';
 import { colors, radius } from '../../theme';
 import { useUIStore } from '../../stores/uiStore';
 
-type Tab = 'npcs' | 'items' | 'shops' | 'maps';
+type Tab = 'npcs' | 'items' | 'shops' | 'maps' | 'spells' | 'arrows';
 
 export const ContentEditor: React.FC = () => {
   const [visible, setVisible] = useState(false);
@@ -116,6 +118,8 @@ export const ContentEditor: React.FC = () => {
     { id: 'items', label: 'Items' },
     { id: 'shops', label: 'Shops' },
     { id: 'maps', label: 'Maps' },
+    { id: 'spells', label: 'Spells' },
+    { id: 'arrows', label: 'Arrows' },
   ];
 
   return (
@@ -169,6 +173,18 @@ export const ContentEditor: React.FC = () => {
               maps={maps}
               loadMaps={loadMaps}
               refreshData={refreshData}
+              onDirtyChange={setContentDirty}
+              requestDiscard={confirmDiscard}
+            />
+          )}
+          {tab === 'spells' && (
+            <SpellEditor
+              onDirtyChange={setContentDirty}
+              requestDiscard={confirmDiscard}
+            />
+          )}
+          {tab === 'arrows' && (
+            <ArrowEditor
               onDirtyChange={setContentDirty}
               requestDiscard={confirmDiscard}
             />

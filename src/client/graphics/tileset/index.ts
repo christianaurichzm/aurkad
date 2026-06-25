@@ -28,6 +28,8 @@ let tilesetCtx: CanvasRenderingContext2D;
 
 export let tilesetEditorInitialized = false;
 
+let editorMusic = '';
+
 const MAX_UNDO = 50;
 let undoStack: Tile[][][] = [];
 let redoStack: Tile[][][] = [];
@@ -102,18 +104,25 @@ export const loadEditorNpcNames = async () => {
 function toggleTrigger(
   tile: Tile,
   action: TileAction['action'],
-  text?: string,
+  strParam?: string,
+  numParam?: number,
 ) {
   const triggers = tile.triggers ?? [];
   const i = triggers.findIndex((t) => t.action === action);
   if (i >= 0) {
     triggers.splice(i, 1);
   } else {
-    triggers.push(
-      action === 'message'
-        ? { action, text: text ?? '' }
-        : ({ action } as TileAction),
-    );
+    if (action === 'message') {
+      triggers.push({ action, text: strParam ?? '' });
+    } else if (action === 'sound') {
+      triggers.push({ action, file: strParam ?? '' });
+    } else if (action === 'changeSprite') {
+      triggers.push({ action, spriteId: numParam ?? 0 });
+    } else if (action === 'script') {
+      triggers.push({ action, scriptId: strParam ?? '' });
+    } else {
+      triggers.push({ action } as TileAction);
+    }
   }
   tile.triggers = triggers.length ? triggers : undefined;
 }
@@ -236,6 +245,64 @@ const modes: Record<TileEditMode, ModeConfig> = {
   warn: {
     place: (row: number, col: number) => {
       toggleTrigger(map[row][col], 'message', '⚠️ Entering a dangerous area!');
+      setMapEdited(true);
+      renderMap(map);
+    },
+  },
+  door: {
+    place: (row: number, col: number) => {
+      const requiresItem = safeParseInt(getInputValue('doorItem'));
+      const openTileIndex = safeParseInt(getInputValue('doorOpenTile'));
+      if (isNaN(requiresItem) || isNaN(openTileIndex)) return;
+      if (map[row][col].door) {
+        map[row][col].door = undefined;
+        map[row][col].blocked = false;
+      } else {
+        map[row][col].door = { requiresItem, openTileIndex };
+        map[row][col].blocked = true;
+      }
+      setMapEdited(true);
+      renderMap(map);
+    },
+  },
+  sound: {
+    place: (row: number, col: number) => {
+      const file = getInputValue('soundFile');
+      if (!file) return;
+      toggleTrigger(map[row][col], 'sound', file);
+      setMapEdited(true);
+      renderMap(map);
+    },
+  },
+  changeSprite: {
+    place: (row: number, col: number) => {
+      const spriteId = safeParseInt(getInputValue('changeSpriteId'));
+      if (isNaN(spriteId)) return;
+      toggleTrigger(map[row][col], 'changeSprite', undefined, spriteId);
+      setMapEdited(true);
+      renderMap(map);
+    },
+  },
+  script: {
+    place: (row: number, col: number) => {
+      const scriptId = getInputValue('scriptId');
+      if (!scriptId) return;
+      toggleTrigger(map[row][col], 'script', scriptId);
+      setMapEdited(true);
+      renderMap(map);
+    },
+  },
+  conditionalBlock: {
+    place: (row: number, col: number) => {
+      const id = getInputValue('conditionalBlockId');
+      if (!id) return;
+      if (map[row][col].conditionalBlock === id) {
+        map[row][col].conditionalBlock = undefined;
+        map[row][col].blocked = false;
+      } else {
+        map[row][col].conditionalBlock = id;
+        map[row][col].blocked = true;
+      }
       setMapEdited(true);
       renderMap(map);
     },
@@ -400,6 +467,11 @@ export const toggleFringe = () => toggleMode('fringe');
 export const toggleHeal = () => toggleMode('heal');
 export const toggleKill = () => toggleMode('kill');
 export const toggleWarn = () => toggleMode('warn');
+export const toggleDoor = () => toggleMode('door');
+export const toggleSound = () => toggleMode('sound');
+export const toggleChangeSprite = () => toggleMode('changeSprite');
+export const toggleScript = () => toggleMode('script');
+export const toggleConditionalBlock = () => toggleMode('conditionalBlock');
 
 const handleKeyDown = (e: KeyboardEvent) => {
   if (e.ctrlKey && e.key === 'z' && !e.shiftKey) {
@@ -435,7 +507,7 @@ const removeEventListeners = () => {
 };
 
 export const renderMap = (tiles: Tile[][]) => {
-  if (tiles) updateEditorMap(tiles);
+  if (tiles) updateEditorMap(tiles, editorMusic);
   foregroundCtx.clearRect(
     0,
     0,
@@ -539,6 +611,14 @@ const drawMarkers = (tiles: Tile[][]) => {
         drawMarker(colIndex, rowIndex, 'K', '#ff1744');
       if (tile.triggers?.some((t) => t.action === 'message'))
         drawMarker(colIndex, rowIndex, '!', '#ff9100');
+      if (tile.triggers?.some((t) => t.action === 'sound'))
+        drawMarker(colIndex, rowIndex, '♪', '#00bcd4');
+      if (tile.triggers?.some((t) => t.action === 'changeSprite'))
+        drawMarker(colIndex, rowIndex, 'C', '#9c27b0');
+      if (tile.triggers?.some((t) => t.action === 'script'))
+        drawMarker(colIndex, rowIndex, 'J', '#607d8b');
+      if (tile.door) drawMarker(colIndex, rowIndex, 'D', '#ff8f00');
+      if (tile.conditionalBlock) drawMarker(colIndex, rowIndex, '?', '#78909c');
     });
   });
 };
@@ -585,13 +665,17 @@ const drawNpcSpawnName = (col: number, row: number, npcId: string) => {
   gridCtx.lineWidth = 1;
 };
 
+export const setEditorMusic = (music: string): void => {
+  editorMusic = music;
+};
+
 export const saveCurrentMap = async (
   name: string,
   type: MapType,
 ): Promise<SaveMapResponse | null> => {
   let result: SaveMapResponse | null = null;
   await withLoading('saveButton', async () => {
-    result = await saveMap(map, name, type);
+    result = await saveMap(map, name, type, editorMusic || undefined);
     if (result?.success) {
       setMapEdited(false);
       originalMap = map.map((row) => row.map((tile) => ({ ...tile })));
@@ -628,11 +712,12 @@ export const toggleTilesetEditor = (shouldShow: boolean) => {
   renderMap(map);
 };
 
-const updateEditorMap = (tiles: Tile[][]) => {
+const updateEditorMap = (tiles: Tile[][], music?: string) => {
   map = tiles.map((row) => row.map((tile) => ({ ...tile })));
   originalMap = tiles.map((row) => row.map((tile) => ({ ...tile })));
   mapWidth = tiles[0]?.length ?? 20;
   mapHeight = tiles.length;
+  editorMusic = music ?? '';
 };
 
 export const renderMapFringe = (

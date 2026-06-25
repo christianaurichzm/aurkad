@@ -301,7 +301,10 @@ export interface Warp {
 export type TileAction =
   | { action: 'heal' }
   | { action: 'kill' }
-  | { action: 'message'; text: string };
+  | { action: 'message'; text: string }
+  | { action: 'sound'; file: string }
+  | { action: 'changeSprite'; spriteId: number }
+  | { action: 'script'; scriptId: string };
 
 export interface Tile {
   tileIndex: number;
@@ -314,6 +317,8 @@ export interface Tile {
   avoidNpc?: boolean;
   fringe?: boolean;
   triggers?: TileAction[];
+  door?: { requiresItem: number; openTileIndex: number };
+  conditionalBlock?: string;
 }
 
 export interface DroppedItem {
@@ -330,6 +335,13 @@ export type MapType = 'pvp' | 'normal';
 // else safe) for back-compat.
 export type PvpMorale = 'safe' | 'normal' | 'no-penalty';
 
+export interface BorderLinks {
+  up?: Warp;
+  down?: Warp;
+  left?: Warp;
+  right?: Warp;
+}
+
 export interface MapStateBase {
   id: string;
   name: string;
@@ -338,6 +350,8 @@ export interface MapStateBase {
   tiles: Tile[][];
   droppedItems: DroppedItem[];
   npcs: Record<string, RuntimeNpc>;
+  music?: string;
+  borderLinks?: BorderLinks;
 }
 
 export interface MapStateServer extends MapStateBase {
@@ -365,6 +379,24 @@ export interface MapMetaClient {
   cols: number;
   rows: number;
   revision: number;
+  music?: string;
+}
+
+export interface Spell {
+  id: number;
+  name: string;
+  description: string;
+  sprite: number;
+  mpCost: number;
+  damage: number;
+}
+
+export interface Arrow {
+  id: number;
+  name: string;
+  description: string;
+  sprite: number;
+  damage: number;
 }
 
 export interface MapChunkPayload {
@@ -455,7 +487,12 @@ export type TileEditMode =
   | 'fringe'
   | 'heal'
   | 'kill'
-  | 'warn';
+  | 'warn'
+  | 'door'
+  | 'sound'
+  | 'changeSprite'
+  | 'script'
+  | 'conditionalBlock';
 
 export interface HttpRequestOptions {
   method: 'GET' | 'POST' | 'PUT' | 'DELETE';

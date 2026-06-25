@@ -19,6 +19,8 @@ import {
   CreateShopBodySchema,
   BuyShopItemBodySchema,
   AssignPointsBodySchema,
+  CreateSpellBodySchema,
+  CreateArrowBodySchema,
 } from '../bodySchemas.js';
 import checkAccess from '../middleware/checkAccess.js';
 import {
@@ -60,6 +62,16 @@ import {
 import { playersWsMap } from '../../net/connections.js';
 import { gameConfig } from '../../gameConfig.js';
 import { getNetStats } from '../../net/netStats.js';
+import {
+  listSpells,
+  createOrUpdateSpell,
+  deleteSpell,
+} from '../../services/spellService.js';
+import {
+  listArrows,
+  createOrUpdateArrow,
+  deleteArrow,
+} from '../../services/arrowService.js';
 
 export function createContentRouter() {
   const router = Router();
@@ -70,13 +82,13 @@ export function createContentRouter() {
     async (req: Request, res: Response) => {
       const body = parseBody(SaveMapBodySchema, req.body, res);
       if (!body) return;
-      const { mapId, tiles, name, type } = body;
+      const { mapId, tiles, name, type, music } = body;
       try {
         const validation = await validateMapTiles(tiles);
         if (validation.errors.length > 0) {
           return res.status(422).json({ errors: validation.errors });
         }
-        await mapSave(mapId, tiles, name, type);
+        await mapSave(mapId, tiles, name, type, music);
         res.status(200).json({ success: true, warnings: validation.warnings });
       } catch (e) {
         logger.error('mapSave failed', { err: e });
@@ -162,6 +174,8 @@ export function createContentRouter() {
         name: map.name,
         tiles: map.tiles,
         type: map.type,
+        music: map.music,
+        borderLinks: map.borderLinks,
       });
     } catch (e) {
       logger.error('Error in route /maps/:mapId', { err: e });
@@ -349,13 +363,15 @@ export function createContentRouter() {
     const body = parseBody(UpdateMapBodySchema, req.body, res);
     if (!body) return;
     const id = req.params['id']!;
-    const { name, type } = body;
+    const { name, type, music, borderLinks } = body;
 
     try {
       await createOrUpdateMap({
         id,
         ...(name && { name }),
         ...(type && { type }),
+        ...(music !== undefined && { music }),
+        ...(borderLinks !== undefined && { borderLinks }),
       });
 
       const { broadcast } = await import('../../net/index.js');
@@ -513,6 +529,92 @@ export function createContentRouter() {
 
   router.get('/debug/net', checkAccess(Access.ADMIN), (_req, res) => {
     res.json(getNetStats());
+  });
+
+  router.get('/spells', checkAccess(Access.ADMIN), async (_req, res) => {
+    try {
+      res.json(await listSpells());
+    } catch {
+      res.status(500).json({ error: 'Could not fetch spells' });
+    }
+  });
+
+  router.post('/spells', checkAccess(Access.ADMIN), async (req, res) => {
+    const body = parseBody(CreateSpellBodySchema, req.body, res);
+    if (!body) return;
+    try {
+      const spell = await createOrUpdateSpell(body);
+      res.status(201).json(spell);
+    } catch {
+      res.status(500).json({ error: 'Failed to create spell.' });
+    }
+  });
+
+  router.put('/spells/:id', checkAccess(Access.ADMIN), async (req, res) => {
+    const id = Number(req.params.id);
+    if (Number.isNaN(id)) return res.status(400).json({ error: 'Invalid id.' });
+    const body = parseBody(CreateSpellBodySchema, req.body, res);
+    if (!body) return;
+    try {
+      await createOrUpdateSpell({ ...body, id });
+      res.status(200).json({ success: true });
+    } catch {
+      res.status(500).json({ error: 'Failed to update spell.' });
+    }
+  });
+
+  router.delete('/spells/:id', checkAccess(Access.ADMIN), async (req, res) => {
+    const id = Number(req.params.id);
+    if (Number.isNaN(id)) return res.status(400).json({ error: 'Invalid id.' });
+    try {
+      await deleteSpell(id);
+      res.status(204).send();
+    } catch {
+      res.status(500).json({ error: 'Failed to delete spell.' });
+    }
+  });
+
+  router.get('/arrows', checkAccess(Access.ADMIN), async (_req, res) => {
+    try {
+      res.json(await listArrows());
+    } catch {
+      res.status(500).json({ error: 'Could not fetch arrows' });
+    }
+  });
+
+  router.post('/arrows', checkAccess(Access.ADMIN), async (req, res) => {
+    const body = parseBody(CreateArrowBodySchema, req.body, res);
+    if (!body) return;
+    try {
+      const arrow = await createOrUpdateArrow(body);
+      res.status(201).json(arrow);
+    } catch {
+      res.status(500).json({ error: 'Failed to create arrow.' });
+    }
+  });
+
+  router.put('/arrows/:id', checkAccess(Access.ADMIN), async (req, res) => {
+    const id = Number(req.params.id);
+    if (Number.isNaN(id)) return res.status(400).json({ error: 'Invalid id.' });
+    const body = parseBody(CreateArrowBodySchema, req.body, res);
+    if (!body) return;
+    try {
+      await createOrUpdateArrow({ ...body, id });
+      res.status(200).json({ success: true });
+    } catch {
+      res.status(500).json({ error: 'Failed to update arrow.' });
+    }
+  });
+
+  router.delete('/arrows/:id', checkAccess(Access.ADMIN), async (req, res) => {
+    const id = Number(req.params.id);
+    if (Number.isNaN(id)) return res.status(400).json({ error: 'Invalid id.' });
+    try {
+      await deleteArrow(id);
+      res.status(204).send();
+    } catch {
+      res.status(500).json({ error: 'Failed to delete arrow.' });
+    }
   });
 
   return router;

@@ -24,11 +24,31 @@ const WarpSchema = z.object({
   position: PositionSchema,
 });
 
+const BorderLinksSchema = z
+  .object({
+    up: WarpSchema.optional(),
+    down: WarpSchema.optional(),
+    left: WarpSchema.optional(),
+    right: WarpSchema.optional(),
+  })
+  .optional();
+
 export const TileActionSchema = z.discriminatedUnion('action', [
   z.object({ action: z.literal('heal') }),
   z.object({ action: z.literal('kill') }),
   z.object({ action: z.literal('message'), text: z.string() }),
+  z.object({ action: z.literal('sound'), file: z.string().min(1) }),
+  z.object({
+    action: z.literal('changeSprite'),
+    spriteId: z.number().int().nonnegative(),
+  }),
+  z.object({ action: z.literal('script'), scriptId: z.string().min(1) }),
 ]);
+
+const DoorSchema = z.object({
+  requiresItem: z.number().int().nonnegative(),
+  openTileIndex: z.number().int().nonnegative(),
+});
 
 export const TileSchema = z.object({
   tileIndex: z.number().int().nonnegative().default(0),
@@ -40,6 +60,8 @@ export const TileSchema = z.object({
   avoidNpc: z.boolean().optional(),
   fringe: z.boolean().optional(),
   triggers: z.array(TileActionSchema).optional(),
+  door: DoorSchema.optional(),
+  conditionalBlock: z.string().optional(),
 });
 
 const NpcItemDropSchema = z.object({
@@ -120,6 +142,7 @@ export const SaveMapBodySchema = z.object({
   name: z.string().min(1),
   type: MapTypeSchema,
   pvp: PvpMoraleSchema.optional(),
+  music: z.string().optional(),
 });
 
 export const CreateNpcBodySchema = z.object({
@@ -143,6 +166,23 @@ export const UpdateMapBodySchema = z.object({
   name: z.string().min(1).optional(),
   type: MapTypeSchema.optional(),
   pvp: PvpMoraleSchema.optional(),
+  music: z.string().optional(),
+  borderLinks: BorderLinksSchema,
+});
+
+export const CreateSpellBodySchema = z.object({
+  name: z.string().min(1),
+  description: z.string().default(''),
+  sprite: z.number().int().nonnegative(),
+  mpCost: z.number().int().nonnegative().default(0),
+  damage: z.number().int().nonnegative().default(0),
+});
+
+export const CreateArrowBodySchema = z.object({
+  name: z.string().min(1),
+  description: z.string().default(''),
+  sprite: z.number().int().nonnegative(),
+  damage: z.number().int().nonnegative().default(0),
 });
 
 export const ResizeMapBodySchema = z.object({

@@ -66,7 +66,10 @@ export const updateMapById = async (
     id: mapState.id,
     name: mapState.name,
     type: mapState.type,
+    pvp: mapState.pvp,
     tiles: mapState.tiles,
+    music: mapState.music,
+    borderLinks: mapState.borderLinks,
   });
   return mapState;
 };

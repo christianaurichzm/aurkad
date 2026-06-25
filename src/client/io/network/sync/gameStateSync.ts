@@ -19,6 +19,8 @@ import {
 } from '../../../core/gameState';
 import { onServerPositionUpdate } from '../../../graphics/movementAnimation';
 import { useUIStore } from '../../../stores/uiStore';
+import { playMusic, stopMusic, playSound } from '../../../audio';
+import { onServerEvent } from '../customEvents';
 
 type GameStateMessage =
   | WsServerMapMetaMessage
@@ -29,6 +31,11 @@ type GameStateMessage =
   | WsServerGameStateDeltaMessage;
 
 const gameStateQueue: Array<GameStateMessage> = [];
+
+onServerEvent('sound:play', (payload) => {
+  const p = payload as { file?: string };
+  if (p.file) playSound(p.file);
+});
 
 export function enqueueGameStateMessage(message: GameStateMessage) {
   gameStateQueue.push(message);
@@ -86,6 +93,12 @@ export function updateWebSocket(): void {
     if (!message?.payload) continue;
 
     if (message.type === 'mapMeta') {
+      const newMusic = message.payload.music;
+      if (newMusic) {
+        playMusic(newMusic);
+      } else {
+        stopMusic();
+      }
       setMapMeta(message.payload);
       resetInterpolation();
     } else if (message.type === 'mapChunk') {

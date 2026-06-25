@@ -67,6 +67,7 @@ export function toMapMeta(map: MapStateServer): MapMetaClient {
     cols: mapTileWidth(map.tiles),
     rows: mapTileHeight(map.tiles),
     revision: map.tilesRevision ?? 0,
+    music: map.music,
   };
 }
 

@@ -16,9 +16,11 @@ import {
   MapType,
 } from '../../shared/types.js';
 import type { ClientKeyboardAction } from '../engine/actions.js';
+import { useApi } from '../engine/modules/registry.js';
 import {
   getMap,
   updateMapById,
+  updatePlayer,
   getRuntimeState,
   pressedKeysMap,
 } from '../gameData.js';
@@ -39,7 +41,11 @@ import { emit } from '../engine/hooks.js';
 import { handleAttack } from './combat/index.js';
 import { pickUpItem } from './inventoryService.js';
 import { handleInteract } from './interactionService.js';
-import { insertModeCell, updatePlayerMap } from './mapService.js';
+import {
+  insertModeCell,
+  updatePlayerMap,
+  createOrUpdateMap,
+} from './mapService.js';
 import { hasCollision, hasWarp } from './physicsService.js';
 import {
   getPlayerByName,
@@ -98,9 +104,88 @@ const handleWarpAndShops = (player: PlayerServer): void => {
           username: player.name,
           payload: { type: 'chat', scope: 'player', message: trigger.text },
         });
+      } else if (trigger.action === 'sound') {
+        emitGameEvent({
+          type: 'customPlayer',
+          username: player.name,
+          channel: 'sound:play',
+          payload: { file: trigger.file },
+        });
+      } else if (trigger.action === 'changeSprite') {
+        player.sprite = trigger.spriteId;
+        updatePlayerMap(player.id, player);
+        void updatePlayer(player).catch((e) => {
+          logger.error('changeSprite updatePlayer failed', { err: e });
+        });
       }
+      // 'script' triggers are handled by modules via the tileEnter hook
     }
   }
+};
+
+const DIRECTION_BORDER: Record<
+  Direction,
+  keyof NonNullable<MapStateServer['borderLinks']>
+> = {
+  [Direction.Up]: 'up',
+  [Direction.Down]: 'down',
+  [Direction.Left]: 'left',
+  [Direction.Right]: 'right',
+};
+
+const tryOpenDoor = (
+  player: PlayerServer,
+  map: MapStateServer,
+  tileY: number,
+  tileX: number,
+): boolean => {
+  const tile = map.tiles[tileY]?.[tileX];
+  if (!tile?.door) return false;
+
+  const { requiresItem, openTileIndex } = tile.door;
+  const slotIdx = player.inventory.items.findIndex(
+    (i) => i.item === requiresItem,
+  );
+  if (slotIdx < 0) return false;
+
+  const slot = player.inventory.items[slotIdx]!;
+  slot.quantity -= 1;
+  if (slot.quantity <= 0) player.inventory.items.splice(slotIdx, 1);
+
+  tile.tileIndex = openTileIndex;
+  tile.blocked = false;
+  tile.door = undefined;
+  map.tilesRevision = (map.tilesRevision ?? 0) + 1;
+
+  void updatePlayer(player).catch((e) => {
+    logger.error('door updatePlayer failed', { err: e });
+  });
+  void createOrUpdateMap({
+    id: map.id,
+    tiles: map.tiles,
+    tilesRevision: map.tilesRevision,
+  }).catch((e) => {
+    logger.error('door map persist failed', { err: e });
+  });
+
+  return true;
+};
+
+const applyMovement = (
+  player: PlayerServer,
+  newTarget: Position,
+  isBoosting: boolean,
+): void => {
+  player.position = newTarget;
+  player.moving = true;
+  player.action = isBoosting ? CharacterAction.Run : CharacterAction.Walk;
+  player.moveDurationTicks = msToTicks(
+    isBoosting ? RUN_MOVEMENT_DURATION : MOVEMENT_DURATION,
+  );
+  player.moveTick = getTick();
+  player.targetPosition = newTarget;
+  handleWarpAndShops(player);
+  updatePlayerMap(player.id, player);
 };
 
 const calculateNextTilePosition = (
@@ -154,20 +239,46 @@ export const processMovementIntent = () => {
     const proposedState: PlayerServer = { ...player, position: newTarget };
 
     if (!hasCollision(proposedState)) {
-      player.position = newTarget;
-      player.moving = true;
-
-      player.action = isBoosting ? CharacterAction.Run : CharacterAction.Walk;
-      player.moveDurationTicks = msToTicks(
-        isBoosting ? RUN_MOVEMENT_DURATION : MOVEMENT_DURATION,
-      );
-      player.moveTick = getTick();
-      player.targetPosition = newTarget;
-
-      handleWarpAndShops(player);
-      updatePlayerMap(player.id, player);
+      applyMovement(player, newTarget, isBoosting);
     } else {
-      player.action = CharacterAction.Idle;
+      const map = getMap(player.mapId);
+      const tileY = Math.round(newTarget.y / TILE_SIZE);
+      const tileX = Math.round(newTarget.x / TILE_SIZE);
+      const tile = map?.tiles[tileY]?.[tileX];
+
+      if (tile?.door) {
+        if (tryOpenDoor(player, map!, tileY, tileX)) {
+          applyMovement(player, newTarget, isBoosting);
+        } else {
+          player.action = CharacterAction.Idle;
+        }
+      } else if (tile?.conditionalBlock) {
+        const check = useApi<(p: PlayerServer) => boolean>(
+          `conditionalBlock.${tile.conditionalBlock}`,
+        );
+        if (check?.(player)) {
+          applyMovement(player, newTarget, isBoosting);
+        } else {
+          player.action = CharacterAction.Idle;
+        }
+      } else if (!tile && map?.borderLinks) {
+        const borderWarp = map.borderLinks[DIRECTION_BORDER[activeMoveDir]];
+        if (borderWarp) {
+          const previousMapId = player.mapId;
+          player.mapId = borderWarp.to;
+          player.position = borderWarp.position;
+          player.targetPosition = undefined;
+          player.moving = false;
+          player.action = CharacterAction.Idle;
+          player.moveTick = undefined;
+          player.moveDurationTicks = undefined;
+          updatePlayerMap(player.id, player, previousMapId);
+        } else {
+          player.action = CharacterAction.Idle;
+        }
+      } else {
+        player.action = CharacterAction.Idle;
+      }
     }
   });
 };
@@ -279,9 +390,10 @@ export const mapSave = async (
   tiles: Tile[][],
   name: string,
   type: MapType,
+  music?: string,
 ) => {
   const newMap = await insertModeCell(mapId, tiles);
-  await updateMapById({ ...newMap, name, type } as MapStateServer);
+  await updateMapById({ ...newMap, name, type, music } as MapStateServer);
 };
 
 export const getGameState = () => getRuntimeState();

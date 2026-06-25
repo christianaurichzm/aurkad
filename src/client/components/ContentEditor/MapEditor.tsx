@@ -1,10 +1,11 @@
 import React, { useEffect, useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
-import { MapStateClient, MapType } from '../../../shared/types';
+import { MapStateClient, MapType, type Warp } from '../../../shared/types';
 import { AsyncSelect } from '../common/Select/AsyncSelect';
 import { chatResultMsg } from '../ChatPanel';
 import { updateMap, createMap, resizeMap } from '../../io/network';
 import { colors, radius } from '../../theme';
+import { TILE_SIZE } from '../../../shared/constants';
 
 interface MapEditorProps {
   maps: MapStateClient[];
@@ -14,25 +15,52 @@ interface MapEditorProps {
   requestDiscard: () => Promise<boolean>;
 }
 
+type BorderLinkForm = { mapId: string; tileX: number; tileY: number };
 type MapFormValues = {
   name: string;
   type: MapType;
   cols: number;
   rows: number;
+  music: string;
+  borderUp: BorderLinkForm;
+  borderDown: BorderLinkForm;
+  borderLeft: BorderLinkForm;
+  borderRight: BorderLinkForm;
 };
+
+const emptyBorder: BorderLinkForm = { mapId: '', tileX: 0, tileY: 0 };
 
 const defaultValues: MapFormValues = {
   name: '',
   type: 'normal',
   cols: 20,
   rows: 14,
+  music: '',
+  borderUp: emptyBorder,
+  borderDown: emptyBorder,
+  borderLeft: emptyBorder,
+  borderRight: emptyBorder,
 };
+
+function warpToForm(w?: Warp): BorderLinkForm {
+  if (!w) return emptyBorder;
+  return {
+    mapId: w.to,
+    tileX: Math.round(w.position.x / TILE_SIZE),
+    tileY: Math.round(w.position.y / TILE_SIZE),
+  };
+}
 
 const mapToFormValues = (map: MapStateClient): MapFormValues => ({
   name: map.name ?? '',
   type: map.type ?? 'normal',
   cols: map.tiles?.[0]?.length ?? 20,
   rows: map.tiles?.length ?? 14,
+  music: (map as any).music ?? '',
+  borderUp: warpToForm((map as any).borderLinks?.up),
+  borderDown: warpToForm((map as any).borderLinks?.down),
+  borderLeft: warpToForm((map as any).borderLinks?.left),
+  borderRight: warpToForm((map as any).borderLinks?.right),
 });
 
 export const MapEditor: React.FC<MapEditorProps> = ({
@@ -84,9 +112,38 @@ export const MapEditor: React.FC<MapEditorProps> = ({
     resetForm(defaultValues);
   };
 
-  const handleSave = async ({ name, type, cols, rows }: MapFormValues) => {
+  const buildWarp = (b: BorderLinkForm): Warp | undefined =>
+    b.mapId
+      ? {
+          to: b.mapId,
+          position: { x: b.tileX * TILE_SIZE, y: b.tileY * TILE_SIZE },
+        }
+      : undefined;
+
+  const handleSave = async ({
+    name,
+    type,
+    cols,
+    rows,
+    music,
+    borderUp,
+    borderDown,
+    borderLeft,
+    borderRight,
+  }: MapFormValues) => {
+    const borderLinks = {
+      up: buildWarp(borderUp),
+      down: buildWarp(borderDown),
+      left: buildWarp(borderLeft),
+      right: buildWarp(borderRight),
+    };
     const result = selectedId
-      ? await updateMap(selectedId, { name, type })
+      ? await updateMap(selectedId, {
+          name,
+          type,
+          music: music || undefined,
+          borderLinks,
+        } as any)
       : await createMap({ name, type, cols, rows });
     chatResultMsg(!!result, 'Map saved!', 'Error saving map');
     refreshData();
@@ -144,6 +201,56 @@ export const MapEditor: React.FC<MapEditorProps> = ({
           )}
         />
       </div>
+
+      {selectedId && (
+        <>
+          <div style={field}>
+            <label style={label}>Music file</label>
+            <input
+              style={input}
+              {...register('music')}
+              placeholder="music.mp3"
+            />
+          </div>
+          <div style={field}>
+            <label style={label}>Border links</label>
+            {(
+              ['borderUp', 'borderDown', 'borderLeft', 'borderRight'] as const
+            ).map((dir) => (
+              <div
+                key={dir}
+                style={{
+                  display: 'flex',
+                  gap: 6,
+                  alignItems: 'center',
+                  marginBottom: 4,
+                }}
+              >
+                <span style={{ ...label, width: 36, marginBottom: 0 }}>
+                  {dir.replace('border', '')}
+                </span>
+                <input
+                  style={{ ...input, flex: 2 }}
+                  placeholder="mapId"
+                  {...register(`${dir}.mapId`)}
+                />
+                <input
+                  style={{ ...input, width: 50 }}
+                  type="number"
+                  placeholder="X"
+                  {...register(`${dir}.tileX`, { valueAsNumber: true })}
+                />
+                <input
+                  style={{ ...input, width: 50 }}
+                  type="number"
+                  placeholder="Y"
+                  {...register(`${dir}.tileY`, { valueAsNumber: true })}
+                />
+              </div>
+            ))}
+          </div>
+        </>
+      )}
 
       {!selectedId && (
         <div style={field}>

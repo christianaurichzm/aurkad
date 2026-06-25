@@ -42,6 +42,14 @@ export {
   updateShop,
   deleteShop,
   changeSprite,
+  fetchSpells,
+  createSpell,
+  updateSpell,
+  deleteSpell,
+  fetchArrows,
+  createArrow,
+  updateArrow,
+  deleteArrow,
 } from './http/contentClient';
 
 // Moderation

@@ -5,6 +5,9 @@ export let tileset: ImageBitmap;
 export let tilesetAlpha: HTMLCanvasElement;
 export let spriteSheet: ImageBitmap;
 export let items: ImageBitmap;
+export let spellSheet: ImageBitmap;
+export let arrowSheet: ImageBitmap;
+export let attackEffectSheet: ImageBitmap;
 
 let _assetKey = '';
 
@@ -57,12 +60,32 @@ export const initItems = async () => {
   return items;
 };
 
+const initSpellSheet = async () => {
+  spellSheet = await loadImageFromBin(getUrl('spells'), _assetKey);
+  return spellSheet;
+};
+
+const initArrowSheet = async () => {
+  arrowSheet = await loadImageFromBin(getUrl('arrows'), _assetKey);
+  return arrowSheet;
+};
+
+const initAttackEffectSheet = async () => {
+  attackEffectSheet = await loadImageFromBin(getUrl('attackeffect'), _assetKey);
+  return attackEffectSheet;
+};
+
 export const initializeAssets = () => {
   if (!_assetKey) throw new Error('Asset key not set - call setAssetKey first');
-  return Promise.all([initTileset(), initSpriteSheet(), initItems()]).then(
-    ([loadedTileset, loadedSpriteSheet]) => ({
-      tileset: loadedTileset,
-      spriteSheet: loadedSpriteSheet,
-    }),
-  );
+  return Promise.all([
+    initTileset(),
+    initSpriteSheet(),
+    initItems(),
+    initSpellSheet(),
+    initArrowSheet(),
+    initAttackEffectSheet(),
+  ]).then(([loadedTileset, loadedSpriteSheet]) => ({
+    tileset: loadedTileset,
+    spriteSheet: loadedSpriteSheet,
+  }));
 };

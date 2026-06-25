@@ -24,6 +24,7 @@ import { createAuthRouter } from './http/routes/authRoutes.js';
 import { createContentRouter } from './http/routes/contentRoutes.js';
 import { createModRouter } from './http/routes/modRoutes.js';
 import { createAssetsRouter } from './http/routes/assetsRoutes.js';
+import { createAudioRouter } from './http/routes/audioRoutes.js';
 import { createModulesRouter } from './http/routes/modulesRoutes.js';
 import { getMetrics } from './metrics.js';
 import {
@@ -60,6 +61,7 @@ app.use(createAuthRouter());
 app.use(createContentRouter());
 app.use(createModRouter());
 app.use(createAssetsRouter());
+app.use(createAudioRouter());
 app.use(createModulesRouter());
 
 if (config.nodeEnv === 'production') {

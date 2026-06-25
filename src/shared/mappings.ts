@@ -50,4 +50,7 @@ export const imageMap: Record<string, string> = {
   tiles: 'tiles',
   sprites: 'sprites',
   items: 'items',
+  spells: 'spells',
+  arrows: 'arrows',
+  attackeffect: 'attackeffect',
 };

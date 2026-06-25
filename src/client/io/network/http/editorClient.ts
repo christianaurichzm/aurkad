@@ -37,12 +37,14 @@ export const saveMap = async (
   newMapTiles: MapStateClient['tiles'],
   name: string,
   type: MapType,
+  music?: string,
 ): Promise<SaveMapResponse | null> => {
   const mapData = {
     mapId: getGameState()?.id,
     tiles: newMapTiles,
     name,
     type,
+    music: music || undefined,
   };
 
   return httpClient<SaveMapResponse>('/saveMap', {
