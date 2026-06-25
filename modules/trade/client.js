@@ -52,8 +52,11 @@ const sendBtn = ui.button('Send Offer', () => {
 });
 
 function offerLabel(offer) {
-  const give = `#${offer.give.itemId}×${offer.give.quantity}`;
-  const want = offer.want ? ` for #${offer.want.itemId}×${offer.want.quantity}` : ' (gift)';
+  const giveName = offer.give.name || `#${offer.give.itemId}`;
+  const give = `${giveName}×${offer.give.quantity}`;
+  const want = offer.want
+    ? ` for ${offer.want.name || '#' + offer.want.itemId}×${offer.want.quantity}`
+    : ' (gift)';
   return `${give}${want}`;
 }
 

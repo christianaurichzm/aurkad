@@ -54,6 +54,12 @@ function cast(player, spellId) {
     return false;
   }
 
+  sendMapEvent(player.mapId, 'spell:visual', {
+    x: player.position.x,
+    y: player.position.y,
+    sprite: spell.sprite || 0,
+  });
+
   setMana(player, mana - spell.cost);
   cd[spellId] = now + (spell.cooldownMs || 0);
   pushState(player);
@@ -65,6 +71,7 @@ function cast(player, spellId) {
 defineSpell({
   id: 'blast',
   name: 'Arcane Blast',
+  sprite: 0,
   cost: 30,
   cooldownMs: 3000,
   cast: (caster) => {
@@ -77,6 +84,7 @@ defineSpell({
 defineSpell({
   id: 'heal',
   name: 'Heal',
+  sprite: 1,
   cost: 25,
   cooldownMs: 5000,
   cast: (caster) => healPlayer(caster),

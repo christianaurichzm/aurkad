@@ -32,6 +32,7 @@ import {
 import { renderFloatingTexts } from './floatingText';
 import { renderProjectiles } from './projectiles';
 import { renderAttackEffects } from './attackEffect';
+import { renderSpellEffects } from './spellEffect';
 import { useUIStore } from '../stores/uiStore';
 import { calcCamera, setCamera } from './camera';
 import { runOverlays } from './overlayRegistry';
@@ -163,6 +164,7 @@ export const render = () => {
     renderEntitiesSorted(playersWithSelf, map.npcs);
     renderProjectiles(playerCtx);
     renderAttackEffects(playerCtx);
+    renderSpellEffects(playerCtx);
     runOverlays(playerCtx, cam);
     playerCtx.restore();
 

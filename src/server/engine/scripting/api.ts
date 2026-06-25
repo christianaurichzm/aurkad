@@ -26,6 +26,7 @@ import { provideApi, useApi } from '../modules/registry.js';
 import { setCosmetic, clearCosmetic } from '../../services/cosmeticsService.js';
 import { spawnNpc, despawnNpc } from '../../services/npc/spawn.js';
 import { stepNpcToward } from '../../services/npc/behaviors.js';
+import { getItemById } from '../../services/inventoryService.js';
 import { queryEntitiesInRadius } from '../../spatial/spatialManager.js';
 import type { SpawnNpcOptions } from '../../services/npc/spawn.js';
 import { resolveDamage, mapPvpMorale } from '../../services/combat/index.js';
@@ -129,6 +130,16 @@ export function buildApi(
         Math.floor(col)
       ];
       return tile ? { blocked: tile.blocked ?? false } : null;
+    },
+
+    // Item metadata lookup (id, name, type: a safe subset for modules)
+    getItem: (
+      id: number,
+    ): { id: number; name: string; type: string } | undefined => {
+      const item = getItemById(Number(id));
+      return item
+        ? { id: item.id, name: item.name, type: item.type }
+        : undefined;
     },
 
     // Inventory

@@ -54,14 +54,20 @@ function offerTrade(player, targetName, giveItemId, giveQty, wantItemId, wantQty
   if (target.name === player.name) return 'You cannot trade with yourself.';
   if (target.mapId !== player.mapId) return 'You must be in the same map to trade.';
 
+  const giveId = positiveInt(giveItemId, 0);
+  const giveInfo = getItem && getItem(giveId);
   const give = {
-    itemId: positiveInt(giveItemId, 0),
+    itemId: giveId,
     quantity: positiveInt(giveQty, 1),
+    name: giveInfo ? giveInfo.name : String(giveId),
   };
-  const want =
-    wantItemId === undefined || wantItemId === null || wantItemId === ''
-      ? undefined
-      : { itemId: positiveInt(wantItemId, 0), quantity: positiveInt(wantQty, 1) };
+  const wantId = wantItemId === undefined || wantItemId === null || wantItemId === ''
+    ? 0
+    : positiveInt(wantItemId, 0);
+  const wantInfo = wantId ? (getItem && getItem(wantId)) : null;
+  const want = wantId
+    ? { itemId: wantId, quantity: positiveInt(wantQty, 1), name: wantInfo ? wantInfo.name : String(wantId) }
+    : undefined;
 
   if (!give.itemId || !hasItem(player, give.itemId, give.quantity)) return 'You do not have that item quantity.';
   if (want && !want.itemId) return 'Invalid requested item.';

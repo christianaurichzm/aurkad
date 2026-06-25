@@ -22,6 +22,7 @@ import { useUIStore } from '../../../stores/uiStore';
 import { playMusic, stopMusic, playSound } from '../../../audio';
 import { onServerEvent } from '../customEvents';
 import { spawnAttackEffect } from '../../../graphics/attackEffect';
+import { spawnSpellEffect } from '../../../graphics/spellEffect';
 import { Direction } from '../../../../shared/types';
 
 type GameStateMessage =
@@ -42,6 +43,17 @@ onServerEvent('sound:play', (payload) => {
 onServerEvent('attack:hit', (payload) => {
   const p = payload as { x: number; y: number; dir: Direction };
   spawnAttackEffect(p.x, p.y, p.dir);
+  playSound('attack.mp3');
+});
+
+onServerEvent('projectile:fire', () => {
+  playSound('arrow.mp3');
+});
+
+onServerEvent('spell:visual', (payload) => {
+  const p = payload as { x: number; y: number; sprite: number };
+  spawnSpellEffect(p.x, p.y, p.sprite ?? 0);
+  playSound('magiceffect.mp3');
 });
 
 export function enqueueGameStateMessage(message: GameStateMessage) {

@@ -1,5 +1,8 @@
+import { arrowSheet } from '../io/assets';
 import { onServerEvent } from '../io/network/customEvents';
 import { ObjectPool } from './objectPool';
+
+const ARROW_TILE = 32;
 
 // Core projectile renderer. Any module/script can show a flying projectile by
 // sending a `projectile:fire` event with centered pixel coords; the engine
@@ -65,16 +68,31 @@ export function renderProjectiles(ctx: CanvasRenderingContext2D): void {
     ctx.save();
     ctx.translate(x, y);
     ctx.rotate(angle);
-    ctx.strokeStyle = '#6b4423';
-    ctx.lineWidth = 2;
-    ctx.beginPath();
-    ctx.moveTo(-9, 0); // shaft
-    ctx.lineTo(9, 0);
-    ctx.moveTo(9, 0); // arrowhead
-    ctx.lineTo(4, -3);
-    ctx.moveTo(9, 0);
-    ctx.lineTo(4, 3);
-    ctx.stroke();
+    if (arrowSheet) {
+      const half = ARROW_TILE / 2;
+      ctx.drawImage(
+        arrowSheet,
+        0,
+        0,
+        ARROW_TILE,
+        ARROW_TILE,
+        -half,
+        -half,
+        ARROW_TILE,
+        ARROW_TILE,
+      );
+    } else {
+      ctx.strokeStyle = '#6b4423';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(-9, 0);
+      ctx.lineTo(9, 0);
+      ctx.moveTo(9, 0);
+      ctx.lineTo(4, -3);
+      ctx.moveTo(9, 0);
+      ctx.lineTo(4, 3);
+      ctx.stroke();
+    }
     ctx.restore();
   });
 }
