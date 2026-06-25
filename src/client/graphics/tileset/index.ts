@@ -12,7 +12,7 @@ import { TILE_SIZE } from '../../../shared/constants';
 import { MapType, Tile, TileAction, TileEditMode } from '../../../shared/types';
 import { tileset, tilesetAlpha } from '../../io/assets';
 import { saveMap, type SaveMapResponse, fetchNpcs } from '../../io/network';
-import { foregroundCanvas, foregroundCtx, fringeCtx } from '../canvas';
+import { foregroundCanvas, foregroundCtx, maskCtx, fringeCtx } from '../canvas';
 import { useUIStore } from '../../stores/uiStore';
 import { getCamera } from '../camera';
 
@@ -224,6 +224,13 @@ const modes: Record<TileEditMode, ModeConfig> = {
   fringe: {
     place: (row: number, col: number) => {
       map[row][col].fringe = !map[row][col].fringe;
+      setMapEdited(true);
+      renderMap(map);
+    },
+  },
+  mask: {
+    place: (row: number, col: number) => {
+      map[row][col].mask = !map[row][col].mask;
       setMapEdited(true);
       renderMap(map);
     },
@@ -464,6 +471,7 @@ export const toggleShop = () => toggleMode('shop');
 export const toggleBank = () => toggleMode('bank');
 export const toggleAvoidNpc = () => toggleMode('avoidNpc');
 export const toggleFringe = () => toggleMode('fringe');
+export const toggleMask = () => toggleMode('mask');
 export const toggleHeal = () => toggleMode('heal');
 export const toggleKill = () => toggleMode('kill');
 export const toggleWarn = () => toggleMode('warn');
@@ -605,6 +613,7 @@ const drawMarkers = (tiles: Tile[][]) => {
       if (tile.bank) drawMarker(colIndex, rowIndex, '$', '#f59e0b');
       if (tile.avoidNpc) drawMarker(colIndex, rowIndex, 'A', 'purple');
       if (tile.fringe) drawMarker(colIndex, rowIndex, 'F', 'cyan');
+      if (tile.mask) drawMarker(colIndex, rowIndex, 'M', '#80deea');
       if (tile.triggers?.some((t) => t.action === 'heal'))
         drawMarker(colIndex, rowIndex, 'H', '#00e676');
       if (tile.triggers?.some((t) => t.action === 'kill'))
@@ -718,6 +727,47 @@ const updateEditorMap = (tiles: Tile[][], music?: string) => {
   mapWidth = tiles[0]?.length ?? 20;
   mapHeight = tiles.length;
   editorMusic = music ?? '';
+};
+
+export const renderMapMask = (
+  tiles: Tile[][],
+  ctx: CanvasRenderingContext2D | OffscreenCanvasRenderingContext2D = maskCtx,
+) => {
+  if (!ctx || !tiles) return;
+  const tilesPerRow = tileset.width / TILE_SIZE;
+  const cam = getCamera();
+  const startCol = Math.max(0, Math.floor(cam.x / TILE_SIZE));
+  const endCol = Math.min(
+    (tiles[0]?.length ?? 0) - 1,
+    Math.ceil((cam.x + ctx.canvas.width) / TILE_SIZE),
+  );
+  const startRow = Math.max(0, Math.floor(cam.y / TILE_SIZE));
+  const endRow = Math.min(
+    tiles.length - 1,
+    Math.ceil((cam.y + ctx.canvas.height) / TILE_SIZE),
+  );
+  for (let rowIndex = startRow; rowIndex <= endRow; rowIndex++) {
+    const row = tiles[rowIndex];
+    if (!row) continue;
+    for (let colIndex = startCol; colIndex <= endCol; colIndex++) {
+      const tile = row[colIndex];
+      if (tile?.mask && tile.tileIndex !== -1) {
+        const tileX = (tile.tileIndex % tilesPerRow) * TILE_SIZE;
+        const tileY = Math.floor(tile.tileIndex / tilesPerRow) * TILE_SIZE;
+        ctx.drawImage(
+          tilesetAlpha,
+          tileX,
+          tileY,
+          TILE_SIZE,
+          TILE_SIZE,
+          colIndex * TILE_SIZE,
+          rowIndex * TILE_SIZE,
+          TILE_SIZE,
+          TILE_SIZE,
+        );
+      }
+    }
+  }
 };
 
 export const renderMapFringe = (

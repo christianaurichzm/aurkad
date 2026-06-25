@@ -56,6 +56,7 @@ const TileSchema = new mongoose.Schema(
     shop: String,
     avoidNpc: Boolean,
     fringe: Boolean,
+    mask: Boolean,
     triggers: [TileActionSchema],
     door: DoorSchema,
     conditionalBlock: String,

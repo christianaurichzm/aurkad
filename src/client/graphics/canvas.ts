@@ -3,6 +3,9 @@ import { getEl } from '../utils/domHelpers';
 export let foregroundCanvas: HTMLCanvasElement;
 export let foregroundCtx: CanvasRenderingContext2D;
 
+export let maskCanvas: HTMLCanvasElement;
+export let maskCtx: CanvasRenderingContext2D;
+
 export let playerCanvas: HTMLCanvasElement;
 export let playerCtx: CanvasRenderingContext2D;
 
@@ -16,6 +19,9 @@ export const initGameCanvas = () => {
   foregroundCanvas = getEl<HTMLCanvasElement>('foregroundCanvas')!;
   if (!foregroundCanvas) throw new Error('foregroundCanvas element not found');
 
+  maskCanvas = getEl<HTMLCanvasElement>('maskCanvas')!;
+  if (!maskCanvas) throw new Error('maskCanvas element not found');
+
   playerCanvas = getEl<HTMLCanvasElement>('playerCanvas')!;
   if (!playerCanvas) throw new Error('playerCanvas element not found');
 
@@ -26,6 +32,7 @@ export const initGameCanvas = () => {
   if (!fringeCanvas) throw new Error('fringeCanvas element not found');
 
   foregroundCtx = foregroundCanvas.getContext('2d')!;
+  maskCtx = maskCanvas.getContext('2d')!;
   playerCtx = playerCanvas.getContext('2d')!;
   itemCtx = itemCanvas.getContext('2d')!;
   fringeCtx = fringeCanvas.getContext('2d')!;

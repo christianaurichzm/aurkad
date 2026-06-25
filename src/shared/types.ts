@@ -316,6 +316,7 @@ export interface Tile {
   bank?: boolean;
   avoidNpc?: boolean;
   fringe?: boolean;
+  mask?: boolean;
   triggers?: TileAction[];
   door?: { requiresItem: number; openTileIndex: number };
   conditionalBlock?: string;
@@ -485,6 +486,7 @@ export type TileEditMode =
   | 'bank'
   | 'avoidNpc'
   | 'fringe'
+  | 'mask'
   | 'heal'
   | 'kill'
   | 'warn'

@@ -59,6 +59,7 @@ export const TileSchema = z.object({
   shop: z.string().optional(),
   avoidNpc: z.boolean().optional(),
   fringe: z.boolean().optional(),
+  mask: z.boolean().optional(),
   triggers: z.array(TileActionSchema).optional(),
   door: DoorSchema.optional(),
   conditionalBlock: z.string().optional(),
