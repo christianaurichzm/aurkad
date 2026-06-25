@@ -8,7 +8,6 @@ import {
 } from './network';
 import { getAnimatedState } from '../graphics/movementAnimation';
 import { getPlayer } from '../core/gameState';
-import { spawnAttackEffect } from '../graphics/attackEffect';
 
 const isValidKey = (value: string): value is Key =>
   Object.values(Key).includes(value as Key);
@@ -61,17 +60,10 @@ function isLocalPlayerMoving(): boolean {
   return getAnimatedState(player.id, player.position).moving;
 }
 
-function triggerAttackVisual(): void {
-  const player = getPlayer();
-  if (player)
-    spawnAttackEffect(player.position.x, player.position.y, player.direction);
-}
-
 export function flushInputBuffer(): void {
   if (!bufferedPress || isLocalPlayerMoving()) return;
   const key = bufferedPress;
   bufferedPress = null;
-  if (key === Key.Control) triggerAttackVisual();
   const seq = ++inputSeq;
   sendAction({ type: 'keyboard', keyboardAction: { key, type: 'press' }, seq });
 }
@@ -108,7 +100,6 @@ export const handleInput = () => {
         bufferedPress = e.key;
         return;
       }
-      if (e.key === Key.Control) triggerAttackVisual();
       const seq = ++inputSeq;
       sendAction({
         type: 'keyboard',

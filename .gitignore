@@ -134,9 +134,12 @@ dist
 # Ignore the generated bundle.js file
 public/bundle.js
 
-# Game assets (images served via XOR proxy - keep out of repo)
+# Game assets (images and audio served via proxy - keep out of repo)
 assets/*.png
 assets/*.jpg
+assets/*.mp3
+assets/*.ogg
+assets/*.wav
 
 # Local seed script
 src/server/model/seed.ts

@@ -19,6 +19,7 @@ import { getItemById } from '../inventoryService.js';
 import { respawnNpc } from '../npc/index.js';
 import { respawnPlayer, awardExperience } from '../playerService.js';
 import { emit } from '../../engine/hooks.js';
+import { sendCustomEvent } from '../customEventService.js';
 
 export type ResolveDamageOptions = {
   attacker?: CombatTarget;
@@ -240,6 +241,12 @@ export const handleAttack = async (attacker: PlayerServer): Promise<void> => {
     attackTarget.behavior !== 'hostile'
   )
     return;
+
+  sendCustomEvent(attacker, 'attack:hit', {
+    x: attacker.position.x,
+    y: attacker.position.y,
+    dir: attacker.direction,
+  });
 
   await resolveDamage(attackTarget, attacker.attack, { attacker, map });
 };

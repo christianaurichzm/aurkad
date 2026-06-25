@@ -21,6 +21,8 @@ import { onServerPositionUpdate } from '../../../graphics/movementAnimation';
 import { useUIStore } from '../../../stores/uiStore';
 import { playMusic, stopMusic, playSound } from '../../../audio';
 import { onServerEvent } from '../customEvents';
+import { spawnAttackEffect } from '../../../graphics/attackEffect';
+import { Direction } from '../../../../shared/types';
 
 type GameStateMessage =
   | WsServerMapMetaMessage
@@ -35,6 +37,11 @@ const gameStateQueue: Array<GameStateMessage> = [];
 onServerEvent('sound:play', (payload) => {
   const p = payload as { file?: string };
   if (p.file) playSound(p.file);
+});
+
+onServerEvent('attack:hit', (payload) => {
+  const p = payload as { x: number; y: number; dir: Direction };
+  spawnAttackEffect(p.x, p.y, p.dir);
 });
 
 export function enqueueGameStateMessage(message: GameStateMessage) {

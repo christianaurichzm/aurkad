@@ -5,9 +5,9 @@ export let tileset: ImageBitmap;
 export let tilesetAlpha: HTMLCanvasElement;
 export let spriteSheet: ImageBitmap;
 export let items: ImageBitmap;
-export let spellSheet: ImageBitmap;
-export let arrowSheet: ImageBitmap;
-export let attackEffectSheet: ImageBitmap;
+export let spellSheet: HTMLCanvasElement;
+export let arrowSheet: HTMLCanvasElement;
+export let attackEffectSheet: HTMLCanvasElement;
 
 let _assetKey = '';
 
@@ -61,18 +61,18 @@ export const initItems = async () => {
 };
 
 const initSpellSheet = async () => {
-  spellSheet = await loadImageFromBin(getUrl('spells'), _assetKey);
-  return spellSheet;
+  const bmp = await loadImageFromBin(getUrl('spells'), _assetKey);
+  spellSheet = makeColorKeyCanvas(bmp);
 };
 
 const initArrowSheet = async () => {
-  arrowSheet = await loadImageFromBin(getUrl('arrows'), _assetKey);
-  return arrowSheet;
+  const bmp = await loadImageFromBin(getUrl('arrows'), _assetKey);
+  arrowSheet = makeColorKeyCanvas(bmp);
 };
 
 const initAttackEffectSheet = async () => {
-  attackEffectSheet = await loadImageFromBin(getUrl('attackeffect'), _assetKey);
-  return attackEffectSheet;
+  const bmp = await loadImageFromBin(getUrl('attackeffect'), _assetKey);
+  attackEffectSheet = makeColorKeyCanvas(bmp);
 };
 
 export const initializeAssets = () => {
