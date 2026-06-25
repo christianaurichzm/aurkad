@@ -152,7 +152,10 @@ export const render = () => {
 
     playerCtx.save();
     playerCtx.translate(-cam.x, -cam.y);
-    renderEntitiesSorted(map.players, map.npcs);
+    const playersWithSelf = currentPlayer
+      ? { ...map.players, [currentPlayer.id]: currentPlayer }
+      : map.players;
+    renderEntitiesSorted(playersWithSelf, map.npcs);
     renderProjectiles(playerCtx);
     renderAttackEffects(playerCtx);
     runOverlays(playerCtx, cam);
