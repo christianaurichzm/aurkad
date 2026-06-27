@@ -22,9 +22,18 @@ type ArrowForm = {
   description: string;
   sprite: number;
   damage: number;
+  rangeTiles: number;
+  tileSpeed: number;
 };
 
-const defaults: ArrowForm = { name: '', description: '', sprite: 0, damage: 0 };
+const defaults: ArrowForm = {
+  name: '',
+  description: '',
+  sprite: 4,
+  damage: 0,
+  rangeTiles: 6,
+  tileSpeed: 8,
+};
 
 export const ArrowEditor: React.FC<ArrowEditorProps> = ({
   onDirtyChange,
@@ -62,13 +71,23 @@ export const ArrowEditor: React.FC<ArrowEditorProps> = ({
         description: a.description,
         sprite: a.sprite,
         damage: a.damage,
+        rangeTiles: a.rangeTiles ?? 6,
+        tileSpeed: a.tileSpeed ?? 8,
       });
   };
 
   const handleSave = async (data: ArrowForm) => {
+    const payload = {
+      name: data.name,
+      description: data.description,
+      sprite: data.sprite,
+      damage: data.damage,
+      rangeTiles: data.rangeTiles,
+      tileSpeed: data.tileSpeed,
+    };
     const result = selectedId
-      ? (await updateArrow(Number(selectedId), data), true)
-      : !!(await createArrow(data));
+      ? (await updateArrow(Number(selectedId), payload), true)
+      : !!(await createArrow(payload));
     chatResultMsg(!!result, 'Arrow saved!', 'Error saving arrow');
     reset(defaults);
     setSelectedId('');
@@ -118,7 +137,7 @@ export const ArrowEditor: React.FC<ArrowEditorProps> = ({
         <label style={label}>Description</label>
         <input style={input} {...register('description')} placeholder="..." />
       </div>
-      <div style={{ display: 'flex', gap: 8 }}>
+      <div style={{ display: 'flex', gap: 8, alignItems: 'flex-end' }}>
         <div style={field}>
           <label style={label}>Sprite</label>
           <input
@@ -139,6 +158,27 @@ export const ArrowEditor: React.FC<ArrowEditorProps> = ({
             style={{ ...input, width: 70 }}
             type="number"
             {...register('damage', { valueAsNumber: true })}
+          />
+        </div>
+      </div>
+      <div style={{ display: 'flex', gap: 8 }}>
+        <div style={field}>
+          <label style={label}>Range (tiles)</label>
+          <input
+            style={{ ...input, width: 90 }}
+            type="number"
+            {...register('rangeTiles', { valueAsNumber: true })}
+          />
+        </div>
+        <div style={field}>
+          <label style={label}>Speed (tiles/s)</label>
+          <input
+            style={{ ...input, width: 90 }}
+            type="number"
+            step="0.5"
+            min="1"
+            max="30"
+            {...register('tileSpeed', { valueAsNumber: true })}
           />
         </div>
       </div>

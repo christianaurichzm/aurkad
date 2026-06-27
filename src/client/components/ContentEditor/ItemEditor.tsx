@@ -1,7 +1,12 @@
 import React, { useEffect, useState } from 'react';
 import { Controller, useFieldArray, useForm } from 'react-hook-form';
 import { Effect, Item, ModifiablePlayerAttribute } from '../../../shared/types';
-import { updateItem, createItem, deleteItem } from '../../io/network';
+import {
+  updateItem,
+  createItem,
+  deleteItem,
+  fetchArrows,
+} from '../../io/network';
 import { chatResultMsg } from '../ChatPanel';
 import { AsyncSelect } from '../common/Select/AsyncSelect';
 import { ItemIcon } from '../Inventory/ItemIcon';
@@ -27,6 +32,7 @@ type ItemFormValues = {
   desc: string;
   type: Item['type'];
   effects: EffectRow[];
+  arrowId: number | '';
 };
 
 const defaultValues: ItemFormValues = {
@@ -35,6 +41,7 @@ const defaultValues: ItemFormValues = {
   desc: '',
   type: 'weapon',
   effects: [],
+  arrowId: '',
 };
 
 const itemToFormValues = (item: Item): ItemFormValues => ({
@@ -47,18 +54,27 @@ const itemToFormValues = (item: Item): ItemFormValues => ({
     type: e.type,
     value: e.value,
   })),
+  arrowId: item.arrowId ?? '',
 });
 
-const ATTRIBUTES: { value: ModifiablePlayerAttribute; label: string }[] = [
+const ALL_ATTRIBUTES: {
+  value: ModifiablePlayerAttribute;
+  label: string;
+  meleeOnly?: true;
+}[] = [
   { value: 'health', label: 'Health' },
   { value: 'maxHealth', label: 'Max Health' },
-  { value: 'attack', label: 'Attack' },
-  { value: 'strength', label: 'Strength' },
+  { value: 'attack', label: 'Attack (melee base dmg)', meleeOnly: true },
+  { value: 'strength', label: 'Strength (dmg bonus)' },
   { value: 'defense', label: 'Defense' },
   { value: 'agility', label: 'Agility' },
   { value: 'vitality', label: 'Vitality' },
-  { value: 'speed', label: 'Speed' },
-  { value: 'attackRange', label: 'Attack Range' },
+  { value: 'speed', label: 'Speed (movement)' },
+  {
+    value: 'attackRange',
+    label: 'Attack Range (melee reach)',
+    meleeOnly: true,
+  },
   { value: 'experience', label: 'Experience' },
   { value: 'level', label: 'Level' },
 ];
@@ -85,6 +101,24 @@ export const ItemEditor: React.FC<ItemEditorProps> = ({
   });
 
   const sprite = watch('sprite');
+  const type = watch('type');
+  const arrowId = watch('arrowId');
+  const isRanged = type === 'weapon' && arrowId !== '';
+
+  const attributes = isRanged
+    ? ALL_ATTRIBUTES.filter((a) => !a.meleeOnly)
+    : ALL_ATTRIBUTES;
+
+  const loadArrowOptions = async () => {
+    const data = await fetchArrows();
+    return [
+      { value: '' as const, label: 'None' },
+      ...data.map((a) => ({
+        value: String(a.id),
+        label: `${a.id} - ${a.name}`,
+      })),
+    ];
+  };
 
   useEffect(() => {
     onDirtyChange(isDirty);
@@ -109,8 +143,16 @@ export const ItemEditor: React.FC<ItemEditorProps> = ({
     desc,
     type,
     effects,
+    arrowId,
   }: ItemFormValues) => {
-    const data = { name, sprite, description: desc, type, effects };
+    const data = {
+      name,
+      sprite,
+      description: desc,
+      type,
+      effects,
+      ...(arrowId !== '' && { arrowId: Number(arrowId) }),
+    };
     const result = selectedId
       ? await updateItem(Number(selectedId), data)
       : await createItem(data);
@@ -204,6 +246,22 @@ export const ItemEditor: React.FC<ItemEditorProps> = ({
               placeholder="Optional description"
             />
           </div>
+          {type === 'weapon' && (
+            <div style={field}>
+              <label style={label}>Arrow (ranged)</label>
+              <Controller
+                control={control}
+                name="arrowId"
+                render={({ field }) => (
+                  <AsyncSelect<string>
+                    loadOptions={loadArrowOptions}
+                    value={field.value === '' ? '' : String(field.value)}
+                    onChange={(v) => field.onChange(v === '' ? '' : Number(v))}
+                  />
+                )}
+              />
+            </div>
+          )}
         </div>
       </div>
 
@@ -235,7 +293,7 @@ export const ItemEditor: React.FC<ItemEditorProps> = ({
                 name={`effects.${i}.attribute`}
                 render={({ field }) => (
                   <AsyncSelect<ModifiablePlayerAttribute>
-                    loadOptions={async () => ATTRIBUTES}
+                    loadOptions={async () => attributes}
                     value={field.value}
                     onChange={field.onChange}
                   />

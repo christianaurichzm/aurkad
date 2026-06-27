@@ -49,3 +49,11 @@ export function getArrowSync(id: number): Arrow | undefined {
 export function getAllArrows(): Arrow[] {
   return [...arrows.values()];
 }
+
+export function registerArrow(arrow: Arrow): void {
+  arrows.set(arrow.id, arrow);
+}
+
+export function unregisterArrow(id: number): void {
+  arrows.delete(id);
+}

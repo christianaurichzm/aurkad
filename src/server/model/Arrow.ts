@@ -7,6 +7,8 @@ const ArrowSchema = new mongoose.Schema(
     description: { type: String, default: '' },
     sprite: { type: Number, required: true, min: 0 },
     damage: { type: Number, required: true, min: 0, default: 0 },
+    rangeTiles: { type: Number, min: 1 },
+    tileSpeed: { type: Number, min: 1 },
   },
   { _id: false },
 );

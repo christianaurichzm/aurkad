@@ -1,30 +1,32 @@
-// Archery module, server entry. A player equips an arrow type, kept in
-// player data, and a shot uses its damage, or the configured power with
-// none equipped. The arrow's sprite goes out with projectile:fire so the
-// client draws the right one.
+const defaultRangeTiles = (config && config.rangeTiles) || 6;
+const defaultTileSpeed  = 8;
+const cooldownMs        = (config && config.cooldownMs) || 600;
+const TICK_HZ           = 20;
+const HALF              = TILE_SIZE / 2;
 
-const defaultPower = (config && config.power) || 8;
-const rangeTiles = (config && config.rangeTiles) || 6;
-const cooldownMs = (config && config.cooldownMs) || 600;
-
-const cooldowns = {}; // playerName -> readyAtMs
-const isEnemy = (n) => n.behavior === 'aggressive' || n.behavior === 'hostile';
-const HALF = TILE_SIZE / 2;
+const cooldownTicks  = Math.ceil(cooldownMs / 1000 * TICK_HZ);
+const cooldowns      = {};
+const isEnemy        = (n) => n.behavior === 'aggressive' || n.behavior === 'hostile';
+const projectiles    = [];
 
 function getEquippedArrow(player) {
-  const id = getPlayerData(player, 'equippedArrow');
-  return id != null ? getArrow(Number(id)) : undefined;
+  const weaponId = player.equipped && player.equipped.weapon;
+  if (!weaponId) return undefined;
+  const item = getItem(weaponId);
+  if (!item || !item.arrowId) return undefined;
+  return getArrow(item.arrowId);
 }
 
-function pushState(player) {
-  const arrow = getEquippedArrow(player);
-  sendEvent(player, 'archery:state', {
-    equipped: arrow || null,
-    arrows: getArrows(),
-  });
+function clampEndpoint(mapId, toX, toY) {
+  const size = getMapSize(mapId);
+  if (!size) return { toX, toY };
+  return {
+    toX: Math.max(0, Math.min(size.cols * TILE_SIZE, toX)),
+    toY: Math.max(0, Math.min(size.rows * TILE_SIZE, toY)),
+  };
 }
 
-function targetInFront(player, rangePx) {
+function aimEndpoint(player, rangePx) {
   let best = null;
   let bestDist = Infinity;
   for (const e of getNearbyNpcs(player.mapId, player.position.x, player.position.y, rangePx)) {
@@ -32,60 +34,92 @@ function targetInFront(player, rangePx) {
     const dx = e.position.x - player.position.x;
     const dy = e.position.y - player.position.y;
     let inFront = false;
-    if (player.direction === 2) inFront = dx > 0 && Math.abs(dy) <= HALF;
-    else if (player.direction === 1) inFront = dx < 0 && Math.abs(dy) <= HALF;
-    else if (player.direction === 0) inFront = dy > 0 && Math.abs(dx) <= HALF;
-    else if (player.direction === 3) inFront = dy < 0 && Math.abs(dx) <= HALF;
+    if (player.direction === 2) inFront = dx > 0  && Math.abs(dy) <= HALF;
+    else if (player.direction === 1) inFront = dx < 0  && Math.abs(dy) <= HALF;
+    else if (player.direction === 0) inFront = dy > 0  && Math.abs(dx) <= HALF;
+    else if (player.direction === 3) inFront = dy < 0  && Math.abs(dx) <= HALF;
     if (!inFront) continue;
     const dist = Math.abs(dx) + Math.abs(dy);
     if (dist < bestDist) { bestDist = dist; best = e; }
   }
-  return best;
+  if (best) return { toX: best.position.x + HALF, toY: best.position.y + HALF };
+  const d = player.direction;
+  return clampEndpoint(player.mapId,
+    player.position.x + HALF + (d === 2 ? rangePx : d === 1 ? -rangePx : 0),
+    player.position.y + HALF + (d === 0 ? rangePx : d === 3 ? -rangePx : 0),
+  );
 }
 
-on('customAction', ({ player, channel, payload }) => {
-  if (channel === 'archery:equip') {
-    const id = payload && Number(payload.id);
-    const arrow = id ? getArrow(id) : undefined;
-    setPlayerData(player, 'equippedArrow', arrow ? arrow.id : null);
-    pushState(player);
-    return;
-  }
-
-  if (channel === 'archery:request') {
-    pushState(player);
-    return;
-  }
-
+on('customAction', ({ player, channel }) => {
   if (channel !== 'shoot') return;
-
-  const now = Date.now();
-  if ((cooldowns[player.name] || 0) > now) return;
-  cooldowns[player.name] = now + cooldownMs;
+  if (cooldowns[player.name]) return;
 
   const arrow = getEquippedArrow(player);
-  const damage = arrow ? arrow.damage : defaultPower;
-  const sprite = arrow ? arrow.sprite : undefined;
+  if (!arrow) return;
 
-  const rangePx = rangeTiles * TILE_SIZE;
+  cooldowns[player.name] = cooldownTicks;
+
+  const rangeTiles = arrow.rangeTiles || defaultRangeTiles;
+  const tileSpeed  = arrow.tileSpeed  || defaultTileSpeed;
+  const rangePx    = rangeTiles * TILE_SIZE;
+
   const fromX = player.position.x + HALF;
   const fromY = player.position.y + HALF;
+  const { toX, toY } = aimEndpoint(player, rangePx);
 
-  const target = targetInFront(player, rangePx);
-  let toX, toY;
-  if (target) {
-    toX = target.position.x + HALF;
-    toY = target.position.y + HALF;
-    dealDamage(target, damage, player);
-  } else {
-    const d = player.direction;
-    toX = fromX + (d === 2 ? rangePx : d === 1 ? -rangePx : 0);
-    toY = fromY + (d === 0 ? rangePx : d === 3 ? -rangePx : 0);
-  }
+  const dx = toX - fromX;
+  const dy = toY - fromY;
+  const totalDistPx = Math.sqrt(dx * dx + dy * dy);
+  if (totalDistPx < 1) return;
 
-  sendMapEvent(player.mapId, 'projectile:fire', { fromX, fromY, toX, toY, duration: 250, sprite });
+  const speedPxPerTick = (tileSpeed * TILE_SIZE) / TICK_HZ;
+  const duration = Math.max(50, Math.round(totalDistPx / (tileSpeed * TILE_SIZE) * 1000));
+
+  projectiles.push({
+    mapId: player.mapId,
+    cx: fromX, cy: fromY,
+    dirX: dx / totalDistPx,
+    dirY: dy / totalDistPx,
+    speedPxPerTick,
+    remainingPx: totalDistPx,
+    damage: arrow.damage,
+    attacker: player,
+  });
+
+  sendMapEvent(player.mapId, 'projectile:fire', {
+    fromX, fromY, toX, toY, duration,
+    sprite: arrow.sprite,
+    direction: player.direction,
+  });
 });
 
-on('playerJoin', ({ player }) => pushState(player));
+on('tick', () => {
+  for (const name in cooldowns) {
+    if (--cooldowns[name] <= 0) delete cooldowns[name];
+  }
 
-log('Archery module ready (press R to shoot).');
+  for (let i = projectiles.length - 1; i >= 0; i--) {
+    const p = projectiles[i];
+    p.cx += p.dirX * p.speedPxPerTick;
+    p.cy += p.dirY * p.speedPxPerTick;
+    p.remainingPx -= p.speedPxPerTick;
+
+    const nearby = getNearbyNpcs(p.mapId, p.cx, p.cy, TILE_SIZE);
+    let hit = false;
+    for (const e of nearby) {
+      if (!isEnemy(e)) continue;
+      const ecx = e.position.x + HALF;
+      const ecy = e.position.y + HALF;
+      const relX = ecx - p.cx;
+      const relY = ecy - p.cy;
+      const along = relX * p.dirX + relY * p.dirY;
+      const perp  = Math.abs(relX * p.dirY - relY * p.dirX);
+      if (along < -p.speedPxPerTick) continue;
+      if (perp > HALF) continue;
+      dealDamage(e, p.damage, p.attacker);
+      hit = true;
+      break;
+    }
+    if (hit || p.remainingPx <= 0) projectiles.splice(i, 1);
+  }
+});

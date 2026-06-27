@@ -47,6 +47,7 @@ export const ItemSchema = new mongoose.Schema(
       enum: [...EQUIPMENT_SLOTS, 'consumable', 'money'],
     },
     effects: [EffectSchema],
+    arrowId: { type: Number },
   },
   { _id: false },
 );

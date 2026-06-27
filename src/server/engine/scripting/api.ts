@@ -133,38 +133,67 @@ export function buildApi(
       return tile ? { blocked: tile.blocked ?? false } : null;
     },
 
+    getMapSize: (mapId: string): { cols: number; rows: number } | undefined => {
+      const map = getMap(String(mapId));
+      if (!map?.tiles?.length) return undefined;
+      return { cols: map.tiles[0]?.length ?? 0, rows: map.tiles.length };
+    },
+
     // Arrow metadata lookup
     getArrow: (
       id: number,
     ):
-      | { id: number; name: string; sprite: number; damage: number }
+      | {
+          id: number;
+          name: string;
+          sprite: number;
+          damage: number;
+          rangeTiles?: number;
+          tileSpeed?: number;
+        }
       | undefined => {
       const a = getArrowSync(Number(id));
-      return a
-        ? { id: a.id, name: a.name, sprite: a.sprite, damage: a.damage }
-        : undefined;
+      if (!a) return undefined;
+      return {
+        id: a.id,
+        name: a.name,
+        sprite: a.sprite,
+        damage: a.damage,
+        ...(a.rangeTiles != null && { rangeTiles: a.rangeTiles }),
+        ...(a.tileSpeed != null && { tileSpeed: a.tileSpeed }),
+      };
     },
     getArrows: (): {
       id: number;
       name: string;
       sprite: number;
       damage: number;
+      rangeTiles?: number;
+      tileSpeed?: number;
     }[] =>
       getAllArrows().map((a) => ({
         id: a.id,
         name: a.name,
         sprite: a.sprite,
         damage: a.damage,
+        ...(a.rangeTiles != null && { rangeTiles: a.rangeTiles }),
+        ...(a.tileSpeed != null && { tileSpeed: a.tileSpeed }),
       })),
 
-    // Item metadata lookup (id, name, type: a safe subset for modules)
+    // Item metadata lookup, with arrowId for ranged weapons.
     getItem: (
       id: number,
-    ): { id: number; name: string; type: string } | undefined => {
+    ):
+      | { id: number; name: string; type: string; arrowId?: number }
+      | undefined => {
       const item = getItemById(Number(id));
-      return item
-        ? { id: item.id, name: item.name, type: item.type }
-        : undefined;
+      if (!item) return undefined;
+      return {
+        id: item.id,
+        name: item.name,
+        type: item.type,
+        ...(item.arrowId != null && { arrowId: item.arrowId }),
+      };
     },
 
     // Inventory

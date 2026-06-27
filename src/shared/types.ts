@@ -76,6 +76,16 @@ export type ItemType =
   | 'consumable'
   | 'money';
 
+export interface Arrow {
+  id: number;
+  name: string;
+  description: string;
+  sprite: number;
+  damage: number;
+  rangeTiles?: number;
+  tileSpeed?: number;
+}
+
 export interface Item {
   id: number;
   name: string;
@@ -83,6 +93,7 @@ export interface Item {
   sprite: number;
   type: ItemType;
   effects?: Effect[];
+  arrowId?: number;
 }
 
 export interface Inventory {
@@ -389,14 +400,6 @@ export interface Spell {
   description: string;
   sprite: number;
   mpCost: number;
-  damage: number;
-}
-
-export interface Arrow {
-  id: number;
-  name: string;
-  description: string;
-  sprite: number;
   damage: number;
 }
 

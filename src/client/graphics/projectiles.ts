@@ -4,10 +4,9 @@ import { ObjectPool } from './objectPool';
 
 const ARROW_TILE = 32;
 
-// Core projectile renderer. Any module/script can show a flying projectile by
-// sending a `projectile:fire` event with centered pixel coords; the engine
-// animates it from `from` to `to`. (Damage, if any, is applied server-side -
-// the arrow is purely visual.)
+// Each sheet row holds 4 tiles: base+0=↓, base+1=↑, base+2=→, base+3=←.
+// Direction enum: 0=DOWN, 1=LEFT, 2=RIGHT, 3=UP.
+const DIR_TO_SPRITE_OFFSET = [0, 3, 2, 1]; // [DOWN, LEFT, RIGHT, UP]
 
 interface Projectile {
   active: boolean;
@@ -18,6 +17,7 @@ interface Projectile {
   start: number;
   duration: number;
   sprite: number;
+  direction: number;
 }
 
 const pool = new ObjectPool<Projectile>(32, () => ({
@@ -29,6 +29,7 @@ const pool = new ObjectPool<Projectile>(32, () => ({
   start: 0,
   duration: 0,
   sprite: 0,
+  direction: 0,
 }));
 
 onServerEvent('projectile:fire', (payload) => {
@@ -51,6 +52,7 @@ onServerEvent('projectile:fire', (payload) => {
   pr.start = performance.now();
   pr.duration = typeof p.duration === 'number' ? p.duration : 250;
   pr.sprite = typeof p.sprite === 'number' ? p.sprite : 0;
+  pr.direction = typeof p.direction === 'number' ? p.direction : 0;
 });
 
 export function renderProjectiles(ctx: CanvasRenderingContext2D): void {
@@ -66,19 +68,20 @@ export function renderProjectiles(ctx: CanvasRenderingContext2D): void {
 
     const x = pr.fromX + (pr.toX - pr.fromX) * t;
     const y = pr.fromY + (pr.toY - pr.fromY) * t;
-    const angle = Math.atan2(pr.toY - pr.fromY, pr.toX - pr.fromX);
+
+    const offset = DIR_TO_SPRITE_OFFSET[pr.direction] ?? 0;
+    const actualSprite = pr.sprite + offset;
 
     ctx.save();
     ctx.translate(x, y);
-    ctx.rotate(angle);
     if (arrowSheet) {
       const half = ARROW_TILE / 2;
       const tilesPerRow = Math.max(
         1,
         Math.floor(arrowSheet.width / ARROW_TILE),
       );
-      const sx = (pr.sprite % tilesPerRow) * ARROW_TILE;
-      const sy = Math.floor(pr.sprite / tilesPerRow) * ARROW_TILE;
+      const sx = (actualSprite % tilesPerRow) * ARROW_TILE;
+      const sy = Math.floor(actualSprite / tilesPerRow) * ARROW_TILE;
       ctx.drawImage(
         arrowSheet,
         sx,

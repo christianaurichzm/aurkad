@@ -179,16 +179,18 @@ export const CreateSpellBodySchema = z.object({
   damage: z.number().int().nonnegative().default(0),
 });
 
+export const ResizeMapBodySchema = z.object({
+  cols: z.number().int().min(1).max(200),
+  rows: z.number().int().min(1).max(200),
+});
+
 export const CreateArrowBodySchema = z.object({
   name: z.string().min(1),
   description: z.string().default(''),
   sprite: z.number().int().nonnegative(),
   damage: z.number().int().nonnegative().default(0),
-});
-
-export const ResizeMapBodySchema = z.object({
-  cols: z.number().int().min(1).max(200),
-  rows: z.number().int().min(1).max(200),
+  rangeTiles: z.number().int().positive().optional(),
+  tileSpeed: z.number().positive().optional(),
 });
 
 export const CreateItemBodySchema = z.object({
@@ -197,6 +199,7 @@ export const CreateItemBodySchema = z.object({
   sprite: z.number().int().nonnegative(),
   type: ItemTypeSchema,
   effects: z.array(EffectSchema).optional(),
+  arrowId: z.number().int().positive().optional(),
 });
 
 export const BuyShopItemBodySchema = z.object({
