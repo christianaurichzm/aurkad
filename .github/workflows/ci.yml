@@ -29,4 +29,16 @@ jobs:
         run: npm run format:check
 
       - name: test
-        run: npm run test:run
+        run: npx vitest run --reporter=verbose --reporter=json --outputFile=test-results.json
+
+      - name: test count gate
+        run: |
+          node -e "
+            const r = JSON.parse(require('fs').readFileSync('test-results.json', 'utf8'));
+            const n = r.numPassedTests;
+            console.log('Tests passed:', n);
+            if (n < 400) { process.stderr.write('FAIL: test count ' + n + ' is below minimum 400\n'); process.exit(1); }
+          "
+
+      - name: bench (informational)
+        run: npm run bench || true

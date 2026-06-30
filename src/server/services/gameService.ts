@@ -16,6 +16,7 @@ import {
   MapType,
 } from '../../shared/types.js';
 import type { ClientKeyboardAction } from '../engine/actions.js';
+import { isRecording, recordKeyEvent } from '../sim/replayRecorder.js';
 import { useApi } from '../engine/modules/registry.js';
 import {
   getMap,
@@ -322,6 +323,8 @@ export const handleKeyAction = (action: ClientKeyboardAction) => {
   const player = getPlayerByName(username);
 
   if (!player) return;
+
+  if (isRecording()) recordKeyEvent(username, key, keyboardAction.type);
 
   if (seq !== undefined) {
     player.lastProcessedSeq = seq;

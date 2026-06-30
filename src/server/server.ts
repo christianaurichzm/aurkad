@@ -46,6 +46,7 @@ import {
   loadModules,
   unloadAllModules,
 } from './engine/modules/moduleLoader.js';
+import { startRecording, flushReplay } from './sim/replayRecorder.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -89,6 +90,10 @@ async function startServer() {
     startWebSocketServer(server, sessionMiddleware);
     stopGameLoops = startGameLoops();
     stopSnapshots = startPlayerSnapshotLoop();
+    if (process.env.REPLAY_RECORD === 'true') {
+      startRecording();
+      logger.info('[Replay] Session recording started');
+    }
     server.listen(port, () => {
       logger.info('Server is listening', { port });
       startAdminRepl();
@@ -126,6 +131,9 @@ async function shutdown(signal: string) {
 
   await stopWebSocketServer();
   await httpClose;
+
+  const replayPath = flushReplay();
+  if (replayPath) logger.info('[Replay] Session saved', { path: replayPath });
 
   logger.info('[Shutdown] Persisting player states...');
   for (const player of getAllPlayers()) {

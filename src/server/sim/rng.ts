@@ -2,10 +2,16 @@
 // sequence is reproducible, which makes the sim replayable and testable. The
 // default seed is non-deterministic so drops/spawns aren't predictable in
 // production; tests and replay call seedRng with a fixed value.
-let state = Date.now() >>> 0;
+let _seed = Date.now() >>> 0;
+let state = _seed;
 
 export function seedRng(seed: number): void {
-  state = seed >>> 0;
+  _seed = seed >>> 0;
+  state = _seed;
+}
+
+export function getSeed(): number {
+  return _seed;
 }
 
 export function nextRandom(): number {
