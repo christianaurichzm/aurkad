@@ -11,13 +11,13 @@ import {
 import { getMap, getPlayer, runtimeState } from '../gameData.js';
 import { placePlayerOnMap, detachFromMap } from '../sim/world.js';
 
-import GameMapModel from '../model/Map.js';
+import { mapRepository } from '../persistence/mapRepository.js';
 import { getNextMapId } from './dbService.js';
 import { getItemById } from './inventoryService.js';
 import { getNpcById } from './npc/index.js';
 
 export async function getMapById(id: string): Promise<MapStateServer | null> {
-  return await GameMapModel.findOne({ id }).lean<MapStateServer>().exec();
+  return mapRepository.findById(id);
 }
 
 export async function createOrUpdateMap(
@@ -39,20 +39,17 @@ export async function createOrUpdateMap(
 
   runtimeState.maps[map.id] = merged;
 
-  await GameMapModel.findOneAndUpdate({ id: map.id }, map, {
-    upsert: true,
-    new: true,
-  });
+  await mapRepository.upsert(map.id, map);
 
   return map.id;
 }
 
 export async function deleteMap(id: string): Promise<void> {
-  await GameMapModel.deleteOne({ id });
+  await mapRepository.delete(id);
 }
 
 export async function listMaps(): Promise<MapStateServer[]> {
-  return await GameMapModel.find().lean<MapStateServer[]>().exec();
+  return mapRepository.list();
 }
 
 export const insertModeCell = async (mapId: string, tiles: Tile[][]) => {
