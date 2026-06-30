@@ -29,8 +29,10 @@ export function toPlayerPublic(player: PlayerServer): PlayerPublic {
     health: player.health,
     level: player.level,
     access: player.access,
-    position: player.position,
-    targetPosition: player.targetPosition,
+    position: { ...player.position },
+    targetPosition: player.targetPosition
+      ? { ...player.targetPosition }
+      : undefined,
     direction: player.direction,
     action: player.action,
     nameColor: player.nameColor,
@@ -106,7 +108,18 @@ export function toMapDynamicClient(
   const npcs = Object.fromEntries(
     Object.entries(map.npcs).flatMap(([id, npc]) => {
       if (!withinViewport(npc.position, viewport)) return [];
-      return [[id, npc]] as const;
+      return [
+        [
+          id,
+          {
+            ...npc,
+            position: { ...npc.position },
+            targetPosition: npc.targetPosition
+              ? { ...npc.targetPosition }
+              : undefined,
+          },
+        ],
+      ] as const;
     }),
   ) as Record<string, RuntimeNpc>;
 

@@ -168,8 +168,10 @@ export const respawnPlayer = (player: PlayerServer): void => {
 export function toPlayerHot(player: PlayerServer): PlayerHot {
   return {
     id: player.id,
-    position: player.position,
-    targetPosition: player.targetPosition,
+    position: { ...player.position },
+    targetPosition: player.targetPosition
+      ? { ...player.targetPosition }
+      : undefined,
     moving: player.moving,
     moveTick: player.moveTick,
     moveDurationTicks: player.moveDurationTicks,

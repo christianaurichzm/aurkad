@@ -23,6 +23,7 @@ import {
 } from '../services/playerService.js';
 import { CHUNK_SIZE, TILE_SIZE } from '../../shared/constants.js';
 import {
+  type Viewport,
   calcViewport,
   mapTileWidth,
   mapTileHeight,
@@ -39,13 +40,9 @@ import {
 } from './netStats.js';
 
 const diffPatcher = jsondiffpatch.create({
-  objectHash: (obj: any, index?: number): string | undefined => {
-    return obj.id || obj.name || `$$index:${index}`;
-  },
-  arrays: {
-    detectMove: true,
-    includeValueOnMove: false,
-  },
+  objectHash: (obj: any, index?: number): string | undefined =>
+    obj.id || obj.name || `$$index:${index}`,
+  arrays: { detectMove: false, includeValueOnMove: false },
 });
 
 export const lastSentStates = new Map<string, FullGameStatePayload>();
@@ -96,17 +93,12 @@ function sendViewportChunks(
   player: PlayerServer,
   map: MapStateServer,
   ws: WebSocket,
-  marginPx: number,
+  viewport: Viewport,
 ) {
   const state = playerChunkState.get(player.name);
   if (!state || state.mapId !== map.id) return;
 
-  const vp = calcViewport(
-    player.position.x,
-    player.position.y,
-    map.tiles,
-    marginPx,
-  );
+  const vp = viewport;
   const chunkPx = CHUNK_SIZE * TILE_SIZE;
   const totalCols = Math.ceil(mapTileWidth(map.tiles) / CHUNK_SIZE);
   const totalRows = Math.ceil(mapTileHeight(map.tiles) / CHUNK_SIZE);
@@ -147,14 +139,8 @@ function sendDynamicSnapshot(
   player: PlayerServer,
   map: MapStateServer,
   ws: WebSocket,
-  marginPx: number,
+  viewport: Viewport,
 ) {
-  const viewport = calcViewport(
-    player.position.x,
-    player.position.y,
-    map.tiles,
-    marginPx,
-  );
   const dynClient = toMapDynamicClient(map, player, viewport);
 
   // Detect entities leaving the viewport and send explicit tombstones.
@@ -197,10 +183,10 @@ function sendDynamicSnapshot(
     npcs: currentNpcIds,
   });
 
-  const currentState: FullGameStatePayload = structuredClone({
+  const currentState: FullGameStatePayload = {
     map: dynClient,
     player: toPlayerHot(player),
-  });
+  };
 
   const lastState = lastSentStates.get(player.name);
   let message: {
@@ -241,9 +227,15 @@ export function broadcastGameState() {
       try {
         nsCountPlayer();
         sendMapMetaIfNeeded(player, map, mapRevision, ws);
-        sendViewportChunks(player, map, ws, marginPx);
+        const viewport = calcViewport(
+          player.position.x,
+          player.position.y,
+          map.tiles,
+          marginPx,
+        );
+        sendViewportChunks(player, map, ws, viewport);
         sendPlayerStatsIfNeeded(player, ws);
-        sendDynamicSnapshot(player, map, ws, marginPx);
+        sendDynamicSnapshot(player, map, ws, viewport);
       } catch (error) {
         logger.error('Error broadcasting to player', {
           player: player.name,
