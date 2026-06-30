@@ -18,10 +18,7 @@ export function setAssetKey(hexKey: string): void {
 
 const getUrl = (type: keyof typeof imageMap) => `assets/${imageMap[type]}.bin`;
 
-function makeColorKeyCanvas(
-  bitmap: ImageBitmap,
-  tolerance = 20,
-): HTMLCanvasElement {
+function makeColorKeyCanvas(bitmap: ImageBitmap): HTMLCanvasElement {
   const canvas = document.createElement('canvas');
   canvas.width = bitmap.width;
   canvas.height = bitmap.height;
@@ -29,14 +26,15 @@ function makeColorKeyCanvas(
   ctx.drawImage(bitmap, 0, 0);
   const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
   const d = imageData.data;
+  if (d[3] === 0) return canvas; // already transparent, skip color-key
   const bgR = d[0],
     bgG = d[1],
     bgB = d[2];
   for (let i = 0; i < d.length; i += 4) {
     if (
-      Math.abs(d[i] - bgR) <= tolerance &&
-      Math.abs(d[i + 1] - bgG) <= tolerance &&
-      Math.abs(d[i + 2] - bgB) <= tolerance
+      Math.abs(d[i] - bgR) <= 2 &&
+      Math.abs(d[i + 1] - bgG) <= 2 &&
+      Math.abs(d[i + 2] - bgB) <= 2
     ) {
       d[i + 3] = 0;
     }

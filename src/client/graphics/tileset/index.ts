@@ -623,9 +623,9 @@ const drawMarkers = (tiles: Tile[][]) => {
       if (tile.bank) drawMarker(colIndex, rowIndex, '$', '#f59e0b');
       if (tile.avoidNpc) drawMarker(colIndex, rowIndex, 'A', 'purple');
       if (tile.maskIndex !== undefined)
-        drawLayerInitial(colIndex, rowIndex, 'm', '#00bcd4', 'bl');
+        drawLayerDot(colIndex, rowIndex, '#00bcd4', 'bl');
       if (tile.fringeIndex !== undefined)
-        drawLayerInitial(colIndex, rowIndex, 'f', '#9c27b0', 'br');
+        drawLayerDot(colIndex, rowIndex, '#9c27b0', 'br');
       if (tile.triggers?.some((t) => t.action === 'heal'))
         drawMarker(colIndex, rowIndex, 'H', '#00e676');
       if (tile.triggers?.some((t) => t.action === 'kill'))
@@ -660,10 +660,11 @@ const drawMarker = (col: number, row: number, text: string, color: string) => {
   gridCtx.fillText(text, sx + 20, sy + 35);
 };
 
-const drawLayerInitial = (
+const DOT_SIZE = 6;
+
+const drawLayerDot = (
   col: number,
   row: number,
-  letter: string,
   color: string,
   corner: 'bl' | 'br',
 ) => {
@@ -678,17 +679,12 @@ const drawLayerInitial = (
     sy >= gridCanvas.height
   )
     return;
-  const tx = corner === 'br' ? sx + TILE_SIZE - 3 : sx + 3;
-  const ty = sy + TILE_SIZE - 3;
-  gridCtx.font = 'bold 10px Arial';
-  gridCtx.textAlign = corner === 'br' ? 'right' : 'left';
-  gridCtx.lineWidth = 2.5;
-  gridCtx.strokeStyle = 'rgba(0,0,0,0.75)';
-  gridCtx.strokeText(letter, tx, ty);
+  const dx = corner === 'br' ? sx + TILE_SIZE - DOT_SIZE - 1 : sx + 1;
+  const dy = sy + TILE_SIZE - DOT_SIZE - 1;
+  gridCtx.fillStyle = 'rgba(0,0,0,0.6)';
+  gridCtx.fillRect(dx - 1, dy - 1, DOT_SIZE + 2, DOT_SIZE + 2);
   gridCtx.fillStyle = color;
-  gridCtx.fillText(letter, tx, ty);
-  gridCtx.textAlign = 'left';
-  gridCtx.lineWidth = 1;
+  gridCtx.fillRect(dx, dy, DOT_SIZE, DOT_SIZE);
 };
 
 // The NPC's name (or "#id" if not loaded yet) at the bottom of a spawn tile, so
