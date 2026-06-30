@@ -1,4 +1,5 @@
 import { spellSheet } from '../io/assets';
+import { entityAtlas, entityAtlasOffsets } from './atlas';
 import { ObjectPool } from './objectPool';
 
 const TILE = 32;
@@ -32,9 +33,10 @@ export function spawnSpellEffect(x: number, y: number, sprite: number): void {
 }
 
 export function renderSpellEffects(ctx: CanvasRenderingContext2D): void {
-  if (!spellSheet || pool.activeCount() === 0) return;
+  if (!entityAtlas || pool.activeCount() === 0) return;
+  const off = entityAtlasOffsets.spells!;
   const now = performance.now();
-  const tilesPerRow = Math.max(1, Math.floor(spellSheet.width / TILE));
+  const tilesPerRow = Math.max(1, Math.floor(off.width / TILE));
 
   pool.forEach((fx) => {
     const elapsed = now - fx.start;
@@ -46,7 +48,17 @@ export function renderSpellEffects(ctx: CanvasRenderingContext2D): void {
     const sy = Math.floor(fx.sprite / tilesPerRow) * TILE;
     ctx.save();
     ctx.globalAlpha = 1 - elapsed / DURATION;
-    ctx.drawImage(spellSheet, sx, sy, TILE, TILE, fx.x, fx.y, DISPLAY, DISPLAY);
+    ctx.drawImage(
+      entityAtlas!,
+      off.x + sx,
+      off.y + sy,
+      TILE,
+      TILE,
+      fx.x,
+      fx.y,
+      DISPLAY,
+      DISPLAY,
+    );
     ctx.restore();
   });
 }

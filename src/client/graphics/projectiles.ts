@@ -1,4 +1,4 @@
-import { arrowSheet } from '../io/assets';
+import { entityAtlas, entityAtlasOffsets } from './atlas';
 import { onServerEvent } from '../io/network/customEvents';
 import { ObjectPool } from './objectPool';
 
@@ -74,18 +74,16 @@ export function renderProjectiles(ctx: CanvasRenderingContext2D): void {
 
     ctx.save();
     ctx.translate(x, y);
-    if (arrowSheet) {
+    if (entityAtlas) {
+      const off = entityAtlasOffsets.arrows!;
       const half = ARROW_TILE / 2;
-      const tilesPerRow = Math.max(
-        1,
-        Math.floor(arrowSheet.width / ARROW_TILE),
-      );
+      const tilesPerRow = Math.max(1, Math.floor(off.width / ARROW_TILE));
       const sx = (actualSprite % tilesPerRow) * ARROW_TILE;
       const sy = Math.floor(actualSprite / tilesPerRow) * ARROW_TILE;
       ctx.drawImage(
-        arrowSheet,
-        sx,
-        sy,
+        entityAtlas,
+        off.x + sx,
+        off.y + sy,
         ARROW_TILE,
         ARROW_TILE,
         -half,

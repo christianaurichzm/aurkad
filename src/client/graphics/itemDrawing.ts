@@ -1,5 +1,5 @@
 import { ITEM_SIZE, TILE_SIZE } from '../../shared/constants';
-import { items } from '../io/assets';
+import { entityAtlas, entityAtlasOffsets } from './atlas';
 import { getSpriteCoordinates } from './spriteCoordinates';
 
 export const renderItemIcon = (
@@ -9,18 +9,16 @@ export const renderItemIcon = (
   y: number,
   applyOffset: boolean = true,
 ) => {
-  const { x: spriteX, y: spriteY } = getSpriteCoordinates(
-    spriteId,
-    items?.width,
-  );
-
+  if (!entityAtlas) return;
+  const off = entityAtlasOffsets.items!;
+  const { x: spriteX, y: spriteY } = getSpriteCoordinates(spriteId, off.width);
   const offsetX = applyOffset ? (TILE_SIZE - ITEM_SIZE) / 2 : 0;
   const offsetY = applyOffset ? (TILE_SIZE - ITEM_SIZE) / 2 : 0;
 
   ctx.drawImage(
-    items,
-    spriteX,
-    spriteY,
+    entityAtlas,
+    off.x + spriteX,
+    off.y + spriteY,
     ITEM_SIZE,
     ITEM_SIZE,
     x + offsetX,
@@ -38,15 +36,14 @@ export function drawItemGeneric(
   destW: number,
   destH: number,
 ) {
-  const { x: spriteX, y: spriteY } = getSpriteCoordinates(
-    spriteId,
-    items.width,
-  );
+  if (!entityAtlas) return;
+  const off = entityAtlasOffsets.items!;
+  const { x: spriteX, y: spriteY } = getSpriteCoordinates(spriteId, off.width);
 
   ctx.drawImage(
-    items,
-    spriteX,
-    spriteY,
+    entityAtlas,
+    off.x + spriteX,
+    off.y + spriteY,
     ITEM_SIZE,
     ITEM_SIZE,
     destX,

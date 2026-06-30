@@ -1,4 +1,5 @@
 import { attackEffectSheet } from '../io/assets';
+import { entityAtlas, entityAtlasOffsets } from './atlas';
 import { Direction } from '../../shared/types';
 import { TILE_SIZE } from '../../shared/constants';
 
@@ -29,7 +30,8 @@ export function spawnAttackEffect(x: number, y: number, dir: Direction): void {
 }
 
 export function renderAttackEffects(ctx: CanvasRenderingContext2D): void {
-  if (!attackEffectSheet || active.length === 0) return;
+  if (!entityAtlas || active.length === 0) return;
+  const off = entityAtlasOffsets.attackEffect!;
   const now = performance.now();
   const totalDuration = FRAME_COUNT * FRAME_DURATION;
 
@@ -47,9 +49,9 @@ export function renderAttackEffects(ctx: CanvasRenderingContext2D): void {
     const sx = (frame % FRAMES_PER_ROW) * FRAME_W;
     const sy = Math.floor(frame / FRAMES_PER_ROW) * FRAME_H;
     ctx.drawImage(
-      attackEffectSheet,
-      sx,
-      sy,
+      entityAtlas,
+      off.x + sx,
+      off.y + sy,
       FRAME_W,
       FRAME_H,
       eff.x,

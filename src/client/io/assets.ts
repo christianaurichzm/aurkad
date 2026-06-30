@@ -1,5 +1,6 @@
 import { loadImageFromBin } from './network';
 import { imageMap } from '../../shared/mappings';
+import { buildEntityAtlas } from '../graphics/atlas';
 
 export let tileset: ImageBitmap;
 export let tilesetAlpha: HTMLCanvasElement;
@@ -84,8 +85,14 @@ export const initializeAssets = () => {
     initSpellSheet(),
     initArrowSheet(),
     initAttackEffectSheet(),
-  ]).then(([loadedTileset, loadedSpriteSheet]) => ({
-    tileset: loadedTileset,
-    spriteSheet: loadedSpriteSheet,
-  }));
+  ]).then(([loadedTileset, loadedSpriteSheet]) => {
+    buildEntityAtlas({
+      sprites: spriteSheet,
+      items,
+      spells: spellSheet,
+      arrows: arrowSheet,
+      attackEffect: attackEffectSheet,
+    });
+    return { tileset: loadedTileset, spriteSheet: loadedSpriteSheet };
+  });
 };
