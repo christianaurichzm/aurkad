@@ -39,6 +39,7 @@ vi.mock('../../io/network', () => ({
   fetchNpcs: mocks.fetchNpcs,
   fetchItems: mocks.fetchItems,
   fetchMaps: mocks.fetchMaps,
+  fetchShops: vi.fn().mockResolvedValue([]),
   createNpc: vi.fn(),
   updateNpc: vi.fn(),
   deleteNpc: vi.fn(),
