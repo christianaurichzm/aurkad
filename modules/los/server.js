@@ -1,3 +1,4 @@
+// @ts-check
 // Line of sight: a Bresenham ray on the tile grid, provided as 'los'
 // ({ hasLOS(from, to, map) }). Npcs check it before radius-only detection.
 
@@ -19,10 +20,16 @@ function hasLOS(from, to, map) {
     var tile = row && row[x0];
     if (!tile || tile.blocked) return false;
     var e2 = 2 * err;
-    if (e2 > -dy) { err -= dy; x0 += sx; }
-    if (e2 <  dx) { err += dx; y0 += sy; }
+    if (e2 > -dy) {
+      err -= dy;
+      x0 += sx;
+    }
+    if (e2 < dx) {
+      err += dx;
+      y0 += sy;
+    }
   }
 }
 
-provide('los', { hasLOS: hasLOS });
-log('Line-of-sight module loaded');
+provide("los", { hasLOS: hasLOS });
+log("Line-of-sight module loaded");

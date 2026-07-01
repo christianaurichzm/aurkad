@@ -1,0 +1,15 @@
+{
+  "//": "Editor support for module scripts. Not part of the build. server.js gets sandbox types from global.d.ts; client.js gets the engine object from clientEngine.d.ts.",
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "None",
+    "lib": ["ES2022", "DOM"],
+    "strict": false,
+    "noEmit": true,
+    "checkJs": true,
+    "allowJs": true,
+    "types": []
+  },
+  "files": ["../scripts/global.d.ts", "clientEngine.d.ts"],
+  "include": ["**/*.js"]
+}

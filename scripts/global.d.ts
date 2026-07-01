@@ -136,6 +136,9 @@ interface HookPayloads {
 type HookEvent = keyof HookPayloads;
 type Unsubscribe = () => void;
 
+/** A module's config from game.json `modules`; undefined in game scripts. */
+declare const config: Record<string, unknown> | undefined;
+
 // Global API (available in every script without import)
 
 /** Listen to a lifecycle event. Returns an unsubscribe function. */
@@ -376,7 +379,9 @@ interface QuestApi {
 declare function provide(name: string, api: unknown): void;
 
 /** An API a module published with provide(name), or undefined. */
-declare function use<T = unknown>(name: string): T | undefined;
+declare function use(name: 'dialog'): DialogApi | undefined;
+declare function use(name: 'quest'): QuestApi | undefined;
+declare function use<T = any>(name: string): T | undefined;
 
 /** Permission levels for command access. */
 declare const Access: { readonly USER: 0; readonly MOD: 1; readonly ADMIN: 2 };
@@ -417,10 +422,10 @@ declare function command(
 declare function setTimeout(callback: () => void, ms: number): void;
 
 /** Runs a callback every `ms` milliseconds; cancelled on reload. */
-declare function setInterval(callback: () => void, ms: number): NodeJS.Timeout;
+declare function setInterval(callback: () => void, ms: number): number;
 
 /** Cancel an interval created with setInterval. */
-declare function clearInterval(id: NodeJS.Timeout): void;
+declare function clearInterval(id: number): void;
 
 /** Log an info message (visible in server logs). */
 declare function log(...args: unknown[]): void;
@@ -430,9 +435,3 @@ declare function warn(...args: unknown[]): void;
 
 /** Log an error. */
 declare function error(...args: unknown[]): void;
-
-declare const console: {
-  log: typeof log;
-  warn: typeof warn;
-  error: typeof error;
-};

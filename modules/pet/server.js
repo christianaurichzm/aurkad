@@ -1,3 +1,4 @@
+// @ts-check
 // Pet module: /pet summons a follower that walks like an npc, fights nearby
 // enemies for its owner and follows across maps, all on the script API.
 
@@ -16,7 +17,7 @@ function spawnPet(player) {
     row,
     name: player.name + "'s Pet",
     maxHealth: 40,
-    behavior: 'friendly', // passive AI (this module drives it); renders green
+    behavior: "friendly", // passive AI (this module drives it); renders green
   });
   if (pet) pets[player.name] = pet;
   return pet;
@@ -29,29 +30,34 @@ function dismiss(name) {
   }
 }
 
-const isEnemy = (n) => n.behavior === 'aggressive' || n.behavior === 'hostile';
+const isEnemy = (n) => n.behavior === "aggressive" || n.behavior === "hostile";
 const chebyshev = (a, b) => Math.max(Math.abs(a.x - b.x), Math.abs(a.y - b.y));
 
 function face(npc, target) {
   const dx = target.position.x - npc.position.x;
   const dy = target.position.y - npc.position.y;
-  if (Math.abs(dx) > Math.abs(dy)) npc.direction = dx > 0 ? 2 : 1; // Right / Left
+  if (Math.abs(dx) > Math.abs(dy))
+    npc.direction = dx > 0 ? 2 : 1; // Right / Left
   else npc.direction = dy > 0 ? 0 : 3; // Down / Up
 }
 
-command('pet', { description: 'Summon or dismiss your pet' }, ({ player, reply }) => {
-  if (!player) return reply('In-game only.');
-  if (pets[player.name]) {
-    dismiss(player.name);
-    return reply('Pet dismissed.');
-  }
-  spawnPet(player);
-  reply('Pet summoned.');
-});
+command(
+  "pet",
+  { description: "Summon or dismiss your pet" },
+  ({ player, reply }) => {
+    if (!player) return reply("In-game only.");
+    if (pets[player.name]) {
+      dismiss(player.name);
+      return reply("Pet dismissed.");
+    }
+    spawnPet(player);
+    reply("Pet summoned.");
+  },
+);
 
-on('playerLeave', ({ player }) => dismiss(player.name));
+on("playerLeave", ({ player }) => dismiss(player.name));
 
-on('tick', ({ tick }) => {
+on("tick", ({ tick }) => {
   if (tick % cadence !== 0) return;
 
   for (const name in pets) {
@@ -72,7 +78,12 @@ on('tick', ({ tick }) => {
     // Nearest enemy around the pet.
     let target = null;
     let best = Infinity;
-    for (const e of getNearbyNpcs(pet.mapId, pet.position.x, pet.position.y, aggroRadius)) {
+    for (const e of getNearbyNpcs(
+      pet.mapId,
+      pet.position.x,
+      pet.position.y,
+      aggroRadius,
+    )) {
       if (!isEnemy(e)) continue;
       const d = chebyshev(pet.position, e.position);
       if (d < best) {
@@ -83,16 +94,16 @@ on('tick', ({ tick }) => {
 
     if (target && best <= TILE_SIZE) {
       face(pet, target);
-      pet.action = 'Attack';
+      pet.action = "Attack";
       dealDamage(target, petAttack, owner); // owner gets the kill credit
     } else if (target) {
       moveNpcToward(pet, target.position.x, target.position.y);
     } else if (chebyshev(pet.position, owner.position) > TILE_SIZE) {
       moveNpcToward(pet, owner.position.x, owner.position.y);
     } else {
-      pet.action = 'Idle';
+      pet.action = "Idle";
     }
   }
 });
 
-log('Pet module ready.');
+log("Pet module ready.");

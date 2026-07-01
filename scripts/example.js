@@ -1,3 +1,4 @@
+// @ts-check
 // Starter game script: edit this file to define your game's rules.
 // Everything here runs on the server, and saving hot-reloads it.
 // Full API reference at the bottom of this file; types in scripts/global.d.ts.
@@ -6,8 +7,8 @@
 // Grab module APIs once at load time. They are undefined if the module is
 // disabled in game.json. Guard with `if (dialog) ...` when in doubt.
 
-const dialog = use('dialog'); // NPC dialog boxes (press F near an NPC)
-const quest  = use('quest');  // quest tracker panel (Q key)
+const dialog = use("dialog"); // NPC dialog boxes (press F near an NPC)
+const quest = use("quest"); // quest tracker panel (Q key)
 
 // ─── QUESTS ──────────────────────────────────────────────────────────────────
 // Define all quests at load time. quest.define is safe to call again on
@@ -15,54 +16,60 @@ const quest  = use('quest');  // quest tracker panel (Q key)
 
 if (quest) {
   quest.define({
-    id: 'goblinHunt',
-    name: 'Goblin Hunt',
-    description: 'Defeat 3 Goblins for the Elder.',
+    id: "goblinHunt",
+    name: "Goblin Hunt",
+    description: "Defeat 3 Goblins for the Elder.",
     target: 3,
     reward: (player) => {
       giveExperience(player, 100);
       giveItem(player, 1, 2); // 2× Health Potion (item id 1)
-      sendMessage(player, 'The Elder rewards you with potions and experience.');
+      sendMessage(player, "The Elder rewards you with potions and experience.");
     },
   });
 
   quest.define({
-    id: 'orcSlayer',
-    name: 'Orc Slayer',
-    description: 'Prove yourself by defeating 5 Orcs.',
+    id: "orcSlayer",
+    name: "Orc Slayer",
+    description: "Prove yourself by defeating 5 Orcs.",
     target: 5,
     reward: (player) => {
       giveExperience(player, 500);
       giveItem(player, 8, 1); // Steel Sword (item id 8)
-      sendMessage(player, 'The Elder gives you a steel sword as reward!');
+      sendMessage(player, "The Elder gives you a steel sword as reward!");
     },
   });
 }
 
 // ─── WELCOME ─────────────────────────────────────────────────────────────────
 
-on('playerJoin', ({ player }) => {
-  sendMessage(player, `Welcome, ${player.name}! Press F near an NPC to interact.`);
+on("playerJoin", ({ player }) => {
+  sendMessage(
+    player,
+    `Welcome, ${player.name}! Press F near an NPC to interact.`,
+  );
 
   // Give a starter kit to brand-new players (level 1, empty inventory).
   if (player.level === 1 && player.inventory.items.length === 0) {
     giveItem(player, 1, 3); // 3× Health Potion
     giveItem(player, 3, 10); // 10 Gold Coins
-    sendMessage(player, 'You received a starter kit: 3 Health Potions and 10 Gold Coins.');
+    sendMessage(
+      player,
+      "You received a starter kit: 3 Health Potions and 10 Gold Coins.",
+    );
   }
 });
 
-on('playerLevelUp', ({ player, level }) => {
+on("playerLevelUp", ({ player, level }) => {
   broadcastMessage(`★ ${player.name} reached level ${level}!`);
 });
 
 // ─── NPC INTERACTIONS ────────────────────────────────────────────────────────
 // Press F while facing an NPC to trigger npcInteract.
 
-on('npcInteract', ({ player, npc }) => {
+on("npcInteract", ({ player, npc }) => {
   if (!dialog) return;
 
-  if (npc.name === 'Elder') {
+  if (npc.name === "Elder") {
     handleElderDialog(player);
     return;
   }
@@ -74,22 +81,22 @@ on('npcInteract', ({ player, npc }) => {
 function handleElderDialog(player) {
   if (!quest || !dialog) return;
 
-  const goblinQ = quest.get(player, 'goblinHunt');
-  const orcQ    = quest.get(player, 'orcSlayer');
+  const goblinQ = quest.get(player, "goblinHunt");
+  const orcQ = quest.get(player, "orcSlayer");
 
   if (!goblinQ) {
     // First visit: offer the introductory quest.
     dialog.show(
       player,
       {
-        text: 'Elder: Our village is overrun by goblins. Will you help us?',
-        choices: ['I will help', 'Maybe later'],
+        text: "Elder: Our village is overrun by goblins. Will you help us?",
+        choices: ["I will help", "Maybe later"],
       },
       (choice) => {
         if (choice === 0) {
-          quest.start(player, 'goblinHunt');
+          quest.start(player, "goblinHunt");
           dialog.show(player, {
-            text: 'Elder: Slay 3 Goblins and return to me. Safe travels.',
+            text: "Elder: Slay 3 Goblins and return to me. Safe travels.",
           });
         }
       },
@@ -97,7 +104,7 @@ function handleElderDialog(player) {
     return;
   }
 
-  if (goblinQ.status === 'active') {
+  if (goblinQ.status === "active") {
     dialog.show(player, {
       text: `Elder: You have defeated ${goblinQ.progress} of ${goblinQ.target} goblins. Keep going!`,
     });
@@ -109,68 +116,90 @@ function handleElderDialog(player) {
     dialog.show(
       player,
       {
-        text: 'Elder: You have my thanks! But stronger foes lurk to the east - Orcs. Will you face them?',
-        choices: ['I accept', 'Not yet'],
+        text: "Elder: You have my thanks! But stronger foes lurk to the east - Orcs. Will you face them?",
+        choices: ["I accept", "Not yet"],
       },
       (choice) => {
-        if (choice === 0) quest.start(player, 'orcSlayer');
+        if (choice === 0) quest.start(player, "orcSlayer");
       },
     );
     return;
   }
 
-  if (orcQ.status === 'active') {
+  if (orcQ.status === "active") {
     dialog.show(player, {
       text: `Elder: ${orcQ.progress}/${orcQ.target} orcs defeated. You are almost there!`,
     });
     return;
   }
 
-  dialog.show(player, { text: 'Elder: You are a true hero. The village is forever grateful.' });
+  dialog.show(player, {
+    text: "Elder: You are a true hero. The village is forever grateful.",
+  });
 }
 
 // ─── QUEST PROGRESSION ───────────────────────────────────────────────────────
 
-on('npcDeath', ({ npc, killer }) => {
+on("npcDeath", ({ npc, killer }) => {
   if (!quest) return;
-  if (npc.name === 'Goblin') quest.advance(killer, 'goblinHunt', 1);
-  if (npc.name === 'Orc')    quest.advance(killer, 'orcSlayer', 1);
+  if (npc.name === "Goblin") quest.advance(killer, "goblinHunt", 1);
+  if (npc.name === "Orc") quest.advance(killer, "orcSlayer", 1);
 });
 
 // ─── DEATH ───────────────────────────────────────────────────────────────────
 
-on('playerDeath', ({ player, killer }) => {
-  const by = killer ? ` by ${killer.name}` : '';
+on("playerDeath", ({ player, killer }) => {
+  const by = killer ? ` by ${killer.name}` : "";
   broadcastMessage(`${player.name} was defeated${by}.`);
 });
 
 // ─── ADMIN COMMANDS ──────────────────────────────────────────────────────────
 
-command('heal', { access: Access.MOD, description: 'Fully heal a player' }, ({ args, reply }) => {
-  const target = args[0] ? getPlayer(args[0]) : null;
-  if (!target) return reply('Usage: /heal <player>');
-  healPlayer(target);
-  reply(`${target.name} healed.`);
-});
+command(
+  "heal",
+  { access: Access.MOD, description: "Fully heal a player" },
+  ({ args, reply }) => {
+    const target = args[0] ? getPlayer(args[0]) : null;
+    if (!target) return reply("Usage: /heal <player>");
+    healPlayer(target);
+    reply(`${target.name} healed.`);
+  },
+);
 
-command('give', { access: Access.ADMIN, description: 'Give item to a player: /give <player> <itemId> [qty]' }, ({ args, reply }) => {
-  const target = getPlayer(args[0]);
-  const itemId = parseInt(args[1]);
-  const qty    = parseInt(args[2]) || 1;
-  if (!target || !itemId) return reply('Usage: /give <player> <itemId> [qty]');
-  giveItem(target, itemId, qty);
-  reply(`Gave ${qty}× item #${itemId} to ${target.name}.`);
-});
+command(
+  "give",
+  {
+    access: Access.ADMIN,
+    description: "Give item to a player: /give <player> <itemId> [qty]",
+  },
+  ({ args, reply }) => {
+    const target = getPlayer(args[0]);
+    const itemId = parseInt(args[1]);
+    const qty = parseInt(args[2]) || 1;
+    if (!target || !itemId)
+      return reply("Usage: /give <player> <itemId> [qty]");
+    giveItem(target, itemId, qty);
+    reply(`Gave ${qty}× item #${itemId} to ${target.name}.`);
+  },
+);
 
-command('tp', { access: Access.ADMIN, description: 'Teleport: /tp <player> <mapId> <col> <row>' }, ({ args, reply }) => {
-  const target = getPlayer(args[0]);
-  const mapId  = args[1];
-  const col    = parseInt(args[2]);
-  const row    = parseInt(args[3]);
-  if (!target || !mapId || isNaN(col) || isNaN(row)) return reply('Usage: /tp <player> <mapId> <col> <row>');
-  teleportPlayer(target, mapId, col, row);
-  reply(`Teleported ${target.name} to map ${mapId} (${col}, ${row}).`);
-});
+command(
+  "tp",
+  {
+    access: Access.ADMIN,
+    description: "Teleport: /tp <player> <mapId> <col> <row>",
+  },
+  ({ args, reply }) => {
+    const target = getPlayer(args[0]);
+    const mapId = args[1];
+    const col = parseInt(args[2]);
+    const row = parseInt(args[3]);
+    if (!target || !mapId || isNaN(col) || isNaN(row))
+      return reply("Usage: /tp <player> <mapId> <col> <row>");
+    teleportPlayer(target, mapId, col, row);
+    reply(`Teleported ${target.name} to map ${mapId} (${col}, ${row}).`);
+  },
+);
 
 // ─────────────────────────────────────────────────────────────────────────────
 // COOKBOOK: copy any block above the dashed line to activate it

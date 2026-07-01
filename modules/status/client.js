@@ -1,13 +1,14 @@
+// @ts-check
 // Status module, client entry: a row of status badges under the XP bar,
 // so active buffs and debuffs stay visible.
 
 const COLORS = {
-  shield: '#3b82f6',
-  fury: '#ef4444',
-  regen: '#22c55e',
-  poison: '#a855f7',
+  shield: "#3b82f6",
+  fury: "#ef4444",
+  regen: "#22c55e",
+  poison: "#a855f7",
 };
-const DEFAULT_COLOR = '#f59e0b';
+const DEFAULT_COLOR = "#f59e0b";
 
 let statuses = [];
 let serverTick = 0;
@@ -15,22 +16,22 @@ let bar = null;
 
 function ensureBar() {
   if (bar) return bar;
-  bar = document.createElement('div');
-  bar.id = 'status-bar';
+  bar = document.createElement("div");
+  bar.id = "status-bar";
   bar.style.cssText =
-    'display:flex;gap:4px;flex-wrap:wrap;padding:2px 6px 4px;min-height:0;';
-  const hud = document.getElementById('hud');
+    "display:flex;gap:4px;flex-wrap:wrap;padding:2px 6px 4px;min-height:0;";
+  const hud = document.getElementById("hud");
   if (hud) hud.appendChild(bar);
   else document.body.appendChild(bar);
   return bar;
 }
 
 function badge(status, tick) {
-  const el = document.createElement('span');
+  const el = document.createElement("span");
   const ticksLeft = Math.max(0, (status.expiresAt || 0) - tick);
   const secsLeft = Math.ceil(ticksLeft / 20);
   const color = COLORS[status.id] || DEFAULT_COLOR;
-  el.textContent = `${status.name || status.id}${secsLeft > 0 ? ` ${secsLeft}s` : ''}`;
+  el.textContent = `${status.name || status.id}${secsLeft > 0 ? ` ${secsLeft}s` : ""}`;
   el.style.cssText =
     `background:${color};color:#fff;font:bold 10px sans-serif;` +
     `border-radius:3px;padding:1px 5px;white-space:nowrap;`;
@@ -40,15 +41,16 @@ function badge(status, tick) {
 
 function render() {
   const b = ensureBar();
-  b.innerHTML = '';
+  b.innerHTML = "";
   // The current tick, estimated from the last push at 20 Hz (50 ms a tick).
-  const estimatedTick = serverTick + Math.floor((Date.now() - lastPushTime) / 50);
+  const estimatedTick =
+    serverTick + Math.floor((Date.now() - lastPushTime) / 50);
   for (const s of statuses) b.appendChild(badge(s, estimatedTick));
 }
 
 let lastPushTime = Date.now();
 
-engine.onServerEvent('status:update', (data) => {
+engine.onServerEvent("status:update", (data) => {
   if (!data || !Array.isArray(data.statuses)) return;
   serverTick = data.tick || 0;
   lastPushTime = Date.now();
@@ -61,4 +63,4 @@ setInterval(() => {
   if (statuses.length) render();
 }, 1000);
 
-engine.sendServerEvent('status:request');
+engine.sendServerEvent("status:request");
