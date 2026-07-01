@@ -51,6 +51,35 @@ npm run dev            # server (8080) + client dev server with HMR
 - **Maps, NPCs, items, shops** - edited in-game via the admin tools, or managed
   through the admin REPL (console attached to the running server).
 
+## Content packs
+
+Export and import all game content (maps, NPCs, items, shops, spells, arrows) as a JSON bundle:
+
+```bash
+npm run content:export   # writes content/pack.json
+npm run content:import   # loads content/pack.json into MongoDB
+```
+
+## Replay
+
+Record a session by starting the server with `REPLAY_RECORD=true`. On shutdown the session is saved to `replays/<timestamp>.json`.
+
+```bash
+npm run replay -- replays/<file>.json        # summary + ASCII timeline
+npm run replay -- replays/<file>.json --run  # also runs headless simulation
+```
+
+## Multi-instance (sharding by map)
+
+Each instance declares which maps it owns. On cross-map warp the client is transparently redirected to the correct instance.
+
+```bash
+WS_PUBLIC_URL=ws://host:8080 MAP_IDS=map1,map2 PORT=8080 npm start
+WS_PUBLIC_URL=ws://host:8081 MAP_IDS=map3,map4 PORT=8081 npm start
+```
+
+See `docker-compose.yml` for a commented two-instance Docker example.
+
 ## Tests
 
 ```bash
