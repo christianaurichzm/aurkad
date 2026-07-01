@@ -38,5 +38,33 @@ services:
       - ./content:/app/content:ro
       - ./modules:/app/modules:ro
 
+  # --- Multi-instance example (sharding by map) ---
+  # Uncomment and adjust to run two server instances splitting maps between them.
+  # Each instance must have a unique WS_PUBLIC_URL and a non-overlapping MAP_IDS.
+  # A reverse proxy (nginx/Caddy) should route players to the correct instance.
+  #
+  # app-b:
+  #   build: .
+  #   container_name: engine-app-b
+  #   restart: unless-stopped
+  #   depends_on:
+  #     mongo:
+  #       condition: service_healthy
+  #   ports:
+  #     - '8081:8081'
+  #   environment:
+  #     NODE_ENV: production
+  #     PORT: '8081'
+  #     MONGO_URI: mongodb://mongo:27017/game
+  #     SESSION_SECRET: ${SESSION_SECRET:?set SESSION_SECRET in .env}
+  #     WS_PUBLIC_URL: ws://your-host:8081
+  #     MAP_IDS: map3,map4
+  #   volumes:
+  #     - ./game.json:/app/game.json:ro
+  #     - ./scripts:/app/scripts:ro
+  #     - ./assets:/app/assets:ro
+  #     - ./content:/app/content:ro
+  #     - ./modules:/app/modules:ro
+
 volumes:
   mongo-data:
