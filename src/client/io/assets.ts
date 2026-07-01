@@ -26,17 +26,10 @@ function makeColorKeyCanvas(bitmap: ImageBitmap): HTMLCanvasElement {
   ctx.drawImage(bitmap, 0, 0);
   const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
   const d = imageData.data;
-  const w = canvas.width,
-    h = canvas.height;
-  const cornerIdx = [0, w - 1, (h - 1) * w, (h - 1) * w + (w - 1)];
-  if (cornerIdx.some((i) => d[i * 4 + 3] === 0)) return canvas;
-  const freq = new Map<string, number>();
-  for (const i of cornerIdx) {
-    const k = `${d[i * 4]},${d[i * 4 + 1]},${d[i * 4 + 2]}`;
-    freq.set(k, (freq.get(k) ?? 0) + 1);
-  }
-  const bgKey = [...freq.entries()].sort((a, b) => b[1] - a[1])[0][0];
-  const [bgR, bgG, bgB] = bgKey.split(',').map(Number);
+  if (d[3] === 0) return canvas;
+  const bgR = d[0],
+    bgG = d[1],
+    bgB = d[2];
   for (let i = 0; i < d.length; i += 4) {
     if (
       Math.abs(d[i] - bgR) <= 2 &&
