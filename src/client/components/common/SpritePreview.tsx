@@ -32,7 +32,7 @@ export const SpritePreview: React.FC<SpritePreviewProps> = ({
       const sx = (spriteId % tilesPerRow) * ts;
       const sy = Math.floor(spriteId / tilesPerRow) * ts;
       ctx.drawImage(sheet, sx, sy, ts, ts, 0, 0, size, size);
-    } else if (tileSize === undefined) {
+    } else {
       drawSpriteGeneric(ctx, spriteId, 0, 0, 0, 0, size, size);
     }
   }, [spriteId, size, sheet, tileSize]);
