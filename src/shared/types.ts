@@ -401,6 +401,8 @@ export interface Spell {
   sprite: number;
   mpCost: number;
   damage: number;
+  cooldownMs: number;
+  visualTarget: 'self' | 'targets';
 }
 
 export interface MapChunkPayload {

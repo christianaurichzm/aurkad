@@ -41,3 +41,11 @@ export async function deleteSpell(id: number): Promise<void> {
   await SpellModel.deleteOne({ id });
   spells.delete(id);
 }
+
+export function getSpellSync(id: number): Spell | undefined {
+  return spells.get(id);
+}
+
+export function getAllSpells(): Spell[] {
+  return [...spells.values()];
+}

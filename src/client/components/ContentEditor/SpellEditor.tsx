@@ -23,6 +23,8 @@ type SpellForm = {
   sprite: number;
   mpCost: number;
   damage: number;
+  cooldownMs: number;
+  visualTarget: 'self' | 'targets';
 };
 
 const defaults: SpellForm = {
@@ -31,6 +33,8 @@ const defaults: SpellForm = {
   sprite: 0,
   mpCost: 0,
   damage: 0,
+  cooldownMs: 3000,
+  visualTarget: 'self',
 };
 
 export const SpellEditor: React.FC<SpellEditorProps> = ({
@@ -70,6 +74,8 @@ export const SpellEditor: React.FC<SpellEditorProps> = ({
         sprite: s.sprite,
         mpCost: s.mpCost,
         damage: s.damage,
+        cooldownMs: s.cooldownMs ?? 0,
+        visualTarget: s.visualTarget ?? 'self',
       });
   };
 
@@ -157,6 +163,22 @@ export const SpellEditor: React.FC<SpellEditorProps> = ({
             {...register('damage', { valueAsNumber: true })}
           />
         </div>
+        <div style={field}>
+          <label style={label}>CD (ms)</label>
+          <input
+            style={{ ...input, width: 80 }}
+            type="number"
+            min={0}
+            {...register('cooldownMs', { valueAsNumber: true })}
+          />
+        </div>
+      </div>
+      <div style={field}>
+        <label style={label}>Visual target</label>
+        <select style={input} {...register('visualTarget')}>
+          <option value="self">Self (buff / heal)</option>
+          <option value="targets">Targets hit (damage)</option>
+        </select>
       </div>
       <div style={{ display: 'flex', gap: 8 }}>
         <button type="submit" style={saveBtn} disabled={!name.trim()}>

@@ -177,6 +177,8 @@ export const CreateSpellBodySchema = z.object({
   sprite: z.number().int().nonnegative(),
   mpCost: z.number().int().nonnegative().default(0),
   damage: z.number().int().nonnegative().default(0),
+  cooldownMs: z.number().int().nonnegative().default(0),
+  visualTarget: z.enum(['self', 'targets']).default('self'),
 });
 
 export const ResizeMapBodySchema = z.object({

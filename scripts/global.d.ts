@@ -153,6 +153,50 @@ declare function getPlayers(): PlayerServer[];
 /** Living NPCs within `radius` px of a point (AoE spells, pet targeting). */
 declare function getNearbyNpcs(mapId: string, x: number, y: number, radius: number): RuntimeNpc[];
 
+interface SpellData {
+  id: number;
+  name: string;
+  description: string;
+  sprite: number;
+  mpCost: number;
+  damage: number;
+  cooldownMs: number;
+  visualTarget: 'self' | 'targets';
+}
+
+/** All spells defined in the database (via SpellEditor). */
+declare function getSpells(): SpellData[];
+
+/**
+ * Saves spells to the database one after another, without waiting. For a
+ * module seeding its built-ins in SpellEditor when getSpells() is empty.
+ */
+declare function createSpells(spells: Omit<SpellData, 'id'>[]): void;
+
+interface ArrowData {
+  id: number;
+  name: string;
+  sprite: number;
+  damage: number;
+  rangeTiles?: number;
+  tileSpeed?: number;
+}
+
+/** Look up an arrow by numeric id. */
+declare function getArrow(id: number): ArrowData | undefined;
+
+/** All arrows defined in the database. */
+declare function getArrows(): ArrowData[];
+
+/** Look up an item by numeric id. */
+declare function getItem(id: number): { id: number; name: string; type: string; arrowId?: number } | undefined;
+
+/** Tile size in pixels for a map (returns undefined if map doesn't exist). */
+declare function getMapSize(mapId: string): { cols: number; rows: number } | undefined;
+
+/** Returns tile info at (col, row), or null if out of bounds. */
+declare function getMapTile(mapId: string, col: number, row: number): { blocked: boolean } | null;
+
 type PvpMorale = 'safe' | 'normal' | 'no-penalty';
 
 /** A map's PvP morale (e.g. a PK module reads this on playerDeath). */

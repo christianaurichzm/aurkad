@@ -28,6 +28,10 @@ import { spawnNpc, despawnNpc } from '../../services/npc/spawn.js';
 import { stepNpcToward } from '../../services/npc/behaviors.js';
 import { getItemById } from '../../services/inventoryService.js';
 import { getArrowSync, getAllArrows } from '../../services/arrowService.js';
+import {
+  getAllSpells,
+  createOrUpdateSpell,
+} from '../../services/spellService.js';
 import { queryEntitiesInRadius } from '../../spatial/spatialManager.js';
 import type { SpawnNpcOptions } from '../../services/npc/spawn.js';
 import { resolveDamage, mapPvpMorale } from '../../services/combat/index.js';
@@ -179,6 +183,50 @@ export function buildApi(
         ...(a.rangeTiles != null && { rangeTiles: a.rangeTiles }),
         ...(a.tileSpeed != null && { tileSpeed: a.tileSpeed }),
       })),
+
+    // Spell definitions from the database, each with its name, mpCost,
+    // damage, cooldownMs and sprite.
+    getSpells: (): {
+      id: number;
+      name: string;
+      description: string;
+      sprite: number;
+      mpCost: number;
+      damage: number;
+      cooldownMs: number;
+    }[] => getAllSpells().map((s) => ({ ...s })),
+
+    // Saves spells to the database one by one, without waiting. Use it when
+    // getSpells() is empty, to seed built-ins the SpellEditor then shows.
+    createSpells: (
+      spellList: {
+        name: string;
+        description?: string;
+        sprite: number;
+        mpCost: number;
+        damage: number;
+        cooldownMs: number;
+        visualTarget?: 'self' | 'targets';
+      }[],
+    ): void => {
+      const run = async () => {
+        for (const spell of spellList) {
+          await createOrUpdateSpell({
+            name: spell.name,
+            description: spell.description ?? '',
+            sprite: Number(spell.sprite),
+            mpCost: Number(spell.mpCost),
+            damage: Number(spell.damage),
+            cooldownMs: Number(spell.cooldownMs),
+            visualTarget:
+              spell.visualTarget ?? (spell.damage > 0 ? 'targets' : 'self'),
+          });
+        }
+      };
+      void run().catch((e) =>
+        logger.error(`[script:${scriptName}] createSpells failed`, { err: e }),
+      );
+    },
 
     // Item metadata lookup, with arrowId for ranged weapons.
     getItem: (

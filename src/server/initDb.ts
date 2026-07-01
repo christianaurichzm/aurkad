@@ -8,6 +8,7 @@ import {
 import { createDefaultTiles, items, runtimeState } from './gameData.js';
 import { listItems } from './services/inventoryService.js';
 import { loadArrows } from './services/arrowService.js';
+import { loadSpells } from './services/spellService.js';
 import { MapStateServer } from '../shared/types.js';
 import { config } from './config.js';
 
@@ -81,6 +82,7 @@ export async function loadInitialData() {
     }
 
     await loadArrows();
+    await loadSpells();
     logger.info('Data successfully loaded from database into memory');
   } catch (error) {
     logger.error('Failed to load initial data', { err: error });

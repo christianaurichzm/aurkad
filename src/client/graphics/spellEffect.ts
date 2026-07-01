@@ -26,6 +26,7 @@ export function spawnSpellEffect(x: number, y: number, sprite: number): void {
   if (!spellSheet) return;
   const slot = pool.acquire();
   if (!slot) return;
+  slot.active = true;
   slot.x = x;
   slot.y = y;
   slot.sprite = sprite;

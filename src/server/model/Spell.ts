@@ -8,6 +8,8 @@ const SpellSchema = new mongoose.Schema(
     sprite: { type: Number, required: true, min: 0 },
     mpCost: { type: Number, required: true, min: 0, default: 0 },
     damage: { type: Number, required: true, min: 0, default: 0 },
+    cooldownMs: { type: Number, required: true, min: 0, default: 0 },
+    visualTarget: { type: String, enum: ['self', 'targets'], default: 'self' },
   },
   { _id: false },
 );
