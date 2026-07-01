@@ -1,6 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { Controller, useForm } from 'react-hook-form';
-import { RuntimeNpc, NpcBehavior, Item } from '../../../shared/types';
+import {
+  RuntimeNpc,
+  NpcBehavior,
+  Item,
+  NpcItemDrop,
+} from '../../../shared/types';
 import { updateNpc, createNpc, deleteNpc } from '../../io/network';
 import { chatResultMsg } from '../ChatPanel';
 import { AsyncSelect } from '../common/Select/AsyncSelect';
@@ -25,9 +30,6 @@ type NpcFormValues = {
   attack: number;
   behavior: NpcBehavior;
   exp: number;
-  dropItemId: number;
-  dropChance: number;
-  dropQuantity: number;
 };
 
 const defaultValues: NpcFormValues = {
@@ -37,26 +39,22 @@ const defaultValues: NpcFormValues = {
   attack: 1,
   behavior: 'neutral',
   exp: 0,
-  dropItemId: 0,
-  dropChance: 100,
-  dropQuantity: 1,
 };
 
-const npcToFormValues = (npc: RuntimeNpc): NpcFormValues => {
-  const drop = npc.itemsToDrop?.[0];
+const npcToFormValues = (npc: RuntimeNpc): NpcFormValues => ({
+  name: npc.name,
+  sprite: npc.sprite,
+  health: npc.maxHealth ?? 1,
+  attack: npc.attack ?? 1,
+  behavior: npc.behavior,
+  exp: npc.experienceValue ?? 0,
+});
 
-  return {
-    name: npc.name,
-    sprite: npc.sprite,
-    health: npc.maxHealth ?? 1,
-    attack: npc.attack ?? 1,
-    behavior: npc.behavior,
-    exp: npc.experienceValue ?? 0,
-    dropItemId: drop?.itemId ?? 0,
-    dropChance: drop ? Math.round(drop.chance * 100) : 100,
-    dropQuantity: drop?.quantity ?? 1,
-  };
-};
+const npcToDrops = (npc: RuntimeNpc): NpcItemDrop[] =>
+  (npc.itemsToDrop ?? []).map((d) => ({ ...d }));
+
+const dropsEqual = (a: NpcItemDrop[], b: NpcItemDrop[]): boolean =>
+  JSON.stringify(a) === JSON.stringify(b);
 
 export const NpcEditor: React.FC<NpcEditorProps> = ({
   npcs,
@@ -77,16 +75,28 @@ export const NpcEditor: React.FC<NpcEditorProps> = ({
     watch,
   } = useForm<NpcFormValues>({ defaultValues });
   const sprite = watch('sprite');
-  const dropItemId = watch('dropItemId');
+
+  const [drops, setDrops] = useState<NpcItemDrop[]>([]);
+  const [dropsBaseline, setDropsBaseline] = useState<NpcItemDrop[]>([]);
+  const [addItemId, setAddItemId] = useState<number>(0);
+  const [addChance, setAddChance] = useState<number>(100);
+  const [addQty, setAddQty] = useState<number>(1);
+
+  const dropsDirty = !dropsEqual(drops, dropsBaseline);
 
   useEffect(() => {
-    onDirtyChange(isDirty);
-  }, [isDirty, onDirtyChange]);
+    onDirtyChange(isDirty || dropsDirty);
+  }, [isDirty, dropsDirty, onDirtyChange]);
 
   const reset = async () => {
     if (!(await requestDiscard())) return;
     setSelectedId('');
     resetForm(defaultValues);
+    setDrops([]);
+    setDropsBaseline([]);
+    setAddItemId(0);
+    setAddChance(100);
+    setAddQty(1);
   };
 
   const selectNpc = async (id: string) => {
@@ -95,7 +105,32 @@ export const NpcEditor: React.FC<NpcEditorProps> = ({
     const npc = npcs.find((n) => n.id === id);
     if (npc) {
       resetForm(npcToFormValues(npc));
+      const initial = npcToDrops(npc);
+      setDrops(initial);
+      setDropsBaseline(initial);
     }
+    setAddItemId(0);
+    setAddChance(100);
+    setAddQty(1);
+  };
+
+  const addDrop = () => {
+    if (!addItemId) return;
+    setDrops((prev) => [
+      ...prev,
+      {
+        itemId: addItemId,
+        chance: Math.min(1, Math.max(0, addChance / 100)),
+        quantity: Math.max(1, Math.floor(addQty)),
+      },
+    ]);
+    setAddItemId(0);
+    setAddChance(100);
+    setAddQty(1);
+  };
+
+  const removeDrop = (index: number) => {
+    setDrops((prev) => prev.filter((_, i) => i !== index));
   };
 
   const saveNpc = async ({
@@ -105,9 +140,6 @@ export const NpcEditor: React.FC<NpcEditorProps> = ({
     attack,
     behavior,
     exp,
-    dropItemId,
-    dropChance,
-    dropQuantity,
   }: NpcFormValues) => {
     const data = {
       name,
@@ -116,15 +148,7 @@ export const NpcEditor: React.FC<NpcEditorProps> = ({
       attack,
       behavior,
       experienceValue: exp,
-      itemsToDrop: dropItemId
-        ? [
-            {
-              itemId: dropItemId,
-              chance: dropChance / 100,
-              quantity: Math.max(1, Math.floor(dropQuantity)),
-            },
-          ]
-        : [],
+      itemsToDrop: drops,
     };
     const result = selectedId
       ? await updateNpc(selectedId, data)
@@ -133,6 +157,8 @@ export const NpcEditor: React.FC<NpcEditorProps> = ({
     refreshData();
     setSelectedId('');
     resetForm(defaultValues);
+    setDrops([]);
+    setDropsBaseline([]);
   };
 
   const removeNpc = async () => {
@@ -142,6 +168,8 @@ export const NpcEditor: React.FC<NpcEditorProps> = ({
     refreshData();
     setSelectedId('');
     resetForm(defaultValues);
+    setDrops([]);
+    setDropsBaseline([]);
   };
 
   const behaviorOptions: { value: NpcBehavior; label: string }[] = [
@@ -153,7 +181,7 @@ export const NpcEditor: React.FC<NpcEditorProps> = ({
     { value: 'guard', label: 'Guard' },
   ];
 
-  const dropItem = dropItemId ? items.find((i) => i.id === dropItemId) : null;
+  const addItem = addItemId ? items.find((i) => i.id === addItemId) : null;
 
   return (
     <form style={container} onSubmit={handleSubmit(saveNpc)}>
@@ -237,50 +265,77 @@ export const NpcEditor: React.FC<NpcEditorProps> = ({
       </div>
 
       <div style={dropSection}>
-        <div style={dropRow}>
+        <label style={{ ...label, marginBottom: 6, display: 'block' }}>
+          Drops
+        </label>
+        {drops.length > 0 && (
+          <div style={dropList}>
+            {drops.map((drop, i) => {
+              const it = items.find((item) => item.id === drop.itemId);
+              return (
+                <div key={i} style={dropListRow}>
+                  {it && <ItemIcon spriteId={it.sprite} style={dropIcon} />}
+                  <span style={dropName}>
+                    {it?.name ?? `Item #${drop.itemId}`}
+                  </span>
+                  <span style={dropStat}>{Math.round(drop.chance * 100)}%</span>
+                  <span style={dropStat}>x{drop.quantity ?? 1}</span>
+                  <button
+                    type="button"
+                    style={removeBtn}
+                    onClick={() => removeDrop(i)}
+                  >
+                    ✕
+                  </button>
+                </div>
+              );
+            })}
+          </div>
+        )}
+        <div style={dropAddRow}>
           <div style={{ flex: 1 }}>
-            <label style={label}>Drop item</label>
-            <Controller
-              control={control}
-              name="dropItemId"
-              render={({ field }) => (
-                <AsyncSelect<number>
-                  loadOptions={loadItems}
-                  value={field.value}
-                  onChange={field.onChange}
-                />
-              )}
+            <AsyncSelect<number>
+              loadOptions={loadItems}
+              value={addItemId}
+              onChange={setAddItemId}
             />
           </div>
-          {!!dropItemId && (
-            <div style={{ width: 80 }}>
-              <label style={label}>Chance %</label>
-              <input
-                style={input}
-                type="number"
-                min={0}
-                max={100}
-                {...register('dropChance', {
-                  setValueAs: (value) =>
-                    Math.min(100, Math.max(0, Number(value))),
-                })}
-              />
-            </div>
-          )}
-          {!!dropItemId && (
-            <div style={{ width: 80 }}>
-              <label style={label}>Quantity</label>
-              <input
-                style={input}
-                type="number"
-                min={1}
-                {...register('dropQuantity', {
-                  setValueAs: (value) => Math.max(1, Math.floor(Number(value))),
-                })}
-              />
-            </div>
-          )}
-          {dropItem && <ItemIcon spriteId={dropItem.sprite} style={dropIcon} />}
+          <div style={{ width: 70 }}>
+            <input
+              style={input}
+              type="number"
+              min={0}
+              max={100}
+              value={addChance}
+              onChange={(e) =>
+                setAddChance(Math.min(100, Math.max(0, Number(e.target.value))))
+              }
+              placeholder="%"
+              title="Drop chance %"
+            />
+          </div>
+          <div style={{ width: 60 }}>
+            <input
+              style={input}
+              type="number"
+              min={1}
+              value={addQty}
+              onChange={(e) =>
+                setAddQty(Math.max(1, Math.floor(Number(e.target.value))))
+              }
+              placeholder="Qty"
+              title="Quantity"
+            />
+          </div>
+          {addItem && <ItemIcon spriteId={addItem.sprite} style={dropIcon} />}
+          <button
+            type="button"
+            style={addBtn}
+            onClick={addDrop}
+            disabled={!addItemId}
+          >
+            + Add
+          </button>
         </div>
       </div>
 
@@ -336,15 +391,43 @@ const dropSection: React.CSSProperties = {
   padding: '10px 12px',
 };
 
-const dropRow: React.CSSProperties = {
+const dropList: React.CSSProperties = {
   display: 'flex',
-  alignItems: 'flex-end',
-  gap: 10,
+  flexDirection: 'column',
+  gap: 6,
+  marginBottom: 8,
+};
+
+const dropListRow: React.CSSProperties = {
+  display: 'flex',
+  alignItems: 'center',
+  gap: 8,
+};
+
+const dropAddRow: React.CSSProperties = {
+  display: 'flex',
+  alignItems: 'center',
+  gap: 8,
+};
+
+const dropName: React.CSSProperties = {
+  flex: 1,
+  fontSize: 13,
+  overflow: 'hidden',
+  textOverflow: 'ellipsis',
+  whiteSpace: 'nowrap',
+};
+
+const dropStat: React.CSSProperties = {
+  fontSize: 12,
+  color: colors.textMuted,
+  minWidth: 36,
+  textAlign: 'right',
 };
 
 const dropIcon: React.CSSProperties = {
-  width: 36,
-  height: 36,
+  width: 28,
+  height: 28,
   border: `1px solid ${colors.border}`,
   borderRadius: radius.sm,
   flexShrink: 0,
@@ -410,4 +493,28 @@ const resetBtn: React.CSSProperties = {
   fontWeight: 600,
   fontSize: 13,
   whiteSpace: 'nowrap',
+};
+
+const removeBtn: React.CSSProperties = {
+  background: 'transparent',
+  color: colors.textMuted,
+  border: 'none',
+  cursor: 'pointer',
+  fontSize: 13,
+  padding: '2px 4px',
+  lineHeight: 1,
+  flexShrink: 0,
+};
+
+const addBtn: React.CSSProperties = {
+  background: colors.surfaceMuted,
+  color: colors.text,
+  border: `1px solid ${colors.border}`,
+  padding: '7px 10px',
+  borderRadius: radius.md,
+  cursor: 'pointer',
+  fontWeight: 600,
+  fontSize: 13,
+  whiteSpace: 'nowrap',
+  flexShrink: 0,
 };

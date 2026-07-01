@@ -1,12 +1,32 @@
+import { useEffect, useState } from 'react';
 import { useUIStore } from '../../stores/uiStore';
 import { getHealthBarInfo } from '../../graphics/hud';
+import { PLAYER_ATTACK_COOLDOWN_MS } from '../../../shared/constants';
 
 export const HudBar = () => {
   const { current, max, level = 1 } = useUIStore((state) => state.playerHealth);
   const xp = useUIStore((state) => state.playerXp);
+  const attackCooldownUntil = useUIStore((s) => s.attackCooldownUntil);
   const { percentage, color, text } = getHealthBarInfo(current, max);
   const xpPercentage =
     xp.max > 0 ? Math.max(0, Math.min(xp.current / xp.max, 1)) : 0;
+
+  const [cooldownFraction, setCooldownFraction] = useState(0);
+
+  useEffect(() => {
+    let rafId: number;
+    const update = () => {
+      const remaining = attackCooldownUntil - Date.now();
+      if (remaining <= 0) {
+        setCooldownFraction(0);
+        return;
+      }
+      setCooldownFraction(remaining / PLAYER_ATTACK_COOLDOWN_MS);
+      rafId = requestAnimationFrame(update);
+    };
+    rafId = requestAnimationFrame(update);
+    return () => cancelAnimationFrame(rafId);
+  }, [attackCooldownUntil]);
 
   return (
     <div id="hud">
@@ -33,6 +53,15 @@ export const HudBar = () => {
           XP {xp.current}/{xp.max}
         </div>
       </div>
+      {cooldownFraction > 0 && (
+        <div id="atk-cooldown-container" title="Attack cooldown">
+          <div
+            id="atk-cooldown-bar"
+            style={{ width: `${cooldownFraction * 100}%` }}
+          />
+          <div id="atk-cooldown-label">ATK</div>
+        </div>
+      )}
     </div>
   );
 };

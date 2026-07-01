@@ -10,6 +10,7 @@ export const TICK_RATE = 20;
 export const GAME_WIDTH = 1280;
 export const GAME_HEIGHT = 896;
 export const CHUNK_SIZE = 16;
+export const PLAYER_ATTACK_COOLDOWN_MS = 250;
 export const EQUIPMENT_SLOTS = [
   'weapon',
   'helmet',

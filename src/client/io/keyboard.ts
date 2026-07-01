@@ -8,6 +8,8 @@ import {
 } from './network';
 import { getAnimatedState } from '../graphics/movementAnimation';
 import { getPlayer } from '../core/gameState';
+import { useUIStore } from '../stores/uiStore';
+import { PLAYER_ATTACK_COOLDOWN_MS } from '../../shared/constants';
 
 const isValidKey = (value: string): value is Key =>
   Object.values(Key).includes(value as Key);
@@ -66,6 +68,9 @@ export function flushInputBuffer(): void {
   bufferedPress = null;
   const seq = ++inputSeq;
   sendAction({ type: 'keyboard', keyboardAction: { key, type: 'press' }, seq });
+  if (key === Key.Control) {
+    useUIStore.getState().setAttackCooldown(PLAYER_ATTACK_COOLDOWN_MS);
+  }
 }
 
 const releaseKey = (key: Key) => {
@@ -106,6 +111,9 @@ export const handleInput = () => {
         keyboardAction: { key: e.key, type: 'press' },
         seq,
       });
+      if (e.key === Key.Control) {
+        useUIStore.getState().setAttackCooldown(PLAYER_ATTACK_COOLDOWN_MS);
+      }
     } else {
       await handleKeyPress(e.key);
     }
