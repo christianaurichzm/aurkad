@@ -115,6 +115,14 @@ export const config = {
       max: 20,
     }),
   },
+  instance: {
+    wsPublicUrl: process.env.WS_PUBLIC_URL,
+    mapIds: parseCsvEnv('MAP_IDS'),
+    heartbeatMs: parseIntEnv('INSTANCE_HEARTBEAT_MS', 30_000, {
+      min: 5_000,
+      max: 300_000,
+    }),
+  },
   persistence: {
     playerSnapshotIntervalMs: parseIntEnv(
       'PLAYER_SNAPSHOT_INTERVAL_MS',

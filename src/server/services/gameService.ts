@@ -56,19 +56,64 @@ import {
 } from './playerService.js';
 import { handleChatAction } from './chatService.js';
 import { logger } from '../logger.js';
+import { lookupInstanceUrl } from '../persistence/instanceRegistry.js';
+
+function resetMovement(player: PlayerServer): void {
+  player.targetPosition = undefined;
+  player.moving = false;
+  player.action = CharacterAction.Idle;
+  player.moveTick = undefined;
+  player.moveDurationTicks = undefined;
+}
+
+function redirectPlayer(
+  player: PlayerServer,
+  toMapId: string,
+  toPosition: Position,
+  wsUrl: string,
+): void {
+  player.mapId = toMapId;
+  player.position = toPosition;
+  resetMovement(player);
+  const ws = playersWsMap.get(player.name);
+  if (ws && ws.readyState === ws.OPEN) {
+    ws.send(JSON.stringify({ type: 'redirect', url: wsUrl }));
+    ws.close();
+  }
+  playersWsMap.delete(player.name);
+  pressedKeysMap.delete(player.name);
+  disconnectPlayer(player.name).catch((e) =>
+    logger.error('[redirect] cleanup failed', { err: e }),
+  );
+}
+
+function tryWarpToMap(
+  player: PlayerServer,
+  toMapId: string,
+  toPosition: Position,
+  previousMapId: string,
+): boolean {
+  if (!getMap(toMapId)) {
+    const url = lookupInstanceUrl(toMapId);
+    if (url) {
+      redirectPlayer(player, toMapId, toPosition, url);
+    } else {
+      logger.warn('[warp] no instance found for map', { toMapId });
+    }
+    return true;
+  }
+  player.mapId = toMapId;
+  player.position = toPosition;
+  resetMovement(player);
+  updatePlayerMap(player.id, player, previousMapId);
+  return false;
+}
 
 const handleWarpAndShops = (player: PlayerServer): void => {
   const warp = hasWarp(player);
   if (warp) {
     const previousMapId = player.mapId;
-    player.mapId = warp.to;
-    player.position = warp.position;
-    player.targetPosition = undefined;
-    player.moving = false;
-    player.action = CharacterAction.Idle;
-    player.moveTick = undefined;
-    player.moveDurationTicks = undefined;
-    updatePlayerMap(player.id, player, previousMapId);
+    tryWarpToMap(player, warp.to, warp.position, previousMapId);
     return;
   }
 
@@ -265,15 +310,12 @@ export const processMovementIntent = () => {
       } else if (!tile && map?.borderLinks) {
         const borderWarp = map.borderLinks[DIRECTION_BORDER[activeMoveDir]];
         if (borderWarp) {
-          const previousMapId = player.mapId;
-          player.mapId = borderWarp.to;
-          player.position = borderWarp.position;
-          player.targetPosition = undefined;
-          player.moving = false;
-          player.action = CharacterAction.Idle;
-          player.moveTick = undefined;
-          player.moveDurationTicks = undefined;
-          updatePlayerMap(player.id, player, previousMapId);
+          tryWarpToMap(
+            player,
+            borderWarp.to,
+            borderWarp.position,
+            player.mapId,
+          );
         } else {
           player.action = CharacterAction.Idle;
         }

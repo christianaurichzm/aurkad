@@ -105,11 +105,17 @@ export interface WsServerCustomMessage {
   payload?: unknown;
 }
 
+export interface WsServerRedirectMessage {
+  type: 'redirect';
+  url: string;
+}
+
 export type WsServerMessage =
   | WsServerChatMessage
   | WsServerKickMessage
   | WsServerOpenShopMessage
   | WsServerCustomMessage
+  | WsServerRedirectMessage
   | WsServerMapMetaMessage
   | WsServerMapChunkMessage
   | WsServerEntityLeaveMessage

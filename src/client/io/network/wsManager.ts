@@ -8,8 +8,10 @@ import { dispatchServerEvent } from './customEvents';
 const clientWsProtocol = window.location.protocol === 'https:' ? 'wss' : 'ws';
 const clientHost = window.location.host;
 
-export const WS_URL = `${clientWsProtocol}://${clientHost}/ws`;
+const DEFAULT_WS_URL = `${clientWsProtocol}://${clientHost}/ws`;
+export const WS_URL = DEFAULT_WS_URL;
 
+let currentWsUrl = DEFAULT_WS_URL;
 let socket: WebSocket;
 let reconnectAttempts = 0;
 let kicked = false;
@@ -28,10 +30,11 @@ const scheduleReconnect = () => {
   }, delay);
 };
 
-export const initializeWebSocket = () => {
+export const initializeWebSocket = (url = currentWsUrl) => {
+  currentWsUrl = url;
   try {
     kicked = false;
-    socket = new WebSocket(WS_URL);
+    socket = new WebSocket(url);
   } catch (err) {
     console.error('Failed to create WebSocket:', err);
     scheduleReconnect();
@@ -67,6 +70,11 @@ export const initializeWebSocket = () => {
             })
             .finally(() => window.location.reload());
           socket.close();
+          break;
+        case 'redirect':
+          kicked = true;
+          socket.close();
+          setTimeout(() => initializeWebSocket(data.url as string), 200);
           break;
         case 'openShop':
           if (data.shopId) {

@@ -9,6 +9,7 @@ import { createDefaultTiles, items, runtimeState } from './gameData.js';
 import { listItems } from './services/inventoryService.js';
 import { loadArrows } from './services/arrowService.js';
 import { MapStateServer } from '../shared/types.js';
+import { config } from './config.js';
 
 export async function connectToDatabase() {
   try {
@@ -25,7 +26,12 @@ export async function connectToDatabase() {
 
 export async function loadInitialData() {
   try {
+    const ownedMapIds = config.instance.mapIds;
     let loadedMaps: MapStateServer[] = await listMaps();
+    if (ownedMapIds) {
+      loadedMaps = loadedMaps.filter((m) => ownedMapIds.includes(m.id));
+      logger.info('[DB] Sharded mode: loading owned maps', { ownedMapIds });
+    }
 
     if (loadedMaps.length === 0) {
       await createOrUpdateMap({

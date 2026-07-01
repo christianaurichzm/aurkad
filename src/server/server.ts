@@ -47,6 +47,11 @@ import {
   unloadAllModules,
 } from './engine/modules/moduleLoader.js';
 import { startRecording, flushReplay } from './sim/replayRecorder.js';
+import {
+  registerInstance,
+  deregisterInstance,
+  refreshRegistry,
+} from './persistence/instanceRegistry.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -77,6 +82,7 @@ const server = createServer(app);
 let stopGameLoops: (() => void) | undefined;
 let stopSnapshots: (() => void) | undefined;
 let stopKv: (() => Promise<void>) | undefined;
+let heartbeatTimer: ReturnType<typeof setInterval> | undefined;
 
 async function startServer() {
   try {
@@ -84,6 +90,17 @@ async function startServer() {
     await importContentPack();
     await loadKvStore();
     await loadInitialData();
+
+    const { wsPublicUrl, mapIds, heartbeatMs } = config.instance;
+    if (wsPublicUrl && mapIds) {
+      await registerInstance(wsPublicUrl, mapIds);
+      await refreshRegistry();
+      heartbeatTimer = setInterval(async () => {
+        await registerInstance(wsPublicUrl, mapIds);
+        await refreshRegistry();
+      }, heartbeatMs);
+      logger.info('[instance] Registered', { wsPublicUrl, mapIds });
+    }
     stopKv = startKvStore();
     loadModules();
     await loadScripts();
@@ -121,6 +138,12 @@ async function shutdown(signal: string) {
 
   stopGameLoops?.();
   stopSnapshots?.();
+  clearInterval(heartbeatTimer);
+  if (config.instance.wsPublicUrl) {
+    await deregisterInstance(config.instance.wsPublicUrl).catch(
+      () => undefined,
+    );
+  }
   unloadAllScripts();
   unloadAllModules();
   markServerShuttingDown();
