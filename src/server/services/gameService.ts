@@ -9,6 +9,7 @@ import {
   Key,
   Direction,
   CharacterAction,
+  CombatTarget,
   PlayerServer,
   Tile,
   MapStateServer,
@@ -282,7 +283,14 @@ export const processMovementIntent = () => {
 
     player.direction = activeMoveDir;
     const newTarget = calculateNextTilePosition(player.position, activeMoveDir);
-    const proposedState: PlayerServer = { ...player, position: newTarget };
+    const proposedState = {
+      id: player.id,
+      kind: player.kind,
+      mapId: player.mapId,
+      width: player.width,
+      height: player.height,
+      position: newTarget,
+    } as CombatTarget;
 
     if (!hasCollision(proposedState)) {
       applyMovement(player, newTarget, isBoosting);
