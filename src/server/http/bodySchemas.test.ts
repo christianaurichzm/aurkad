@@ -177,13 +177,23 @@ describe('SaveMapBodySchema', () => {
       }).success,
     ).toBe(false);
   });
-  it('rejects negative tileIndex', () => {
+  it('accepts tileIndex -1 (empty tile sentinel)', () => {
     expect(
       SaveMapBodySchema.safeParse({
         mapId: '1',
         name: 'X',
         type: 'normal',
         tiles: [[{ tileIndex: -1 }]],
+      }).success,
+    ).toBe(true);
+  });
+  it('rejects tileIndex below -1', () => {
+    expect(
+      SaveMapBodySchema.safeParse({
+        mapId: '1',
+        name: 'X',
+        type: 'normal',
+        tiles: [[{ tileIndex: -2 }]],
       }).success,
     ).toBe(false);
   });
@@ -200,14 +210,35 @@ describe('CreateNpcBodySchema', () => {
     });
     expect(result.success).toBe(true);
   });
-  it('rejects invalid behavior', () => {
+  it('accepts all valid behaviors', () => {
+    const behaviors = [
+      'aggressive',
+      'hostile',
+      'neutral',
+      'friendly',
+      'shopkeeper',
+      'guard',
+    ] as const;
+    for (const behavior of behaviors) {
+      expect(
+        CreateNpcBodySchema.safeParse({
+          name: 'X',
+          sprite: 0,
+          maxHealth: 1,
+          attack: 0,
+          behavior,
+        }).success,
+      ).toBe(true);
+    }
+  });
+  it('rejects unknown behavior', () => {
     expect(
       CreateNpcBodySchema.safeParse({
         name: 'X',
         sprite: 0,
         maxHealth: 1,
         attack: 0,
-        behavior: 'friendly',
+        behavior: 'boss',
       }).success,
     ).toBe(false);
   });
