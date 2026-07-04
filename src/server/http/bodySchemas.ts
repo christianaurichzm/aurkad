@@ -51,12 +51,13 @@ const DoorSchema = z.object({
 });
 
 export const TileSchema = z.object({
-  tileIndex: z.number().int().nonnegative().default(0),
+  tileIndex: z.number().int().min(-1).default(0),
   blocked: z.boolean().optional(),
   warp: WarpSchema.optional(),
   npcSpawn: z.string().optional(),
   item: z.number().optional(),
   shop: z.string().optional(),
+  bank: z.boolean().optional(),
   avoidNpc: z.boolean().optional(),
   fringeIndex: z.number().int().nonnegative().optional(),
   maskIndex: z.number().int().nonnegative().optional(),

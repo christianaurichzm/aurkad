@@ -48,12 +48,13 @@ const DoorSchema = new mongoose.Schema(
 
 const TileSchema = new mongoose.Schema(
   {
-    tileIndex: { type: Number, required: true, min: 0 },
+    tileIndex: { type: Number, required: true, min: -1 },
     blocked: Boolean,
     warp: WarpSchema,
     npcSpawn: String,
     item: Number,
     shop: String,
+    bank: Boolean,
     avoidNpc: Boolean,
     fringeIndex: Number,
     maskIndex: Number,
