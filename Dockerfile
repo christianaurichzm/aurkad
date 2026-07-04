@@ -22,5 +22,6 @@ COPY --from=builder /app/dist ./dist
 
 # game.json, scripts/ and assets/ are provided at runtime via bind mounts
 # (see docker-compose.yml) so creators edit them without rebuilding the image.
+USER node
 EXPOSE 8080
 CMD ["node", "dist/server/server.js"]
