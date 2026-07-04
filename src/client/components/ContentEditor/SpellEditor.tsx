@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import {
   fetchSpells,
@@ -54,13 +54,13 @@ export const SpellEditor: React.FC<SpellEditorProps> = ({
     onDirtyChange(isDirty);
   }, [isDirty, onDirtyChange]);
 
-  const loadOptions = async () => {
+  const loadOptions = useCallback(async () => {
     const data = await fetchSpells();
     return data.map((s) => ({
       value: String(s.id),
       label: `${s.id} - ${s.name}`,
     }));
-  };
+  }, []);
 
   const handleSelect = async (id: string) => {
     if (!(await requestDiscard())) return;

@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import {
   fetchArrows,
@@ -52,13 +52,13 @@ export const ArrowEditor: React.FC<ArrowEditorProps> = ({
     onDirtyChange(isDirty);
   }, [isDirty, onDirtyChange]);
 
-  const loadOptions = async () => {
+  const loadOptions = useCallback(async () => {
     const data = await fetchArrows();
     return data.map((a) => ({
       value: String(a.id),
       label: `${a.id} - ${a.name}`,
     }));
-  };
+  }, []);
 
   const handleSelect = async (id: string) => {
     if (!(await requestDiscard())) return;
