@@ -30,7 +30,7 @@ const EquippedItemsSchema = new mongoose.Schema(
 
 const PlayerSchema = new mongoose.Schema({
   id: { type: String, required: true, unique: true },
-  name: { type: String, required: true },
+  name: { type: String, required: true, unique: true },
   kind: { type: String, default: 'player' },
   position: PositionSchema,
   width: { type: Number, min: 0 },

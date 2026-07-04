@@ -152,7 +152,10 @@ export function createAuthRouter() {
         const newPlayer = await createPlayer(username, hashedPassword);
 
         res.status(201).json({ success: true, playerId: newPlayer.id });
-      } catch (err) {
+      } catch (err: any) {
+        if (err?.code === 11000) {
+          return res.status(409).json({ message: 'Username already taken' });
+        }
         logger.error('Registration failed', { err });
         res
           .status(500)
