@@ -151,8 +151,8 @@ export const NpcEditor: React.FC<NpcEditorProps> = ({
       itemsToDrop: drops,
     };
     const result = selectedId
-      ? await updateNpc(selectedId, data)
-      : await createNpc(data);
+      ? await updateNpc(selectedId, data).catch(() => null)
+      : await createNpc(data).catch(() => null);
     chatResultMsg(!!result, 'NPC saved!', 'Error saving NPC');
     refreshData();
     setSelectedId('');
@@ -163,8 +163,10 @@ export const NpcEditor: React.FC<NpcEditorProps> = ({
 
   const removeNpc = async () => {
     if (!selectedId) return;
-    await deleteNpc(selectedId);
-    chatResultMsg(true, 'NPC deleted!', 'Error deleting NPC');
+    const ok = await deleteNpc(selectedId)
+      .then(() => true)
+      .catch(() => false);
+    chatResultMsg(ok, 'NPC deleted!', 'Error deleting NPC');
     refreshData();
     setSelectedId('');
     resetForm(defaultValues);

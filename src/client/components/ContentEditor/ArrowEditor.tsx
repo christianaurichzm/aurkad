@@ -86,8 +86,10 @@ export const ArrowEditor: React.FC<ArrowEditorProps> = ({
       tileSpeed: data.tileSpeed,
     };
     const result = selectedId
-      ? (await updateArrow(Number(selectedId), payload), true)
-      : !!(await createArrow(payload));
+      ? await updateArrow(Number(selectedId), payload)
+          .then(() => true)
+          .catch(() => false)
+      : !!(await createArrow(payload).catch(() => null));
     chatResultMsg(!!result, 'Arrow saved!', 'Error saving arrow');
     reset(defaults);
     setSelectedId('');
@@ -95,8 +97,10 @@ export const ArrowEditor: React.FC<ArrowEditorProps> = ({
 
   const handleDelete = async () => {
     if (!selectedId) return;
-    await deleteArrow(Number(selectedId));
-    chatResultMsg(true, 'Arrow deleted!', '');
+    const ok = await deleteArrow(Number(selectedId))
+      .then(() => true)
+      .catch(() => false);
+    chatResultMsg(ok, 'Arrow deleted!', 'Error deleting arrow');
     reset(defaults);
     setSelectedId('');
   };

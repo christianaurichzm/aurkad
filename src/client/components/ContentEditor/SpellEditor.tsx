@@ -81,8 +81,10 @@ export const SpellEditor: React.FC<SpellEditorProps> = ({
 
   const handleSave = async (data: SpellForm) => {
     const result = selectedId
-      ? (await updateSpell(Number(selectedId), data), true)
-      : !!(await createSpell(data));
+      ? await updateSpell(Number(selectedId), data)
+          .then(() => true)
+          .catch(() => false)
+      : !!(await createSpell(data).catch(() => null));
     chatResultMsg(!!result, 'Spell saved!', 'Error saving spell');
     reset(defaults);
     setSelectedId('');
@@ -90,8 +92,10 @@ export const SpellEditor: React.FC<SpellEditorProps> = ({
 
   const handleDelete = async () => {
     if (!selectedId) return;
-    await deleteSpell(Number(selectedId));
-    chatResultMsg(true, 'Spell deleted!', '');
+    const ok = await deleteSpell(Number(selectedId))
+      .then(() => true)
+      .catch(() => false);
+    chatResultMsg(ok, 'Spell deleted!', 'Error deleting spell');
     reset(defaults);
     setSelectedId('');
   };
