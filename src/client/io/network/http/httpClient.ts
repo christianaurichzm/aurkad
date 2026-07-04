@@ -5,11 +5,14 @@ const REST_PROTO = import.meta.env.VITE_REST_PROTOCOL;
 
 export { API_URL, REST_PROTO };
 
+const buildUrl = (endpoint: string): string =>
+  API_URL && REST_PROTO ? `${REST_PROTO}://${API_URL}${endpoint}` : endpoint;
+
 export const httpClient = async <T>(
   endpoint: string,
   { method, headers, body }: HttpRequestOptions,
 ): Promise<T | null> => {
-  const response = await fetch(`${REST_PROTO}://${API_URL}${endpoint}`, {
+  const response = await fetch(buildUrl(endpoint), {
     method,
     headers: {
       'Content-Type': 'application/json',
