@@ -59,8 +59,9 @@ if (nodeEnv === 'production' && !process.env.SESSION_SECRET) {
 }
 
 if (nodeEnv === 'production' && !process.env.CORS_ALLOWED_ORIGINS) {
-  process.stderr.write(
-    '[config] WARN: CORS_ALLOWED_ORIGINS not set; allowing any Origin in production.\n',
+  throw new Error(
+    '[config] CORS_ALLOWED_ORIGINS must be set in production. ' +
+      'Use a comma-separated list of allowed origins, e.g. https://yourgame.com',
   );
 }
 
