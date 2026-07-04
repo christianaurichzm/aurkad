@@ -22,7 +22,14 @@ const NpcSchema = new mongoose.Schema(
     behavior: {
       type: String,
       required: true,
-      enum: ['aggressive', 'hostile', 'neutral'],
+      enum: [
+        'aggressive',
+        'hostile',
+        'neutral',
+        'friendly',
+        'shopkeeper',
+        'guard',
+      ],
     },
     experienceValue: { type: Number, min: 0 },
     itemsToDrop: [NpcItemDropSchema],

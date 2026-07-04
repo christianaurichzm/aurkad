@@ -12,7 +12,14 @@ const PositionSchema = z.object({ x: z.number(), y: z.number() });
 const AccessSchema = z.nativeEnum(Access);
 const MapTypeSchema = z.enum(['pvp', 'normal']);
 const PvpMoraleSchema = z.enum(['safe', 'normal', 'no-penalty']);
-const NpcBehaviorSchema = z.enum(['aggressive', 'hostile', 'neutral']);
+const NpcBehaviorSchema = z.enum([
+  'aggressive',
+  'hostile',
+  'neutral',
+  'friendly',
+  'shopkeeper',
+  'guard',
+]);
 
 const ITEM_TYPE_TUPLE = [...EQUIPMENT_SLOTS, 'consumable', 'money'] as const;
 const ItemTypeSchema = z.enum(
