@@ -26,6 +26,12 @@ export const buyShopItem = async (
   const product = shop.products.find((p) => p.itemId === itemId);
   if (!product) return false;
 
+  const existingItem = player.inventory.items.find((i) => i.item === itemId);
+  if (!existingItem) {
+    const capacity = player.inventory.maxCapacity ?? Infinity;
+    if (player.inventory.items.length >= capacity) return false;
+  }
+
   const currencyInInventory = player.inventory.items.find(
     (i) => i.item === product.currency,
   );
@@ -39,7 +45,6 @@ export const buyShopItem = async (
     );
   }
 
-  const existingItem = player.inventory.items.find((i) => i.item === itemId);
   if (existingItem) {
     existingItem.quantity++;
   } else {
