@@ -9,8 +9,12 @@ import { flushInputBuffer } from '../io/keyboard';
 let prevLevel = 0;
 
 export const gameLoop = () => {
-  updateWebSocket();
-  updateChat();
+  try {
+    updateWebSocket();
+    updateChat();
+  } catch (err) {
+    console.error('[gameLoop] network update error:', err);
+  }
 
   const player = getPlayer();
   if (player) {
