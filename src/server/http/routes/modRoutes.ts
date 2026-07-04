@@ -62,7 +62,7 @@ export function createModRouter() {
       const body = parseBody(BanBodySchema, req.body, res);
       if (!body) return;
       const { playerName, reason, until } = body;
-      banPlayer(playerName, reason, until);
+      await banPlayer(playerName, reason, until);
       await kickPlayer(
         playerName,
         reason
