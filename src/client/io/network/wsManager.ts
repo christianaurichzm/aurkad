@@ -15,8 +15,11 @@ let currentWsUrl = DEFAULT_WS_URL;
 let socket: WebSocket;
 let reconnectAttempts = 0;
 let kicked = false;
+let reconnectTimer: ReturnType<typeof setTimeout> | null = null;
 
 const scheduleReconnect = () => {
+  if (reconnectTimer !== null) return;
+
   if (socket && socket.readyState === WebSocket.OPEN) {
     socket.close();
   }
@@ -24,7 +27,8 @@ const scheduleReconnect = () => {
   const delay = Math.min(1000 * 2 ** reconnectAttempts, 30000);
   console.log(`Trying to reconnect in ${delay / 1000}s`);
 
-  setTimeout(() => {
+  reconnectTimer = setTimeout(() => {
+    reconnectTimer = null;
     reconnectAttempts++;
     initializeWebSocket();
   }, delay);
