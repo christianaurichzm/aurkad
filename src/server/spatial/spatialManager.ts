@@ -66,6 +66,15 @@ export function queryEntitiesInRadius(
   return info.qt.queryRadius({ x, y }, radius);
 }
 
+export function queryEntitiesInRect(
+  mapId: string,
+  rect: { x: number; y: number; width: number; height: number },
+): QuadtreeEntity[] {
+  const info = mapQuadtreeInfo.get(mapId);
+  if (!info || info.qt.size() === 0) return [];
+  return info.qt.query(rect);
+}
+
 export function getQuadtreeStats(mapId: string) {
   const info = mapQuadtreeInfo.get(mapId);
   return info?.qt.getStats() ?? null;

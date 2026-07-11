@@ -17,6 +17,7 @@ import {
   mapTileHeight,
 } from '../../shared/mapGeometry.js';
 import { CHUNK_SIZE } from '../../shared/constants.js';
+import { queryEntitiesInRect } from '../spatial/spatialManager.js';
 
 export function toPlayerPublic(player: PlayerServer): PlayerPublic {
   return {
@@ -97,31 +98,35 @@ export function toMapDynamicClient(
   viewer: PlayerServer,
   viewport: Viewport,
 ): MapDynamicClient {
-  const players = Object.fromEntries(
-    Object.entries(map.players).flatMap(([id, other]) => {
-      if (id === viewer.id) return [];
-      if (!withinViewport(other.position, viewport)) return [];
-      return [[id, toPlayerPublic(other)]] as const;
-    }),
-  );
+  const nearby = queryEntitiesInRect(map.id, {
+    x: viewport.left,
+    y: viewport.top,
+    width: viewport.right - viewport.left,
+    height: viewport.bottom - viewport.top,
+  });
 
-  const npcs = Object.fromEntries(
-    Object.entries(map.npcs).flatMap(([id, npc]) => {
-      if (!withinViewport(npc.position, viewport)) return [];
-      return [
-        [
-          id,
-          {
-            ...npc,
-            position: { ...npc.position },
-            targetPosition: npc.targetPosition
-              ? { ...npc.targetPosition }
-              : undefined,
-          },
-        ],
-      ] as const;
-    }),
-  ) as Record<string, RuntimeNpc>;
+  const players: Record<string, PlayerPublic> = {};
+  const npcs: Record<string, RuntimeNpc> = {};
+
+  for (const entity of nearby) {
+    if (!entity.id) continue;
+    if (entity.kind === 'player') {
+      if (entity.id === viewer.id) continue;
+      const other = map.players[entity.id];
+      if (other) players[entity.id] = toPlayerPublic(other);
+    } else if (entity.kind === 'npc') {
+      const npc = map.npcs[entity.id];
+      if (npc) {
+        npcs[entity.id] = {
+          ...npc,
+          position: { ...npc.position },
+          targetPosition: npc.targetPosition
+            ? { ...npc.targetPosition }
+            : undefined,
+        };
+      }
+    }
+  }
 
   const droppedItems = map.droppedItems.filter((item: DroppedItem) =>
     withinViewport(item.position, viewport),
