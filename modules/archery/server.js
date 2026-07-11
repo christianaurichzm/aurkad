@@ -1,7 +1,7 @@
 // @ts-check
-const defaultRangeTiles = (config && config.rangeTiles) || 6;
+const defaultRangeTiles = Number((config && config.rangeTiles) || 6);
 const defaultTileSpeed = 8;
-const cooldownMs = (config && config.cooldownMs) || 600;
+const cooldownMs = Number((config && config.cooldownMs) || 600);
 const TICK_HZ = 20;
 const HALF = TILE_SIZE / 2;
 

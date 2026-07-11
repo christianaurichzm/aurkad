@@ -34,7 +34,8 @@ for (const id of Object.keys((config && config.effects) || {}))
   define(id, config.effects[id]);
 
 function list(player) {
-  return (getPlayerData(player, dataKey) || []).filter(
+  const stored = getPlayerData(player, dataKey);
+  return (Array.isArray(stored) ? stored : []).filter(
     (status) => status && status.id,
   );
 }

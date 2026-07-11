@@ -4,7 +4,7 @@
 // members are online. A record with members as string[] is migrated the
 // first time it is read.
 
-const maxMembers = (config && config.maxMembers) || 50;
+const maxMembers = Number((config && config.maxMembers) || 50);
 const xpBonus = Math.max(0, Number((config && config.xpBonus) || 0));
 const xpBonusMinMembers = Math.max(
   2,
@@ -13,6 +13,12 @@ const xpBonusMinMembers = Math.max(
 
 // ---------- helpers ----------------------------------------------------------
 
+/**
+ * @typedef {{ name: string, role: 'owner'|'moderator'|'member' }} GuildMember
+ * @typedef {{ name: string, privacy: 'public'|'private', leader: string, members: GuildMember[], invites: string[] }} Guild
+ */
+
+/** @param {any} g @returns {Guild} */
 function migrate(g) {
   if (!g) return g;
   if (Array.isArray(g.members) && typeof g.members[0] === "string") {
@@ -26,7 +32,9 @@ function migrate(g) {
   return g;
 }
 
+/** @returns {string|undefined} */
 const myGuildName = (player) => getPlayerData(player, "guild");
+/** @param {string|undefined} name @returns {Guild|undefined} */
 const getGuild = (name) => migrate(name ? store.get("guild", name) : undefined);
 const saveGuild = (g) => store.set("guild", g.name, g);
 
@@ -191,6 +199,7 @@ function setPrivacy(player, privacy) {
 
 function leaveGuild(player) {
   const gn = myGuildName(player);
+  if (!gn) return "You are not in a guild.";
   const g = getGuild(gn);
   if (!g) return "You are not in a guild.";
   const wasOwner = isOwner(g, player.name);
@@ -250,23 +259,23 @@ command(
 // ---------- UI surface -------------------------------------------------------
 
 on("customAction", ({ player, channel, payload }) => {
+  const data = /** @type {any} */ (payload);
   if (channel === "guild:create")
-    createGuild(player, String(payload?.name || "").trim(), payload?.privacy);
+    createGuild(player, String(data?.name || "").trim(), data?.privacy);
   else if (channel === "guild:join")
-    joinGuild(player, String(payload?.name || "").trim());
+    joinGuild(player, String(data?.name || "").trim());
   else if (channel === "guild:invite")
-    inviteToGuild(player, String(payload?.target || "").trim());
+    inviteToGuild(player, String(data?.target || "").trim());
   else if (channel === "guild:accept")
-    acceptInvite(player, String(payload?.guildName || "").trim());
+    acceptInvite(player, String(data?.guildName || "").trim());
   else if (channel === "guild:leave") leaveGuild(player);
   else if (channel === "guild:promote")
-    promote(player, String(payload?.target || ""));
+    promote(player, String(data?.target || ""));
   else if (channel === "guild:demote")
-    demote(player, String(payload?.target || ""));
-  else if (channel === "guild:kick")
-    kick(player, String(payload?.target || ""));
+    demote(player, String(data?.target || ""));
+  else if (channel === "guild:kick") kick(player, String(data?.target || ""));
   else if (channel === "guild:privacy")
-    setPrivacy(player, String(payload?.privacy || "public"));
+    setPrivacy(player, String(data?.privacy || "public"));
   else if (channel === "guild:request") {
     const g = getGuild(myGuildName(player));
     sendEvent(player, "guild:update", g ? { ...g, self: player.name } : null);

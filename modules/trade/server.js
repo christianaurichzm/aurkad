@@ -182,19 +182,20 @@ command(
 );
 
 on("customAction", ({ player, channel, payload }) => {
+  const data = /** @type {any} */ (payload);
   if (channel === "trade:offer") {
     offerTrade(
       player,
-      payload && payload.to,
-      payload && payload.giveItemId,
-      payload && payload.giveQty,
-      payload && payload.wantItemId,
-      payload && payload.wantQty,
+      data && data.to,
+      data && data.giveItemId,
+      data && data.giveQty,
+      data && data.wantItemId,
+      data && data.wantQty,
     );
   } else if (channel === "trade:accept") {
-    acceptTrade(player, payload && payload.from);
+    acceptTrade(player, data && data.from);
   } else if (channel === "trade:cancel") {
-    cancelTrade(player, payload && payload.player);
+    cancelTrade(player, data && data.player);
   } else if (channel === "trade:request") {
     push(player);
   }

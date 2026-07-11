@@ -23,7 +23,8 @@ function defineSet(set) {
   return true;
 }
 
-for (const set of (config && config.sets) || []) defineSet(set);
+const configuredSets = config && Array.isArray(config.sets) ? config.sets : [];
+for (const set of configuredSets) defineSet(set);
 
 function equippedIds(player) {
   return Object.values(player.equipped || {})
@@ -71,7 +72,8 @@ function sameBonuses(a, b) {
 }
 
 function reconcile(player, { forceSync = false } = {}) {
-  const current = getPlayerData(player, dataKey) || [];
+  const stored = getPlayerData(player, dataKey);
+  const current = Array.isArray(stored) ? stored : [];
   const next = activeSets(player);
   if (sameBonuses(current, next)) {
     if (forceSync)

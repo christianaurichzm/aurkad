@@ -26,9 +26,10 @@ function show(player, options, onChoice) {
 on("customAction", ({ player, channel, payload }) => {
   if (channel !== "dialog:choose") return;
   const open = pending.get(player.name);
-  if (!open || !payload || payload.id !== open.id) return;
+  const data = /** @type {any} */ (payload);
+  if (!open || !data || data.id !== open.id) return;
 
-  const index = payload.index;
+  const index = data.index;
   if (typeof index !== "number" || !Number.isInteger(index)) return;
   const max = open.choiceCount === 0 ? 0 : open.choiceCount - 1;
   if (index < 0 || index > max) return;

@@ -3,7 +3,7 @@
 // a red name for a while, set through the cosmetic resolver at high
 // priority so it covers lower ones such as VIP gold until it expires.
 
-const flagMs = ((config && config.flagMinutes) || 10) * 60 * 1000;
+const flagMs = Number((config && config.flagMinutes) || 10) * 60 * 1000;
 const PK_SOURCE = "pk";
 const PK_PRIORITY = 100;
 
@@ -14,7 +14,11 @@ const isPk = (p) => {
 
 function flag(killer) {
   setPlayerData(killer, "pkUntil", Date.now() + flagMs);
-  setPlayerData(killer, "pkCount", (getPlayerData(killer, "pkCount") || 0) + 1);
+  setPlayerData(
+    killer,
+    "pkCount",
+    Number(getPlayerData(killer, "pkCount") || 0) + 1,
+  );
   setCosmetic(killer, "nameColor", PK_SOURCE, "red", PK_PRIORITY);
 }
 

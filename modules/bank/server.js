@@ -12,12 +12,16 @@ function positiveInt(value, fallback) {
   return Number.isFinite(n) && n > 0 ? n : fallback;
 }
 
+/** @typedef {{ maxCapacity: number, items: { item: number, quantity: number }[] }} Bank */
+
+/** @returns {Bank} */
 function emptyBank() {
   return { maxCapacity: maxSlots, items: [] };
 }
 
+/** @returns {Bank} */
 function getBank(player) {
-  const bank = store.get("bank", player.name);
+  const bank = /** @type {Bank|undefined} */ (store.get("bank", player.name));
   if (!bank || !Array.isArray(bank.items)) return emptyBank();
   return {
     maxCapacity: bank.maxCapacity || maxSlots,
@@ -118,10 +122,11 @@ command(
 );
 
 on("customAction", ({ player, channel, payload }) => {
+  const data = /** @type {any} */ (payload);
   if (channel === "bank:deposit")
-    deposit(player, payload && payload.itemId, payload && payload.quantity);
+    deposit(player, data && data.itemId, data && data.quantity);
   else if (channel === "bank:withdraw")
-    withdraw(player, payload && payload.itemId, payload && payload.quantity);
+    withdraw(player, data && data.itemId, data && data.quantity);
   else if (channel === "bank:request") push(player);
 });
 

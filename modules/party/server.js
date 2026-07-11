@@ -152,10 +152,10 @@ command(
 );
 
 on("customAction", ({ player, channel, payload }) => {
+  const data = /** @type {any} */ (payload);
   if (channel === "party:create") createParty(player);
-  else if (channel === "party:invite") invite(player, payload && payload.name);
-  else if (channel === "party:accept")
-    accept(player, payload && payload.leader);
+  else if (channel === "party:invite") invite(player, data && data.name);
+  else if (channel === "party:accept") accept(player, data && data.leader);
   else if (channel === "party:leave") leave(player);
   else if (channel === "party:request") pushPlayer(player);
 });

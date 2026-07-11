@@ -20,7 +20,8 @@ ui.actionButton(
 );
 
 window.addEventListener("inventory:item-for-trade", function (e) {
-  giveItem.value = String(e.detail.itemId);
+  const detail = /** @type {CustomEvent} */ (e).detail;
+  giveItem.value = String(detail.itemId);
   giveQty.value = "1";
 });
 

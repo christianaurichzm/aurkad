@@ -34,16 +34,25 @@ type NpcBehavior = 'aggressive' | 'hostile' | 'neutral' | 'friendly' | 'shopkeep
 type ChatScope = 'global' | 'map' | 'player';
 type MapType = 'pvp' | 'normal';
 
-interface TileAction {
-  action: 'heal' | 'kill' | 'message';
-  text?: string;
-}
+type TileAction =
+  | { action: 'heal' }
+  | { action: 'kill' }
+  | { action: 'message'; text: string }
+  | { action: 'sound'; file: string }
+  | { action: 'changeSprite'; spriteId: number }
+  | { action: 'script'; scriptId: string };
 
 interface Tile {
   tileIndex: number;
   blocked?: boolean;
+  npcSpawn?: string;
+  item?: number;
+  shop?: number;
+  /** Bank module: player can deposit/withdraw here (press F). */
+  bank?: boolean;
   avoidNpc?: boolean;
-  fringe?: boolean;
+  fringeIndex?: number;
+  maskIndex?: number;
   triggers?: TileAction[];
 }
 
@@ -123,6 +132,11 @@ interface HookPayloads {
   chatMessage:   { player: PlayerServer; scope: ChatScope; message: string };
   beforeDamage:  { attacker?: CombatTarget; target: CombatTarget; damage: { value: number } };
   /**
+   * Fires after damage is applied, with the final `damage` (read only), for
+   * on-hit effects like knockback.
+   */
+  afterDamage:   { attacker?: CombatTarget; target: CombatTarget; damage: number; lethal: boolean };
+  /**
    * Mutate `amount` to scale XP gain (VIP 2x, say). `source` is 'kill',
    * 'script' or another tag.
    */
@@ -173,8 +187,17 @@ declare function getSpells(): SpellData[];
 /**
  * Saves spells to the database one after another, without waiting. For a
  * module seeding its built-ins in SpellEditor when getSpells() is empty.
+ * `visualTarget` defaults to 'targets' when damage > 0, else 'self'.
  */
-declare function createSpells(spells: Omit<SpellData, 'id'>[]): void;
+declare function createSpells(spells: {
+  name: string;
+  description?: string;
+  sprite: number;
+  mpCost: number;
+  damage: number;
+  cooldownMs: number;
+  visualTarget?: 'self' | 'targets';
+}[]): void;
 
 interface ArrowData {
   id: number;

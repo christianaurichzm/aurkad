@@ -2,9 +2,9 @@
 // Pet module: /pet summons a follower that walks like an npc, fights nearby
 // enemies for its owner and follows across maps, all on the script API.
 
-const petAttack = (config && config.attack) || 5;
-const aggroRadius = (config && config.aggroRadius) || 120;
-const cadence = (config && config.moveEveryTicks) || 25;
+const petAttack = Number((config && config.attack) || 5);
+const aggroRadius = Number((config && config.aggroRadius) || 120);
+const cadence = Number((config && config.moveEveryTicks) || 25);
 
 const pets = {}; // ownerName -> npc
 

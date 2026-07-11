@@ -10,9 +10,9 @@
 // `damage` in an area, or heals when damage is 0. With manualVisual:true
 // the cast function sends its own visuals.
 
-const manaMax = (config && config.manaMax) || 100;
-const regenPerSec = (config && config.manaRegenPerSec) || 5;
-const blastRadius = (config && config.blastRadius) || 120;
+const manaMax = Number((config && config.manaMax) || 100);
+const regenPerSec = Number((config && config.manaRegenPerSec) || 5);
+const blastRadius = Number((config && config.blastRadius) || 120);
 
 const spells = new Map();
 const cooldowns = {}; // playerName -> { spellId: readyAtMs }
@@ -173,8 +173,9 @@ if (dbSpells.length > 0) {
 // --- Wiring ------------------------------------------------------------------
 
 on("customAction", ({ player, channel, payload }) => {
-  if (channel === "spell:cast" && payload && typeof payload.id === "string") {
-    cast(player, payload.id);
+  const data = /** @type {any} */ (payload);
+  if (channel === "spell:cast" && data && typeof data.id === "string") {
+    cast(player, data.id);
   } else if (channel === "magic:request") {
     pushState(player);
   }

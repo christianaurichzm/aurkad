@@ -194,6 +194,7 @@ export function buildApi(
       mpCost: number;
       damage: number;
       cooldownMs: number;
+      visualTarget: 'self' | 'targets';
     }[] => getAllSpells().map((s) => ({ ...s })),
 
     // Saves spells to the database one by one, without waiting. Use it when
