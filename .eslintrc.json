@@ -46,6 +46,84 @@
       "rules": {
         "react-hooks/rules-of-hooks": "off"
       }
+    },
+    {
+      "files": ["modules/**/server.js", "scripts/**/*.js"],
+      "parserOptions": {
+        "project": null,
+        "sourceType": "script"
+      },
+      "env": {
+        "browser": false,
+        "node": false,
+        "es2022": true
+      },
+      "globals": {
+        "on": "readonly",
+        "config": "readonly",
+        "getPlayer": "readonly",
+        "getPlayers": "readonly",
+        "getNearbyNpcs": "readonly",
+        "getSpells": "readonly",
+        "createSpells": "readonly",
+        "getArrow": "readonly",
+        "getArrows": "readonly",
+        "getItem": "readonly",
+        "getMapSize": "readonly",
+        "getMapTile": "readonly",
+        "getMapPvp": "readonly",
+        "spawnNpc": "readonly",
+        "despawnNpc": "readonly",
+        "moveNpcToward": "readonly",
+        "TILE_SIZE": "readonly",
+        "giveItem": "readonly",
+        "removeItem": "readonly",
+        "healPlayer": "readonly",
+        "killPlayer": "readonly",
+        "dealDamage": "readonly",
+        "giveExperience": "readonly",
+        "setNameColor": "readonly",
+        "setNameTag": "readonly",
+        "setCosmetic": "readonly",
+        "clearCosmetic": "readonly",
+        "getPlayerData": "readonly",
+        "setPlayerData": "readonly",
+        "store": "readonly",
+        "teleportPlayer": "readonly",
+        "sendMessage": "readonly",
+        "broadcastMessage": "readonly",
+        "sendEvent": "readonly",
+        "sendMapEvent": "readonly",
+        "broadcastEvent": "readonly",
+        "provide": "readonly",
+        "use": "readonly",
+        "Access": "readonly",
+        "command": "readonly",
+        "setTimeout": "readonly",
+        "setInterval": "readonly",
+        "clearInterval": "readonly",
+        "log": "readonly",
+        "warn": "readonly",
+        "error": "readonly"
+      },
+      "rules": {
+        "react-hooks/rules-of-hooks": "off"
+      }
+    },
+    {
+      "files": ["modules/**/client.js"],
+      "parserOptions": {
+        "project": null,
+        "sourceType": "script"
+      },
+      "env": {
+        "browser": true,
+        "node": false,
+        "es2022": true
+      },
+      "globals": {
+        "engine": "readonly"
+      }
     }
   ],
   "ignorePatterns": [

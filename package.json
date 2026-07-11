@@ -28,7 +28,7 @@
     "fresh": "npm run db:reset && npm run build && npm start",
     "typecheck": "tsc -p tsconfig.server.json --noEmit && tsc -p tsconfig.client.json --noEmit",
     "typecheck:scripts": "tsc -p scripts/tsconfig.json --noEmit",
-    "lint": "eslint src --ext .ts,.tsx",
+    "lint": "eslint src --ext .ts,.tsx && eslint modules scripts --ext .js",
     "format:check": "prettier --check \"src/**/*.{ts,tsx}\" \"modules/**/*.js\" \"scripts/**/*.js\"",
     "format:write": "prettier --write \"src/**/*.{ts,tsx}\" \"modules/**/*.js\" \"scripts/**/*.js\"",
     "test": "vitest",
