@@ -145,8 +145,11 @@ function handleServerAction(action: ServerAction) {
   switch (action.action) {
     case ServerActionType.UpdateNpcPositions:
       Object.values(getGameState().maps).forEach((map) => {
+        const livePlayers = Object.values(map.players).filter(
+          (player) => player.health > 0,
+        );
         Object.values(map.npcs).forEach((npc) => {
-          updateNpcs(npc, map);
+          updateNpcs(npc, map, livePlayers);
         });
       });
       break;

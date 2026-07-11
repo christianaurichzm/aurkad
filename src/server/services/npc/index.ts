@@ -145,7 +145,11 @@ export const findNpcSpawnPositions = (
   return positions;
 };
 
-export function updateNpcs(npc: RuntimeNpc, map: MapStateServer) {
+export function updateNpcs(
+  npc: RuntimeNpc,
+  map: MapStateServer,
+  livePlayers: PlayerServer[],
+) {
   if (
     npc.behavior === 'neutral' ||
     npc.behavior === 'friendly' ||
@@ -155,10 +159,6 @@ export function updateNpcs(npc: RuntimeNpc, map: MapStateServer) {
     npc.action = CharacterAction.Idle;
     return;
   }
-
-  const livePlayers = Object.values(map.players).filter(
-    (player) => player.health > 0,
-  );
 
   const closestPlayer = findClosestPlayer(npc, livePlayers);
   if (!closestPlayer) {

@@ -166,7 +166,11 @@ export function createFixture(seed = 0) {
 
       for (const [mid, m] of Object.entries(runtimeState.maps)) {
         rebuildQuadtree(mid, m);
-        for (const npc of Object.values(m.npcs)) updateNpcs(npc, m);
+        const livePlayers = Object.values(m.players).filter(
+          (player) => player.health > 0,
+        );
+        for (const npc of Object.values(m.npcs))
+          updateNpcs(npc, m, livePlayers);
       }
 
       // Flush key events now that the spatial index is up to date
