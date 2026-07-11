@@ -7,16 +7,12 @@ import { logger } from '../logger.js';
 type IntervalHandle = ReturnType<typeof setInterval>;
 
 async function persistDirtyPlayers(): Promise<void> {
-  const failed: string[] = [];
-  for (const id of drainDirtyPlayerIds()) {
-    const player = getPlayerById(id);
-    if (!player) continue;
-    try {
-      await persistPlayerSessionState(player);
-    } catch {
-      failed.push(id);
-    }
-  }
+  const ids = drainDirtyPlayerIds().filter((id) => getPlayerById(id));
+  const results = await Promise.allSettled(
+    ids.map((id) => persistPlayerSessionState(getPlayerById(id)!)),
+  );
+
+  const failed = ids.filter((_, i) => results[i]!.status === 'rejected');
   for (const id of failed) markPlayerDirty(id);
   if (failed.length > 0)
     throw new Error(`Failed to persist ${failed.length} player(s)`);
