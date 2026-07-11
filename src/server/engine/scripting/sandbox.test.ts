@@ -97,60 +97,52 @@ describe('vm context - host objects ARE escapable (known trust boundary)', () =>
 
 describe('hook registration', () => {
   it('script can register a hook via on() and it fires', () => {
+    const sim = createFixture(0);
+    const player = sim.addPlayer({ name: 'Alice', health: 1, maxHealth: 100 });
+
     const handle = runInSandbox(
       `
       on('playerJoin', ({ player }) => {
-        log('joined:', player.name);
+        healPlayer(player);
       });
     `,
       'test-hook.js',
     );
 
-    // Tested through hook firing, not by patching the logger: a real hook
-    // from outside shows whether the sandbox hook ran.
-    const outer = runInSandbox(
-      `
-      on('playerJoin', ({ player }) => {});
-    `,
-      'outer.js',
-    );
-
-    // Simulate the event
-    emit('playerJoin', { player: { name: 'Alice' } as any });
+    emit('playerJoin', { player });
+    expect(player.health).toBe(100); // hook fired and healed the player
 
     handle.cleanup();
-    outer.cleanup();
-    // If no throw, the hook fired correctly
-    expect(true).toBe(true);
   });
 
   it('cleanup unregisters all hooks registered by the script', () => {
-    const calls: number[] = [];
+    const sim = createFixture(0);
+    const player = sim.addPlayer({ name: 'Alice' });
 
-    // Register an outer hook to count calls
     const outerHandle = runInSandbox(
       `
-      on('playerLevelUp', ({ level }) => {});
+      on('playerLevelUp', ({ player }) => {
+        setPlayerData(player, 'outerFired', true);
+      });
     `,
       'outer-track.js',
     );
 
     const innerHandle = runInSandbox(
       `
-      on('playerLevelUp', ({ level }) => {});
+      on('playerLevelUp', ({ player }) => {
+        setPlayerData(player, 'innerFired', true);
+      });
     `,
       'inner-track.js',
     );
 
     innerHandle.cleanup();
-
-    // Both hooks were registered; after cleanup the inner is gone.
-    // The outer should still fire.
-    // We verify indirectly: emit doesn't throw after cleanup
-    emit('playerLevelUp', { player: null as any, level: 5 });
+    emit('playerLevelUp', { player, level: 5 });
     outerHandle.cleanup();
 
-    expect(calls).toHaveLength(0); // none captured since we can't reach inner array
+    expect(player.data?.outerFired).toBe(true); // outer hook still registered
+    expect(player.data?.innerFired).toBeUndefined(); // inner hook was unregistered
   });
 });
 
@@ -210,13 +202,10 @@ describe('init-time syntax error', () => {
 
 describe('scripted levelUp hook via fixture', () => {
   it('fires when player levels up through the game loop', () => {
-    const received: number[] = [];
-
     const handle = runInSandbox(
       `
-      on('playerLevelUp', ({ level }) => {
-        // capture via outer closure is not possible in VM;
-        // test verifies no crash
+      on('playerLevelUp', ({ player, level }) => {
+        setPlayerData(player, 'lastLevelUp', level);
       });
     `,
       'level-hook.js',
@@ -228,7 +217,7 @@ describe('scripted levelUp hook via fixture', () => {
     levelUpPlayer(player);
 
     handle.cleanup();
-    expect(received).toHaveLength(0); // closures don't cross VM boundary, that's expected
+    expect(player.data?.lastLevelUp).toBe(player.level); // hook fired via the fixture's game loop
   });
 });
 
@@ -237,7 +226,7 @@ describe('scripted npcDeath hook via fixture', () => {
     const handle = runInSandbox(
       `
       on('npcDeath', ({ npc, killer }) => {
-        log('npc killed:', npc.name, 'by', killer.name);
+        setPlayerData(killer, 'lastKill', npc.name);
       });
     `,
       'npc-death.js',
@@ -253,7 +242,7 @@ describe('scripted npcDeath hook via fixture', () => {
       position: tile(5, 5),
       direction: Direction.Right,
     });
-    sim.addPlayer({
+    const alice = sim.addPlayer({
       name: 'Alice',
       attack: 999,
       position: tile(4, 5),
@@ -265,8 +254,7 @@ describe('scripted npcDeath hook via fixture', () => {
     await Promise.resolve();
 
     handle.cleanup();
-    // If we reached here, the script hook ran without crashing the loop
-    expect(true).toBe(true);
+    expect(alice.data?.lastKill).toBe('Rat'); // hook fired with the killed NPC's name
   });
 });
 
