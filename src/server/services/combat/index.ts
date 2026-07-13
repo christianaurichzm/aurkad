@@ -165,9 +165,6 @@ export const resolveDamage = async (
       respawnPlayer(target);
       await updatePlayer(target);
 
-      const { broadcast } = await import('../../net/index.js');
-      broadcast();
-
       if (attacker?.kind === 'player') {
         handleChatAction({
           scope: 'global',

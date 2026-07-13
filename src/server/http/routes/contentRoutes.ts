@@ -374,9 +374,6 @@ export function createContentRouter() {
         ...(borderLinks !== undefined && { borderLinks }),
       });
 
-      const { broadcast } = await import('../../net/index.js');
-      broadcast();
-
       res.status(200).json({ message: 'Map updated successfully.' });
     } catch (error) {
       logger.error('Error updating map', { err: error });
