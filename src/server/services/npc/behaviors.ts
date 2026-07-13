@@ -3,6 +3,7 @@ import {
   Position,
   Direction,
   CharacterAction,
+  CombatTarget,
   PlayerServer,
   RuntimeNpc,
   MapStateServer,
@@ -20,6 +21,19 @@ const WANDER_DIRECTIONS = [
   { dx: -TILE_SIZE, dy: 0, dir: Direction.Left },
   { dx: TILE_SIZE, dy: 0, dir: Direction.Right },
 ] as const;
+
+// Minimal projection for collision checks. hasCollision only reads
+// id/kind/mapId/width/height/position, so this avoids cloning the whole
+// RuntimeNpc on the hot path (same pattern as processMovementIntent).
+const npcProbe = (npc: RuntimeNpc, x: number, y: number): CombatTarget =>
+  ({
+    id: npc.id,
+    kind: npc.kind,
+    mapId: npc.mapId,
+    width: npc.width,
+    height: npc.height,
+    position: { x, y },
+  }) as CombatTarget;
 
 export function calculateDirection(
   from: { position: Position },
@@ -125,7 +139,7 @@ export function stepNpcToward(
     return;
   }
 
-  if (!hasCollision({ ...npc, position: { x: step.x, y: step.y } })) {
+  if (!hasCollision(npcProbe(npc, step.x, step.y))) {
     npc.position = { x: step.x, y: step.y };
     npc.direction = step.dir;
     npc.action = CharacterAction.Walk;
@@ -157,7 +171,7 @@ export function escapeMove(npc: RuntimeNpc): void {
   for (const { dx, dy, dir } of WANDER_DIRECTIONS) {
     const nx = npc.position.x + dx;
     const ny = npc.position.y + dy;
-    if (!hasCollision({ ...npc, position: { x: nx, y: ny } })) {
+    if (!hasCollision(npcProbe(npc, nx, ny))) {
       npc.position = { x: nx, y: ny };
       npc.direction = dir;
       npc.action = CharacterAction.Walk;
@@ -172,9 +186,8 @@ export function moveNpcRandomly(npc: RuntimeNpc) {
   const newX = npc.position.x + dx;
   const newY = npc.position.y + dy;
 
-  const proposed = { ...npc, position: { x: newX, y: newY } };
-  if (!hasCollision(proposed)) {
-    npc.position = proposed.position;
+  if (!hasCollision(npcProbe(npc, newX, newY))) {
+    npc.position = { x: newX, y: newY };
     npc.direction = dir;
     npc.action = CharacterAction.Walk;
   } else {
