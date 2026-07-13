@@ -1,7 +1,6 @@
 import {
   GameState,
   Item,
-  Key,
   MapStateServer,
   PlayerServer,
   Tile,
@@ -21,8 +20,6 @@ import {
 import { markPlayerDirty } from './persistence/dirtyPlayers.js';
 
 export { runtimeState } from './sim/state.js';
-
-export const pressedKeysMap = new Map<string, Set<Key>>();
 
 export const items = new Map<number, Item>();
 
@@ -72,11 +69,6 @@ export const updateMapById = async (
     borderLinks: mapState.borderLinks,
   });
   return mapState;
-};
-
-export const addPlayer = async (player: PlayerServer): Promise<void> => {
-  upsertOnCurrentMap(player);
-  markPlayerDirty(player.id);
 };
 
 export const getPlayer = (playerId: string): PlayerServer | undefined => {

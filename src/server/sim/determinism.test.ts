@@ -12,8 +12,8 @@ import { resetClock, advanceTick } from './clock.js';
 import { seedRng } from './rng.js';
 import { players, playersByName, runtimeState } from './state.js';
 import { registerPlayer, getPlayerByName } from './world.js';
-import { pressedKeysMap } from '../gameData.js';
 import {
+  pressedKeysMap,
   handleKeyAction,
   processMovementIntent,
   processMovementCompletion,

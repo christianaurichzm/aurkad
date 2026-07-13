@@ -24,7 +24,6 @@ import {
   updateMapById,
   updatePlayer,
   getRuntimeState,
-  pressedKeysMap,
 } from '../gameData.js';
 import {
   getAllPlayers,
@@ -58,6 +57,10 @@ import {
 import { handleChatAction } from './chatService.js';
 import { logger } from '../logger.js';
 import { lookupInstanceUrl } from '../persistence/instanceRegistry.js';
+
+// Per-player set of currently held keys. Input state, consumed by
+// processMovementIntent and handleKeyAction below.
+export const pressedKeysMap = new Map<string, Set<Key>>();
 
 function resetMovement(player: PlayerServer): void {
   player.targetPosition = undefined;
