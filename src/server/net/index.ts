@@ -6,13 +6,8 @@ export {
   markServerShuttingDown,
 } from './transport.js';
 
-export {
-  broadcast,
-  broadcastChat,
-  broadcastMapChat,
-  broadcastToMap,
-  resetPlayerNetState,
-  lastSentStates,
-} from './snapshot.js';
+export { broadcast, resetPlayerNetState, lastSentStates } from './snapshot.js';
+
+export { broadcastChat, broadcastMapChat, broadcastToMap } from './fanout.js';
 
 export { startGameLoops } from '../sim/loop.js';

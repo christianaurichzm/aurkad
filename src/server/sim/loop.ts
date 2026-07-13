@@ -13,7 +13,8 @@ import {
   enqueueServerAction,
   getActionQueueSize,
 } from '../net/transport.js';
-import { broadcastGameState, flushGameEvents } from '../net/snapshot.js';
+import { broadcastGameState } from '../net/snapshot.js';
+import { flushGameEvents } from '../net/fanout.js';
 import { advanceTick, getTick, msToTicks } from './clock.js';
 import { gameConfig } from '../gameConfig.js';
 import { emit } from '../engine/hooks.js';
