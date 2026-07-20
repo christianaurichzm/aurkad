@@ -4,6 +4,7 @@ import {
   getPlayerByName,
   respawnPlayer,
   awardExperience,
+  persistPlayersNow,
 } from '../../services/playerService.js';
 import { runtimeState } from '../../sim/state.js';
 import { getMap, updatePlayer } from '../../gameData.js';
@@ -266,6 +267,12 @@ export function buildApi(
           (i) => i.item !== itemId,
         );
       persist(scriptName, player);
+    },
+
+    // Economic commit: persist these players now instead of waiting for the
+    // snapshot loop, so a crash cannot revert a confirmed transfer.
+    persistNow: (...playersToSave: PlayerServer[]): void => {
+      void persistPlayersNow(playersToSave.filter((p) => !!p));
     },
 
     // Health

@@ -1,6 +1,7 @@
 import { shopRepository } from '../persistence/shopRepository.js';
 import { PlayerServer, ProductRaw, Shop } from '../../shared/types.js';
 import { updatePlayer } from '../gameData.js';
+import { persistPlayersNow } from './playerService.js';
 
 export async function getShopById(id: string): Promise<Shop | null> {
   return shopRepository.findById(id);
@@ -52,5 +53,6 @@ export const buyShopItem = async (
   }
 
   await updatePlayer(player);
+  await persistPlayersNow([player]);
   return true;
 };

@@ -78,6 +78,7 @@
         "TILE_SIZE": "readonly",
         "giveItem": "readonly",
         "removeItem": "readonly",
+        "persistNow": "readonly",
         "healPlayer": "readonly",
         "killPlayer": "readonly",
         "dealDamage": "readonly",

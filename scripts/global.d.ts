@@ -265,6 +265,13 @@ declare function giveItem(player: PlayerServer, itemId: number, quantity?: numbe
 /** Remove items from a player's inventory. */
 declare function removeItem(player: PlayerServer, itemId: number, quantity?: number): void;
 
+/**
+ * Persist players to the database immediately (economic commit). Call after
+ * moving items between players or containers so a crash cannot revert a
+ * confirmed transfer. Failures fall back to the periodic snapshot.
+ */
+declare function persistNow(...players: PlayerServer[]): void;
+
 /** Restore a player's health to max. */
 declare function healPlayer(player: PlayerServer): void;
 

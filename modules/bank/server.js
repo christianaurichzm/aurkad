@@ -1,6 +1,7 @@
 // @ts-check
-// Bank module: per-player item storage in the shared KV store. Moves are
-// validated before the core give and remove helpers run.
+// Bank module: item storage in player.data.bank, the same document as the
+// inventory, so one write covers both sides of a move. A bank still in the
+// shared KV store is moved over on first access.
 
 const maxSlots = Math.max(
   1,
@@ -21,12 +22,29 @@ function emptyBank() {
 
 /** @returns {Bank} */
 function getBank(player) {
-  const bank = /** @type {Bank|undefined} */ (store.get("bank", player.name));
-  if (!bank || !Array.isArray(bank.items)) return emptyBank();
-  return {
-    maxCapacity: bank.maxCapacity || maxSlots,
-    items: bank.items.slice(),
-  };
+  const bank = /** @type {Bank|undefined} */ (getPlayerData(player, "bank"));
+  if (bank && Array.isArray(bank.items)) {
+    return {
+      maxCapacity: bank.maxCapacity || maxSlots,
+      items: bank.items.slice(),
+    };
+  }
+
+  // One-time migration from the legacy KV location. Persist the player before
+  // deleting the KV copy so the bank is never only in the deleted store.
+  const legacy = /** @type {Bank|undefined} */ (store.get("bank", player.name));
+  if (legacy && Array.isArray(legacy.items)) {
+    const migrated = {
+      maxCapacity: legacy.maxCapacity || maxSlots,
+      items: legacy.items.slice(),
+    };
+    setPlayerData(player, "bank", migrated);
+    persistNow(player);
+    store.delete("bank", player.name);
+    return { maxCapacity: migrated.maxCapacity, items: migrated.items.slice() };
+  }
+
+  return emptyBank();
 }
 
 function saveBank(player, bank) {
@@ -34,7 +52,8 @@ function saveBank(player, bank) {
     maxCapacity: bank.maxCapacity || maxSlots,
     items: bank.items.filter((entry) => entry.quantity > 0),
   };
-  store.set("bank", player.name, normalized);
+  setPlayerData(player, "bank", normalized);
+  persistNow(player);
   sendEvent(player, "bank:update", normalized);
   return normalized;
 }

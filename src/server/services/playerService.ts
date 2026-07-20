@@ -1,3 +1,4 @@
+import mongoose from 'mongoose';
 import {
   SPRITE_WIDTH,
   SPRITE_HEIGHT,
@@ -115,6 +116,28 @@ export const persistPlayerSessionState = async (player: PlayerServer) => {
     health: player.health,
   });
 };
+
+// Immediate persistence for economic commits (bank, trade, shop), since
+// write-behind alone leaves a crash window where a confirmed transfer
+// reverts. Failures are only logged: the dirty flag set by updatePlayer
+// keeps write-behind as the retry, and without a DB connection that retry
+// is all there is.
+export async function persistPlayersNow(
+  playersToSave: PlayerServer[],
+): Promise<void> {
+  if (mongoose.connection.readyState !== 1) return;
+  const results = await Promise.allSettled(
+    playersToSave.map((p) => persistPlayerSessionState(p)),
+  );
+  results.forEach((result, i) => {
+    if (result.status === 'rejected') {
+      logger.error('[economy] immediate persist failed; write-behind retries', {
+        player: playersToSave[i]?.name,
+        err: result.reason,
+      });
+    }
+  });
+}
 
 // Single funnel for all experience gain. Emits a mutable beforeXpGain hook
 // (scripts scale it, as in VIP 2x or a weekend bonus), then applies it and

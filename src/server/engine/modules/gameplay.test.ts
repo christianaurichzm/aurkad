@@ -4,7 +4,7 @@ import { useApi, clearProvides } from './registry.js';
 import { handleChatCommand, clearCommands } from '../commands.js';
 import { clearAll } from '../hooks.js';
 import { drainGameEvents } from '../eventBus.js';
-import { clearKvStoreMemory, kvGet } from '../../persistence/kvStore.js';
+import { clearKvStoreMemory, kvGet, kvSet } from '../../persistence/kvStore.js';
 import { createFixture, tile } from '../../sim/simFixture.js';
 import { awardExperience } from '../../services/playerService.js';
 import { equipItem } from '../../services/inventoryService.js';
@@ -31,6 +31,11 @@ interface StatusApi {
     overrides?: Record<string, unknown>,
   ) => boolean;
 }
+
+type BankState = {
+  maxCapacity: number;
+  items: Array<{ item: number; quantity: number }>;
+};
 
 beforeEach(() => {
   clearAll();
@@ -96,7 +101,7 @@ describe('gameplay modules', () => {
     ).toBeUndefined();
   });
 
-  it('bank deposits and withdraws item stacks through KV storage', () => {
+  it('bank deposits and withdraws item stacks on the player document', () => {
     const sim = createFixture(0);
     const alice = sim.addPlayer({
       name: 'Alice',
@@ -108,24 +113,69 @@ describe('gameplay modules', () => {
     expect(
       alice.inventory.items.find((entry) => entry.item === 30)?.quantity,
     ).toBe(2);
-    expect(
-      kvGet<{ items: Array<{ item: number; quantity: number }> }>(
-        'bank',
-        'Alice',
-      )?.items,
-    ).toEqual([{ item: 30, quantity: 3 }]);
+    expect((alice.data?.['bank'] as BankState).items).toEqual([
+      { item: 30, quantity: 3 },
+    ]);
+    expect(kvGet('bank', 'Alice')).toBeUndefined();
 
     handleChatCommand(alice, '/bank withdraw 30 2');
 
     expect(
       alice.inventory.items.find((entry) => entry.item === 30)?.quantity,
     ).toBe(4);
-    expect(
-      kvGet<{ items: Array<{ item: number; quantity: number }> }>(
-        'bank',
-        'Alice',
-      )?.items,
-    ).toEqual([{ item: 30, quantity: 1 }]);
+    expect((alice.data?.['bank'] as BankState).items).toEqual([
+      { item: 30, quantity: 1 },
+    ]);
+  });
+
+  it('bank migrates a legacy KV bank into the player document on first use', () => {
+    const sim = createFixture(0);
+    const alice = sim.addPlayer({
+      name: 'Alice',
+      inventory: { items: [{ item: 30, quantity: 1 }], maxCapacity: 10 },
+    });
+    kvSet('bank', 'Alice', {
+      maxCapacity: 50,
+      items: [{ item: 40, quantity: 2 }],
+    });
+
+    handleChatCommand(alice, '/bank deposit 30 1');
+
+    const bank = alice.data?.['bank'] as BankState;
+    expect(bank.items).toEqual([
+      { item: 40, quantity: 2 },
+      { item: 30, quantity: 1 },
+    ]);
+    expect(kvGet('bank', 'Alice')).toBeUndefined();
+  });
+
+  it('bank conserves the total item count across any deposit/withdraw sequence', () => {
+    const sim = createFixture(0);
+    const alice = sim.addPlayer({
+      name: 'Alice',
+      inventory: { items: [{ item: 30, quantity: 10 }], maxCapacity: 10 },
+    });
+    const total = () => {
+      const inv =
+        alice.inventory.items.find((entry) => entry.item === 30)?.quantity ?? 0;
+      const bank = (alice.data?.['bank'] as BankState | undefined)?.items.find(
+        (entry) => entry.item === 30,
+      )?.quantity;
+      return inv + (bank ?? 0);
+    };
+
+    const ops = [
+      '/bank deposit 30 3',
+      '/bank withdraw 30 1',
+      '/bank deposit 30 7',
+      '/bank withdraw 30 9',
+      '/bank deposit 30 2',
+      '/bank withdraw 30 5',
+    ];
+    for (const op of ops) {
+      handleChatCommand(alice, op);
+      expect(total()).toBe(10);
+    }
   });
 
   it('equipment applies and removes configured set bonuses', async () => {

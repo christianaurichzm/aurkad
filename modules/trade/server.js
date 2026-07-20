@@ -135,6 +135,7 @@ function acceptTrade(player, fromName) {
   if (offer.want) removeItem(to, offer.want.itemId, offer.want.quantity);
   giveItem(to, offer.give.itemId, offer.give.quantity);
   if (offer.want) giveItem(from, offer.want.itemId, offer.want.quantity);
+  persistNow(from, to);
 
   offers.delete(keyOf(offer.from, offer.to));
   push(from);
