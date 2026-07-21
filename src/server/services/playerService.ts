@@ -174,7 +174,12 @@ export const levelUpPlayer = (player: PlayerServer): void => {
 export const handlePlayerUpdates = (player: PlayerServer): void => {
   const existingPlayer = getPlayer(player.id);
   if (existingPlayer) {
-    updatePlayer({ ...existingPlayer, ...player }).catch((e) => {
+    // Mutate the registered object in place instead of swapping in a merged
+    // copy. Swapping detaches any reference held elsewhere (in-flight combat, a
+    // script, an async op mid-await), silently losing that reference's later
+    // mutations. Object.assign keeps the same identity across the registry.
+    if (existingPlayer !== player) Object.assign(existingPlayer, player);
+    updatePlayer(existingPlayer).catch((e) => {
       logger.error('updatePlayer failed', { err: e });
     });
   }
