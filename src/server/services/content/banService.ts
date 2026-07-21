@@ -2,4 +2,4 @@ export {
   getBan,
   banPlayer,
   unbanPlayer,
-} from '../persistence/banRepository.js';
+} from '../../persistence/banRepository.js';

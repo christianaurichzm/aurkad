@@ -4,22 +4,22 @@ import {
   MapStateServer,
   PlayerServer,
   Tile,
-} from '../shared/types.js';
-import { logger } from './logger.js';
+} from '../../../shared/types.js';
+import { logger } from '../../logger.js';
 
-import { createOrUpdateMap } from './services/mapService.js';
-import { deleteNpc } from './services/npc/index.js';
+import { createOrUpdateMap } from './mapService.js';
+import { deleteNpc } from '../npc/index.js';
 
-import { deletePlayer } from './services/playerService.js';
-import { runtimeState } from './sim/state.js';
+import { deletePlayer } from '../player/playerService.js';
+import { runtimeState } from '../../sim/state.js';
 import {
   getPlayerById,
   unregisterPlayer,
   upsertOnCurrentMap,
-} from './sim/world.js';
-import { markPlayerDirty } from './persistence/dirtyPlayers.js';
+} from '../../sim/world.js';
+import { markPlayerDirty } from '../../persistence/dirtyPlayers.js';
 
-export { runtimeState } from './sim/state.js';
+export { runtimeState } from '../../sim/state.js';
 
 export const items = new Map<number, Item>();
 

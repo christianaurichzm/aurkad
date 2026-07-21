@@ -14,14 +14,14 @@ import {
 import { ClientMessageSchema } from './clientMessage.js';
 import { config } from '../config.js';
 import type { ExtendedRequest } from '../http/session.js';
-import { handleChatAction } from '../services/chatService.js';
+import { handleChatAction } from '../services/comms/chatService.js';
 import {
   disconnectPlayer,
   handleKeyAction,
   getGameState,
 } from '../services/gameService.js';
-import { handleItemAction } from '../services/inventoryService.js';
-import { handleCustomAction } from '../services/customEventService.js';
+import { handleItemAction } from '../services/economy/inventoryService.js';
+import { handleCustomAction } from '../services/comms/customEventService.js';
 import { updateNpcs } from '../services/npc/index.js';
 import { gameConfig } from '../gameConfig.js';
 import { playersWsMap } from './connections.js';

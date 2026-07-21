@@ -3,11 +3,11 @@ import {
   PlayerServer,
   RuntimeNpc,
   MapStateServer,
-} from '../../shared/types.js';
-import { TILE_SIZE } from '../../shared/constants.js';
-import { getMap } from '../gameData.js';
-import { queryEntitiesInRadius } from '../spatial/spatialManager.js';
-import { emit } from '../engine/hooks.js';
+} from '../../../shared/types.js';
+import { TILE_SIZE } from '../../../shared/constants.js';
+import { getMap } from './gameData.js';
+import { queryEntitiesInRadius } from '../../spatial/spatialManager.js';
+import { emit } from '../../engine/hooks.js';
 
 // "Talk to the NPC you're facing". Mirrors combat target selection for any
 // npc, whatever its behavior, and emits the npcInteract hook so scripts

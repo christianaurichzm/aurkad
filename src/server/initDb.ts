@@ -4,11 +4,15 @@ import {
   createOrUpdateMap,
   insertNpcs,
   listMaps,
-} from './services/mapService.js';
-import { createDefaultTiles, items, runtimeState } from './gameData.js';
-import { listItems } from './services/inventoryService.js';
-import { loadArrows } from './services/arrowService.js';
-import { loadSpells } from './services/spellService.js';
+} from './services/world/mapService.js';
+import {
+  createDefaultTiles,
+  items,
+  runtimeState,
+} from './services/world/gameData.js';
+import { listItems } from './services/economy/inventoryService.js';
+import { loadArrows } from './services/content/arrowService.js';
+import { loadSpells } from './services/content/spellService.js';
 import { MapStateServer } from '../shared/types.js';
 import { config } from './config.js';
 

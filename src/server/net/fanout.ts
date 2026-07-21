@@ -1,8 +1,8 @@
 import WebSocket from 'ws';
 import { ChatMessagePayload } from '../../shared/types.js';
-import { getMap } from '../gameData.js';
+import { getMap } from '../services/world/gameData.js';
 import { drainGameEvents } from '../engine/eventBus.js';
-import { getPlayerByName } from '../services/playerService.js';
+import { getPlayerByName } from '../services/player/playerService.js';
 import { playersWsMap } from './connections.js';
 
 // Chat and custom-event fan-out to connected clients. Kept separate from the

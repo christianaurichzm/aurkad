@@ -3,9 +3,9 @@ import {
   CharacterAction,
   Direction,
   PlayerServer,
-} from '../../shared/types.js';
+} from '../../../shared/types.js';
 import { toPlayerCold, awardExperience } from './playerService.js';
-import { on, clearAll } from '../engine/hooks.js';
+import { on, clearAll } from '../../engine/hooks.js';
 
 function mkPlayer(overrides: Partial<PlayerServer> = {}): PlayerServer {
   return {

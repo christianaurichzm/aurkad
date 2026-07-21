@@ -1,5 +1,5 @@
-import ArrowModel from '../model/Arrow.js';
-import type { Arrow } from '../../shared/types.js';
+import ArrowModel from '../../model/Arrow.js';
+import type { Arrow } from '../../../shared/types.js';
 
 const arrows = new Map<number, Arrow>();
 

@@ -13,7 +13,7 @@ import {
   playerColdSignature,
   toPlayerCold,
   toPlayerHot,
-} from '../services/playerService.js';
+} from '../services/player/playerService.js';
 import { CHUNK_SIZE, TILE_SIZE } from '../../shared/constants.js';
 import {
   type Viewport,

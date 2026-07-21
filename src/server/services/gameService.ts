@@ -24,7 +24,7 @@ import {
   updateMapById,
   updatePlayer,
   getRuntimeState,
-} from '../gameData.js';
+} from './world/gameData.js';
 import {
   getAllPlayers,
   getPlayerById,
@@ -40,21 +40,21 @@ import { playersWsMap } from '../net/connections.js';
 import { emitGameEvent } from '../engine/eventBus.js';
 import { emit } from '../engine/hooks.js';
 import { handleAttack } from './combat/index.js';
-import { pickUpItem } from './inventoryService.js';
-import { handleInteract } from './interactionService.js';
+import { pickUpItem } from './economy/inventoryService.js';
+import { handleInteract } from './world/interactionService.js';
 import {
   insertModeCell,
   updatePlayerMap,
   createOrUpdateMap,
-} from './mapService.js';
-import { hasCollision, hasWarp } from './physicsService.js';
+} from './world/mapService.js';
+import { hasCollision, hasWarp } from './world/physicsService.js';
 import {
   getPlayerByName,
   handlePlayerUpdates,
   persistPlayerSessionState,
   respawnPlayer,
-} from './playerService.js';
-import { handleChatAction } from './chatService.js';
+} from './player/playerService.js';
+import { handleChatAction } from './comms/chatService.js';
 import { logger } from '../logger.js';
 import { lookupInstanceUrl } from '../persistence/instanceRegistry.js';
 

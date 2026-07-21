@@ -13,8 +13,12 @@ import {
   createPlayer,
   persistPlayerSessionState,
   getPlayerByNameFromDb,
-} from '../services/playerService.js';
-import { banPlayer, getBan, unbanPlayer } from '../services/banService.js';
+} from '../services/player/playerService.js';
+import {
+  banPlayer,
+  getBan,
+  unbanPlayer,
+} from '../services/content/banService.js';
 
 let mongod: MongoMemoryServer;
 

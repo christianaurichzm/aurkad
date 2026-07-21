@@ -1,8 +1,8 @@
-import { emitGameEvent } from '../engine/eventBus.js';
-import { emit } from '../engine/hooks.js';
-import { getPlayerByName } from './playerService.js';
-import type { ClientCustomAction } from '../engine/actions.js';
-import type { PlayerServer } from '../../shared/types.js';
+import { emitGameEvent } from '../../engine/eventBus.js';
+import { emit } from '../../engine/hooks.js';
+import { getPlayerByName } from '../player/playerService.js';
+import type { ClientCustomAction } from '../../engine/actions.js';
+import type { PlayerServer } from '../../../shared/types.js';
 
 // Custom network events: the data pipe between a game's server-side scripts and
 // its client-side code. The engine only routes; channel and payload are defined

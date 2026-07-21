@@ -1,4 +1,4 @@
-import { TILE_SIZE } from '../../shared/constants.js';
+import { TILE_SIZE } from '../../../shared/constants.js';
 import {
   Tile,
   MapStateServer,
@@ -7,14 +7,14 @@ import {
   RuntimeNpc,
   Direction,
   CharacterAction,
-} from '../../shared/types.js';
-import { getMap, getPlayer, runtimeState } from '../gameData.js';
-import { placePlayerOnMap, detachFromMap } from '../sim/world.js';
+} from '../../../shared/types.js';
+import { getMap, getPlayer, runtimeState } from './gameData.js';
+import { placePlayerOnMap, detachFromMap } from '../../sim/world.js';
 
-import { mapRepository } from '../persistence/mapRepository.js';
-import { getNextMapId } from './dbService.js';
-import { getItemById } from './inventoryService.js';
-import { getNpcById } from './npc/index.js';
+import { mapRepository } from '../../persistence/mapRepository.js';
+import { getNextMapId } from '../dbService.js';
+import { getItemById } from '../economy/inventoryService.js';
+import { getNpcById } from '../npc/index.js';
 
 export async function getMapById(id: string): Promise<MapStateServer | null> {
   return mapRepository.findById(id);

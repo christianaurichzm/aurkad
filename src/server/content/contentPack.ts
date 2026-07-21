@@ -4,10 +4,16 @@ import { z } from 'zod';
 import { logger } from '../logger.js';
 import { TileSchema } from '../http/bodySchemas.js';
 import { EQUIPMENT_SLOTS } from '../../shared/constants.js';
-import { createOrUpdateItem, listItems } from '../services/inventoryService.js';
+import {
+  createOrUpdateItem,
+  listItems,
+} from '../services/economy/inventoryService.js';
 import { createOrUpdateNpc, listNpcs } from '../services/npc/persistenceOps.js';
-import { createOrUpdateMap, listMaps } from '../services/mapService.js';
-import { createOrUpdateShop, listShops } from '../services/shopService.js';
+import { createOrUpdateMap, listMaps } from '../services/world/mapService.js';
+import {
+  createOrUpdateShop,
+  listShops,
+} from '../services/economy/shopService.js';
 
 // Versionable game content lives as JSON files in content/. On boot it is
 // upserted into MongoDB (files win for the ids they define), so a creator can

@@ -5,11 +5,11 @@ import {
   respawnPlayer,
   awardExperience,
   persistPlayersNow,
-} from '../../services/playerService.js';
+} from '../../services/player/playerService.js';
 import { runtimeState } from '../../sim/state.js';
-import { getMap, updatePlayer } from '../../gameData.js';
-import { handleChatAction } from '../../services/chatService.js';
-import { updatePlayerMap } from '../../services/mapService.js';
+import { getMap, updatePlayer } from '../../services/world/gameData.js';
+import { handleChatAction } from '../../services/comms/chatService.js';
+import { updatePlayerMap } from '../../services/world/mapService.js';
 import {
   kvGet,
   kvSet,
@@ -21,18 +21,24 @@ import {
   sendCustomEvent,
   sendMapCustomEvent,
   broadcastCustomEvent,
-} from '../../services/customEventService.js';
+} from '../../services/comms/customEventService.js';
 import { registerCommand } from '../commands.js';
 import { provideApi, useApi } from '../modules/registry.js';
-import { setCosmetic, clearCosmetic } from '../../services/cosmeticsService.js';
+import {
+  setCosmetic,
+  clearCosmetic,
+} from '../../services/player/cosmeticsService.js';
 import { spawnNpc, despawnNpc } from '../../services/npc/spawn.js';
 import { stepNpcToward } from '../../services/npc/behaviors.js';
-import { getItemById } from '../../services/inventoryService.js';
-import { getArrowSync, getAllArrows } from '../../services/arrowService.js';
+import { getItemById } from '../../services/economy/inventoryService.js';
+import {
+  getArrowSync,
+  getAllArrows,
+} from '../../services/content/arrowService.js';
 import {
   getAllSpells,
   createOrUpdateSpell,
-} from '../../services/spellService.js';
+} from '../../services/content/spellService.js';
 import { queryEntitiesInRadius } from '../../spatial/spatialManager.js';
 import type { SpawnNpcOptions } from '../../services/npc/spawn.js';
 import { resolveDamage, mapPvpMorale } from '../../services/combat/index.js';

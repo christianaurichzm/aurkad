@@ -37,7 +37,7 @@ import { connectToDatabase, loadInitialData } from './initDb.js';
 import { importContentPack } from './content/contentPack.js';
 import { loadKvStore, startKvStore } from './persistence/kvStore.js';
 import { getAllPlayers } from './sim/world.js';
-import { persistPlayerSessionState } from './services/playerService.js';
+import { persistPlayerSessionState } from './services/player/playerService.js';
 import { startPlayerSnapshotLoop } from './persistence/playerSnapshot.js';
 import { logger } from './logger.js';
 import { startAdminRepl } from './admin/repl.js';

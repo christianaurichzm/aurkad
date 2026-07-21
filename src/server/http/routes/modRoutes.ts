@@ -14,9 +14,12 @@ import {
 import checkAccess from '../middleware/checkAccess.js';
 import { broadcast } from '../../net/index.js';
 import { kickPlayer, handlePlayerUpdate } from '../../services/gameService.js';
-import { updatePlayerMap } from '../../services/mapService.js';
-import { banPlayer } from '../../services/banService.js';
-import { getPlayerByName, changeSprite } from '../../services/playerService.js';
+import { updatePlayerMap } from '../../services/world/mapService.js';
+import { banPlayer } from '../../services/content/banService.js';
+import {
+  getPlayerByName,
+  changeSprite,
+} from '../../services/player/playerService.js';
 
 export function createModRouter() {
   const router = Router();

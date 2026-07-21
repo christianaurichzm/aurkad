@@ -7,7 +7,7 @@ import { useApi, clearProvides } from './registry.js';
 import { clearCommands } from '../commands.js';
 import { clearAll } from '../hooks.js';
 import { drainGameEvents } from '../eventBus.js';
-import { handleCustomAction } from '../../services/customEventService.js';
+import { handleCustomAction } from '../../services/comms/customEventService.js';
 import { createFixture } from '../../sim/simFixture.js';
 import type { PlayerServer } from '../../../shared/types.js';
 

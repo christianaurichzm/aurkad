@@ -1,8 +1,8 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { handleInteract, findInteractTarget } from './interactionService.js';
-import { on, clearAll } from '../engine/hooks.js';
-import { createFixture, tile } from '../sim/simFixture.js';
-import { Direction } from '../../shared/types.js';
+import { on, clearAll } from '../../engine/hooks.js';
+import { createFixture, tile } from '../../sim/simFixture.js';
+import { Direction } from '../../../shared/types.js';
 
 beforeEach(() => clearAll());
 

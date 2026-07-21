@@ -5,9 +5,9 @@ import {
   broadcastCustomEvent,
   handleCustomAction,
 } from './customEventService.js';
-import { drainGameEvents } from '../engine/eventBus.js';
-import { on, clearAll } from '../engine/hooks.js';
-import { createFixture } from '../sim/simFixture.js';
+import { drainGameEvents } from '../../engine/eventBus.js';
+import { on, clearAll } from '../../engine/hooks.js';
+import { createFixture } from '../../sim/simFixture.js';
 
 beforeEach(() => {
   clearAll();

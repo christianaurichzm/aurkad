@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
-import { createFixture } from '../sim/simFixture.js';
-import { handlePlayerUpdate } from './gameService.js';
-import { getPlayerByName } from '../sim/world.js';
+import { createFixture } from '../../sim/simFixture.js';
+import { handlePlayerUpdate } from '../gameService.js';
+import { getPlayerByName } from '../../sim/world.js';
 
 // handlePlayerUpdate must not swap the registered player object's identity.
 // A reference held elsewhere (in-flight combat, a script, an async op

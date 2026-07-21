@@ -1,8 +1,8 @@
-import { TILE_SIZE } from '../../shared/constants.js';
-import { mapPixelWidth, mapPixelHeight } from '../../shared/mapGeometry.js';
-import { CombatTarget, MapStateServer, Warp } from '../../shared/types.js';
-import { getMap } from '../gameData.js';
-import { queryNearbyEntities } from '../spatial/spatialManager.js';
+import { TILE_SIZE } from '../../../shared/constants.js';
+import { mapPixelWidth, mapPixelHeight } from '../../../shared/mapGeometry.js';
+import { CombatTarget, MapStateServer, Warp } from '../../../shared/types.js';
+import { getMap } from './gameData.js';
+import { queryNearbyEntities } from '../../spatial/spatialManager.js';
 
 const isTileBlocked = (
   map: MapStateServer,

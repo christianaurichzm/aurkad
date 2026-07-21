@@ -3,7 +3,7 @@ import { seedRng } from './rng.js';
 import { emit } from '../engine/hooks.js';
 import { players, playersByName, runtimeState } from './state.js';
 import { registerPlayer, getPlayerByName } from './world.js';
-import { items } from '../gameData.js';
+import { items } from '../services/world/gameData.js';
 import {
   pressedKeysMap,
   handleKeyAction,

@@ -8,7 +8,7 @@ import {
   RuntimeNpc,
   MapStateServer,
 } from '../../../shared/types.js';
-import { hasCollision } from '../physicsService.js';
+import { hasCollision } from '../world/physicsService.js';
 import { resolveDamage } from '../combat/index.js';
 import { queryEntitiesInRadius } from '../../spatial/spatialManager.js';
 import { randomInt } from '../../sim/rng.js';

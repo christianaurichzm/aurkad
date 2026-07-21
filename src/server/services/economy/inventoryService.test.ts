@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { createFixture } from '../sim/simFixture.js';
-import type { Item } from '../../shared/types.js';
+import { createFixture } from '../../sim/simFixture.js';
+import type { Item } from '../../../shared/types.js';
 import {
   dropItemFromInventory,
   equipItem,

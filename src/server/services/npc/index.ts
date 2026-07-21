@@ -16,7 +16,7 @@ import {
   RuntimeNpc,
   PlayerServer,
 } from '../../../shared/types.js';
-import { getMap } from '../../gameData.js';
+import { getMap } from '../world/gameData.js';
 import { getOrInitNpcAi, transitionNpcAi, resetNpcAi } from './aiBrain.js';
 import type { NpcAiState } from './types.js';
 import { getTick, msToTicks } from '../../sim/clock.js';

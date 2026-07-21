@@ -9,19 +9,27 @@ import {
   type Position,
 } from '../../shared/types.js';
 import { getGameState, kickPlayer } from '../services/gameService.js';
-import { banPlayer, unbanPlayer, getBan } from '../services/banService.js';
+import {
+  banPlayer,
+  unbanPlayer,
+  getBan,
+} from '../services/content/banService.js';
 import { broadcast, broadcastChat, playersWsMap } from '../net/index.js';
 import { getMetrics } from '../metrics.js';
-import { getChatLog } from '../services/chatService.js';
+import { getChatLog } from '../services/comms/chatService.js';
 import { handleReplCommand } from '../engine/commands.js';
-import { serverState, isMuted, type ServerMode } from '../serverState.js';
-import { updatePlayer } from '../gameData.js';
-import { updatePlayerMap } from '../services/mapService.js';
+import {
+  serverState,
+  isMuted,
+  type ServerMode,
+} from '../services/world/serverState.js';
+import { updatePlayer } from '../services/world/gameData.js';
+import { updatePlayerMap } from '../services/world/mapService.js';
 import {
   getPlayerByName,
   levelUpPlayer,
   respawnPlayer,
-} from '../services/playerService.js';
+} from '../services/player/playerService.js';
 
 const POINTS_PER_LEVEL = 5;
 const COMMANDS = [

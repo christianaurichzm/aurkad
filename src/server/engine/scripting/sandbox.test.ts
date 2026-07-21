@@ -8,9 +8,9 @@ import { gameConfig, respawnPosition } from '../../gameConfig.js';
 import {
   levelUpPlayer,
   awardExperience,
-} from '../../services/playerService.js';
+} from '../../services/player/playerService.js';
 import { kvGet, clearKvStoreMemory } from '../../persistence/kvStore.js';
-import { handleCustomAction } from '../../services/customEventService.js';
+import { handleCustomAction } from '../../services/comms/customEventService.js';
 import { drainGameEvents } from '../eventBus.js';
 import { handleChatCommand, clearCommands } from '../commands.js';
 import { Access } from '../../../shared/types.js';

@@ -4,8 +4,8 @@ import {
   SPRITE_HEIGHT,
   TILE_SIZE,
   EQUIPMENT_SLOTS,
-} from '../../shared/constants.js';
-import { gameConfig, respawnPosition } from '../gameConfig.js';
+} from '../../../shared/constants.js';
+import { gameConfig, respawnPosition } from '../../gameConfig.js';
 import {
   PlayerServer,
   PlayerRecord,
@@ -17,17 +17,17 @@ import {
   Player,
   PlayerCold,
   PlayerHot,
-} from '../../shared/types.js';
-import { playerRepository } from '../persistence/playerRepository.js';
+} from '../../../shared/types.js';
+import { playerRepository } from '../../persistence/playerRepository.js';
 
-import { getPlayer, updatePlayer } from '../gameData.js';
-import { getPlayerByName as lookupPlayerByName } from '../sim/world.js';
-import { emit } from '../engine/hooks.js';
-import { addPlayerOnMap, removePlayerFromMap } from './mapService.js';
-import { getItemById } from './inventoryService.js';
-import { broadcast } from '../net/index.js';
-import { handlePlayerUpdate } from './gameService.js';
-import { logger } from '../logger.js';
+import { getPlayer, updatePlayer } from '../world/gameData.js';
+import { getPlayerByName as lookupPlayerByName } from '../../sim/world.js';
+import { emit } from '../../engine/hooks.js';
+import { addPlayerOnMap, removePlayerFromMap } from '../world/mapService.js';
+import { getItemById } from '../economy/inventoryService.js';
+import { broadcast } from '../../net/index.js';
+import { handlePlayerUpdate } from '../gameService.js';
+import { logger } from '../../logger.js';
 
 export async function getPlayerById(id: string): Promise<PlayerRecord | null> {
   return playerRepository.findById(id);

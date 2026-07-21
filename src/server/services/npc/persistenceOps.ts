@@ -1,5 +1,5 @@
 import { CharacterAction, PersistentNpc } from '../../../shared/types.js';
-import { runtimeState } from '../../gameData.js';
+import { runtimeState } from '../world/gameData.js';
 import NpcModel from '../../model/Npc.js';
 import { getNextNpcId } from '../dbService.js';
 import { resetNpcAi } from './aiBrain.js';

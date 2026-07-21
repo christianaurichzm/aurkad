@@ -1,4 +1,4 @@
-import { PlayerServer } from '../../shared/types.js';
+import { PlayerServer } from '../../../shared/types.js';
 
 // Derived cosmetics. Instead of setting nameColor/nameTag directly, where
 // the last writer wins, systems contribute a named, prioritized source and

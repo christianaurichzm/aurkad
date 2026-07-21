@@ -17,10 +17,10 @@ import {
 import mongoose from 'mongoose';
 import { MongoMemoryServer } from 'mongodb-memory-server';
 import { importContentPack, exportContentPack } from './contentPack.js';
-import { listItems } from '../services/inventoryService.js';
+import { listItems } from '../services/economy/inventoryService.js';
 import { listNpcs } from '../services/npc/persistenceOps.js';
-import { listMaps } from '../services/mapService.js';
-import { listShops } from '../services/shopService.js';
+import { listMaps } from '../services/world/mapService.js';
+import { listShops } from '../services/economy/shopService.js';
 
 let mongod: MongoMemoryServer;
 let tmpDir: string;

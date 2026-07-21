@@ -1,5 +1,5 @@
 import { WebSocket } from 'ws';
-import { getRuntimeState } from './gameData.js';
+import { getRuntimeState } from './services/world/gameData.js';
 import { playersWsMap } from './net/connections.js';
 
 export interface TickMetrics {

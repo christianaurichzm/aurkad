@@ -6,8 +6,8 @@ import { clearAll } from '../hooks.js';
 import { drainGameEvents } from '../eventBus.js';
 import { clearKvStoreMemory, kvGet, kvSet } from '../../persistence/kvStore.js';
 import { createFixture, tile } from '../../sim/simFixture.js';
-import { awardExperience } from '../../services/playerService.js';
-import { equipItem } from '../../services/inventoryService.js';
+import { awardExperience } from '../../services/player/playerService.js';
+import { equipItem } from '../../services/economy/inventoryService.js';
 import { resolveDamage } from '../../services/combat/index.js';
 import type { PlayerServer } from '../../../shared/types.js';
 

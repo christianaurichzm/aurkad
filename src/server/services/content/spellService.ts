@@ -1,5 +1,5 @@
-import SpellModel from '../model/Spell.js';
-import type { Spell } from '../../shared/types.js';
+import SpellModel from '../../model/Spell.js';
+import type { Spell } from '../../../shared/types.js';
 
 const spells = new Map<number, Spell>();
 

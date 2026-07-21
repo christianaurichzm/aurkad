@@ -7,11 +7,14 @@ import { clearProvides } from './registry.js';
 import { clearCommands } from '../commands.js';
 import { clearAll } from '../hooks.js';
 import { drainGameEvents } from '../eventBus.js';
-import { handleCustomAction } from '../../services/customEventService.js';
+import { handleCustomAction } from '../../services/comms/customEventService.js';
 import { createFixture, tile } from '../../sim/simFixture.js';
 import { Direction } from '../../../shared/types.js';
-import { items } from '../../gameData.js';
-import { registerArrow, unregisterArrow } from '../../services/arrowService.js';
+import { items } from '../../services/world/gameData.js';
+import {
+  registerArrow,
+  unregisterArrow,
+} from '../../services/content/arrowService.js';
 import type { PlayerServer } from '../../../shared/types.js';
 
 const TEST_ARROW_ID = 999;

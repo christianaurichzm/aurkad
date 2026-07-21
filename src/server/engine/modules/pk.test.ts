@@ -7,7 +7,7 @@ import { clearProvides } from './registry.js';
 import { clearCommands } from '../commands.js';
 import { clearAll, emit } from '../hooks.js';
 import { drainGameEvents } from '../eventBus.js';
-import { setCosmetic } from '../../services/cosmeticsService.js';
+import { setCosmetic } from '../../services/player/cosmeticsService.js';
 import { createFixture } from '../../sim/simFixture.js';
 
 beforeEach(() => {

@@ -6,7 +6,7 @@ import { handleChatCommand, clearCommands } from '../commands.js';
 import { useApi, clearProvides } from './registry.js';
 import { kvGet, clearKvStoreMemory } from '../../persistence/kvStore.js';
 import { drainGameEvents } from '../eventBus.js';
-import { handleCustomAction } from '../../services/customEventService.js';
+import { handleCustomAction } from '../../services/comms/customEventService.js';
 import { createFixture } from '../../sim/simFixture.js';
 import { Access, PlayerServer } from '../../../shared/types.js';
 

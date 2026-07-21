@@ -28,32 +28,35 @@ import {
   deleteNpcEverywhere,
   updateMapById,
   updatePlayer,
-} from '../../gameData.js';
+} from '../../services/world/gameData.js';
 import { mapSave } from '../../services/gameService.js';
 import {
   createOrUpdateMap,
   getMapById,
   listMaps,
-} from '../../services/mapService.js';
-import { validateMapTiles, resizeTiles } from '../../services/mapValidation.js';
+} from '../../services/world/mapService.js';
+import {
+  validateMapTiles,
+  resizeTiles,
+} from '../../services/world/mapValidation.js';
 import {
   buyShopItem,
   getShopById,
   listShops,
   createOrUpdateShop,
   deleteShop,
-} from '../../services/shopService.js';
+} from '../../services/economy/shopService.js';
 import {
   createOrUpdateItem,
   deleteItem,
   getItemById,
   listItems,
-} from '../../services/inventoryService.js';
+} from '../../services/economy/inventoryService.js';
 import {
   enrichPlayer,
   getPlayerById,
   getPlayerByName,
-} from '../../services/playerService.js';
+} from '../../services/player/playerService.js';
 import {
   createOrUpdateNpc,
   listNpcs,
@@ -66,12 +69,12 @@ import {
   listSpells,
   createOrUpdateSpell,
   deleteSpell,
-} from '../../services/spellService.js';
+} from '../../services/content/spellService.js';
 import {
   listArrows,
   createOrUpdateArrow,
   deleteArrow,
-} from '../../services/arrowService.js';
+} from '../../services/content/arrowService.js';
 
 export function createContentRouter() {
   const router = Router();

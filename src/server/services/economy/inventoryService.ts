@@ -1,12 +1,12 @@
-import { MapStateServer, PlayerServer, Item } from '../../shared/types.js';
-import type { ClientItemAction } from '../engine/actions.js';
-import { getMap, updatePlayer, updateMap, items } from '../gameData.js';
-import { logger } from '../logger.js';
-import ItemModel from '../model/Item.js';
-import { getNextItemId } from './dbService.js';
-import { EQUIPMENT_SLOTS } from '../../shared/constants.js';
-import { getPlayerByName, levelUpPlayer } from './playerService.js';
-import { emit } from '../engine/hooks.js';
+import { MapStateServer, PlayerServer, Item } from '../../../shared/types.js';
+import type { ClientItemAction } from '../../engine/actions.js';
+import { getMap, updatePlayer, updateMap, items } from '../world/gameData.js';
+import { logger } from '../../logger.js';
+import ItemModel from '../../model/Item.js';
+import { getNextItemId } from '../dbService.js';
+import { EQUIPMENT_SLOTS } from '../../../shared/constants.js';
+import { getPlayerByName, levelUpPlayer } from '../player/playerService.js';
+import { emit } from '../../engine/hooks.js';
 
 export function getItemById(id: number): Item | null {
   return items.get(id) ?? null;

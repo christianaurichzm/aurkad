@@ -5,7 +5,7 @@ import {
   Direction,
 } from '../../../shared/types.js';
 import { TILE_SIZE } from '../../../shared/constants.js';
-import { getMap, runtimeState } from '../../gameData.js';
+import { getMap, runtimeState } from '../world/gameData.js';
 
 // Runtime NPC spawning for scripts and modules (pets, summons, event
 // bosses). Spawned NPCs live in map.npcs, so the quadtree and serialization

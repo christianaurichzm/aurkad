@@ -6,7 +6,7 @@ import {
   CombatTarget,
   PvpMorale,
 } from '../../../shared/types.js';
-import { getMap, updatePlayer } from '../../gameData.js';
+import { getMap, updatePlayer } from '../world/gameData.js';
 import { logger } from '../../logger.js';
 import { getTick } from '../../sim/clock.js';
 import { randomChance } from '../../sim/rng.js';
@@ -14,12 +14,12 @@ import { queryEntitiesInRadius } from '../../spatial/spatialManager.js';
 import { gameConfig } from '../../gameConfig.js';
 import { tryConsumeAttackCooldown } from './attackCooldown.js';
 import { clampDamage } from './damage.js';
-import { handleChatAction } from '../chatService.js';
-import { getItemById } from '../inventoryService.js';
+import { handleChatAction } from '../comms/chatService.js';
+import { getItemById } from '../economy/inventoryService.js';
 import { respawnNpc } from '../npc/index.js';
-import { respawnPlayer, awardExperience } from '../playerService.js';
+import { respawnPlayer, awardExperience } from '../player/playerService.js';
 import { emit } from '../../engine/hooks.js';
-import { sendCustomEvent } from '../customEventService.js';
+import { sendCustomEvent } from '../comms/customEventService.js';
 
 export type ResolveDamageOptions = {
   attacker?: CombatTarget;

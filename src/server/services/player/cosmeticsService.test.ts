@@ -4,7 +4,7 @@ import {
   CharacterAction,
   Direction,
   PlayerServer,
-} from '../../shared/types.js';
+} from '../../../shared/types.js';
 
 function mkPlayer(): PlayerServer {
   return {

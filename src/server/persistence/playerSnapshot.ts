@@ -1,6 +1,6 @@
 import { config } from '../config.js';
 import { getPlayerById } from '../sim/world.js';
-import { persistPlayerSessionState } from '../services/playerService.js';
+import { persistPlayerSessionState } from '../services/player/playerService.js';
 import { drainDirtyPlayerIds, markPlayerDirty } from './dirtyPlayers.js';
 import { logger } from '../logger.js';
 

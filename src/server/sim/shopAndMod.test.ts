@@ -1,14 +1,14 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { CharacterAction } from '../../shared/types.js';
-import { buyShopItem } from '../services/shopService.js';
+import { buyShopItem } from '../services/economy/shopService.js';
 import {
   useItem,
   equipItem,
   dropItemFromInventory,
   pickUpItem,
-} from '../services/inventoryService.js';
-import { changeSprite } from '../services/playerService.js';
-import { updatePlayerMap } from '../services/mapService.js';
+} from '../services/economy/inventoryService.js';
+import { changeSprite } from '../services/player/playerService.js';
+import { updatePlayerMap } from '../services/world/mapService.js';
 import {
   getPlayerByName,
   getAllPlayers,

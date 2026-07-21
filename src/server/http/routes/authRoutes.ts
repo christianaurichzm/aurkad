@@ -11,17 +11,17 @@ import {
 } from '../bodySchemas.js';
 import { logger } from '../../logger.js';
 import { getPlayerById, registerPlayer } from '../../sim/world.js';
-import { addPlayerOnMap } from '../../services/mapService.js';
+import { addPlayerOnMap } from '../../services/world/mapService.js';
 import { disconnectPlayer } from '../../services/gameService.js';
 import {
   createPlayer,
   enrichPlayer,
   getPlayerByNameFromDb,
-} from '../../services/playerService.js';
-import { getBan, unbanPlayer } from '../../services/banService.js';
+} from '../../services/player/playerService.js';
+import { getBan, unbanPlayer } from '../../services/content/banService.js';
 import { emit } from '../../engine/hooks.js';
 import { toMapMeta } from '../../net/serialization.js';
-import { serverState } from '../../serverState.js';
+import { serverState } from '../../services/world/serverState.js';
 import { playersWsMap } from '../../net/connections.js';
 import { WebSocket } from 'ws';
 

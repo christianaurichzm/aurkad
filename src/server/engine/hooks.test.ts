@@ -3,8 +3,8 @@ import { on, off, clearAll } from './hooks.js';
 import { createFixture, tile } from '../sim/simFixture.js';
 import { Direction, Key } from '../../shared/types.js';
 import { msToTicks } from '../sim/clock.js';
-import { pickUpItem, useItem } from '../services/inventoryService.js';
-import { levelUpPlayer } from '../services/playerService.js';
+import { pickUpItem, useItem } from '../services/economy/inventoryService.js';
+import { levelUpPlayer } from '../services/player/playerService.js';
 
 beforeEach(() => {
   clearAll();
