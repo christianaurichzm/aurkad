@@ -33,6 +33,7 @@ type ItemFormValues = {
   type: Item['type'];
   effects: EffectRow[];
   arrowId: number | '';
+  bound: boolean;
 };
 
 const defaultValues: ItemFormValues = {
@@ -42,6 +43,7 @@ const defaultValues: ItemFormValues = {
   type: 'weapon',
   effects: [],
   arrowId: '',
+  bound: false,
 };
 
 const itemToFormValues = (item: Item): ItemFormValues => ({
@@ -55,6 +57,7 @@ const itemToFormValues = (item: Item): ItemFormValues => ({
     value: e.value,
   })),
   arrowId: item.arrowId ?? '',
+  bound: item.bound ?? false,
 });
 
 const ALL_ATTRIBUTES: {
@@ -144,6 +147,7 @@ export const ItemEditor: React.FC<ItemEditorProps> = ({
     type,
     effects,
     arrowId,
+    bound,
   }: ItemFormValues) => {
     const data = {
       name,
@@ -152,6 +156,7 @@ export const ItemEditor: React.FC<ItemEditorProps> = ({
       type,
       effects,
       ...(arrowId !== '' && { arrowId: Number(arrowId) }),
+      bound,
     };
     const result = selectedId
       ? await updateItem(Number(selectedId), data)
@@ -246,6 +251,10 @@ export const ItemEditor: React.FC<ItemEditorProps> = ({
               placeholder="Optional description"
             />
           </div>
+          <label style={checkboxField}>
+            <input type="checkbox" {...register('bound')} />
+            Bound (cannot be dropped, traded, or banked)
+          </label>
           {type === 'weapon' && (
             <div style={field}>
               <label style={label}>Arrow (ranged)</label>
@@ -406,6 +415,15 @@ const input: React.CSSProperties = {
   width: '100%',
   boxSizing: 'border-box',
   background: colors.surface,
+};
+
+const checkboxField: React.CSSProperties = {
+  display: 'flex',
+  alignItems: 'center',
+  gap: 8,
+  fontSize: 13,
+  color: colors.text,
+  cursor: 'pointer',
 };
 
 const effectsBox: React.CSSProperties = {

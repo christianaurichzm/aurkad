@@ -214,8 +214,11 @@ declare function getArrow(id: number): ArrowData | undefined;
 /** All arrows defined in the database. */
 declare function getArrows(): ArrowData[];
 
-/** Look up an item by numeric id. */
-declare function getItem(id: number): { id: number; name: string; type: string; arrowId?: number } | undefined;
+/**
+ * Looks up an item by numeric id. A `bound` item cannot be dropped,
+ * traded or banked.
+ */
+declare function getItem(id: number): { id: number; name: string; type: string; arrowId?: number; bound?: boolean } | undefined;
 
 /** Tile size in pixels for a map (returns undefined if map doesn't exist). */
 declare function getMapSize(mapId: string): { cols: number; rows: number } | undefined;

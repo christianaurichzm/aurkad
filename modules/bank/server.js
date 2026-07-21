@@ -91,6 +91,9 @@ function deposit(player, itemIdValue, amountValue) {
   if (!itemId || !hasInventory(player, itemId, amount))
     return "You do not have that item quantity.";
 
+  const info = getItem(itemId);
+  if (info && info.bound) return "That item is bound and cannot be banked.";
+
   const bank = getBank(player);
   if (!canAdd(bank.items, bank.maxCapacity, itemId))
     return "Your bank is full.";

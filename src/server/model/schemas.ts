@@ -48,6 +48,7 @@ export const ItemSchema = new mongoose.Schema(
     },
     effects: [EffectSchema],
     arrowId: { type: Number },
+    bound: { type: Boolean },
   },
   { _id: false },
 );

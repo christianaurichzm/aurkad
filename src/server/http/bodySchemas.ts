@@ -210,6 +210,7 @@ export const CreateItemBodySchema = z.object({
   type: ItemTypeSchema,
   effects: z.array(EffectSchema).optional(),
   arrowId: z.number().int().positive().optional(),
+  bound: z.boolean().optional(),
 });
 
 export const BuyShopItemBodySchema = z.object({

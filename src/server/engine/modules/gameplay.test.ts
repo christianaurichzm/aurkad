@@ -178,6 +178,74 @@ describe('gameplay modules', () => {
     }
   });
 
+  it('bound items cannot be traded or banked', () => {
+    const sim = createFixture(0);
+    sim.addItem({
+      id: 50,
+      name: 'Soul Blade',
+      description: '',
+      sprite: 0,
+      type: 'weapon',
+      bound: true,
+    });
+    const alice = sim.addPlayer({
+      name: 'Alice',
+      inventory: { items: [{ item: 50, quantity: 1 }], maxCapacity: 10 },
+    });
+    const bob = sim.addPlayer({ name: 'Bob' });
+
+    handleChatCommand(alice, '/trade offer Bob 50 1');
+    handleChatCommand(bob, '/trade accept Alice');
+
+    expect(
+      alice.inventory.items.find((entry) => entry.item === 50)?.quantity,
+    ).toBe(1);
+    expect(
+      bob.inventory.items.find((entry) => entry.item === 50),
+    ).toBeUndefined();
+
+    handleChatCommand(alice, '/bank deposit 50 1');
+
+    expect(
+      alice.inventory.items.find((entry) => entry.item === 50)?.quantity,
+    ).toBe(1);
+    expect(alice.data?.['bank']).toBeUndefined();
+  });
+
+  it('an accepted trade is rejected if the item became bound after the offer', () => {
+    const sim = createFixture(0);
+    sim.addItem({
+      id: 60,
+      name: 'Blade',
+      description: '',
+      sprite: 0,
+      type: 'weapon',
+    });
+    const alice = sim.addPlayer({
+      name: 'Alice',
+      inventory: { items: [{ item: 60, quantity: 1 }], maxCapacity: 10 },
+    });
+    const bob = sim.addPlayer({ name: 'Bob' });
+
+    handleChatCommand(alice, '/trade offer Bob 60 1');
+    sim.addItem({
+      id: 60,
+      name: 'Blade',
+      description: '',
+      sprite: 0,
+      type: 'weapon',
+      bound: true,
+    });
+    handleChatCommand(bob, '/trade accept Alice');
+
+    expect(
+      alice.inventory.items.find((entry) => entry.item === 60)?.quantity,
+    ).toBe(1);
+    expect(
+      bob.inventory.items.find((entry) => entry.item === 60),
+    ).toBeUndefined();
+  });
+
   it('equipment applies and removes configured set bonuses', async () => {
     const equipment = useApi<EquipmentApi>('equipment');
     expect(

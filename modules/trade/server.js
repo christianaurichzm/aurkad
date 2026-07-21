@@ -93,7 +93,11 @@ function offerTrade(
 
   if (!give.itemId || !hasItem(player, give.itemId, give.quantity))
     return "You do not have that item quantity.";
+  if (giveInfo && giveInfo.bound)
+    return "That item is bound and cannot be traded.";
   if (want && !want.itemId) return "Invalid requested item.";
+  if (want && wantInfo && wantInfo.bound)
+    return "The requested item is bound and cannot be traded.";
   if (!wouldFit(target, give, want))
     return `${target.name}'s inventory is full.`;
 
@@ -125,6 +129,15 @@ function acceptTrade(player, fromName) {
 
   if (!hasItem(from, offer.give.itemId, offer.give.quantity))
     return "Offer is no longer valid.";
+  // Re-check bound at accept: the item may have been edited after the offer.
+  const giveInfo = getItem && getItem(offer.give.itemId);
+  const wantInfo = offer.want && getItem && getItem(offer.want.itemId);
+  if ((giveInfo && giveInfo.bound) || (wantInfo && wantInfo.bound)) {
+    offers.delete(keyOf(offer.from, offer.to));
+    push(from);
+    push(to);
+    return "Offer is no longer valid.";
+  }
   if (offer.want && !hasItem(to, offer.want.itemId, offer.want.quantity))
     return "You do not have the requested item quantity.";
   if (!wouldFit(to, offer.give, offer.want)) return "Your inventory is full.";

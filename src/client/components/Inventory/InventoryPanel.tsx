@@ -249,8 +249,10 @@ export const InventoryPanel: React.FC = () => {
             {labelPrimary()}
           </button>
           <button
-            style={styles.dropBtn(!!selected && !(!!equippedSlot && selected))}
-            disabled={!selected || !!equippedSlot}
+            style={styles.dropBtn(
+              !!selected && !equippedSlot && !selected.item.bound,
+            )}
+            disabled={!selected || !!equippedSlot || !!selected?.item.bound}
             onClick={handleDrop}
           >
             Drop

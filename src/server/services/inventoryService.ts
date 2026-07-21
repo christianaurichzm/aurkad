@@ -108,7 +108,7 @@ export async function dropItemFromInventory(
   if (!invItem || invItem.quantity <= 0) return false;
 
   const item = getItemById(itemId);
-  if (!item) return false;
+  if (!item || item.bound) return false;
 
   const map = getMap(player.mapId);
   if (!map) return false;
@@ -199,6 +199,8 @@ export async function equipItem(
 
   if (player.equipped[slot]) {
     await unequipItem(player, slot);
+    // Unequip can refuse (a bound item, full inventory); never overwrite it.
+    if (player.equipped[slot]) return;
   }
 
   player.equipped[slot] = itemId;
@@ -222,6 +224,13 @@ export async function unequipItem(
 ): Promise<void> {
   const itemId = player.equipped[slot];
   if (!itemId) return;
+
+  // A bound item may never hit the ground: with no stack and no free slot the
+  // fallback below would drop it, so refuse the unequip instead.
+  const unequipped = getItemById(itemId);
+  const hasStack = player.inventory.items.some((i) => i.item === itemId);
+  const hasSpace = player.inventory.items.length < player.inventory.maxCapacity;
+  if (unequipped?.bound && !hasStack && !hasSpace) return;
 
   await applyItemEffects(player, itemId, true);
 

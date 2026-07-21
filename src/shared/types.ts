@@ -94,6 +94,8 @@ export interface Item {
   type: ItemType;
   effects?: Effect[];
   arrowId?: number;
+  // Bound items cannot be dropped, traded, or banked.
+  bound?: boolean;
 }
 
 export interface Inventory {

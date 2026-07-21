@@ -234,7 +234,13 @@ export function buildApi(
     getItem: (
       id: number,
     ):
-      | { id: number; name: string; type: string; arrowId?: number }
+      | {
+          id: number;
+          name: string;
+          type: string;
+          arrowId?: number;
+          bound?: boolean;
+        }
       | undefined => {
       const item = getItemById(Number(id));
       if (!item) return undefined;
@@ -243,6 +249,7 @@ export function buildApi(
         name: item.name,
         type: item.type,
         ...(item.arrowId != null && { arrowId: item.arrowId }),
+        ...(item.bound != null && { bound: item.bound }),
       };
     },
 
