@@ -56,6 +56,8 @@ const playerInterestSets = new Map<string, InterestSets>();
 
 const MAX_CHUNKS_PER_TICK = 8;
 
+let lastCongestionLogMs = 0;
+
 export function resetPlayerNetState(name: string) {
   lastSentStates.delete(name);
   lastSentPlayerColdSig.delete(name);
@@ -216,6 +218,22 @@ export function broadcastGameState() {
     for (const player of Object.values(map.players)) {
       const ws = playersWsMap.get(player.name);
       if (!ws || ws.readyState !== WebSocket.OPEN) continue;
+
+      // Backpressure: a slow client's send buffer would grow unbounded if we
+      // kept queueing per-tick snapshots. Skip this tick for it; the next
+      // snapshot diffs against the last state we actually sent, so it resyncs
+      // once the buffer drains.
+      if (ws.bufferedAmount > config.ws.maxBufferedBytes) {
+        const now = Date.now();
+        if (now - lastCongestionLogMs > 5000) {
+          logger.warn('[net] skipping snapshot for congested client', {
+            player: player.name,
+            bufferedAmount: ws.bufferedAmount,
+          });
+          lastCongestionLogMs = now;
+        }
+        continue;
+      }
 
       try {
         nsCountPlayer();
