@@ -122,3 +122,22 @@ export function handleReplCommand(
   runHandler(cmd, { args, reply: out, source: 'repl' });
   return true;
 }
+
+// Web console entry point: like the REPL, but the command's access level
+// is checked against the caller's, as a web session is trusted less than
+// the terminal. True when a command matched.
+export function handleWebCommand(
+  name: string,
+  args: string[],
+  accessLevel: number,
+  out: (message: string) => void,
+): boolean {
+  const cmd = commands.get(name.toLowerCase());
+  if (!cmd) return false;
+  if (accessLevel < cmd.access) {
+    out(`You don't have permission to run "${name}".`);
+    return true;
+  }
+  runHandler(cmd, { args, reply: out, source: 'repl' });
+  return true;
+}

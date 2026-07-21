@@ -26,6 +26,8 @@ import { createModRouter } from './http/routes/modRoutes.js';
 import { createAssetsRouter } from './http/routes/assetsRoutes.js';
 import { createAudioRouter } from './http/routes/audioRoutes.js';
 import { createModulesRouter } from './http/routes/modulesRoutes.js';
+import { createConsoleRouter } from './http/routes/consoleRoutes.js';
+import { registerServerCommands } from './admin/serverCommands.js';
 import { getMetrics } from './metrics.js';
 import {
   markServerShuttingDown,
@@ -73,6 +75,7 @@ app.use(createModRouter());
 app.use(createAssetsRouter());
 app.use(createAudioRouter());
 app.use(createModulesRouter());
+app.use(createConsoleRouter());
 
 if (config.nodeEnv === 'production') {
   const clientDist = path.join(__dirname, '../client');
@@ -110,6 +113,7 @@ async function startServer() {
     // load so `Items.X` etc. resolve at load time.
     await rebuildContentConstants();
     writeContentDts();
+    registerServerCommands();
     loadModules();
     await loadScripts();
     startWebSocketServer(server, sessionMiddleware);

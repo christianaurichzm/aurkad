@@ -230,6 +230,10 @@ export const CreateShopBodySchema = z.object({
   products: z.array(ProductSchema).default([]),
 });
 
+export const ConsoleCommandBodySchema = z.object({
+  line: z.string().min(1).max(500),
+});
+
 export const AssignPointsBodySchema = z.object({
   vitality: z.number().int().nonnegative().default(0),
   attack: z.number().int().nonnegative().default(0),
