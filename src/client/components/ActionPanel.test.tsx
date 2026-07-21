@@ -53,7 +53,7 @@ describe('ActionPanel', () => {
       screen.getByRole('button', { name: /online players/i }),
     ).toBeInTheDocument();
     expect(
-      screen.queryByRole('button', { name: /moderation/i }),
+      screen.queryByRole('button', { name: /gm/i }),
     ).not.toBeInTheDocument();
     expect(
       screen.queryByRole('button', { name: /map editor/i }),
@@ -68,9 +68,7 @@ describe('ActionPanel', () => {
 
     render(<ActionPanel />);
 
-    expect(
-      screen.getByRole('button', { name: /moderation/i }),
-    ).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /gm/i })).toBeInTheDocument();
     expect(
       screen.queryByRole('button', { name: /map editor/i }),
     ).not.toBeInTheDocument();
@@ -90,9 +88,7 @@ describe('ActionPanel', () => {
     expect(
       screen.getByRole('button', { name: /content/i }),
     ).toBeInTheDocument();
-    expect(
-      screen.getByRole('button', { name: /moderation/i }),
-    ).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /gm/i })).toBeInTheDocument();
   });
 
   it('dispatches a protected panel event only after authorization succeeds', async () => {

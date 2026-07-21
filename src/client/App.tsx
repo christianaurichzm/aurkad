@@ -8,8 +8,7 @@ import { Register } from './pages/Register';
 import { ShopModal } from './components/Shop/ShopModal';
 import { QuestTracker } from './components/Quest/QuestTracker';
 import { TilesetEditor } from './components/Tileset/TilesetEditor';
-import { ModerationMenu } from './components/ModerationMenu';
-import { AdminConsole } from './components/AdminConsole';
+import { GMPanel } from './components/GMPanel';
 import { ChatPanel } from './components/ChatPanel';
 import { ActionPanel } from './components/ActionPanel';
 import { useGame } from './context/GameContext';
@@ -43,8 +42,7 @@ function App() {
           <ShopModal />
           <AttributeDistributorModal />
           <OnlinePlayersModal />
-          <ModerationMenu />
-          <AdminConsole />
+          <GMPanel />
           <InventoryPanel />
           <TilesetEditor />
           <ContentEditor />

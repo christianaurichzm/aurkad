@@ -2,12 +2,7 @@ import React, { useEffect, useReducer, useState } from 'react';
 import { Access } from '../../shared/types';
 import { useGame } from '../context/GameContext';
 import { usePlayerForceUpdate } from '../hooks/usePlayerForceUpdate';
-import {
-  openConsole,
-  openContentEditor,
-  openMapEditor,
-  openModEditor,
-} from '../io/network';
+import { openContentEditor, openMapEditor, openModEditor } from '../io/network';
 import {
   getModuleActions,
   subscribeModuleActions,
@@ -66,20 +61,12 @@ const quickActions: QuickAction[] = [
     authorize: openContentEditor,
   },
   {
-    id: 'mod',
-    label: 'Moderation',
+    id: 'gm',
+    label: 'GM panel',
     keyLabel: 'X',
-    eventName: 'toggleModMenu',
+    eventName: 'toggleGMPanel',
     minAccess: Access.MOD,
     authorize: openModEditor,
-  },
-  {
-    id: 'console',
-    label: 'Console',
-    keyLabel: '`',
-    eventName: 'toggleConsole',
-    minAccess: Access.ADMIN,
-    authorize: openConsole,
   },
 ];
 

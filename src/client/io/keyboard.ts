@@ -23,7 +23,7 @@ const handleKeyPress = async (key: Key) => {
   switch (key) {
     case Key.x:
       if (await openModEditor()) {
-        window.dispatchEvent(new Event('toggleModMenu'));
+        window.dispatchEvent(new Event('toggleGMPanel'));
       }
       break;
     case Key.z:
