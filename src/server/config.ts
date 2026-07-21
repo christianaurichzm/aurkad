@@ -36,8 +36,10 @@ function parseIntEnv(
 
   const value = Number.parseInt(raw, 10);
   if (!Number.isFinite(value)) return fallback;
-  if (opts.min !== undefined && value < opts.min) return fallback;
-  if (opts.max !== undefined && value > opts.max) return fallback;
+  // Out-of-range values clamp to the nearest bound rather than the default:
+  // MAX_UPDATES_PER_TICK=200 means the 20 ceiling, not 2.
+  if (opts.min !== undefined && value < opts.min) return opts.min;
+  if (opts.max !== undefined && value > opts.max) return opts.max;
   return value;
 }
 
