@@ -60,6 +60,14 @@ export {
   type CommandInfo,
 } from './http/consoleClient';
 
+// Admin dashboard session
+export {
+  adminLogin,
+  adminSession,
+  adminLogout,
+  type AdminSession,
+} from './http/adminAuthClient';
+
 // Moderation
 export {
   modWarp,
