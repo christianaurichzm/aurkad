@@ -9,6 +9,7 @@ import { ShopModal } from './components/Shop/ShopModal';
 import { QuestTracker } from './components/Quest/QuestTracker';
 import { TilesetEditor } from './components/Tileset/TilesetEditor';
 import { ModerationMenu } from './components/ModerationMenu';
+import { AdminConsole } from './components/AdminConsole';
 import { ChatPanel } from './components/ChatPanel';
 import { ActionPanel } from './components/ActionPanel';
 import { useGame } from './context/GameContext';
@@ -43,6 +44,7 @@ function App() {
           <AttributeDistributorModal />
           <OnlinePlayersModal />
           <ModerationMenu />
+          <AdminConsole />
           <InventoryPanel />
           <TilesetEditor />
           <ContentEditor />

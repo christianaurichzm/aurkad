@@ -52,6 +52,14 @@ export {
   deleteArrow,
 } from './http/contentClient';
 
+// Admin console
+export {
+  openConsole,
+  fetchCommands,
+  runConsoleCommand,
+  type CommandInfo,
+} from './http/consoleClient';
+
 // Moderation
 export {
   modKick,
