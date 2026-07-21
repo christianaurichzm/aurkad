@@ -6,8 +6,8 @@ import {
   type AdminSession,
 } from '../io/network';
 import { Access } from '../../shared/types';
-import { AdminPlayers } from './AdminPlayers';
-import { AdminConsolePanel } from './AdminConsolePanel';
+import { PlayerModeration } from '../components/moderation/PlayerModeration';
+import { CommandConsole } from '../components/moderation/CommandConsole';
 import { colors, radius } from '../theme';
 
 // Standalone operator dashboard served at /admin, apart from the game client:
@@ -15,6 +15,7 @@ import { colors, radius } from '../theme';
 export const AdminApp: React.FC = () => {
   const [session, setSession] = useState<AdminSession | null>(null);
   const [checked, setChecked] = useState(false);
+  const [status, setStatus] = useState('');
 
   useEffect(() => {
     adminSession()
@@ -51,8 +52,15 @@ export const AdminApp: React.FC = () => {
         </div>
       </header>
       <main style={grid}>
-        <AdminPlayers access={session.access} />
-        <AdminConsolePanel />
+        <section style={panel}>
+          <h2 style={panelTitle}>Online players</h2>
+          <PlayerModeration access={session.access} onResult={setStatus} />
+          {status && <div style={statusLine}>{status}</div>}
+        </section>
+        <section style={panel}>
+          <h2 style={panelTitle}>Console</h2>
+          <CommandConsole height={260} />
+        </section>
       </main>
     </div>
   );
@@ -149,6 +157,20 @@ const grid: React.CSSProperties = {
   padding: 20,
   maxWidth: 1100,
   margin: '0 auto',
+};
+const panel: React.CSSProperties = {
+  background: colors.surface,
+  border: `1px solid ${colors.border}`,
+  borderRadius: radius.md,
+  padding: 16,
+  display: 'flex',
+  flexDirection: 'column',
+  gap: 12,
+};
+const panelTitle: React.CSSProperties = { margin: 0, fontSize: 16 };
+const statusLine: React.CSSProperties = {
+  fontSize: 13,
+  color: colors.textMuted,
 };
 const centered: React.CSSProperties = {
   minHeight: '100vh',

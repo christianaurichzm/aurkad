@@ -3,15 +3,16 @@ import {
   fetchCommands,
   runConsoleCommand,
   type CommandInfo,
-} from '../io/network';
-import { colors, radius } from '../theme';
+} from '../../io/network';
+import { colors, radius } from '../../theme';
 
 type Line = { kind: 'in' | 'out'; text: string };
 
-// Inline command console for the dashboard: it runs registered commands
-// (server ops, script and module commands) and cannot evaluate arbitrary
-// code outside that registry.
-export const AdminConsolePanel: React.FC = () => {
+// The command console shared by the GM panel and /admin. It runs registered
+// commands only, never arbitrary code.
+export const CommandConsole: React.FC<{ height?: number }> = ({
+  height = 220,
+}) => {
   const [input, setInput] = useState('');
   const [lines, setLines] = useState<Line[]>([]);
   const [commands, setCommands] = useState<CommandInfo[]>([]);
@@ -73,9 +74,8 @@ export const AdminConsolePanel: React.FC = () => {
   };
 
   return (
-    <section style={panel}>
-      <h2 style={title}>Console</h2>
-      <div ref={logRef} style={log}>
+    <div style={wrap}>
+      <div ref={logRef} style={{ ...log, height }}>
         {lines.length === 0 ? (
           <p style={hint}>
             Run a command, e.g. <code style={code}>players</code>,{' '}
@@ -105,24 +105,18 @@ export const AdminConsolePanel: React.FC = () => {
           onKeyDown={onKeyDown}
         />
       </div>
-    </section>
+    </div>
   );
 };
 
 const mono =
   'ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace';
-const panel: React.CSSProperties = {
-  background: colors.surface,
-  border: `1px solid ${colors.border}`,
-  borderRadius: radius.md,
-  padding: 16,
+const wrap: React.CSSProperties = {
   display: 'flex',
   flexDirection: 'column',
-  gap: 10,
+  gap: 8,
 };
-const title: React.CSSProperties = { margin: 0, fontSize: 16 };
 const log: React.CSSProperties = {
-  height: 260,
   overflowY: 'auto',
   border: `1px solid ${colors.border}`,
   borderRadius: radius.sm,
