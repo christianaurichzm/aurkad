@@ -85,6 +85,9 @@ export async function loadInitialData() {
     await loadSpells();
     logger.info('Data successfully loaded from database into memory');
   } catch (error) {
+    // Essential world data (maps, items) failed to load: abort the boot, which
+    // startServer's handler exits(1), rather than come up with an empty world.
     logger.error('Failed to load initial data', { err: error });
+    throw error;
   }
 }
