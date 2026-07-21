@@ -12,13 +12,15 @@ export function createConsoleRouter() {
   const router = Router();
 
   // Available commands (name, access, description) for the console UI.
-  router.get('/admin/commands', checkAccess(Access.ADMIN), (_req, res) => {
+  // Gated at MOD; handleWebCommand enforces each command's own access level, so
+  // a mod operator can run mod commands but not admin-only ones.
+  router.get('/admin/commands', checkAccess(Access.MOD), (_req, res) => {
     res.json(listCommands());
   });
 
   router.post(
     '/admin/console',
-    checkAccess(Access.ADMIN),
+    checkAccess(Access.MOD),
     (req: ExtendedRequest, res: Response) => {
       const body = parseBody(ConsoleCommandBodySchema, req.body, res);
       if (!body) return;
