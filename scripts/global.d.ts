@@ -1,5 +1,8 @@
-// Type definitions for game scripts. Place this file beside your scripts
-// and editors pick it up.
+// Types for game scripts; editors pick this file up beside them.
+//
+// `Items`, `Npcs`, `Maps`, `Spells` and `Arrows` name content with
+// autocomplete, as in `giveItem(player, Items.SteelSword)`. They are
+// generated into `content.generated.d.ts` at boot and on every content edit.
 
 // Core types
 

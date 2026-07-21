@@ -43,6 +43,10 @@ import { logger } from './logger.js';
 import { startAdminRepl } from './admin/repl.js';
 import { loadScripts, unloadAllScripts } from './engine/scripting/index.js';
 import {
+  rebuildContentConstants,
+  writeContentDts,
+} from './engine/scripting/contentConstants.js';
+import {
   loadModules,
   unloadAllModules,
 } from './engine/modules/moduleLoader.js';
@@ -102,6 +106,10 @@ async function startServer() {
       logger.info('[instance] Registered', { wsPublicUrl, mapIds });
     }
     stopKv = startKvStore();
+    // Build typed content constants (and their .d.ts) before scripts/modules
+    // load so `Items.X` etc. resolve at load time.
+    await rebuildContentConstants();
+    writeContentDts();
     loadModules();
     await loadScripts();
     startWebSocketServer(server, sessionMiddleware);

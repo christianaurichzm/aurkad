@@ -12,5 +12,5 @@
     "types": []
   },
   "files": ["../scripts/global.d.ts", "clientEngine.d.ts"],
-  "include": ["**/*.js"]
+  "include": ["**/*.js", "../scripts/content.generated.d.ts"]
 }

@@ -343,3 +343,9 @@ command(
 //
 // CONSTANTS
 //   TILE_SIZE                      - tile size in pixels (positions are in pixels)
+//
+// CONTENT CONSTANTS (generated from your content; autocomplete by name)
+//   Items.<Name>   Npcs.<Name>   Maps.<Name>   Spells.<Name>   Arrows.<Name>
+//   e.g. giveItem(player, Items.SteelSword, 1)   instead of a raw id
+//   Names come from the content's name field; edit content in the admin tools
+//   and save to regenerate. Reload a script to pick up newly added content.

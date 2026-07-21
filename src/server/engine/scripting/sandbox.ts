@@ -1,6 +1,7 @@
 import vm from 'vm';
 import { logger } from '../../logger.js';
 import { buildApi } from './api.js';
+import { getContentConstants } from './contentConstants.js';
 
 // TRUST MODEL: read before exposing this to untrusted code.
 //
@@ -43,6 +44,9 @@ export function runInSandbox(
   // new V8 context, isolated.
   const ctx = vm.createContext({
     ...api,
+    // Typed content constants (Items, Npcs, Maps, Spells, Arrows) built from
+    // the current game content, so scripts reference names instead of raw ids.
+    ...getContentConstants(),
     ...extraGlobals,
     console: { log: api.log, warn: api.warn, error: api.error },
   });

@@ -65,6 +65,7 @@ import {
 import { playersWsMap } from '../../net/connections.js';
 import { gameConfig } from '../../gameConfig.js';
 import { getNetStats } from '../../net/netStats.js';
+import { scheduleContentRefresh } from '../../engine/scripting/contentConstants.js';
 import {
   listSpells,
   createOrUpdateSpell,
@@ -76,8 +77,28 @@ import {
   deleteArrow,
 } from '../../services/content/arrowService.js';
 
+// Content-definition paths whose mutations should regenerate script constants.
+const CONTENT_DEFINITION_PATH = /^\/(saveMap|npcs|items|maps|spells|arrows)\b/;
+
 export function createContentRouter() {
   const router = Router();
+
+  // After a successful admin edit to content definitions, rebuild the typed
+  // constants (Items/Npcs/...) and their .d.ts. Debounced, and scoped so
+  // gameplay writes (shop buy, assign points) don't trigger regeneration.
+  router.use((req, res, next) => {
+    if (
+      (req.method === 'POST' ||
+        req.method === 'PUT' ||
+        req.method === 'DELETE') &&
+      CONTENT_DEFINITION_PATH.test(req.path)
+    ) {
+      res.on('finish', () => {
+        if (res.statusCode < 300) scheduleContentRefresh();
+      });
+    }
+    next();
+  });
 
   router.post(
     '/saveMap',
