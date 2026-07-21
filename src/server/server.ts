@@ -27,6 +27,7 @@ import { createAssetsRouter } from './http/routes/assetsRoutes.js';
 import { createAudioRouter } from './http/routes/audioRoutes.js';
 import { createModulesRouter } from './http/routes/modulesRoutes.js';
 import { createConsoleRouter } from './http/routes/consoleRoutes.js';
+import { createAdminAuthRouter } from './http/routes/adminAuthRoutes.js';
 import { registerServerCommands } from './admin/serverCommands.js';
 import { getMetrics } from './metrics.js';
 import {
@@ -76,6 +77,7 @@ app.use(createAssetsRouter());
 app.use(createAudioRouter());
 app.use(createModulesRouter());
 app.use(createConsoleRouter());
+app.use(createAdminAuthRouter());
 
 if (config.nodeEnv === 'production') {
   const clientDist = path.join(__dirname, '../client');
