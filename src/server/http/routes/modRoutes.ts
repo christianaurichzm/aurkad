@@ -1,6 +1,7 @@
 import { Router, type Request, type Response } from 'express';
 import type { ExtendedRequest } from '../session.js';
 import { Access, CharacterAction } from '../../../shared/types.js';
+import { TILE_SIZE } from '../../../shared/constants.js';
 import {
   parseBody,
   PlayerNameBodySchema,
@@ -10,7 +11,9 @@ import {
   SetAccessBodySchema,
   GoMapBodySchema,
   SetMyAccessBodySchema,
+  WarpPlayerBodySchema,
 } from '../bodySchemas.js';
+import { getMap } from '../../services/world/gameData.js';
 import checkAccess from '../middleware/checkAccess.js';
 import { broadcast } from '../../net/index.js';
 import { kickPlayer, handlePlayerUpdate } from '../../services/gameService.js';
@@ -129,6 +132,33 @@ export function createModRouter() {
       broadcast();
 
       res.status(200).send('Teleported to player');
+    },
+  );
+
+  router.post(
+    '/mod/warp',
+    checkAccess(Access.MOD),
+    (req: ExtendedRequest, res: Response) => {
+      const body = parseBody(WarpPlayerBodySchema, req.body, res);
+      if (!body) return;
+      const { playerName, mapId, col, row } = body;
+      const target = getPlayerByName(playerName);
+      if (!target) return res.status(404).send('Player not found');
+      if (!getMap(mapId)) return res.status(400).send('Map not loaded');
+
+      const previousMapId = target.mapId;
+      target.mapId = mapId;
+      target.position = { x: col * TILE_SIZE, y: row * TILE_SIZE };
+      target.targetPosition = undefined;
+      target.moving = false;
+      target.action = CharacterAction.Idle;
+      target.moveTick = undefined;
+      target.moveDurationTicks = undefined;
+
+      updatePlayerMap(target.id, target, previousMapId);
+      broadcast();
+
+      res.status(200).send('Player warped');
     },
   );
 

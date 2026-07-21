@@ -62,6 +62,7 @@ export {
 
 // Moderation
 export {
+  modWarp,
   modKick,
   modBan,
   modBring,

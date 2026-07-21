@@ -30,6 +30,17 @@ export const modGoto = async (playerName: string) =>
     body: { playerName },
   });
 
+export const modWarp = async (
+  playerName: string,
+  mapId: string,
+  col: number,
+  row: number,
+) =>
+  httpClient<Response>('/mod/warp', {
+    method: 'POST',
+    body: { playerName, mapId, col, row },
+  });
+
 export const modSetAccess = async (playerName: string, accessLevel: Access) =>
   httpClient<Response>('/mod/setAccess', {
     method: 'POST',
