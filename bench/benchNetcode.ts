@@ -333,8 +333,22 @@ function runNew(map: MapStateServer, ticks: number, rows: number, cols: number) 
   return { ms: performance.now() - t0, bytes };
 }
 
+// CLI: `--scenario=<substring>` runs only matching scenarios and
+// `--path=new|old` only one code path, so a profiler (node --prof) can be
+// pointed at one scenario; the legacy path, several times slower, would
+// otherwise dominate the profile.
+const argv = process.argv.slice(2);
+const argOf = (name: string): string | undefined =>
+  argv.find((a) => a.startsWith(`--${name}=`))?.split('=')[1];
+const scenarioFilter = argOf('scenario')?.toLowerCase();
+const pathFilter = argOf('path');
+const runOldEnabled = pathFilter !== 'new';
+const runNewEnabled = pathFilter !== 'old';
+
 // Runner.
 function bench(label: string, rows: number, cols: number, nPlayers: number, nNpcs: number) {
+  if (scenarioFilter && !label.toLowerCase().includes(scenarioFilter)) return;
+
   const WARMUP = 30;
   const TICKS = 300;
 
@@ -344,22 +358,30 @@ function bench(label: string, rows: number, cols: number, nPlayers: number, nNpc
   };
 
   // warmup (separate worlds so baselines don't leak into the measured run)
-  runOld(mk(), WARMUP, rows, cols);
-  runNew(mk(), WARMUP, rows, cols);
+  if (runOldEnabled) runOld(mk(), WARMUP, rows, cols);
+  if (runNewEnabled) runNew(mk(), WARMUP, rows, cols);
 
-  const oldR = runOld(mk(), TICKS, rows, cols);
-  const newR = runNew(mk(), TICKS, rows, cols);
-
-  const msOldTick = oldR.ms / TICKS;
-  const msNewTick = newR.ms / TICKS;
-  const bOldTick = oldR.bytes / TICKS;
-  const bNewTick = newR.bytes / TICKS;
-  const cpuCut = (1 - msNewTick / msOldTick) * 100;
-  const byteCut = (1 - bNewTick / bOldTick) * 100;
+  const oldR = runOldEnabled ? runOld(mk(), TICKS, rows, cols) : null;
+  const newR = runNewEnabled ? runNew(mk(), TICKS, rows, cols) : null;
 
   console.log(`\n### ${label}  (map ${cols}x${rows} tiles, ${nPlayers} players, ${nNpcs} npcs)`);
-  console.log(`  ms/tick   : antes ${msOldTick.toFixed(3)}  ->  agora ${msNewTick.toFixed(3)}   (${cpuCut >= 0 ? '-' : '+'}${Math.abs(cpuCut).toFixed(1)}% CPU)`);
-  console.log(`  bytes/tick: antes ${Math.round(bOldTick).toLocaleString()}  ->  agora ${Math.round(bNewTick).toLocaleString()}   (${byteCut >= 0 ? '-' : '+'}${Math.abs(byteCut).toFixed(1)}% egress)`);
+
+  if (oldR && newR) {
+    const msOldTick = oldR.ms / TICKS;
+    const msNewTick = newR.ms / TICKS;
+    const bOldTick = oldR.bytes / TICKS;
+    const bNewTick = newR.bytes / TICKS;
+    const cpuCut = (1 - msNewTick / msOldTick) * 100;
+    const byteCut = (1 - bNewTick / bOldTick) * 100;
+    console.log(`  ms/tick   : antes ${msOldTick.toFixed(3)}  ->  agora ${msNewTick.toFixed(3)}   (${cpuCut >= 0 ? '-' : '+'}${Math.abs(cpuCut).toFixed(1)}% CPU)`);
+    console.log(`  bytes/tick: antes ${Math.round(bOldTick).toLocaleString()}  ->  agora ${Math.round(bNewTick).toLocaleString()}   (${byteCut >= 0 ? '-' : '+'}${Math.abs(byteCut).toFixed(1)}% egress)`);
+    return;
+  }
+
+  const only = oldR ?? newR!;
+  const tag = oldR ? 'antes' : 'agora';
+  console.log(`  ms/tick   : ${tag} ${(only.ms / TICKS).toFixed(3)}`);
+  console.log(`  bytes/tick: ${tag} ${Math.round(only.bytes / TICKS).toLocaleString()}`);
 }
 
 buildItems();

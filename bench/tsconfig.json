@@ -1,11 +1,10 @@
 {
-  "//": "Typecheck-only config for benchmarks. bench/ sits outside tsconfig.server.json (rootDir: src), so without this it rots silently when a src signature changes.",
+  "//": "Config for benchmarks, used by BOTH `npm run typecheck:bench` and `npm run bench` (via TS_NODE_PROJECT - ts-node resolves tsconfig from cwd, so it would otherwise pick the root tsconfig.json, whose `types: [vite/client]` hides @types/node). No `noEmit` here: it would make ts-node refuse to execute; the typecheck script passes --noEmit on the CLI.",
   "extends": "../tsconfig.base.json",
   "compilerOptions": {
     "module": "NodeNext",
     "moduleResolution": "NodeNext",
     "target": "ES2022",
-    "noEmit": true,
     "esModuleInterop": true,
     "skipLibCheck": true
   },

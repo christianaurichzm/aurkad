@@ -22,7 +22,7 @@
     "content:export": "node --loader ts-node/esm src/server/content/cli.ts export",
     "content:import": "node --loader ts-node/esm src/server/content/cli.ts import",
     "seed": "node --loader ts-node/esm src/server/model/seed.ts",
-    "bench": "node --loader ts-node/esm bench/benchNetcode.ts",
+    "bench": "cross-env TS_NODE_PROJECT=bench/tsconfig.json node --loader ts-node/esm bench/benchNetcode.ts",
     "replay": "node --loader ts-node/esm scripts/replay.ts",
     "dev:seed": "npm run db:reset && sleep 2 && npm run seed && npm run dev",
     "fresh": "npm run db:reset && npm run build && npm start",
