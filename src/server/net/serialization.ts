@@ -93,6 +93,16 @@ export function toMapChunk(
   };
 }
 
+// Positions are copied so the broadcast state never aliases the live entity
+// (the sim mutates it in place every tick).
+export function toNpcPublic(npc: RuntimeNpc): RuntimeNpc {
+  return {
+    ...npc,
+    position: { ...npc.position },
+    targetPosition: npc.targetPosition ? { ...npc.targetPosition } : undefined,
+  };
+}
+
 export function toMapDynamicClient(
   map: MapStateServer,
   viewer: PlayerServer,
@@ -116,15 +126,7 @@ export function toMapDynamicClient(
       if (other) players[entity.id] = toPlayerPublic(other);
     } else if (entity.kind === 'npc') {
       const npc = map.npcs[entity.id];
-      if (npc) {
-        npcs[entity.id] = {
-          ...npc,
-          position: { ...npc.position },
-          targetPosition: npc.targetPosition
-            ? { ...npc.targetPosition }
-            : undefined,
-        };
-      }
+      if (npc) npcs[entity.id] = toNpcPublic(npc);
     }
   }
 

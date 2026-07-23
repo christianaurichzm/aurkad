@@ -1,14 +1,26 @@
 import WebSocket from 'ws';
-import * as jsondiffpatch from 'jsondiffpatch';
-import { MapStateServer, PlayerServer } from '../../shared/types.js';
-import type {
-  FullGameStatePayload,
-  GameStateDeltaPayload,
-} from '../../shared/wsProtocol.js';
+import {
+  MapStateServer,
+  PlayerServer,
+  type DroppedItem,
+} from '../../shared/types.js';
+import { PROTOCOL_VERSION } from '../../shared/wsProtocol.js';
 import { config } from '../config.js';
 import { logger } from '../logger.js';
 import { getGameState } from '../services/gameService.js';
-import { toMapDynamicClient, toMapMeta, toMapChunk } from './serialization.js';
+import {
+  toPlayerPublic,
+  toNpcPublic,
+  toMapMeta,
+  toMapChunk,
+} from './serialization.js';
+import {
+  beginTick,
+  recordEntity,
+  fragmentFor,
+  forgetEntity,
+} from './entityReplication.js';
+import { queryEntitiesInRect } from '../spatial/spatialManager.js';
 import {
   playerColdSignature,
   toPlayerCold,
@@ -25,21 +37,20 @@ import { playersWsMap } from './connections.js';
 import {
   nsCountBytes,
   nsCountChunk,
-  nsCountDelta,
   nsCountEntityLeave,
-  nsCountFullState,
+  nsCountWorldUpdate,
   nsCountPlayer,
   nsFlushTick,
 } from './netStats.js';
 
-const diffPatcher = jsondiffpatch.create({
-  objectHash: (obj: any, index?: number): string | undefined =>
-    obj.id || obj.name || `$$index:${index}`,
-  arrays: { detectMove: false, includeValueOnMove: false },
-});
-
-export const lastSentStates = new Map<string, FullGameStatePayload>();
 const lastSentPlayerColdSig = new Map<string, string>();
+// Serialized droppedItems last sent to each viewer. Drops have no stable id to
+// diff per entity, but the list is small, so a string compare is enough to
+// avoid resending it every tick.
+const lastSentDroppedItems = new Map<string, string>();
+// Last `self` payload sent to each viewer, so an idle player stops receiving
+// identical hot state every tick.
+const lastSentSelf = new Map<string, string>();
 
 interface ChunkState {
   mapId: string;
@@ -59,10 +70,17 @@ const MAX_CHUNKS_PER_TICK = 8;
 let lastCongestionLogMs = 0;
 
 export function resetPlayerNetState(name: string) {
-  lastSentStates.delete(name);
   lastSentPlayerColdSig.delete(name);
+  lastSentDroppedItems.delete(name);
+  lastSentSelf.delete(name);
   playerChunkState.delete(name);
   playerInterestSets.delete(name);
+}
+
+// Called when an entity stops existing (disconnect/despawn) so a recycled id
+// can never inherit another entity's diff history.
+export function forgetReplicatedEntity(id: string) {
+  forgetEntity(id);
 }
 
 function sendMapMetaIfNeeded(
@@ -74,14 +92,23 @@ function sendMapMetaIfNeeded(
   const existing = playerChunkState.get(player.name);
   if (existing?.mapId === map.id && existing.revision === mapRevision) return;
 
-  ws.send(JSON.stringify({ type: 'mapMeta', payload: toMapMeta(map) }));
+  ws.send(
+    JSON.stringify({
+      v: PROTOCOL_VERSION,
+      type: 'mapMeta',
+      payload: toMapMeta(map),
+    }),
+  );
   playerChunkState.set(player.name, {
     mapId: map.id,
     revision: mapRevision,
     sent: new Set(),
   });
-  lastSentStates.delete(player.name);
+  // Changing map (or its revision) invalidates everything the client knows
+  // about what is on screen, so the next update must resend entities in full.
   playerInterestSets.delete(player.name);
+  lastSentDroppedItems.delete(player.name);
+  lastSentSelf.delete(player.name);
 }
 
 function sendViewportChunks(
@@ -109,6 +136,7 @@ function sendViewportChunks(
       const key = `${cx}:${cy}`;
       if (state.sent.has(key)) continue;
       const chunkData = JSON.stringify({
+        v: PROTOCOL_VERSION,
         type: 'mapChunk',
         payload: toMapChunk(map, cx, cy),
       });
@@ -125,51 +153,87 @@ function sendPlayerStatsIfNeeded(player: PlayerServer, ws: WebSocket) {
   if (lastSentPlayerColdSig.get(player.name) === signature) return;
 
   ws.send(
-    JSON.stringify({ type: 'playerStats', payload: toPlayerCold(player) }),
+    JSON.stringify({
+      v: PROTOCOL_VERSION,
+      type: 'playerStats',
+      payload: toPlayerCold(player),
+    }),
   );
   lastSentPlayerColdSig.set(player.name, signature);
 }
 
-function sendDynamicSnapshot(
+// Phase 1 of the tick: build every live entity's public state ONCE and cache
+// its serialized fragments. Runs per map, not per viewer: an entity's public
+// state is identical for everyone who can see it, so building it per viewer is
+// the same work repeated.
+function recordMapEntities(map: MapStateServer) {
+  for (const player of Object.values(map.players)) {
+    recordEntity(player.id, toPlayerPublic(player) as unknown as PublicRecord);
+  }
+  for (const npc of Object.values(map.npcs)) {
+    if (npc.health > 0) {
+      recordEntity(npc.id, toNpcPublic(npc) as unknown as PublicRecord);
+    }
+  }
+}
+
+type PublicRecord = Record<string, unknown>;
+
+// Phase 2: assemble one viewer's message from the cached fragments. No object
+// diffing here - only set membership and string concatenation.
+function sendWorldUpdate(
   player: PlayerServer,
   map: MapStateServer,
   ws: WebSocket,
   viewport: Viewport,
 ) {
-  const dynClient = toMapDynamicClient(map, player, viewport);
+  const nearby = queryEntitiesInRect(map.id, {
+    x: viewport.left,
+    y: viewport.top,
+    width: viewport.right - viewport.left,
+    height: viewport.bottom - viewport.top,
+  });
 
-  // Detect entities leaving the viewport and send explicit tombstones.
-  // This avoids jsondiffpatch generating costly delete deltas (which include
-  // the full previous entity state in the wire format).
-  const currentPlayerIds = new Set(Object.keys(dynClient.players));
-  const currentNpcIds = new Set(Object.keys(dynClient.npcs));
-  const prevSets = playerInterestSets.get(player.name);
+  const known = playerInterestSets.get(player.name);
+  const currentPlayerIds = new Set<string>();
+  const currentNpcIds = new Set<string>();
+  const parts: string[] = [];
+  let fullCount = 0;
+  let partialCount = 0;
 
-  if (prevSets) {
-    const leavingPlayers: string[] = [];
-    const leavingNpcs: string[] = [];
-    for (const id of prevSets.players) {
-      if (!currentPlayerIds.has(id)) leavingPlayers.push(id);
+  for (const entity of nearby) {
+    if (!entity.id) continue;
+
+    let viewerKnows: boolean;
+    if (entity.kind === 'player') {
+      // The viewer's own state travels in `self`, not in `entities`.
+      if (entity.id === player.id) continue;
+      if (!map.players[entity.id]) continue;
+      currentPlayerIds.add(entity.id);
+      viewerKnows = known?.players.has(entity.id) ?? false;
+    } else if (entity.kind === 'npc') {
+      const npc = map.npcs[entity.id];
+      if (!npc || npc.health <= 0) continue;
+      currentNpcIds.add(entity.id);
+      viewerKnows = known?.npcs.has(entity.id) ?? false;
+    } else {
+      continue;
     }
-    for (const id of prevSets.npcs) {
-      if (!currentNpcIds.has(id)) leavingNpcs.push(id);
+
+    const fragment = fragmentFor(entity.id, viewerKnows);
+    if (!fragment) continue;
+    parts.push(`${JSON.stringify(entity.id)}:${fragment}`);
+    if (viewerKnows) partialCount++;
+    else fullCount++;
+  }
+
+  const leaving: string[] = [];
+  if (known) {
+    for (const id of known.players) {
+      if (!currentPlayerIds.has(id)) leaving.push(id);
     }
-    if (leavingPlayers.length > 0 || leavingNpcs.length > 0) {
-      const leaveData = JSON.stringify({
-        type: 'entityLeave',
-        payload: { players: leavingPlayers, npcs: leavingNpcs },
-      });
-      ws.send(leaveData);
-      nsCountEntityLeave(
-        leavingPlayers.length + leavingNpcs.length,
-        leaveData.length,
-      );
-      // Prune lastSentState so jsondiffpatch never sees these as deleted keys.
-      const lastState = lastSentStates.get(player.name);
-      if (lastState) {
-        for (const id of leavingPlayers) delete lastState.map.players[id];
-        for (const id of leavingNpcs) delete lastState.map.npcs[id];
-      }
+    for (const id of known.npcs) {
+      if (!currentNpcIds.has(id)) leaving.push(id);
     }
   }
 
@@ -178,42 +242,67 @@ function sendDynamicSnapshot(
     npcs: currentNpcIds,
   });
 
-  const currentState: FullGameStatePayload = {
-    map: dynClient,
-    player: toPlayerHot(player),
-  };
+  const visibleDrops = map.droppedItems.filter((item: DroppedItem) =>
+    withinViewport(item.position, viewport),
+  );
+  const dropsJson = JSON.stringify(visibleDrops);
+  const dropsChanged = lastSentDroppedItems.get(player.name) !== dropsJson;
 
-  const lastState = lastSentStates.get(player.name);
-  let message: {
-    type: string;
-    payload: FullGameStatePayload | GameStateDeltaPayload;
-  } | null = null;
+  // The viewer is excluded from `entities` (its state travels in `self`), so
+  // `self` must be part of the send condition: a player alone on a map would
+  // otherwise never receive its own authoritative position and client-side
+  // prediction would never be reconciled.
+  const selfJson = JSON.stringify(toPlayerHot(player));
+  const selfChanged = lastSentSelf.get(player.name) !== selfJson;
 
-  if (!lastState) {
-    message = { type: 'fullGameState', payload: currentState };
-  } else {
-    const delta = diffPatcher.diff(lastState, currentState);
-    if (delta) {
-      message = { type: 'gameStateDelta', payload: delta };
-    }
+  if (
+    parts.length === 0 &&
+    leaving.length === 0 &&
+    !dropsChanged &&
+    !selfChanged
+  ) {
+    return;
   }
 
-  if (message) {
-    const data = JSON.stringify(message);
-    ws.send(data);
-    nsCountBytes(data.length);
-    if (message.type === 'fullGameState') nsCountFullState(data.length);
-    else nsCountDelta(data.length);
-    lastSentStates.set(player.name, currentState);
-  }
+  const drops = dropsChanged ? `,"droppedItems":${dropsJson}` : '';
+  const data =
+    `{"v":${PROTOCOL_VERSION},"type":"worldUpdate","payload":{` +
+    `"entities":{${parts.join(',')}},` +
+    `"leave":${JSON.stringify(leaving)},` +
+    `"self":${selfJson}${drops}}}`;
+
+  ws.send(data);
+  lastSentDroppedItems.set(player.name, dropsJson);
+  lastSentSelf.set(player.name, selfJson);
+
+  nsCountBytes(data.length);
+  nsCountWorldUpdate(data.length, fullCount, partialCount);
+  if (leaving.length > 0) nsCountEntityLeave(leaving.length, 0);
+}
+
+function withinViewport(pos: { x: number; y: number }, vp: Viewport): boolean {
+  return (
+    pos.x >= vp.left &&
+    pos.x <= vp.right &&
+    pos.y >= vp.top &&
+    pos.y <= vp.bottom
+  );
 }
 
 export function broadcastGameState() {
   const gameState = getGameState();
   const marginPx = config.net.aoiMarginTiles * TILE_SIZE;
 
+  // Fragments are per-tick; clear them before any map is serialized.
+  beginTick();
+
   for (const map of Object.values(gameState.maps)) {
     const mapRevision = map.tilesRevision ?? 0;
+
+    // Phase 1 runs even if no one is watching this map: it keeps each entity's
+    // diff baseline current, so a viewer arriving later gets a correct full
+    // state rather than a delta against a stale baseline.
+    recordMapEntities(map);
 
     for (const player of Object.values(map.players)) {
       const ws = playersWsMap.get(player.name);
@@ -246,7 +335,7 @@ export function broadcastGameState() {
         );
         sendViewportChunks(player, map, ws, viewport);
         sendPlayerStatsIfNeeded(player, ws);
-        sendDynamicSnapshot(player, map, ws, viewport);
+        sendWorldUpdate(player, map, ws, viewport);
       } catch (error) {
         logger.error('Error broadcasting to player', {
           player: player.name,

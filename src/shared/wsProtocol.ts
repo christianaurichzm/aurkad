@@ -1,13 +1,22 @@
 import type {
   ChatMessagePayload,
   ChatScope,
+  DroppedItem,
   KeyboardAction,
   MapChunkPayload,
   MapDynamicClient,
   MapMetaClient,
   PlayerCold,
   PlayerHot,
+  PlayerPublic,
+  RuntimeNpc,
 } from './types.js';
+
+// Wire format version. Bump on any breaking change to the server->client
+// game-state messages: the client compares it and reloads instead of
+// applying a payload it cannot read, where a stale tab after a deploy
+// would corrupt its state silently.
+export const PROTOCOL_VERSION = 1;
 
 export interface WsClientKeyboardMessage {
   type: 'keyboard';
@@ -42,22 +51,21 @@ export type WsClientMessage =
   | WsClientChatMessage
   | WsClientCustomMessage;
 
+// Client-side shape of the dynamic world: what the client assembles and
+// renders from the wire format (see WorldUpdatePayload).
 export interface FullGameStatePayload {
   map: MapDynamicClient;
   player: PlayerHot;
 }
 
-export interface WsServerFullGameStateMessage {
-  type: 'fullGameState';
-  payload: FullGameStatePayload;
-}
-
 export interface WsServerMapMetaMessage {
+  v: number;
   type: 'mapMeta';
   payload: MapMetaClient;
 }
 
 export interface WsServerMapChunkMessage {
+  v: number;
   type: 'mapChunk';
   payload: MapChunkPayload;
 }
@@ -65,25 +73,34 @@ export interface WsServerMapChunkMessage {
 export type PlayerStatsPayload = PlayerCold;
 
 export interface WsServerPlayerStatsMessage {
+  v: number;
   type: 'playerStats';
   payload: PlayerStatsPayload;
 }
 
-export type GameStateDeltaPayload = unknown;
-
-export interface WsServerGameStateDeltaMessage {
-  type: 'gameStateDelta';
-  payload: GameStateDeltaPayload;
+/**
+ * Per-tick world update.
+ *
+ * `entities` carries only what changed, keyed by entity id. The server
+ * guarantees an entity ENTERING the viewport is sent complete, so the client
+ * can simply merge when it already knows the id and insert when it does not -
+ * no full-vs-partial marker on the wire. `kind` (present on both PlayerPublic
+ * and RuntimeNpc) routes an incoming entity to the players or npcs bucket.
+ *
+ * `droppedItems` is sent whole, and only when the viewer's filtered list
+ * changed: drops have no stable id to diff against, and the list is small.
+ */
+export interface WorldUpdatePayload {
+  entities: Record<string, Partial<PlayerPublic> | Partial<RuntimeNpc>>;
+  leave: string[];
+  self: PlayerHot;
+  droppedItems?: DroppedItem[];
 }
 
-export interface EntityLeavePayload {
-  players: string[];
-  npcs: string[];
-}
-
-export interface WsServerEntityLeaveMessage {
-  type: 'entityLeave';
-  payload: EntityLeavePayload;
+export interface WsServerWorldUpdateMessage {
+  v: number;
+  type: 'worldUpdate';
+  payload: WorldUpdatePayload;
 }
 
 export type WsServerChatMessage = ChatMessagePayload;
@@ -118,7 +135,5 @@ export type WsServerMessage =
   | WsServerRedirectMessage
   | WsServerMapMetaMessage
   | WsServerMapChunkMessage
-  | WsServerEntityLeaveMessage
   | WsServerPlayerStatsMessage
-  | WsServerFullGameStateMessage
-  | WsServerGameStateDeltaMessage;
+  | WsServerWorldUpdateMessage;

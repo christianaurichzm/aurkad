@@ -6,7 +6,11 @@ export {
   markServerShuttingDown,
 } from './transport.js';
 
-export { broadcast, resetPlayerNetState, lastSentStates } from './snapshot.js';
+export {
+  broadcast,
+  resetPlayerNetState,
+  forgetReplicatedEntity,
+} from './snapshot.js';
 
 export { broadcastChat, broadcastMapChat, broadcastToMap } from './fanout.js';
 

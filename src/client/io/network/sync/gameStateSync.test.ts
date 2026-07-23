@@ -1,5 +1,4 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import * as jsondiffpatch from 'jsondiffpatch';
 import { TILE_SIZE, MOVEMENT_DURATION } from '../../../../shared/constants';
 import { CharacterAction, Direction, Position } from '../../../../shared/types';
 import { setStaticMap, setPlayerStats } from '../../../core/gameState';
@@ -17,12 +16,6 @@ import {
   resetInterpolation,
 } from './gameStateSync';
 
-const diffPatcher = jsondiffpatch.create({
-  objectHash: (obj: any, index?: number): string | undefined =>
-    obj.id || obj.name || `$$index:${index}`,
-  arrays: { detectMove: true, includeValueOnMove: false },
-});
-
 const LOCAL_ID = 'me';
 let now = 1000;
 
@@ -36,17 +29,13 @@ function hotPlayer(position: Position) {
   };
 }
 
-function fullPayload(position: Position) {
-  return {
-    map: { id: '1', droppedItems: [], npcs: {}, players: {} },
-    player: hotPlayer(position),
-  };
-}
-
+// One per-tick world update carrying only the local player's hot state, which
+// is what a solo player actually receives from the server.
 function enqueueFull(position: Position) {
   enqueueGameStateMessage({
-    type: 'fullGameState',
-    payload: fullPayload(position),
+    v: 1,
+    type: 'worldUpdate',
+    payload: { entities: {}, leave: [], self: hotPlayer(position) },
   } as never);
 }
 
@@ -109,16 +98,11 @@ describe('local player movement pipeline', () => {
     });
   });
 
-  it('slides when the move arrives as a jsondiffpatch delta (the real path)', () => {
-    const base = fullPayload({ x: 0, y: 0 });
+  it('slides when the move arrives as an incremental worldUpdate (the real path)', () => {
     enqueueFull({ x: 0, y: 0 });
     updateWebSocket();
 
-    const delta = diffPatcher.diff(base, fullPayload({ x: TILE_SIZE, y: 0 }));
-    enqueueGameStateMessage({
-      type: 'gameStateDelta',
-      payload: delta,
-    } as never);
+    enqueueFull({ x: TILE_SIZE, y: 0 });
     updateWebSocket();
 
     now = 1000 + MOVEMENT_DURATION / 2;

@@ -1,4 +1,7 @@
-import type { WsClientMessage } from '../../../shared/wsProtocol';
+import {
+  PROTOCOL_VERSION,
+  type WsClientMessage,
+} from '../../../shared/wsProtocol';
 import { hideConnectionStatus, showConnectionStatus } from '../../graphics/hud';
 import { useUIStore } from '../../stores/uiStore';
 import { enqueueGameStateMessage } from './sync/gameStateSync';
@@ -34,6 +37,28 @@ const scheduleReconnect = () => {
   }, delay);
 };
 
+let protocolMismatchHandled = false;
+
+function handleProtocolMismatch(serverVersion: number) {
+  if (protocolMismatchHandled) return;
+  protocolMismatchHandled = true;
+  kicked = true; // suppress the reconnect loop; we are about to reload
+  console.warn(
+    `[Client] Protocol mismatch: server v${serverVersion}, client v${PROTOCOL_VERSION}. Reloading.`,
+  );
+  void useUIStore
+    .getState()
+    .showDialog({
+      title: 'Update available',
+      message:
+        'The server was updated while this tab was open. Reload to continue.',
+      kind: 'error',
+      confirmLabel: 'Reload',
+    })
+    .finally(() => window.location.reload());
+  socket?.close();
+}
+
 export const initializeWebSocket = (url = currentWsUrl) => {
   currentWsUrl = url;
   try {
@@ -57,6 +82,14 @@ export const initializeWebSocket = (url = currentWsUrl) => {
   socket.onmessage = (event) => {
     try {
       const data = JSON.parse(event.data);
+
+      // A versioned message whose version we do not speak means the server was
+      // deployed with a new wire format while this tab stayed open. Applying it
+      // would corrupt local state silently (audit F-7), so resync by reloading.
+      if (typeof data.v === 'number' && data.v !== PROTOCOL_VERSION) {
+        handleProtocolMismatch(data.v);
+        return;
+      }
 
       switch (data.type) {
         case 'chat':
@@ -94,10 +127,8 @@ export const initializeWebSocket = (url = currentWsUrl) => {
           break;
         case 'mapMeta':
         case 'mapChunk':
-        case 'entityLeave':
         case 'playerStats':
-        case 'fullGameState':
-        case 'gameStateDelta':
+        case 'worldUpdate':
           enqueueGameStateMessage(data);
           break;
       }

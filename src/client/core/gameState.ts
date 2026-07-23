@@ -6,21 +6,15 @@ import type {
   MapStaticClient,
   Player,
   PlayerCold,
+  PlayerPublic,
+  RuntimeNpc,
   Tile,
 } from '../../shared/types';
-import type { FullGameStatePayload } from '../../shared/wsProtocol';
+import type {
+  FullGameStatePayload,
+  WorldUpdatePayload,
+} from '../../shared/wsProtocol';
 import { CHUNK_SIZE, TILE_SIZE } from '../../shared/constants';
-import * as jsondiffpatch from 'jsondiffpatch';
-
-const diffPatcher = jsondiffpatch.create({
-  objectHash: (obj: any, index?: number): string | undefined => {
-    return obj.id || obj.name || `$$index:${index}`;
-  },
-  arrays: {
-    detectMove: true,
-    includeValueOnMove: false,
-  },
-});
 
 let staticMap: MapStaticClient | null = null;
 let staticMapRevision: number | null = null;
@@ -143,19 +137,70 @@ export const updatePlayerInventory = (inventory: PlayerCold['inventory']) => {
   };
 };
 
+// Seeds the local world before the first server update arrives (GameInterface
+// does this from the session payload). Not a wire message handler.
 export const setFullGameState = (payload: FullGameStatePayload) => {
   dynamic = payload;
 };
 
-export const patchGameState = (delta: unknown) => {
-  if (dynamic && delta) {
-    dynamic = diffPatcher.patch(
-      dynamic,
-      delta as jsondiffpatch.Delta,
-    ) as unknown as FullGameStatePayload;
-  } else if (!dynamic) {
-    console.warn('Attempted to patch but no dynamic game state exists.');
-  } else if (!delta) {
-    console.warn('Received a delta message but the delta was undefined.');
+// `null` on the wire means the field was cleared, since JSON cannot carry
+// undefined; the key is deleted.
+function mergeEntity(
+  current: Record<string, unknown>,
+  patch: Record<string, unknown>,
+): Record<string, unknown> {
+  const merged: Record<string, unknown> = { ...current };
+  for (const [key, value] of Object.entries(patch)) {
+    if (value === null) delete merged[key];
+    else merged[key] = value;
   }
+  return merged;
+}
+
+/**
+ * Merges one per-tick world update into the local world. An entering
+ * entity arrives complete, so known ids merge by field and unknown ones are
+ * inserted by `kind`. `dynamic` is reassigned because getGameState()
+ * caches by object identity.
+ */
+export const applyWorldUpdate = (payload: WorldUpdatePayload) => {
+  const players: Record<string, PlayerPublic> = dynamic
+    ? { ...dynamic.map.players }
+    : {};
+  const npcs: Record<string, RuntimeNpc> = dynamic
+    ? { ...dynamic.map.npcs }
+    : {};
+
+  for (const [id, patch] of Object.entries(payload.entities ?? {})) {
+    if (players[id]) {
+      players[id] = mergeEntity(
+        players[id] as unknown as Record<string, unknown>,
+        patch as Record<string, unknown>,
+      ) as unknown as PlayerPublic;
+    } else if (npcs[id]) {
+      npcs[id] = mergeEntity(
+        npcs[id] as unknown as Record<string, unknown>,
+        patch as Record<string, unknown>,
+      ) as unknown as RuntimeNpc;
+    } else if ((patch as { kind?: string }).kind === 'npc') {
+      npcs[id] = patch as RuntimeNpc;
+    } else {
+      players[id] = patch as PlayerPublic;
+    }
+  }
+
+  for (const id of payload.leave ?? []) {
+    delete players[id];
+    delete npcs[id];
+  }
+
+  dynamic = {
+    map: {
+      id: dynamic?.map.id ?? '',
+      droppedItems: payload.droppedItems ?? dynamic?.map.droppedItems ?? [],
+      players,
+      npcs,
+    },
+    player: payload.self,
+  };
 };

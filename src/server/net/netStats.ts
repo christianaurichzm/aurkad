@@ -3,10 +3,11 @@ const WINDOW_SIZE = 100; // ticks (~5 s at 20 Hz)
 interface TickRecord {
   players: number;
   bytesSent: number;
-  fullGameStates: number;
-  fullGameStateBytes: number;
-  deltas: number;
-  deltaBytes: number;
+  worldUpdates: number;
+  worldUpdateBytes: number;
+  // Entities carried in those updates, split by how they were encoded.
+  entitiesFull: number;
+  entitiesPartial: number;
   entityLeaveMessages: number;
   entitiesLeft: number;
   chunksDelivered: number;
@@ -17,10 +18,10 @@ function makeEmpty(): TickRecord {
   return {
     players: 0,
     bytesSent: 0,
-    fullGameStates: 0,
-    fullGameStateBytes: 0,
-    deltas: 0,
-    deltaBytes: 0,
+    worldUpdates: 0,
+    worldUpdateBytes: 0,
+    entitiesFull: 0,
+    entitiesPartial: 0,
     entityLeaveMessages: 0,
     entitiesLeft: 0,
     chunksDelivered: 0,
@@ -42,14 +43,17 @@ export function nsCountBytes(n: number): void {
   acc.bytesSent += n;
 }
 
-export function nsCountFullState(bytes: number): void {
-  acc.fullGameStates++;
-  acc.fullGameStateBytes += bytes;
-}
-
-export function nsCountDelta(bytes: number): void {
-  acc.deltas++;
-  acc.deltaBytes += bytes;
+// One per-tick worldUpdate sent to one viewer, plus how many entities in it
+// were encoded in full (entering the viewport) vs as changed fields only.
+export function nsCountWorldUpdate(
+  bytes: number,
+  entitiesFull: number,
+  entitiesPartial: number,
+): void {
+  acc.worldUpdates++;
+  acc.worldUpdateBytes += bytes;
+  acc.entitiesFull += entitiesFull;
+  acc.entitiesPartial += entitiesPartial;
 }
 
 export function nsCountEntityLeave(entityCount: number, bytes: number): void {
@@ -77,10 +81,10 @@ export function getNetStats(): Record<string, unknown> {
 
   let players = 0,
     bytes = 0,
-    fullStates = 0,
-    fullBytes = 0,
-    deltas = 0,
-    deltaBytes = 0,
+    updates = 0,
+    updateBytes = 0,
+    entitiesFull = 0,
+    entitiesPartial = 0,
     leaveMessages = 0,
     entitiesLeft = 0,
     chunks = 0,
@@ -90,17 +94,17 @@ export function getNetStats(): Record<string, unknown> {
     const r = records[i]!;
     players += r.players;
     bytes += r.bytesSent;
-    fullStates += r.fullGameStates;
-    fullBytes += r.fullGameStateBytes;
-    deltas += r.deltas;
-    deltaBytes += r.deltaBytes;
+    updates += r.worldUpdates;
+    updateBytes += r.worldUpdateBytes;
+    entitiesFull += r.entitiesFull;
+    entitiesPartial += r.entitiesPartial;
     leaveMessages += r.entityLeaveMessages;
     entitiesLeft += r.entitiesLeft;
     chunks += r.chunksDelivered;
     chunkBytes += r.chunkBytes;
   }
 
-  const messages = fullStates + deltas;
+  const entities = entitiesFull + entitiesPartial;
 
   return {
     windowTicks: n,
@@ -113,14 +117,17 @@ export function getNetStats(): Record<string, unknown> {
       avgBytesPerPlayerPerTick: players > 0 ? +(bytes / players).toFixed(0) : 0,
       totalBytes: bytes,
     },
+    // Key names kept stable for the /metrics endpoint. Semantics under the
+    // entity-replication model: "full" = entities sent complete (entering a
+    // viewport), "delta" = entities sent as changed fields only.
     dynamicSnapshots: {
-      fullGameStates: fullStates,
-      deltas,
+      worldUpdates: updates,
+      fullGameStates: entitiesFull,
+      deltas: entitiesPartial,
       deltaRatioPercent:
-        messages > 0 ? +((deltas / messages) * 100).toFixed(1) : 0,
-      avgFullStateSizeBytes:
-        fullStates > 0 ? +(fullBytes / fullStates).toFixed(0) : 0,
-      avgDeltaSizeBytes: deltas > 0 ? +(deltaBytes / deltas).toFixed(0) : 0,
+        entities > 0 ? +((entitiesPartial / entities) * 100).toFixed(1) : 0,
+      avgFullStateSizeBytes: 0,
+      avgDeltaSizeBytes: updates > 0 ? +(updateBytes / updates).toFixed(0) : 0,
     },
     entityLeave: {
       totalMessages: leaveMessages,

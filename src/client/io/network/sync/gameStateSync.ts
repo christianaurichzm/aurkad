@@ -1,19 +1,15 @@
 import type { MapStateClient, Position } from '../../../../shared/types';
 import type {
-  WsServerEntityLeaveMessage,
-  WsServerFullGameStateMessage,
-  WsServerGameStateDeltaMessage,
   WsServerMapChunkMessage,
   WsServerMapMetaMessage,
   WsServerPlayerStatsMessage,
+  WsServerWorldUpdateMessage,
 } from '../../../../shared/wsProtocol';
 import {
   applyMapChunk,
+  applyWorldUpdate,
   getPlayer,
   getGameState,
-  patchGameState,
-  removeEntities,
-  setFullGameState,
   setMapMeta,
   setPlayerStats,
 } from '../../../core/gameState';
@@ -28,10 +24,8 @@ import { Direction } from '../../../../shared/types';
 type GameStateMessage =
   | WsServerMapMetaMessage
   | WsServerMapChunkMessage
-  | WsServerEntityLeaveMessage
   | WsServerPlayerStatsMessage
-  | WsServerFullGameStateMessage
-  | WsServerGameStateDeltaMessage;
+  | WsServerWorldUpdateMessage;
 
 const gameStateQueue: Array<GameStateMessage> = [];
 
@@ -122,14 +116,10 @@ export function updateWebSocket(): void {
       resetInterpolation();
     } else if (message.type === 'mapChunk') {
       applyMapChunk(message.payload);
-    } else if (message.type === 'entityLeave') {
-      removeEntities(message.payload.players, message.payload.npcs);
     } else if (message.type === 'playerStats') {
       setPlayerStats(message.payload);
-    } else if (message.type === 'fullGameState') {
-      setFullGameState(message.payload);
-    } else if (message.type === 'gameStateDelta') {
-      patchGameState(message.payload);
+    } else if (message.type === 'worldUpdate') {
+      applyWorldUpdate(message.payload);
     }
 
     const currentPlayer = getPlayer();
