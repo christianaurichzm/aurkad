@@ -1,6 +1,6 @@
 import { config } from '../config.js';
 import { logger } from '../logger.js';
-import { recordTick } from '../metrics.js';
+import { recordTick, recordCatchUpTick } from '../metrics.js';
 import {
   processMovementIntent,
   processMovementCompletion,
@@ -109,9 +109,14 @@ export function startGameLoops(): () => void {
       now - lastUpdateTime >= tickInterval &&
       updates < MAX_UPDATES_PER_TICK
     ) {
-      const tickStart = Date.now();
+      // performance.now() rather than Date.now(): a healthy tick runs well
+      // under 1 ms, and integer-millisecond timing would collapse the
+      // percentiles to 0/1.
+      const tickStart = performance.now();
       runTickSystems();
-      recordTick(Date.now() - tickStart, getActionQueueSize());
+      recordTick(performance.now() - tickStart, getActionQueueSize());
+      // Every update past the first in one timer fire is the loop catching up.
+      if (updates > 0) recordCatchUpTick();
       lastUpdateTime += tickInterval;
       updates++;
     }

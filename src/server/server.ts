@@ -30,7 +30,8 @@ import { createConsoleRouter } from './http/routes/consoleRoutes.js';
 import { createAdminAuthRouter } from './http/routes/adminAuthRoutes.js';
 import { createScriptsRouter } from './http/routes/scriptsRoutes.js';
 import { registerServerCommands } from './admin/serverCommands.js';
-import { getMetrics } from './metrics.js';
+import { createHealthRouter } from './http/routes/healthRoutes.js';
+import { createMetricsRouter } from './http/routes/metricsRoutes.js';
 import {
   markServerShuttingDown,
   startGameLoops,
@@ -66,10 +67,14 @@ const __dirname = dirname(__filename);
 
 const port = config.port;
 
+// Health probes mount before session so they stay cheap and sessionless.
+app.use(createHealthRouter());
+
 const sessionMiddleware = createSessionMiddleware();
 app.use(sessionMiddleware);
 
-app.get('/healthz', (_req, res) => res.json({ players: getMetrics().players }));
+// After session: the scrape endpoint is admin-gated (see metricsRoutes).
+app.use(createMetricsRouter());
 
 app.use(createAuthRouter());
 app.use(createContentRouter());

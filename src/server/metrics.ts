@@ -7,18 +7,80 @@ export interface TickMetrics {
   queueSize: number;
 }
 
-const WINDOW = 100;
+// 600 ticks = ~30 s at 20 Hz. The old 100-tick window held only ~5 s, which is
+// too few samples for a meaningful p99 (it was effectively the max).
+const WINDOW = 600;
 const tickWindow: TickMetrics[] = Array.from({ length: WINDOW }, () => ({
   tickMs: 0,
   queueSize: 0,
 }));
 let tickHead = 0;
 let tickFilled = 0;
+let lastTickAt = 0;
+let catchUpTicks = 0;
+let totalTicks = 0;
 
 export function recordTick(ms: number, queueSize: number): void {
   tickWindow[tickHead] = { tickMs: ms, queueSize };
   tickHead = (tickHead + 1) % WINDOW;
   if (tickFilled < WINDOW) tickFilled++;
+  lastTickAt = Date.now();
+  totalTicks++;
+}
+
+// A tick the loop had to run to catch up (more than one update in a timer
+// fire). A rising rate means the loop is not keeping pace with the tick rate.
+export function recordCatchUpTick(): void {
+  catchUpTicks++;
+}
+
+// Wall-clock time of the last recorded tick; 0 before the loop starts.
+// Used by the readiness probe to detect a stalled simulation loop.
+export function getLastTickAt(): number {
+  return lastTickAt;
+}
+
+// Nearest-rank percentile over the current window. `sorted` must be ascending.
+function percentile(sorted: number[], p: number): number {
+  if (sorted.length === 0) return 0;
+  const rank = Math.ceil((p / 100) * sorted.length);
+  const idx = Math.min(sorted.length - 1, Math.max(0, rank - 1));
+  return sorted[idx]!;
+}
+
+const round2 = (n: number) => Math.round(n * 100) / 100;
+
+export function getTickStats() {
+  const ms: number[] = [];
+  const queue: number[] = [];
+  let sumTickMs = 0;
+  let sumQueueSize = 0;
+
+  for (let i = 0; i < tickFilled; i++) {
+    const entry = tickWindow[i]!;
+    ms.push(entry.tickMs);
+    queue.push(entry.queueSize);
+    sumTickMs += entry.tickMs;
+    sumQueueSize += entry.queueSize;
+  }
+
+  ms.sort((a, b) => a - b);
+  queue.sort((a, b) => a - b);
+
+  return {
+    samples: tickFilled,
+    avgMs: tickFilled === 0 ? 0 : round2(sumTickMs / tickFilled),
+    p50Ms: round2(percentile(ms, 50)),
+    p95Ms: round2(percentile(ms, 95)),
+    p99Ms: round2(percentile(ms, 99)),
+    maxMs: round2(ms[ms.length - 1] ?? 0),
+    avgQueueSize:
+      tickFilled === 0 ? 0 : Math.round((sumQueueSize / tickFilled) * 10) / 10,
+    p95QueueSize: percentile(queue, 95),
+    maxQueueSize: queue[queue.length - 1] ?? 0,
+    catchUpTicks,
+    totalTicks,
+  };
 }
 
 export function getMetrics() {
@@ -32,16 +94,6 @@ export function getMetrics() {
     totalNpcs += Object.keys(map.npcs).length;
   }
 
-  let sumTickMs = 0;
-  let sumQueueSize = 0;
-  for (let i = 0; i < tickFilled; i++) {
-    sumTickMs += tickWindow[i]!.tickMs;
-    sumQueueSize += tickWindow[i]!.queueSize;
-  }
-
-  const avgTickMs = tickFilled === 0 ? 0 : sumTickMs / tickFilled;
-  const avgQueueSize = tickFilled === 0 ? 0 : sumQueueSize / tickFilled;
-
   return {
     uptime: Math.floor(process.uptime()),
     wsConnections: [...playersWsMap.values()].filter(
@@ -50,10 +102,15 @@ export function getMetrics() {
     players: totalPlayers,
     npcs: totalNpcs,
     maps: maps.length,
-    tick: {
-      samples: tickWindow.length,
-      avgMs: Math.round(avgTickMs * 100) / 100,
-      avgQueueSize: Math.round(avgQueueSize * 10) / 10,
-    },
+    tick: getTickStats(),
   };
+}
+
+// Test seam: the tick window is module-level state shared across tests.
+export function resetMetricsForTest(): void {
+  tickHead = 0;
+  tickFilled = 0;
+  lastTickAt = 0;
+  catchUpTicks = 0;
+  totalTicks = 0;
 }

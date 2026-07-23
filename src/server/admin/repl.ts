@@ -745,7 +745,10 @@ async function handleCommand(cmd: string, args: string[]): Promise<void> {
         `${ui.title('Uptime')}: ${ui.value(`${m.uptime}s`)}  |  WS: ${ui.value(String(m.wsConnections))}  |  Players: ${ui.value(String(m.players))}  |  NPCs: ${ui.value(String(m.npcs))}  |  Maps: ${ui.value(String(m.maps))}`,
       );
       out(
-        `${ui.title('Tick')}: avg ${ui.value(`${m.tick.avgMs}ms`)}  queue: ${ui.value(String(m.tick.avgQueueSize))}  (${m.tick.samples} samples)`,
+        `${ui.title('Tick')}: avg ${ui.value(`${m.tick.avgMs}ms`)}  p50 ${ui.value(`${m.tick.p50Ms}ms`)}  p95 ${ui.value(`${m.tick.p95Ms}ms`)}  p99 ${ui.value(`${m.tick.p99Ms}ms`)}  max ${ui.value(`${m.tick.maxMs}ms`)}  (${m.tick.samples} samples)`,
+      );
+      out(
+        `${ui.title('Queue')}: avg ${ui.value(String(m.tick.avgQueueSize))}  p95 ${ui.value(String(m.tick.p95QueueSize))}  max ${ui.value(String(m.tick.maxQueueSize))}  |  ${ui.title('Catch-up')}: ${ui.value(String(m.tick.catchUpTicks))} de ${ui.value(String(m.tick.totalTicks))} ticks`,
       );
       break;
     }
