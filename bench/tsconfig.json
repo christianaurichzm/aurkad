@@ -1,0 +1,13 @@
+{
+  "//": "Typecheck-only config for benchmarks. bench/ sits outside tsconfig.server.json (rootDir: src), so without this it rots silently when a src signature changes.",
+  "extends": "../tsconfig.base.json",
+  "compilerOptions": {
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    "target": "ES2022",
+    "noEmit": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true
+  },
+  "include": ["*.ts"]
+}

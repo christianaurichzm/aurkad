@@ -16,7 +16,13 @@ import {
   toMapDynamicClient,
   toMapStaticClient,
 } from '../src/server/net/serialization.js';
+import { calcViewport } from '../src/shared/mapGeometry.js';
+import { rebuildQuadtree } from '../src/server/spatial/spatialManager.js';
 import { TILE_SIZE, EQUIPMENT_SLOTS } from '../src/shared/constants.js';
+
+// Mirrors config.net.aoiMarginTiles (default 2), inlined so the benchmark
+// stays free of the server config/dotenv chain.
+const AOI_MARGIN_PX = 2 * TILE_SIZE;
 import {
   Access,
   CharacterAction,
@@ -236,9 +242,21 @@ function runOld(map: MapStateServer, ticks: number, rows: number, cols: number) 
   const t0 = performance.now();
   for (let t = 0; t < ticks; t++) {
     stepWorld(map, rows, cols);
+    // The sim loop rebuilds the quadtree each tick (sim/loop.ts); serialization
+    // queries it for AOI, so the bench must do the same or it measures nothing.
+    rebuildQuadtree(map.id, map);
     for (const player of Object.values(map.players)) {
       const currentState = structuredClone({
-        map: toMapStateClient(map, player, 0),
+        map: toMapStateClient(
+          map,
+          player,
+          calcViewport(
+            player.position.x,
+            player.position.y,
+            map.tiles,
+            AOI_MARGIN_PX,
+          ),
+        ),
         player: enrichPlayer(player),
       });
       const lastState = lastSent.get(player.name);
@@ -266,6 +284,7 @@ function runNew(map: MapStateServer, ticks: number, rows: number, cols: number) 
   const t0 = performance.now();
   for (let t = 0; t < ticks; t++) {
     stepWorld(map, rows, cols);
+    rebuildQuadtree(map.id, map);
     const mapRev = map.tilesRevision ?? 0;
     for (const player of Object.values(map.players)) {
       // static map (once)
@@ -281,11 +300,23 @@ function runNew(map: MapStateServer, ticks: number, rows: number, cols: number) 
         bytes += JSON.stringify({ type: 'playerStats', payload: toPlayerCold(player) }).length;
         lastColdSig.set(player.name, sig);
       }
-      // hot dynamic (per tick)
-      const currentState = structuredClone({
-        map: toMapDynamicClient(map, player, 0),
+      // hot dynamic (per tick). No structuredClone: toMapDynamicClient and
+      // toPlayerHot already return fresh objects, stored straight into
+      // lastSentStates (snapshot.ts), so cloning would measure a cost
+      // production never pays.
+      const currentState = {
+        map: toMapDynamicClient(
+          map,
+          player,
+          calcViewport(
+            player.position.x,
+            player.position.y,
+            map.tiles,
+            AOI_MARGIN_PX,
+          ),
+        ),
         player: toPlayerHot(player),
-      });
+      };
       const lastState = lastSent.get(player.name);
       let msg: any = null;
       if (!lastState) msg = { type: 'fullGameState', payload: currentState };
