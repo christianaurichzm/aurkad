@@ -1,10 +1,28 @@
-import { describe, it, expect, beforeAll, afterAll, beforeEach } from 'vitest';
+import {
+  describe,
+  it,
+  expect,
+  beforeAll,
+  afterAll,
+  beforeEach,
+  vi,
+} from 'vitest';
 import express from 'express';
 import session from 'express-session';
 import request from 'supertest';
 import mongoose from 'mongoose';
 import bcrypt from 'bcrypt';
 import { MongoMemoryServer } from 'mongodb-memory-server';
+
+// The script editor flag comes from the environment, so pin it here instead
+// of letting a developer's local .env decide what the responses assert.
+vi.mock('../../config.js', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('../../config.js')>();
+  return {
+    config: { ...actual.config, scripting: { editorEnabled: false } },
+  };
+});
+
 import { createAdminAuthRouter } from './adminAuthRoutes.js';
 import PlayerModel from '../../model/Player.js';
 import { createPlayer } from '../../services/player/playerService.js';
@@ -89,7 +107,11 @@ describe('POST /admin/login', () => {
       .send({ username: 'Helper', password: 'pw' });
 
     expect(login.status).toBe(200);
-    expect(login.body).toEqual({ username: 'Helper', access: Access.MOD });
+    expect(login.body).toEqual({
+      username: 'Helper',
+      access: Access.MOD,
+      scriptEditorEnabled: false,
+    });
 
     const session = await agent.get('/admin/session');
     expect(session.status).toBe(200);

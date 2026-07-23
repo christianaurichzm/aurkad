@@ -24,6 +24,11 @@ vi.mock('../io/network', () => ({
   modSetSprite: vi.fn(),
 }));
 
+// Monaco doesn't run in jsdom; the panel's own tests cover its behavior.
+vi.mock('../components/scripting/ScriptEditor', () => ({
+  ScriptEditor: () => <div>script-editor-stub</div>,
+}));
+
 beforeEach(() => {
   vi.clearAllMocks();
   mocks.fetchOnlinePlayers.mockResolvedValue({ players: [], count: 0 });
@@ -42,5 +47,26 @@ describe('AdminApp', () => {
     render(<AdminApp />);
     expect(await screen.findByText('Online players')).toBeInTheDocument();
     expect(screen.getByText('Console')).toBeInTheDocument();
+  });
+
+  it('hides the Scripts panel when the flag is off', async () => {
+    mocks.adminSession.mockResolvedValue({
+      username: 'Boss',
+      access: 2,
+      scriptEditorEnabled: false,
+    });
+    render(<AdminApp />);
+    await screen.findByText('Online players');
+    expect(screen.queryByText('Scripts')).not.toBeInTheDocument();
+  });
+
+  it('shows the Scripts panel when the flag is on', async () => {
+    mocks.adminSession.mockResolvedValue({
+      username: 'Boss',
+      access: 2,
+      scriptEditorEnabled: true,
+    });
+    render(<AdminApp />);
+    expect(await screen.findByText('Scripts')).toBeInTheDocument();
   });
 });

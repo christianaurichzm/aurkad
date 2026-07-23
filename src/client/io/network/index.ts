@@ -68,6 +68,18 @@ export {
   type AdminSession,
 } from './http/adminAuthClient';
 
+// Scripts (Monaco editor)
+export {
+  listScripts,
+  getScriptTypes,
+  getScript,
+  saveScript,
+  createScript,
+  deleteScript,
+  type ScriptFileInfo,
+  type ScriptTypeDefs,
+} from './http/scriptsClient';
+
 // Moderation
 export {
   modWarp,

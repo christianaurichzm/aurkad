@@ -1,10 +1,11 @@
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
+import monacoEditorEsmPlugin from "vite-plugin-monaco-editor-esm";
 
 export default defineConfig({
   root: ".",
   base: "/",
-  plugins: [react()],
+  plugins: [react(), monacoEditorEsmPlugin()],
   build: {
     outDir: "dist/client",
     emptyOutDir: true,
@@ -38,6 +39,11 @@ export default defineConfig({
 
       // Moderation
       "/mod": { target: "http://localhost:8080", changeOrigin: true },
+
+      // Admin dashboard API (session/login/console/scripts). Regex so the
+      // literal "/admin" page itself still falls through to Vite's SPA
+      // index, only "/admin/<something>" API calls are proxied.
+      "^/admin/.+": { target: "http://localhost:8080", changeOrigin: true },
 
       // Assets
       "/assets": { target: "http://localhost:8080", changeOrigin: true },

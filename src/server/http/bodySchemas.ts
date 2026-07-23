@@ -241,6 +241,16 @@ export const ConsoleCommandBodySchema = z.object({
   line: z.string().min(1).max(500),
 });
 
+// Scripts (Monaco editor)
+export const ScriptContentBodySchema = z.object({
+  content: z.string().max(500_000),
+});
+
+export const CreateScriptBodySchema = z.object({
+  name: z.string().min(1).max(120),
+  content: z.string().max(500_000).optional(),
+});
+
 export const AssignPointsBodySchema = z.object({
   vitality: z.number().int().nonnegative().default(0),
   attack: z.number().int().nonnegative().default(0),

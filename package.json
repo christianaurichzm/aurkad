@@ -38,6 +38,7 @@
     "test:coverage": "vitest run --coverage"
   },
   "dependencies": {
+    "@monaco-editor/react": "^4.7.0",
     "bcrypt": "^6.0.0",
     "connect-mongo": "^6.0.0",
     "cors": "^2.8.5",
@@ -46,6 +47,7 @@
     "express-session": "^1.18.0",
     "helmet": "^8.2.0",
     "jsondiffpatch": "^0.7.6",
+    "monaco-editor": "^0.53.0",
     "mongoose": "^8.15.0",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
@@ -87,6 +89,7 @@
     "ts-node": "^10.4.0",
     "typescript": "^5.8.3",
     "vite": "^6.3.5",
+    "vite-plugin-monaco-editor-esm": "^2.0.2",
     "vitest": "^4.1.0"
   },
   "overrides": {

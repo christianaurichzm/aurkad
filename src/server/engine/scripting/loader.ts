@@ -3,7 +3,7 @@ import path from 'path';
 import { logger } from '../../logger.js';
 import { runInSandbox, type ScriptHandle } from './sandbox.js';
 
-const SCRIPTS_DIR = path.join(process.cwd(), 'scripts');
+export const SCRIPTS_DIR = path.join(process.cwd(), 'scripts');
 const handles = new Map<string, ScriptHandle>();
 let watcher: fs.FSWatcher | null = null;
 
@@ -71,7 +71,7 @@ function unloadFile(name: string): void {
 }
 
 const SCRIPT_EXT = ['.js', '.ts'];
-const isScriptFile = (f: string) =>
+export const isScriptFile = (f: string) =>
   !f.endsWith('.d.ts') && SCRIPT_EXT.some((ext) => f.endsWith(ext));
 
 export async function loadScripts(): Promise<void> {

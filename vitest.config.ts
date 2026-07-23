@@ -28,6 +28,14 @@ export default defineConfig({
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './src'),
+      // monaco-editor ships no "main"/CJS entry (browser-only ESM package),
+      // which breaks Node-style resolution under Vitest even when the module
+      // is fully vi.mock'd. Pointing it at a real file on disk lets resolution
+      // succeed; vi.mock still replaces its content.
+      'monaco-editor': path.resolve(
+        __dirname,
+        'node_modules/monaco-editor/esm/vs/editor/editor.api.js',
+      ),
     },
   },
 });

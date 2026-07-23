@@ -8,6 +8,7 @@ import {
 import { Access } from '../../shared/types';
 import { PlayerModeration } from '../components/moderation/PlayerModeration';
 import { CommandConsole } from '../components/moderation/CommandConsole';
+import { ScriptEditor } from '../components/scripting/ScriptEditor';
 import { colors, radius } from '../theme';
 
 // Standalone operator dashboard served at /admin, apart from the game client:
@@ -61,6 +62,12 @@ export const AdminApp: React.FC = () => {
           <h2 style={panelTitle}>Console</h2>
           <CommandConsole height={260} />
         </section>
+        {session.scriptEditorEnabled && (
+          <section style={{ ...panel, ...wideSection }}>
+            <h2 style={panelTitle}>Scripts</h2>
+            <ScriptEditor height={520} />
+          </section>
+        )}
       </main>
     </div>
   );
@@ -155,8 +162,11 @@ const grid: React.CSSProperties = {
   gridTemplateColumns: 'repeat(auto-fit, minmax(340px, 1fr))',
   gap: 16,
   padding: 20,
-  maxWidth: 1100,
+  maxWidth: 1300,
   margin: '0 auto',
+};
+const wideSection: React.CSSProperties = {
+  gridColumn: '1 / -1',
 };
 const panel: React.CSSProperties = {
   background: colors.surface,

@@ -3,6 +3,7 @@ import { httpClient } from './httpClient';
 export interface AdminSession {
   username: string;
   access: number;
+  scriptEditorEnabled: boolean;
 }
 
 export async function adminLogin(

@@ -6,6 +6,7 @@ import { Access } from '../../../shared/types.js';
 import { parseBody, LoginBodySchema } from '../bodySchemas.js';
 import { getPlayerByNameFromDb } from '../../services/player/playerService.js';
 import { logger } from '../../logger.js';
+import { config } from '../../config.js';
 
 const adminLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
@@ -26,7 +27,11 @@ export function createAdminAuthRouter() {
     if (!username || accessLevel === undefined || accessLevel < Access.MOD) {
       return res.status(401).json({ message: 'Not authenticated' });
     }
-    res.json({ username, access: accessLevel });
+    res.json({
+      username,
+      access: accessLevel,
+      scriptEditorEnabled: config.scripting.editorEnabled,
+    });
   });
 
   router.post(
@@ -58,7 +63,11 @@ export function createAdminAuthRouter() {
           logger.error('admin session save failed', { err });
           return res.status(500).json({ message: 'Session error' });
         }
-        res.json({ username, access });
+        res.json({
+          username,
+          access,
+          scriptEditorEnabled: config.scripting.editorEnabled,
+        });
       });
     },
   );

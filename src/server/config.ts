@@ -132,6 +132,12 @@ export const config = {
       max: 300_000,
     }),
   },
+  scripting: {
+    // Enables the Monaco script editor endpoints and UI. Saving a script is
+    // remote code execution on the server (see the trust model in
+    // engine/scripting/sandbox.ts), so it is off unless an operator opts in.
+    editorEnabled: process.env.SCRIPT_EDITOR_ENABLED === 'true',
+  },
   persistence: {
     playerSnapshotIntervalMs: parseIntEnv(
       'PLAYER_SNAPSHOT_INTERVAL_MS',
