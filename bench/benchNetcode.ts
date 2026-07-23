@@ -17,7 +17,11 @@ import {
   toMapStaticClient,
 } from '../src/server/net/serialization.js';
 import { calcViewport } from '../src/shared/mapGeometry.js';
-import { rebuildQuadtree } from '../src/server/spatial/spatialManager.js';
+import { toPlayerPublic } from '../src/server/net/serialization.js';
+import {
+  rebuildQuadtree,
+  queryEntitiesInRect,
+} from '../src/server/spatial/spatialManager.js';
 import { TILE_SIZE, EQUIPMENT_SLOTS } from '../src/shared/constants.js';
 
 // Mirrors config.net.aoiMarginTiles (default 2), inlined so the benchmark
@@ -333,6 +337,119 @@ function runNew(map: MapStateServer, ticks: number, rows: number, cols: number) 
   return { ms: performance.now() - t0, bytes };
 }
 
+// ─── SPIKE: entity replication without a generic tree diff ──────────────────
+// An entity's public state is the same for every viewer, yet the current
+// path rebuilds and re-diffs it per viewer (O(N^2) deep walks). Here each
+// entity is serialized once per tick and the fragment reused by every
+// viewer that sees it, with field-level deltas keeping the bytes
+// comparable to jsondiffpatch's output.
+//
+// A spike for a decision, not production code: it skips droppedItems and
+// reuses the bench's toPlayerHot.
+
+type PubState = Record<string, unknown>;
+
+// Shallow field delta over the known-shape public state. Position and
+// targetPosition compare by value, as they are rebuilt objects every tick.
+function fieldDelta(prev: PubState, next: PubState): PubState | null {
+  let out: PubState | null = null;
+  for (const key of Object.keys(next)) {
+    const a = prev[key];
+    const b = next[key];
+    let changed: boolean;
+    if (b !== null && typeof b === 'object') {
+      changed = JSON.stringify(a) !== JSON.stringify(b);
+    } else {
+      changed = a !== b;
+    }
+    if (changed) {
+      out ??= {};
+      out[key] = b;
+    }
+  }
+  return out;
+}
+
+function runProto(map: MapStateServer, ticks: number, rows: number, cols: number) {
+  const prevEntity = new Map<string, PubState>();
+  const viewerKnown = new Map<string, Set<string>>();
+  let bytes = 0;
+  const t0 = performance.now();
+
+  for (let t = 0; t < ticks; t++) {
+    stepWorld(map, rows, cols);
+    rebuildQuadtree(map.id, map);
+
+    // Phase 1: once per entity, not per viewer.
+    const fullJson = new Map<string, string>();
+    const deltaJson = new Map<string, string>();
+
+    const record = (id: string, pub: PubState) => {
+      fullJson.set(id, JSON.stringify(pub));
+      const prev = prevEntity.get(id);
+      if (prev) {
+        const d = fieldDelta(prev, pub);
+        if (d) deltaJson.set(id, JSON.stringify(d));
+      }
+      prevEntity.set(id, pub);
+    };
+
+    for (const p of Object.values(map.players)) {
+      record(p.id, toPlayerPublic(p) as unknown as PubState);
+    }
+    for (const npc of Object.values(map.npcs)) {
+      if (npc.health > 0) record(npc.id, npc as unknown as PubState);
+    }
+
+    // Phase 2, per viewer: AOI query and assembly from the cached fragments,
+    // with no object-graph diffing, only string concatenation.
+    for (const viewer of Object.values(map.players)) {
+      const vp = calcViewport(
+        viewer.position.x,
+        viewer.position.y,
+        map.tiles,
+        AOI_MARGIN_PX,
+      );
+      const nearby = queryEntitiesInRect(map.id, {
+        x: vp.left,
+        y: vp.top,
+        width: vp.right - vp.left,
+        height: vp.bottom - vp.top,
+      });
+
+      const known = viewerKnown.get(viewer.name) ?? new Set<string>();
+      const current = new Set<string>();
+      const parts: string[] = [];
+
+      for (const e of nearby) {
+        if (!e.id || e.id === viewer.id) continue;
+        current.add(e.id);
+        // Entering the viewport needs the full state; an already-known entity
+        // only needs what changed globally this tick.
+        const fragment = known.has(e.id)
+          ? deltaJson.get(e.id)
+          : fullJson.get(e.id);
+        if (fragment) parts.push(`"${e.id}":${fragment}`);
+      }
+
+      const leaving: string[] = [];
+      for (const id of known) if (!current.has(id)) leaving.push(id);
+
+      if (parts.length > 0 || leaving.length > 0) {
+        const self = JSON.stringify(toPlayerHot(viewer));
+        const leave =
+          leaving.length > 0 ? `,"leave":${JSON.stringify(leaving)}` : '';
+        bytes += `{"type":"entityUpdate","e":{${parts.join(',')}},"self":${self}${leave}}`
+          .length;
+      }
+
+      viewerKnown.set(viewer.name, current);
+    }
+  }
+
+  return { ms: performance.now() - t0, bytes };
+}
+
 // CLI: `--scenario=<substring>` runs only matching scenarios and
 // `--path=new|old` only one code path, so a profiler (node --prof) can be
 // pointed at one scenario; the legacy path, several times slower, would
@@ -342,8 +459,9 @@ const argOf = (name: string): string | undefined =>
   argv.find((a) => a.startsWith(`--${name}=`))?.split('=')[1];
 const scenarioFilter = argOf('scenario')?.toLowerCase();
 const pathFilter = argOf('path');
-const runOldEnabled = pathFilter !== 'new';
-const runNewEnabled = pathFilter !== 'old';
+const runOldEnabled = pathFilter === undefined || pathFilter === 'old';
+const runNewEnabled = pathFilter === undefined || pathFilter === 'new';
+const runProtoEnabled = pathFilter === undefined || pathFilter === 'proto';
 
 // Runner.
 function bench(label: string, rows: number, cols: number, nPlayers: number, nNpcs: number) {
@@ -360,28 +478,29 @@ function bench(label: string, rows: number, cols: number, nPlayers: number, nNpc
   // warmup (separate worlds so baselines don't leak into the measured run)
   if (runOldEnabled) runOld(mk(), WARMUP, rows, cols);
   if (runNewEnabled) runNew(mk(), WARMUP, rows, cols);
+  if (runProtoEnabled) runProto(mk(), WARMUP, rows, cols);
 
   const oldR = runOldEnabled ? runOld(mk(), TICKS, rows, cols) : null;
   const newR = runNewEnabled ? runNew(mk(), TICKS, rows, cols) : null;
+  const protoR = runProtoEnabled ? runProto(mk(), TICKS, rows, cols) : null;
 
   console.log(`\n### ${label}  (map ${cols}x${rows} tiles, ${nPlayers} players, ${nNpcs} npcs)`);
 
-  if (oldR && newR) {
-    const msOldTick = oldR.ms / TICKS;
-    const msNewTick = newR.ms / TICKS;
-    const bOldTick = oldR.bytes / TICKS;
-    const bNewTick = newR.bytes / TICKS;
-    const cpuCut = (1 - msNewTick / msOldTick) * 100;
-    const byteCut = (1 - bNewTick / bOldTick) * 100;
-    console.log(`  ms/tick   : antes ${msOldTick.toFixed(3)}  ->  agora ${msNewTick.toFixed(3)}   (${cpuCut >= 0 ? '-' : '+'}${Math.abs(cpuCut).toFixed(1)}% CPU)`);
-    console.log(`  bytes/tick: antes ${Math.round(bOldTick).toLocaleString()}  ->  agora ${Math.round(bNewTick).toLocaleString()}   (${byteCut >= 0 ? '-' : '+'}${Math.abs(byteCut).toFixed(1)}% egress)`);
-    return;
-  }
+  const line = (tag: string, r: { ms: number; bytes: number }, ref?: { ms: number; bytes: number } | null) => {
+    const ms = r.ms / TICKS;
+    const b = r.bytes / TICKS;
+    let suffix = '';
+    if (ref) {
+      const cpu = (1 - ms / (ref.ms / TICKS)) * 100;
+      const eg = (1 - b / (ref.bytes / TICKS)) * 100;
+      suffix = `   (CPU ${cpu >= 0 ? '-' : '+'}${Math.abs(cpu).toFixed(1)}%, egress ${eg >= 0 ? '-' : '+'}${Math.abs(eg).toFixed(1)}% vs agora)`;
+    }
+    console.log(`  ${tag.padEnd(6)}: ${ms.toFixed(3).padStart(8)} ms/tick   ${Math.round(b).toLocaleString().padStart(9)} bytes/tick${suffix}`);
+  };
 
-  const only = oldR ?? newR!;
-  const tag = oldR ? 'antes' : 'agora';
-  console.log(`  ms/tick   : ${tag} ${(only.ms / TICKS).toFixed(3)}`);
-  console.log(`  bytes/tick: ${tag} ${Math.round(only.bytes / TICKS).toLocaleString()}`);
+  if (oldR) line('antes', oldR);
+  if (newR) line('agora', newR);
+  if (protoR) line('proto', protoR, newR);
 }
 
 buildItems();
