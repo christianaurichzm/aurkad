@@ -24,10 +24,11 @@ import { toMapMeta } from '../../net/serialization.js';
 import { serverState } from '../../services/world/serverState.js';
 import { playersWsMap } from '../../net/connections.js';
 import { WebSocket } from 'ws';
+import { config } from '../../config.js';
 
 const authLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000,
-  max: 20,
+  windowMs: config.auth.rateLimitWindowMs,
+  max: config.auth.rateLimitMax,
   standardHeaders: true,
   legacyHeaders: false,
   message: { error: 'Too many requests, please try again later.' },

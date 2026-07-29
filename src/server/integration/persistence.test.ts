@@ -54,9 +54,34 @@ describe('player persistence', () => {
     });
   });
 
+  // Bootstrap admin is chosen by BOOTSTRAP_ADMIN_USERNAME when set, and only
+  // falls back to "first registration wins" when it is not. The test has to
+  // control that: config.ts loads .env.development under NODE_ENV=test too, so
+  // a developer who sets the variable locally would otherwise see this fail.
   it('first registered player gets ADMIN access in non-production', async () => {
-    const player = await createPlayer('FirstUser', 'hash');
-    expect(player.access).toBeGreaterThan(0); // Access.USER = 0, ADMIN > 0
+    const previous = process.env.BOOTSTRAP_ADMIN_USERNAME;
+    delete process.env.BOOTSTRAP_ADMIN_USERNAME;
+    try {
+      const player = await createPlayer('FirstUser', 'hash');
+      expect(player.access).toBeGreaterThan(0); // Access.USER = 0, ADMIN > 0
+    } finally {
+      if (previous === undefined) delete process.env.BOOTSTRAP_ADMIN_USERNAME;
+      else process.env.BOOTSTRAP_ADMIN_USERNAME = previous;
+    }
+  });
+
+  it('names the bootstrap admin when BOOTSTRAP_ADMIN_USERNAME is set', async () => {
+    const previous = process.env.BOOTSTRAP_ADMIN_USERNAME;
+    process.env.BOOTSTRAP_ADMIN_USERNAME = 'TheOperator';
+    try {
+      const chosen = await createPlayer('TheOperator', 'hash');
+      const other = await createPlayer('SomeoneElse', 'hash');
+      expect(chosen.access).toBeGreaterThan(0);
+      expect(other.access).toBe(0);
+    } finally {
+      if (previous === undefined) delete process.env.BOOTSTRAP_ADMIN_USERNAME;
+      else process.env.BOOTSTRAP_ADMIN_USERNAME = previous;
+    }
   });
 
   it('subsequent players get USER access', async () => {

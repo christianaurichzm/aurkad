@@ -118,6 +118,19 @@ export const config = {
   http: {
     jsonBodyLimit: '1mb',
   },
+  auth: {
+    // Login and register throttle, per IP. Strict by default against
+    // credential stuffing, so load-test bots from one machine trip it after
+    // twenty. Raise it for a local benchmark; leave it in production.
+    rateLimitWindowMs: parseIntEnv('AUTH_RATE_LIMIT_WINDOW_MS', 15 * 60_000, {
+      min: 1_000,
+      max: 60 * 60_000,
+    }),
+    rateLimitMax: parseIntEnv('AUTH_RATE_LIMIT_MAX', 20, {
+      min: 1,
+      max: 1_000_000,
+    }),
+  },
   ws: {
     maxPayloadBytes: parseIntEnv('WS_MAX_PAYLOAD_BYTES', 16 * 1024, {
       min: 1024,
