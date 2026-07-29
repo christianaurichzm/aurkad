@@ -42,7 +42,7 @@ import { connectToDatabase, loadInitialData } from './initDb.js';
 import { importContentPack } from './content/contentPack.js';
 import { loadKvStore, startKvStore } from './persistence/kvStore.js';
 import { getAllPlayers } from './sim/world.js';
-import { persistPlayerSessionState } from './services/player/playerService.js';
+import { persistPlayersOnShutdown } from './services/player/playerService.js';
 import { startPlayerSnapshotLoop } from './persistence/playerSnapshot.js';
 import { logger } from './logger.js';
 import { startAdminRepl } from './admin/repl.js';
@@ -185,8 +185,14 @@ async function shutdown(signal: string) {
   if (replayPath) logger.info('[Replay] Session saved', { path: replayPath });
 
   logger.info('[Shutdown] Persisting player states...');
-  for (const player of getAllPlayers()) {
-    await persistPlayerSessionState(player);
+  const { saved, failed } = await persistPlayersOnShutdown(getAllPlayers());
+  if (failed > 0) {
+    logger.error('[Shutdown] some players could not be persisted', {
+      saved,
+      failed,
+    });
+  } else {
+    logger.info('[Shutdown] Player states persisted', { saved });
   }
 
   await stopKv?.();
