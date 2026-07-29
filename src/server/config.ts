@@ -118,6 +118,25 @@ export const config = {
   http: {
     jsonBodyLimit: '1mb',
   },
+  scriptData: {
+    // Bounds on the data scripts persist (player.data and the KV store).
+    // maxValueBytes x maxKeys caps one player's data; the default 8MB leaves
+    // half of MongoDB's 16MB document for the rest (persistence/dataLimits.ts).
+    maxValueBytes: parseIntEnv('SCRIPT_DATA_MAX_VALUE_BYTES', 64 * 1024, {
+      min: 1024,
+      max: 4 * 1024 * 1024,
+    }),
+    maxKeys: parseIntEnv('SCRIPT_DATA_MAX_KEYS', 128, {
+      min: 1,
+      max: 4096,
+    }),
+    // The KV store is one document per entry, so the byte limit above is
+    // enough there; this caps how many entries live in memory at once.
+    maxKvEntries: parseIntEnv('KV_MAX_ENTRIES', 100_000, {
+      min: 100,
+      max: 10_000_000,
+    }),
+  },
   auth: {
     // Login and register throttle, per IP. Strict by default against
     // credential stuffing, so load-test bots from one machine trip it after

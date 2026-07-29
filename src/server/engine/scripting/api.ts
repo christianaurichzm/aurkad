@@ -11,6 +11,11 @@ import { getMap, updatePlayer } from '../../services/world/gameData.js';
 import { handleChatAction } from '../../services/comms/chatService.js';
 import { updatePlayerMap } from '../../services/world/mapService.js';
 import {
+  checkDataWrite,
+  copyStoredValue,
+  explainLimit,
+} from '../../persistence/dataLimits.js';
+import {
   kvGet,
   kvSet,
   kvDelete,
@@ -452,25 +457,52 @@ export function buildApi(
       persist(scriptName, player);
     },
 
-    // Per-player custom data (persisted with the player record)
+    // Per-player custom data, persisted with the player record. Reads return
+    // a copy, or the natural pattern would grow the stored value before the
+    // size check could refuse it:
+    //
+    //     const log = getPlayerData(p, 'log') || [];
+    //     log.push(entry);              // mutates what is already stored
+    //     setPlayerData(p, 'log', log); // refused, but too late
     getPlayerData: <T = unknown>(
       player: PlayerServer,
       key: string,
-    ): T | undefined => player.data?.[key] as T | undefined,
+    ): T | undefined =>
+      copyStoredValue(player.data?.[String(key)]) as T | undefined,
+    // Returns whether it was stored. A refusal keeps the player document
+    // under MongoDB's limit (persistence/dataLimits.ts), past which it can no
+    // longer be saved.
     setPlayerData: (
       player: PlayerServer,
       key: string,
       value: unknown,
-    ): void => {
-      (player.data ??= {})[key] = value;
+    ): boolean => {
+      // undefined clears the key (the guild module leaves a guild this way),
+      // as JSON drops it anyway. It is also the way out of the key limit.
+      if (value === undefined) {
+        if (player.data) delete player.data[String(key)];
+        persist(scriptName, player);
+        return true;
+      }
+
+      const check = checkDataWrite(player.data, String(key), value);
+      if (!check.ok) {
+        logger.warn(
+          `[script:${scriptName}] setPlayerData("${key}") refused: ${explainLimit(check)}`,
+        );
+        return false;
+      }
+      (player.data ??= {})[String(key)] = value;
       persist(scriptName, player);
+      return true;
     },
 
     // Scoped key-value store (shared, persisted). Reads/writes are synchronous.
+    // `get` copies for the same reason getPlayerData does.
     store: {
       get: <T = unknown>(scope: string, key: string): T | undefined =>
-        kvGet<T>(String(scope), String(key)),
-      set: (scope: string, key: string, value: unknown): void =>
+        copyStoredValue(kvGet(String(scope), String(key))) as T | undefined,
+      set: (scope: string, key: string, value: unknown): boolean =>
         kvSet(String(scope), String(key), value),
       delete: (scope: string, key: string): void =>
         kvDelete(String(scope), String(key)),

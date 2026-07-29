@@ -439,6 +439,23 @@ command(
 //   Prefer moveItem over removeItem-then-giveItem: the pair can strand items
 //   if the second half fails.
 //
+// PERSISTED DATA (limites reais; checar o retorno)
+//   getPlayerData(player, key)         → valor | undefined   devolve uma CÓPIA
+//   setPlayerData(player, key, value)  → boolean  false = recusado
+//   store.get/set/delete/keys/entries  idem, compartilhado entre jogadores
+//
+//   Um read devolve cópia, então mutar o retorno não muda o que está guardado:
+//     const log = getPlayerData(p, 'log') || [];
+//     log.push(x);
+//     setPlayerData(p, 'log', log);   // obrigatório
+//
+//   `set` recusa valor grande demais, chave nova além do limite, ou valor não
+//   serializável (referência circular). Não é preferência: documento de jogador
+//   acima de 16MB para de salvar de vez, para sempre.
+//
+//   Passe `undefined` para limpar a chave - também é como liberar espaço se
+//   bater no limite de chaves.
+//
 // CONSTANTS
 //   TILE_SIZE                      - tile size in pixels (positions are in pixels)
 //   TICK_RATE                      - ticks per second (default 20)

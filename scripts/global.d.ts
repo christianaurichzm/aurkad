@@ -404,20 +404,31 @@ declare function clearCosmetic(
   source: string,
 ): void;
 
-/** Read a custom data field from a player. */
+/**
+ * Read a custom data field from a player. It is a copy, so write changes
+ * back with setPlayerData:
+ *
+ *     const log = getPlayerData(p, 'log') || [];
+ *     log.push(entry);
+ *     setPlayerData(p, 'log', log);   // required; the push alone does nothing
+ */
 declare function getPlayerData<T = unknown>(player: PlayerServer, key: string): T | undefined;
 
-/** Write a custom data field to a player (persisted). */
-declare function setPlayerData(player: PlayerServer, key: string, value: unknown): void;
+/**
+ * Write a custom data field to a player (persisted). False when refused:
+ * too large, too many keys or not JSON. A player document past 16 MB stops
+ * saving, so check the result. `undefined` clears the key.
+ */
+declare function setPlayerData(player: PlayerServer, key: string, value: unknown): boolean;
 
 /**
- * Scoped key-value store, shared across players and persisted.
- * `scope` is any namespace you choose, e.g. "global", "guild:dragons".
- * Reads and writes are synchronous (backed by an in-memory cache).
+ * Scoped key-value store shared across players and persisted, with any
+ * `scope` you choose ("global", "guild:dragons"). Reads and writes are
+ * synchronous; `get` copies and `set` returns false on refusal.
  */
 declare const store: {
   get<T = unknown>(scope: string, key: string): T | undefined;
-  set(scope: string, key: string, value: unknown): void;
+  set(scope: string, key: string, value: unknown): boolean;
   delete(scope: string, key: string): void;
   keys(scope: string): string[];
   entries<T = unknown>(scope: string): Array<[string, T]>;
