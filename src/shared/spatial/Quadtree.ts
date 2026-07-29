@@ -34,6 +34,10 @@ export class Quadtree {
   private root: QuadtreeNode;
   private maxEntities: number;
   private maxDepth: number;
+  // Tracked rather than walked. `size()` is called on every collision check to
+  // ask nothing more than "is this empty", and walking the node graph for that
+  // costs O(nodes) per moving entity per tick.
+  private count = 0;
 
   constructor(
     bounds: Rectangle,
@@ -55,6 +59,7 @@ export class Quadtree {
    */
   insert(entity: QuadtreeEntity): void {
     this.insertIntoNode(this.root, entity);
+    this.count++;
   }
 
   private insertIntoNode(node: QuadtreeNode, entity: QuadtreeEntity): void {
@@ -247,6 +252,7 @@ export class Quadtree {
    */
   clear(): void {
     this.clearNode(this.root);
+    this.count = 0;
   }
 
   private clearNode(node: QuadtreeNode): void {
@@ -258,21 +264,9 @@ export class Quadtree {
     }
   }
 
-  /**
-   * Get total number of entities in the tree
-   */
+  /** Entities currently in the tree. */
   size(): number {
-    return this.sizeNode(this.root);
-  }
-
-  private sizeNode(node: QuadtreeNode): number {
-    let count = node.entities.length;
-    if (node.children !== null) {
-      for (const child of node.children) {
-        count += this.sizeNode(child);
-      }
-    }
-    return count;
+    return this.count;
   }
 
   /**

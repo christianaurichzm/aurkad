@@ -17,7 +17,7 @@ import {
 import {
   beginTick,
   recordEntity,
-  fragmentFor,
+  entryFor,
   forgetEntity,
 } from './entityReplication.js';
 import { queryEntitiesInRect } from '../spatial/spatialManager.js';
@@ -237,9 +237,9 @@ function sendWorldUpdate(
       continue;
     }
 
-    const fragment = fragmentFor(entity.id, viewerKnows);
-    if (!fragment) continue;
-    parts.push(`${JSON.stringify(entity.id)}:${fragment}`);
+    const entry = entryFor(entity.id, viewerKnows);
+    if (!entry) continue;
+    parts.push(entry);
     if (viewerKnows) partialCount++;
     else fullCount++;
   }
