@@ -1,5 +1,8 @@
 import { describe, it, expect } from 'vitest';
-import { validateContentReferences } from './contentValidation.js';
+import {
+  validateContentReferences,
+  validateScriptReferences,
+} from './contentValidation.js';
 
 const items = [{ id: 1 }, { id: 2 }];
 
@@ -130,5 +133,113 @@ describe('validateContentReferences', () => {
       npcs: [{ name: 'Draft Goblin', itemsToDrop: [{ itemId: 99 }] }],
     });
     expect(result.warnings[0]).toContain('Draft Goblin');
+  });
+});
+
+describe('validateScriptReferences', () => {
+  const registered = new Set(['trap', 'sage']);
+
+  it('accepts references to behaviors a script registered', () => {
+    const result = validateScriptReferences(
+      {
+        npcs: [{ id: 'elder', scriptId: 'sage' }],
+        items: [{ id: 1, scriptId: 'trap' }],
+      },
+      registered,
+    );
+    expect(result.warnings).toEqual([]);
+  });
+
+  it('warns about an npc naming a behavior nobody registered', () => {
+    const result = validateScriptReferences(
+      { npcs: [{ id: 'elder', name: 'Elder', scriptId: 'missing' }] },
+      registered,
+    );
+    expect(result.warnings).toHaveLength(1);
+    expect(result.warnings[0]).toContain('elder');
+    expect(result.warnings[0]).toContain('missing');
+  });
+
+  it('warns about an item naming a behavior nobody registered', () => {
+    const result = validateScriptReferences(
+      { items: [{ id: 7, name: 'Scroll', scriptId: 'nope' }] },
+      registered,
+    );
+    expect(result.warnings).toHaveLength(1);
+    expect(result.warnings[0]).toContain('nope');
+  });
+
+  // The case the whole feature exists for: a tile that saves clean and does
+  // nothing at runtime, with no signal anywhere.
+  it('warns about a script tile pointing at nothing, with its coordinates', () => {
+    const result = validateScriptReferences(
+      {
+        maps: [
+          {
+            id: 'town',
+            tiles: [
+              [{}, {}],
+              [{}, { triggers: [{ action: 'script', scriptId: 'ghost' }] }],
+            ],
+          },
+        ],
+      },
+      registered,
+    );
+    expect(result.warnings).toHaveLength(1);
+    expect(result.warnings[0]).toContain('ghost');
+    expect(result.warnings[0]).toContain('(1, 1)');
+  });
+
+  it('ignores non-script triggers on the same tile', () => {
+    const result = validateScriptReferences(
+      {
+        maps: [
+          {
+            id: 'town',
+            tiles: [[{ triggers: [{ action: 'heal' }, { action: 'kill' }] }]],
+          },
+        ],
+      },
+      registered,
+    );
+    expect(result.warnings).toEqual([]);
+  });
+
+  it('ignores content with no behavior attached', () => {
+    const result = validateScriptReferences(
+      { npcs: [{ id: 'plain' }], items: [{ id: 1 }] },
+      registered,
+    );
+    expect(result.warnings).toEqual([]);
+  });
+
+  it('reports every broken reference, not just the first', () => {
+    const result = validateScriptReferences(
+      {
+        npcs: [
+          { id: 'a', scriptId: 'x' },
+          { id: 'b', scriptId: 'y' },
+        ],
+      },
+      registered,
+    );
+    expect(result.warnings).toHaveLength(2);
+  });
+
+  // Dangling behavior references never block a save, same as dangling item ids.
+  it('never produces errors', () => {
+    const result = validateScriptReferences(
+      { npcs: [{ id: 'a', scriptId: 'missing' }] },
+      new Set(),
+    );
+    expect(result.errors).toEqual([]);
+  });
+
+  it('handles an empty graph', () => {
+    expect(validateScriptReferences({}, registered)).toEqual({
+      errors: [],
+      warnings: [],
+    });
   });
 });

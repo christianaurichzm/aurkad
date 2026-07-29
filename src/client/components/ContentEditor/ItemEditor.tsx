@@ -34,6 +34,7 @@ type ItemFormValues = {
   effects: EffectRow[];
   arrowId: number | '';
   bound: boolean;
+  scriptId: string;
 };
 
 const defaultValues: ItemFormValues = {
@@ -44,6 +45,7 @@ const defaultValues: ItemFormValues = {
   effects: [],
   arrowId: '',
   bound: false,
+  scriptId: '',
 };
 
 const itemToFormValues = (item: Item): ItemFormValues => ({
@@ -58,6 +60,7 @@ const itemToFormValues = (item: Item): ItemFormValues => ({
   })),
   arrowId: item.arrowId ?? '',
   bound: item.bound ?? false,
+  scriptId: item.scriptId ?? '',
 });
 
 const ALL_ATTRIBUTES: {
@@ -148,6 +151,7 @@ export const ItemEditor: React.FC<ItemEditorProps> = ({
     effects,
     arrowId,
     bound,
+    scriptId,
   }: ItemFormValues) => {
     const data = {
       name,
@@ -157,6 +161,8 @@ export const ItemEditor: React.FC<ItemEditorProps> = ({
       effects,
       ...(arrowId !== '' && { arrowId: Number(arrowId) }),
       bound,
+      // Empty means no behavior, rather than "" naming one that cannot exist.
+      scriptId: scriptId.trim() || undefined,
     };
     const result = selectedId
       ? await updateItem(Number(selectedId), data)
@@ -255,6 +261,19 @@ export const ItemEditor: React.FC<ItemEditorProps> = ({
             <input type="checkbox" {...register('bound')} />
             Bound (cannot be dropped, traded, or banked)
           </label>
+          <div style={field}>
+            <label
+              style={label}
+              title="Name of a behavior registered with attach() in a script; runs when the item is used"
+            >
+              Script behavior
+            </label>
+            <input
+              style={input}
+              {...register('scriptId')}
+              placeholder="e.g. teleport-scroll"
+            />
+          </div>
           {type === 'weapon' && (
             <div style={field}>
               <label style={label}>Arrow (ranged)</label>

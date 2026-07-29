@@ -62,6 +62,10 @@ import {
 import { CharacterAction } from '../../../shared/types.js';
 import { logger } from '../../logger.js';
 import { recordScriptError, type ScriptErrorSource } from './scriptErrors.js';
+import {
+  registerEntityBehavior,
+  type EntityBehavior,
+} from './entityScripts.js';
 import type { HookMap } from '../hooks.js';
 import type { PlayerServer } from '../../../shared/types.js';
 
@@ -142,6 +146,20 @@ export function buildApi(
   return {
     // Hooks
     on: safeOn,
+
+    // Named behaviour that content attaches to itself by id. `on` listens to
+    // everything and filters; this runs only for the tiles/npcs/items whose
+    // scriptId names it, so the wiring lives in the editor instead of in an
+    // if-chain that grows with every special entity.
+    attach: (scriptId: string, behavior: EntityBehavior): (() => void) => {
+      const detach = registerEntityBehavior(
+        String(scriptId),
+        behavior,
+        scriptName,
+      );
+      trackUnsub(detach);
+      return detach;
+    },
 
     // World queries
     getPlayer: (name: string): PlayerServer | undefined =>

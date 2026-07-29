@@ -169,6 +169,7 @@ export const CreateNpcBodySchema = z.object({
   behavior: NpcBehaviorSchema,
   experienceValue: z.number().int().nonnegative().optional(),
   itemsToDrop: z.array(NpcItemDropSchema).optional(),
+  scriptId: z.string().optional(),
 });
 
 export const CreateMapBodySchema = z.object({
@@ -218,6 +219,7 @@ export const CreateItemBodySchema = z.object({
   effects: z.array(EffectSchema).optional(),
   arrowId: z.number().int().positive().optional(),
   bound: z.boolean().optional(),
+  scriptId: z.string().optional(),
 });
 
 export const BuyShopItemBodySchema = z.object({

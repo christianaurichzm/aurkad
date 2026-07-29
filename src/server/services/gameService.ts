@@ -39,6 +39,7 @@ import {
 import { playersWsMap } from '../net/connections.js';
 import { emitGameEvent } from '../engine/eventBus.js';
 import { emit } from '../engine/hooks.js';
+import { dispatchEntityScript } from '../engine/scripting/entityScripts.js';
 import { handleAttack } from './combat/index.js';
 import { pickUpItem } from './economy/inventoryService.js';
 import { handleInteract } from './world/interactionService.js';
@@ -113,6 +114,50 @@ function tryWarpToMap(
   return false;
 }
 
+const runTileTriggers = (
+  player: PlayerServer,
+  tile: Tile,
+  map: MapStateServer,
+): void => {
+  for (const trigger of tile.triggers ?? []) {
+    if (trigger.action === 'heal') {
+      player.health = player.maxHealth;
+      updatePlayerMap(player.id, player);
+    } else if (trigger.action === 'kill') {
+      player.health = 0;
+      emit('playerDeath', { player });
+      respawnPlayer(player);
+      handleChatAction({
+        scope: 'global',
+        type: 'chat',
+        subtype: 'death',
+        message: `${player.name} fell into a deadly trap!`,
+      });
+    } else if (trigger.action === 'message') {
+      emitGameEvent({
+        type: 'chatPlayer',
+        username: player.name,
+        payload: { type: 'chat', scope: 'player', message: trigger.text },
+      });
+    } else if (trigger.action === 'sound') {
+      emitGameEvent({
+        type: 'customPlayer',
+        username: player.name,
+        channel: 'sound:play',
+        payload: { file: trigger.file },
+      });
+    } else if (trigger.action === 'changeSprite') {
+      player.sprite = trigger.spriteId;
+      updatePlayerMap(player.id, player);
+      void updatePlayer(player).catch((e) => {
+        logger.error('changeSprite updatePlayer failed', { err: e });
+      });
+    } else if (trigger.action === 'script') {
+      dispatchEntityScript(trigger.scriptId, 'onEnter', { player, tile, map });
+    }
+  }
+};
+
 const handleWarpAndShops = (player: PlayerServer): void => {
   const warp = hasWarp(player);
   if (warp) {
@@ -126,50 +171,17 @@ const handleWarpAndShops = (player: PlayerServer): void => {
     const tileX = Math.round(player.position.x / TILE_SIZE);
     const tileY = Math.round(player.position.y / TILE_SIZE);
     const tile = map.tiles?.[tileY]?.[tileX];
-    if (tile) emit('tileEnter', { player, tile, map });
-    if (tile?.shop) {
+    if (!tile) return;
+
+    emit('tileEnter', { player, tile, map });
+    if (tile.shop) {
       emitGameEvent({
         type: 'openShop',
         username: player.name,
         shopId: tile.shop,
       });
     }
-    for (const trigger of tile?.triggers ?? []) {
-      if (trigger.action === 'heal') {
-        player.health = player.maxHealth;
-        updatePlayerMap(player.id, player);
-      } else if (trigger.action === 'kill') {
-        player.health = 0;
-        emit('playerDeath', { player });
-        respawnPlayer(player);
-        handleChatAction({
-          scope: 'global',
-          type: 'chat',
-          subtype: 'death',
-          message: `${player.name} fell into a deadly trap!`,
-        });
-      } else if (trigger.action === 'message') {
-        emitGameEvent({
-          type: 'chatPlayer',
-          username: player.name,
-          payload: { type: 'chat', scope: 'player', message: trigger.text },
-        });
-      } else if (trigger.action === 'sound') {
-        emitGameEvent({
-          type: 'customPlayer',
-          username: player.name,
-          channel: 'sound:play',
-          payload: { file: trigger.file },
-        });
-      } else if (trigger.action === 'changeSprite') {
-        player.sprite = trigger.spriteId;
-        updatePlayerMap(player.id, player);
-        void updatePlayer(player).catch((e) => {
-          logger.error('changeSprite updatePlayer failed', { err: e });
-        });
-      }
-      // 'script' triggers are handled by modules via the tileEnter hook
-    }
+    runTileTriggers(player, tile, map);
   }
 };
 

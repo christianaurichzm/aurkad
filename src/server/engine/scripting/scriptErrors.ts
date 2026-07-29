@@ -4,7 +4,12 @@
 // unseen by whoever edits the file in the browser. The logger still gets
 // every occurrence; this is a small deduplicated view for the editor.
 
-export type ScriptErrorSource = 'load' | 'hook' | 'schedule' | 'timer';
+export type ScriptErrorSource =
+  | 'load'
+  | 'hook'
+  | 'schedule'
+  | 'timer'
+  | 'behavior';
 
 export interface ScriptError {
   script: string;

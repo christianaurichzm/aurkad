@@ -19,6 +19,7 @@ import { getItemById } from '../economy/inventoryService.js';
 import { respawnNpc } from '../npc/index.js';
 import { respawnPlayer, awardExperience } from '../player/playerService.js';
 import { emit } from '../../engine/hooks.js';
+import { dispatchEntityScript } from '../../engine/scripting/entityScripts.js';
 import { sendCustomEvent } from '../comms/customEventService.js';
 
 export type ResolveDamageOptions = {
@@ -179,6 +180,10 @@ export const resolveDamage = async (
     case 'npc': {
       if (attacker?.kind === 'player') {
         emit('npcDeath', { npc: target, killer: attacker });
+        dispatchEntityScript(target.scriptId, 'onDeath', {
+          npc: target,
+          killer: attacker,
+        });
         if (target.experienceValue) {
           awardExperience(attacker, target.experienceValue, 'kill');
           await updatePlayer(attacker);

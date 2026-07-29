@@ -12,6 +12,8 @@ export interface ContentValidationResult {
 
 interface ItemRef {
   id: number;
+  name?: string;
+  scriptId?: string | undefined;
 }
 // id is optional because the editor validates a document before it is saved,
 // and ids for new documents are assigned on persist.
@@ -19,16 +21,21 @@ interface NpcRef {
   id?: string;
   name?: string;
   itemsToDrop?: Array<{ itemId: number }> | undefined;
+  scriptId?: string | undefined;
 }
 interface ShopRef {
   id?: string;
   name?: string;
   products?: Array<{ itemId: number }> | undefined;
 }
+interface TileRef {
+  triggers?: Array<{ action: string; scriptId?: string }> | undefined;
+}
 interface MapRef {
   id?: string;
   name?: string;
   droppedItems?: Array<{ itemId: number }> | undefined;
+  tiles?: TileRef[][] | undefined;
 }
 
 export interface ContentGraph {
@@ -63,6 +70,45 @@ function checkDuplicateIds(
     }
     seen.add(key);
   }
+}
+
+/**
+ * Reports content naming a behaviour no script registered: a `script` tile
+ * naming nothing would save clean and be ignored at runtime. Separate from
+ * `validateContentReferences`, since it runs only once scripts load.
+ */
+export function validateScriptReferences(
+  graph: ContentGraph,
+  registered: Set<string>,
+): ContentValidationResult {
+  const warnings: string[] = [];
+
+  const report = (where: string, scriptId: string | undefined): void => {
+    if (!scriptId || registered.has(scriptId)) return;
+    warnings.push(`${where} references unknown script behavior "${scriptId}".`);
+  };
+
+  for (const npc of graph.npcs ?? []) {
+    report(`NPC ${label(npc.id, npc.name)}`, npc.scriptId);
+  }
+  for (const item of graph.items ?? []) {
+    report(`Item ${label(String(item.id), item.name)}`, item.scriptId);
+  }
+  for (const map of graph.maps ?? []) {
+    for (const [row, tiles] of (map.tiles ?? []).entries()) {
+      for (const [col, tile] of tiles.entries()) {
+        for (const trigger of tile?.triggers ?? []) {
+          if (trigger.action !== 'script') continue;
+          report(
+            `Map ${label(map.id, map.name)} tile (${col}, ${row})`,
+            trigger.scriptId,
+          );
+        }
+      }
+    }
+  }
+
+  return { errors: [], warnings };
 }
 
 /**

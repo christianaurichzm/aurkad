@@ -30,6 +30,7 @@ type NpcFormValues = {
   attack: number;
   behavior: NpcBehavior;
   exp: number;
+  scriptId: string;
 };
 
 const defaultValues: NpcFormValues = {
@@ -39,6 +40,7 @@ const defaultValues: NpcFormValues = {
   attack: 1,
   behavior: 'neutral',
   exp: 0,
+  scriptId: '',
 };
 
 const npcToFormValues = (npc: RuntimeNpc): NpcFormValues => ({
@@ -48,6 +50,7 @@ const npcToFormValues = (npc: RuntimeNpc): NpcFormValues => ({
   attack: npc.attack ?? 1,
   behavior: npc.behavior,
   exp: npc.experienceValue ?? 0,
+  scriptId: npc.scriptId ?? '',
 });
 
 const npcToDrops = (npc: RuntimeNpc): NpcItemDrop[] =>
@@ -140,6 +143,7 @@ export const NpcEditor: React.FC<NpcEditorProps> = ({
     attack,
     behavior,
     exp,
+    scriptId,
   }: NpcFormValues) => {
     const data = {
       name,
@@ -149,6 +153,8 @@ export const NpcEditor: React.FC<NpcEditorProps> = ({
       behavior,
       experienceValue: exp,
       itemsToDrop: drops,
+      // Empty means no behavior, rather than "" naming one nobody registers.
+      scriptId: scriptId.trim() || undefined,
     };
     const result = selectedId
       ? await updateNpc(selectedId, data).catch(() => null)
@@ -262,6 +268,20 @@ export const NpcEditor: React.FC<NpcEditorProps> = ({
                 {...register('exp', { setValueAs: Number })}
               />
             </div>
+          </div>
+          <div style={field}>
+            <label
+              style={label}
+              title="Name of a behavior registered with attach() in a script"
+            >
+              Script behavior
+            </label>
+            <input
+              style={input}
+              type="text"
+              placeholder="e.g. quest-giver"
+              {...register('scriptId')}
+            />
           </div>
         </div>
       </div>

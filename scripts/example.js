@@ -279,6 +279,43 @@ command(
 //   }
 // });
 
+// ── Attached behavior: the content points at your code, not the reverse ────
+//
+// `on` is a global listener: it fires for EVERY npc and you filter. That works,
+// but the filtering grows with every special entity until the script is one big
+// switchboard of `if (npc.id === ...)`.
+//
+// `attach` is the other direction. You register a behavior under a name, and
+// the content names it: an NPC and an item have a "Script behavior" field in
+// the editor, and a tile can carry a `script` trigger. The designer wires it up
+// without touching code.
+//
+// attach('quest-giver', {
+//   onInteract({ player, npc }) {
+//     use('dialog').show(player, { text: `${npc.name}: bring me 5 pelts.` });
+//   },
+// });
+//
+// attach('lava', {
+//   onEnter({ player }) { dealDamage(player, 10); },
+// });
+//
+// attach('boss-drake', {
+//   onDeath({ npc, killer }) {
+//     say(`${killer.name} slew the Drake!`);
+//     giveItem(killer, Items.DrakeScale, 1);
+//   },
+// });
+//
+// attach('teleport-scroll', {
+//   onUse({ player }) { warpPlayer(player, Maps.Town, 9, 6); },
+// });
+//
+// One name can carry several of these at once: a boss that talks, hurts you on
+// its tile and drops loot is one attach with three handlers. Registrations are
+// dropped when the script reloads, and a name the content references but no
+// script registers is reported at boot and when saving in the editor.
+
 // ─────────────────────────────────────────────────────────────────────────────
 // API REFERENCE (quick look-up; full types in scripts/global.d.ts)
 // ─────────────────────────────────────────────────────────────────────────────
@@ -296,6 +333,14 @@ command(
 //   beforeXpGain                   { player, amount }      - mutate amount
 //   customAction                   { player, channel, payload }  - from client sendServerEvent
 //   tick                           { tick }                - 20/s; throttle with tick % n
+//
+// ATTACHED BEHAVIOR (attach): runs only for content naming this id
+//   attach(scriptId, { onEnter, onInteract, onDeath, onUse })
+//   onEnter     { player, tile, map }        tile with a `script` trigger
+//   onInteract  { player, npc }              NPC's "Script behavior" field
+//   onDeath     { npc, killer }              same NPC, when killed
+//   onUse       { player, item, itemId }     item's "Script behavior" field
+//                                            (consumables only - no equip event)
 //
 // PLAYERS
 //   getPlayer(name)                → PlayerServer | undefined

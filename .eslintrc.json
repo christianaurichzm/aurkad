@@ -60,6 +60,7 @@
       },
       "globals": {
         "on": "readonly",
+        "attach": "readonly",
         "config": "readonly",
         "getPlayer": "readonly",
         "getPlayers": "readonly",

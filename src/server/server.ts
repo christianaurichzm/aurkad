@@ -39,7 +39,10 @@ import {
   stopWebSocketServer,
 } from './net/index.js';
 import { connectToDatabase, loadInitialData } from './initDb.js';
-import { importContentPack } from './content/contentPack.js';
+import {
+  importContentPack,
+  reportUnknownBehaviors,
+} from './content/contentPack.js';
 import { loadKvStore, startKvStore } from './persistence/kvStore.js';
 import { getAllPlayers } from './sim/world.js';
 import { persistPlayersOnShutdown } from './services/player/playerService.js';
@@ -130,6 +133,9 @@ async function startServer() {
     registerServerCommands();
     loadModules();
     await loadScripts();
+    // Only now can content that names a script behaviour be checked: before
+    // this the registry is empty and every reference would look broken.
+    await reportUnknownBehaviors();
     startWebSocketServer(server, sessionMiddleware);
     stopGameLoops = startGameLoops();
     stopSnapshots = startPlayerSnapshotLoop();

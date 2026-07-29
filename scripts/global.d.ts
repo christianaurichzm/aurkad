@@ -164,6 +164,41 @@ declare function on<E extends HookEvent>(
   handler: (payload: HookPayloads[E]) => void,
 ): Unsubscribe;
 
+/**
+ * A named behavior that content points at by `scriptId`. Where `on` fires
+ * for every npc, a tile trigger, npc or item names this in the editor.
+ *
+ *     attach('phase-two-boss', {
+ *       onDeath({ npc, killer }) {
+ *         spawnNpc({ npcId: Npcs.BossPhaseTwo, mapId: npc.mapId, ...npc.position });
+ *       },
+ *     });
+ *
+ * Handlers are isolated like hook handlers and dropped on reload.
+ */
+declare function attach(
+  scriptId: string,
+  behavior: EntityBehavior,
+): Unsubscribe;
+
+interface EntityBehavior {
+  /** A player stepped on a tile whose `script` trigger names this behavior. */
+  onEnter?(ctx: { player: PlayerServer; tile: Tile; map: MapState }): void;
+  /** A player interacted with (talked to) an NPC carrying this behavior. */
+  onInteract?(ctx: { player: PlayerServer; npc: RuntimeNpc }): void;
+  /** An NPC carrying this behavior died. */
+  onDeath?(ctx: { npc: RuntimeNpc; killer?: CombatTarget }): void;
+  /**
+   * A player used an item carrying this behavior. Consumables only: the
+   * engine has no "equipped" event, so equipment never reaches this.
+   */
+  onUse?(ctx: {
+    player: PlayerServer;
+    item: { id: number; name: string; type: string; scriptId?: string };
+    itemId: number;
+  }): void;
+}
+
 /** Look up an online player by name. */
 declare function getPlayer(name: string): PlayerServer | undefined;
 

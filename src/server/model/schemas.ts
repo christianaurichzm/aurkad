@@ -49,6 +49,7 @@ export const ItemSchema = new mongoose.Schema(
     effects: [EffectSchema],
     arrowId: { type: Number },
     bound: { type: Boolean },
+    scriptId: { type: String },
   },
   { _id: false },
 );

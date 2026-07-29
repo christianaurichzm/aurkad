@@ -96,6 +96,8 @@ export interface Item {
   arrowId?: number;
   // Bound items cannot be dropped, traded, or banked.
   bound?: boolean;
+  // Names a behaviour a script registered with attach(); runs on use.
+  scriptId?: string;
 }
 
 export interface Inventory {
@@ -199,6 +201,10 @@ export interface PersistentNpc extends CharacterBase {
   behavior: NpcBehavior;
   experienceValue?: number;
   itemsToDrop?: NpcItemDrop[];
+  // Names a behaviour a script registered with attach(); runs on interact and
+  // on death. This is what lets a designer wire a boss to its logic in the
+  // editor instead of the script matching on npc ids.
+  scriptId?: string;
 }
 
 export interface RuntimeNpc extends PersistentNpc, CharacterRuntime {

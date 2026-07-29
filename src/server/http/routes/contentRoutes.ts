@@ -39,7 +39,11 @@ import {
   validateMapTiles,
   resizeTiles,
 } from '../../services/world/mapValidation.js';
-import { validateContentReferences } from '../../services/content/contentValidation.js';
+import {
+  validateContentReferences,
+  validateScriptReferences,
+} from '../../services/content/contentValidation.js';
+import { knownBehaviorIds } from '../../engine/scripting/entityScripts.js';
 import {
   buyShopItem,
   getShopById,
@@ -113,8 +117,17 @@ export function createContentRouter() {
         if (validation.errors.length > 0) {
           return res.status(422).json({ errors: validation.errors });
         }
+        // A `script` tile naming a behaviour nothing registered would save clean
+        // and do nothing in game, so the editor is told at save time.
+        const scriptRefs = validateScriptReferences(
+          { maps: [{ id: mapId, name, tiles }] },
+          knownBehaviorIds(),
+        );
         await mapSave(mapId, tiles, name, type, music);
-        res.status(200).json({ success: true, warnings: validation.warnings });
+        res.status(200).json({
+          success: true,
+          warnings: [...validation.warnings, ...scriptRefs.warnings],
+        });
       } catch (e) {
         logger.error('mapSave failed', { err: e });
         res.status(500).send('Failed to save map');
@@ -290,6 +303,10 @@ export function createContentRouter() {
       items: await listItems(),
       npcs: [npcData],
     });
+    warnings.push(
+      ...validateScriptReferences({ npcs: [npcData] }, knownBehaviorIds())
+        .warnings,
+    );
 
     await createOrUpdateNpc(npcData);
     res.status(201).json({ ...npcData, warnings });
@@ -454,8 +471,12 @@ export function createContentRouter() {
     const body = parseBody(CreateItemBodySchema, req.body, res);
     if (!body) return;
     try {
+      const { warnings } = validateScriptReferences(
+        { items: [{ ...body, id: 0 }] },
+        knownBehaviorIds(),
+      );
       await createOrUpdateItem(body);
-      res.status(201).json(body);
+      res.status(201).json({ ...body, warnings });
     } catch (err) {
       res.status(500).json({ error: 'Failed to create item.' });
     }
@@ -469,8 +490,12 @@ export function createContentRouter() {
     const body = parseBody(CreateItemBodySchema, req.body, res);
     if (!body) return;
     try {
+      const { warnings } = validateScriptReferences(
+        { items: [{ ...body, id }] },
+        knownBehaviorIds(),
+      );
       await createOrUpdateItem({ ...body, id });
-      res.status(200).json({ success: true });
+      res.status(200).json({ success: true, warnings });
     } catch (err) {
       res.status(500).json({ error: 'Failed to update item.' });
     }

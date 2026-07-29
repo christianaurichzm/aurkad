@@ -8,6 +8,7 @@ import { TILE_SIZE } from '../../../shared/constants.js';
 import { getMap } from './gameData.js';
 import { queryEntitiesInRadius } from '../../spatial/spatialManager.js';
 import { emit } from '../../engine/hooks.js';
+import { dispatchEntityScript } from '../../engine/scripting/entityScripts.js';
 
 // "Talk to the NPC you're facing". Mirrors combat target selection for any
 // npc, whatever its behavior, and emits the npcInteract hook so scripts
@@ -53,5 +54,9 @@ export function handleInteract(player: PlayerServer): void {
   const map = getMap(player.mapId);
   if (!map) return;
   const npc = findInteractTarget(player, map);
-  if (npc) emit('npcInteract', { player, npc });
+  if (!npc) return;
+  emit('npcInteract', { player, npc });
+  // The hook fires first so global listeners (modules) still see every
+  // interaction; the attached behaviour then runs for this npc specifically.
+  dispatchEntityScript(npc.scriptId, 'onInteract', { player, npc });
 }

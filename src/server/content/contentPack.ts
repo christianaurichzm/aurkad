@@ -14,7 +14,11 @@ import {
   createOrUpdateShop,
   listShops,
 } from '../services/economy/shopService.js';
-import { validateContentReferences } from '../services/content/contentValidation.js';
+import {
+  validateContentReferences,
+  validateScriptReferences,
+} from '../services/content/contentValidation.js';
+import { knownBehaviorIds } from '../engine/scripting/entityScripts.js';
 
 // Versionable game content lives as JSON files in content/. On boot it is
 // upserted into MongoDB (files win for the ids they define), so a creator can
@@ -61,6 +65,7 @@ const ItemSchema = z.object({
   sprite: z.number().int().nonnegative(),
   type: ItemTypeSchema,
   effects: z.array(EffectSchema).optional(),
+  scriptId: z.string().optional(),
 });
 
 const NpcSchema = z.object({
@@ -83,6 +88,7 @@ const NpcSchema = z.object({
       }),
     )
     .optional(),
+  scriptId: z.string().optional(),
 });
 
 const MapSchema = z.object({
@@ -238,6 +244,34 @@ async function reportBrokenReferences(): Promise<void> {
     }
   } catch (e) {
     logger.error('[content] Reference check failed', { err: e });
+  }
+}
+
+/**
+ * Reports content that names a behaviour no script registered. Runs after
+ * scripts load, as the registry is empty before. Reports rather than
+ * rejects, like the import check: a stale `scriptId` costs a log line.
+ */
+export async function reportUnknownBehaviors(): Promise<void> {
+  try {
+    const [items, npcs, maps] = await Promise.all([
+      listItems(),
+      listNpcs(),
+      listMaps(),
+    ]);
+
+    const { warnings } = validateScriptReferences(
+      {
+        items: items as { id: number; scriptId?: string }[],
+        npcs: npcs as Array<{ id: string; name?: string; scriptId?: string }>,
+        maps: maps as Array<{ id: string; name?: string }>,
+      },
+      knownBehaviorIds(),
+    );
+
+    for (const message of warnings) logger.warn(`[content] ${message}`);
+  } catch (e) {
+    logger.error('[content] Behavior reference check failed', { err: e });
   }
 }
 

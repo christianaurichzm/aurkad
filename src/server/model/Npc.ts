@@ -33,6 +33,7 @@ const NpcSchema = new mongoose.Schema(
     },
     experienceValue: { type: Number, min: 0 },
     itemsToDrop: [NpcItemDropSchema],
+    scriptId: { type: String },
   },
   { _id: false },
 );

@@ -7,6 +7,7 @@ import { getNextItemId } from '../dbService.js';
 import { EQUIPMENT_SLOTS } from '../../../shared/constants.js';
 import { getPlayerByName, levelUpPlayer } from '../player/playerService.js';
 import { emit } from '../../engine/hooks.js';
+import { dispatchEntityScript } from '../../engine/scripting/entityScripts.js';
 
 export function getItemById(id: number): Item | null {
   return items.get(id) ?? null;
@@ -153,6 +154,7 @@ export async function useItem(
     if (!invItem || invItem.quantity <= 0) return false;
 
     emit('itemUse', { player, itemId });
+    dispatchEntityScript(item.scriptId, 'onUse', { player, item, itemId });
     await applyItemEffects(player, itemId);
     invItem.quantity--;
     if (invItem.quantity <= 0) {
