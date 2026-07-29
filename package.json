@@ -71,6 +71,7 @@
     "@typescript-eslint/eslint-plugin": "^7.13.1",
     "@typescript-eslint/parser": "^7.13.1",
     "@vitejs/plugin-react": "^4.5.0",
+    "@vitest/coverage-v8": "^4.1.10",
     "@vitest/ui": "^4.1.0",
     "concurrently": "^7.0.0",
     "cross-env": "^7.0.3",
@@ -99,6 +100,6 @@
     "brace-expansion": "^2.0.1"
   },
   "engines": {
-    "node": ">=18.0.0"
+    "node": ">=20.0.0"
   }
 }
