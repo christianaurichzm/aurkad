@@ -100,12 +100,19 @@ export interface Item {
   scriptId?: string;
 }
 
-export interface Inventory {
+/**
+ * Anything items can live in: a player inventory, a bank, a mailbox.
+ * economyService works on this rather than on Inventory, so one set of
+ * capacity and transfer rules covers every container.
+ */
+export interface InventoryLike {
   items: InventoryItem[];
   maxCapacity: number;
 }
 
-type InventoryItem = {
+export type Inventory = InventoryLike;
+
+export type InventoryItem = {
   item: Item['id'];
   quantity: number;
 };

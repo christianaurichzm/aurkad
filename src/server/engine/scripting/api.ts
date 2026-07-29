@@ -32,6 +32,15 @@ import { spawnNpc, despawnNpc } from '../../services/npc/spawn.js';
 import { stepNpcToward } from '../../services/npc/behaviors.js';
 import { getItemById } from '../../services/economy/inventoryService.js';
 import {
+  addItem,
+  canFit,
+  countItem,
+  hasItem,
+  moveItem,
+  removeItem,
+  type EconomyResult,
+} from '../../services/economy/economyService.js';
+import {
   getArrowSync,
   getAllArrows,
 } from '../../services/content/arrowService.js';
@@ -67,7 +76,7 @@ import {
   type EntityBehavior,
 } from './entityScripts.js';
 import type { HookMap } from '../hooks.js';
-import type { PlayerServer } from '../../../shared/types.js';
+import type { InventoryLike, PlayerServer } from '../../../shared/types.js';
 
 // Mutations go through updatePlayer so state is marked dirty (persisted by the
 // snapshot loop) and broadcast to clients on the next tick. Fire-and-forget:
@@ -329,28 +338,46 @@ export function buildApi(
       };
     },
 
-    // Inventory
-    giveItem: (player: PlayerServer, itemId: number, quantity = 1): void => {
-      const existing = player.inventory.items.find((i) => i.item === itemId);
-      if (existing) {
-        existing.quantity += quantity;
-      } else if (player.inventory.items.length < player.inventory.maxCapacity) {
-        player.inventory.items.push({ item: itemId, quantity });
-      } else {
-        return;
+    // Inventory. These return whether they happened, so a script can tell a
+    // delivered reward from one lost to a full bag or a short stack.
+    giveItem: (player: PlayerServer, itemId: number, quantity = 1): boolean => {
+      // Handing out an id no item defines puts an unresolvable entry in the
+      // inventory, which then throws while building the stats payload and
+      // stops that player receiving any stat update at all.
+      if (!getItemById(itemId)) {
+        logger.warn(`[script:${scriptName}] giveItem: no such item`, {
+          itemId,
+        });
+        return false;
       }
-      persist(scriptName, player);
+      const result = addItem(player.inventory, itemId, quantity);
+      if (result.ok) persist(scriptName, player);
+      return result.ok;
     },
-    removeItem: (player: PlayerServer, itemId: number, quantity = 1): void => {
-      const slot = player.inventory.items.find((i) => i.item === itemId);
-      if (!slot) return;
-      slot.quantity -= quantity;
-      if (slot.quantity <= 0)
-        player.inventory.items = player.inventory.items.filter(
-          (i) => i.item !== itemId,
-        );
-      persist(scriptName, player);
+    removeItem: (
+      player: PlayerServer,
+      itemId: number,
+      quantity = 1,
+    ): boolean => {
+      const result = removeItem(player.inventory, itemId, quantity);
+      if (result.ok) persist(scriptName, player);
+      return result.ok;
     },
+    hasItem: (player: PlayerServer, itemId: number, quantity = 1): boolean =>
+      hasItem(player.inventory, itemId, quantity),
+    countItem: (player: PlayerServer, itemId: number): number =>
+      countItem(player.inventory, itemId),
+    canCarry: (player: PlayerServer, itemId: number): boolean =>
+      canFit(player.inventory, itemId),
+    // Atomic transfer between any two containers: an inventory, a bank, a
+    // mailbox. Both sides are checked first, so a full destination never
+    // consumes the source; a failure returns the reason to show the player.
+    moveItem: (
+      from: InventoryLike,
+      to: InventoryLike,
+      itemId: number,
+      amount = 1,
+    ): EconomyResult => moveItem(from, to, itemId, amount),
 
     // Economic commit: persist these players now instead of waiting for the
     // snapshot loop, so a crash cannot revert a confirmed transfer.

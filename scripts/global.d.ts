@@ -300,11 +300,65 @@ declare function moveNpcToward(npc: RuntimeNpc, x: number, y: number): void;
 /** Tile size in pixels (positions are pixels; tiles are TILE_SIZE apart). */
 declare const TILE_SIZE: number;
 
-/** Add items to a player's inventory. */
-declare function giveItem(player: PlayerServer, itemId: number, quantity?: number): void;
+/**
+ * Anywhere items can live: a player inventory, a bank, a mailbox.
+ * `player.inventory` is one; so is any `{ items, maxCapacity }` you keep in
+ * player data.
+ */
+interface ItemContainer {
+  items: { item: number; quantity: number }[];
+  maxCapacity: number;
+}
 
-/** Remove items from a player's inventory. */
-declare function removeItem(player: PlayerServer, itemId: number, quantity?: number): void;
+/**
+ * One flat shape rather than a union, since scripts are checked with
+ * `strict: false`, where narrowing on a boolean literal does not hold.
+ */
+interface EconomyResult {
+  ok: boolean;
+  /** Only set when `ok` is false. */
+  reason?: 'invalid-amount' | 'not-enough' | 'no-space' | 'same-container';
+}
+
+/**
+ * Add items to a player's inventory. False when it did not happen (a full
+ * inventory or an unknown item), so check it before telling the player.
+ */
+declare function giveItem(player: PlayerServer, itemId: number, quantity?: number): boolean;
+
+/**
+ * Remove items from a player's inventory.
+ *
+ * All or nothing: asking for more than the player has removes nothing and
+ * returns false, rather than taking what is there.
+ */
+declare function removeItem(player: PlayerServer, itemId: number, quantity?: number): boolean;
+
+/** Whether the player holds at least `quantity` of an item. */
+declare function hasItem(player: PlayerServer, itemId: number, quantity?: number): boolean;
+
+/** How many of an item the player holds. */
+declare function countItem(player: PlayerServer, itemId: number): number;
+
+/** Whether the item would fit; a stack already held always does. */
+declare function canCarry(player: PlayerServer, itemId: number): boolean;
+
+/**
+ * Move items between two containers, atomically.
+ *
+ * Both sides are checked before either is touched, so a full destination can
+ * never swallow the source. This is what a bank, trade or mailbox wants
+ * instead of remove-then-add.
+ *
+ *     const moved = moveItem(player.inventory, bank, Items.Gold, 100);
+ *     if (!moved.ok) reply(moved.reason === 'no-space' ? 'Bank full.' : 'Not enough.');
+ */
+declare function moveItem(
+  from: ItemContainer,
+  to: ItemContainer,
+  itemId: number,
+  amount?: number,
+): EconomyResult;
 
 /**
  * Persist players to the database immediately (economic commit). Call after

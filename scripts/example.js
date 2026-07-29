@@ -279,6 +279,25 @@ command(
 //   }
 // });
 
+// ── Giving and taking items: always check the result ───────────────────────
+//
+// on('npcDeath', ({ npc, killer }) => {
+//   if (!giveItem(killer, Items.Trophy, 1)) {
+//     say(`${killer.name}, your bag is full; the trophy was not awarded.`);
+//   }
+// });
+//
+// A quest turn-in, atomically: take the fetch items, hand over the reward.
+//
+// function turnIn(player) {
+//   if (!hasItem(player, Items.WolfPelt, 5)) return "Bring me 5 pelts.";
+//   if (!canCarry(player, Items.Reward)) return "Free a slot first.";
+//   removeItem(player, Items.WolfPelt, 5);
+//   giveItem(player, Items.Reward, 1);
+//   persistNow(player);
+//   return "Thank you!";
+// }
+
 // ── Attached behavior: the content points at your code, not the reverse ────
 //
 // `on` is a global listener: it fires for EVERY npc and you filter. That works,
@@ -403,6 +422,22 @@ command(
 //   so replays reproduce a session exactly. Wall-clock timers (setTimeout) and
 //   Math.random escape that - the recorder never sees them and a replay drifts.
 //   setTimeout/setInterval still work but are deprecated and log a warning.
+//
+// INVENTORY / ECONOMY (all report what happened; check the result)
+//   giveItem(player, itemId, qty?)   → boolean  false = full bag or unknown item
+//   removeItem(player, itemId, qty?) → boolean  all-or-nothing; false = too few
+//   hasItem(player, itemId, qty?)    → boolean
+//   countItem(player, itemId)        → number
+//   canCarry(player, itemId)         → boolean  a stack already held always fits
+//   moveItem(from, to, itemId, qty?) → { ok, reason? }  atomic between containers
+//
+//   A container is anything shaped { items, maxCapacity } - player.inventory,
+//   or a bank/mailbox you keep in player data. moveItem checks both sides
+//   before touching either, so a full destination can never eat the source;
+//   `reason` is 'not-enough' | 'no-space' | 'invalid-amount' | 'same-container'.
+//
+//   Prefer moveItem over removeItem-then-giveItem: the pair can strand items
+//   if the second half fails.
 //
 // CONSTANTS
 //   TILE_SIZE                      - tile size in pixels (positions are in pixels)

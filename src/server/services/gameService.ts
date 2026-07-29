@@ -40,6 +40,7 @@ import { playersWsMap } from '../net/connections.js';
 import { emitGameEvent } from '../engine/eventBus.js';
 import { emit } from '../engine/hooks.js';
 import { dispatchEntityScript } from '../engine/scripting/entityScripts.js';
+import { removeItem } from './economy/economyService.js';
 import { handleAttack } from './combat/index.js';
 import { pickUpItem } from './economy/inventoryService.js';
 import { handleInteract } from './world/interactionService.js';
@@ -205,14 +206,7 @@ const tryOpenDoor = (
   if (!tile?.door) return false;
 
   const { requiresItem, openTileIndex } = tile.door;
-  const slotIdx = player.inventory.items.findIndex(
-    (i) => i.item === requiresItem,
-  );
-  if (slotIdx < 0) return false;
-
-  const slot = player.inventory.items[slotIdx]!;
-  slot.quantity -= 1;
-  if (slot.quantity <= 0) player.inventory.items.splice(slotIdx, 1);
+  if (!removeItem(player.inventory, requiresItem, 1).ok) return false;
 
   tile.tileIndex = openTileIndex;
   tile.blocked = false;

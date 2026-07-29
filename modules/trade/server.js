@@ -11,30 +11,29 @@ const positiveInt = (value, fallback) => {
   return Number.isFinite(n) && n > 0 ? n : fallback;
 };
 
-function itemQuantity(player, itemId) {
-  const slot = player.inventory.items.find(
-    (entry) => Number(entry.item) === Number(itemId),
-  );
-  return slot ? slot.quantity : 0;
-}
-
-function hasItem(player, itemId, quantity) {
-  return itemQuantity(player, itemId) >= quantity;
-}
-
+/**
+ * Whether `player` can receive `receive` while `remove` leaves them in the
+ * same swap, simulated on a copy since the outgoing item may free the slot.
+ */
 function wouldFit(player, receive, remove) {
   if (!receive) return true;
-  const counts = {};
-  for (const entry of player.inventory.items) {
-    if (entry.quantity > 0)
-      counts[entry.item] = (counts[entry.item] || 0) + entry.quantity;
-  }
+  const simulated = {
+    maxCapacity: player.inventory.maxCapacity,
+    items: player.inventory.items.map((entry) => ({ ...entry })),
+  };
   if (remove) {
-    counts[remove.itemId] = (counts[remove.itemId] || 0) - remove.quantity;
-    if (counts[remove.itemId] <= 0) delete counts[remove.itemId];
+    moveItem(simulated, scratch(), remove.itemId, remove.quantity);
   }
-  if (counts[receive.itemId]) return true;
-  return Object.keys(counts).length < player.inventory.maxCapacity;
+  return moveItem(scratch(receive), simulated, receive.itemId, receive.quantity)
+    .ok;
+}
+
+/** Throwaway container for the simulation above. */
+function scratch(hold) {
+  return {
+    maxCapacity: 99,
+    items: hold ? [{ item: hold.itemId, quantity: hold.quantity }] : [],
+  };
 }
 
 function offersFor(player) {
@@ -144,10 +143,35 @@ function acceptTrade(player, fromName) {
   if (!wouldFit(from, offer.want, offer.give))
     return `${from.name}'s inventory is full.`;
 
-  removeItem(from, offer.give.itemId, offer.give.quantity);
-  if (offer.want) removeItem(to, offer.want.itemId, offer.want.quantity);
-  giveItem(to, offer.give.itemId, offer.give.quantity);
-  if (offer.want) giveItem(from, offer.want.itemId, offer.want.quantity);
+  // Each leg is atomic on its own. The checks above are what make the pair
+  // safe: both sides are known to have the goods and the room before the first
+  // one moves, so the second cannot fail and strand the first.
+  const gave = moveItem(
+    from.inventory,
+    to.inventory,
+    offer.give.itemId,
+    offer.give.quantity,
+  );
+  if (!gave.ok) return "Offer is no longer valid.";
+
+  if (offer.want) {
+    const paid = moveItem(
+      to.inventory,
+      from.inventory,
+      offer.want.itemId,
+      offer.want.quantity,
+    );
+    if (!paid.ok) {
+      // Put the first leg back rather than leaving a one-sided trade.
+      moveItem(
+        to.inventory,
+        from.inventory,
+        offer.give.itemId,
+        offer.give.quantity,
+      );
+      return "You do not have the requested item quantity.";
+    }
+  }
   persistNow(from, to);
 
   offers.delete(keyOf(offer.from, offer.to));

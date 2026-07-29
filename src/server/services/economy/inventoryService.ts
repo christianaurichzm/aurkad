@@ -8,6 +8,7 @@ import { EQUIPMENT_SLOTS } from '../../../shared/constants.js';
 import { getPlayerByName, levelUpPlayer } from '../player/playerService.js';
 import { emit } from '../../engine/hooks.js';
 import { dispatchEntityScript } from '../../engine/scripting/entityScripts.js';
+import { addItem, canFit, removeItem } from './economyService.js';
 
 export function getItemById(id: number): Item | null {
   return items.get(id) ?? null;
@@ -67,16 +68,8 @@ export const pickUpItem = async (map: MapStateServer, player: PlayerServer) => {
 
   const drop = map.droppedItems[dropIndex]!;
 
-  const existing = player.inventory.items.find((i) => i.item === drop.itemId);
-
-  if (existing) {
-    existing.quantity += drop.quantity;
-  } else if (player.inventory.items.length < player.inventory.maxCapacity) {
-    player.inventory.items.push({ item: drop.itemId, quantity: drop.quantity });
-  } else {
-    // Leave it on the ground rather than deleting it when there is no room.
-    return;
-  }
+  // Leave it on the ground rather than deleting it when there is no room.
+  if (!addItem(player.inventory, drop.itemId, drop.quantity).ok) return;
 
   map.droppedItems.splice(dropIndex, 1);
   emit('itemPickup', { player, itemId: drop.itemId, quantity: drop.quantity });
@@ -104,21 +97,6 @@ export const handleItemAction = (action: ClientItemAction) => {
   }
 };
 
-export async function removeItemFromInventory(
-  username: string,
-  itemId: number,
-): Promise<boolean> {
-  const player = getPlayerByName(username);
-  if (!player) return false;
-
-  player.inventory.items = player.inventory.items.filter(
-    (i) => i.item !== itemId,
-  );
-
-  await updatePlayer(player);
-  return true;
-}
-
 export async function dropItemFromInventory(
   username: string,
   itemId: number,
@@ -141,12 +119,7 @@ export async function dropItemFromInventory(
     Math.min(Math.floor(requestedQuantity), invItem.quantity),
   );
 
-  invItem.quantity -= quantity;
-  if (invItem.quantity <= 0) {
-    player.inventory.items = player.inventory.items.filter(
-      (i) => i.item !== itemId,
-    );
-  }
+  if (!removeItem(player.inventory, itemId, quantity).ok) return false;
 
   map.droppedItems.push({
     itemId,
@@ -178,12 +151,7 @@ export async function useItem(
     emit('itemUse', { player, itemId });
     dispatchEntityScript(item.scriptId, 'onUse', { player, item, itemId });
     await applyItemEffects(player, itemId);
-    invItem.quantity--;
-    if (invItem.quantity <= 0) {
-      player.inventory.items = player.inventory.items.filter(
-        (i) => i.item !== itemId,
-      );
-    }
+    removeItem(player.inventory, itemId, 1);
   } else {
     const slot = item.type as keyof PlayerServer['equipped'];
     const equippedItem = player.equipped[slot];
@@ -229,15 +197,7 @@ export async function equipItem(
 
   player.equipped[slot] = itemId;
 
-  const existing = player.inventory.items.find((i) => i.item === itemId);
-  if (existing) {
-    existing.quantity--;
-    if (existing.quantity <= 0) {
-      player.inventory.items = player.inventory.items.filter(
-        (i) => i.item !== itemId,
-      );
-    }
-  }
+  removeItem(player.inventory, itemId, 1);
 
   await applyItemEffects(player, itemId);
 }
@@ -252,18 +212,13 @@ export async function unequipItem(
   // A bound item may never hit the ground: with no stack and no free slot the
   // fallback below would drop it, so refuse the unequip instead.
   const unequipped = getItemById(itemId);
-  const hasStack = player.inventory.items.some((i) => i.item === itemId);
-  const hasSpace = player.inventory.items.length < player.inventory.maxCapacity;
-  if (unequipped?.bound && !hasStack && !hasSpace) return;
+  if (unequipped?.bound && !canFit(player.inventory, itemId)) return;
 
   await applyItemEffects(player, itemId, true);
 
-  const existing = player.inventory.items.find((i) => i.item === itemId);
-  if (existing) {
-    existing.quantity++;
-  } else if (player.inventory.items.length < player.inventory.maxCapacity) {
-    player.inventory.items.push({ item: itemId, quantity: 1 });
-  } else {
+  // A full inventory sends it to the ground rather than deleting it. Bound
+  // items never get here, as the check above refuses the unequip.
+  if (!addItem(player.inventory, itemId, 1).ok) {
     const item = getItemById(itemId);
     const map = getMap(player.mapId);
     if (item && map) {

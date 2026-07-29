@@ -58,65 +58,41 @@ function saveBank(player, bank) {
   return normalized;
 }
 
-function quantity(items, itemId) {
-  const slot = items.find((entry) => Number(entry.item) === Number(itemId));
-  return slot ? slot.quantity : 0;
-}
-
-function hasInventory(player, itemId, amount) {
-  return quantity(player.inventory.items, itemId) >= amount;
-}
-
-function canAdd(items, maxCapacity, itemId) {
-  if (quantity(items, itemId) > 0) return true;
-  return items.filter((entry) => entry.quantity > 0).length < maxCapacity;
-}
-
-function add(items, itemId, amount) {
-  const slot = items.find((entry) => Number(entry.item) === Number(itemId));
-  if (slot) slot.quantity += amount;
-  else items.push({ item: itemId, quantity: amount });
-}
-
-function remove(items, itemId, amount) {
-  const slot = items.find((entry) => Number(entry.item) === Number(itemId));
-  if (!slot || slot.quantity < amount) return false;
-  slot.quantity -= amount;
-  return true;
-}
-
+// Both directions go through moveItem, which checks source and destination
+// before touching either.
 function deposit(player, itemIdValue, amountValue) {
   const itemId = positiveInt(itemIdValue, 0);
   const amount = positiveInt(amountValue, 1);
-  if (!itemId || !hasInventory(player, itemId, amount))
-    return "You do not have that item quantity.";
+  if (!itemId) return "You do not have that item quantity.";
 
   const info = getItem(itemId);
   if (info && info.bound) return "That item is bound and cannot be banked.";
 
   const bank = getBank(player);
-  if (!canAdd(bank.items, bank.maxCapacity, itemId))
-    return "Your bank is full.";
-
-  removeItem(player, itemId, amount);
-  add(bank.items, itemId, amount);
-  saveBank(player, bank);
-  return "Deposited.";
+  const moved = moveItem(player.inventory, bank, itemId, amount);
+  if (moved.ok) {
+    saveBank(player, bank);
+    return "Deposited.";
+  }
+  return moved.reason === "no-space"
+    ? "Your bank is full."
+    : "You do not have that item quantity.";
 }
 
 function withdraw(player, itemIdValue, amountValue) {
   const itemId = positiveInt(itemIdValue, 0);
   const amount = positiveInt(amountValue, 1);
-  const bank = getBank(player);
-  if (!itemId || quantity(bank.items, itemId) < amount)
-    return "That item is not in your bank.";
-  if (!canAdd(player.inventory.items, player.inventory.maxCapacity, itemId))
-    return "Your inventory is full.";
+  if (!itemId) return "That item is not in your bank.";
 
-  remove(bank.items, itemId, amount);
-  giveItem(player, itemId, amount);
-  saveBank(player, bank);
-  return "Withdrew.";
+  const bank = getBank(player);
+  const moved = moveItem(bank, player.inventory, itemId, amount);
+  if (moved.ok) {
+    saveBank(player, bank);
+    return "Withdrew.";
+  }
+  return moved.reason === "no-space"
+    ? "Your inventory is full."
+    : "That item is not in your bank.";
 }
 
 function push(player) {
