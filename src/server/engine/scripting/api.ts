@@ -61,6 +61,7 @@ import {
 } from '../../sim/rng.js';
 import { CharacterAction } from '../../../shared/types.js';
 import { logger } from '../../logger.js';
+import { recordScriptError, type ScriptErrorSource } from './scriptErrors.js';
 import type { HookMap } from '../hooks.js';
 import type { PlayerServer } from '../../../shared/types.js';
 
@@ -101,6 +102,26 @@ export function buildApi(
   trackUnsub: (fn: Cleanup) => void,
   trackTimer: (id: TimerId) => void,
 ) {
+  /**
+   * Notes a callback's failure against the script that wrote it, then lets it
+   * propagate. The call sites already isolate and log it; this only adds the
+   * record the editor shows.
+   */
+  function attributed(
+    fn: () => void,
+    source: ScriptErrorSource,
+    context: string,
+  ): () => void {
+    return () => {
+      try {
+        fn();
+      } catch (e) {
+        recordScriptError(scriptName, e, source, context);
+        throw e;
+      }
+    };
+  }
+
   function safeOn(event: keyof HookMap, handler: AnyHandler): Cleanup {
     const wrapped = (payload: unknown) => {
       try {
@@ -110,6 +131,7 @@ export function buildApi(
           event,
           err: e,
         });
+        recordScriptError(scriptName, e, 'hook', event);
       }
     };
     const unsub = hookOn(event, wrapped as any);
@@ -485,12 +507,20 @@ export function buildApi(
     // scheduled this way is captured by the replay recorder and reproduces
     // exactly on re-run. Use msToTicks() when you think in seconds.
     after: (ticks: number, fn: () => void): number => {
-      const id = scheduleAfter(ticks, fn, scriptName);
+      const id = scheduleAfter(
+        ticks,
+        attributed(fn, 'schedule', 'after'),
+        scriptName,
+      );
       trackUnsub(() => cancelScheduled(id));
       return id;
     },
     every: (ticks: number, fn: () => void): number => {
-      const id = scheduleEvery(ticks, fn, scriptName);
+      const id = scheduleEvery(
+        ticks,
+        attributed(fn, 'schedule', 'every'),
+        scriptName,
+      );
       trackUnsub(() => cancelScheduled(id));
       return id;
     },
@@ -518,6 +548,7 @@ export function buildApi(
           logger.error(`[script:${scriptName}] setTimeout callback threw`, {
             err: e,
           });
+          recordScriptError(scriptName, e, 'timer', 'setTimeout');
         }
       }, ms);
       trackTimer(id as unknown as TimerId);
@@ -531,6 +562,7 @@ export function buildApi(
           logger.error(`[script:${scriptName}] setInterval callback threw`, {
             err: e,
           });
+          recordScriptError(scriptName, e, 'timer', 'setInterval');
         }
       }, ms);
       trackTimer(id);

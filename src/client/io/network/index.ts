@@ -76,8 +76,10 @@ export {
   saveScript,
   createScript,
   deleteScript,
+  getScriptErrors,
   type ScriptFileInfo,
   type ScriptTypeDefs,
+  type ScriptError,
 } from './http/scriptsClient';
 
 // Moderation

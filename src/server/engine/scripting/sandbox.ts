@@ -2,6 +2,7 @@ import vm from 'vm';
 import { logger } from '../../logger.js';
 import { buildApi } from './api.js';
 import { getContentConstants } from './contentConstants.js';
+import { recordScriptError } from './scriptErrors.js';
 
 // TRUST MODEL: read before exposing this to untrusted code.
 //
@@ -72,6 +73,7 @@ export function runInSandbox(
     } else {
       logger.error(`[scripting] Runtime error in ${filename}`, { err: e });
     }
+    recordScriptError(filename, e, 'load');
     cleanup();
     return { cleanup: () => {} };
   }

@@ -14,6 +14,7 @@ import {
   deleteScriptFile,
   readTypeDefs,
 } from '../../engine/scripting/scriptsRepository.js';
+import { getScriptErrors } from '../../engine/scripting/scriptErrors.js';
 
 // Monaco script editor backend, mounted only when SCRIPT_EDITOR_ENABLED=true
 // (server.ts). Writes here run on the server with full host access (see
@@ -28,6 +29,15 @@ export function createScriptsRouter() {
   router.get('/admin/scripts/types', checkAccess(Access.ADMIN), (_req, res) => {
     res.json(readTypeDefs());
   });
+
+  // Declared before /:name so "errors" is not read as a file name.
+  router.get(
+    '/admin/scripts/errors',
+    checkAccess(Access.ADMIN),
+    (_req, res) => {
+      res.json(getScriptErrors());
+    },
+  );
 
   router.get(
     '/admin/scripts/:name',

@@ -14,6 +14,10 @@ vi.mock('../../engine/scripting/scriptsRepository.js', () => ({
 }));
 
 import { createScriptsRouter } from './scriptsRoutes.js';
+import {
+  recordScriptError,
+  clearScriptErrors,
+} from '../../engine/scripting/scriptErrors.js';
 import * as repo from '../../engine/scripting/scriptsRepository.js';
 
 function appAs(accessLevel: Access | undefined) {
@@ -130,5 +134,53 @@ describe('DELETE /admin/scripts/:name', () => {
       '/admin/scripts/a.js',
     );
     expect(res.status).toBe(204);
+  });
+});
+
+describe('GET /admin/scripts/errors', () => {
+  beforeEach(() => {
+    clearScriptErrors();
+  });
+
+  it('is ADMIN gated like the rest of the router', async () => {
+    const res = await request(appAs(Access.MOD)).get('/admin/scripts/errors');
+    expect(res.status).toBe(403);
+  });
+
+  it('returns an empty list when nothing has failed', async () => {
+    const res = await request(appAs(Access.ADMIN)).get('/admin/scripts/errors');
+    expect(res.status).toBe(200);
+    expect(res.body).toEqual([]);
+  });
+
+  it('returns the recorded failures with their positions', async () => {
+    const err = new Error('boom');
+    err.stack = 'Error: boom\n    at quest.js:11:3';
+    recordScriptError('quest.js', err, 'hook', 'playerJoin');
+
+    const res = await request(appAs(Access.ADMIN)).get('/admin/scripts/errors');
+
+    expect(res.status).toBe(200);
+    expect(res.body).toHaveLength(1);
+    expect(res.body[0]).toMatchObject({
+      script: 'quest.js',
+      line: 11,
+      column: 3,
+      source: 'hook',
+      context: 'playerJoin',
+    });
+  });
+
+  // Route order matters: a file named "errors" must not shadow this, and this
+  // must not swallow a request for a real file.
+  it('does not shadow reading a script file', async () => {
+    vi.mocked(repo.readScriptFile).mockReturnValue('// hi');
+
+    const res = await request(appAs(Access.ADMIN)).get(
+      '/admin/scripts/quest.js',
+    );
+
+    expect(res.status).toBe(200);
+    expect(res.body).toEqual({ name: 'quest.js', content: '// hi' });
   });
 });

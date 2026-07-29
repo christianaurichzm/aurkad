@@ -27,6 +27,26 @@ export async function getScriptTypes(): Promise<ScriptTypeDefs> {
   );
 }
 
+export interface ScriptError {
+  script: string;
+  message: string;
+  line?: number;
+  column?: number;
+  source: 'load' | 'hook' | 'schedule' | 'timer';
+  context?: string;
+  stack?: string;
+  at: number;
+  count: number;
+}
+
+export async function getScriptErrors(): Promise<ScriptError[]> {
+  return (
+    (await httpClient<ScriptError[]>('/admin/scripts/errors', {
+      method: 'GET',
+    }).catch(() => null)) ?? []
+  );
+}
+
 export async function getScript(name: string): Promise<string> {
   const res = await httpClient<{ name: string; content: string }>(
     `/admin/scripts/${encodeURIComponent(name)}`,

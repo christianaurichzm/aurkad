@@ -8,7 +8,9 @@ import {
   createScript,
   deleteScript,
   getScriptTypes,
+  getScriptErrors,
   type ScriptFileInfo,
+  type ScriptError,
 } from '../../io/network';
 import { colors, radius } from '../../theme';
 
@@ -37,6 +39,42 @@ async function configureJsDefaults(): Promise<void> {
   defaults.addExtraLib(contentDts, 'file:///scripts/content.generated.d.ts');
 }
 
+// Own marker namespace, so runtime failures sit alongside Monaco's static
+// javascript diagnostics instead of overwriting them.
+const RUNTIME_MARKER_OWNER = 'script-runtime';
+const ERROR_POLL_MS = 5000;
+
+const modelFor = (name: string) =>
+  monaco.editor.getModel(monaco.Uri.parse(`file:///scripts/${name}`));
+
+/**
+ * Puts a squiggle on the line that threw. Errors without a line stay in the
+ * list below the editor.
+ */
+function applyRuntimeMarkers(name: string, errors: ScriptError[]): void {
+  const model = modelFor(name);
+  if (!model) return;
+
+  const markers = errors
+    .filter((e) => e.script === name && e.line !== undefined)
+    .map((e) => {
+      // The file may have been edited since it threw, so a recorded line can
+      // now be past the end of the buffer.
+      const line = Math.min(e.line!, model.getLineCount());
+      return {
+        severity: monaco.MarkerSeverity.Error,
+        message: e.count > 1 ? `${e.message} (x${e.count})` : e.message,
+        startLineNumber: line,
+        startColumn: e.column ?? 1,
+        endLineNumber: line,
+        endColumn: model.getLineMaxColumn(line),
+        source: e.context ? `${e.source}:${e.context}` : e.source,
+      };
+    });
+
+  monaco.editor.setModelMarkers(model, RUNTIME_MARKER_OWNER, markers);
+}
+
 // Monaco script editor, admin only and behind SCRIPT_EDITOR_ENABLED.
 // Saving writes to scripts/, which the server runs with full host access;
 // see the trust model in engine/scripting/sandbox.ts.
@@ -49,13 +87,31 @@ export const ScriptEditor: React.FC<{ height?: number }> = ({
   const [savedContent, setSavedContent] = useState('');
   const [status, setStatus] = useState('');
   const [newName, setNewName] = useState('');
+  const [errors, setErrors] = useState<ScriptError[]>([]);
   const editorRef = useRef<monaco.editor.IStandaloneCodeEditor | null>(null);
   const dirty = content !== savedContent;
+  const fileErrors = errors.filter((e) => e.script === selected);
 
   const refreshFiles = () =>
     listScripts()
       .then(setFiles)
       .catch(() => setFiles([]));
+
+  const refreshErrors = () => getScriptErrors().then(setErrors);
+
+  // Scripts fail while the game runs, so the editor polls for failures.
+  useEffect(() => {
+    void refreshErrors();
+    const handle = window.setInterval(
+      () => void refreshErrors(),
+      ERROR_POLL_MS,
+    );
+    return () => window.clearInterval(handle);
+  }, []);
+
+  useEffect(() => {
+    if (selected) applyRuntimeMarkers(selected, errors);
+  }, [selected, errors, content]);
 
   useEffect(() => {
     refreshFiles();
@@ -91,6 +147,24 @@ export const ScriptEditor: React.FC<{ height?: number }> = ({
     const ok = await saveScript(selected, content);
     setSavedContent(ok ? content : savedContent);
     setStatus(ok ? 'Saved · hot-reloaded' : 'Save failed.');
+    if (!ok) return;
+    // A filesystem watcher drives the reload, so errors in what was just saved
+    // land after the response; wait for them.
+    window.setTimeout(() => void refreshErrors(), 400);
+  };
+
+  const goToError = (error: ScriptError) => {
+    if (!error.line || !editorRef.current) return;
+    const line = Math.min(
+      error.line,
+      editorRef.current.getModel()?.getLineCount() ?? error.line,
+    );
+    editorRef.current.revealLineInCenter(line);
+    editorRef.current.setPosition({
+      lineNumber: line,
+      column: error.column ?? 1,
+    });
+    editorRef.current.focus();
   };
 
   // onMount fires once per editor, so Ctrl+S calls `save` through a ref to
@@ -147,6 +221,7 @@ export const ScriptEditor: React.FC<{ height?: number }> = ({
               }}
             >
               <button style={fileBtn} onClick={() => void openFile(f.name)}>
+                {errors.some((e) => e.script === f.name) ? '⚠ ' : ''}
                 {f.name}
                 {f.name === selected && dirty ? ' •' : ''}
               </button>
@@ -205,6 +280,26 @@ export const ScriptEditor: React.FC<{ height?: number }> = ({
             </div>
           )}
         </div>
+        {selected && fileErrors.length > 0 && (
+          <div style={errorPanel}>
+            <div style={errorHeader}>Runtime errors ({fileErrors.length})</div>
+            {fileErrors.map((e) => (
+              <button
+                key={`${e.source}:${e.context ?? ''}:${e.line ?? ''}:${e.message}`}
+                style={errorRow}
+                onClick={() => goToError(e)}
+                title={e.stack ?? e.message}
+              >
+                <span style={errorWhere}>
+                  {e.line ? `line ${e.line}` : e.source}
+                  {e.context ? ` · ${e.context}` : ''}
+                  {e.count > 1 ? ` · x${e.count}` : ''}
+                </span>
+                <span style={errorMessage}>{e.message}</span>
+              </button>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );
@@ -316,4 +411,42 @@ const emptyHint: React.CSSProperties = {
   padding: 20,
   color: colors.textMuted,
   fontSize: 13,
+};
+const errorPanel: React.CSSProperties = {
+  flexShrink: 0,
+  maxHeight: 140,
+  overflowY: 'auto',
+  borderTop: `1px solid ${colors.border}`,
+  background: colors.surfaceMuted,
+};
+const errorHeader: React.CSSProperties = {
+  padding: '6px 10px',
+  fontSize: 11,
+  fontWeight: 700,
+  textTransform: 'uppercase',
+  letterSpacing: 0.5,
+  color: colors.textMuted,
+};
+const errorRow: React.CSSProperties = {
+  display: 'flex',
+  gap: 8,
+  width: '100%',
+  textAlign: 'left',
+  background: 'transparent',
+  border: 'none',
+  borderTop: `1px solid ${colors.border}`,
+  padding: '6px 10px',
+  cursor: 'pointer',
+  fontSize: 12,
+  fontFamily: 'monospace',
+};
+const errorWhere: React.CSSProperties = {
+  flexShrink: 0,
+  color: colors.textMuted,
+};
+const errorMessage: React.CSSProperties = {
+  color: colors.danger,
+  overflow: 'hidden',
+  textOverflow: 'ellipsis',
+  whiteSpace: 'nowrap',
 };

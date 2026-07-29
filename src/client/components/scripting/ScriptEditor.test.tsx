@@ -9,6 +9,7 @@ const mocks = vi.hoisted(() => ({
   createScript: vi.fn(),
   deleteScript: vi.fn(),
   getScriptTypes: vi.fn(),
+  getScriptErrors: vi.fn(),
 }));
 
 vi.mock('../../io/network', () => ({
@@ -18,6 +19,7 @@ vi.mock('../../io/network', () => ({
   createScript: mocks.createScript,
   deleteScript: mocks.deleteScript,
   getScriptTypes: mocks.getScriptTypes,
+  getScriptErrors: mocks.getScriptErrors,
 }));
 
 vi.mock('monaco-editor', () => ({
@@ -30,7 +32,13 @@ vi.mock('monaco-editor', () => ({
       ScriptTarget: { ESNext: 99 },
     },
   },
-  editor: { getModels: () => [] },
+  editor: {
+    getModels: () => [],
+    getModel: () => null,
+    setModelMarkers: vi.fn(),
+  },
+  Uri: { parse: (v: string) => v },
+  MarkerSeverity: { Error: 8 },
   KeyMod: { CtrlCmd: 2048 },
   KeyCode: { KeyS: 49 },
 }));
@@ -83,6 +91,7 @@ beforeEach(() => {
   commands.current = null;
   vi.spyOn(window, 'confirm').mockReturnValue(true);
   mocks.getScriptTypes.mockResolvedValue({ globalDts: '', contentDts: '' });
+  mocks.getScriptErrors.mockResolvedValue([]);
   mocks.listScripts.mockResolvedValue([
     { name: 'a.js', size: 1, mtimeMs: 0 },
     { name: 'b.js', size: 1, mtimeMs: 0 },
@@ -208,5 +217,94 @@ describe('ScriptEditor', () => {
         'edited after mount',
       ),
     );
+  });
+});
+
+describe('runtime error reporting', () => {
+  const failure = {
+    script: 'a.js',
+    message: 'TypeError: x is not a function',
+    line: 12,
+    column: 3,
+    source: 'hook' as const,
+    context: 'playerJoin',
+    at: Date.now(),
+    count: 1,
+  };
+
+  it('marks a file that has failed, so a broken script is visible unopened', async () => {
+    mocks.getScriptErrors.mockResolvedValue([failure]);
+    render(<ScriptEditor />);
+
+    expect(await screen.findByText(/⚠\s*a\.js/)).toBeInTheDocument();
+    expect(screen.getByText('b.js')).toBeInTheDocument();
+    expect(screen.queryByText(/⚠\s*b\.js/)).not.toBeInTheDocument();
+  });
+
+  it('lists the failures of the open file with their line and hook', async () => {
+    mocks.getScriptErrors.mockResolvedValue([failure]);
+    mocks.getScript.mockResolvedValue('// code');
+    render(<ScriptEditor />);
+
+    fireEvent.click(await screen.findByText(/a\.js/));
+
+    expect(await screen.findByText('Runtime errors (1)')).toBeInTheDocument();
+    expect(
+      screen.getByText('TypeError: x is not a function'),
+    ).toBeInTheDocument();
+    expect(screen.getByText(/line 12 · playerJoin/)).toBeInTheDocument();
+  });
+
+  it('shows the repeat count for a failure that keeps happening', async () => {
+    mocks.getScriptErrors.mockResolvedValue([{ ...failure, count: 240 }]);
+    mocks.getScript.mockResolvedValue('// code');
+    render(<ScriptEditor />);
+
+    fireEvent.click(await screen.findByText(/a\.js/));
+
+    expect(await screen.findByText(/x240/)).toBeInTheDocument();
+  });
+
+  it('does not show another file’s failures', async () => {
+    mocks.getScriptErrors.mockResolvedValue([{ ...failure, script: 'b.js' }]);
+    mocks.getScript.mockResolvedValue('// code');
+    render(<ScriptEditor />);
+
+    fireEvent.click(await screen.findByText(/a\.js/));
+    await screen.findByTestId('editor');
+
+    expect(screen.queryByText(/Runtime errors/)).not.toBeInTheDocument();
+  });
+
+  it('hides the panel entirely when nothing has failed', async () => {
+    mocks.getScript.mockResolvedValue('// code');
+    render(<ScriptEditor />);
+
+    fireEvent.click(await screen.findByText('a.js'));
+    await screen.findByTestId('editor');
+
+    expect(screen.queryByText(/Runtime errors/)).not.toBeInTheDocument();
+  });
+
+  // A syntax error appears only once the watcher reloads the file, which
+  // follows the save response.
+  it('re-checks for errors after a save', async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    mocks.getScript.mockResolvedValue('x');
+    mocks.saveScript.mockResolvedValue(true);
+    render(<ScriptEditor />);
+
+    fireEvent.click(await screen.findByText('a.js'));
+    fireEvent.change(await screen.findByTestId('editor'), {
+      target: { value: 'x = 1;' },
+    });
+    fireEvent.click(screen.getByText('Save'));
+
+    await waitFor(() => expect(mocks.saveScript).toHaveBeenCalled());
+    const before = mocks.getScriptErrors.mock.calls.length;
+    await vi.advanceTimersByTimeAsync(500);
+
+    expect(mocks.getScriptErrors.mock.calls.length).toBeGreaterThan(before);
+    vi.useRealTimers();
   });
 });
