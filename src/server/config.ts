@@ -67,6 +67,29 @@ if (nodeEnv === 'production' && !process.env.CORS_ALLOWED_ORIGINS) {
   );
 }
 
+// An all-blank MAP_IDS parses to [], which would read as sharding. It means
+// "own all maps", like unset, so both become undefined here.
+const rawMapIds = parseCsvEnv('MAP_IDS');
+const mapIds = rawMapIds?.length ? rawMapIds : undefined;
+
+// Sharding is wired end to end (registry, heartbeat, cross-map redirect),
+// but login presence is per-process: authRoutes checks the local
+// playersWsMap, so one account can log in on two instances whose saves
+// clobber each other. So that mode refuses to boot rather than silently
+// losing player data.
+if (
+  process.env.WS_PUBLIC_URL &&
+  mapIds &&
+  process.env.ALLOW_UNSAFE_MULTI_INSTANCE !== 'true'
+) {
+  throw new Error(
+    '[config] Multi-instance mode (WS_PUBLIC_URL + MAP_IDS) is disabled: login presence ' +
+      'is per-process, so the same account can log in on two instances at once and lose ' +
+      'progress when their saves overwrite each other. Run a single instance (unset one of ' +
+      'the two), or set ALLOW_UNSAFE_MULTI_INSTANCE=true to accept the risk.',
+  );
+}
+
 const sessionSecret =
   process.env.SESSION_SECRET ?? crypto.randomBytes(32).toString('hex');
 
@@ -126,7 +149,7 @@ export const config = {
   },
   instance: {
     wsPublicUrl: process.env.WS_PUBLIC_URL,
-    mapIds: parseCsvEnv('MAP_IDS'),
+    mapIds,
     heartbeatMs: parseIntEnv('INSTANCE_HEARTBEAT_MS', 30_000, {
       min: 5_000,
       max: 300_000,
