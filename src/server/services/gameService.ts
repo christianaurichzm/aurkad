@@ -34,6 +34,7 @@ import { clearPlayerDirty } from '../persistence/dirtyPlayers.js';
 import { clearAttackCooldown } from './combat/attackCooldown.js';
 import {
   resetPlayerNetState,
+  forgetReplicatedEntity,
   broadcastGameState as broadcast,
 } from '../net/snapshot.js';
 import { playersWsMap } from '../net/connections.js';
@@ -497,5 +498,8 @@ export const disconnectPlayer = async (username?: string) => {
     emit('playerLeave', { player });
     unregisterPlayer(player.id);
     resetPlayerNetState(player.name);
+    // Per-viewer caches are keyed by viewer name and cleared above; the
+    // entity's own diff baseline is keyed by id and lives elsewhere.
+    forgetReplicatedEntity(player.id);
   }
 };

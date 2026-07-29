@@ -6,6 +6,8 @@ import {
 } from '../../../shared/types.js';
 import { TILE_SIZE } from '../../../shared/constants.js';
 import { getMap, runtimeState } from '../world/gameData.js';
+import { forgetReplicatedEntity } from '../../net/snapshot.js';
+import { resetNpcAi } from './aiBrain.js';
 
 // Runtime NPC spawning for scripts and modules (pets, summons, event
 // bosses). Spawned NPCs live in map.npcs, so the quadtree and serialization
@@ -57,9 +59,17 @@ export function spawnNpc(opts: SpawnNpcOptions): RuntimeNpc | undefined {
 // drifted (e.g. a pet that followed its owner across a warp).
 export function despawnNpc(npc: { id: string }): void {
   for (const map of Object.values(runtimeState.maps)) {
-    if (map.npcs[npc.id]) {
-      delete map.npcs[npc.id];
-      return;
-    }
+    const live = map.npcs[npc.id];
+    if (!live) continue;
+
+    delete map.npcs[npc.id];
+    // Everything keyed by this id has to go with it. Without this a server
+    // running pet or summon scripts accumulates a public-state snapshot and an
+    // AI state per despawn, for the life of the process. The live object is
+    // what gets passed on: the AI key includes mapId, which the caller's
+    // `{ id }` does not carry.
+    forgetReplicatedEntity(npc.id);
+    resetNpcAi(live);
+    return;
   }
 }
