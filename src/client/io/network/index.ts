@@ -50,6 +50,9 @@ export {
   createArrow,
   updateArrow,
   deleteArrow,
+  listLootTables,
+  saveLootTable,
+  deleteLootTable,
 } from './http/contentClient';
 
 // Admin console

@@ -18,6 +18,7 @@ interface NpcEditorProps {
   items: Item[];
   loadNpcs: () => Promise<any>;
   loadItems: () => Promise<any>;
+  loadLootTables: () => Promise<{ value: string; label: string }[]>;
   refreshData: () => void;
   onDirtyChange: (dirty: boolean) => void;
   requestDiscard: () => Promise<boolean>;
@@ -31,6 +32,7 @@ type NpcFormValues = {
   behavior: NpcBehavior;
   exp: number;
   scriptId: string;
+  lootTableId: string;
 };
 
 const defaultValues: NpcFormValues = {
@@ -41,6 +43,7 @@ const defaultValues: NpcFormValues = {
   behavior: 'neutral',
   exp: 0,
   scriptId: '',
+  lootTableId: '',
 };
 
 const npcToFormValues = (npc: RuntimeNpc): NpcFormValues => ({
@@ -51,6 +54,7 @@ const npcToFormValues = (npc: RuntimeNpc): NpcFormValues => ({
   behavior: npc.behavior,
   exp: npc.experienceValue ?? 0,
   scriptId: npc.scriptId ?? '',
+  lootTableId: npc.lootTableId ?? '',
 });
 
 const npcToDrops = (npc: RuntimeNpc): NpcItemDrop[] =>
@@ -64,6 +68,7 @@ export const NpcEditor: React.FC<NpcEditorProps> = ({
   items,
   loadNpcs,
   loadItems,
+  loadLootTables,
   refreshData,
   onDirtyChange,
   requestDiscard,
@@ -144,6 +149,7 @@ export const NpcEditor: React.FC<NpcEditorProps> = ({
     behavior,
     exp,
     scriptId,
+    lootTableId,
   }: NpcFormValues) => {
     const data = {
       name,
@@ -155,6 +161,7 @@ export const NpcEditor: React.FC<NpcEditorProps> = ({
       itemsToDrop: drops,
       // Empty means no behavior, rather than "" naming one nobody registers.
       scriptId: scriptId.trim() || undefined,
+      lootTableId: lootTableId || undefined,
     };
     const result = selectedId
       ? await updateNpc(selectedId, data).catch(() => null)
@@ -288,6 +295,28 @@ export const NpcEditor: React.FC<NpcEditorProps> = ({
 
       <div style={dropSection}>
         <label style={{ ...label, marginBottom: 6, display: 'block' }}>
+          Loot table
+        </label>
+        <Controller
+          control={control}
+          name="lootTableId"
+          render={({ field }) => (
+            <AsyncSelect
+              loadOptions={loadLootTables}
+              value={field.value}
+              onChange={field.onChange}
+            />
+          )}
+        />
+        <p style={dropHint}>
+          {watch('lootTableId')
+            ? 'Weighted table in use. The simple drops below are ignored.'
+            : 'No table: the simple drops below are used, each rolled on its own.'}
+        </p>
+      </div>
+
+      <div style={dropSection}>
+        <label style={{ ...label, marginBottom: 6, display: 'block' }}>
           Drops
         </label>
         {drops.length > 0 && (
@@ -411,6 +440,12 @@ const dropSection: React.CSSProperties = {
   border: `1px solid ${colors.border}`,
   borderRadius: radius.md,
   padding: '10px 12px',
+};
+
+const dropHint: React.CSSProperties = {
+  fontSize: 12,
+  color: colors.textMuted,
+  margin: '6px 0 0',
 };
 
 const dropList: React.CSSProperties = {

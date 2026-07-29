@@ -201,6 +201,11 @@ export interface PersistentNpc extends CharacterBase {
   behavior: NpcBehavior;
   experienceValue?: number;
   itemsToDrop?: NpcItemDrop[];
+  /**
+   * Weighted loot table to roll on death. Takes precedence over
+   * `itemsToDrop`, which stays supported as the simple per-item form.
+   */
+  lootTableId?: LootTable['id'];
   // Names a behaviour a script registered with attach(); runs on interact and
   // on death. This is what lets a designer wire a boss to its logic in the
   // editor instead of the script matching on npc ids.
@@ -444,8 +449,46 @@ export interface OnlinePlayersResponse {
 
 export interface NpcItemDrop {
   itemId: Item['id'];
+  /** 0..1. NOT the 0-100 that the scripting API's randomChance() takes. */
   chance: number;
   quantity?: number;
+}
+
+/** A fixed amount, or a range rolled per drop. */
+export type LootQuantity = number | { min: number; max: number };
+
+export interface LootEntry {
+  itemId: Item['id'];
+  /**
+   * Relative weight within `entries`, meaningful only there: 30 against 10
+   * is three times as likely, with no probabilities to keep summing to 1 as
+   * items are added.
+   */
+  weight?: number;
+  /** 0..1, only meaningful in `guaranteed`. Defaults to 1 (always). */
+  chance?: number;
+  quantity?: LootQuantity;
+}
+
+/**
+ * Named, reusable drop table.
+ *
+ * Two independent parts, because designers think in both: `guaranteed` entries
+ * each roll their own chance (the quest key, the boss trophy), while `entries`
+ * is a weighted pool drawn `rolls` times (the random loot).
+ */
+export interface LootTable {
+  id: string;
+  name: string;
+  guaranteed?: LootEntry[];
+  /** How many draws from `entries`. Defaults to exactly one. */
+  rolls?: { min: number; max: number };
+  entries?: LootEntry[];
+  /**
+   * Weight of drawing nothing, competing with `entries`. This is how a pool
+   * models "usually nothing", without a fake item to represent it.
+   */
+  emptyWeight?: number;
 }
 
 export type ChatScope = 'player' | 'map' | 'global';

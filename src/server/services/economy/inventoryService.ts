@@ -13,6 +13,16 @@ export function getItemById(id: number): Item | null {
   return items.get(id) ?? null;
 }
 
+/**
+ * Optional fields a caller can clear by leaving them out.
+ *
+ * Every caller passes a complete item (editor form, content import), which is
+ * why the cache line below replaces the entry wholesale. The database write has
+ * to agree: a plain `findOneAndUpdate` only writes the keys present, so
+ * clearing one in the editor would work until the next restart brought it back.
+ */
+const CLEARABLE_ITEM_FIELDS = ['scriptId', 'arrowId'] as const;
+
 export async function createOrUpdateItem(
   item: Omit<Item, 'id'> & { id?: number },
 ): Promise<void> {
@@ -21,7 +31,19 @@ export async function createOrUpdateItem(
   }
 
   const id = item.id;
-  await ItemModel.findOneAndUpdate({ id }, item, { upsert: true });
+  const unset: Record<string, ''> = {};
+  for (const field of CLEARABLE_ITEM_FIELDS) {
+    if (item[field] === undefined) unset[field] = '';
+  }
+
+  await ItemModel.findOneAndUpdate(
+    { id },
+    {
+      $set: item,
+      ...(Object.keys(unset).length > 0 && { $unset: unset }),
+    },
+    { upsert: true },
+  );
   items.set(id, { ...item, id } as Item);
 }
 

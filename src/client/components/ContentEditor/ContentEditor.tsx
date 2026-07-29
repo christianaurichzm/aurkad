@@ -5,19 +5,27 @@ import { MapEditor } from './MapEditor';
 import { ShopEditor } from './ShopEditor';
 import { SpellEditor } from './SpellEditor';
 import { ArrowEditor } from './ArrowEditor';
+import { LootTableEditor } from './LootTableEditor';
 import {
   RuntimeNpc,
   Item,
   MapStateClient,
   Shop,
   ProductRaw,
+  LootTable,
 } from '../../../shared/types';
-import { fetchNpcs, fetchItems, fetchMaps, fetchShops } from '../../io/network';
+import {
+  fetchNpcs,
+  fetchItems,
+  fetchMaps,
+  fetchShops,
+  listLootTables,
+} from '../../io/network';
 import { Modal } from '../common/Modal';
 import { colors, radius } from '../../theme';
 import { useUIStore } from '../../stores/uiStore';
 
-type Tab = 'npcs' | 'items' | 'shops' | 'maps' | 'spells' | 'arrows';
+type Tab = 'npcs' | 'items' | 'loot' | 'shops' | 'maps' | 'spells' | 'arrows';
 
 export const ContentEditor: React.FC = () => {
   const [visible, setVisible] = useState(false);
@@ -26,6 +34,7 @@ export const ContentEditor: React.FC = () => {
   const [items, setItems] = useState<Item[]>([]);
   const [shops, setShops] = useState<Shop<ProductRaw>[]>([]);
   const [maps, setMaps] = useState<MapStateClient[]>([]);
+  const [lootTables, setLootTables] = useState<LootTable[]>([]);
   const [contentDirty, setContentDirty] = useState(false);
   const visibleRef = useRef(false);
   const dirtyRef = useRef(false);
@@ -65,16 +74,18 @@ export const ContentEditor: React.FC = () => {
   }, [close]);
 
   const refreshData = useCallback(async () => {
-    const [npcData, itemData, shopData, mapData] = await Promise.all([
+    const [npcData, itemData, shopData, mapData, lootData] = await Promise.all([
       fetchNpcs(),
       fetchItems(),
       fetchShops(),
       fetchMaps(),
+      listLootTables(),
     ]);
     setNpcs(npcData);
     setItems(itemData);
     setShops(shopData);
     setMaps(mapData);
+    setLootTables(lootData);
   }, []);
 
   useEffect(() => {
@@ -99,6 +110,12 @@ export const ContentEditor: React.FC = () => {
     return data.map((s) => ({ value: s.id, label: `${s.id} - ${s.name}` }));
   }, []);
 
+  const loadLootTables = useCallback(async () => {
+    const data = await listLootTables();
+    setLootTables(data);
+    return data.map((t) => ({ value: t.id, label: `${t.id} - ${t.name}` }));
+  }, []);
+
   const loadMaps = useCallback(async () => {
     const data = await fetchMaps();
     setMaps(data);
@@ -116,6 +133,7 @@ export const ContentEditor: React.FC = () => {
   const tabs: { id: Tab; label: string }[] = [
     { id: 'npcs', label: 'NPCs' },
     { id: 'items', label: 'Items' },
+    { id: 'loot', label: 'Loot' },
     { id: 'shops', label: 'Shops' },
     { id: 'maps', label: 'Maps' },
     { id: 'spells', label: 'Spells' },
@@ -144,6 +162,7 @@ export const ContentEditor: React.FC = () => {
               refreshData={refreshData}
               items={items}
               loadItems={loadItems}
+              loadLootTables={loadLootTables}
               onDirtyChange={setContentDirty}
               requestDiscard={confirmDiscard}
             />
@@ -151,6 +170,16 @@ export const ContentEditor: React.FC = () => {
           {tab === 'items' && (
             <ItemEditor
               items={items}
+              loadItems={loadItems}
+              refreshData={refreshData}
+              onDirtyChange={setContentDirty}
+              requestDiscard={confirmDiscard}
+            />
+          )}
+          {tab === 'loot' && (
+            <LootTableEditor
+              tables={lootTables}
+              loadTables={loadLootTables}
               loadItems={loadItems}
               refreshData={refreshData}
               onDirtyChange={setContentDirty}

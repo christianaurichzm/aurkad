@@ -6,6 +6,7 @@ import type {
   ProductDetailed,
   Spell,
   Arrow,
+  LootTable,
 } from '../../../../shared/types';
 import { httpClient } from './httpClient';
 
@@ -149,4 +150,21 @@ export const updateArrow = async (
 
 export const deleteArrow = async (id: number): Promise<void> => {
   await httpClient(`/arrows/${id}`, { method: 'DELETE' });
+};
+
+export const listLootTables = async (): Promise<LootTable[]> => {
+  return (await httpClient<LootTable[]>('/loot', { method: 'GET' })) ?? [];
+};
+
+export const saveLootTable = async (
+  table: LootTable,
+): Promise<(LootTable & { warnings?: string[] }) | null> => {
+  return httpClient<LootTable & { warnings?: string[] }>('/loot', {
+    method: 'POST',
+    body: table,
+  });
+};
+
+export const deleteLootTable = async (id: string): Promise<void> => {
+  await httpClient(`/loot/${encodeURIComponent(id)}`, { method: 'DELETE' });
 };

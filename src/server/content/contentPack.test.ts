@@ -19,10 +19,17 @@ import { logger } from '../logger.js';
 import mongoose from 'mongoose';
 import { MongoMemoryServer } from 'mongodb-memory-server';
 import { importContentPack, exportContentPack } from './contentPack.js';
-import { listItems } from '../services/economy/inventoryService.js';
-import { listNpcs } from '../services/npc/persistenceOps.js';
+import {
+  listItems,
+  createOrUpdateItem,
+} from '../services/economy/inventoryService.js';
+import { listNpcs, updateNpcAll } from '../services/npc/persistenceOps.js';
 import { listMaps } from '../services/world/mapService.js';
 import { listShops } from '../services/economy/shopService.js';
+import {
+  listLootTables,
+  clearLootTableCache,
+} from '../services/economy/lootTableService.js';
 
 let mongod: MongoMemoryServer;
 let tmpDir: string;
@@ -286,5 +293,207 @@ describe('reference check on import', () => {
     expect(warnings).toEqual([]);
 
     spy.mockRestore();
+  });
+});
+
+describe('loot tables', () => {
+  beforeEach(() => {
+    clearLootTableCache();
+  });
+
+  it('imports a table and the npc that uses it', async () => {
+    write('items.json', [
+      { id: 1, name: 'Coin', sprite: 0, type: 'money' },
+      { id: 2, name: 'Sword', sprite: 1, type: 'weapon' },
+    ]);
+    write('loot.json', [
+      {
+        id: 'goblin-tier1',
+        name: 'Goblin tier 1',
+        guaranteed: [{ itemId: 1, quantity: { min: 3, max: 9 } }],
+        rolls: { min: 1, max: 2 },
+        entries: [{ itemId: 2, weight: 5 }],
+        emptyWeight: 20,
+      },
+    ]);
+    write('npcs.json', [
+      {
+        id: 'goblin',
+        name: 'Goblin',
+        sprite: 2,
+        maxHealth: 30,
+        attack: 5,
+        behavior: 'aggressive',
+        lootTableId: 'goblin-tier1',
+      },
+    ]);
+
+    await importContentPack();
+
+    const tables = await listLootTables();
+    expect(tables).toHaveLength(1);
+    expect(tables[0]).toMatchObject({
+      id: 'goblin-tier1',
+      rolls: { min: 1, max: 2 },
+      emptyWeight: 20,
+    });
+    expect(tables[0]!.guaranteed![0]!.quantity).toEqual({ min: 3, max: 9 });
+
+    const npcs = await listNpcs();
+    expect(npcs[0]).toMatchObject({ lootTableId: 'goblin-tier1' });
+  });
+
+  it('keeps a fixed quantity a plain number through the round trip', async () => {
+    write('items.json', [{ id: 1, name: 'Coin', sprite: 0, type: 'money' }]);
+    write('loot.json', [
+      {
+        id: 't',
+        name: 'T',
+        guaranteed: [{ itemId: 1, quantity: 5 }],
+      },
+    ]);
+
+    await importContentPack();
+    await exportContentPack();
+
+    const raw = fs.readFileSync(path.join(tmpDir, 'loot.json'), 'utf-8');
+    expect(JSON.parse(raw)[0].guaranteed[0].quantity).toBe(5);
+  });
+
+  it('warns about a table dropping an item that does not exist', async () => {
+    const warnings: string[] = [];
+    const spy = vi
+      .spyOn(logger, 'warn')
+      .mockImplementation((msg: string) => void warnings.push(msg));
+
+    write('items.json', [{ id: 1, name: 'Coin', sprite: 0, type: 'money' }]);
+    write('loot.json', [
+      { id: 't', name: 'T', entries: [{ itemId: 4040, weight: 1 }] },
+    ]);
+
+    await importContentPack();
+
+    expect(warnings.some((w) => w.includes('4040'))).toBe(true);
+    // Reported, not rejected, like the other content checks.
+    expect(await listLootTables()).toHaveLength(1);
+
+    spy.mockRestore();
+  });
+
+  it('warns about an npc pointing at a table that was never defined', async () => {
+    const warnings: string[] = [];
+    const spy = vi
+      .spyOn(logger, 'warn')
+      .mockImplementation((msg: string) => void warnings.push(msg));
+
+    write('items.json', [{ id: 1, name: 'Coin', sprite: 0, type: 'money' }]);
+    write('npcs.json', [
+      {
+        id: 'goblin',
+        name: 'Goblin',
+        sprite: 2,
+        maxHealth: 30,
+        attack: 5,
+        behavior: 'aggressive',
+        lootTableId: 'never-defined',
+      },
+    ]);
+
+    await importContentPack();
+
+    expect(warnings.some((w) => w.includes('never-defined'))).toBe(true);
+    expect(await listNpcs()).toHaveLength(1);
+
+    spy.mockRestore();
+  });
+});
+
+describe('clearing an optional reference', () => {
+  // The editor submits the whole form, so a missing field was cleared. A
+  // plain $set only writes keys that are present, so the import also needs
+  // the $unset or the value comes back on the next load.
+  async function importGoblin(extra: Record<string, unknown>) {
+    write('npcs.json', [
+      {
+        id: 'goblin',
+        name: 'Goblin',
+        sprite: 2,
+        maxHealth: 30,
+        attack: 5,
+        behavior: 'aggressive',
+        ...extra,
+      },
+    ]);
+    await importContentPack();
+  }
+
+  it('removes an npc loot table when the editor saves without one', async () => {
+    await importGoblin({ lootTableId: 'goblin-tier1' });
+    expect((await listNpcs())[0]).toMatchObject({
+      lootTableId: 'goblin-tier1',
+    });
+
+    await updateNpcAll('goblin', {
+      name: 'Goblin',
+      sprite: 2,
+      maxHealth: 30,
+      attack: 5,
+      behavior: 'aggressive',
+    });
+
+    expect((await listNpcs())[0]!.lootTableId).toBeUndefined();
+  });
+
+  it('removes an npc script behavior the same way', async () => {
+    await importGoblin({ scriptId: 'quest-giver' });
+
+    await updateNpcAll('goblin', {
+      name: 'Goblin',
+      sprite: 2,
+      maxHealth: 30,
+      attack: 5,
+      behavior: 'aggressive',
+    });
+
+    expect((await listNpcs())[0]!.scriptId).toBeUndefined();
+  });
+
+  it('keeps the reference when it is still there', async () => {
+    await importGoblin({ lootTableId: 'keep-me' });
+
+    await updateNpcAll('goblin', {
+      name: 'Goblin',
+      sprite: 2,
+      maxHealth: 30,
+      attack: 5,
+      behavior: 'aggressive',
+      lootTableId: 'keep-me',
+    });
+
+    expect((await listNpcs())[0]).toMatchObject({ lootTableId: 'keep-me' });
+  });
+
+  it('removes an item script behavior when saved without one', async () => {
+    write('items.json', [
+      {
+        id: 1,
+        name: 'Scroll',
+        sprite: 0,
+        type: 'consumable',
+        scriptId: 'teleport',
+      },
+    ]);
+    await importContentPack();
+    expect((await listItems())[0]).toMatchObject({ scriptId: 'teleport' });
+
+    await createOrUpdateItem({
+      id: 1,
+      name: 'Scroll',
+      description: '',
+      sprite: 0,
+      type: 'consumable',
+    });
+
+    expect((await listItems())[0]!.scriptId).toBeUndefined();
   });
 });

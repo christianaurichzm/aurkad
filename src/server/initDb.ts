@@ -11,6 +11,7 @@ import {
   runtimeState,
 } from './services/world/gameData.js';
 import { listItems } from './services/economy/inventoryService.js';
+import { loadLootTables } from './services/economy/lootTableService.js';
 import { loadArrows } from './services/content/arrowService.js';
 import { loadSpells } from './services/content/spellService.js';
 import { MapStateServer } from '../shared/types.js';
@@ -50,6 +51,9 @@ export async function loadInitialData() {
     }
 
     const loadedItems = await listItems();
+    // Loot tables are read inside the tick on every npc death, so they are
+    // cached up front rather than fetched per kill.
+    await loadLootTables();
 
     for (const map of loadedMaps) {
       if (!map.id || !map.name || !map.type || !map.tiles?.length) {

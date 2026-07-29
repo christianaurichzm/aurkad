@@ -16,6 +16,7 @@ import {
   UpdateMapBodySchema,
   ResizeMapBodySchema,
   CreateItemBodySchema,
+  CreateLootTableBodySchema,
   CreateShopBodySchema,
   BuyShopItemBodySchema,
   AssignPointsBodySchema,
@@ -58,6 +59,11 @@ import {
   listItems,
 } from '../../services/economy/inventoryService.js';
 import {
+  createOrUpdateLootTable,
+  deleteLootTable,
+  listLootTables,
+} from '../../services/economy/lootTableService.js';
+import {
   enrichPlayer,
   getPlayerById,
   getPlayerByName,
@@ -83,7 +89,8 @@ import {
 } from '../../services/content/arrowService.js';
 
 // Content-definition paths whose mutations should regenerate script constants.
-const CONTENT_DEFINITION_PATH = /^\/(saveMap|npcs|items|maps|spells|arrows)\b/;
+const CONTENT_DEFINITION_PATH =
+  /^\/(saveMap|npcs|items|maps|spells|arrows|loot)\b/;
 
 export function createContentRouter() {
   const router = Router();
@@ -498,6 +505,38 @@ export function createContentRouter() {
       res.status(200).json({ success: true, warnings });
     } catch (err) {
       res.status(500).json({ error: 'Failed to update item.' });
+    }
+  });
+
+  router.get('/loot', checkAccess(Access.ADMIN), async (_req, res) => {
+    res.status(200).json(await listLootTables());
+  });
+
+  router.post('/loot', checkAccess(Access.ADMIN), async (req, res) => {
+    const body = parseBody(CreateLootTableBodySchema, req.body, res);
+    if (!body) return;
+    try {
+      // Same contract as the other content editors: a dangling item id is a
+      // warning the editor surfaces, not a rejected save.
+      const { warnings } = validateContentReferences({
+        items: await listItems(),
+        lootTables: [body],
+      });
+      await createOrUpdateLootTable(body);
+      res.status(201).json({ ...body, warnings });
+    } catch (err) {
+      logger.error('createLootTable failed', { err });
+      res.status(500).json({ error: 'Failed to save loot table.' });
+    }
+  });
+
+  router.delete('/loot/:id', checkAccess(Access.ADMIN), async (req, res) => {
+    try {
+      await deleteLootTable(req.params.id ?? '');
+      res.status(204).send();
+    } catch (err) {
+      logger.error('deleteLootTable failed', { err });
+      res.status(500).json({ error: 'Failed to delete loot table.' });
     }
   });
 

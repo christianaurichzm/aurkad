@@ -15,6 +15,10 @@ import {
   listShops,
 } from '../services/economy/shopService.js';
 import {
+  createOrUpdateLootTable,
+  listLootTables,
+} from '../services/economy/lootTableService.js';
+import {
   validateContentReferences,
   validateScriptReferences,
 } from '../services/content/contentValidation.js';
@@ -88,7 +92,37 @@ const NpcSchema = z.object({
       }),
     )
     .optional(),
+  lootTableId: z.string().optional(),
   scriptId: z.string().optional(),
+});
+
+const LootQuantitySchema = z.union([
+  z.number().int().positive(),
+  z.object({
+    min: z.number().int().positive(),
+    max: z.number().int().positive(),
+  }),
+]);
+
+const LootEntrySchema = z.object({
+  itemId: z.number().int().nonnegative(),
+  weight: z.number().nonnegative().optional(),
+  chance: z.number().min(0).max(1).optional(),
+  quantity: LootQuantitySchema.optional(),
+});
+
+const LootTableSchema = z.object({
+  id: z.string().min(1),
+  name: z.string().min(1),
+  guaranteed: z.array(LootEntrySchema).optional(),
+  rolls: z
+    .object({
+      min: z.number().int().nonnegative(),
+      max: z.number().int().nonnegative(),
+    })
+    .optional(),
+  entries: z.array(LootEntrySchema).optional(),
+  emptyWeight: z.number().nonnegative().optional(),
 });
 
 const MapSchema = z.object({
@@ -128,8 +162,9 @@ type FileSpec<T extends z.ZodType> = {
   list: () => Promise<unknown[]>;
 };
 
-// Order matters on import: items before npcs/shops (which reference item ids),
-// maps last (they reference npc/item ids via tiles).
+// Order matters on import: items first, then loot tables (which reference item
+// ids), then npcs/shops (which reference both), maps last (they reference
+// npc/item ids via tiles).
 const SPECS = {
   items: {
     file: 'items.json',
@@ -137,6 +172,12 @@ const SPECS = {
     upsert: (e) => createOrUpdateItem(e),
     list: listItems,
   } as FileSpec<typeof ItemSchema>,
+  loot: {
+    file: 'loot.json',
+    schema: LootTableSchema,
+    upsert: (e) => createOrUpdateLootTable(e),
+    list: listLootTables,
+  } as FileSpec<typeof LootTableSchema>,
   npcs: {
     file: 'npcs.json',
     schema: NpcSchema,
@@ -157,7 +198,13 @@ const SPECS = {
   } as FileSpec<typeof MapSchema>,
 };
 
-const IMPORT_ORDER: (keyof typeof SPECS)[] = ['items', 'npcs', 'shops', 'maps'];
+const IMPORT_ORDER: (keyof typeof SPECS)[] = [
+  'items',
+  'loot',
+  'npcs',
+  'shops',
+  'maps',
+];
 
 function readArray(file: string): unknown[] | null {
   const full = path.join(contentDir(), file);
@@ -223,11 +270,12 @@ export async function importContentPack(): Promise<void> {
  */
 async function reportBrokenReferences(): Promise<void> {
   try {
-    const [items, npcs, shops, maps] = await Promise.all([
+    const [items, npcs, shops, maps, lootTables] = await Promise.all([
       listItems(),
       listNpcs(),
       listShops(),
       listMaps(),
+      listLootTables(),
     ]);
 
     const { errors, warnings } = validateContentReferences({
@@ -235,6 +283,7 @@ async function reportBrokenReferences(): Promise<void> {
       npcs: npcs as Array<{ id: string; name?: string }>,
       shops: shops as Array<{ id: string; name?: string }>,
       maps: maps as Array<{ id: string; name?: string }>,
+      lootTables,
     });
 
     for (const message of errors) logger.error(`[content] ${message}`);

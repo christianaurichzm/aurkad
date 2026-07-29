@@ -243,3 +243,71 @@ describe('validateScriptReferences', () => {
     });
   });
 });
+
+describe('loot tables', () => {
+  it('warns when a table drops an item that does not exist', () => {
+    const result = validateContentReferences({
+      items,
+      lootTables: [
+        {
+          id: 'goblin',
+          name: 'Goblin',
+          guaranteed: [{ itemId: 1 }],
+          entries: [{ itemId: 777 }],
+        },
+      ],
+    });
+    expect(result.warnings).toHaveLength(1);
+    expect(result.warnings[0]).toContain('777');
+    expect(result.warnings[0]).toContain('goblin');
+  });
+
+  it('checks both the guaranteed list and the weighted pool', () => {
+    const result = validateContentReferences({
+      items,
+      lootTables: [
+        { id: 't', guaranteed: [{ itemId: 91 }], entries: [{ itemId: 92 }] },
+      ],
+    });
+    expect(result.warnings).toHaveLength(2);
+  });
+
+  it('errors on two tables sharing an id', () => {
+    const result = validateContentReferences({
+      lootTables: [{ id: 'dup' }, { id: 'dup' }],
+    });
+    expect(result.errors).toHaveLength(1);
+    expect(result.errors[0]).toContain('loot table');
+  });
+
+  // An npc pointing at a deleted table silently rolls its legacy drops
+  // instead, so the loot changes without anything failing.
+  it('warns when an npc uses a table that does not exist', () => {
+    const result = validateContentReferences({
+      items,
+      npcs: [{ id: 'goblin', name: 'Goblin', lootTableId: 'gone' }],
+      lootTables: [{ id: 'present' }],
+    });
+    expect(result.warnings).toHaveLength(1);
+    expect(result.warnings[0]).toContain('gone');
+  });
+
+  it('accepts an npc pointing at a table that exists', () => {
+    const result = validateContentReferences({
+      items,
+      npcs: [{ id: 'goblin', lootTableId: 'present' }],
+      lootTables: [{ id: 'present' }],
+    });
+    expect(result.warnings).toEqual([]);
+  });
+
+  // Same convention as dangling item ids: without the collection there is
+  // nothing to resolve against, so staying quiet beats crying wolf.
+  it('says nothing about lootTableId when no tables were supplied', () => {
+    const result = validateContentReferences({
+      items,
+      npcs: [{ id: 'goblin', lootTableId: 'anything' }],
+    });
+    expect(result.warnings).toEqual([]);
+  });
+});

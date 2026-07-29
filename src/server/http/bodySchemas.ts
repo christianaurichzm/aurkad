@@ -169,6 +169,7 @@ export const CreateNpcBodySchema = z.object({
   behavior: NpcBehaviorSchema,
   experienceValue: z.number().int().nonnegative().optional(),
   itemsToDrop: z.array(NpcItemDropSchema).optional(),
+  lootTableId: z.string().optional(),
   scriptId: z.string().optional(),
 });
 
@@ -220,6 +221,35 @@ export const CreateItemBodySchema = z.object({
   arrowId: z.number().int().positive().optional(),
   bound: z.boolean().optional(),
   scriptId: z.string().optional(),
+});
+
+const LootQuantitySchema = z.union([
+  z.number().int().positive(),
+  z.object({
+    min: z.number().int().positive(),
+    max: z.number().int().positive(),
+  }),
+]);
+
+const LootEntrySchema = z.object({
+  itemId: z.number().int().nonnegative(),
+  weight: z.number().nonnegative().optional(),
+  chance: z.number().min(0).max(1).optional(),
+  quantity: LootQuantitySchema.optional(),
+});
+
+export const CreateLootTableBodySchema = z.object({
+  id: z.string().min(1),
+  name: z.string().min(1),
+  guaranteed: z.array(LootEntrySchema).optional(),
+  rolls: z
+    .object({
+      min: z.number().int().nonnegative(),
+      max: z.number().int().nonnegative(),
+    })
+    .optional(),
+  entries: z.array(LootEntrySchema).optional(),
+  emptyWeight: z.number().nonnegative().optional(),
 });
 
 export const BuyShopItemBodySchema = z.object({

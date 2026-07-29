@@ -21,7 +21,14 @@ interface NpcRef {
   id?: string;
   name?: string;
   itemsToDrop?: Array<{ itemId: number }> | undefined;
+  lootTableId?: string | undefined;
   scriptId?: string | undefined;
+}
+interface LootTableRef {
+  id?: string;
+  name?: string;
+  guaranteed?: Array<{ itemId: number }> | undefined;
+  entries?: Array<{ itemId: number }> | undefined;
 }
 interface ShopRef {
   id?: string;
@@ -43,6 +50,7 @@ export interface ContentGraph {
   npcs?: NpcRef[];
   shops?: ShopRef[];
   maps?: MapRef[];
+  lootTables?: LootTableRef[];
 }
 
 function label(id: string | undefined, name?: string): string {
@@ -126,6 +134,20 @@ export function validateContentReferences(
   checkDuplicateIds('npc', graph.npcs, errors);
   checkDuplicateIds('shop', graph.shops, errors);
   checkDuplicateIds('map', graph.maps, errors);
+  checkDuplicateIds('loot table', graph.lootTables, errors);
+
+  // An npc pointing at a table that does not exist rolls its legacy
+  // itemsToDrop instead, so the loot silently changes rather than failing.
+  if (graph.lootTables) {
+    const tableIds = new Set(graph.lootTables.map((t) => t.id));
+    for (const npc of graph.npcs ?? []) {
+      if (npc.lootTableId && !tableIds.has(npc.lootTableId)) {
+        warnings.push(
+          `NPC ${label(npc.id, npc.name)} uses unknown loot table "${npc.lootTableId}".`,
+        );
+      }
+    }
+  }
 
   // Without the item list there is nothing to resolve references against, and
   // reporting every reference as dangling would be worse than staying quiet.
@@ -148,6 +170,18 @@ export function validateContentReferences(
         warnings.push(
           `Shop ${label(shop.id, shop.name)} sells unknown item ${product.itemId}.`,
         );
+      }
+    }
+  }
+
+  for (const table of graph.lootTables ?? []) {
+    const where = `Loot table ${label(table.id, table.name)}`;
+    for (const entry of [
+      ...(table.guaranteed ?? []),
+      ...(table.entries ?? []),
+    ]) {
+      if (!itemIds.has(entry.itemId)) {
+        warnings.push(`${where} drops unknown item ${entry.itemId}.`);
       }
     }
   }

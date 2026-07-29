@@ -5,17 +5,19 @@ import {
   DroppedItem,
   CombatTarget,
   PvpMorale,
+  RuntimeNpc,
 } from '../../../shared/types.js';
 import { getMap, updatePlayer } from '../world/gameData.js';
 import { logger } from '../../logger.js';
 import { getTick } from '../../sim/clock.js';
-import { randomChance } from '../../sim/rng.js';
 import { queryEntitiesInRadius } from '../../spatial/spatialManager.js';
 import { gameConfig } from '../../gameConfig.js';
 import { tryConsumeAttackCooldown } from './attackCooldown.js';
 import { clampDamage } from './damage.js';
 import { handleChatAction } from '../comms/chatService.js';
 import { getItemById } from '../economy/inventoryService.js';
+import { rollItemDrops, rollLootTable } from '../economy/lootService.js';
+import { getLootTable } from '../economy/lootTableService.js';
 import { respawnNpc } from '../npc/index.js';
 import { respawnPlayer, awardExperience } from '../player/playerService.js';
 import { emit } from '../../engine/hooks.js';
@@ -131,6 +133,43 @@ const findAttackTarget = (
   return undefined;
 };
 
+/**
+ * Turns an NPC's death into the items that hit the ground.
+ *
+ * A table wins over `itemsToDrop` when both are set: the table is the
+ * deliberate, editable thing, and silently merging the two would make the
+ * result impossible to reason about.
+ */
+function rollNpcLoot(npc: RuntimeNpc): DroppedItem[] {
+  const table = npc.lootTableId ? getLootTable(npc.lootTableId) : undefined;
+  if (npc.lootTableId && !table) {
+    logger.warn('[drop] npc references an unknown loot table', {
+      npc: npc.id,
+      lootTableId: npc.lootTableId,
+    });
+  }
+
+  const rolled = table
+    ? rollLootTable(table)
+    : rollItemDrops(npc.itemsToDrop ?? []);
+
+  const dropped: DroppedItem[] = [];
+  for (const drop of rolled) {
+    const item = getItemById(drop.itemId);
+    if (!item) {
+      logger.warn('[drop] Item not found', { itemId: drop.itemId });
+      continue;
+    }
+    dropped.push({
+      itemId: drop.itemId,
+      sprite: item.sprite,
+      position: { x: npc.position.x, y: npc.position.y },
+      quantity: drop.quantity,
+    });
+  }
+  return dropped;
+}
+
 export const resolveDamage = async (
   target: CombatTarget,
   amount: number,
@@ -190,30 +229,8 @@ export const resolveDamage = async (
         }
       }
 
-      const droppedItems: DroppedItem[] = [];
-
-      for (const drop of target.itemsToDrop ?? []) {
-        if (randomChance(drop.chance)) {
-          const item = getItemById(drop.itemId);
-          if (!item) {
-            logger.warn('[drop] Item not found', { itemId: drop.itemId });
-            continue;
-          }
-
-          droppedItems.push({
-            itemId: drop.itemId,
-            sprite: item.sprite,
-            position: {
-              x: target.position.x,
-              y: target.position.y,
-            },
-            quantity: Math.max(1, Math.floor(drop.quantity ?? 1)),
-          });
-        }
-      }
-
       if (map) {
-        map.droppedItems.push(...droppedItems);
+        map.droppedItems.push(...rollNpcLoot(target));
       }
       respawnNpc(map?.id ?? target.mapId, target);
       break;

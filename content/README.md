@@ -11,6 +11,7 @@ active. Maps are created in-game via the admin map editor and exported with
 ## Files loaded at boot
 
 - `items.json`
+- `loot.json`
 - `npcs.json`
 - `shops.json`
 - `maps.json`
@@ -29,7 +30,8 @@ Or edit the JSON by hand and `content:import` (or restart).
 
 ## Import order & validation
 
-Imported as items → npcs → shops → maps (later types reference earlier ids).
+Imported as items → loot → npcs → shops → maps (later types reference earlier
+ids).
 Each entry is validated; invalid entries are skipped with a logged reason, so
 one bad row never blocks the rest.
 
@@ -62,6 +64,36 @@ one bad row never blocks the rest.
 
 `behavior`: `aggressive | hostile | neutral | friendly | shopkeeper | guard`.
 `width`, `height`, `attackRange` default to one tile (48) if omitted.
+`itemsToDrop[].chance` is 0..1, and each entry is an independent roll. For
+relative rarity, a bounded number of drops or quantity ranges, use a table from
+`loot.json` via `lootTableId` instead.
+`lootTableId` and `scriptId` are optional references; see `loot.json` above and
+`scripts/example.js` for behaviors.
+
+**loot.json**: reusable weighted drop tables. Point an NPC at one with
+`lootTableId`; it then takes precedence over that NPC's `itemsToDrop`.
+
+```json
+[
+  { "id": "goblin-tier1", "name": "Goblin (tier 1)",
+    "guaranteed": [{ "itemId": 1, "quantity": { "min": 3, "max": 9 } }],
+    "rolls": { "min": 1, "max": 2 },
+    "entries": [
+      { "itemId": 2, "weight": 30 },
+      { "itemId": 3, "weight": 5, "quantity": 1 }
+    ],
+    "emptyWeight": 65 }
+]
+```
+
+- `guaranteed`: rolled one by one, each with its own `chance` (0..1, default
+  1 = always). The quest key, the boss trophy.
+- `entries`: a weighted pool drawn `rolls` times (default exactly once).
+  `weight` is relative, so adding an item does not mean recomputing the others.
+- `emptyWeight`: weight of drawing nothing, competing with the entries. Above,
+  a draw is 65/100 nothing, 30/100 item 2, 5/100 item 3.
+- `quantity`: a number, or `{ "min": n, "max": m }` rolled per drop. Repeats
+  of one item merge into a single stack.
 
 **shops.json**
 
@@ -89,4 +121,6 @@ one bad row never blocks the rest.
 
 Tile fields: `tileIndex` (required), `blocked`, `avoidNpc`, `fringe`,
 `warp`, `npcSpawn`, `item`, `shop`, `triggers`.
-`triggers[].action`: `heal | kill | message` (message also takes `text`).
+`triggers[].action`: `heal | kill | message` (also takes `text`), `sound`
+(`file`), `changeSprite` (`spriteId`), `script` (`scriptId`, naming a behavior
+a script registered with `attach()`).
