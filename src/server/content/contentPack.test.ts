@@ -13,7 +13,9 @@ import {
   describe,
   it,
   expect,
+  vi,
 } from 'vitest';
+import { logger } from '../logger.js';
 import mongoose from 'mongoose';
 import { MongoMemoryServer } from 'mongodb-memory-server';
 import { importContentPack, exportContentPack } from './contentPack.js';
@@ -199,5 +201,90 @@ describe('exportContentPack', () => {
       name: 'Orc',
       behavior: 'hostile',
     });
+  });
+});
+
+describe('reference check on import', () => {
+  it('warns about an npc drop that points at no item, and still imports the npc', async () => {
+    const warnings: string[] = [];
+    const spy = vi
+      .spyOn(logger, 'warn')
+      .mockImplementation((msg: string) => void warnings.push(msg));
+
+    write('items.json', [
+      { id: 1, name: 'Potion', sprite: 0, type: 'consumable' },
+    ]);
+    write('npcs.json', [
+      {
+        id: 'goblin',
+        name: 'Goblin',
+        sprite: 2,
+        maxHealth: 30,
+        attack: 5,
+        behavior: 'aggressive',
+        itemsToDrop: [{ itemId: 999, chance: 0.5 }],
+      },
+    ]);
+
+    await importContentPack();
+
+    // The typo is reported, but the NPC is not sacrificed for it.
+    expect(warnings.some((w) => w.includes('999'))).toBe(true);
+    expect(await listNpcs()).toHaveLength(1);
+
+    spy.mockRestore();
+  });
+
+  it('warns about a shop selling an item that does not exist', async () => {
+    const warnings: string[] = [];
+    const spy = vi
+      .spyOn(logger, 'warn')
+      .mockImplementation((msg: string) => void warnings.push(msg));
+
+    write('items.json', [
+      { id: 1, name: 'Potion', sprite: 0, type: 'consumable' },
+    ]);
+    write('shops.json', [
+      {
+        id: 'general',
+        name: 'General Store',
+        products: [{ itemId: 404, currency: 1, price: 10 }],
+      },
+    ]);
+
+    await importContentPack();
+
+    expect(warnings.some((w) => w.includes('404'))).toBe(true);
+    expect(await listShops()).toHaveLength(1);
+
+    spy.mockRestore();
+  });
+
+  it('stays quiet when every reference resolves', async () => {
+    const warnings: string[] = [];
+    const spy = vi
+      .spyOn(logger, 'warn')
+      .mockImplementation((msg: string) => void warnings.push(msg));
+
+    write('items.json', [
+      { id: 1, name: 'Potion', sprite: 0, type: 'consumable' },
+    ]);
+    write('npcs.json', [
+      {
+        id: 'goblin',
+        name: 'Goblin',
+        sprite: 2,
+        maxHealth: 30,
+        attack: 5,
+        behavior: 'aggressive',
+        itemsToDrop: [{ itemId: 1, chance: 0.5 }],
+      },
+    ]);
+
+    await importContentPack();
+
+    expect(warnings).toEqual([]);
+
+    spy.mockRestore();
   });
 });

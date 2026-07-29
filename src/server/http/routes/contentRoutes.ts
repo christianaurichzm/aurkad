@@ -39,6 +39,7 @@ import {
   validateMapTiles,
   resizeTiles,
 } from '../../services/world/mapValidation.js';
+import { validateContentReferences } from '../../services/content/contentValidation.js';
 import {
   buyShopItem,
   getShopById,
@@ -283,8 +284,15 @@ export function createContentRouter() {
       ...body,
     };
 
+    // Same contract as /saveMap: a dangling drop id is a warning, not a
+    // rejection, so the editor can surface it without blocking the save.
+    const { warnings } = validateContentReferences({
+      items: await listItems(),
+      npcs: [npcData],
+    });
+
     await createOrUpdateNpc(npcData);
-    res.status(201).json(npcData);
+    res.status(201).json({ ...npcData, warnings });
   });
 
   router.get(
@@ -485,8 +493,12 @@ export function createContentRouter() {
     const body = parseBody(CreateShopBodySchema, req.body, res);
     if (!body) return;
     try {
+      const { warnings } = validateContentReferences({
+        items: await listItems(),
+        shops: [body],
+      });
       await createOrUpdateShop(body);
-      res.status(201).json(body);
+      res.status(201).json({ ...body, warnings });
     } catch {
       res.status(500).json({ error: 'Failed to create shop.' });
     }
@@ -497,8 +509,12 @@ export function createContentRouter() {
     const body = parseBody(CreateShopBodySchema, req.body, res);
     if (!body) return;
     try {
+      const { warnings } = validateContentReferences({
+        items: await listItems(),
+        shops: [{ ...body, id }],
+      });
       await createOrUpdateShop({ ...body, id });
-      res.status(200).json({ success: true });
+      res.status(200).json({ success: true, warnings });
     } catch {
       res.status(500).json({ error: 'Failed to update shop.' });
     }

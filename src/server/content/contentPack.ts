@@ -14,6 +14,7 @@ import {
   createOrUpdateShop,
   listShops,
 } from '../services/economy/shopService.js';
+import { validateContentReferences } from '../services/content/contentValidation.js';
 
 // Versionable game content lives as JSON files in content/. On boot it is
 // upserted into MongoDB (files win for the ids they define), so a creator can
@@ -204,6 +205,39 @@ export async function importContentPack(): Promise<void> {
       }
     }
     logger.info(`[content] Imported ${ok}/${rows.length} from ${spec.file}`);
+  }
+
+  await reportBrokenReferences();
+}
+
+/**
+ * Cross-checks the imported content and reports what points at nothing,
+ * rather than rejecting: a dangling drop id should not make the NPC vanish
+ * or one typo brick the server. The creator gets a precise list at boot.
+ */
+async function reportBrokenReferences(): Promise<void> {
+  try {
+    const [items, npcs, shops, maps] = await Promise.all([
+      listItems(),
+      listNpcs(),
+      listShops(),
+      listMaps(),
+    ]);
+
+    const { errors, warnings } = validateContentReferences({
+      items: items as { id: number }[],
+      npcs: npcs as Array<{ id: string; name?: string }>,
+      shops: shops as Array<{ id: string; name?: string }>,
+      maps: maps as Array<{ id: string; name?: string }>,
+    });
+
+    for (const message of errors) logger.error(`[content] ${message}`);
+    for (const message of warnings) logger.warn(`[content] ${message}`);
+    if (errors.length === 0 && warnings.length === 0) {
+      logger.info('[content] Reference check passed');
+    }
+  } catch (e) {
+    logger.error('[content] Reference check failed', { err: e });
   }
 }
 
