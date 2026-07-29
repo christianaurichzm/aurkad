@@ -46,6 +46,19 @@ import type { CombatTarget, RuntimeNpc } from '../../../shared/types.js';
 import { Access } from '../../../shared/types.js';
 import type { CommandContext, CommandOptions } from '../commands.js';
 import { TILE_SIZE } from '../../../shared/constants.js';
+import { config } from '../../config.js';
+import { msToTicks } from '../../sim/clock.js';
+import {
+  scheduleAfter,
+  scheduleEvery,
+  cancelScheduled,
+} from '../../sim/scheduler.js';
+import {
+  nextRandom,
+  randomInt,
+  randomChance,
+  randomPick,
+} from '../../sim/rng.js';
 import { CharacterAction } from '../../../shared/types.js';
 import { logger } from '../../logger.js';
 import type { HookMap } from '../hooks.js';
@@ -63,6 +76,23 @@ function persist(scriptName: string, player: PlayerServer): void {
 type Cleanup = () => void;
 type TimerId = ReturnType<typeof setInterval>;
 type AnyHandler = (payload: unknown) => void;
+
+// One line per script per timer kind: enough to find the offender, not enough
+// to drown the log if a hot handler keeps calling it.
+const wallClockWarned = new Set<string>();
+function warnWallClockTimer(
+  scriptName: string,
+  used: string,
+  replacement: string,
+): void {
+  const key = `${scriptName}:${used}`;
+  if (wallClockWarned.has(key)) return;
+  wallClockWarned.add(key);
+  logger.warn(
+    `[script:${scriptName}] ${used} is deprecated: it fires off the tick, so replay ` +
+      `cannot reproduce it. Use ${replacement}(ticks, fn) instead (msToTicks(ms) converts).`,
+  );
+}
 
 export type ScriptApi = ReturnType<typeof buildApi>;
 
@@ -450,8 +480,37 @@ export function buildApi(
       trackUnsub(unregister);
     },
 
-    // Timers (auto-cleaned on script reload / unload)
+    // Tick-based scheduling (auto-cancelled on script reload / unload).
+    // Ticks, not milliseconds: the simulation's unit is the tick, so anything
+    // scheduled this way is captured by the replay recorder and reproduces
+    // exactly on re-run. Use msToTicks() when you think in seconds.
+    after: (ticks: number, fn: () => void): number => {
+      const id = scheduleAfter(ticks, fn, scriptName);
+      trackUnsub(() => cancelScheduled(id));
+      return id;
+    },
+    every: (ticks: number, fn: () => void): number => {
+      const id = scheduleEvery(ticks, fn, scriptName);
+      trackUnsub(() => cancelScheduled(id));
+      return id;
+    },
+    cancel: (id: number): void => cancelScheduled(id),
+    msToTicks,
+    TICK_RATE: config.gameLoop.tickRate,
+
+    // Deterministic RNG. Always prefer these over Math.random: the sim is
+    // seeded (sim/rng.ts), and replay plus determinism.test.ts only hold if
+    // every roll that affects the world comes from this sequence.
+    random: nextRandom,
+    randomInt,
+    randomChance,
+    randomPick,
+
+    // Wall-clock timers. Deprecated: they fire off the tick, so their effects
+    // are invisible to the replay recorder and a replay diverges from the
+    // session it recorded. Kept working for compatibility.
     setTimeout: (fn: () => void, ms: number): void => {
+      warnWallClockTimer(scriptName, 'setTimeout', 'after');
       const id = setTimeout(() => {
         try {
           fn();
@@ -464,6 +523,7 @@ export function buildApi(
       trackTimer(id as unknown as TimerId);
     },
     setInterval: (fn: () => void, ms: number): TimerId => {
+      warnWallClockTimer(scriptName, 'setInterval', 'every');
       const id = setInterval(() => {
         try {
           fn();

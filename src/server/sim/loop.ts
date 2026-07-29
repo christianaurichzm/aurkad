@@ -16,6 +16,7 @@ import {
 import { broadcastGameState } from '../net/snapshot.js';
 import { flushGameEvents } from '../net/fanout.js';
 import { advanceTick, getTick, msToTicks } from './clock.js';
+import { runScheduledTasks } from './scheduler.js';
 import { gameConfig } from '../gameConfig.js';
 import { emit } from '../engine/hooks.js';
 
@@ -65,6 +66,9 @@ const tickSystems: Array<{ name: string; run: () => unknown }> = [
   { name: 'processActions', run: processActions },
   { name: 'processMovementCompletion', run: processMovementCompletion },
   { name: 'processMovementIntent', run: processMovementIntent },
+  // Same slot as the tick hook, for the same reason. Runs first so tasks can
+  // set up state the tick handlers read.
+  { name: 'runScheduledTasks', run: runScheduledTasks },
   { name: 'tickHook', run: emitTick },
   { name: 'flushGameEvents', run: flushGameEvents },
   { name: 'broadcastGameState', run: broadcastGameState },

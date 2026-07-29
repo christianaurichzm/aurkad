@@ -341,8 +341,27 @@ command(
 //   use('guild').guildOf(player) / isMember(p, name) / members(name)
 //   use('party').partyOf(player) / isMember(p, name) / members(name)
 //
+// SCHEDULING (ticks, not milliseconds; see below)
+//   after(ticks, fn)               → id   run once, `ticks` from now
+//   every(ticks, fn)               → id   repeat forever
+//   cancel(id)                     stop a scheduled task
+//   msToTicks(ms)                  → ticks  e.g. after(msToTicks(3000), fn)
+//   Auto-cancelled when the script reloads, so no duplicates on hot reload.
+//
+// RANDOM (deterministic: always prefer these over Math.random)
+//   random()                       → [0, 1)
+//   randomInt(maxExclusive)        → integer
+//   randomChance(percent)          → boolean, percent is 0-100
+//   randomPick(array)              → element | undefined
+//
+//   Why ticks and why this random: the sim runs on a seeded, tick-driven loop,
+//   so replays reproduce a session exactly. Wall-clock timers (setTimeout) and
+//   Math.random escape that - the recorder never sees them and a replay drifts.
+//   setTimeout/setInterval still work but are deprecated and log a warning.
+//
 // CONSTANTS
 //   TILE_SIZE                      - tile size in pixels (positions are in pixels)
+//   TICK_RATE                      - ticks per second (default 20)
 //
 // CONTENT CONSTANTS (generated from your content; autocomplete by name)
 //   Items.<Name>   Npcs.<Name>   Maps.<Name>   Spells.<Name>   Arrows.<Name>

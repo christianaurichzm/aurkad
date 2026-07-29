@@ -1,4 +1,5 @@
 import { resetClock, advanceTick, getTick } from './clock.js';
+import { runScheduledTasks, resetScheduler } from './scheduler.js';
 import { seedRng } from './rng.js';
 import { emit } from '../engine/hooks.js';
 import { players, playersByName, runtimeState } from './state.js';
@@ -44,6 +45,7 @@ type KeyEvent = { username: string; key: Key; type: 'press' | 'release' };
 
 export function createFixture(seed = 0) {
   resetClock();
+  resetScheduler();
   seedRng(seed);
   _nextId = 1;
 
@@ -186,6 +188,7 @@ export function createFixture(seed = 0) {
 
       processMovementCompletion();
       processMovementIntent();
+      runScheduledTasks();
       emit('tick', { tick: getTick() });
     }
   }

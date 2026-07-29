@@ -4,6 +4,7 @@ import { clearAll, emit, on } from '../hooks.js';
 import { createFixture, tile } from '../../sim/simFixture.js';
 import { Direction, Key } from '../../../shared/types.js';
 import { msToTicks } from '../../sim/clock.js';
+import { config } from '../../config.js';
 import { gameConfig, respawnPosition } from '../../gameConfig.js';
 import {
   levelUpPlayer,
@@ -846,6 +847,157 @@ describe('tick hook', () => {
 
     expect(alice.data?.ticks).toBe(4); // ran every tick
     expect(alice.data?.evenHits).toBeGreaterThan(0); // throttle pattern works
+
+    handle.cleanup();
+  });
+});
+
+describe('tick-based scheduling', () => {
+  it('after runs the callback on the target tick', () => {
+    const sim = createFixture(0);
+    const alice = sim.addPlayer({ name: 'Alice' });
+
+    const handle = runInSandbox(
+      `
+      after(3, () => setPlayerData(getPlayers()[0], 'fired', true));
+    `,
+      'after.js',
+    );
+
+    sim.step(2);
+    expect(alice.data?.fired).toBeUndefined();
+    sim.step(1);
+    expect(alice.data?.fired).toBe(true);
+
+    handle.cleanup();
+  });
+
+  it('every repeats on its interval', () => {
+    const sim = createFixture(0);
+    const alice = sim.addPlayer({ name: 'Alice' });
+
+    const handle = runInSandbox(
+      `
+      every(2, () => {
+        const p = getPlayers()[0];
+        setPlayerData(p, 'n', (getPlayerData(p, 'n') || 0) + 1);
+      });
+    `,
+      'every.js',
+    );
+
+    sim.step(6);
+    expect(alice.data?.n).toBe(3);
+
+    handle.cleanup();
+  });
+
+  it('cleanup cancels scheduled work, so a reloaded script does not double up', () => {
+    const sim = createFixture(0);
+    const alice = sim.addPlayer({ name: 'Alice' });
+
+    const handle = runInSandbox(
+      `
+      every(1, () => {
+        const p = getPlayers()[0];
+        setPlayerData(p, 'n', (getPlayerData(p, 'n') || 0) + 1);
+      });
+    `,
+      'reloaded.js',
+    );
+
+    sim.step(2);
+    expect(alice.data?.n).toBe(2);
+
+    handle.cleanup();
+    sim.step(5);
+    expect(alice.data?.n).toBe(2);
+  });
+
+  it('cancel stops a task by id', () => {
+    const sim = createFixture(0);
+    const alice = sim.addPlayer({ name: 'Alice' });
+
+    const handle = runInSandbox(
+      `
+      const id = every(1, () => {
+        const p = getPlayers()[0];
+        setPlayerData(p, 'n', (getPlayerData(p, 'n') || 0) + 1);
+      });
+      after(2, () => cancel(id));
+    `,
+      'cancel.js',
+    );
+
+    sim.step(6);
+    expect(alice.data?.n).toBe(2);
+
+    handle.cleanup();
+  });
+
+  it('msToTicks converts using the server tick rate', () => {
+    const sim = createFixture(0);
+    const alice = sim.addPlayer({ name: 'Alice' });
+
+    const handle = runInSandbox(
+      `
+      setPlayerData(getPlayers()[0], 'ticks', msToTicks(1000));
+      setPlayerData(getPlayers()[0], 'rate', TICK_RATE);
+    `,
+      'convert.js',
+    );
+
+    expect(alice.data?.ticks).toBe(msToTicks(1000));
+    expect(alice.data?.rate).toBe(config.gameLoop.tickRate);
+
+    handle.cleanup();
+  });
+});
+
+describe('deterministic RNG in scripts', () => {
+  it('random is seeded, so the same seed replays the same rolls', () => {
+    function rollsWithSeed(seed: number): number[] {
+      const sim = createFixture(seed);
+      sim.addPlayer({ name: 'Alice' });
+      const handle = runInSandbox(
+        `
+        const out = [];
+        for (let i = 0; i < 5; i++) out.push(randomInt(1000));
+        setPlayerData(getPlayers()[0], 'rolls', out);
+      `,
+        'rolls.js',
+      );
+      const rolls = sim.getPlayer('Alice').data?.rolls as number[];
+      handle.cleanup();
+      return rolls;
+    }
+
+    expect(rollsWithSeed(1234)).toEqual(rollsWithSeed(1234));
+    expect(rollsWithSeed(1234)).not.toEqual(rollsWithSeed(5678));
+  });
+
+  it('exposes the rest of the rng helpers', () => {
+    const sim = createFixture(7);
+    const alice = sim.addPlayer({ name: 'Alice' });
+
+    const handle = runInSandbox(
+      `
+      const p = getPlayers()[0];
+      setPlayerData(p, 'unit', random());
+      setPlayerData(p, 'always', randomChance(100));
+      setPlayerData(p, 'never', randomChance(0));
+      setPlayerData(p, 'pick', randomPick(['a']));
+      setPlayerData(p, 'empty', randomPick([]));
+    `,
+      'rng.js',
+    );
+
+    expect(alice.data?.unit).toBeGreaterThanOrEqual(0);
+    expect(alice.data?.unit).toBeLessThan(1);
+    expect(alice.data?.always).toBe(true);
+    expect(alice.data?.never).toBe(false);
+    expect(alice.data?.pick).toBe('a');
+    expect(alice.data?.empty).toBeUndefined();
 
     handle.cleanup();
   });

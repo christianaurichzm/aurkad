@@ -454,10 +454,49 @@ declare function command(
   handler: (ctx: CommandContext) => void,
 ): void;
 
-/** Runs a callback once after `ms` milliseconds; cancelled on reload. */
+/**
+ * Run `callback` once, `ticks` ticks from now. Returns an id for `cancel`
+ * and is cancelled on script reload. Ticks keep it in step with replays;
+ * `after(msToTicks(3000), fn)` when you think in seconds.
+ */
+declare function after(ticks: number, callback: () => void): number;
+
+/** Run `callback` every `ticks` ticks. Returns an id for `cancel`. */
+declare function every(ticks: number, callback: () => void): number;
+
+/** Cancel a task scheduled with `after` or `every`. */
+declare function cancel(id: number): void;
+
+/** Convert milliseconds to ticks, rounded up, using the server's tick rate. */
+declare function msToTicks(ms: number): number;
+
+/** Ticks per second the server simulates at (default 20). */
+declare const TICK_RATE: number;
+
+/**
+ * Deterministic random in [0, 1). Always prefer this over `Math.random`: the
+ * simulation is seeded, and replay only reproduces if every roll that affects
+ * the world comes from this sequence.
+ */
+declare function random(): number;
+
+/** Deterministic integer in [0, maxExclusive). */
+declare function randomInt(maxExclusive: number): number;
+
+/** Deterministic true with `percent` chance (0-100). */
+declare function randomChance(percent: number): boolean;
+
+/** Deterministic pick from an array, or undefined when empty. */
+declare function randomPick<T>(items: T[]): T | undefined;
+
+/**
+ * @deprecated Fires off the tick, so replay cannot reproduce it. Use `after`.
+ */
 declare function setTimeout(callback: () => void, ms: number): void;
 
-/** Runs a callback every `ms` milliseconds; cancelled on reload. */
+/**
+ * @deprecated Fires off the tick, so replay cannot reproduce it. Use `every`.
+ */
 declare function setInterval(callback: () => void, ms: number): number;
 
 /** Cancel an interval created with setInterval. */
