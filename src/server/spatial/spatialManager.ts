@@ -15,16 +15,11 @@ function getOrCreateQuadtree(mapId: string, w: number, h: number): Quadtree {
   return qt;
 }
 
-function toQuadtreeEntity(target: CombatTarget): QuadtreeEntity {
-  return {
-    id: target.id,
-    kind: target.kind,
-    position: target.position,
-    width: target.width,
-    height: target.height,
-  };
-}
-
+/**
+ * Rebuilds a map's spatial index for this tick. Entities go in live, so
+ * queries see current positions and collision depends on processing order
+ * within a tick.
+ */
 export function rebuildQuadtree(mapId: string, map: MapStateServer): void {
   const w = mapPixelWidth(map.tiles);
   const h = mapPixelHeight(map.tiles);
@@ -32,12 +27,12 @@ export function rebuildQuadtree(mapId: string, map: MapStateServer): void {
   quadtree.clear();
 
   for (const player of Object.values(map.players)) {
-    quadtree.insert(toQuadtreeEntity(player));
+    quadtree.insert(player);
   }
 
   for (const npc of Object.values(map.npcs)) {
     if (npc.health > 0) {
-      quadtree.insert(toQuadtreeEntity(npc));
+      quadtree.insert(npc);
     }
   }
 }

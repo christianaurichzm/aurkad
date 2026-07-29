@@ -54,9 +54,10 @@ export const hasCollision = (character: CombatTarget): boolean => {
   const { width, height, position } = character;
   const { x, y } = position;
 
-  // The quadtree spatial index instead of a full O(n) scan. It is rebuilt at
-  // the start of each tick in rebuildSpatialIndexes, so positions here are the
-  // state at tick start (snapshot-based collision).
+  // The quadtree index instead of a full O(n) scan. It holds live entities,
+  // so a position read here is current, not a tick-start snapshot: one
+  // already moved this tick is seen where it is. Collision is therefore
+  // order-dependent within a tick; reserve/commit movement would fix it.
   const nearby = queryNearbyEntities(character);
   const characterCollision = nearby.some(
     (other) =>
