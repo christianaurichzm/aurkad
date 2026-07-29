@@ -22,7 +22,9 @@ import {
 } from './entityReplication.js';
 import { queryEntitiesInRect } from '../spatial/spatialManager.js';
 import {
-  playerColdSignature,
+  type ColdSnapshot,
+  createColdSnapshot,
+  updateColdSnapshot,
   toPlayerCold,
   toPlayerHot,
 } from '../services/player/playerService.js';
@@ -43,7 +45,8 @@ import {
   nsFlushTick,
 } from './netStats.js';
 
-const lastSentPlayerColdSig = new Map<string, string>();
+// Cold state as last sent to each viewer, compared in place every tick.
+const lastSentPlayerCold = new Map<string, ColdSnapshot>();
 // Serialized droppedItems last sent to each viewer. Drops have no stable id to
 // diff per entity, but the list is small, so a string compare is enough to
 // avoid resending it every tick.
@@ -70,7 +73,7 @@ const MAX_CHUNKS_PER_TICK = 8;
 let lastCongestionLogMs = 0;
 
 export function resetPlayerNetState(name: string) {
-  lastSentPlayerColdSig.delete(name);
+  lastSentPlayerCold.delete(name);
   lastSentDroppedItems.delete(name);
   lastSentSelf.delete(name);
   playerChunkState.delete(name);
@@ -149,17 +152,31 @@ function sendViewportChunks(
 }
 
 function sendPlayerStatsIfNeeded(player: PlayerServer, ws: WebSocket) {
-  const signature = playerColdSignature(player);
-  if (lastSentPlayerColdSig.get(player.name) === signature) return;
+  let snapshot = lastSentPlayerCold.get(player.name);
+  if (!snapshot) {
+    snapshot = createColdSnapshot();
+    lastSentPlayerCold.set(player.name, snapshot);
+  }
+  // An empty snapshot always reports a change, so a viewer that just connected
+  // (or was reset) receives its stats in full before any diffing starts.
+  if (!updateColdSnapshot(player, snapshot)) return;
 
-  ws.send(
-    JSON.stringify({
-      v: PROTOCOL_VERSION,
-      type: 'playerStats',
-      payload: toPlayerCold(player),
-    }),
-  );
-  lastSentPlayerColdSig.set(player.name, signature);
+  try {
+    ws.send(
+      JSON.stringify({
+        v: PROTOCOL_VERSION,
+        type: 'playerStats',
+        payload: toPlayerCold(player),
+      }),
+    );
+  } catch (err) {
+    // The snapshot already advanced, so leaving it would mean never retrying:
+    // the client would be stuck on whatever it last received. `toPlayerCold`
+    // throws for real (an inventory entry whose item was deleted), so this is
+    // not just defensive. Drop it and let the next tick rebuild in full.
+    lastSentPlayerCold.delete(player.name);
+    throw err;
+  }
 }
 
 // Phase 1 of the tick: build every live entity's public state ONCE and cache

@@ -117,6 +117,44 @@ export const persistPlayerSessionState = async (player: PlayerServer) => {
   });
 };
 
+/**
+ * Final write of every connected player during shutdown.
+ *
+ * Not a sequential `for...await`: one rejected write would abort the loop
+ * and drop every player after it, and N round trips in series outrun the
+ * 10s force-exit timer. Both are silent, the player finding a stale
+ * character at the next login. Concurrency is bounded, as thousands of
+ * writes at once only queue behind the mongoose pool and invite timeouts.
+ */
+export async function persistPlayersOnShutdown(
+  playersToSave: PlayerServer[],
+  concurrency = 32,
+): Promise<{ saved: number; failed: number }> {
+  let cursor = 0;
+  let failed = 0;
+
+  const workers = Array.from(
+    { length: Math.min(concurrency, playersToSave.length) },
+    async () => {
+      while (cursor < playersToSave.length) {
+        const player = playersToSave[cursor++]!;
+        try {
+          await persistPlayerSessionState(player);
+        } catch (err) {
+          failed++;
+          logger.error('[Shutdown] failed to persist player', {
+            player: player.name,
+            err,
+          });
+        }
+      }
+    },
+  );
+
+  await Promise.all(workers);
+  return { saved: playersToSave.length - failed, failed };
+}
+
 // Immediate persistence for economic commits (bank, trade, shop), since
 // write-behind alone leaves a crash window where a confirmed transfer
 // reverts. Failures are only logged: the dirty flag set by updatePlayer
@@ -258,31 +296,107 @@ export function toPlayerCold(player: PlayerServer): PlayerCold {
   };
 }
 
-export function playerColdSignature(player: PlayerServer): string {
-  return JSON.stringify([
-    player.name,
-    player.sprite,
-    player.width,
-    player.height,
-    player.maxHealth,
-    player.attack,
-    player.attackRange,
-    player.level,
-    player.experience,
-    player.experienceToNextLevel,
-    player.access,
-    player.strength,
-    player.defense,
-    player.agility,
-    player.vitality,
-    player.unspentPoints,
-    player.speed,
-    player.mapId,
-    player.nameColor,
-    player.nameTag,
-    player.inventory,
-    player.equipped,
-  ]);
+/**
+ * What a viewer was last told about a player's cold state, compared field
+ * by field each tick rather than as a `JSON.stringify` of the same fields,
+ * which would cost CPU and a garbage string per idle player per tick. The
+ * comparison allocates nothing on the unchanged path.
+ *
+ * Not a dirty flag: every site that mutates a cold field would have to set
+ * it, and several bypass `updatePlayer` (warps, mod routes, the REPL,
+ * level-ups), so one missed site shows stale stats. Comparing the values
+ * cannot drift from the mutation sites. Loose parallel arrays rather than a
+ * `PlayerCold`, since building the payload every tick is the cost avoided.
+ */
+export interface ColdSnapshot {
+  scalars: unknown[];
+  inventory: number[];
+  inventoryLength: number;
+  inventoryCapacity: number | undefined;
+  equipped: Array<number | undefined>;
+}
+
+export function createColdSnapshot(): ColdSnapshot {
+  return {
+    // Not pre-filled: `undefined` in every slot means the first
+    // comparison always reports a change, so a new viewer gets a full payload.
+    scalars: [],
+    inventory: [],
+    inventoryLength: -1,
+    inventoryCapacity: undefined,
+    equipped: [],
+  };
+}
+
+/**
+ * Syncs `snapshot` to the player's current cold state, returning whether
+ * anything differed. Every field is compared and written in one pass with
+ * no early return, so a caller ignoring the result still leaves it
+ * consistent. The field list must match `toPlayerCold`: a field sent but not
+ * compared here stops updating on the client.
+ */
+export function updateColdSnapshot(
+  player: PlayerServer,
+  snapshot: ColdSnapshot,
+): boolean {
+  let changed = false;
+
+  const s = snapshot.scalars;
+  if (s[0] !== player.name) (s[0] = player.name), (changed = true);
+  if (s[1] !== player.sprite) (s[1] = player.sprite), (changed = true);
+  if (s[2] !== player.width) (s[2] = player.width), (changed = true);
+  if (s[3] !== player.height) (s[3] = player.height), (changed = true);
+  if (s[4] !== player.maxHealth) (s[4] = player.maxHealth), (changed = true);
+  if (s[5] !== player.attack) (s[5] = player.attack), (changed = true);
+  if (s[6] !== player.attackRange)
+    (s[6] = player.attackRange), (changed = true);
+  if (s[7] !== player.level) (s[7] = player.level), (changed = true);
+  if (s[8] !== player.experience) (s[8] = player.experience), (changed = true);
+  if (s[9] !== player.experienceToNextLevel)
+    (s[9] = player.experienceToNextLevel), (changed = true);
+  if (s[10] !== player.access) (s[10] = player.access), (changed = true);
+  if (s[11] !== player.strength) (s[11] = player.strength), (changed = true);
+  if (s[12] !== player.defense) (s[12] = player.defense), (changed = true);
+  if (s[13] !== player.agility) (s[13] = player.agility), (changed = true);
+  if (s[14] !== player.vitality) (s[14] = player.vitality), (changed = true);
+  if (s[15] !== player.unspentPoints)
+    (s[15] = player.unspentPoints), (changed = true);
+  if (s[16] !== player.speed) (s[16] = player.speed), (changed = true);
+  if (s[17] !== player.mapId) (s[17] = player.mapId), (changed = true);
+  if (s[18] !== player.nameColor) (s[18] = player.nameColor), (changed = true);
+  if (s[19] !== player.nameTag) (s[19] = player.nameTag), (changed = true);
+
+  const items = player.inventory?.items;
+  const count = items?.length ?? 0;
+  if (snapshot.inventoryLength !== count) {
+    snapshot.inventoryLength = count;
+    changed = true;
+  }
+  const capacity = player.inventory?.maxCapacity;
+  if (snapshot.inventoryCapacity !== capacity) {
+    snapshot.inventoryCapacity = capacity;
+    changed = true;
+  }
+  // Flattened into id/quantity pairs so the common case reads one array of
+  // numbers. Entries past `count` are left stale: a shrink already reported a
+  // change through the length, and they are overwritten before being read.
+  const inv = snapshot.inventory;
+  for (let i = 0; i < count; i++) {
+    const entry = items![i]!;
+    const at = i * 2;
+    if (inv[at] !== entry.item) (inv[at] = entry.item), (changed = true);
+    if (inv[at + 1] !== entry.quantity)
+      (inv[at + 1] = entry.quantity), (changed = true);
+  }
+
+  const equippedSource = player.equipped;
+  const eq = snapshot.equipped;
+  for (let i = 0; i < EQUIPMENT_SLOTS.length; i++) {
+    const value = equippedSource?.[EQUIPMENT_SLOTS[i]!];
+    if (eq[i] !== value) (eq[i] = value), (changed = true);
+  }
+
+  return changed;
 }
 
 export function enrichPlayer(player: PlayerServer): Player {
