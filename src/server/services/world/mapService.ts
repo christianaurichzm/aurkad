@@ -12,6 +12,8 @@ import { getMap, getPlayer, runtimeState } from './gameData.js';
 import { placePlayerOnMap, detachFromMap } from '../../sim/world.js';
 
 import { mapRepository } from '../../persistence/mapRepository.js';
+import { dropQuadtree } from '../../spatial/spatialManager.js';
+import { forgetReplicatedEntity } from '../../net/snapshot.js';
 import { getNextMapId } from '../dbService.js';
 import { getItemById } from '../economy/inventoryService.js';
 import { getNpcById } from '../npc/index.js';
@@ -44,8 +46,21 @@ export async function createOrUpdateMap(
   return map.id;
 }
 
+/**
+ * Deletes a map everywhere, not just in the database: removing only the
+ * document would leave the map live in runtimeState, its NPCs ticking and
+ * its players broadcast until a restart, and its quadtree never released.
+ * Nothing calls this yet.
+ */
 export async function deleteMap(id: string): Promise<void> {
   await mapRepository.delete(id);
+
+  const live = runtimeState.maps[id];
+  if (live) {
+    for (const npc of Object.values(live.npcs)) forgetReplicatedEntity(npc.id);
+    delete runtimeState.maps[id];
+  }
+  dropQuadtree(id);
 }
 
 export async function listMaps(): Promise<MapStateServer[]> {

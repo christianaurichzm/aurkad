@@ -3,21 +3,22 @@
  * hot/cold split (whole map and enriched player every tick) against after
  * it (static map once, cold stats on change, hot diff per tick).
  *
- * Map serialization uses the real functions from
- * src/server/engine/serialization, which have no runtime deps; the player
- * hot/cold/enrich helpers are inlined copies of
- * src/server/services/playerService, so no DB, mongoose or ws is imported.
+ * Both paths are historical and document that the split paid off; the
+ * protocol has since moved to mapMeta, streamed tile chunks and per-entity
+ * fragments. For what the engine costs today, use `npm run loadtest`.
+ *
+ * What the earlier path needs is inlined, as the whole-map serializers and
+ * the cold signature are gone from the server: the benchmark stays
+ * reproducible without dead code there.
  *
  * Run: npm run bench   (node --loader ts-node/esm bench/benchNetcode.ts)
  */
 import * as jsondiffpatch from 'jsondiffpatch';
-import {
-  toMapStateClient,
-  toMapDynamicClient,
-  toMapStaticClient,
-} from '../src/server/net/serialization.js';
 import { calcViewport } from '../src/shared/mapGeometry.js';
-import { toPlayerPublic } from '../src/server/net/serialization.js';
+import {
+  toNpcPublic,
+  toPlayerPublic,
+} from '../src/server/net/serialization.js';
 import {
   rebuildQuadtree,
   queryEntitiesInRect,
@@ -240,6 +241,80 @@ function stepWorld(map: MapStateServer, rows: number, cols: number) {
 }
 
 // Broadcast orchestrations (faithful to wsServer before/after).
+// ---------------------------------------------------------------------------
+// Historical whole-map serializers: copies of what
+// src/server/net/serialization.ts exported before tiles streamed as chunks,
+// kept here since production sends no whole-map payload and the server
+// should hold no dead path for a benchmark.
+// ---------------------------------------------------------------------------
+
+function inViewport(
+  pos: { x: number; y: number },
+  vp: { left: number; right: number; top: number; bottom: number },
+): boolean {
+  return (
+    pos.x >= vp.left && pos.x <= vp.right && pos.y >= vp.top && pos.y <= vp.bottom
+  );
+}
+
+function toMapStaticClient(map: MapStateServer) {
+  return {
+    id: map.id,
+    name: map.name,
+    type: map.type,
+    pvp: map.pvp,
+    tiles: map.tiles,
+  };
+}
+
+function toMapDynamicClient(
+  map: MapStateServer,
+  viewer: PlayerServer,
+  viewport: { left: number; right: number; top: number; bottom: number },
+) {
+  const nearby = queryEntitiesInRect(map.id, {
+    x: viewport.left,
+    y: viewport.top,
+    width: viewport.right - viewport.left,
+    height: viewport.bottom - viewport.top,
+  });
+
+  const players: Record<string, unknown> = {};
+  const npcs: Record<string, unknown> = {};
+
+  for (const entity of nearby) {
+    if (!entity.id) continue;
+    if (entity.kind === 'player') {
+      if (entity.id === viewer.id) continue;
+      const other = map.players[entity.id];
+      if (other) players[entity.id] = toPlayerPublic(other);
+    } else if (entity.kind === 'npc') {
+      const npc = map.npcs[entity.id];
+      if (npc) npcs[entity.id] = toNpcPublic(npc);
+    }
+  }
+
+  return {
+    id: map.id,
+    droppedItems: map.droppedItems.filter((item) =>
+      inViewport(item.position, viewport),
+    ),
+    npcs,
+    players,
+  };
+}
+
+function toMapStateClient(
+  map: MapStateServer,
+  viewer: PlayerServer,
+  viewport: { left: number; right: number; top: number; bottom: number },
+) {
+  return {
+    ...toMapStaticClient(map),
+    ...toMapDynamicClient(map, viewer, viewport),
+  };
+}
+
 function runOld(map: MapStateServer, ticks: number, rows: number, cols: number) {
   const lastSent = new Map<string, any>();
   let bytes = 0;

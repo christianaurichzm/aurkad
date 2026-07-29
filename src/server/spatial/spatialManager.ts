@@ -80,6 +80,11 @@ export function getQuadtreeStats(mapId: string) {
   return info?.qt.getStats() ?? null;
 }
 
+/** Forgets a map's tree, for when the map itself stops existing. */
+export function dropQuadtree(mapId: string): void {
+  mapQuadtreeInfo.delete(mapId);
+}
+
 export function clearAllQuadtrees(): void {
   mapQuadtreeInfo.clear();
 }

@@ -5,8 +5,9 @@ import { resetEntityReplication } from './entityReplication.js';
 import { playersWsMap } from './connections.js';
 import { createFixture, tile } from '../sim/simFixture.js';
 import { rebuildQuadtree } from '../spatial/spatialManager.js';
-import { toMapDynamicClient } from './serialization.js';
-import { calcViewport } from '../../shared/mapGeometry.js';
+import { toPlayerPublic, toNpcPublic } from './serialization.js';
+import { queryEntitiesInRect } from '../spatial/spatialManager.js';
+import { calcViewport, type Viewport } from '../../shared/mapGeometry.js';
 import { config } from '../config.js';
 import { TILE_SIZE } from '../../shared/constants.js';
 import {
@@ -78,7 +79,51 @@ function serverTruth(map: MapStateServer, viewer: PlayerServer) {
     map.tiles,
     config.net.aoiMarginTiles * TILE_SIZE,
   );
-  return toMapDynamicClient(map, viewer, viewport);
+  return serverView(map, viewer, viewport);
+}
+
+/**
+ * What the viewer should be able to see, computed apart from the snapshot
+ * code under test. An oracle for this test, not something the server sends:
+ * the wire streams map metadata and tile chunks instead.
+ */
+function serverView(
+  map: MapStateServer,
+  viewer: PlayerServer,
+  viewport: Viewport,
+) {
+  const nearby = queryEntitiesInRect(map.id, {
+    x: viewport.left,
+    y: viewport.top,
+    width: viewport.right - viewport.left,
+    height: viewport.bottom - viewport.top,
+  });
+
+  const players: Record<string, unknown> = {};
+  const npcs: Record<string, unknown> = {};
+
+  for (const entity of nearby) {
+    if (!entity.id) continue;
+    if (entity.kind === 'player') {
+      // The viewer's own state travels in `self`, not in `entities`.
+      if (entity.id === viewer.id) continue;
+      const other = map.players[entity.id];
+      if (other) players[entity.id] = toPlayerPublic(other);
+    } else if (entity.kind === 'npc') {
+      const npc = map.npcs[entity.id];
+      if (npc) npcs[entity.id] = toNpcPublic(npc);
+    }
+  }
+
+  const droppedItems = map.droppedItems.filter(
+    (item) =>
+      item.position.x >= viewport.left &&
+      item.position.x <= viewport.right &&
+      item.position.y >= viewport.top &&
+      item.position.y <= viewport.bottom,
+  );
+
+  return { id: map.id, droppedItems, npcs, players };
 }
 
 afterEach(() => {
