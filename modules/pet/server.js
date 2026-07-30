@@ -17,7 +17,7 @@ function spawnPet(player) {
     row,
     name: player.name + "'s Pet",
     maxHealth: 40,
-    behavior: "friendly", // passive AI (this module drives it); renders green
+    behavior: 'friendly', // passive AI (this module drives it); renders green
   });
   if (pet) pets[player.name] = pet;
   return pet;
@@ -30,7 +30,7 @@ function dismiss(name) {
   }
 }
 
-const isEnemy = (n) => n.behavior === "aggressive" || n.behavior === "hostile";
+const isEnemy = (n) => n.behavior === 'aggressive' || n.behavior === 'hostile';
 const chebyshev = (a, b) => Math.max(Math.abs(a.x - b.x), Math.abs(a.y - b.y));
 
 function face(npc, target) {
@@ -42,22 +42,22 @@ function face(npc, target) {
 }
 
 command(
-  "pet",
-  { description: "Summon or dismiss your pet" },
+  'pet',
+  { description: 'Summon or dismiss your pet' },
   ({ player, reply }) => {
-    if (!player) return reply("In-game only.");
+    if (!player) return reply('In-game only.');
     if (pets[player.name]) {
       dismiss(player.name);
-      return reply("Pet dismissed.");
+      return reply('Pet dismissed.');
     }
     spawnPet(player);
-    reply("Pet summoned.");
+    reply('Pet summoned.');
   },
 );
 
-on("playerLeave", ({ player }) => dismiss(player.name));
+on('playerLeave', ({ player }) => dismiss(player.name));
 
-on("tick", ({ tick }) => {
+on('tick', ({ tick }) => {
   if (tick % cadence !== 0) return;
 
   for (const name in pets) {
@@ -94,16 +94,16 @@ on("tick", ({ tick }) => {
 
     if (target && best <= TILE_SIZE) {
       face(pet, target);
-      pet.action = "Attack";
+      pet.action = 'Attack';
       dealDamage(target, petAttack, owner); // owner gets the kill credit
     } else if (target) {
       moveNpcToward(pet, target.position.x, target.position.y);
     } else if (chebyshev(pet.position, owner.position) > TILE_SIZE) {
       moveNpcToward(pet, owner.position.x, owner.position.y);
     } else {
-      pet.action = "Idle";
+      pet.action = 'Idle';
     }
   }
 });
 
-log("Pet module ready.");
+log('Pet module ready.');

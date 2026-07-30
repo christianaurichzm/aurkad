@@ -31,5 +31,5 @@ function hasLOS(from, to, map) {
   }
 }
 
-provide("los", { hasLOS: hasLOS });
-log("Line-of-sight module loaded");
+provide('los', { hasLOS: hasLOS });
+log('Line-of-sight module loaded');

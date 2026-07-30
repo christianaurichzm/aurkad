@@ -2,7 +2,7 @@
 // Equipment module: set bonuses on top of core equipment effects, applied
 // on equip and unequip when the required pieces are worn.
 
-const dataKey = "equipmentSetBonuses";
+const dataKey = 'equipmentSetBonuses';
 const sets = new Map();
 
 function defineSet(set) {
@@ -55,9 +55,9 @@ function activeSets(player) {
 function applyEffect(player, effect, reverse) {
   if (!effect || !effect.attribute || !Number.isFinite(effect.value)) return;
   const attr = effect.attribute;
-  if (typeof player[attr] !== "number") return;
+  if (typeof player[attr] !== 'number') return;
 
-  if (effect.type === "multiply") {
+  if (effect.type === 'multiply') {
     if (effect.value === 0) return;
     player[attr] = reverse
       ? player[attr] / effect.value
@@ -77,7 +77,7 @@ function reconcile(player, { forceSync = false } = {}) {
   const next = activeSets(player);
   if (sameBonuses(current, next)) {
     if (forceSync)
-      sendEvent(player, "equipment:update", {
+      sendEvent(player, 'equipment:update', {
         activeSets: next,
         sets: [...sets.values()],
       });
@@ -93,7 +93,7 @@ function reconcile(player, { forceSync = false } = {}) {
   }
 
   setPlayerData(player, dataKey, next);
-  sendEvent(player, "equipment:update", {
+  sendEvent(player, 'equipment:update', {
     activeSets: next,
     sets: [...sets.values()],
   });
@@ -101,28 +101,28 @@ function reconcile(player, { forceSync = false } = {}) {
 }
 
 command(
-  "sets",
-  { description: "Show active equipment set bonuses." },
+  'sets',
+  { description: 'Show active equipment set bonuses.' },
   ({ player, reply }) => {
-    if (!player) return reply("Set commands must be used in-game.");
+    if (!player) return reply('Set commands must be used in-game.');
     const active = reconcile(player);
-    if (!active.length) return reply("No active equipment sets.");
-    reply(`Active sets: ${active.map((set) => set.name).join(", ")}`);
+    if (!active.length) return reply('No active equipment sets.');
+    reply(`Active sets: ${active.map((set) => set.name).join(', ')}`);
   },
 );
 
-on("customAction", ({ player, channel }) => {
-  if (channel === "equipment:request") reconcile(player, { forceSync: true });
+on('customAction', ({ player, channel }) => {
+  if (channel === 'equipment:request') reconcile(player, { forceSync: true });
 });
 
-on("playerJoin", ({ player }) => reconcile(player, { forceSync: true }));
+on('playerJoin', ({ player }) => reconcile(player, { forceSync: true }));
 
-on("tick", ({ tick }) => {
+on('tick', ({ tick }) => {
   if (tick % 20 !== 0) return;
   for (const player of getPlayers()) reconcile(player);
 });
 
-provide("equipment", {
+provide('equipment', {
   defineSet,
   reconcile,
   activeSets,

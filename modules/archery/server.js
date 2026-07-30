@@ -7,7 +7,7 @@ const HALF = TILE_SIZE / 2;
 
 const cooldownTicks = Math.ceil((cooldownMs / 1000) * TICK_HZ);
 const cooldowns = {};
-const isEnemy = (n) => n.behavior === "aggressive" || n.behavior === "hostile";
+const isEnemy = (n) => n.behavior === 'aggressive' || n.behavior === 'hostile';
 const projectiles = [];
 
 function getEquippedArrow(player) {
@@ -60,8 +60,8 @@ function aimEndpoint(player, rangePx) {
   );
 }
 
-on("customAction", ({ player, channel }) => {
-  if (channel !== "shoot") return;
+on('customAction', ({ player, channel }) => {
+  if (channel !== 'shoot') return;
   if (cooldowns[player.name]) return;
 
   const arrow = getEquippedArrow(player);
@@ -100,7 +100,7 @@ on("customAction", ({ player, channel }) => {
     attacker: player,
   });
 
-  sendMapEvent(player.mapId, "projectile:fire", {
+  sendMapEvent(player.mapId, 'projectile:fire', {
     fromX,
     fromY,
     toX,
@@ -111,7 +111,7 @@ on("customAction", ({ player, channel }) => {
   });
 });
 
-on("tick", () => {
+on('tick', () => {
   for (const name in cooldowns) {
     if (--cooldowns[name] <= 0) delete cooldowns[name];
   }

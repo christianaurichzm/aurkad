@@ -2,21 +2,21 @@
 // Status module: timed buffs and debuffs in player data that change damage
 // dealt or taken, or heal or hurt on a tick.
 
-const dataKey = "statusEffects";
+const dataKey = 'statusEffects';
 let currentTick = 0;
 
 const definitions = new Map();
 const builtIns = {
-  shield: { name: "Shield", durationTicks: 100, incomingDamageMultiplier: 0.5 },
-  fury: { name: "Fury", durationTicks: 100, outgoingDamageMultiplier: 1.5 },
+  shield: { name: 'Shield', durationTicks: 100, incomingDamageMultiplier: 0.5 },
+  fury: { name: 'Fury', durationTicks: 100, outgoingDamageMultiplier: 1.5 },
   regen: {
-    name: "Regen",
+    name: 'Regen',
     durationTicks: 100,
     tickInterval: 20,
     healPerTick: 5,
   },
   poison: {
-    name: "Poison",
+    name: 'Poison',
     durationTicks: 100,
     tickInterval: 20,
     damagePerTick: 3,
@@ -41,7 +41,7 @@ function list(player) {
 }
 
 function pushStatus(player, statuses) {
-  sendEvent(player, "status:update", { tick: currentTick, statuses });
+  sendEvent(player, 'status:update', { tick: currentTick, statuses });
 }
 
 function save(player, statuses) {
@@ -80,7 +80,7 @@ function publicStatus(status) {
 
 function apply(player, idOrStatus, overrides) {
   const base =
-    typeof idOrStatus === "string" ? definitions.get(idOrStatus) : idOrStatus;
+    typeof idOrStatus === 'string' ? definitions.get(idOrStatus) : idOrStatus;
   if (!base) return false;
 
   const merged = { ...base, ...(overrides || {}) };
@@ -119,53 +119,53 @@ function multiplier(value, fallback) {
 }
 
 command(
-  "status",
+  'status',
   {
     access: Access.MOD,
-    description: "Status: /status apply|clear|list <player> [effect]",
+    description: 'Status: /status apply|clear|list <player> [effect]',
   },
   ({ args, reply }) => {
-    const sub = String(args[0] || "").toLowerCase();
-    const target = getPlayer(args[1] || "");
-    if (!target) return reply("Player not found.");
-    if (sub === "apply")
+    const sub = String(args[0] || '').toLowerCase();
+    const target = getPlayer(args[1] || '');
+    if (!target) return reply('Player not found.');
+    if (sub === 'apply')
       return reply(
-        apply(target, args[2]) ? "Status applied." : "Unknown status.",
+        apply(target, args[2]) ? 'Status applied.' : 'Unknown status.',
       );
-    if (sub === "clear")
+    if (sub === 'clear')
       return reply(
-        clear(target, args[2]) ? "Status cleared." : "Status not found.",
+        clear(target, args[2]) ? 'Status cleared.' : 'Status not found.',
       );
-    if (sub === "list")
+    if (sub === 'list')
       return reply(
         `Statuses: ${
           list(target)
             .map((s) => s.id)
-            .join(", ") || "none"
+            .join(', ') || 'none'
         }`,
       );
-    reply("Usage: /status apply|clear|list <player> [effect]");
+    reply('Usage: /status apply|clear|list <player> [effect]');
   },
 );
 
-on("customAction", ({ player, channel }) => {
-  if (channel === "status:request") pushStatus(player, prune(player));
+on('customAction', ({ player, channel }) => {
+  if (channel === 'status:request') pushStatus(player, prune(player));
 });
 
-on("beforeDamage", ({ attacker, target, damage }) => {
-  if (attacker && attacker.kind === "player") {
+on('beforeDamage', ({ attacker, target, damage }) => {
+  if (attacker && attacker.kind === 'player') {
     for (const status of prune(attacker)) {
       damage.value *= multiplier(status.outgoingDamageMultiplier, 1);
     }
   }
-  if (target && target.kind === "player") {
+  if (target && target.kind === 'player') {
     for (const status of prune(target)) {
       damage.value *= multiplier(status.incomingDamageMultiplier, 1);
     }
   }
 });
 
-on("tick", ({ tick }) => {
+on('tick', ({ tick }) => {
   currentTick = tick;
   for (const player of getPlayers()) {
     const statuses = prune(player);
@@ -192,7 +192,7 @@ on("tick", ({ tick }) => {
   }
 });
 
-provide("status", {
+provide('status', {
   define,
   apply,
   clear,

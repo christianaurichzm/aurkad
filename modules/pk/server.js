@@ -4,57 +4,57 @@
 // priority so it covers lower ones such as VIP gold until it expires.
 
 const flagMs = Number((config && config.flagMinutes) || 10) * 60 * 1000;
-const PK_SOURCE = "pk";
+const PK_SOURCE = 'pk';
 const PK_PRIORITY = 100;
 
 const isPk = (p) => {
-  const until = getPlayerData(p, "pkUntil");
-  return typeof until === "number" && Date.now() < until;
+  const until = getPlayerData(p, 'pkUntil');
+  return typeof until === 'number' && Date.now() < until;
 };
 
 function flag(killer) {
-  setPlayerData(killer, "pkUntil", Date.now() + flagMs);
+  setPlayerData(killer, 'pkUntil', Date.now() + flagMs);
   setPlayerData(
     killer,
-    "pkCount",
-    Number(getPlayerData(killer, "pkCount") || 0) + 1,
+    'pkCount',
+    Number(getPlayerData(killer, 'pkCount') || 0) + 1,
   );
-  setCosmetic(killer, "nameColor", PK_SOURCE, "red", PK_PRIORITY);
+  setCosmetic(killer, 'nameColor', PK_SOURCE, 'red', PK_PRIORITY);
 }
 
 function unflag(p) {
-  clearCosmetic(p, "nameColor", PK_SOURCE);
-  setPlayerData(p, "pkUntil", undefined);
+  clearCosmetic(p, 'nameColor', PK_SOURCE);
+  setPlayerData(p, 'pkUntil', undefined);
 }
 
-on("playerDeath", ({ player, killer }) => {
-  if (!killer || killer.kind !== "player" || killer.name === player.name)
+on('playerDeath', ({ player, killer }) => {
+  if (!killer || killer.kind !== 'player' || killer.name === player.name)
     return;
-  if (getMapPvp(player.mapId) !== "normal") return; // only penalty maps flag
+  if (getMapPvp(player.mapId) !== 'normal') return; // only penalty maps flag
   flag(killer);
-  broadcastMessage(killer.name + " became a player killer!");
+  broadcastMessage(killer.name + ' became a player killer!');
 });
 
 // Re-apply the red name for a returning player who is still flagged.
-on("playerJoin", ({ player }) => {
+on('playerJoin', ({ player }) => {
   if (isPk(player))
-    setCosmetic(player, "nameColor", PK_SOURCE, "red", PK_PRIORITY);
+    setCosmetic(player, 'nameColor', PK_SOURCE, 'red', PK_PRIORITY);
 });
 
 // Drop the flag when it expires (~every 5s).
-on("tick", ({ tick }) => {
+on('tick', ({ tick }) => {
   if (tick % 100 !== 0) return;
   for (const p of getPlayers()) {
-    if (!isPk(p) && getPlayerData(p, "pkUntil") != null) unflag(p);
+    if (!isPk(p) && getPlayerData(p, 'pkUntil') != null) unflag(p);
   }
 });
 
 command(
-  "pk",
-  { description: "Show your player-killer status" },
+  'pk',
+  { description: 'Show your player-killer status' },
   ({ player, reply }) => {
-    if (!player) return reply("In-game only.");
-    const kills = getPlayerData(player, "pkCount") || 0;
+    if (!player) return reply('In-game only.');
+    const kills = getPlayerData(player, 'pkCount') || 0;
     reply(
       isPk(player)
         ? `You are flagged as a PK (${kills} kills).`
@@ -63,6 +63,6 @@ command(
   },
 );
 
-provide("pk", { isPk });
+provide('pk', { isPk });
 
-log("PK module ready (flagMinutes=" + flagMs / 60000 + ").");
+log('PK module ready (flagMinutes=' + flagMs / 60000 + ').');

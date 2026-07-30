@@ -43,7 +43,7 @@ function offersFor(player) {
 }
 
 function push(player) {
-  sendEvent(player, "trade:update", {
+  sendEvent(player, 'trade:update', {
     player: player.name,
     offers: offersFor(player),
   });
@@ -64,11 +64,11 @@ function offerTrade(
   wantItemId,
   wantQty,
 ) {
-  const target = getPlayer(String(targetName || ""));
-  if (!target) return "Player not found.";
-  if (target.name === player.name) return "You cannot trade with yourself.";
+  const target = getPlayer(String(targetName || ''));
+  if (!target) return 'Player not found.';
+  if (target.name === player.name) return 'You cannot trade with yourself.';
   if (target.mapId !== player.mapId)
-    return "You must be in the same map to trade.";
+    return 'You must be in the same map to trade.';
 
   const giveId = positiveInt(giveItemId, 0);
   const giveInfo = getItem && getItem(giveId);
@@ -78,7 +78,7 @@ function offerTrade(
     name: giveInfo ? giveInfo.name : String(giveId),
   };
   const wantId =
-    wantItemId === undefined || wantItemId === null || wantItemId === ""
+    wantItemId === undefined || wantItemId === null || wantItemId === ''
       ? 0
       : positiveInt(wantItemId, 0);
   const wantInfo = wantId ? getItem && getItem(wantId) : null;
@@ -91,12 +91,12 @@ function offerTrade(
     : undefined;
 
   if (!give.itemId || !hasItem(player, give.itemId, give.quantity))
-    return "You do not have that item quantity.";
+    return 'You do not have that item quantity.';
   if (giveInfo && giveInfo.bound)
-    return "That item is bound and cannot be traded.";
-  if (want && !want.itemId) return "Invalid requested item.";
+    return 'That item is bound and cannot be traded.';
+  if (want && !want.itemId) return 'Invalid requested item.';
   if (want && wantInfo && wantInfo.bound)
-    return "The requested item is bound and cannot be traded.";
+    return 'The requested item is bound and cannot be traded.';
   if (!wouldFit(target, give, want))
     return `${target.name}'s inventory is full.`;
 
@@ -109,13 +109,13 @@ function offerTrade(
   };
   offers.set(keyOf(offer.from, offer.to), offer);
   pushOffer(offer);
-  sendEvent(target, "trade:offer", offer);
+  sendEvent(target, 'trade:offer', offer);
   return `Trade offered to ${target.name}.`;
 }
 
 function acceptTrade(player, fromName) {
-  const offer = offers.get(keyOf(String(fromName || ""), player.name));
-  if (!offer) return "No trade offer from that player.";
+  const offer = offers.get(keyOf(String(fromName || ''), player.name));
+  if (!offer) return 'No trade offer from that player.';
 
   const from = getPlayer(offer.from);
   const to = getPlayer(offer.to);
@@ -123,11 +123,11 @@ function acceptTrade(player, fromName) {
     offers.delete(keyOf(offer.from, offer.to));
     if (from) push(from);
     if (to) push(to);
-    return "Trade partner is offline.";
+    return 'Trade partner is offline.';
   }
 
   if (!hasItem(from, offer.give.itemId, offer.give.quantity))
-    return "Offer is no longer valid.";
+    return 'Offer is no longer valid.';
   // Re-check bound at accept: the item may have been edited after the offer.
   const giveInfo = getItem && getItem(offer.give.itemId);
   const wantInfo = offer.want && getItem && getItem(offer.want.itemId);
@@ -135,11 +135,11 @@ function acceptTrade(player, fromName) {
     offers.delete(keyOf(offer.from, offer.to));
     push(from);
     push(to);
-    return "Offer is no longer valid.";
+    return 'Offer is no longer valid.';
   }
   if (offer.want && !hasItem(to, offer.want.itemId, offer.want.quantity))
-    return "You do not have the requested item quantity.";
-  if (!wouldFit(to, offer.give, offer.want)) return "Your inventory is full.";
+    return 'You do not have the requested item quantity.';
+  if (!wouldFit(to, offer.give, offer.want)) return 'Your inventory is full.';
   if (!wouldFit(from, offer.want, offer.give))
     return `${from.name}'s inventory is full.`;
 
@@ -152,7 +152,7 @@ function acceptTrade(player, fromName) {
     offer.give.itemId,
     offer.give.quantity,
   );
-  if (!gave.ok) return "Offer is no longer valid.";
+  if (!gave.ok) return 'Offer is no longer valid.';
 
   if (offer.want) {
     const paid = moveItem(
@@ -169,7 +169,7 @@ function acceptTrade(player, fromName) {
         offer.give.itemId,
         offer.give.quantity,
       );
-      return "You do not have the requested item quantity.";
+      return 'You do not have the requested item quantity.';
     }
   }
   persistNow(from, to);
@@ -177,13 +177,13 @@ function acceptTrade(player, fromName) {
   offers.delete(keyOf(offer.from, offer.to));
   push(from);
   push(to);
-  sendEvent(from, "trade:complete", offer);
-  sendEvent(to, "trade:complete", offer);
-  return "Trade completed.";
+  sendEvent(from, 'trade:complete', offer);
+  sendEvent(to, 'trade:complete', offer);
+  return 'Trade completed.';
 }
 
 function cancelTrade(player, otherName) {
-  const other = String(otherName || "");
+  const other = String(otherName || '');
   const keys = [keyOf(player.name, other), keyOf(other, player.name)];
   let cancelled = false;
   for (const key of keys) {
@@ -194,34 +194,34 @@ function cancelTrade(player, otherName) {
     cancelled = true;
   }
   if (!cancelled) push(player);
-  return cancelled ? "Trade cancelled." : "No trade to cancel.";
+  return cancelled ? 'Trade cancelled.' : 'No trade to cancel.';
 }
 
 command(
-  "trade",
+  'trade',
   {
     description:
-      "Trade: /trade offer <player> <item> <qty> [wantItem] [wantQty] | accept|cancel <player>",
+      'Trade: /trade offer <player> <item> <qty> [wantItem] [wantQty] | accept|cancel <player>',
   },
   ({ player, args, reply }) => {
-    if (!player) return reply("Trade commands must be used in-game.");
-    const sub = String(args[0] || "").toLowerCase();
-    if (sub === "offer")
+    if (!player) return reply('Trade commands must be used in-game.');
+    const sub = String(args[0] || '').toLowerCase();
+    if (sub === 'offer')
       return reply(
         offerTrade(player, args[1], args[2], args[3], args[4], args[5]),
       );
-    if (sub === "accept") return reply(acceptTrade(player, args[1]));
-    if (sub === "cancel") return reply(cancelTrade(player, args[1]));
-    if (sub === "list") return reply(`Trades: ${offersFor(player).length}`);
+    if (sub === 'accept') return reply(acceptTrade(player, args[1]));
+    if (sub === 'cancel') return reply(cancelTrade(player, args[1]));
+    if (sub === 'list') return reply(`Trades: ${offersFor(player).length}`);
     reply(
-      "Usage: /trade offer <player> <item> <qty> [wantItem] [wantQty] | accept|cancel <player>",
+      'Usage: /trade offer <player> <item> <qty> [wantItem] [wantQty] | accept|cancel <player>',
     );
   },
 );
 
-on("customAction", ({ player, channel, payload }) => {
+on('customAction', ({ player, channel, payload }) => {
   const data = /** @type {any} */ (payload);
-  if (channel === "trade:offer") {
+  if (channel === 'trade:offer') {
     offerTrade(
       player,
       data && data.to,
@@ -230,27 +230,27 @@ on("customAction", ({ player, channel, payload }) => {
       data && data.wantItemId,
       data && data.wantQty,
     );
-  } else if (channel === "trade:accept") {
+  } else if (channel === 'trade:accept') {
     acceptTrade(player, data && data.from);
-  } else if (channel === "trade:cancel") {
+  } else if (channel === 'trade:cancel') {
     cancelTrade(player, data && data.player);
-  } else if (channel === "trade:request") {
+  } else if (channel === 'trade:request') {
     push(player);
   }
 });
 
-on("playerLeave", ({ player }) => {
+on('playerLeave', ({ player }) => {
   for (const offer of offersFor(player)) {
     offers.delete(keyOf(offer.from, offer.to));
     pushOffer(offer);
   }
 });
 
-provide("trade", {
+provide('trade', {
   offer: offerTrade,
   accept: acceptTrade,
   cancel: cancelTrade,
   offersFor,
 });
 
-log("Trade module ready.");
+log('Trade module ready.');

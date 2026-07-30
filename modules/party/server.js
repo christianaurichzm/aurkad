@@ -27,12 +27,12 @@ function pushParty(party) {
   const payload = partyPayload(party);
   for (const name of party.members) {
     const player = getPlayer(name);
-    if (player) sendEvent(player, "party:update", payload);
+    if (player) sendEvent(player, 'party:update', payload);
   }
 }
 
 function pushPlayer(player) {
-  sendEvent(player, "party:update", partyPayload(partyOf(player)));
+  sendEvent(player, 'party:update', partyPayload(partyOf(player)));
 }
 
 function createParty(player) {
@@ -45,17 +45,17 @@ function createParty(player) {
 }
 
 function invite(player, targetName) {
-  const target = getPlayer(String(targetName || ""));
-  if (!target) return "Player not found.";
-  if (target.name === player.name) return "You cannot invite yourself.";
-  if (partyOf(target)) return "That player is already in a party.";
+  const target = getPlayer(String(targetName || ''));
+  if (!target) return 'Player not found.';
+  if (target.name === player.name) return 'You cannot invite yourself.';
+  if (partyOf(target)) return 'That player is already in a party.';
 
   const party = createParty(player);
-  if (party.leader !== player.name) return "Only the party leader can invite.";
-  if (party.members.length >= maxMembers) return "Your party is full.";
+  if (party.leader !== player.name) return 'Only the party leader can invite.';
+  if (party.members.length >= maxMembers) return 'Your party is full.';
 
   invites.set(target.name, party.leader);
-  sendEvent(target, "party:invite", {
+  sendEvent(target, 'party:invite', {
     from: player.name,
     leader: party.leader,
   });
@@ -64,12 +64,12 @@ function invite(player, targetName) {
 }
 
 function accept(player, leaderName) {
-  const leader = String(leaderName || invites.get(player.name) || "");
+  const leader = String(leaderName || invites.get(player.name) || '');
   const party = parties.get(leader);
-  if (!party) return "No pending party invite.";
-  if (invites.get(player.name) !== leader) return "No pending party invite.";
-  if (partyOf(player)) return "Leave your current party first.";
-  if (party.members.length >= maxMembers) return "That party is full.";
+  if (!party) return 'No pending party invite.';
+  if (invites.get(player.name) !== leader) return 'No pending party invite.';
+  if (partyOf(player)) return 'Leave your current party first.';
+  if (party.members.length >= maxMembers) return 'That party is full.';
 
   party.members.push(player.name);
   memberToParty.set(player.name, party.leader);
@@ -80,16 +80,16 @@ function accept(player, leaderName) {
 
 function leave(player) {
   const party = partyOf(player);
-  if (!party) return "You are not in a party.";
+  if (!party) return 'You are not in a party.';
 
   party.members = party.members.filter((name) => name !== player.name);
   memberToParty.delete(player.name);
   invites.delete(player.name);
-  sendEvent(player, "party:update", null);
+  sendEvent(player, 'party:update', null);
 
   if (party.members.length === 0) {
     parties.delete(party.leader);
-    return "Left party.";
+    return 'Left party.';
   }
 
   if (party.leader === player.name) {
@@ -101,7 +101,7 @@ function leave(player) {
   }
 
   pushParty(party);
-  return "Left party.";
+  return 'Left party.';
 }
 
 function nearbyOnlineMembers(player) {
@@ -122,7 +122,7 @@ function nearbyOnlineMembers(player) {
 
 function members(nameOrPlayer) {
   const name =
-    typeof nameOrPlayer === "string"
+    typeof nameOrPlayer === 'string'
       ? nameOrPlayer
       : nameOrPlayer && nameOrPlayer.name;
   const party = name ? partyOfName(name) : undefined;
@@ -130,39 +130,39 @@ function members(nameOrPlayer) {
 }
 
 command(
-  "party",
-  { description: "Parties: /party create|invite|accept|leave|list [player]" },
+  'party',
+  { description: 'Parties: /party create|invite|accept|leave|list [player]' },
   ({ player, args, reply }) => {
-    if (!player) return reply("Party commands must be used in-game.");
-    const sub = String(args[0] || "").toLowerCase();
-    if (sub === "create") {
+    if (!player) return reply('Party commands must be used in-game.');
+    const sub = String(args[0] || '').toLowerCase();
+    if (sub === 'create') {
       createParty(player);
-      return reply("Party ready.");
+      return reply('Party ready.');
     }
-    if (sub === "invite") return reply(invite(player, args[1]));
-    if (sub === "accept") return reply(accept(player, args[1]));
-    if (sub === "leave") return reply(leave(player));
-    if (sub === "list") {
+    if (sub === 'invite') return reply(invite(player, args[1]));
+    if (sub === 'accept') return reply(accept(player, args[1]));
+    if (sub === 'leave') return reply(leave(player));
+    if (sub === 'list') {
       const party = partyOf(player);
-      if (!party) return reply("You are not in a party.");
-      return reply(`${party.leader}'s party: ${party.members.join(", ")}`);
+      if (!party) return reply('You are not in a party.');
+      return reply(`${party.leader}'s party: ${party.members.join(', ')}`);
     }
-    reply("Usage: /party create|invite|accept|leave|list [player]");
+    reply('Usage: /party create|invite|accept|leave|list [player]');
   },
 );
 
-on("customAction", ({ player, channel, payload }) => {
+on('customAction', ({ player, channel, payload }) => {
   const data = /** @type {any} */ (payload);
-  if (channel === "party:create") createParty(player);
-  else if (channel === "party:invite") invite(player, data && data.name);
-  else if (channel === "party:accept") accept(player, data && data.leader);
-  else if (channel === "party:leave") leave(player);
-  else if (channel === "party:request") pushPlayer(player);
+  if (channel === 'party:create') createParty(player);
+  else if (channel === 'party:invite') invite(player, data && data.name);
+  else if (channel === 'party:accept') accept(player, data && data.leader);
+  else if (channel === 'party:leave') leave(player);
+  else if (channel === 'party:request') pushPlayer(player);
 });
 
-on("beforeXpGain", (ctx) => {
+on('beforeXpGain', (ctx) => {
   const { player, amount, source } = ctx;
-  if (source !== "kill" || !Number.isFinite(amount) || amount <= 0) return;
+  if (source !== 'kill' || !Number.isFinite(amount) || amount <= 0) return;
   const sharedWith = nearbyOnlineMembers(player);
   if (sharedWith.length < 2) return;
 
@@ -174,7 +174,7 @@ on("beforeXpGain", (ctx) => {
   }
 });
 
-on("playerLeave", ({ player }) => {
+on('playerLeave', ({ player }) => {
   leave(player);
   for (const [target, leader] of invites.entries()) {
     if (target === player.name || leader === player.name)
@@ -182,7 +182,7 @@ on("playerLeave", ({ player }) => {
   }
 });
 
-provide("party", {
+provide('party', {
   create: createParty,
   invite,
   accept,

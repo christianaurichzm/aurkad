@@ -3,24 +3,24 @@
 // Hooked into afterDamage; skips lethal hits so dead entities don't get moved.
 // Tile blocking is checked via getMapTile before applying the push.
 
-var force = config && typeof config.force === "number" ? config.force : 1;
+var force = config && typeof config.force === 'number' ? config.force : 1;
 var toPlayers =
-  config && typeof config.applyToPlayers === "boolean"
+  config && typeof config.applyToPlayers === 'boolean'
     ? config.applyToPlayers
     : true;
 var toNpcs =
-  config && typeof config.applyToNpcs === "boolean"
+  config && typeof config.applyToNpcs === 'boolean'
     ? config.applyToNpcs
     : false;
 
-on("afterDamage", function (payload) {
+on('afterDamage', function (payload) {
   var attacker = payload.attacker;
   var target = payload.target;
 
   if (payload.lethal) return;
   if (!attacker) return;
-  if (target.kind === "player" && !toPlayers) return;
-  if (target.kind === "npc" && !toNpcs) return;
+  if (target.kind === 'player' && !toPlayers) return;
+  if (target.kind === 'npc' && !toNpcs) return;
 
   var dx = target.position.x - attacker.position.x;
   var dy = target.position.y - attacker.position.y;
@@ -44,4 +44,4 @@ on("afterDamage", function (payload) {
   target.position.y = row * TILE_SIZE;
 });
 
-log("Knockback module loaded");
+log('Knockback module loaded');
