@@ -41,6 +41,11 @@ export const AdminApp: React.FC = () => {
           <span style={who}>
             {session.username} · {Access[session.access]}
           </span>
+          {/* A new tab, not a navigation: an operator who moderates while
+              playing keeps both, and the panel session survives either way. */}
+          <a style={gameLink} href="/" target="_blank" rel="noreferrer">
+            Open game
+          </a>
           <button
             style={logoutBtn}
             onClick={() =>
@@ -164,6 +169,14 @@ const headerRight: React.CSSProperties = {
   gap: 12,
 };
 const who: React.CSSProperties = { color: colors.textMuted, fontSize: 13 };
+const gameLink: React.CSSProperties = {
+  color: colors.text,
+  border: `1px solid ${colors.border}`,
+  padding: '6px 12px',
+  borderRadius: radius.sm,
+  fontSize: 13,
+  textDecoration: 'none',
+};
 const logoutBtn: React.CSSProperties = {
   background: colors.surfaceMuted,
   color: colors.text,

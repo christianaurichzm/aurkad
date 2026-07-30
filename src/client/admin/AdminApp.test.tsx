@@ -72,6 +72,21 @@ describe('AdminApp', () => {
     expect(await screen.findByText('Scripts')).toBeInTheDocument();
   });
 
+  // The panel does not put the operator in the world, so moderating while
+  // playing means two tabs; the link opens one instead of navigating away.
+  it('offers a way into the game without losing the panel', async () => {
+    mocks.adminSession.mockResolvedValue({
+      username: 'Boss',
+      access: Access.ADMIN,
+      scriptEditorEnabled: false,
+    });
+    render(<AdminApp />);
+
+    const link = await screen.findByRole('link', { name: 'Open game' });
+    expect(link).toHaveAttribute('href', '/');
+    expect(link).toHaveAttribute('target', '_blank');
+  });
+
   it('shows the audit trail to an admin', async () => {
     mocks.adminSession.mockResolvedValue({
       username: 'Boss',

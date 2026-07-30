@@ -1,6 +1,7 @@
 import { Router, type Request, type Response } from 'express';
 import type { ExtendedRequest } from '../session.js';
 import { Access, CharacterAction } from '../../../shared/types.js';
+import type { PlayerServer } from '../../../shared/types.js';
 import { TILE_SIZE } from '../../../shared/constants.js';
 import {
   parseBody,
@@ -23,6 +24,24 @@ import {
   getPlayerByName,
   changeSprite,
 } from '../../services/player/playerService.js';
+
+/**
+ * The operator's own live character, or null with the reason already sent.
+ * bring, goto, gomap and setMyAccess need the operator in the world, and an
+ * admin dashboard session never is, so the refusal says that rather than
+ * "Player not found", which would read as a mistyped target.
+ */
+function requireSelfInWorld(
+  req: ExtendedRequest,
+  res: Response,
+): PlayerServer | null {
+  const me = getPlayerByName(req.session.username!);
+  if (me) return me;
+  res
+    .status(409)
+    .send('You must be in the game world to use this. Open the game first.');
+  return null;
+}
 
 export function createModRouter() {
   const router = Router();
@@ -86,10 +105,10 @@ export function createModRouter() {
       const body = parseBody(PlayerNameBodySchema, req.body, res);
       if (!body) return;
       const { playerName } = body;
-      const me = getPlayerByName(req.session.username!);
+      const me = requireSelfInWorld(req, res);
+      if (!me) return;
       const target = getPlayerByName(playerName);
-
-      if (!me || !target) return res.status(404).send('Player not found');
+      if (!target) return res.status(404).send('Player not found');
 
       const previousMapId = target.mapId;
       target.position = { ...me.position };
@@ -114,10 +133,10 @@ export function createModRouter() {
       const body = parseBody(PlayerNameBodySchema, req.body, res);
       if (!body) return;
       const { playerName } = body;
-      const me = getPlayerByName(req.session.username!);
+      const me = requireSelfInWorld(req, res);
+      if (!me) return;
       const target = getPlayerByName(playerName);
-
-      if (!me || !target) return res.status(404).send('Player not found');
+      if (!target) return res.status(404).send('Player not found');
 
       const previousMapId = me.mapId;
       me.position = { ...target.position };
@@ -205,8 +224,8 @@ export function createModRouter() {
       const body = parseBody(GoMapBodySchema, req.body, res);
       if (!body) return;
       const { mapId } = body;
-      const me = getPlayerByName(req.session.username!);
-      if (!me) return res.status(404).send('Player not found');
+      const me = requireSelfInWorld(req, res);
+      if (!me) return;
 
       const previousMapId = me.mapId;
       me.mapId = mapId;
@@ -231,8 +250,8 @@ export function createModRouter() {
       const body = parseBody(SetMyAccessBodySchema, req.body, res);
       if (!body) return;
       const { accessLevel } = body;
-      const me = getPlayerByName(req.session.username!);
-      if (!me) return res.status(404).send('Player not found');
+      const me = requireSelfInWorld(req, res);
+      if (!me) return;
 
       me.access = accessLevel;
       handlePlayerUpdate(me);
