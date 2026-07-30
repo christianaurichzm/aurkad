@@ -30,6 +30,7 @@ import {
   listLootTables,
   clearLootTableCache,
 } from '../services/economy/lootTableService.js';
+import { getNextItemId, getNextNpcId } from '../services/dbService.js';
 
 let mongod: MongoMemoryServer;
 let tmpDir: string;
@@ -495,5 +496,66 @@ describe('clearing an optional reference', () => {
     });
 
     expect((await listItems())[0]!.scriptId).toBeUndefined();
+  });
+});
+
+// Documents arrive through the counter (editor "create") and through
+// content files with their own ids. A pack with items 1..8 must move the
+// counter too, or the editor's next item gets id 1 and overwrites the pack's.
+describe('id counters after import', () => {
+  it('raises the counter above the ids the pack defines', async () => {
+    write('items.json', [
+      { id: 1, name: 'Potion', sprite: 0, type: 'consumable' },
+      { id: 8, name: 'Steel Sword', sprite: 1, type: 'weapon' },
+    ]);
+
+    await importContentPack();
+
+    const created = await getNextItemId();
+    expect(created).toBe(9);
+
+    // The proof that matters: creating one does not overwrite an existing item.
+    await createOrUpdateItem({
+      id: created,
+      name: 'New',
+      description: '',
+      sprite: 0,
+      type: 'weapon',
+    });
+    const ids = (await listItems()).map((i) => i.id).sort((a, b) => a - b);
+    expect(ids).toEqual([1, 8, 9]);
+  });
+
+  it('leaves the counter alone when the ids are not numeric', async () => {
+    // Npcs in the starter pack are named ('goblin'), which constrains nothing.
+    write('npcs.json', [
+      {
+        id: 'goblin',
+        name: 'Goblin',
+        sprite: 2,
+        maxHealth: 30,
+        attack: 5,
+        behavior: 'aggressive',
+      },
+    ]);
+
+    await importContentPack();
+
+    expect(await getNextNpcId()).toBe(1);
+  });
+
+  it('never lowers a counter that is already ahead', async () => {
+    // Lowering one would re-issue an id that is already in use; a counter ahead
+    // of the documents only leaves a gap.
+    await getNextItemId();
+    await getNextItemId();
+    await getNextItemId();
+    write('items.json', [
+      { id: 1, name: 'Potion', sprite: 0, type: 'consumable' },
+    ]);
+
+    await importContentPack();
+
+    expect(await getNextItemId()).toBe(4);
   });
 });

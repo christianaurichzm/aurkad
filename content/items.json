@@ -39,14 +39,6 @@
     "effects": [{ "attribute": "defense", "type": "add", "value": 2 }]
   },
   {
-    "id": 6,
-    "name": "Iron Shield",
-    "description": "Blocks some blows. +4 defense.",
-    "sprite": 5,
-    "type": "shield",
-    "effects": [{ "attribute": "defense", "type": "add", "value": 4 }]
-  },
-  {
     "id": 7,
     "name": "Iron Boots",
     "description": "Sturdy boots. +1 defense.",

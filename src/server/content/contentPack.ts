@@ -23,6 +23,7 @@ import {
   validateScriptReferences,
 } from '../services/content/contentValidation.js';
 import { registeredBehaviorParams } from '../engine/scripting/entityScripts.js';
+import { raiseCounter } from '../services/dbService.js';
 
 // Versionable game content lives as JSON files in content/. On boot it is
 // upserted into MongoDB (files win for the ids they define), so a creator can
@@ -262,7 +263,35 @@ export async function importContentPack(): Promise<void> {
     logger.info(`[content] Imported ${ok}/${rows.length} from ${spec.file}`);
   }
 
+  await syncIdCounters();
   await reportBrokenReferences();
+}
+
+/**
+ * Moves the auto-increment counters above the ids the import just wrote.
+ *
+ * Content files carry their own ids and never touch the counters, so without
+ * this the first item created in the editor is issued an id the pack already
+ * uses, and the upsert overwrites that entry instead of adding one.
+ */
+async function syncIdCounters(): Promise<void> {
+  try {
+    const [items, npcs, maps] = await Promise.all([
+      listItems(),
+      listNpcs(),
+      listMaps(),
+    ]);
+    // Ids may be non-numeric (npcs are named in the starter pack), and those
+    // simply do not constrain a numeric counter.
+    const highest = (ids: Array<string | number>): number =>
+      ids.reduce<number>((max, id) => Math.max(max, Number(id) || 0), 0);
+
+    await raiseCounter('item', highest(items.map((i) => i.id)));
+    await raiseCounter('npc', highest(npcs.map((n) => n.id)));
+    await raiseCounter('map', highest(maps.map((m) => m.id)));
+  } catch (e) {
+    logger.error('[content] Counter sync failed', { err: e });
+  }
 }
 
 /**
