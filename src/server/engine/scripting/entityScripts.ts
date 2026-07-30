@@ -6,6 +6,7 @@
 
 import { logger } from '../../logger.js';
 import { recordScriptError } from './scriptErrors.js';
+import { runWithBudget } from './handlerBudget.js';
 import {
   normalizeParamSpecs,
   resolveScriptParams,
@@ -203,8 +204,11 @@ export function dispatchEntityScript<K extends EntityBehaviorEvent>(
   const ctx = { ...payload, params };
 
   try {
-    (handler as (c: unknown) => void)(ctx);
-    return true;
+    // Returns false once the budget has switched this handler off, which is
+    // also the honest answer to "did anything run".
+    return runWithBudget(registration.owner, `${scriptId}.${event}`, () =>
+      (handler as (c: unknown) => void)(ctx),
+    );
   } catch (err) {
     logger.error(`[behavior] ${scriptId}.${event} threw`, { err });
     recordScriptError(

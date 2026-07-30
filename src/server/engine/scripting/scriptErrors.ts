@@ -9,7 +9,8 @@ export type ScriptErrorSource =
   | 'hook'
   | 'schedule'
   | 'timer'
-  | 'behavior';
+  | 'behavior'
+  | 'budget';
 
 export interface ScriptError {
   script: string;

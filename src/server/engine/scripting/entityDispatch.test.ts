@@ -7,6 +7,8 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { runInSandbox } from './sandbox.js';
 import { clearEntityBehaviors } from './entityScripts.js';
 import { clearScriptErrors, getScriptErrors } from './scriptErrors.js';
+import { clearHandlerBudget, isHandlerDisabled } from './handlerBudget.js';
+import { config } from '../../config.js';
 import { clearAll } from '../hooks.js';
 import { createFixture, tile } from '../../sim/simFixture.js';
 import { rebuildQuadtree } from '../../spatial/spatialManager.js';
@@ -22,6 +24,7 @@ beforeEach(() => {
   clearAll();
   clearEntityBehaviors();
   clearScriptErrors();
+  clearHandlerBudget();
   calls.log = [];
 });
 
@@ -361,5 +364,51 @@ describe('exported params', () => {
       line: 1,
     });
     expect(getScriptErrors('chest.js')[0]?.message).toContain('unknown type');
+  });
+});
+
+// A handler that returns slowly is measured and eventually dropped. One
+// that never returns cannot be caught inside this single-threaded process,
+// which is why the budget measures instead of preventing.
+describe('the time budget on a handler', () => {
+  it('stops running an attached behavior that keeps overrunning', () => {
+    const sim = createFixture(0);
+    const budgetMs = config.scripting.handlerBudgetMs;
+    const handle = script(
+      `
+      attach('slow', {
+        onEnter() {
+          const until = Date.now() + ${budgetMs + 5};
+          while (Date.now() < until) {}
+          record('ran');
+        },
+      });
+    `,
+      'slow.js',
+    );
+
+    sim.map.tiles[2]![2] = {
+      tileIndex: 0,
+      triggers: [{ action: 'script', scriptId: 'slow' }],
+    };
+    const player = sim.addPlayer({ name: 'Alice', position: tile(2, 1) });
+    rebuildQuadtree(sim.mapId, sim.map);
+
+    // Step on and off the tile until the strikes run out, plus one more.
+    for (let i = 0; i < config.scripting.handlerBudgetStrikes + 1; i++) {
+      player.position = tile(2, 1);
+      player.moving = false;
+      sim.press('Alice', Key.ArrowDown);
+      sim.step();
+      sim.release('Alice', Key.ArrowDown);
+      sim.step();
+    }
+
+    expect(calls.log.length).toBe(config.scripting.handlerBudgetStrikes);
+    expect(isHandlerDisabled('slow.js', 'slow.onEnter')).toBe(true);
+    // And the file carries the reason, where the editor shows it.
+    expect(getScriptErrors('slow.js')[0]).toMatchObject({ source: 'budget' });
+
+    handle.cleanup();
   });
 });

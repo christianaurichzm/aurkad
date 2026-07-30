@@ -3,6 +3,7 @@ import path from 'path';
 import { logger } from '../../logger.js';
 import { runInSandbox, type ScriptHandle } from './sandbox.js';
 import { clearScriptErrors, recordScriptError } from './scriptErrors.js';
+import { clearHandlerBudget } from './handlerBudget.js';
 
 export const SCRIPTS_DIR = path.join(process.cwd(), 'scripts');
 const handles = new Map<string, ScriptHandle>();
@@ -53,8 +54,10 @@ function loadFile(filePath: string): void {
   handles.delete(name);
   // The file is about to be re-evaluated, so whatever the previous version
   // reported no longer describes the code on disk. Clearing here is what makes
-  // the editor's markers disappear once a fix is saved.
+  // the editor's markers disappear once a fix is saved, and what gives a
+  // handler disabled for overrunning its budget another chance.
   clearScriptErrors(name);
+  clearHandlerBudget(name);
 
   let code: string | null;
   try {
@@ -74,6 +77,7 @@ function unloadFile(name: string): void {
   handles.get(name)?.cleanup();
   handles.delete(name);
   clearScriptErrors(name);
+  clearHandlerBudget(name);
   logger.info(`[scripting] Unloaded: ${name}`);
 }
 

@@ -227,6 +227,18 @@ export const config = {
     // remote code execution on the server (see the trust model in
     // engine/scripting/sandbox.ts), so it is off unless an operator opts in.
     editorEnabled: process.env.SCRIPT_EDITOR_ENABLED === 'true',
+    // How long one script handler may take before it counts as slow, and how
+    // many slow runs it gets before it stops running. The budget is a fraction
+    // of the 50ms tick. It is measured, not enforced: a handler that never
+    // returns cannot be interrupted from inside (handlerBudget.ts).
+    handlerBudgetMs: parseIntEnv('SCRIPT_HANDLER_BUDGET_MS', 8, {
+      min: 1,
+      max: 1_000,
+    }),
+    handlerBudgetStrikes: parseIntEnv('SCRIPT_HANDLER_BUDGET_STRIKES', 5, {
+      min: 1,
+      max: 1_000,
+    }),
   },
   persistence: {
     playerSnapshotIntervalMs: parseIntEnv(

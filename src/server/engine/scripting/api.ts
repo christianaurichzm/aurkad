@@ -87,6 +87,7 @@ import {
 import { CharacterAction } from '../../../shared/types.js';
 import { logger } from '../../logger.js';
 import { recordScriptError, type ScriptErrorSource } from './scriptErrors.js';
+import { runWithBudget } from './handlerBudget.js';
 import {
   registerEntityBehavior,
   type EntityBehavior,
@@ -143,7 +144,7 @@ export function buildApi(
   ): () => void {
     return () => {
       try {
-        fn();
+        runWithBudget(scriptName, `${source}:${context}`, fn);
       } catch (e) {
         recordScriptError(scriptName, e, source, context);
         throw e;
@@ -154,7 +155,9 @@ export function buildApi(
   function safeOn(event: keyof HookMap, handler: AnyHandler): Cleanup {
     const wrapped = (payload: unknown) => {
       try {
-        handler(payload);
+        // Timed and, if it keeps overrunning, dropped: one slow handler on a
+        // hot hook like `tick` costs the whole server its frame.
+        runWithBudget(scriptName, `on:${event}`, () => handler(payload));
       } catch (e) {
         logger.error(`[script:${scriptName}] hook handler threw`, {
           event,
@@ -614,7 +617,9 @@ export function buildApi(
       const handler =
         typeof optsOrHandler === 'function' ? optsOrHandler : maybeHandler;
       if (!handler) return;
-      const unregister = registerCommand(String(name), opts, handler);
+      const unregister = registerCommand(String(name), opts, (ctx) => {
+        runWithBudget(scriptName, `command:${name}`, () => handler(ctx));
+      });
       trackUnsub(unregister);
     },
 
