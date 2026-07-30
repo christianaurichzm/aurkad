@@ -88,14 +88,23 @@ export const ScriptEditor: React.FC<{ height?: number }> = ({
   const [status, setStatus] = useState('');
   const [newName, setNewName] = useState('');
   const [errors, setErrors] = useState<ScriptError[]>([]);
+  const [unavailable, setUnavailable] = useState(false);
   const editorRef = useRef<monaco.editor.IStandaloneCodeEditor | null>(null);
   const dirty = content !== savedContent;
   const fileErrors = errors.filter((e) => e.script === selected);
 
   const refreshFiles = () =>
     listScripts()
-      .then(setFiles)
-      .catch(() => setFiles([]));
+      .then((list) => {
+        setFiles(list);
+        setUnavailable(false);
+      })
+      .catch((err: { status?: number }) => {
+        setFiles([]);
+        // With the editor disabled the routes are not mounted, so a 404 means
+        // switched off, not no scripts.
+        setUnavailable(err?.status === 404);
+      });
 
   const refreshErrors = () => getScriptErrors().then(setErrors);
 
@@ -212,6 +221,13 @@ export const ScriptEditor: React.FC<{ height?: number }> = ({
     <div style={{ ...wrap, height }}>
       <div style={sidebar}>
         <div style={fileList}>
+          {unavailable && (
+            <p style={disabledNote}>
+              Script editor is off. Set <code>SCRIPT_EDITOR_ENABLED=true</code>{' '}
+              and restart the server - saving a script here runs it on the
+              server, so it is opt-in.
+            </p>
+          )}
           {files.map((f) => (
             <div
               key={f.name}
@@ -322,6 +338,13 @@ const sidebar: React.CSSProperties = {
 const fileList: React.CSSProperties = {
   flex: 1,
   overflowY: 'auto',
+};
+const disabledNote: React.CSSProperties = {
+  fontSize: 11,
+  lineHeight: 1.4,
+  color: colors.textMuted,
+  padding: '8px 10px',
+  margin: 0,
 };
 const fileRow: React.CSSProperties = {
   display: 'flex',

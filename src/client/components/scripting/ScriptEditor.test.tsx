@@ -99,6 +99,25 @@ beforeEach(() => {
 });
 
 describe('ScriptEditor', () => {
+  // With the editor disabled the routes 404, which must read as switched
+  // off, not as an empty file list.
+  it('says the editor is switched off instead of showing nothing', async () => {
+    mocks.listScripts.mockRejectedValue({ status: 404 });
+    render(<ScriptEditor />);
+
+    expect(
+      await screen.findByText(/SCRIPT_EDITOR_ENABLED/),
+    ).toBeInTheDocument();
+  });
+
+  it('does not blame the setting for an unrelated failure', async () => {
+    mocks.listScripts.mockRejectedValue({ status: 500 });
+    render(<ScriptEditor />);
+
+    await waitFor(() => expect(mocks.listScripts).toHaveBeenCalled());
+    expect(screen.queryByText(/SCRIPT_EDITOR_ENABLED/)).not.toBeInTheDocument();
+  });
+
   it('lists script files', async () => {
     render(<ScriptEditor />);
     expect(await screen.findByText('a.js')).toBeInTheDocument();

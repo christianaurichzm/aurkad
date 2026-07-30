@@ -21,12 +21,18 @@ export default defineConfig({
       "/login": { target: "http://localhost:8080", changeOrigin: true },
       "/register": { target: "http://localhost:8080", changeOrigin: true },
 
-      // Content
+      // Content. This list is an allowlist, not a prefix match: an endpoint the
+      // client calls but nobody adds here is served Vite's index.html in dev
+      // and only works in a production build, where both sides share an origin.
       "/items": { target: "http://localhost:8080", changeOrigin: true },
       "/npcs": { target: "http://localhost:8080", changeOrigin: true },
       "/shops": { target: "http://localhost:8080", changeOrigin: true },
       "/shop": { target: "http://localhost:8080", changeOrigin: true },
       "/maps": { target: "http://localhost:8080", changeOrigin: true },
+      "/loot": { target: "http://localhost:8080", changeOrigin: true },
+      "/spells": { target: "http://localhost:8080", changeOrigin: true },
+      "/arrows": { target: "http://localhost:8080", changeOrigin: true },
+      "/behaviors": { target: "http://localhost:8080", changeOrigin: true },
 
       // Editors
       "/saveMap": { target: "http://localhost:8080", changeOrigin: true },
