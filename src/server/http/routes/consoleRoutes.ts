@@ -21,7 +21,7 @@ export function createConsoleRouter() {
   router.post(
     '/admin/console',
     checkAccess(Access.MOD),
-    (req: ExtendedRequest, res: Response) => {
+    async (req: ExtendedRequest, res: Response) => {
       const body = parseBody(ConsoleCommandBodySchema, req.body, res);
       if (!body) return;
 
@@ -33,7 +33,9 @@ export function createConsoleRouter() {
 
       const accessLevel = req.session.accessLevel ?? Access.USER;
       const output: string[] = [];
-      const matched = handleWebCommand(
+      // Awaited: a command that reads the database replies after its first
+      // await, and those lines belong in this response, not after it.
+      const matched = await handleWebCommand(
         name,
         args,
         accessLevel,

@@ -137,6 +137,30 @@ export const config = {
       max: 10_000_000,
     }),
   },
+  economy: {
+    // How often every item in the world is counted, and how long counts are
+    // kept. The job walks every player document, so it runs rarely: whether a
+    // total moved beyond what loot and spending explain is asked in hours.
+    censusIntervalMinutes: parseIntEnv('ECONOMY_CENSUS_INTERVAL_MINUTES', 60, {
+      min: 5,
+      max: 24 * 60,
+    }),
+    censusRetentionDays: parseIntEnv('ECONOMY_CENSUS_RETENTION_DAYS', 30, {
+      min: 1,
+      max: 365,
+    }),
+    // A total that grows by more than this multiple between two counts is
+    // logged as suspicious. Loot mints items, so the floor below keeps a few
+    // new potions from tripping it.
+    censusAlertGrowth: parseIntEnv('ECONOMY_CENSUS_ALERT_GROWTH_PERCENT', 100, {
+      min: 10,
+      max: 100_000,
+    }),
+    censusAlertFloor: parseIntEnv('ECONOMY_CENSUS_ALERT_MIN_CHANGE', 100, {
+      min: 1,
+      max: 1_000_000,
+    }),
+  },
   audit: {
     // How long the administrative trail is kept. MongoDB expires the entries
     // itself (TTL index), so the collection stays bounded on a server nobody

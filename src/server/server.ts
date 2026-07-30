@@ -48,6 +48,7 @@ import { loadKvStore, startKvStore } from './persistence/kvStore.js';
 import { getAllPlayers } from './sim/world.js';
 import { persistPlayersOnShutdown } from './services/player/playerService.js';
 import { startPlayerSnapshotLoop } from './persistence/playerSnapshot.js';
+import { startCensusJob } from './services/economy/censusJob.js';
 import { logger } from './logger.js';
 import { startAdminRepl } from './admin/repl.js';
 import { loadScripts, unloadAllScripts } from './engine/scripting/index.js';
@@ -107,6 +108,7 @@ if (config.nodeEnv === 'production') {
 const server = createServer(app);
 let stopGameLoops: (() => void) | undefined;
 let stopSnapshots: (() => void) | undefined;
+let stopCensus: (() => void) | undefined;
 let stopKv: (() => Promise<void>) | undefined;
 let heartbeatTimer: ReturnType<typeof setInterval> | undefined;
 
@@ -141,6 +143,7 @@ async function startServer() {
     startWebSocketServer(server, sessionMiddleware);
     stopGameLoops = startGameLoops();
     stopSnapshots = startPlayerSnapshotLoop();
+    stopCensus = startCensusJob();
     if (process.env.REPLAY_RECORD === 'true') {
       startRecording();
       logger.info('[Replay] Session recording started');
@@ -172,6 +175,7 @@ async function shutdown(signal: string) {
 
   stopGameLoops?.();
   stopSnapshots?.();
+  stopCensus?.();
   clearInterval(heartbeatTimer);
   if (config.instance.wsPublicUrl) {
     await deregisterInstance(config.instance.wsPublicUrl).catch(

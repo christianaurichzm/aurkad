@@ -17,6 +17,13 @@ export interface CommandContext {
   source: 'chat' | 'repl' | 'web';
 }
 
+/**
+ * A handler may be async, and a caller that can wait should. The web console
+ * serialises the replies into one response, so a reply after the first await,
+ * as from a command that reads the database, would be lost otherwise.
+ */
+export type CommandResult = void | Promise<void>;
+
 export interface CommandOptions {
   access?: Access; // minimum access for CHAT invocation (REPL bypasses)
   description?: string;
@@ -31,7 +38,7 @@ interface CommandDef {
   access: number;
   description: string;
   canRun?: (player: PlayerServer) => boolean;
-  handler: (ctx: CommandContext) => void;
+  handler: (ctx: CommandContext) => CommandResult;
 }
 
 const commands = new Map<string, CommandDef>();
@@ -39,7 +46,7 @@ const commands = new Map<string, CommandDef>();
 export function registerCommand(
   name: string,
   options: CommandOptions,
-  handler: (ctx: CommandContext) => void,
+  handler: (ctx: CommandContext) => CommandResult,
 ): () => void {
   const key = name.toLowerCase();
   commands.set(key, {
@@ -102,13 +109,17 @@ function runHandler(
   // Chat carries the player; the web console knows its session; the terminal
   // has no account behind it, which is itself worth recording as such.
   actor = ctx.player?.name ?? 'console',
-): void {
+): CommandResult {
   auditCommand(cmd, ctx, actor);
-  try {
-    cmd.handler(ctx);
-  } catch (e) {
+  const failed = (e: unknown) => {
     logger.error(`[command] "${cmd.name}" threw`, { err: e });
     ctx.reply('Command error.');
+  };
+  try {
+    return Promise.resolve(cmd.handler(ctx)).catch(failed);
+  } catch (e) {
+    failed(e);
+    return undefined;
   }
 }
 
@@ -159,16 +170,18 @@ export function handleReplCommand(
   return true;
 }
 
-// Web console entry point: like the REPL, but the command's access level
-// is checked against the caller's, as a web session is trusted less than
-// the terminal. True when a command matched.
-export function handleWebCommand(
+/**
+ * Web console entry point: like the REPL, but the command's access level is
+ * checked against the caller's, as a web session is trusted less than the
+ * terminal. Async so the caller can await handlers that read the database.
+ */
+export async function handleWebCommand(
   name: string,
   args: string[],
   accessLevel: number,
   out: (message: string) => void,
   actor?: string,
-): boolean {
+): Promise<boolean> {
   const cmd = commands.get(name.toLowerCase());
   if (!cmd) return false;
   if (accessLevel < cmd.access) {
@@ -184,6 +197,6 @@ export function handleWebCommand(
     out(`You don't have permission to run "${name}".`);
     return true;
   }
-  runHandler(cmd, { args, reply: out, source: 'web' }, actor);
+  await runHandler(cmd, { args, reply: out, source: 'web' }, actor);
   return true;
 }

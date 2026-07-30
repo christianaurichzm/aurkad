@@ -1,4 +1,5 @@
 import { registerCommand } from '../engine/commands.js';
+import { isSuspicious, runCensus } from '../services/economy/censusJob.js';
 import { Access } from '../../shared/types.js';
 import { serverState, type ServerMode } from '../services/world/serverState.js';
 import { handleChatAction } from '../services/comms/chatService.js';
@@ -102,5 +103,49 @@ export function registerServerCommands(): void {
       serverState.mutes.delete(name);
       reply(`${name} unmuted.`);
     },
+  );
+
+  // The operator surface for reconciliation: it runs from the dashboard
+  // console and from in-game chat, and lands in the audit trail like any other
+  // admin command, so "who checked the economy and when" is answerable too.
+  registerCommand(
+    'economy',
+    {
+      access: Access.ADMIN,
+      description:
+        'Count every item in the world and compare with the last count',
+    },
+    // Returns the promise rather than firing and forgetting: the web console
+    // waits for it, and a dropped reply would leave "Counting..." on the
+    // operator's screen forever.
+    ({ reply }) =>
+      runCensus()
+        .then(({ census, deltas }) => {
+          const distinct = census.items.length;
+          const totals = census.items.reduce((sum, i) => sum + i.total, 0);
+          reply(
+            `${totals} items of ${distinct} kinds across ${census.players} players.`,
+          );
+
+          if (deltas.length === 0) {
+            return reply('No change since the previous count.');
+          }
+
+          const flagged = deltas.filter(isSuspicious);
+          for (const delta of (flagged.length ? flagged : deltas).slice(0, 5)) {
+            const who = delta.topHolders
+              .map((h) => `${h.name} x${h.quantity}`)
+              .join(', ');
+            reply(
+              `item ${delta.itemId}: ${delta.before} -> ${delta.after} ` +
+                `(${delta.change > 0 ? '+' : ''}${delta.change})` +
+                (who ? ` | top: ${who}` : ''),
+            );
+          }
+          if (flagged.length) {
+            reply(`${flagged.length} above the alert threshold.`);
+          }
+        })
+        .catch(() => reply('Census failed; see the server log.')),
   );
 }
