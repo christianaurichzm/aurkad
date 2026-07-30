@@ -338,3 +338,91 @@ describe('BuyShopItemBodySchema', () => {
     ).toBe(false);
   });
 });
+
+// The write boundary for behaviour params. A script's declaration is not a
+// licence to write anything into a content document: these land in a Mixed
+// Mongoose field that is loaded on every content read.
+describe('script params on content', () => {
+  const npc = {
+    name: 'Goblin',
+    sprite: 1,
+    maxHealth: 100,
+    attack: 10,
+    behavior: 'aggressive',
+    scriptId: 'chest',
+  };
+
+  it('accepts the scalars a form field can hold', () => {
+    const result = CreateNpcBodySchema.safeParse({
+      ...npc,
+      scriptParams: { itemId: 3, message: 'hi', once: true },
+    });
+    expect(result.success).toBe(true);
+    expect(result.success && result.data.scriptParams).toEqual({
+      itemId: 3,
+      message: 'hi',
+      once: true,
+    });
+  });
+
+  it('rejects a nested object, which no param type can hold', () => {
+    expect(
+      CreateNpcBodySchema.safeParse({
+        ...npc,
+        scriptParams: { reward: { itemId: 3 } },
+      }).success,
+    ).toBe(false);
+  });
+
+  it('rejects a string over the length cap', () => {
+    expect(
+      CreateNpcBodySchema.safeParse({
+        ...npc,
+        scriptParams: { message: 'x'.repeat(513) },
+      }).success,
+    ).toBe(false);
+  });
+
+  it('rejects more keys than any declaration can have', () => {
+    const tooMany = Object.fromEntries(
+      Array.from({ length: 33 }, (_, i) => [`k${i}`, 1]),
+    );
+    expect(
+      CreateNpcBodySchema.safeParse({ ...npc, scriptParams: tooMany }).success,
+    ).toBe(false);
+  });
+
+  it('accepts the same values on an item and a script tile', () => {
+    expect(
+      CreateItemBodySchema.safeParse({
+        name: 'Scroll',
+        sprite: 1,
+        type: 'consumable',
+        scriptId: 'teleport',
+        scriptParams: { mapId: 'town', col: 9 },
+      }).success,
+    ).toBe(true);
+
+    expect(
+      SaveMapBodySchema.safeParse({
+        mapId: 'town',
+        name: 'Town',
+        type: 'normal',
+        tiles: [
+          [
+            {
+              tileIndex: 0,
+              triggers: [
+                {
+                  action: 'script',
+                  scriptId: 'chest',
+                  scriptParams: { itemId: 3 },
+                },
+              ],
+            },
+          ],
+        ],
+      }).success,
+    ).toBe(true);
+  });
+});

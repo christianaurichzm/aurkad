@@ -1,4 +1,5 @@
 import { EQUIPMENT_SLOTS } from './constants.js';
+import type { ScriptParams } from './scriptParams.js';
 
 export enum Key {
   ArrowUp = 'ArrowUp',
@@ -98,6 +99,8 @@ export interface Item {
   bound?: boolean;
   // Names a behaviour a script registered with attach(); runs on use.
   scriptId?: string;
+  // Values for the params that behaviour declares (shared/scriptParams.ts).
+  scriptParams?: ScriptParams;
 }
 
 /**
@@ -217,6 +220,10 @@ export interface PersistentNpc extends CharacterBase {
   // on death. This is what lets a designer wire a boss to its logic in the
   // editor instead of the script matching on npc ids.
   scriptId?: string;
+  // Values for the params that behaviour declares, so two NPCs can share
+  // one behaviour with different settings. Only declared keys are honoured,
+  // as shared/scriptParams.ts defines.
+  scriptParams?: ScriptParams;
 }
 
 export interface RuntimeNpc extends PersistentNpc, CharacterRuntime {
@@ -335,7 +342,7 @@ export type TileAction =
   | { action: 'message'; text: string }
   | { action: 'sound'; file: string }
   | { action: 'changeSprite'; spriteId: number }
-  | { action: 'script'; scriptId: string };
+  | { action: 'script'; scriptId: string; scriptParams?: ScriptParams };
 
 export interface Tile {
   tileIndex: number;

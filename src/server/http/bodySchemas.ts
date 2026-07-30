@@ -7,8 +7,29 @@ import {
   type EffectType,
 } from '../../shared/types.js';
 import { EQUIPMENT_SLOTS } from '../../shared/constants.js';
+import { SCRIPT_PARAM_LIMITS } from '../../shared/scriptParams.js';
 
 const PositionSchema = z.object({ x: z.number(), y: z.number() });
+
+/**
+ * Values a designer filled in for a behaviour's declared params, bounded:
+ * this lands in a Mixed Mongoose field loaded on every content read. Keys
+ * are checked against the declaration in contentValidation and undeclared
+ * ones dropped at dispatch; this only keeps the blob small.
+ */
+export const ScriptParamsSchema = z
+  .record(
+    z.string().min(1).max(SCRIPT_PARAM_LIMITS.maxKeyLength),
+    z.union([
+      z.string().max(SCRIPT_PARAM_LIMITS.maxStringLength),
+      z.number().finite(),
+      z.boolean(),
+    ]),
+  )
+  .refine(
+    (params) => Object.keys(params).length <= SCRIPT_PARAM_LIMITS.maxKeys,
+    `at most ${SCRIPT_PARAM_LIMITS.maxKeys} script params`,
+  );
 const AccessSchema = z.nativeEnum(Access);
 const MapTypeSchema = z.enum(['pvp', 'normal']);
 const PvpMoraleSchema = z.enum(['safe', 'normal', 'no-penalty']);
@@ -49,7 +70,11 @@ export const TileActionSchema = z.discriminatedUnion('action', [
     action: z.literal('changeSprite'),
     spriteId: z.number().int().nonnegative(),
   }),
-  z.object({ action: z.literal('script'), scriptId: z.string().min(1) }),
+  z.object({
+    action: z.literal('script'),
+    scriptId: z.string().min(1),
+    scriptParams: ScriptParamsSchema.optional(),
+  }),
 ]);
 
 const DoorSchema = z.object({
@@ -171,6 +196,7 @@ export const CreateNpcBodySchema = z.object({
   itemsToDrop: z.array(NpcItemDropSchema).optional(),
   lootTableId: z.string().optional(),
   scriptId: z.string().optional(),
+  scriptParams: ScriptParamsSchema.optional(),
 });
 
 export const CreateMapBodySchema = z.object({
@@ -221,6 +247,7 @@ export const CreateItemBodySchema = z.object({
   arrowId: z.number().int().positive().optional(),
   bound: z.boolean().optional(),
   scriptId: z.string().optional(),
+  scriptParams: ScriptParamsSchema.optional(),
 });
 
 const LootQuantitySchema = z.union([

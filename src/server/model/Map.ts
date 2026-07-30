@@ -34,6 +34,7 @@ const TileActionSchema = new mongoose.Schema(
     file: String,
     spriteId: Number,
     scriptId: String,
+    scriptParams: { type: mongoose.Schema.Types.Mixed },
   },
   { _id: false },
 );

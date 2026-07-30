@@ -261,3 +261,105 @@ describe('a behavior that throws', () => {
     handle.cleanup();
   });
 });
+
+// The payoff of declaring params: two pieces of content share one behavior and
+// differ only in what the designer filled in.
+describe('exported params', () => {
+  it('gives each tile its own configuration of one behavior', () => {
+    const sim = createFixture(0);
+    const handle = script(`
+      attach('chest', {
+        params: {
+          itemId: { type: 'item', required: true },
+          quantity: { type: 'number', default: 1 },
+          message: { type: 'text', default: 'nothing special' },
+        },
+        onEnter({ params }) { record(params); },
+      });
+    `);
+
+    sim.map.tiles[2]![2] = {
+      tileIndex: 0,
+      triggers: [
+        {
+          action: 'script',
+          scriptId: 'chest',
+          scriptParams: { itemId: 5, quantity: 3, message: 'A sword!' },
+        },
+      ],
+    };
+    sim.map.tiles[3]![2] = {
+      tileIndex: 0,
+      triggers: [
+        { action: 'script', scriptId: 'chest', scriptParams: { itemId: 9 } },
+      ],
+    };
+    sim.addPlayer({ name: 'Alice', position: tile(2, 1) });
+    rebuildQuadtree(sim.mapId, sim.map);
+
+    // Walks over both tiles with the key held down.
+    sim.press('Alice', Key.ArrowDown);
+    sim.step(20);
+
+    expect(calls.log).toEqual([
+      { itemId: 5, quantity: 3, message: 'A sword!' },
+      // The second tile filled in only the required field, so the declared
+      // defaults cover the rest.
+      { itemId: 9, quantity: 1, message: 'nothing special' },
+    ]);
+
+    handle.cleanup();
+  });
+
+  it('passes an item behavior the values stored on the item', async () => {
+    const sim = createFixture(0);
+    const handle = script(`
+      attach('scroll', {
+        params: { mapId: { type: 'map' }, col: { type: 'number' } },
+        onUse({ params }) { record(params.mapId + ':' + params.col); },
+      });
+    `);
+
+    const scroll: Item = {
+      id: 1,
+      name: 'Scroll',
+      description: '',
+      sprite: 0,
+      type: 'consumable',
+      scriptId: 'scroll',
+      scriptParams: { mapId: 'town', col: 9 },
+    };
+    items.set(1, scroll);
+    sim.addPlayer({
+      name: 'Alice',
+      inventory: { items: [{ item: 1, quantity: 1 }], maxCapacity: 10 },
+    });
+
+    await useItem('Alice', 1);
+
+    expect(calls.log).toEqual(['town:9']);
+
+    handle.cleanup();
+  });
+
+  // Loud where a script author will see it, rather than a field that never
+  // appears in the editor and a param that reads undefined at runtime.
+  it('reports a malformed declaration as a load error, with its line', () => {
+    createFixture(0);
+    script(
+      [
+        `attach('chest', {`,
+        `  params: { itemId: { type: 'sprite' } },`,
+        `  onEnter() {},`,
+        `});`,
+      ].join('\n'),
+      'chest.js',
+    );
+
+    expect(getScriptErrors('chest.js')[0]).toMatchObject({
+      source: 'load',
+      line: 1,
+    });
+    expect(getScriptErrors('chest.js')[0]?.message).toContain('unknown type');
+  });
+});

@@ -8,7 +8,13 @@ import type {
   Arrow,
   LootTable,
 } from '../../../../shared/types';
+import type { ScriptBehaviorDescriptor } from '../../../../shared/scriptParams';
 import { httpClient } from './httpClient';
+
+// Saves answer with `warnings`: references the game cannot resolve, like an
+// unknown behaviour or a param that no longer fits. They never block a save,
+// so the editor shows them.
+type Saved<T> = T & { warnings?: string[] };
 
 export const fetchNpcs = async (): Promise<RuntimeNpc[]> => {
   return (await httpClient<RuntimeNpc[]>('/npcs', { method: 'GET' })) || [];
@@ -19,8 +25,8 @@ export const createNpc = async (
     RuntimeNpc,
     'name' | 'sprite' | 'maxHealth' | 'attack' | 'behavior' | 'experienceValue'
   >,
-): Promise<RuntimeNpc | null> => {
-  return httpClient<RuntimeNpc>('/npcs', {
+): Promise<Saved<RuntimeNpc> | null> => {
+  return httpClient<Saved<RuntimeNpc>>('/npcs', {
     method: 'POST',
     body: npc,
   });
@@ -29,8 +35,8 @@ export const createNpc = async (
 export const updateNpc = async (
   id: string,
   npc: Partial<RuntimeNpc>,
-): Promise<RuntimeNpc | null> => {
-  return httpClient<RuntimeNpc>(`/npcs/${id}`, {
+): Promise<Saved<RuntimeNpc> | null> => {
+  return httpClient<Saved<RuntimeNpc>>(`/npcs/${id}`, {
     method: 'PUT',
     body: npc,
   });
@@ -48,8 +54,8 @@ export const fetchItems = async (): Promise<Item[]> => {
 
 export const createItem = async (
   item: Omit<Item, 'id'>,
-): Promise<Item | null> => {
-  return httpClient<Item>('/items', {
+): Promise<Saved<Item> | null> => {
+  return httpClient<Saved<Item>>('/items', {
     method: 'POST',
     body: item,
   });
@@ -58,8 +64,8 @@ export const createItem = async (
 export const updateItem = async (
   id: number,
   item: Partial<Item>,
-): Promise<Item | null> => {
-  return httpClient<Item>(`/items/${id}`, {
+): Promise<Saved<Item> | null> => {
+  return httpClient<Saved<Item>>(`/items/${id}`, {
     method: 'PUT',
     body: item,
   });
@@ -158,8 +164,8 @@ export const listLootTables = async (): Promise<LootTable[]> => {
 
 export const saveLootTable = async (
   table: LootTable,
-): Promise<(LootTable & { warnings?: string[] }) | null> => {
-  return httpClient<LootTable & { warnings?: string[] }>('/loot', {
+): Promise<Saved<LootTable> | null> => {
+  return httpClient<Saved<LootTable>>('/loot', {
     method: 'POST',
     body: table,
   });
@@ -167,4 +173,16 @@ export const saveLootTable = async (
 
 export const deleteLootTable = async (id: string): Promise<void> => {
   await httpClient(`/loot/${encodeURIComponent(id)}`, { method: 'DELETE' });
+};
+
+/**
+ * Behaviours scripts registered with attach(), with the params each one
+ * declares. Not cached, since a script reload changes the list.
+ */
+export const fetchBehaviors = async (): Promise<ScriptBehaviorDescriptor[]> => {
+  return (
+    (await httpClient<ScriptBehaviorDescriptor[]>('/behaviors', {
+      method: 'GET',
+    })) ?? []
+  );
 };

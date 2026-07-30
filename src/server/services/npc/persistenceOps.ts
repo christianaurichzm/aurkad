@@ -27,7 +27,11 @@ export async function createOrUpdateNpc(
  * present: without an unset, a cleared field would seem to save and come
  * back on the next load.
  */
-const CLEARABLE_NPC_FIELDS = ['lootTableId', 'scriptId'] as const;
+const CLEARABLE_NPC_FIELDS = [
+  'lootTableId',
+  'scriptId',
+  'scriptParams',
+] as const;
 
 export async function updateNpcAll(
   id: string,
@@ -70,12 +74,19 @@ export async function refreshNpcInRuntime(id: string): Promise<void> {
     // map document first) has no npcs bag yet.
     for (const [runtimeId, npc] of Object.entries(map.npcs ?? {})) {
       if ((npc.templateId ?? npc.id) === id) {
-        map.npcs[runtimeId] = {
+        const merged = {
           ...map.npcs[runtimeId]!,
           ...updated,
           health: updated.maxHealth,
           action: CharacterAction.Idle,
         };
+        // The spread cannot express removal, for the same reason $unset exists
+        // above: a field the editor cleared is absent from the document, so the
+        // live npc would keep the old value until the next restart.
+        for (const field of CLEARABLE_NPC_FIELDS) {
+          if (updated[field] === undefined) delete merged[field];
+        }
+        map.npcs[runtimeId] = merged;
         resetNpcAi(npc);
       }
     }

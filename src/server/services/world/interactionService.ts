@@ -58,5 +58,10 @@ export function handleInteract(player: PlayerServer): void {
   emit('npcInteract', { player, npc });
   // The hook fires first so global listeners (modules) still see every
   // interaction; the attached behaviour then runs for this npc specifically.
-  dispatchEntityScript(npc.scriptId, 'onInteract', { player, npc });
+  dispatchEntityScript(
+    npc.scriptId,
+    'onInteract',
+    { player, npc },
+    npc.scriptParams,
+  );
 }

@@ -53,6 +53,7 @@ export {
   listLootTables,
   saveLootTable,
   deleteLootTable,
+  fetchBehaviors,
 } from './http/contentClient';
 
 // Admin console

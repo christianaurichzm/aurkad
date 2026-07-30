@@ -3,7 +3,8 @@ import {
   registerEntityBehavior,
   dispatchEntityScript,
   getEntityBehavior,
-  knownBehaviorIds,
+  registeredBehaviorParams,
+  describeBehaviors,
   clearEntityBehaviors,
 } from './entityScripts.js';
 import { getScriptErrors, clearScriptErrors } from './scriptErrors.js';
@@ -21,7 +22,7 @@ describe('registerEntityBehavior', () => {
     registerEntityBehavior('trap', behavior, 'traps.js');
 
     expect(getEntityBehavior('trap')).toBe(behavior);
-    expect(knownBehaviorIds()).toEqual(new Set(['trap']));
+    expect([...registeredBehaviorParams().keys()]).toEqual(['trap']);
   });
 
   it('returns a detach that removes it', () => {
@@ -74,14 +75,14 @@ describe('dispatchEntityScript', () => {
     expect(onEnter).toHaveBeenCalledTimes(1);
   });
 
-  it('passes the context straight through', () => {
+  it('passes the context through, plus the resolved params', () => {
     const onInteract = vi.fn();
     registerEntityBehavior('sage', { onInteract }, 'npcs.js');
     const ctx = { player: { name: 'Alice' }, npc: { id: 'n1' } };
 
     dispatchEntityScript('sage', 'onInteract', ctx as never);
 
-    expect(onInteract).toHaveBeenCalledWith(ctx);
+    expect(onInteract).toHaveBeenCalledWith({ ...ctx, params: {} });
   });
 
   it('does nothing for an entity with no scriptId', () => {
@@ -164,18 +165,140 @@ describe('dispatchEntityScript', () => {
   });
 });
 
-describe('knownBehaviorIds', () => {
-  it('lists every registered id, for validating content that names them', () => {
-    registerEntityBehavior('a', {}, 'x.js');
+// One behaviour, many configured instances: the values come from whichever
+// npc/item/tile invoked it, so what a handler must never see is a value the
+// declaration does not describe.
+describe('declared params', () => {
+  it('hands the content values to the handler, coerced to the declared type', () => {
+    const onEnter = vi.fn();
+    registerEntityBehavior(
+      'chest',
+      { params: { itemId: { type: 'item' } }, onEnter },
+      'chest.js',
+    );
+
+    dispatchEntityScript('chest', 'onEnter', anyCtx, { itemId: '7' });
+
+    expect(onEnter.mock.calls[0]?.[0]).toMatchObject({ params: { itemId: 7 } });
+  });
+
+  it('gives two pieces of content their own values from one behavior', () => {
+    const onEnter = vi.fn();
+    registerEntityBehavior(
+      'chest',
+      { params: { itemId: { type: 'item' } }, onEnter },
+      'chest.js',
+    );
+
+    dispatchEntityScript('chest', 'onEnter', anyCtx, { itemId: 1 });
+    dispatchEntityScript('chest', 'onEnter', anyCtx, { itemId: 2 });
+
+    expect(onEnter.mock.calls.map((c) => c[0].params.itemId)).toEqual([1, 2]);
+  });
+
+  it('applies the declared default when content stored nothing', () => {
+    const onEnter = vi.fn();
+    registerEntityBehavior(
+      'chest',
+      { params: { quantity: { type: 'number', default: 3 } }, onEnter },
+      'chest.js',
+    );
+
+    dispatchEntityScript('chest', 'onEnter', anyCtx, undefined);
+
+    expect(onEnter.mock.calls[0]?.[0].params).toEqual({ quantity: 3 });
+  });
+
+  it('drops a stored key the behavior no longer declares', () => {
+    const onEnter = vi.fn();
+    registerEntityBehavior(
+      'chest',
+      { params: { itemId: { type: 'item' } }, onEnter },
+      'chest.js',
+    );
+
+    dispatchEntityScript('chest', 'onEnter', anyCtx, {
+      itemId: 1,
+      renamedAway: 5,
+    });
+
+    expect(onEnter.mock.calls[0]?.[0].params).toEqual({ itemId: 1 });
+  });
+
+  // A behaviour may treat a param as optional in one path and required in
+  // another, so this runs and logs: refusing would be the silent failure the
+  // mechanism exists to avoid.
+  it('still runs when a required param is empty', () => {
+    const onEnter = vi.fn();
+    registerEntityBehavior(
+      'chest',
+      { params: { itemId: { type: 'item', required: true } }, onEnter },
+      'chest.js',
+    );
+
+    expect(dispatchEntityScript('chest', 'onEnter', anyCtx, {})).toBe(true);
+    expect(onEnter.mock.calls[0]?.[0].params).toEqual({});
+  });
+
+  // Loud at load time, and the only place it can be loud: the field would
+  // otherwise be missing from the editor and undefined in the handler.
+  it('refuses to register a malformed declaration', () => {
+    expect(() =>
+      registerEntityBehavior(
+        'chest',
+        { params: { itemId: { type: 'sprite' } } },
+        'chest.js',
+      ),
+    ).toThrow(/invalid params declaration/);
+
+    expect(getEntityBehavior('chest')).toBeUndefined();
+  });
+});
+
+describe('describeBehaviors', () => {
+  it('reports the events implemented and the params declared, sorted by id', () => {
+    registerEntityBehavior('sage', { onInteract: vi.fn() }, 'npcs.js');
+    registerEntityBehavior(
+      'chest',
+      {
+        params: { itemId: { type: 'item', label: 'Reward' } },
+        onEnter: vi.fn(),
+        onUse: vi.fn(),
+      },
+      'chest.js',
+    );
+
+    expect(describeBehaviors()).toEqual([
+      {
+        id: 'chest',
+        owner: 'chest.js',
+        events: ['onEnter', 'onUse'],
+        params: [{ key: 'itemId', type: 'item', label: 'Reward' }],
+      },
+      { id: 'sage', owner: 'npcs.js', events: ['onInteract'], params: [] },
+    ]);
+  });
+});
+
+describe('registeredBehaviorParams', () => {
+  it('lists every registered id with what it declares, for validating content', () => {
+    registerEntityBehavior(
+      'a',
+      { params: { qty: { type: 'number' } } },
+      'x.js',
+    );
     registerEntityBehavior('b', {}, 'y.js');
 
-    expect(knownBehaviorIds()).toEqual(new Set(['a', 'b']));
+    const registered = registeredBehaviorParams();
+    expect([...registered.keys()]).toEqual(['a', 'b']);
+    expect(registered.get('a')).toEqual([{ key: 'qty', type: 'number' }]);
+    expect(registered.get('b')).toEqual([]);
   });
 
   it('is a copy, so a caller cannot corrupt the registry', () => {
     registerEntityBehavior('a', {}, 'x.js');
-    knownBehaviorIds().add('fake');
+    (registeredBehaviorParams() as Map<string, never[]>).set('fake', []);
 
-    expect(knownBehaviorIds()).toEqual(new Set(['a']));
+    expect([...registeredBehaviorParams().keys()]).toEqual(['a']);
   });
 });

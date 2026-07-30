@@ -22,7 +22,7 @@ export function getItemById(id: number): Item | null {
  * to agree: a plain `findOneAndUpdate` only writes the keys present, so
  * clearing one in the editor would work until the next restart brought it back.
  */
-const CLEARABLE_ITEM_FIELDS = ['scriptId', 'arrowId'] as const;
+const CLEARABLE_ITEM_FIELDS = ['scriptId', 'scriptParams', 'arrowId'] as const;
 
 export async function createOrUpdateItem(
   item: Omit<Item, 'id'> & { id?: number },
@@ -149,7 +149,12 @@ export async function useItem(
     if (!invItem || invItem.quantity <= 0) return false;
 
     emit('itemUse', { player, itemId });
-    dispatchEntityScript(item.scriptId, 'onUse', { player, item, itemId });
+    dispatchEntityScript(
+      item.scriptId,
+      'onUse',
+      { player, item, itemId },
+      item.scriptParams,
+    );
     await applyItemEffects(player, itemId);
     removeItem(player.inventory, itemId, 1);
   } else {

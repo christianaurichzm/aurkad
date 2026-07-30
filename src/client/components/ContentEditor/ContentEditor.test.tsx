@@ -40,6 +40,7 @@ vi.mock('../../io/network', () => ({
   fetchItems: mocks.fetchItems,
   fetchMaps: mocks.fetchMaps,
   fetchShops: vi.fn().mockResolvedValue([]),
+  fetchBehaviors: vi.fn().mockResolvedValue([]),
   listLootTables: vi.fn().mockResolvedValue([]),
   saveLootTable: vi.fn(),
   deleteLootTable: vi.fn(),

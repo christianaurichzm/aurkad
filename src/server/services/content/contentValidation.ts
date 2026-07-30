@@ -5,6 +5,11 @@
 // dangling reference is a WARNING (it loads and the creator is told), and a
 // problem that makes data silently unrecoverable is an ERROR.
 
+import {
+  checkStoredParams,
+  type ScriptParamSpec,
+} from '../../../shared/scriptParams.js';
+
 export interface ContentValidationResult {
   errors: string[];
   warnings: string[];
@@ -14,6 +19,7 @@ interface ItemRef {
   id: number;
   name?: string;
   scriptId?: string | undefined;
+  scriptParams?: Record<string, unknown> | undefined;
 }
 // id is optional because the editor validates a document before it is saved,
 // and ids for new documents are assigned on persist.
@@ -23,6 +29,7 @@ interface NpcRef {
   itemsToDrop?: Array<{ itemId: number }> | undefined;
   lootTableId?: string | undefined;
   scriptId?: string | undefined;
+  scriptParams?: Record<string, unknown> | undefined;
 }
 interface LootTableRef {
   id?: string;
@@ -36,7 +43,13 @@ interface ShopRef {
   products?: Array<{ itemId: number }> | undefined;
 }
 interface TileRef {
-  triggers?: Array<{ action: string; scriptId?: string }> | undefined;
+  triggers?:
+    | Array<{
+        action: string;
+        scriptId?: string;
+        scriptParams?: Record<string, unknown> | undefined;
+      }>
+    | undefined;
 }
 interface MapRef {
   id?: string;
@@ -81,26 +94,45 @@ function checkDuplicateIds(
 }
 
 /**
- * Reports content naming a behaviour no script registered: a `script` tile
- * naming nothing would save clean and be ignored at runtime. Separate from
+ * Reports content naming a behaviour no script registered, and values that
+ * do not fit its declared params. Both save clean and do nothing at
+ * runtime: a `script` tile naming nothing is ignored, and a renamed param
+ * leaves content on the old key, which resolution drops. Separate from
  * `validateContentReferences`, since it runs only once scripts load.
  */
 export function validateScriptReferences(
   graph: ContentGraph,
-  registered: Set<string>,
+  registered: ReadonlyMap<string, ScriptParamSpec[]>,
 ): ContentValidationResult {
   const warnings: string[] = [];
 
-  const report = (where: string, scriptId: string | undefined): void => {
-    if (!scriptId || registered.has(scriptId)) return;
-    warnings.push(`${where} references unknown script behavior "${scriptId}".`);
+  const report = (
+    where: string,
+    scriptId: string | undefined,
+    scriptParams?: Record<string, unknown> | undefined,
+  ): void => {
+    if (!scriptId) return;
+    const specs = registered.get(scriptId);
+    if (!specs) {
+      warnings.push(
+        `${where} references unknown script behavior "${scriptId}".`,
+      );
+      return;
+    }
+    for (const problem of checkStoredParams(specs, scriptParams)) {
+      warnings.push(`${where} behavior "${scriptId}": ${problem}.`);
+    }
   };
 
   for (const npc of graph.npcs ?? []) {
-    report(`NPC ${label(npc.id, npc.name)}`, npc.scriptId);
+    report(`NPC ${label(npc.id, npc.name)}`, npc.scriptId, npc.scriptParams);
   }
   for (const item of graph.items ?? []) {
-    report(`Item ${label(String(item.id), item.name)}`, item.scriptId);
+    report(
+      `Item ${label(String(item.id), item.name)}`,
+      item.scriptId,
+      item.scriptParams,
+    );
   }
   for (const map of graph.maps ?? []) {
     for (const [row, tiles] of (map.tiles ?? []).entries()) {
@@ -110,6 +142,7 @@ export function validateScriptReferences(
           report(
             `Map ${label(map.id, map.name)} tile (${col}, ${row})`,
             trigger.scriptId,
+            trigger.scriptParams,
           );
         }
       }

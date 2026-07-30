@@ -35,6 +35,7 @@ const NpcSchema = new mongoose.Schema(
     itemsToDrop: [NpcItemDropSchema],
     lootTableId: { type: String },
     scriptId: { type: String },
+    scriptParams: { type: mongoose.Schema.Types.Mixed },
   },
   { _id: false },
 );

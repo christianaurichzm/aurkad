@@ -70,8 +70,12 @@ export function toMapChunk(
 // Positions are copied so the broadcast state never aliases the live entity
 // (the sim mutates it in place every tick).
 export function toNpcPublic(npc: RuntimeNpc): RuntimeNpc {
+  // scriptParams is the behaviour's server-side configuration: nothing on the
+  // client reads it, and as an object it would be stringified for the delta
+  // comparison of every npc, every tick, to prove it had not changed.
+  const { scriptParams: _scriptParams, ...rest } = npc;
   return {
-    ...npc,
+    ...rest,
     position: { ...npc.position },
     targetPosition: npc.targetPosition ? { ...npc.targetPosition } : undefined,
   };

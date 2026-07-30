@@ -10,6 +10,7 @@ import {
 } from '../../utils/domHelpers';
 import { TILE_SIZE } from '../../../shared/constants';
 import { MapType, Tile, TileAction, TileEditMode } from '../../../shared/types';
+import type { ScriptParams } from '../../../shared/scriptParams';
 import { tileset, tilesetAlpha } from '../../io/assets';
 import { saveMap, type SaveMapResponse, fetchNpcs } from '../../io/network';
 import { foregroundCanvas, foregroundCtx, maskCtx, fringeCtx } from '../canvas';
@@ -103,11 +104,27 @@ export const loadEditorNpcNames = async () => {
   }
 };
 
+// The script trigger's settings, pushed here by the mode controls. Params
+// are typed by their declaration, which only the React field knows, so
+// they cannot be read back from the DOM like other modes.
+let pendingScript: { scriptId: string; params: ScriptParams } = {
+  scriptId: '',
+  params: {},
+};
+
+export const setPendingScriptTrigger = (
+  scriptId: string,
+  params: ScriptParams,
+): void => {
+  pendingScript = { scriptId, params };
+};
+
 function toggleTrigger(
   tile: Tile,
   action: TileAction['action'],
   strParam?: string,
   numParam?: number,
+  params?: ScriptParams,
 ) {
   const triggers = tile.triggers ?? [];
   const i = triggers.findIndex((t) => t.action === action);
@@ -121,7 +138,12 @@ function toggleTrigger(
     } else if (action === 'changeSprite') {
       triggers.push({ action, spriteId: numParam ?? 0 });
     } else if (action === 'script') {
-      triggers.push({ action, scriptId: strParam ?? '' });
+      triggers.push({
+        action,
+        scriptId: strParam ?? '',
+        ...(params &&
+          Object.keys(params).length > 0 && { scriptParams: { ...params } }),
+      });
     } else {
       triggers.push({ action } as TileAction);
     }
@@ -302,9 +324,9 @@ const modes: Record<TileEditMode, ModeConfig> = {
   },
   script: {
     place: (row: number, col: number) => {
-      const scriptId = getInputValue('scriptId');
+      const { scriptId, params } = pendingScript;
       if (!scriptId) return;
-      toggleTrigger(map[row][col], 'script', scriptId);
+      toggleTrigger(map[row][col], 'script', scriptId, undefined, params);
       setMapEdited(true);
       renderMap(map);
     },

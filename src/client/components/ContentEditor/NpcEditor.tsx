@@ -11,6 +11,8 @@ import { chatResultMsg } from '../ChatPanel';
 import { AsyncSelect } from '../common/Select/AsyncSelect';
 import { ItemIcon } from '../Inventory/ItemIcon';
 import { SpritePreview } from '../common/SpritePreview';
+import { ScriptBehaviorFields } from './ScriptBehaviorFields';
+import type { ScriptParams } from '../../../shared/scriptParams';
 import { colors, radius } from '../../theme';
 
 interface NpcEditorProps {
@@ -32,6 +34,7 @@ type NpcFormValues = {
   behavior: NpcBehavior;
   exp: number;
   scriptId: string;
+  scriptParams: ScriptParams;
   lootTableId: string;
 };
 
@@ -43,6 +46,7 @@ const defaultValues: NpcFormValues = {
   behavior: 'neutral',
   exp: 0,
   scriptId: '',
+  scriptParams: {},
   lootTableId: '',
 };
 
@@ -54,6 +58,7 @@ const npcToFormValues = (npc: RuntimeNpc): NpcFormValues => ({
   behavior: npc.behavior,
   exp: npc.experienceValue ?? 0,
   scriptId: npc.scriptId ?? '',
+  scriptParams: npc.scriptParams ?? {},
   lootTableId: npc.lootTableId ?? '',
 });
 
@@ -80,9 +85,12 @@ export const NpcEditor: React.FC<NpcEditorProps> = ({
     handleSubmit,
     register,
     reset: resetForm,
+    setValue,
     watch,
   } = useForm<NpcFormValues>({ defaultValues });
   const sprite = watch('sprite');
+  const scriptId = watch('scriptId');
+  const scriptParams = watch('scriptParams');
 
   const [drops, setDrops] = useState<NpcItemDrop[]>([]);
   const [dropsBaseline, setDropsBaseline] = useState<NpcItemDrop[]>([]);
@@ -149,6 +157,7 @@ export const NpcEditor: React.FC<NpcEditorProps> = ({
     behavior,
     exp,
     scriptId,
+    scriptParams,
     lootTableId,
   }: NpcFormValues) => {
     const data = {
@@ -161,12 +170,22 @@ export const NpcEditor: React.FC<NpcEditorProps> = ({
       itemsToDrop: drops,
       // Empty means no behavior, rather than "" naming one nobody registers.
       scriptId: scriptId.trim() || undefined,
+      // Params without a behavior to read them are dead weight in the document.
+      scriptParams:
+        scriptId.trim() && Object.keys(scriptParams).length > 0
+          ? scriptParams
+          : undefined,
       lootTableId: lootTableId || undefined,
     };
     const result = selectedId
       ? await updateNpc(selectedId, data).catch(() => null)
       : await createNpc(data).catch(() => null);
     chatResultMsg(!!result, 'NPC saved!', 'Error saving NPC');
+    // Dangling references never block a save, so this is where their author
+    // hears about them.
+    for (const warning of result?.warnings ?? []) {
+      chatResultMsg(false, '', warning);
+    }
     refreshData();
     setSelectedId('');
     resetForm(defaultValues);
@@ -276,22 +295,23 @@ export const NpcEditor: React.FC<NpcEditorProps> = ({
               />
             </div>
           </div>
-          <div style={field}>
-            <label
-              style={label}
-              title="Name of a behavior registered with attach() in a script"
-            >
-              Script behavior
-            </label>
-            <input
-              style={input}
-              type="text"
-              placeholder="e.g. quest-giver"
-              {...register('scriptId')}
-            />
-          </div>
         </div>
       </div>
+
+      <ScriptBehaviorFields
+        events={['onInteract', 'onDeath']}
+        scriptId={scriptId}
+        onScriptIdChange={(value) =>
+          setValue('scriptId', value, { shouldDirty: true })
+        }
+        params={scriptParams}
+        onParamsChange={(value) =>
+          setValue('scriptParams', value, { shouldDirty: true })
+        }
+        hint="Runs when a player talks to this NPC, and when it dies"
+        loadItems={loadItems}
+        loadNpcs={loadNpcs}
+      />
 
       <div style={dropSection}>
         <label style={{ ...label, marginBottom: 6, display: 'block' }}>

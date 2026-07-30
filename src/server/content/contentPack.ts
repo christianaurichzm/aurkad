@@ -2,7 +2,7 @@ import fs from 'fs';
 import path from 'path';
 import { z } from 'zod';
 import { logger } from '../logger.js';
-import { TileSchema } from '../http/bodySchemas.js';
+import { ScriptParamsSchema, TileSchema } from '../http/bodySchemas.js';
 import { EQUIPMENT_SLOTS } from '../../shared/constants.js';
 import {
   createOrUpdateItem,
@@ -22,7 +22,7 @@ import {
   validateContentReferences,
   validateScriptReferences,
 } from '../services/content/contentValidation.js';
-import { knownBehaviorIds } from '../engine/scripting/entityScripts.js';
+import { registeredBehaviorParams } from '../engine/scripting/entityScripts.js';
 
 // Versionable game content lives as JSON files in content/. On boot it is
 // upserted into MongoDB (files win for the ids they define), so a creator can
@@ -70,6 +70,7 @@ const ItemSchema = z.object({
   type: ItemTypeSchema,
   effects: z.array(EffectSchema).optional(),
   scriptId: z.string().optional(),
+  scriptParams: ScriptParamsSchema.optional(),
 });
 
 const NpcSchema = z.object({
@@ -94,6 +95,7 @@ const NpcSchema = z.object({
     .optional(),
   lootTableId: z.string().optional(),
   scriptId: z.string().optional(),
+  scriptParams: ScriptParamsSchema.optional(),
 });
 
 const LootQuantitySchema = z.union([
@@ -315,7 +317,7 @@ export async function reportUnknownBehaviors(): Promise<void> {
         npcs: npcs as Array<{ id: string; name?: string; scriptId?: string }>,
         maps: maps as Array<{ id: string; name?: string }>,
       },
-      knownBehaviorIds(),
+      registeredBehaviorParams(),
     );
 
     for (const message of warnings) logger.warn(`[content] ${message}`);

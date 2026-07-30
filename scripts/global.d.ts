@@ -174,20 +174,85 @@ declare function on<E extends HookEvent>(
  *       },
  *     });
  *
- * Handlers are isolated like hook handlers and dropped on reload.
+ * Declared `params` get a field each in the editor on every piece of content
+ * that names the behavior, and arrive as `ctx.params`:
+ *
+ *     attach('chest', {
+ *       params: {
+ *         itemId: { type: 'item', label: 'Reward', required: true },
+ *         quantity: { type: 'number', default: 1, min: 1 },
+ *       },
+ *       onEnter({ player, params }) {
+ *         giveItem(player, params.itemId, params.quantity);
+ *       },
+ *     });
+ *
+ * Handlers are isolated like hook handlers and dropped on reload. A
+ * malformed `params` declaration throws here, at load.
  */
-declare function attach(
+declare function attach<P extends Record<string, ScriptParamDecl>>(
   scriptId: string,
-  behavior: EntityBehavior,
+  behavior: EntityBehavior<P>,
 ): Unsubscribe;
 
-interface EntityBehavior {
+/**
+ * One field the editor renders for content naming this behavior. `item`,
+ * `npc` and `map` hold ids but render as content pickers.
+ */
+type ScriptParamDecl = { label?: string; help?: string; required?: boolean } & (
+  | { type: 'text' | 'map'; default?: string }
+  | { type: 'number' | 'item' | 'npc'; default?: number; min?: number; max?: number }
+  | { type: 'boolean'; default?: boolean }
+  | { type: 'select'; options: string[]; default?: string }
+);
+
+/** What one declared field is worth at runtime; ids are numbers. */
+type ScriptParamValueOf<D extends ScriptParamDecl> = D extends {
+  type: 'number' | 'item' | 'npc';
+}
+  ? number
+  : D extends { type: 'boolean' }
+    ? boolean
+    : string;
+
+/**
+ * The configured values, typed from the declaration. A param is present
+ * only when `required` or defaulted; otherwise it may be absent, never 0.
+ */
+type ScriptParamsOf<P extends Record<string, ScriptParamDecl>> = {
+  [K in keyof P as P[K] extends { required: true } | { default: unknown }
+    ? K
+    : never]: ScriptParamValueOf<P[K]>;
+} & {
+  [K in keyof P as P[K] extends { required: true } | { default: unknown }
+    ? never
+    : K]?: ScriptParamValueOf<P[K]>;
+};
+
+interface EntityBehavior<
+  P extends Record<string, ScriptParamDecl> = Record<string, never>,
+> {
+  /** Fields the editor renders, keyed by param name. */
+  params?: P;
   /** A player stepped on a tile whose `script` trigger names this behavior. */
-  onEnter?(ctx: { player: PlayerServer; tile: Tile; map: MapState }): void;
+  onEnter?(ctx: {
+    player: PlayerServer;
+    tile: Tile;
+    map: MapState;
+    params: ScriptParamsOf<P>;
+  }): void;
   /** A player interacted with (talked to) an NPC carrying this behavior. */
-  onInteract?(ctx: { player: PlayerServer; npc: RuntimeNpc }): void;
+  onInteract?(ctx: {
+    player: PlayerServer;
+    npc: RuntimeNpc;
+    params: ScriptParamsOf<P>;
+  }): void;
   /** An NPC carrying this behavior died. */
-  onDeath?(ctx: { npc: RuntimeNpc; killer?: CombatTarget }): void;
+  onDeath?(ctx: {
+    npc: RuntimeNpc;
+    killer?: CombatTarget;
+    params: ScriptParamsOf<P>;
+  }): void;
   /**
    * A player used an item carrying this behavior. Consumables only: the
    * engine has no "equipped" event, so equipment never reaches this.
@@ -196,6 +261,7 @@ interface EntityBehavior {
     player: PlayerServer;
     item: { id: number; name: string; type: string; scriptId?: string };
     itemId: number;
+    params: ScriptParamsOf<P>;
   }): void;
 }
 

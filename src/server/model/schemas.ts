@@ -50,6 +50,10 @@ export const ItemSchema = new mongoose.Schema(
     arrowId: { type: Number },
     bound: { type: Boolean },
     scriptId: { type: String },
+    // Values for the params that behaviour declares. Mixed because the shape is
+    // the script's to define; bounded at the write boundary (ScriptParamsSchema)
+    // and filtered against the declaration at dispatch.
+    scriptParams: { type: mongoose.Schema.Types.Mixed },
   },
   { _id: false },
 );

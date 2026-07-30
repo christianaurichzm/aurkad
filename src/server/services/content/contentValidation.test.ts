@@ -137,7 +137,10 @@ describe('validateContentReferences', () => {
 });
 
 describe('validateScriptReferences', () => {
-  const registered = new Set(['trap', 'sage']);
+  const registered = new Map([
+    ['trap', []],
+    ['sage', []],
+  ]);
 
   it('accepts references to behaviors a script registered', () => {
     const result = validateScriptReferences(
@@ -231,7 +234,7 @@ describe('validateScriptReferences', () => {
   it('never produces errors', () => {
     const result = validateScriptReferences(
       { npcs: [{ id: 'a', scriptId: 'missing' }] },
-      new Set(),
+      new Map(),
     );
     expect(result.errors).toEqual([]);
   });
@@ -240,6 +243,102 @@ describe('validateScriptReferences', () => {
     expect(validateScriptReferences({}, registered)).toEqual({
       errors: [],
       warnings: [],
+    });
+  });
+
+  // Renaming a param in the script leaves every piece of content carrying
+  // the old key, which resolution then drops silently.
+  describe('declared params', () => {
+    const withParams = new Map([
+      [
+        'chest',
+        [
+          { key: 'itemId', type: 'item' as const, required: true },
+          { key: 'quantity', type: 'number' as const },
+        ],
+      ],
+    ]);
+
+    it('accepts values that fit the declaration', () => {
+      const result = validateScriptReferences(
+        {
+          npcs: [
+            {
+              id: 'elder',
+              scriptId: 'chest',
+              scriptParams: { itemId: 3, quantity: 2 },
+            },
+          ],
+        },
+        withParams,
+      );
+      expect(result.warnings).toEqual([]);
+    });
+
+    it('warns about a stored param the behavior does not declare', () => {
+      const result = validateScriptReferences(
+        {
+          items: [
+            {
+              id: 7,
+              name: 'Scroll',
+              scriptId: 'chest',
+              scriptParams: { itemId: 3, qty: 2 },
+            },
+          ],
+        },
+        withParams,
+      );
+      expect(result.warnings).toHaveLength(1);
+      expect(result.warnings[0]).toContain('"qty"');
+      expect(result.warnings[0]).toContain('Scroll');
+    });
+
+    it('warns about a required param left empty, naming the tile', () => {
+      const result = validateScriptReferences(
+        {
+          maps: [
+            {
+              id: 'town',
+              tiles: [
+                [{ triggers: [{ action: 'script', scriptId: 'chest' }] }],
+              ],
+            },
+          ],
+        },
+        withParams,
+      );
+      expect(result.warnings).toHaveLength(1);
+      expect(result.warnings[0]).toContain('(0, 0)');
+      expect(result.warnings[0]).toContain('itemId');
+    });
+
+    it('warns about a value the declared type cannot hold', () => {
+      const result = validateScriptReferences(
+        {
+          npcs: [
+            {
+              id: 'elder',
+              scriptId: 'chest',
+              scriptParams: { itemId: 'potion' },
+            },
+          ],
+        },
+        withParams,
+      );
+      expect(result.warnings).toHaveLength(1);
+      expect(result.warnings[0]).toContain('not a valid item');
+    });
+
+    // A dangling reference is already reported; adding "and its params are
+    // wrong" on top of it says nothing new.
+    it('does not check params against a behavior nobody registered', () => {
+      const result = validateScriptReferences(
+        { npcs: [{ id: 'elder', scriptId: 'ghost', scriptParams: { a: 1 } }] },
+        withParams,
+      );
+      expect(result.warnings).toHaveLength(1);
+      expect(result.warnings[0]).toContain('ghost');
     });
   });
 });

@@ -10,6 +10,8 @@ import {
 import { chatResultMsg } from '../ChatPanel';
 import { AsyncSelect } from '../common/Select/AsyncSelect';
 import { ItemIcon } from '../Inventory/ItemIcon';
+import { ScriptBehaviorFields } from './ScriptBehaviorFields';
+import type { ScriptParams } from '../../../shared/scriptParams';
 import { colors, radius } from '../../theme';
 
 interface ItemEditorProps {
@@ -35,6 +37,7 @@ type ItemFormValues = {
   arrowId: number | '';
   bound: boolean;
   scriptId: string;
+  scriptParams: ScriptParams;
 };
 
 const defaultValues: ItemFormValues = {
@@ -46,6 +49,7 @@ const defaultValues: ItemFormValues = {
   arrowId: '',
   bound: false,
   scriptId: '',
+  scriptParams: {},
 };
 
 const itemToFormValues = (item: Item): ItemFormValues => ({
@@ -61,6 +65,7 @@ const itemToFormValues = (item: Item): ItemFormValues => ({
   arrowId: item.arrowId ?? '',
   bound: item.bound ?? false,
   scriptId: item.scriptId ?? '',
+  scriptParams: item.scriptParams ?? {},
 });
 
 const ALL_ATTRIBUTES: {
@@ -99,6 +104,7 @@ export const ItemEditor: React.FC<ItemEditorProps> = ({
     handleSubmit,
     register,
     reset: resetForm,
+    setValue,
     watch,
   } = useForm<ItemFormValues>({ defaultValues });
   const { fields, append, remove } = useFieldArray({
@@ -109,6 +115,8 @@ export const ItemEditor: React.FC<ItemEditorProps> = ({
   const sprite = watch('sprite');
   const type = watch('type');
   const arrowId = watch('arrowId');
+  const scriptId = watch('scriptId');
+  const scriptParams = watch('scriptParams');
   const isRanged = type === 'weapon' && arrowId !== '';
 
   const attributes = isRanged
@@ -152,6 +160,7 @@ export const ItemEditor: React.FC<ItemEditorProps> = ({
     arrowId,
     bound,
     scriptId,
+    scriptParams,
   }: ItemFormValues) => {
     const data = {
       name,
@@ -163,11 +172,21 @@ export const ItemEditor: React.FC<ItemEditorProps> = ({
       bound,
       // Empty means no behavior, rather than "" naming one that cannot exist.
       scriptId: scriptId.trim() || undefined,
+      // Params without a behavior to read them are dead weight in the document.
+      scriptParams:
+        scriptId.trim() && Object.keys(scriptParams).length > 0
+          ? scriptParams
+          : undefined,
     };
     const result = selectedId
       ? await updateItem(Number(selectedId), data)
       : await createItem(data);
     chatResultMsg(!!result, 'Item saved!', 'Error saving item');
+    // Dangling references never block a save, so this is where their author
+    // hears about them.
+    for (const warning of result?.warnings ?? []) {
+      chatResultMsg(false, '', warning);
+    }
     refreshData();
     setSelectedId('');
     resetForm(defaultValues);
@@ -261,19 +280,19 @@ export const ItemEditor: React.FC<ItemEditorProps> = ({
             <input type="checkbox" {...register('bound')} />
             Bound (cannot be dropped, traded, or banked)
           </label>
-          <div style={field}>
-            <label
-              style={label}
-              title="Name of a behavior registered with attach() in a script; runs when the item is used"
-            >
-              Script behavior
-            </label>
-            <input
-              style={input}
-              {...register('scriptId')}
-              placeholder="e.g. teleport-scroll"
-            />
-          </div>
+          <ScriptBehaviorFields
+            events={['onUse']}
+            scriptId={scriptId}
+            onScriptIdChange={(value) =>
+              setValue('scriptId', value, { shouldDirty: true })
+            }
+            params={scriptParams}
+            onParamsChange={(value) =>
+              setValue('scriptParams', value, { shouldDirty: true })
+            }
+            hint="Runs when a player uses this item (consumables only)"
+            loadItems={loadItems}
+          />
           {type === 'weapon' && (
             <div style={field}>
               <label style={label}>Arrow (ranged)</label>

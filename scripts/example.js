@@ -7,8 +7,8 @@
 // Grab module APIs once at load time. They are undefined if the module is
 // disabled in game.json. Guard with `if (dialog) ...` when in doubt.
 
-const dialog = use("dialog"); // NPC dialog boxes (press F near an NPC)
-const quest = use("quest"); // quest tracker panel (Q key)
+const dialog = use('dialog'); // NPC dialog boxes (press F near an NPC)
+const quest = use('quest'); // quest tracker panel (Q key)
 
 // ─── QUESTS ──────────────────────────────────────────────────────────────────
 // Define all quests at load time. quest.define is safe to call again on
@@ -16,33 +16,33 @@ const quest = use("quest"); // quest tracker panel (Q key)
 
 if (quest) {
   quest.define({
-    id: "goblinHunt",
-    name: "Goblin Hunt",
-    description: "Defeat 3 Goblins for the Elder.",
+    id: 'goblinHunt',
+    name: 'Goblin Hunt',
+    description: 'Defeat 3 Goblins for the Elder.',
     target: 3,
     reward: (player) => {
       giveExperience(player, 100);
       giveItem(player, 1, 2); // 2× Health Potion (item id 1)
-      sendMessage(player, "The Elder rewards you with potions and experience.");
+      sendMessage(player, 'The Elder rewards you with potions and experience.');
     },
   });
 
   quest.define({
-    id: "orcSlayer",
-    name: "Orc Slayer",
-    description: "Prove yourself by defeating 5 Orcs.",
+    id: 'orcSlayer',
+    name: 'Orc Slayer',
+    description: 'Prove yourself by defeating 5 Orcs.',
     target: 5,
     reward: (player) => {
       giveExperience(player, 500);
       giveItem(player, 8, 1); // Steel Sword (item id 8)
-      sendMessage(player, "The Elder gives you a steel sword as reward!");
+      sendMessage(player, 'The Elder gives you a steel sword as reward!');
     },
   });
 }
 
 // ─── WELCOME ─────────────────────────────────────────────────────────────────
 
-on("playerJoin", ({ player }) => {
+on('playerJoin', ({ player }) => {
   sendMessage(
     player,
     `Welcome, ${player.name}! Press F near an NPC to interact.`,
@@ -54,22 +54,22 @@ on("playerJoin", ({ player }) => {
     giveItem(player, 3, 10); // 10 Gold Coins
     sendMessage(
       player,
-      "You received a starter kit: 3 Health Potions and 10 Gold Coins.",
+      'You received a starter kit: 3 Health Potions and 10 Gold Coins.',
     );
   }
 });
 
-on("playerLevelUp", ({ player, level }) => {
+on('playerLevelUp', ({ player, level }) => {
   broadcastMessage(`★ ${player.name} reached level ${level}!`);
 });
 
 // ─── NPC INTERACTIONS ────────────────────────────────────────────────────────
 // Press F while facing an NPC to trigger npcInteract.
 
-on("npcInteract", ({ player, npc }) => {
+on('npcInteract', ({ player, npc }) => {
   if (!dialog) return;
 
-  if (npc.name === "Elder") {
+  if (npc.name === 'Elder') {
     handleElderDialog(player);
     return;
   }
@@ -81,22 +81,22 @@ on("npcInteract", ({ player, npc }) => {
 function handleElderDialog(player) {
   if (!quest || !dialog) return;
 
-  const goblinQ = quest.get(player, "goblinHunt");
-  const orcQ = quest.get(player, "orcSlayer");
+  const goblinQ = quest.get(player, 'goblinHunt');
+  const orcQ = quest.get(player, 'orcSlayer');
 
   if (!goblinQ) {
     // First visit: offer the introductory quest.
     dialog.show(
       player,
       {
-        text: "Elder: Our village is overrun by goblins. Will you help us?",
-        choices: ["I will help", "Maybe later"],
+        text: 'Elder: Our village is overrun by goblins. Will you help us?',
+        choices: ['I will help', 'Maybe later'],
       },
       (choice) => {
         if (choice === 0) {
-          quest.start(player, "goblinHunt");
+          quest.start(player, 'goblinHunt');
           dialog.show(player, {
-            text: "Elder: Slay 3 Goblins and return to me. Safe travels.",
+            text: 'Elder: Slay 3 Goblins and return to me. Safe travels.',
           });
         }
       },
@@ -104,7 +104,7 @@ function handleElderDialog(player) {
     return;
   }
 
-  if (goblinQ.status === "active") {
+  if (goblinQ.status === 'active') {
     dialog.show(player, {
       text: `Elder: You have defeated ${goblinQ.progress} of ${goblinQ.target} goblins. Keep going!`,
     });
@@ -116,17 +116,17 @@ function handleElderDialog(player) {
     dialog.show(
       player,
       {
-        text: "Elder: You have my thanks! But stronger foes lurk to the east - Orcs. Will you face them?",
-        choices: ["I accept", "Not yet"],
+        text: 'Elder: You have my thanks! But stronger foes lurk to the east - Orcs. Will you face them?',
+        choices: ['I accept', 'Not yet'],
       },
       (choice) => {
-        if (choice === 0) quest.start(player, "orcSlayer");
+        if (choice === 0) quest.start(player, 'orcSlayer');
       },
     );
     return;
   }
 
-  if (orcQ.status === "active") {
+  if (orcQ.status === 'active') {
     dialog.show(player, {
       text: `Elder: ${orcQ.progress}/${orcQ.target} orcs defeated. You are almost there!`,
     });
@@ -134,60 +134,60 @@ function handleElderDialog(player) {
   }
 
   dialog.show(player, {
-    text: "Elder: You are a true hero. The village is forever grateful.",
+    text: 'Elder: You are a true hero. The village is forever grateful.',
   });
 }
 
 // ─── QUEST PROGRESSION ───────────────────────────────────────────────────────
 
-on("npcDeath", ({ npc, killer }) => {
+on('npcDeath', ({ npc, killer }) => {
   if (!quest) return;
-  if (npc.name === "Goblin") quest.advance(killer, "goblinHunt", 1);
-  if (npc.name === "Orc") quest.advance(killer, "orcSlayer", 1);
+  if (npc.name === 'Goblin') quest.advance(killer, 'goblinHunt', 1);
+  if (npc.name === 'Orc') quest.advance(killer, 'orcSlayer', 1);
 });
 
 // ─── DEATH ───────────────────────────────────────────────────────────────────
 
-on("playerDeath", ({ player, killer }) => {
-  const by = killer ? ` by ${killer.name}` : "";
+on('playerDeath', ({ player, killer }) => {
+  const by = killer ? ` by ${killer.name}` : '';
   broadcastMessage(`${player.name} was defeated${by}.`);
 });
 
 // ─── ADMIN COMMANDS ──────────────────────────────────────────────────────────
 
 command(
-  "heal",
-  { access: Access.MOD, description: "Fully heal a player" },
+  'heal',
+  { access: Access.MOD, description: 'Fully heal a player' },
   ({ args, reply }) => {
     const target = args[0] ? getPlayer(args[0]) : null;
-    if (!target) return reply("Usage: /heal <player>");
+    if (!target) return reply('Usage: /heal <player>');
     healPlayer(target);
     reply(`${target.name} healed.`);
   },
 );
 
 command(
-  "give",
+  'give',
   {
     access: Access.ADMIN,
-    description: "Give item to a player: /give <player> <itemId> [qty]",
+    description: 'Give item to a player: /give <player> <itemId> [qty]',
   },
   ({ args, reply }) => {
     const target = getPlayer(args[0]);
     const itemId = parseInt(args[1]);
     const qty = parseInt(args[2]) || 1;
     if (!target || !itemId)
-      return reply("Usage: /give <player> <itemId> [qty]");
+      return reply('Usage: /give <player> <itemId> [qty]');
     giveItem(target, itemId, qty);
     reply(`Gave ${qty}× item #${itemId} to ${target.name}.`);
   },
 );
 
 command(
-  "tp",
+  'tp',
   {
     access: Access.ADMIN,
-    description: "Teleport: /tp <player> <mapId> <col> <row>",
+    description: 'Teleport: /tp <player> <mapId> <col> <row>',
   },
   ({ args, reply }) => {
     const target = getPlayer(args[0]);
@@ -195,7 +195,7 @@ command(
     const col = parseInt(args[2]);
     const row = parseInt(args[3]);
     if (!target || !mapId || isNaN(col) || isNaN(row))
-      return reply("Usage: /tp <player> <mapId> <col> <row>");
+      return reply('Usage: /tp <player> <mapId> <col> <row>');
     teleportPlayer(target, mapId, col, row);
     reply(`Teleported ${target.name} to map ${mapId} (${col}, ${row}).`);
   },
@@ -334,6 +334,40 @@ command(
 // its tile and drops loot is one attach with three handlers. Registrations are
 // dropped when the script reloads, and a name the content references but no
 // script registers is reported at boot and when saving in the editor.
+//
+// ── Exported params: one behavior, many configured instances ───────────────
+//
+// The behaviors above are each one-of-a-kind: a chest giving a potion and a
+// chest giving a sword would be two copies of the same code with one constant
+// changed. Declare `params` and the editor renders a FIELD PER PARAM on every
+// NPC, item or tile that names the behavior, so the designer configures it:
+//
+// attach('chest', {
+//   params: {
+//     itemId:   { type: 'item', label: 'Reward', required: true },
+//     quantity: { type: 'number', label: 'How many', default: 1, min: 1 },
+//     message:  { type: 'text', default: 'You found something!' },
+//     once:     { type: 'boolean', label: 'Only once per player', default: true },
+//   },
+//   onEnter({ player, tile, params }) {
+//     if (params.once && getPlayerData(player, `chest:${tile.tileIndex}`)) return;
+//     if (!giveItem(player, params.itemId, params.quantity)) {
+//       return sendMessage(player, 'Your bag is full.');
+//     }
+//     sendMessage(player, params.message);
+//     if (params.once) setPlayerData(player, `chest:${tile.tileIndex}`, true);
+//   },
+// });
+//
+// Types: 'text' | 'number' | 'boolean' | 'select' (with `options`) | 'item' |
+// 'npc' | 'map'. The id types render as content pickers, so nobody has to
+// remember that the health potion is item 3.
+//
+// `ctx.params` only ever contains what you declared, already coerced to the
+// declared type and clamped to min/max, so `params.quantity` is a number
+// without checking. A stored value that no longer fits the declaration (you
+// renamed a param, or changed its type) is reported when the content is saved
+// and dropped at runtime rather than passed through.
 
 // ─────────────────────────────────────────────────────────────────────────────
 // API REFERENCE (quick look-up; full types in scripts/global.d.ts)
@@ -354,12 +388,14 @@ command(
 //   tick                           { tick }                - 20/s; throttle with tick % n
 //
 // ATTACHED BEHAVIOR (attach): runs only for content naming this id
-//   attach(scriptId, { onEnter, onInteract, onDeath, onUse })
-//   onEnter     { player, tile, map }        tile with a `script` trigger
-//   onInteract  { player, npc }              NPC's "Script behavior" field
-//   onDeath     { npc, killer }              same NPC, when killed
-//   onUse       { player, item, itemId }     item's "Script behavior" field
+//   attach(scriptId, { params, onEnter, onInteract, onDeath, onUse })
+//   onEnter     { player, tile, map, params }  tile with a `script` trigger
+//   onInteract  { player, npc, params }        NPC's "Script behavior" field
+//   onDeath     { npc, killer, params }        same NPC, when killed
+//   onUse       { player, item, itemId, params }  item's "Script behavior" field
 //                                            (consumables only - no equip event)
+//   params      { key: { type, label?, help?, required?, default?, min?, max?,
+//                        options? } }         a field per key in the editor
 //
 // PLAYERS
 //   getPlayer(name)                → PlayerServer | undefined

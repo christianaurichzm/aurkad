@@ -155,7 +155,12 @@ const runTileTriggers = (
         logger.error('changeSprite updatePlayer failed', { err: e });
       });
     } else if (trigger.action === 'script') {
-      dispatchEntityScript(trigger.scriptId, 'onEnter', { player, tile, map });
+      dispatchEntityScript(
+        trigger.scriptId,
+        'onEnter',
+        { player, tile, map },
+        trigger.scriptParams,
+      );
     }
   }
 };

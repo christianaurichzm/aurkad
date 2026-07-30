@@ -219,10 +219,12 @@ export const resolveDamage = async (
     case 'npc': {
       if (attacker?.kind === 'player') {
         emit('npcDeath', { npc: target, killer: attacker });
-        dispatchEntityScript(target.scriptId, 'onDeath', {
-          npc: target,
-          killer: attacker,
-        });
+        dispatchEntityScript(
+          target.scriptId,
+          'onDeath',
+          { npc: target, killer: attacker },
+          target.scriptParams,
+        );
         if (target.experienceValue) {
           awardExperience(attacker, target.experienceValue, 'kill');
           await updatePlayer(attacker);

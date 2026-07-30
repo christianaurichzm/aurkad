@@ -44,7 +44,10 @@ import {
   validateContentReferences,
   validateScriptReferences,
 } from '../../services/content/contentValidation.js';
-import { knownBehaviorIds } from '../../engine/scripting/entityScripts.js';
+import {
+  describeBehaviors,
+  registeredBehaviorParams,
+} from '../../engine/scripting/entityScripts.js';
 import {
   buyShopItem,
   getShopById,
@@ -128,7 +131,7 @@ export function createContentRouter() {
         // and do nothing in game, so the editor is told at save time.
         const scriptRefs = validateScriptReferences(
           { maps: [{ id: mapId, name, tiles }] },
-          knownBehaviorIds(),
+          registeredBehaviorParams(),
         );
         await mapSave(mapId, tiles, name, type, music);
         res.status(200).json({
@@ -311,8 +314,10 @@ export function createContentRouter() {
       npcs: [npcData],
     });
     warnings.push(
-      ...validateScriptReferences({ npcs: [npcData] }, knownBehaviorIds())
-        .warnings,
+      ...validateScriptReferences(
+        { npcs: [npcData] },
+        registeredBehaviorParams(),
+      ).warnings,
     );
 
     await createOrUpdateNpc(npcData);
@@ -462,11 +467,18 @@ export function createContentRouter() {
     const body = parseBody(CreateNpcBodySchema, req.body, res);
     if (!body) return;
     const id = req.params['id']!;
+    // Editing an existing npc is the common path, so the create route's checks
+    // run here too, or a renamed behaviour param would be reported only for
+    // npcs created after the rename.
+    const { warnings } = validateScriptReferences(
+      { npcs: [{ ...body, id }] },
+      registeredBehaviorParams(),
+    );
     const updated = await updateNpcAll(id, body);
     if (!updated) {
       return res.status(404).json({ error: 'NPC not found.' });
     }
-    res.status(200).json(updated);
+    res.status(200).json({ ...updated, warnings });
   });
   router.delete('/npcs/:id', checkAccess(Access.ADMIN), async (req, res) => {
     const id = req.params['id']!;
@@ -480,7 +492,7 @@ export function createContentRouter() {
     try {
       const { warnings } = validateScriptReferences(
         { items: [{ ...body, id: 0 }] },
-        knownBehaviorIds(),
+        registeredBehaviorParams(),
       );
       await createOrUpdateItem(body);
       res.status(201).json({ ...body, warnings });
@@ -499,7 +511,7 @@ export function createContentRouter() {
     try {
       const { warnings } = validateScriptReferences(
         { items: [{ ...body, id }] },
-        knownBehaviorIds(),
+        registeredBehaviorParams(),
       );
       await createOrUpdateItem({ ...body, id });
       res.status(200).json({ success: true, warnings });
@@ -630,6 +642,15 @@ export function createContentRouter() {
 
   router.get('/debug/net', checkAccess(Access.ADMIN), (_req, res) => {
     res.json(getNetStats());
+  });
+
+  // Behaviours currently registered by scripts, with the params each declares,
+  // so the content editors can offer them by name and render a field per param
+  // instead of asking a designer to remember both. Lives here rather than in
+  // scriptsRoutes because that router is only mounted when the script editor is
+  // enabled, while behaviours exist whenever scripts do.
+  router.get('/behaviors', checkAccess(Access.ADMIN), (_req, res) => {
+    res.json(describeBehaviors());
   });
 
   router.get('/spells', checkAccess(Access.ADMIN), async (_req, res) => {

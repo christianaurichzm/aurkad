@@ -19,6 +19,7 @@ import {
   toggleSound,
   toggleChangeSprite,
   toggleScript,
+  setPendingScriptTrigger,
   toggleConditionalBlock,
   setEditorMusic,
   undo,
@@ -34,6 +35,8 @@ import {
 } from '../../io/network';
 import { AsyncSelect } from '../common/Select/AsyncSelect';
 import { Select } from '../common/Select/Select';
+import { ScriptBehaviorFields } from '../ContentEditor/ScriptBehaviorFields';
+import type { ScriptParams } from '../../../shared/scriptParams';
 import { MapType, RuntimeNpc, TileEditMode } from '../../../shared/types';
 import { getGameState } from '../../core/gameState';
 import { SpritePreview } from '../common/SpritePreview';
@@ -118,6 +121,8 @@ const TilesetModeControlsComponent: React.FC = () => {
   const [selectedItem, setSelectedItem] = useState<string | number>('');
   const [selectedShop, setSelectedShop] = useState<string | number>('');
   const [selectedWarpMap, setSelectedWarpMap] = useState<string>('');
+  const [scriptId, setScriptId] = useState<string>('');
+  const [scriptParams, setScriptParams] = useState<ScriptParams>({});
   const [npcList, setNpcList] = useState<RuntimeNpc[]>([]);
   const [mapType, setMapType] = useState<MapType>('normal');
   const [mapName, setMapName] = useState<string>('');
@@ -158,6 +163,11 @@ const TilesetModeControlsComponent: React.FC = () => {
   useEffect(() => {
     (window as any).selectedWarpMap = selectedWarpMap;
   }, [selectedWarpMap]);
+  // Typed values cannot survive a round trip through a DOM input, so the
+  // painter is told about them instead of reading them back out.
+  useEffect(() => {
+    setPendingScriptTrigger(scriptId, scriptParams);
+  }, [scriptId, scriptParams]);
 
   const loadNpcs = useCallback(async () => {
     const npcs = await fetchNpcs();
@@ -525,17 +535,16 @@ const TilesetModeControlsComponent: React.FC = () => {
       )}
 
       {activeMode === 'script' && (
-        <div style={inputsBox}>
-          <label style={labelStyle} htmlFor="scriptId">
-            Script ID
-          </label>
-          <input
-            type="text"
-            id="scriptId"
-            placeholder="myScript"
-            style={inputStyle}
-          />
-        </div>
+        <ScriptBehaviorFields
+          events={['onEnter']}
+          scriptId={scriptId}
+          onScriptIdChange={setScriptId}
+          params={scriptParams}
+          onParamsChange={setScriptParams}
+          hint="Runs when a player steps on the tiles you paint with it"
+          loadItems={loadItems}
+          loadNpcs={loadNpcs}
+        />
       )}
 
       {activeMode === 'conditionalBlock' && (
