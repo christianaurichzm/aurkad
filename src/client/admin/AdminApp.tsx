@@ -8,6 +8,7 @@ import {
 import { Access } from '../../shared/types';
 import { PlayerModeration } from '../components/moderation/PlayerModeration';
 import { CommandConsole } from '../components/moderation/CommandConsole';
+import { AuditLog } from '../components/moderation/AuditLog';
 import { ScriptEditor } from '../components/scripting/ScriptEditor';
 import { colors, radius } from '../theme';
 
@@ -66,6 +67,12 @@ export const AdminApp: React.FC = () => {
           <section style={{ ...panel, ...wideSection }}>
             <h2 style={panelTitle}>Scripts</h2>
             <ScriptEditor height={520} />
+          </section>
+        )}
+        {session.access >= Access.ADMIN && (
+          <section style={{ ...panel, ...wideSection }}>
+            <h2 style={panelTitle}>Audit trail</h2>
+            <AuditLog height={260} />
           </section>
         )}
       </main>
@@ -128,12 +135,21 @@ const AdminLogin: React.FC<{ onLogin: (s: AdminSession) => void }> = ({
   );
 };
 
+// Scrolls inside itself rather than the document: styles.css pins the
+// body to 100vh with overflow hidden for the game canvas, which this page
+// inherits, so anything below the fold could not be reached otherwise.
 const page: React.CSSProperties = {
-  minHeight: '100vh',
+  height: '100vh',
+  overflowY: 'auto',
   background: colors.surfaceMuted,
   color: colors.text,
 };
+// Sticky so "Log out" and the session line stay reachable once the page is
+// long enough to scroll.
 const header: React.CSSProperties = {
+  position: 'sticky',
+  top: 0,
+  zIndex: 1,
   display: 'flex',
   alignItems: 'center',
   justifyContent: 'space-between',

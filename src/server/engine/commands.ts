@@ -1,5 +1,6 @@
 import { emitGameEvent } from './eventBus.js';
 import { logger } from '../logger.js';
+import { recordAdminAction } from '../services/admin/auditService.js';
 import { Access } from '../../shared/types.js';
 import type { PlayerServer } from '../../shared/types.js';
 
@@ -13,7 +14,7 @@ export interface CommandContext {
   player?: PlayerServer;
   args: string[];
   reply: (message: string) => void;
-  source: 'chat' | 'repl';
+  source: 'chat' | 'repl' | 'web';
 }
 
 export interface CommandOptions {
@@ -67,7 +68,42 @@ export function clearCommands(): void {
   commands.clear();
 }
 
-function runHandler(cmd: CommandDef, ctx: CommandContext): void {
+/**
+ * Leaves a trail for commands that ordinary players cannot run.
+ *
+ * A GM kicks or hands out an item from chat far more often than from an HTTP
+ * route, so auditing only the routes would miss the common case. Commands
+ * anyone can run are not recorded: /who is not an administrative action, and
+ * burying the log in them defeats it.
+ */
+function auditCommand(
+  cmd: CommandDef,
+  ctx: CommandContext,
+  actor: string,
+): void {
+  if (cmd.access < Access.MOD) return;
+  recordAdminAction({
+    actor,
+    actorAccess: ctx.player?.access,
+    requiredAccess: cmd.access,
+    action: `command ${cmd.name}`,
+    // First argument, because every privileged command takes its subject
+    // there (/kick <player>, /ban <player>, /give <player> ...).
+    target: ctx.args[0],
+    outcome: 'allowed',
+    source: ctx.source,
+    details: ctx.args.length > 0 ? { args: ctx.args.join(' ') } : undefined,
+  });
+}
+
+function runHandler(
+  cmd: CommandDef,
+  ctx: CommandContext,
+  // Chat carries the player; the web console knows its session; the terminal
+  // has no account behind it, which is itself worth recording as such.
+  actor = ctx.player?.name ?? 'console',
+): void {
+  auditCommand(cmd, ctx, actor);
   try {
     cmd.handler(ctx);
   } catch (e) {
@@ -131,13 +167,23 @@ export function handleWebCommand(
   args: string[],
   accessLevel: number,
   out: (message: string) => void,
+  actor?: string,
 ): boolean {
   const cmd = commands.get(name.toLowerCase());
   if (!cmd) return false;
   if (accessLevel < cmd.access) {
+    recordAdminAction({
+      actor,
+      actorAccess: accessLevel,
+      requiredAccess: cmd.access,
+      action: `command ${cmd.name}`,
+      target: args[0],
+      outcome: 'denied',
+      source: 'web',
+    });
     out(`You don't have permission to run "${name}".`);
     return true;
   }
-  runHandler(cmd, { args, reply: out, source: 'repl' });
+  runHandler(cmd, { args, reply: out, source: 'web' }, actor);
   return true;
 }

@@ -33,8 +33,12 @@ export function createConsoleRouter() {
 
       const accessLevel = req.session.accessLevel ?? Access.USER;
       const output: string[] = [];
-      const matched = handleWebCommand(name, args, accessLevel, (m) =>
-        output.push(m),
+      const matched = handleWebCommand(
+        name,
+        args,
+        accessLevel,
+        (m) => output.push(m),
+        req.session.username,
       );
       if (!matched) output.push(`Unknown command: ${name}`);
 

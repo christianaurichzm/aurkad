@@ -72,6 +72,13 @@ export {
   type AdminSession,
 } from './http/adminAuthClient';
 
+// Administrative audit trail
+export {
+  fetchAuditLog,
+  type AuditRecord,
+  type AuditFilter,
+} from './http/auditClient';
+
 // Scripts (Monaco editor)
 export {
   listScripts,

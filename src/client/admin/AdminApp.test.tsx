@@ -1,6 +1,7 @@
 import { render, screen } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { AdminApp } from './AdminApp';
+import { Access } from '../../shared/types';
 
 const mocks = vi.hoisted(() => ({
   adminSession: vi.fn(),
@@ -16,6 +17,7 @@ vi.mock('../io/network', () => ({
   adminLogout: mocks.adminLogout,
   fetchOnlinePlayers: mocks.fetchOnlinePlayers,
   fetchCommands: mocks.fetchCommands,
+  fetchAuditLog: vi.fn().mockResolvedValue([]),
   runConsoleCommand: vi.fn(),
   modKick: vi.fn(),
   modBan: vi.fn(),
@@ -68,5 +70,44 @@ describe('AdminApp', () => {
     });
     render(<AdminApp />);
     expect(await screen.findByText('Scripts')).toBeInTheDocument();
+  });
+
+  it('shows the audit trail to an admin', async () => {
+    mocks.adminSession.mockResolvedValue({
+      username: 'Boss',
+      access: Access.ADMIN,
+      scriptEditorEnabled: false,
+    });
+    render(<AdminApp />);
+    expect(await screen.findByText('Audit trail')).toBeInTheDocument();
+  });
+
+  // A moderator can be the subject of the trail, so they do not get to read it.
+  it('hides the audit trail from a moderator', async () => {
+    mocks.adminSession.mockResolvedValue({
+      username: 'Gm',
+      access: Access.MOD,
+      scriptEditorEnabled: false,
+    });
+    render(<AdminApp />);
+    await screen.findByText('Online players');
+    expect(screen.queryByText('Audit trail')).not.toBeInTheDocument();
+  });
+
+  // styles.css pins the body to 100vh with overflow hidden for the game
+  // canvas, so the dashboard scrolls inside itself, or the panels below the
+  // fold cannot be reached.
+  it('scrolls inside itself, since the document cannot', async () => {
+    mocks.adminSession.mockResolvedValue({
+      username: 'Boss',
+      access: Access.ADMIN,
+      scriptEditorEnabled: true,
+    });
+    const { container } = render(<AdminApp />);
+    await screen.findByText('Online players');
+
+    const page = container.firstChild as HTMLElement;
+    expect(page.style.overflowY).toBe('auto');
+    expect(page.style.height).toBe('100vh');
   });
 });

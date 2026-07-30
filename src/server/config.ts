@@ -137,6 +137,17 @@ export const config = {
       max: 10_000_000,
     }),
   },
+  audit: {
+    // How long the administrative trail is kept. MongoDB expires the entries
+    // itself (TTL index), so the collection stays bounded on a server nobody
+    // prunes by hand. Long enough that a complaint about a GM weeks ago still
+    // has evidence behind it; a floor of one day so it cannot be set to
+    // effectively off by accident.
+    retentionDays: parseIntEnv('AUDIT_RETENTION_DAYS', 90, {
+      min: 1,
+      max: 3650,
+    }),
+  },
   auth: {
     // Login and register throttle, per IP. Strict by default against
     // credential stuffing, so load-test bots from one machine trip it after
