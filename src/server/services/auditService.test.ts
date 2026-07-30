@@ -9,7 +9,7 @@
 import { beforeAll, afterAll, beforeEach, describe, it, expect } from 'vitest';
 import mongoose from 'mongoose';
 import { MongoMemoryServer } from 'mongodb-memory-server';
-import AuditLogModel from '../../model/AuditLog.js';
+import AuditLogModel from '../model/AuditLog.js';
 import {
   listAuditLog,
   recordAdminAction,
@@ -21,10 +21,10 @@ import {
   handleReplCommand,
   handleWebCommand,
   registerCommand,
-} from '../../engine/commands.js';
-import { drainGameEvents } from '../../engine/eventBus.js';
-import { createFixture } from '../../sim/simFixture.js';
-import { Access } from '../../../shared/types.js';
+} from '../engine/commands.js';
+import { drainGameEvents } from '../engine/eventBus.js';
+import { createFixture } from '../sim/simFixture.js';
+import { Access } from '../../shared/types.js';
 
 let mongod: MongoMemoryServer;
 

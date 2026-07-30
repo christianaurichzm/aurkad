@@ -3,7 +3,7 @@ import { Access } from '../../../shared/types.js';
 import {
   recordAdminAction,
   summarizeDetails,
-} from '../../services/admin/auditService.js';
+} from '../../services/auditService.js';
 
 // Reads only: a trail of who looked at the npc list is noise that buries the
 // entries that matter. What an auditor needs is every attempt to CHANGE

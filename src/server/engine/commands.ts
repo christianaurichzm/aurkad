@@ -1,6 +1,6 @@
 import { emitGameEvent } from './eventBus.js';
 import { logger } from '../logger.js';
-import { recordAdminAction } from '../services/admin/auditService.js';
+import { recordAdminAction } from '../services/auditService.js';
 import { Access } from '../../shared/types.js';
 import type { PlayerServer } from '../../shared/types.js';
 

@@ -10,7 +10,7 @@ import mongoose from 'mongoose';
 import { MongoMemoryServer } from 'mongodb-memory-server';
 import checkAccess from './checkAccess.js';
 import AuditLogModel from '../../model/AuditLog.js';
-import { listAuditLog } from '../../services/admin/auditService.js';
+import { listAuditLog } from '../../services/auditService.js';
 import { Access } from '../../../shared/types.js';
 
 let mongod: MongoMemoryServer;

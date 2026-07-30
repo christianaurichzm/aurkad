@@ -4,8 +4,8 @@
 // forget, and a failure shows only in the log.
 
 import mongoose from 'mongoose';
-import AuditLogModel from '../../model/AuditLog.js';
-import { logger } from '../../logger.js';
+import AuditLogModel from '../model/AuditLog.js';
+import { logger } from '../logger.js';
 
 export type AuditSource = 'http' | 'chat' | 'repl' | 'web';
 export type AuditOutcome = 'allowed' | 'denied';

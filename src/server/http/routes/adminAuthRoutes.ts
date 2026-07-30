@@ -5,6 +5,8 @@ import type { ExtendedRequest } from '../session.js';
 import { Access } from '../../../shared/types.js';
 import { parseBody, LoginBodySchema } from '../bodySchemas.js';
 import { getPlayerByNameFromDb } from '../../services/player/playerService.js';
+import checkAccess from '../middleware/checkAccess.js';
+import { listAuditLog } from '../../services/auditService.js';
 import { logger } from '../../logger.js';
 import { config } from '../../config.js';
 
@@ -69,6 +71,34 @@ export function createAdminAuthRouter() {
           scriptEditorEnabled: config.scripting.editorEnabled,
         });
       });
+    },
+  );
+
+  // Read side of the administrative trail: ADMIN only, and narrow.
+  // There is no write and no delete endpoint, because a log the audited
+  // operator can edit answers nothing about that operator.
+  router.get(
+    '/admin/audit',
+    checkAccess(Access.ADMIN),
+    async (req: ExtendedRequest, res: Response) => {
+      const { actor, action, outcome, before, limit } = req.query;
+      try {
+        res.json(
+          await listAuditLog({
+            actor: typeof actor === 'string' ? actor : undefined,
+            action: typeof action === 'string' ? action : undefined,
+            outcome:
+              outcome === 'allowed' || outcome === 'denied'
+                ? outcome
+                : undefined,
+            before: typeof before === 'string' ? Number(before) : undefined,
+            limit: typeof limit === 'string' ? Number(limit) : undefined,
+          }),
+        );
+      } catch (err) {
+        logger.error('[audit] query failed', { err });
+        res.status(500).json({ error: 'Could not read the audit log.' });
+      }
     },
   );
 

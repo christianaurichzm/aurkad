@@ -1,5 +1,5 @@
 import { registerCommand } from '../engine/commands.js';
-import { isSuspicious, runCensus } from '../services/economy/censusJob.js';
+import { isSuspicious, runCensus } from '../services/economy/economyCensus.js';
 import { Access } from '../../shared/types.js';
 import { serverState, type ServerMode } from '../services/world/serverState.js';
 import { handleChatAction } from '../services/comms/chatService.js';
