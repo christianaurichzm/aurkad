@@ -433,6 +433,70 @@ declare function moveItem(
  */
 declare function persistNow(...players: PlayerServer[]): void;
 
+/** Why a queued delivery was refused. */
+type DeliveryFailure =
+  | 'invalid-amount'
+  | 'unknown-item'
+  | 'unknown-recipient'
+  | 'mailbox-full'
+  | 'meta-too-large';
+
+/** Flat rather than a union, for the reason given on EconomyResult above. */
+interface DeliveryQueueResult {
+  ok: boolean;
+  /** Only set when `ok` is true. */
+  id?: string;
+  /** Only set when `ok` is false. */
+  reason?: DeliveryFailure;
+}
+
+interface DeliveryClaimOutcome {
+  id: string;
+  ok: boolean;
+  /** Only set when `ok` is false. */
+  reason?: 'no-space' | 'unknown-item';
+}
+
+interface PendingDelivery {
+  id: string;
+  to: string;
+  itemId: number;
+  quantity: number;
+  /** Module or script that queued it. */
+  source: string;
+  /** Whatever the sender attached (sender name, message, expiry). */
+  meta?: unknown;
+  createdAt: number;
+}
+
+/**
+ * Items owed to a player who may be offline. A delivery is claimed into the
+ * inventory once they are online, exactly once. Take the item from the
+ * sender and persist them before queueing. These return promises.
+ *
+ *     const result = await delivery.queue({ to: 'Alice', itemId: Items.Sword });
+ *     if (!result.ok) sendMessage(sender, `Could not send: ${result.reason}`);
+ */
+declare const delivery: {
+  /** Queue an item for a player, checking the item and player exist. */
+  queue(input: {
+    to: string;
+    itemId: number;
+    quantity?: number;
+    meta?: unknown;
+  }): Promise<DeliveryQueueResult>;
+  /** Everything waiting for a player, oldest first. */
+  list(name: string): Promise<PendingDelivery[]>;
+  count(name: string): Promise<number>;
+  /**
+   * Move pending items into an ONLINE player's inventory. Pass ids to claim a
+   * subset. A row that does not fit is reported and stays queued.
+   */
+  claim(player: PlayerServer, ids?: string[]): Promise<DeliveryClaimOutcome[]>;
+  /** Drop a queued row without delivering it (expiry, return to sender). */
+  cancel(id: string): Promise<boolean>;
+};
+
 /** Restore a player's health to max. */
 declare function healPlayer(player: PlayerServer): void;
 

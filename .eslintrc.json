@@ -84,6 +84,7 @@
         "canCarry": "readonly",
         "moveItem": "readonly",
         "persistNow": "readonly",
+        "delivery": "readonly",
         "Items": "readonly",
         "Npcs": "readonly",
         "Maps": "readonly",

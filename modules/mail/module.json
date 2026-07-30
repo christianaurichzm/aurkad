@@ -1,0 +1,14 @@
+{
+  "id": "mail",
+  "name": "Mail",
+  "version": "1.0.0",
+  "server": "server.js",
+  "client": "client.js",
+  "description": "Send an item and a note to another player, online or not. Delivery is held until the recipient collects it.",
+  "enabledByDefault": true,
+  "config": {
+    "maxMessageLength": 140,
+    "costPerLetter": 0,
+    "currencyItemId": 3
+  }
+}

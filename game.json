@@ -41,6 +41,10 @@
     "trade": { "enabled": true },
     "equipment": { "enabled": true },
     "status": { "enabled": true },
-    "bank": { "enabled": true, "config": { "maxSlots": 50 } }
+    "bank": { "enabled": true, "config": { "maxSlots": 50 } },
+    "mail": {
+      "enabled": true,
+      "config": { "maxMessageLength": 140, "costPerLetter": 0, "currencyItemId": 3 }
+    }
   }
 }

@@ -46,6 +46,16 @@ import {
   type EconomyResult,
 } from '../../services/economy/economyService.js';
 import {
+  cancelDelivery,
+  claimDeliveries,
+  countDeliveries,
+  listDeliveries,
+  queueDelivery,
+  type ClaimOutcome,
+  type PendingDelivery,
+  type QueueResult,
+} from '../../services/economy/deliveryService.js';
+import {
   getArrowSync,
   getAllArrows,
 } from '../../services/content/arrowService.js';
@@ -161,10 +171,12 @@ export function buildApi(
     // Hooks
     on: safeOn,
 
-    // Named behaviour that content attaches to itself by id. `on` listens to
-    // everything and filters; this runs only for the tiles/npcs/items whose
-    // scriptId names it, so the wiring lives in the editor instead of in an
-    // if-chain that grows with every special entity.
+    // Named behaviour that content attaches by id. `on` listens to everything;
+    // this runs only for the tiles, npcs and items whose scriptId names it, so
+    // the wiring lives in the editor. A `params` declaration makes one
+    // behaviour many: the editor shows a field per param on the content, and
+    // the values arrive as `ctx.params`. A malformed declaration throws
+    // (registerEntityBehavior says why).
     attach: (scriptId: string, behavior: EntityBehavior): (() => void) => {
       const detach = registerEntityBehavior(
         String(scriptId),
@@ -388,6 +400,27 @@ export function buildApi(
     // snapshot loop, so a crash cannot revert a confirmed transfer.
     persistNow: (...playersToSave: PlayerServer[]): void => {
       void persistPlayersNow(playersToSave.filter((p) => !!p));
+    },
+
+    // Items owed to a player who may be offline, which trade cannot cover.
+    // These hit the database and return promises. The queue is core because
+    // `claim` adds to the inventory and records the claim in one write, so a
+    // crash cannot duplicate or lose it (services/economy/deliveryService.ts).
+    delivery: {
+      queue: (input: {
+        to: string;
+        itemId: number;
+        quantity?: number;
+        meta?: unknown;
+      }): Promise<QueueResult> =>
+        queueDelivery({ ...input, source: scriptName }),
+      list: (name: string): Promise<PendingDelivery[]> =>
+        listDeliveries(String(name)),
+      count: (name: string): Promise<number> => countDeliveries(String(name)),
+      // Recipient must be online: the item lands in their live inventory.
+      claim: (player: PlayerServer, ids?: string[]): Promise<ClaimOutcome[]> =>
+        claimDeliveries(player, ids),
+      cancel: (id: string): Promise<boolean> => cancelDelivery(String(id)),
     },
 
     // Health

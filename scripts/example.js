@@ -475,6 +475,18 @@ command(
 //   Prefer moveItem over removeItem-then-giveItem: the pair can strand items
 //   if the second half fails.
 //
+// DELIVERY: giving an item to a player who may be OFFLINE (returns promises)
+//   delivery.queue({ to, itemId, quantity?, meta? }) → { ok, id?, reason? }
+//   delivery.list(name) / delivery.count(name)       → what is waiting
+//   delivery.claim(player, ids?)                     → moves it into a live
+//                                                      inventory, exactly once
+//   delivery.cancel(id)                              → drop a queued row
+//
+//   The claim cannot duplicate or lose the item: it writes the inventory and
+//   the record of the claim together. Your side is the send: take the item
+//   from the sender and persistNow BEFORE queueing, or a crash makes a copy.
+//   The `mail` module is this wrapped in a mailbox, if you want the whole thing.
+//
 // PERSISTED DATA (limites reais; checar o retorno)
 //   getPlayerData(player, key)         → valor | undefined   devolve uma CÓPIA
 //   setPlayerData(player, key, value)  → boolean  false = recusado
