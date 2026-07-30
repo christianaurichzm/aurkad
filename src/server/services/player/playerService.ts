@@ -6,6 +6,7 @@ import {
   EQUIPMENT_SLOTS,
 } from '../../../shared/constants.js';
 import { gameConfig, respawnPosition } from '../../gameConfig.js';
+import { findPlacement } from '../world/physicsService.js';
 import {
   PlayerServer,
   PlayerRecord,
@@ -227,7 +228,13 @@ export const respawnPlayer = (player: PlayerServer): void => {
   player.health = player.maxHealth;
   removePlayerFromMap(player.id);
   player.mapId = gameConfig.world.startMapId;
-  player.position = respawnPosition;
+  // Everyone respawns on the same tile, so without placement a wipe would
+  // stack the whole party on one square until they walked off it.
+  player.position = findPlacement(
+    player,
+    gameConfig.world.startMapId,
+    respawnPosition,
+  );
   addPlayerOnMap(player.id);
 };
 

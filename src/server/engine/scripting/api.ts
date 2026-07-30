@@ -66,6 +66,7 @@ import {
 import { queryEntitiesInRadius } from '../../spatial/spatialManager.js';
 import type { SpawnNpcOptions } from '../../services/npc/spawn.js';
 import { resolveDamage, mapPvpMorale } from '../../services/combat/index.js';
+import { findPlacement } from '../../services/world/physicsService.js';
 import type { CombatTarget, RuntimeNpc } from '../../../shared/types.js';
 import { Access } from '../../../shared/types.js';
 import type { CommandContext, CommandOptions } from '../commands.js';
@@ -553,7 +554,12 @@ export function buildApi(
     ): void => {
       const previousMapId = player.mapId;
       player.mapId = mapId;
-      player.position = { x: col * TILE_SIZE, y: row * TILE_SIZE };
+      // Lands beside the tile when it is taken rather than on top of whoever
+      // is standing there; still lands when nothing is free.
+      player.position = findPlacement(player, mapId, {
+        x: col * TILE_SIZE,
+        y: row * TILE_SIZE,
+      });
       player.targetPosition = undefined;
       player.moving = false;
       player.action = CharacterAction.Idle;

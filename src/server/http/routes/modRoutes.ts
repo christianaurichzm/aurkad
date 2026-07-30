@@ -15,6 +15,7 @@ import {
   WarpPlayerBodySchema,
 } from '../bodySchemas.js';
 import { getMap } from '../../services/world/gameData.js';
+import { findPlacement } from '../../services/world/physicsService.js';
 import checkAccess from '../middleware/checkAccess.js';
 import { broadcast } from '../../net/index.js';
 import { kickPlayer, handlePlayerUpdate } from '../../services/gameService.js';
@@ -111,8 +112,10 @@ export function createModRouter() {
       if (!target) return res.status(404).send('Player not found');
 
       const previousMapId = target.mapId;
-      target.position = { ...me.position };
+      // Beside the operator, not on top of them: placement keeps two players
+      // off one tile.
       target.mapId = me.mapId;
+      target.position = findPlacement(target, me.mapId, { ...me.position });
       target.targetPosition = undefined;
       target.moving = false;
       target.action = CharacterAction.Idle;
@@ -139,8 +142,8 @@ export function createModRouter() {
       if (!target) return res.status(404).send('Player not found');
 
       const previousMapId = me.mapId;
-      me.position = { ...target.position };
       me.mapId = target.mapId;
+      me.position = findPlacement(me, target.mapId, { ...target.position });
       me.targetPosition = undefined;
       me.moving = false;
       me.action = CharacterAction.Idle;

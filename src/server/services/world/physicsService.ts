@@ -1,6 +1,11 @@
 import { TILE_SIZE } from '../../../shared/constants.js';
 import { mapPixelWidth, mapPixelHeight } from '../../../shared/mapGeometry.js';
-import { CombatTarget, MapStateServer, Warp } from '../../../shared/types.js';
+import {
+  CombatTarget,
+  MapStateServer,
+  Position,
+  Warp,
+} from '../../../shared/types.js';
 import { getMap } from './gameData.js';
 import { queryNearbyEntities } from '../../spatial/spatialManager.js';
 
@@ -88,6 +93,70 @@ export const hasCollision = (character: CombatTarget): boolean => {
     x + width > mapPixelWidth(map.tiles) ||
     y + height > mapPixelHeight(map.tiles)
   );
+};
+
+/**
+ * How far out to look for somewhere to stand. Three rings is a 7x7 block of
+ * tiles, which covers a crowded warp pad or a spawn point with a queue on it
+ * without letting one placement walk across the map.
+ */
+const PLACEMENT_RINGS = 3;
+
+/**
+ * Tiles at exactly `ring` steps from the centre, nearest ring first.
+ *
+ * Fixed order rather than nearest-by-distance or random: placement happens
+ * inside the simulation, so two runs of the same session have to choose the
+ * same tile or a replay diverges from what it recorded.
+ */
+function ringOffsets(ring: number): Array<{ dx: number; dy: number }> {
+  const offsets: Array<{ dx: number; dy: number }> = [];
+  for (let dy = -ring; dy <= ring; dy++) {
+    for (let dx = -ring; dx <= ring; dx++) {
+      if (Math.max(Math.abs(dx), Math.abs(dy)) === ring)
+        offsets.push({ dx, dy });
+    }
+  }
+  return offsets;
+}
+
+/**
+ * The nearest tile to `desired` that `entity` can actually stand on, for
+ * the arrivals that are not a step: a script teleport, a GM bring or goto,
+ * a warp, a respawn. Two players on one tile after a bring, or corpses
+ * respawning onto one spawn point, lasts until somebody walks away.
+ *
+ * Falls back to `desired` when everything nearby is taken. A teleport that
+ * silently does not happen is worse than an overlap: the GM sees the player
+ * stay put, the script sees its warp ignored, and neither is told why.
+ */
+export const findPlacement = (
+  entity: CombatTarget,
+  mapId: string,
+  desired: Position,
+): Position => {
+  const probe = {
+    id: entity.id,
+    kind: entity.kind,
+    mapId,
+    width: entity.width,
+    height: entity.height,
+    position: desired,
+  } as CombatTarget;
+
+  if (!hasCollision(probe)) return desired;
+
+  for (let ring = 1; ring <= PLACEMENT_RINGS; ring++) {
+    for (const { dx, dy } of ringOffsets(ring)) {
+      const candidate = {
+        x: desired.x + dx * TILE_SIZE,
+        y: desired.y + dy * TILE_SIZE,
+      };
+      if (!hasCollision({ ...probe, position: candidate })) return candidate;
+    }
+  }
+
+  return desired;
 };
 
 export const hasWarp = (character: CombatTarget): Warp | undefined => {

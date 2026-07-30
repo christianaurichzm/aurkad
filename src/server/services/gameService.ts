@@ -50,7 +50,11 @@ import {
   updatePlayerMap,
   createOrUpdateMap,
 } from './world/mapService.js';
-import { hasCollision, hasWarp } from './world/physicsService.js';
+import {
+  findPlacement,
+  hasCollision,
+  hasWarp,
+} from './world/physicsService.js';
 import {
   getPlayerByName,
   handlePlayerUpdates,
@@ -110,7 +114,9 @@ function tryWarpToMap(
     return true;
   }
   player.mapId = toMapId;
-  player.position = toPosition;
+  // Two players hitting a warp pad in the same second are not stacked: the
+  // destination tile decides where they land, not who got there first.
+  player.position = findPlacement(player, toMapId, toPosition);
   resetMovement(player);
   updatePlayerMap(player.id, player, previousMapId);
   return false;
