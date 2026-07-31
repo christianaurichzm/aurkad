@@ -1,6 +1,6 @@
 import crypto from 'crypto';
 import bcrypt from 'bcrypt';
-import { Router, type Response } from 'express';
+import { type Response } from 'express';
 import rateLimit from 'express-rate-limit';
 import type { ExtendedRequest } from '../session.js';
 import { Access } from '../../../shared/types.js';
@@ -25,6 +25,7 @@ import { serverState } from '../../services/world/serverState.js';
 import { playersWsMap } from '../../net/connections.js';
 import { WebSocket } from 'ws';
 import { config } from '../../config.js';
+import { createRouter } from '../../app.js';
 
 const authLimiter = rateLimit({
   windowMs: config.auth.rateLimitWindowMs,
@@ -35,7 +36,7 @@ const authLimiter = rateLimit({
 });
 
 export function createAuthRouter() {
-  const router = Router();
+  const router = createRouter();
 
   router.post(
     '/login',

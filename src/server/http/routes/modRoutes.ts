@@ -1,4 +1,4 @@
-import { Router, type Request, type Response } from 'express';
+import { type Request, type Response } from 'express';
 import type { ExtendedRequest } from '../session.js';
 import { Access, CharacterAction } from '../../../shared/types.js';
 import type { PlayerServer } from '../../../shared/types.js';
@@ -25,6 +25,7 @@ import {
   getPlayerByName,
   changeSprite,
 } from '../../services/player/playerService.js';
+import { createRouter } from '../../app.js';
 
 /**
  * The operator's own live character, or null with the reason already sent.
@@ -45,7 +46,7 @@ function requireSelfInWorld(
 }
 
 export function createModRouter() {
-  const router = Router();
+  const router = createRouter();
 
   router.post(
     '/mod/changeSprite',

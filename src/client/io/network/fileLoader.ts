@@ -10,7 +10,7 @@ export async function loadImageFromBin(
   const keyBytes = hexToBytes(keyHex);
 
   for (let i = 0; i < data.length; i++) {
-    data[i] ^= keyBytes[i % keyBytes.length]!;
+    data[i] ^= keyBytes[i % keyBytes.length];
   }
 
   const blob = new Blob([data], { type: 'image/png' });

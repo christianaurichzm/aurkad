@@ -89,7 +89,7 @@ export const ContentEditor: React.FC = () => {
   }, []);
 
   useEffect(() => {
-    if (visible) refreshData();
+    if (visible) void refreshData();
   }, [visible, refreshData]);
 
   const loadNpcs = useCallback(async () => {

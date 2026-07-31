@@ -79,7 +79,7 @@ export const GameInterface = () => {
       requestAnimationFrame(gameLoop);
     };
 
-    init();
+    void init();
   }, [initialMap, player]);
 
   return (

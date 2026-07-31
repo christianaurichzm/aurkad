@@ -1,9 +1,10 @@
 import { httpClient } from './httpClient';
+import { Access } from '../../../../shared/types';
 import { silentAction } from './authClient';
 
 export interface CommandInfo {
   name: string;
-  access: number;
+  access: Access;
   description: string;
 }
 

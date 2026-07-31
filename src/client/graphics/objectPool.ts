@@ -7,7 +7,7 @@ export class ObjectPool<T extends { active: boolean }> {
 
   acquire(): T | null {
     for (let i = 0; i < this.pool.length; i++) {
-      if (!this.pool[i]!.active) return this.pool[i]!;
+      if (!this.pool[i].active) return this.pool[i];
     }
     return null;
   }
@@ -15,7 +15,7 @@ export class ObjectPool<T extends { active: boolean }> {
   /** Iterates active items; set item.active = false in fn to recycle one. */
   forEach(fn: (item: T) => void): void {
     for (let i = 0; i < this.pool.length; i++) {
-      if (this.pool[i]!.active) fn(this.pool[i]!);
+      if (this.pool[i].active) fn(this.pool[i]);
     }
   }
 
@@ -26,7 +26,7 @@ export class ObjectPool<T extends { active: boolean }> {
   activeCount(): number {
     let n = 0;
     for (let i = 0; i < this.pool.length; i++) {
-      if (this.pool[i]!.active) n++;
+      if (this.pool[i].active) n++;
     }
     return n;
   }

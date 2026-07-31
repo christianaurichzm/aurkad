@@ -33,8 +33,8 @@ export async function createOrUpdateSpell(
   })
     .lean<Spell>()
     .exec();
-  spells.set(spell.id, result!);
-  return result!;
+  spells.set(spell.id, result);
+  return result;
 }
 
 export async function deleteSpell(id: number): Promise<void> {

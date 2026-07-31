@@ -57,15 +57,15 @@ describe('applyWorldUpdate', () => {
     );
 
     const state = getGameState()!;
-    expect(state.players['p2']!.name).toBe('Bob');
-    expect(state.npcs['n1']!.name).toBe('Rat');
+    expect(state.players['p2'].name).toBe('Bob');
+    expect(state.npcs['n1'].name).toBe('Rat');
   });
 
   it('merges a partial update into a known entity without losing fields', () => {
     applyWorldUpdate(update({ entities: { p2: otherPlayer as never } }));
     applyWorldUpdate(update({ entities: { p2: { health: 30 } as never } }));
 
-    const bob = getGameState()!.players['p2']!;
+    const bob = getGameState()!.players['p2'];
     expect(bob.health).toBe(30);
     expect(bob.name).toBe('Bob'); // untouched field survives the merge
     expect(bob.position).toEqual({ x: 10, y: 10 });

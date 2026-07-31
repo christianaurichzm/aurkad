@@ -21,7 +21,7 @@ export function AsyncSelect<T extends string | number>({
 
   useEffect(() => {
     let active = true;
-    (async () => {
+    void (async () => {
       const opts = await loadOptions();
       if (active) setOptions(opts);
     })();

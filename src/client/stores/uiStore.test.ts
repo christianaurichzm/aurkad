@@ -232,7 +232,7 @@ describe('UIStore - Dialog State', () => {
   });
 
   it('should show an error dialog with default labels', () => {
-    useUIStore.getState().showDialog({
+    void useUIStore.getState().showDialog({
       title: 'Purchase failed',
       message: 'Not enough coins',
       kind: 'error',

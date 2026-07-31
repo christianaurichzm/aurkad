@@ -62,7 +62,7 @@ describe('decoding the golden session', () => {
     // 2x2 map: the single chunk has to land in the grid mapMeta allocated.
     expect(map!.tiles).toHaveLength(2);
     expect(map!.tiles[0]).toHaveLength(2);
-    expect(map!.tiles[0]![0]).toEqual({ tileIndex: 0, blocked: false });
+    expect(map!.tiles[0][0]).toEqual({ tileIndex: 0, blocked: false });
   });
 
   it('inserts entities arriving in full, routed by kind', () => {
@@ -71,9 +71,9 @@ describe('decoding the golden session', () => {
     const map = getGameState()!;
     expect(Object.keys(map.players)).toEqual(['bob']);
     expect(Object.keys(map.npcs)).toEqual(['npc1']);
-    expect(map.players['bob']!.position).toEqual({ x: 64, y: 0 });
-    expect(map.npcs['npc1']!.name).toBe('Goblin');
-    expect(map.npcs['npc1']!.health).toBe(30);
+    expect(map.players['bob'].position).toEqual({ x: 64, y: 0 });
+    expect(map.npcs['npc1'].name).toBe('Goblin');
+    expect(map.npcs['npc1'].health).toBe(30);
   });
 
   it('composes the local player from playerStats and self', () => {
@@ -115,7 +115,7 @@ describe('decoding the golden session', () => {
   it('merges a partial entity frame into what it already knows', () => {
     replayThrough('bob gains a targetPosition');
 
-    const bob = getGameState()!.players['bob']!;
+    const bob = getGameState()!.players['bob'];
     expect(bob.targetPosition).toEqual({ x: 64, y: 64 });
     // The frame carried targetPosition alone; everything else must survive.
     expect(bob.name).toBe('Bob');
@@ -126,7 +126,7 @@ describe('decoding the golden session', () => {
   it('deletes a field the server cleared with null', () => {
     replayThrough('bob clears its targetPosition');
 
-    const bob = getGameState()!.players['bob']!;
+    const bob = getGameState()!.players['bob'];
     // Not "null" and not a leftover value: the key has to be gone, or the
     // renderer keeps interpolating toward a destination that no longer exists.
     expect('targetPosition' in bob).toBe(false);

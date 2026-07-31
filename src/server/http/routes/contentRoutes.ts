@@ -1,4 +1,4 @@
-import { Router, type Request, type Response } from 'express';
+import { type Request, type Response } from 'express';
 import { WebSocket } from 'ws';
 import type { ExtendedRequest } from '../session.js';
 import { Access } from '../../../shared/types.js';
@@ -90,13 +90,14 @@ import {
   createOrUpdateArrow,
   deleteArrow,
 } from '../../services/content/arrowService.js';
+import { createRouter } from '../../app.js';
 
 // Content-definition paths whose mutations should regenerate script constants.
 const CONTENT_DEFINITION_PATH =
   /^\/(saveMap|npcs|items|maps|spells|arrows|loot)\b/;
 
 export function createContentRouter() {
-  const router = Router();
+  const router = createRouter();
 
   // After a successful admin edit to content definitions, rebuild the typed
   // constants (Items/Npcs/...) and their .d.ts. Debounced, and scoped so
@@ -253,37 +254,35 @@ export function createContentRouter() {
         return res.status(404).json({ error: 'Shop not found' });
       }
 
-      const products = await Promise.all(
-        shop.products.map(async (entry) => {
-          const item = await getItemById(entry.itemId);
-          const currency = await getItemById(entry.currency);
+      const products = shop.products.map((entry) => {
+        const item = getItemById(entry.itemId);
+        const currency = getItemById(entry.currency);
 
-          if (!item) {
-            throw new Error(`Item ${entry.itemId} not found`);
-          }
-          if (!currency) {
-            throw new Error(`Currency ${entry.currency} not found`);
-          }
+        if (!item) {
+          throw new Error(`Item ${entry.itemId} not found`);
+        }
+        if (!currency) {
+          throw new Error(`Currency ${entry.currency} not found`);
+        }
 
-          return {
-            item: {
-              id: item.id,
-              name: item.name,
-              sprite: item.sprite,
-              description: item.description,
-              type: item.type,
-            },
-            currency: {
-              id: currency.id,
-              name: currency.name,
-              sprite: currency.sprite,
-              description: currency.description,
-              type: currency.type,
-            },
-            price: entry.price,
-          };
-        }),
-      );
+        return {
+          item: {
+            id: item.id,
+            name: item.name,
+            sprite: item.sprite,
+            description: item.description,
+            type: item.type,
+          },
+          currency: {
+            id: currency.id,
+            name: currency.name,
+            sprite: currency.sprite,
+            description: currency.description,
+            type: currency.type,
+          },
+          price: entry.price,
+        };
+      });
 
       res.json({
         id: shop.id,
@@ -379,7 +378,7 @@ export function createContentRouter() {
       player.maxHealth =
         gameConfig.player.startingMaxHealth + player.vitality * 10;
 
-      await updatePlayer(player);
+      updatePlayer(player);
 
       return res.json({
         success: true,

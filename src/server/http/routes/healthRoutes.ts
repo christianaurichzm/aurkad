@@ -1,13 +1,13 @@
-import { Router } from 'express';
 import mongoose from 'mongoose';
 import { getLastTickAt } from '../../metrics.js';
+import { createRouter } from '../../app.js';
 
 // If no tick has been recorded in this window the simulation loop is
 // considered stalled and the instance reports not-ready.
 const TICK_STALENESS_MS = 5_000;
 
 export function createHealthRouter() {
-  const router = Router();
+  const router = createRouter();
 
   // Liveness: the process is up and the event loop responds. No dependency
   // checks here so a slow DB never restarts an otherwise-healthy process.
@@ -19,7 +19,8 @@ export function createHealthRouter() {
   // ticking. 503 while booting or when a dependency is down, so orchestrators
   // hold traffic until the instance is serving.
   router.get('/readyz', (_req, res) => {
-    const dbReady = mongoose.connection.readyState === 1;
+    const dbReady =
+      mongoose.connection.readyState === mongoose.ConnectionStates.connected;
     const lastTick = getLastTickAt();
     const loopReady = lastTick > 0 && Date.now() - lastTick < TICK_STALENESS_MS;
     const ready = dbReady && loopReady;

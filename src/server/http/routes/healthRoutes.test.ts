@@ -28,7 +28,8 @@ afterEach(() => {
 });
 
 afterAll(async () => {
-  if (mongoose.connection.readyState === 1) await mongoose.disconnect();
+  if (mongoose.connection.readyState === mongoose.ConnectionStates.connected)
+    await mongoose.disconnect();
   if (mongod) await mongod.stop();
 });
 

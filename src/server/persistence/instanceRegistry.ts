@@ -36,8 +36,8 @@ export async function refreshRegistry(): Promise<void> {
       .exec();
     _cache.clear();
     for (const doc of docs) {
-      for (const mapId of doc.mapIds as string[]) {
-        _cache.set(mapId, doc.wsUrl as string);
+      for (const mapId of doc.mapIds) {
+        _cache.set(mapId, doc.wsUrl);
       }
     }
   } catch (err) {

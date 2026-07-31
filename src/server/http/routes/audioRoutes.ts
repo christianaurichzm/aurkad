@@ -1,8 +1,9 @@
 import fs from 'fs';
 import path from 'path';
-import { Router, type Response } from 'express';
+import { type Response } from 'express';
 import type { ExtendedRequest } from '../session.js';
 import { logger } from '../../logger.js';
+import { createRouter } from '../../app.js';
 
 const ASSETS_DIR = process.env.ASSETS_PATH
   ? path.resolve(process.env.ASSETS_PATH)
@@ -11,7 +12,7 @@ const ASSETS_DIR = process.env.ASSETS_PATH
 const ALLOWED_EXTENSIONS = new Set(['.mp3', '.ogg', '.wav']);
 
 export function createAudioRouter() {
-  const router = Router();
+  const router = createRouter();
 
   router.get('/audio/:filename', (req: ExtendedRequest, res: Response) => {
     if (!req.session.username) {

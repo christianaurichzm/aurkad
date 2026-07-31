@@ -1,15 +1,16 @@
-import { Router, type Response } from 'express';
+import { type Response } from 'express';
 import type { ExtendedRequest } from '../session.js';
 import { Access } from '../../../shared/types.js';
 import checkAccess from '../middleware/checkAccess.js';
 import { parseBody, ConsoleCommandBodySchema } from '../bodySchemas.js';
 import { handleWebCommand, listCommands } from '../../engine/commands.js';
+import { createRouter } from '../../app.js';
 
 // Browser command console: runs registered commands (script, module and
 // server ops) from the admin UI, with no terminal needed. It reaches only
 // the command registry and cannot evaluate arbitrary code.
 export function createConsoleRouter() {
-  const router = Router();
+  const router = createRouter();
 
   // Available commands (name, access, description) for the console UI.
   // Gated at MOD; handleWebCommand enforces each command's own access level, so

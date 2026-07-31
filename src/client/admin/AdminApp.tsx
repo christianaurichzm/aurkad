@@ -22,6 +22,7 @@ export const AdminApp: React.FC = () => {
   useEffect(() => {
     adminSession()
       .then(setSession)
+      .catch(() => setSession(null))
       .finally(() => setChecked(true));
   }, []);
 

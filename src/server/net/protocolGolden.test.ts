@@ -81,7 +81,7 @@ function replayScenario(): Array<{ label: string; messages: string[] }> {
     steps.push({ label, messages: [...received] });
   };
 
-  const bob = sim.getPlayer('Bob') as PlayerServer;
+  const bob = sim.getPlayer('Bob');
 
   capture('first tick');
   capture('viewer moves', () => {

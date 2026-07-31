@@ -164,7 +164,8 @@ export async function persistPlayersOnShutdown(
 export async function persistPlayersNow(
   playersToSave: PlayerServer[],
 ): Promise<void> {
-  if (mongoose.connection.readyState !== 1) return;
+  if (mongoose.connection.readyState !== mongoose.ConnectionStates.connected)
+    return;
   const results = await Promise.allSettled(
     playersToSave.map((p) => persistPlayerSessionState(p)),
   );
@@ -218,9 +219,7 @@ export const handlePlayerUpdates = (player: PlayerServer): void => {
     // script, an async op mid-await), silently losing that reference's later
     // mutations. Object.assign keeps the same identity across the registry.
     if (existingPlayer !== player) Object.assign(existingPlayer, player);
-    updatePlayer(existingPlayer).catch((e) => {
-      logger.error('updatePlayer failed', { err: e });
-    });
+    updatePlayer(existingPlayer);
   }
 };
 
@@ -389,7 +388,7 @@ export function updateColdSnapshot(
   // change through the length, and they are overwritten before being read.
   const inv = snapshot.inventory;
   for (let i = 0; i < count; i++) {
-    const entry = items![i]!;
+    const entry = items[i]!;
     const at = i * 2;
     if (inv[at] !== entry.item) (inv[at] = entry.item), (changed = true);
     if (inv[at + 1] !== entry.quantity)

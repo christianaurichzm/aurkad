@@ -302,7 +302,10 @@ export function startCensusJob(): () => void {
       // Skipped rather than queued when the database is away: a census with
       // half the players missing would read as a mass disappearance and cry
       // wolf at exactly the wrong moment.
-      if (mongoose.connection.readyState !== 1) return;
+      if (
+        mongoose.connection.readyState !== mongoose.ConnectionStates.connected
+      )
+        return;
       void runCensus().catch((err) =>
         logger.error('[economy] census failed', { err }),
       );

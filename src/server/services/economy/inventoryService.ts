@@ -73,7 +73,7 @@ export const pickUpItem = async (map: MapStateServer, player: PlayerServer) => {
 
   map.droppedItems.splice(dropIndex, 1);
   emit('itemPickup', { player, itemId: drop.itemId, quantity: drop.quantity });
-  await updatePlayer(player);
+  updatePlayer(player);
   updateMap(map);
 };
 
@@ -129,7 +129,7 @@ export async function dropItemFromInventory(
   });
   updateMap(map);
 
-  await updatePlayer(player);
+  updatePlayer(player);
   return true;
 }
 
@@ -140,7 +140,7 @@ export async function useItem(
   const player = getPlayerByName(username);
   if (!player) return false;
 
-  const item = await getItemById(itemId);
+  const item = getItemById(itemId);
   if (!item) return false;
 
   const invItem = player.inventory.items.find((i) => i.item === itemId);
@@ -155,7 +155,7 @@ export async function useItem(
       { player, item, itemId },
       item.scriptParams,
     );
-    await applyItemEffects(player, itemId);
+    applyItemEffects(player, itemId);
     removeItem(player.inventory, itemId, 1);
   } else {
     const slot = item.type as keyof PlayerServer['equipped'];
@@ -171,7 +171,7 @@ export async function useItem(
     }
   }
 
-  await updatePlayer(player);
+  updatePlayer(player);
   return true;
 }
 
@@ -179,7 +179,7 @@ export async function equipItem(
   player: PlayerServer,
   itemId: number,
 ): Promise<void> {
-  const item = await getItemById(itemId);
+  const item = getItemById(itemId);
   if (!item) return;
 
   const slot = item.type as keyof PlayerServer['equipped'];
@@ -204,7 +204,7 @@ export async function equipItem(
 
   removeItem(player.inventory, itemId, 1);
 
-  await applyItemEffects(player, itemId);
+  applyItemEffects(player, itemId);
 }
 
 export async function unequipItem(
@@ -219,7 +219,7 @@ export async function unequipItem(
   const unequipped = getItemById(itemId);
   if (unequipped?.bound && !canFit(player.inventory, itemId)) return;
 
-  await applyItemEffects(player, itemId, true);
+  applyItemEffects(player, itemId, true);
 
   // A full inventory sends it to the ground rather than deleting it. Bound
   // items never get here, as the check above refuses the unequip.
@@ -240,12 +240,12 @@ export async function unequipItem(
   player.equipped[slot] = undefined;
 }
 
-export async function applyItemEffects(
+export function applyItemEffects(
   player: PlayerServer,
   itemId: number,
   reverse = false,
-): Promise<void> {
-  const item = await getItemById(itemId);
+): void {
+  const item = getItemById(itemId);
   if (!item?.effects) return;
 
   for (const effect of item.effects) {

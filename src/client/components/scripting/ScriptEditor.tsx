@@ -123,7 +123,7 @@ export const ScriptEditor: React.FC<{ height?: number }> = ({
   }, [selected, errors, content]);
 
   useEffect(() => {
-    refreshFiles();
+    void refreshFiles();
     return () => {
       // Per-file models are dropped with the panel; language defaults stay.
       for (const model of monaco.editor.getModels()) {

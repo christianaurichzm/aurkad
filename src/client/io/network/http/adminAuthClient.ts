@@ -1,8 +1,9 @@
 import { httpClient } from './httpClient';
+import { Access } from '../../../../shared/types';
 
 export interface AdminSession {
   username: string;
-  access: number;
+  access: Access;
   scriptEditorEnabled: boolean;
 }
 

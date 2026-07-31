@@ -50,7 +50,7 @@ export function on<K extends keyof HookMap>(
   }
   set.add(handler);
   return () => {
-    set!.delete(handler);
+    set.delete(handler);
   };
 }
 

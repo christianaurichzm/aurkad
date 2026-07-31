@@ -40,7 +40,7 @@ function summarizeValue(value: unknown): unknown {
   if (value === null || value === undefined) return value;
   if (Array.isArray(value)) return `[${value.length} items]`;
   if (typeof value === 'object') {
-    return `{${Object.keys(value as object).length} keys}`;
+    return `{${Object.keys(value).length} keys}`;
   }
   if (typeof value === 'string') {
     return value.length > MAX_VALUE_CHARS ? `[${value.length} chars]` : value;
@@ -77,7 +77,8 @@ export function recordAdminAction(entry: AuditEntry): void {
   // Without a connection mongoose buffers the write for ten seconds before
   // rejecting it, which turns every command run during boot or a test into a
   // delayed error. There is nowhere to put the entry, so say so immediately.
-  if (mongoose.connection.readyState !== 1) return;
+  if (mongoose.connection.readyState !== mongoose.ConnectionStates.connected)
+    return;
   void AuditLogModel.create({ ...entry, at: new Date() }).catch((err) =>
     logger.error('[audit] failed to record an action', {
       action: entry.action,

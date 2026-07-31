@@ -96,7 +96,7 @@ export const insertItems = async (
     for (let colIndex = 0; colIndex < row.length; colIndex++) {
       const tile = row[colIndex]!;
       if (tile.item) {
-        const item = await getItemById(tile.item);
+        const item = getItemById(tile.item);
         if (!item) continue;
 
         droppedItems.push({

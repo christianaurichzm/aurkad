@@ -82,7 +82,8 @@ export const removePlayer = async (playerId: string): Promise<void> => {
   await deletePlayer(playerId);
 };
 
-export const updatePlayer = async (player: PlayerServer): Promise<void> => {
+// Synchronous: write-behind only marks the player dirty.
+export const updatePlayer = (player: PlayerServer): void => {
   upsertOnCurrentMap(player);
   markPlayerDirty(player.id);
 };

@@ -148,7 +148,7 @@ const TilesetModeControlsComponent: React.FC = () => {
   }, []);
 
   useEffect(() => {
-    loadMapData();
+    void loadMapData();
   }, [loadMapData]);
 
   useEffect(() => {

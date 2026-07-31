@@ -14,10 +14,12 @@ export const ShopModal: React.FC = () => {
       const custom = e as CustomEvent<string>;
       setShopId(custom.detail);
       setLoading(true);
-      fetchShop(custom.detail).then((s) => {
-        setShop(s);
-        setLoading(false);
-      });
+      // Without the catch a failed fetch leaves the modal on "Loading..."
+      // for as long as it stays open.
+      fetchShop(custom.detail)
+        .then(setShop)
+        .catch(() => setShop(null))
+        .finally(() => setLoading(false));
     };
     window.addEventListener('open-shop', handler as any);
     return () => window.removeEventListener('open-shop', handler as any);

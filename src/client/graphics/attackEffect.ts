@@ -36,7 +36,7 @@ export function renderAttackEffects(ctx: CanvasRenderingContext2D): void {
   const totalDuration = FRAME_COUNT * FRAME_DURATION;
 
   for (let i = active.length - 1; i >= 0; i--) {
-    const eff = active[i]!;
+    const eff = active[i];
     const elapsed = now - eff.startTime;
     if (elapsed >= totalDuration) {
       active.splice(i, 1);

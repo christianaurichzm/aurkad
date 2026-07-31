@@ -192,7 +192,7 @@ export const resolveDamage = async (
 
   if (target.health > 0) {
     if (target.kind === 'player') {
-      await updatePlayer(target);
+      updatePlayer(target);
     }
     return damage;
   }
@@ -203,7 +203,7 @@ export const resolveDamage = async (
     case 'player': {
       emit('playerDeath', { player: target, killer: attacker });
       respawnPlayer(target);
-      await updatePlayer(target);
+      updatePlayer(target);
 
       if (attacker?.kind === 'player') {
         handleChatAction({
@@ -227,7 +227,7 @@ export const resolveDamage = async (
         );
         if (target.experienceValue) {
           awardExperience(attacker, target.experienceValue, 'kill');
-          await updatePlayer(attacker);
+          updatePlayer(attacker);
         }
       }
 

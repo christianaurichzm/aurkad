@@ -33,8 +33,8 @@ export async function createOrUpdateArrow(
   })
     .lean<Arrow>()
     .exec();
-  arrows.set(arrow.id, result!);
-  return result!;
+  arrows.set(arrow.id, result);
+  return result;
 }
 
 export async function deleteArrow(id: number): Promise<void> {

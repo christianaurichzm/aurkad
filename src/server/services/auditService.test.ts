@@ -278,7 +278,7 @@ describe('privileged commands', () => {
   it('separates the web console from the terminal', async () => {
     registerCommand('ban', { access: Access.ADMIN }, () => {});
 
-    handleWebCommand('ban', ['bob'], Access.ADMIN, () => {}, 'owner');
+    await handleWebCommand('ban', ['bob'], Access.ADMIN, () => {}, 'owner');
     handleReplCommand('ban', ['carol'], () => {});
     await settled(2);
 
@@ -292,7 +292,7 @@ describe('privileged commands', () => {
   it('records a console attempt above the caller level', async () => {
     registerCommand('ban', { access: Access.ADMIN }, () => {});
 
-    handleWebCommand('ban', ['bob'], Access.MOD, () => {}, 'gm');
+    await handleWebCommand('ban', ['bob'], Access.MOD, () => {}, 'gm');
     await settled(1);
 
     const [entry] = await listAuditLog();

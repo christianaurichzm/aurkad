@@ -17,7 +17,7 @@ export function onServerEvent(channel: string, handler: Handler): () => void {
   }
   set.add(handler);
   return () => {
-    set!.delete(handler);
+    set.delete(handler);
   };
 }
 

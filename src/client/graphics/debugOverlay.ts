@@ -12,7 +12,7 @@ function calcFps(now: number): number {
   frameTimes.push(now);
   if (frameTimes.length > FRAME_SAMPLES) frameTimes.shift();
   if (frameTimes.length < 2) return 0;
-  return (frameTimes.length - 1) / ((now - frameTimes[0]!) / 1000);
+  return (frameTimes.length - 1) / ((now - frameTimes[0]) / 1000);
 }
 
 export function initDebugOverlay(): void {
@@ -58,7 +58,7 @@ export function initDebugOverlay(): void {
     ctx.fillStyle = '#00ff88';
     ctx.font = '12px monospace';
     for (let i = 0; i < lines.length; i++) {
-      ctx.fillText(lines[i]!, 10, 18 + i * 16);
+      ctx.fillText(lines[i], 10, 18 + i * 16);
     }
     ctx.restore();
   });

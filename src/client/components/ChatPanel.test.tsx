@@ -65,9 +65,7 @@ describe('ChatPanel Component', () => {
     const user = userEvent.setup();
     render(<ChatPanel />);
 
-    const input = screen.getByPlaceholderText(
-      'Mensagem...',
-    ) as HTMLInputElement;
+    const input = screen.getByPlaceholderText('Mensagem...');
 
     await user.type(input, 'Hello');
 

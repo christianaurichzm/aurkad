@@ -157,9 +157,7 @@ const runTileTriggers = (
     } else if (trigger.action === 'changeSprite') {
       player.sprite = trigger.spriteId;
       updatePlayerMap(player.id, player);
-      void updatePlayer(player).catch((e) => {
-        logger.error('changeSprite updatePlayer failed', { err: e });
-      });
+      updatePlayer(player);
     } else if (trigger.action === 'script') {
       dispatchEntityScript(
         trigger.scriptId,
@@ -225,9 +223,7 @@ const tryOpenDoor = (
   tile.door = undefined;
   map.tilesRevision = (map.tilesRevision ?? 0) + 1;
 
-  void updatePlayer(player).catch((e) => {
-    logger.error('door updatePlayer failed', { err: e });
-  });
+  updatePlayer(player);
   void createOrUpdateMap({
     id: map.id,
     tiles: map.tiles,

@@ -195,7 +195,7 @@ async function saveAndBroadcast(players: PlayerServer[]): Promise<void> {
   const unique = new Map(players.map((player) => [player.id, player]));
 
   for (const player of unique.values()) {
-    await updatePlayer(player);
+    updatePlayer(player);
   }
 
   broadcast();
@@ -883,7 +883,7 @@ export function startAdminRepl(): void {
   );
   rl.prompt();
 
-  rl.on('line', async (line) => {
+  const runLine = async (line: string) => {
     const parts = line.trim().split(/\s+/);
     const cmd = parts[0] ?? '';
     const args = parts.slice(1);
@@ -904,6 +904,13 @@ export function startAdminRepl(): void {
 
     rl.setPrompt(prompt());
     rl.prompt();
+  };
+
+  // The listener stays synchronous: readline drops what it returns, so an
+  // async one would send its rejection to Node's unhandled path and a typo
+  // in the console would take the server down.
+  rl.on('line', (line) => {
+    void runLine(line);
   });
 
   rl.on('close', () => {

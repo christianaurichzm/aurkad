@@ -1,8 +1,8 @@
-import { Router } from 'express';
 import { Access } from '../../../shared/types.js';
 import checkAccess from '../middleware/checkAccess.js';
 import { getMetrics } from '../../metrics.js';
 import { getNetStats } from '../../net/netStats.js';
+import { createRouter } from '../../app.js';
 
 type Sample = {
   name: string;
@@ -171,7 +171,7 @@ export function buildMetricsSamples(): Sample[] {
 // healthRoutes for those). Point a scraper at it with an operator session, or
 // expose it only on an internal network.
 export function createMetricsRouter() {
-  const router = Router();
+  const router = createRouter();
 
   router.get('/metrics', checkAccess(Access.ADMIN), (_req, res) => {
     res.setHeader('Content-Type', 'text/plain; version=0.0.4; charset=utf-8');

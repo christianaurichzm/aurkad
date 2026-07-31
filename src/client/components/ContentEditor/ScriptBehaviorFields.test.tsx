@@ -174,7 +174,7 @@ describe('param fields', () => {
 
     await screen.findByText('rarity');
     const selects = screen.getAllByRole('combobox');
-    const rarity = selects[selects.length - 1]!;
+    const rarity = selects[selects.length - 1];
     expect([...rarity.querySelectorAll('option')].map((o) => o.value)).toEqual([
       'common',
       'rare',

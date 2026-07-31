@@ -88,35 +88,41 @@ const releaseKey = (key: Key) => {
   });
 };
 
-export const handleInput = () => {
-  window.addEventListener('keydown', async (e) => {
-    if (isInputActive()) return;
-    if (!document.hasFocus()) return;
-    if (e.key in keyRecord) e.preventDefault();
-    // OS auto-repeat is ignored: the server keeps moving while a key is held,
-    // and repeats would trip the rate limit, which drops releases too.
-    if (e.repeat) return;
-    if (!isValidKey(e.key)) return;
+// Kept out of the listener because an async listener hands its rejection to
+// the DOM, which drops it.
+const onKeyDown = async (e: KeyboardEvent) => {
+  if (isInputActive()) return;
+  if (!document.hasFocus()) return;
+  if (e.key in keyRecord) e.preventDefault();
+  // OS auto-repeat is ignored: the server keeps moving while a key is held,
+  // and repeats would trip the rate limit, which drops releases too.
+  if (e.repeat) return;
+  if (!isValidKey(e.key)) return;
 
-    if (keyRecord[e.key] === Protocol.WS) {
-      if (heldKeys.has(e.key)) return;
-      heldKeys.add(e.key);
-      if (BUFFERABLE_KEYS.has(e.key) && isLocalPlayerMoving()) {
-        bufferedPress = e.key;
-        return;
-      }
-      const seq = ++inputSeq;
-      sendAction({
-        type: 'keyboard',
-        keyboardAction: { key: e.key, type: 'press' },
-        seq,
-      });
-      if (e.key === Key.Control) {
-        useUIStore.getState().setAttackCooldown(PLAYER_ATTACK_COOLDOWN_MS);
-      }
-    } else {
-      await handleKeyPress(e.key);
+  if (keyRecord[e.key] === Protocol.WS) {
+    if (heldKeys.has(e.key)) return;
+    heldKeys.add(e.key);
+    if (BUFFERABLE_KEYS.has(e.key) && isLocalPlayerMoving()) {
+      bufferedPress = e.key;
+      return;
     }
+    const seq = ++inputSeq;
+    sendAction({
+      type: 'keyboard',
+      keyboardAction: { key: e.key, type: 'press' },
+      seq,
+    });
+    if (e.key === Key.Control) {
+      useUIStore.getState().setAttackCooldown(PLAYER_ATTACK_COOLDOWN_MS);
+    }
+  } else {
+    await handleKeyPress(e.key);
+  }
+};
+
+export const handleInput = () => {
+  window.addEventListener('keydown', (e) => {
+    void onKeyDown(e);
   });
 
   window.addEventListener('keyup', (e) => {

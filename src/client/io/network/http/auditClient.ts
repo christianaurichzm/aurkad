@@ -29,7 +29,8 @@ export async function fetchAuditLog(
   for (const [key, value] of Object.entries(filter)) {
     if (value !== undefined && value !== '') query.set(key, String(value));
   }
-  const suffix = query.toString() ? `?${query}` : '';
+  const params = query.toString();
+  const suffix = params ? `?${params}` : '';
   return (
     (await httpClient<AuditRecord[]>(`/admin/audit${suffix}`, {
       method: 'GET',

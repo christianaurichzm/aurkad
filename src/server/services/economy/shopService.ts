@@ -49,7 +49,7 @@ export const buyShopItem = async (
     return false;
   }
 
-  await updatePlayer(player);
+  updatePlayer(player);
   await persistPlayersNow([player]);
   return true;
 };

@@ -18,7 +18,7 @@ import { colors, radius } from '../../theme';
 // list filters as you type. `allowRelativeTeleport` shows Bring and Go To,
 // which only make sense in-game where the operator has a position.
 export const PlayerModeration: React.FC<{
-  access: number;
+  access: Access;
   allowRelativeTeleport?: boolean;
   onResult: (message: string) => void;
 }> = ({ access, allowRelativeTeleport = false, onResult }) => {

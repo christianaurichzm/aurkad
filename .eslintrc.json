@@ -7,7 +7,7 @@
   },
   "extends": [
     "eslint:recommended",
-    "plugin:@typescript-eslint/recommended",
+    "plugin:@typescript-eslint/recommended-type-checked",
     "plugin:react/recommended",
     "plugin:react-hooks/recommended",
     "plugin:react/jsx-runtime"
@@ -16,7 +16,7 @@
   "parserOptions": {
     "ecmaVersion": "latest",
     "sourceType": "module",
-    "project": "./tsconfig.json",
+    "project": ["./tsconfig.server.json", "./tsconfig.client.json"],
     "ecmaFeatures": {
       "jsx": true
     }
@@ -38,7 +38,32 @@
         "varsIgnorePattern": "^_",
         "caughtErrorsIgnorePattern": "^_"
       }
-    ]
+    ],
+    // A promise handed to a JSX attribute is a browser-side unhandled
+    // rejection: the click silently does nothing. A promise handed to an
+    // Express handler took the whole process down before createRouter (see
+    // app.ts). Only the second is worth failing the build over, and every
+    // `onClick={async ...}` here already try/catches to set its own error
+    // state.
+    "@typescript-eslint/no-misused-promises": [
+      "error",
+      { "checksVoidReturn": { "attributes": false } }
+    ],
+    // The engine talks to three untyped worlds - the wire, the sandbox, and
+    // JSON on disk - so `any` legitimately crosses those seams. Warn keeps the
+    // debt countable (the decoder in io/network/wsManager.ts is most of it)
+    // without failing a build over a boundary that is doing its job.
+    "@typescript-eslint/no-unsafe-argument": "warn",
+    "@typescript-eslint/no-unsafe-assignment": "warn",
+    "@typescript-eslint/no-unsafe-member-access": "warn",
+    "@typescript-eslint/no-unsafe-return": "warn",
+    "@typescript-eslint/no-unsafe-call": "warn",
+    // An async function that never awaits is a signature that drifted, not a
+    // defect: awaiting it still works. Several are service entry points on the
+    // tick path (dealDamage, pickUpItem), where making them synchronous moves
+    // work between microtasks and is a change to argue on its own merits.
+    // await-thenable stays an error - that one is the caller being wrong.
+    "@typescript-eslint/require-await": "warn"
   },
   "overrides": [
     {
@@ -48,7 +73,41 @@
       }
     },
     {
+      // Handlers here are registered on a createRouter() router, which catches
+      // a returned promise and forwards the rejection to the error middleware
+      // (see app.ts). Express's own types still declare the handler as
+      // void-returning and cannot express that, so the rule reads every async
+      // route as a dropped promise. The relaxation stops at the files that
+      // register on such a router: the routes directory, and createRouter's
+      // own test.
+      "files": ["src/server/http/routes/**/*.ts", "src/server/app.test.ts"],
+      "rules": {
+        "@typescript-eslint/no-misused-promises": [
+          "error",
+          { "checksVoidReturn": { "attributes": false, "arguments": false } }
+        ]
+      }
+    },
+    {
+      // A test reads an HTTP body, a KV document or a sandbox return value as
+      // the untyped thing it is on the wire; asserting on `res.body.error` is
+      // the test doing its job, not a seam to tighten.
+      "files": ["**/*.test.ts", "**/*.test.tsx"],
+      "rules": {
+        "@typescript-eslint/no-unsafe-argument": "off",
+        "@typescript-eslint/no-unsafe-assignment": "off",
+        "@typescript-eslint/no-unsafe-member-access": "off",
+        "@typescript-eslint/no-unsafe-return": "off",
+        "@typescript-eslint/no-unsafe-call": "off",
+        "@typescript-eslint/unbound-method": "off"
+      }
+    },
+    {
+      // Sandboxed code has no tsconfig by design (it is loaded, not compiled),
+      // so the type-aware rules have nothing to read and would error on every
+      // file.
       "files": ["modules/**/server.js", "scripts/**/*.js"],
+      "extends": ["plugin:@typescript-eslint/disable-type-checked"],
       "parserOptions": {
         "project": null,
         "sourceType": "script"
@@ -133,6 +192,7 @@
     },
     {
       "files": ["modules/**/client.js"],
+      "extends": ["plugin:@typescript-eslint/disable-type-checked"],
       "parserOptions": {
         "project": null,
         "sourceType": "script"

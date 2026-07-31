@@ -194,7 +194,7 @@ describe('ScriptEditor', () => {
     render(<ScriptEditor />);
 
     await screen.findByText('a.js');
-    fireEvent.click(screen.getAllByTitle('Delete')[0]!);
+    fireEvent.click(screen.getAllByTitle('Delete')[0]);
 
     await waitFor(() =>
       expect(mocks.deleteScript).toHaveBeenCalledWith('a.js'),
@@ -206,7 +206,7 @@ describe('ScriptEditor', () => {
     render(<ScriptEditor />);
 
     await screen.findByText('a.js');
-    fireEvent.click(screen.getAllByTitle('Delete')[0]!);
+    fireEvent.click(screen.getAllByTitle('Delete')[0]);
 
     expect(mocks.deleteScript).not.toHaveBeenCalled();
   });

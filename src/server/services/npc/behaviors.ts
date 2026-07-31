@@ -233,7 +233,7 @@ export function findClosestPlayer(
 
   const SEARCH_RADIUS = 500;
   const nearbyEntities = queryEntitiesInRadius(
-    npc.mapId!,
+    npc.mapId,
     npc.position.x,
     npc.position.y,
     SEARCH_RADIUS,

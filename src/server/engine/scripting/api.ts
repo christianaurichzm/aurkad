@@ -96,12 +96,10 @@ import type { HookMap } from '../hooks.js';
 import type { InventoryLike, PlayerServer } from '../../../shared/types.js';
 
 // Mutations go through updatePlayer so state is marked dirty (persisted by the
-// snapshot loop) and broadcast to clients on the next tick. Fire-and-forget:
-// scripts run synchronously inside hooks, so we don't await DB writes here.
-function persist(scriptName: string, player: PlayerServer): void {
-  void updatePlayer(player).catch((e) =>
-    logger.error(`[script:${scriptName}] persist failed`, { err: e }),
-  );
+// snapshot loop) and broadcast to clients on the next tick. No DB write happens
+// here, which is why scripts can call it from inside a synchronous hook.
+function persist(_scriptName: string, player: PlayerServer): void {
+  updatePlayer(player);
 }
 
 type Cleanup = () => void;
@@ -538,7 +536,7 @@ export function buildApi(
     // `get` copies for the same reason getPlayerData does.
     store: {
       get: <T = unknown>(scope: string, key: string): T | undefined =>
-        copyStoredValue(kvGet(String(scope), String(key))) as T | undefined,
+        copyStoredValue(kvGet(String(scope), String(key))),
       set: (scope: string, key: string, value: unknown): boolean =>
         kvSet(String(scope), String(key), value),
       delete: (scope: string, key: string): void =>

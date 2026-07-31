@@ -174,16 +174,17 @@ describe('hook error isolation', () => {
       'bad.js',
     );
 
-    // Register a second hook from outside the sandbox
-    const { clearAll: _unused, ..._ } = { clearAll };
-    import('../hooks.js').then(({ on }) => {
-      on('playerLevelUp', () => fired.push(true));
-    });
+    // Register a second hook from outside the sandbox, synchronously: a dynamic
+    // import would resolve a microtask after the emit below and leave the
+    // isolation this test is named for unchecked.
+    on('playerLevelUp', () => fired.push(true));
 
     emit('playerLevelUp', { player: null as any, level: 2 });
 
+    // The bad handler threw and emit carried on to this one.
+    expect(fired).toEqual([true]);
+
     bad.cleanup();
-    // The bad handler threw but emit continued (error isolation)
   });
 });
 

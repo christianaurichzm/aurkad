@@ -35,7 +35,7 @@ export interface CommandOptions {
 
 interface CommandDef {
   name: string;
-  access: number;
+  access: Access;
   description: string;
   canRun?: (player: PlayerServer) => boolean;
   handler: (ctx: CommandContext) => CommandResult;
@@ -153,7 +153,7 @@ export function handleChatCommand(
     reply(`You don't have permission to use /${name}.`);
     return true;
   }
-  runHandler(cmd, { player, args: parts.slice(1), reply, source: 'chat' });
+  void runHandler(cmd, { player, args: parts.slice(1), reply, source: 'chat' });
   return true;
 }
 
@@ -166,7 +166,7 @@ export function handleReplCommand(
 ): boolean {
   const cmd = commands.get(name.toLowerCase());
   if (!cmd) return false;
-  runHandler(cmd, { args, reply: out, source: 'repl' });
+  void runHandler(cmd, { args, reply: out, source: 'repl' });
   return true;
 }
 
@@ -178,7 +178,7 @@ export function handleReplCommand(
 export async function handleWebCommand(
   name: string,
   args: string[],
-  accessLevel: number,
+  accessLevel: Access,
   out: (message: string) => void,
   actor?: string,
 ): Promise<boolean> {

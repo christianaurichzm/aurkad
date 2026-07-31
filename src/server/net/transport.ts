@@ -271,11 +271,15 @@ export const startWebSocketServer = (
 
         let raw: unknown;
         try {
-          raw = JSON.parse(
-            Buffer.isBuffer(message)
-              ? message.toString('utf8')
-              : message.toString(),
-          );
+          // `ws` hands over a Buffer for a whole frame but an array of them
+          // for a fragmented one, whose toString() joins with commas and would
+          // turn every fragmented message into garbage.
+          const bytes = Buffer.isBuffer(message)
+            ? message
+            : Array.isArray(message)
+              ? Buffer.concat(message.map((part) => new Uint8Array(part)))
+              : Buffer.from(message);
+          raw = JSON.parse(bytes.toString('utf8'));
         } catch {
           return;
         }

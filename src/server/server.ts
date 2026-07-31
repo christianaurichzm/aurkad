@@ -17,7 +17,7 @@ import path from 'path';
 import { createServer } from 'http';
 import express from 'express';
 import mongoose from 'mongoose';
-import app from './app.js';
+import app, { handleRouteError } from './app.js';
 import { config } from './config.js';
 import { createSessionMiddleware } from './http/session.js';
 import { createAuthRouter } from './http/routes/authRoutes.js';
@@ -103,6 +103,9 @@ if (config.nodeEnv === 'production') {
   });
 }
 
+// Last in the chain, so it sees what any route above forwarded.
+app.use(handleRouteError);
+
 const server = createServer(app);
 let stopGameLoops: (() => void) | undefined;
 let stopSnapshots: (() => void) | undefined;
@@ -121,9 +124,18 @@ async function startServer() {
     if (wsPublicUrl && mapIds) {
       await registerInstance(wsPublicUrl, mapIds);
       await refreshRegistry();
-      heartbeatTimer = setInterval(async () => {
-        await registerInstance(wsPublicUrl, mapIds);
-        await refreshRegistry();
+      // A missed beat must not be fatal: the registry entry has a TTL, so the
+      // instance only looks stale until the next beat lands. Letting the
+      // rejection escape the timer would kill the process instead.
+      heartbeatTimer = setInterval(() => {
+        void (async () => {
+          try {
+            await registerInstance(wsPublicUrl, mapIds);
+            await refreshRegistry();
+          } catch (err) {
+            logger.error('[instance] Heartbeat failed', { err });
+          }
+        })();
       }, heartbeatMs);
       logger.info('[instance] Registered', { wsPublicUrl, mapIds });
     }
@@ -156,7 +168,7 @@ async function startServer() {
   }
 }
 
-startServer();
+void startServer();
 
 let isShuttingDown = false;
 async function shutdown(signal: string) {

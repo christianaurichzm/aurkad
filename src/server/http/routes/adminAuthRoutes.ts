@@ -1,5 +1,5 @@
 import bcrypt from 'bcrypt';
-import { Router, type Response } from 'express';
+import { type Response } from 'express';
 import rateLimit from 'express-rate-limit';
 import type { ExtendedRequest } from '../session.js';
 import { Access } from '../../../shared/types.js';
@@ -9,6 +9,7 @@ import checkAccess from '../middleware/checkAccess.js';
 import { listAuditLog } from '../../services/auditService.js';
 import { logger } from '../../logger.js';
 import { config } from '../../config.js';
+import { createRouter } from '../../app.js';
 
 const adminLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
@@ -22,7 +23,7 @@ const adminLimiter = rateLimit({
 // the panel WITHOUT registering a player in the game world. Moderation only
 // needs the session's access level, so the operator never appears in-game.
 export function createAdminAuthRouter() {
-  const router = Router();
+  const router = createRouter();
 
   router.get('/admin/session', (req: ExtendedRequest, res: Response) => {
     const { username, accessLevel } = req.session;
