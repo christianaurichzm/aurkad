@@ -25,6 +25,10 @@ export interface ServerSnapshot {
   actionQueueP95: number;
   /** Cumulative; the delta over a run is how many ticks fell behind. */
   catchUpTicks: number;
+  rssBytes: number;
+  heapUsedBytes: number;
+  /** Entries held per player or per entity, by cache name. */
+  caches: Record<string, number>;
 }
 
 export interface LoadReport {
@@ -164,7 +168,138 @@ export function toServerSnapshot(
     deltaRatioPercent: metrics['engine_net_delta_ratio_percent'] ?? 0,
     actionQueueP95: metrics['engine_action_queue_size_p95'] ?? 0,
     catchUpTicks: metrics['engine_tick_catchup_total'] ?? 0,
+    rssBytes: metrics['engine_process_rss_bytes'] ?? 0,
+    heapUsedBytes: metrics['engine_process_heap_used_bytes'] ?? 0,
+    caches: Object.fromEntries(
+      Object.entries(metrics)
+        .filter(([name]) => name.startsWith('engine_cache_entries_'))
+        .map(([name, value]) => [
+          name.replace('engine_cache_entries_', ''),
+          value,
+        ]),
+    ),
   };
+}
+
+export interface SoakSample {
+  /** Milliseconds since the first sample. */
+  atMs: number;
+  server: ServerSnapshot;
+}
+
+/** Least-squares slope of y over x, in y-units per x-unit. */
+function slope(points: Array<[number, number]>): number {
+  const n = points.length;
+  if (n < 2) return 0;
+  let sx = 0;
+  let sy = 0;
+  let sxy = 0;
+  let sxx = 0;
+  for (const [x, y] of points) {
+    sx += x;
+    sy += y;
+    sxy += x * y;
+    sxx += x * x;
+  }
+  const denominator = n * sxx - sx * sx;
+  return denominator === 0 ? 0 : (n * sxy - sx * sy) / denominator;
+}
+
+const mb = (bytes: number) => bytes / 1024 / 1024;
+
+/**
+ * Whether memory and per-player caches come back down. Memory per player
+ * is measured against `baseline`, the scrape before any bot connected.
+ */
+export function formatSoak(
+  samples: SoakSample[],
+  baseline?: ServerSnapshot,
+): string {
+  if (samples.length < 2) return '\n  soak: not enough samples\n';
+
+  const first = samples[0]!;
+  const last = samples[samples.length - 1]!;
+  const hours = (last.atMs - first.atMs) / 3_600_000;
+
+  // Warm-up growth never repeats, so the slope skips the first 10% of samples.
+  const warmup = samples.length > 4 ? Math.floor(samples.length * 0.1) : 0;
+  const steady = samples.slice(warmup);
+  const rssSlopePerHour =
+    slope(steady.map((s) => [s.atMs / 3_600_000, mb(s.server.rssBytes)])) || 0;
+  const heapSlopePerHour =
+    slope(
+      steady.map((s) => [s.atMs / 3_600_000, mb(s.server.heapUsedBytes)]),
+    ) || 0;
+
+  const players = samples.map((s) => s.server.playersOnline);
+  const peakPlayers = Math.max(...players);
+  const perPlayerMb =
+    baseline && peakPlayers > 0
+      ? (mb(last.server.rssBytes) - mb(baseline.rssBytes)) / peakPlayers
+      : 0;
+
+  const lines = [
+    ``,
+    `  soak`,
+    `    duration          ${hours.toFixed(2)}h over ${samples.length} samples`,
+    `    players           ${players[players.length - 1]} now, ${peakPlayers} peak`,
+    `    rss               ${mb(first.server.rssBytes).toFixed(1)} MB -> ${mb(last.server.rssBytes).toFixed(1)} MB`,
+    `    rss slope         ${rssSlopePerHour >= 0 ? '+' : ''}${rssSlopePerHour.toFixed(1)} MB/h   (after warm-up)`,
+    `    heap used         ${mb(first.server.heapUsedBytes).toFixed(1)} MB -> ${mb(last.server.heapUsedBytes).toFixed(1)} MB`,
+    `    heap slope        ${heapSlopePerHour >= 0 ? '+' : ''}${heapSlopePerHour.toFixed(1)} MB/h`,
+  ];
+
+  if (baseline) {
+    lines.push(
+      `    memory/player     ${perPlayerMb.toFixed(2)} MB   (rss now minus rss with no bots, over peak players)`,
+    );
+  }
+
+  lines.push(
+    ``,
+    `    cache             first -> last   (players now: ${players[players.length - 1]})`,
+  );
+  for (const name of Object.keys(last.server.caches).sort()) {
+    const from = first.server.caches[name] ?? 0;
+    const to = last.server.caches[name] ?? 0;
+    // A per-player cache above the online count after churn is a leak.
+    const leaked =
+      name.startsWith('viewer_') && to > players[players.length - 1]!;
+    lines.push(
+      `      ${name.padEnd(16)}${String(from).padStart(5)} ->${String(to).padStart(5)}${leaked ? '   <- above the online count' : ''}`,
+    );
+  }
+
+  lines.push(``);
+  return lines.join('\n');
+}
+
+/** The series behind the summary, for a chart or a second opinion. */
+export function toSoakCsv(samples: SoakSample[]): string {
+  const cacheNames = Object.keys(samples[0]?.server.caches ?? {}).sort();
+  const header = [
+    'seconds',
+    'players',
+    'rss_mb',
+    'heap_used_mb',
+    'tick_p50_ms',
+    'tick_p99_ms',
+    ...cacheNames.map((c) => `cache_${c}`),
+  ].join(',');
+
+  const rows = samples.map((s) =>
+    [
+      Math.round(s.atMs / 1000),
+      s.server.playersOnline,
+      mb(s.server.rssBytes).toFixed(2),
+      mb(s.server.heapUsedBytes).toFixed(2),
+      s.server.tickP50,
+      s.server.tickP99,
+      ...cacheNames.map((c) => s.server.caches[c] ?? 0),
+    ].join(','),
+  );
+
+  return [header, ...rows].join('\n') + '\n';
 }
 
 export function formatReport(report: LoadReport): string {

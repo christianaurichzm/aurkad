@@ -26,6 +26,18 @@ interface Fragment {
 
 // Last state broadcast for each entity, kept across ticks to diff against.
 const previous = new Map<string, PublicState>();
+
+/**
+ * How many entities still have a diff baseline.
+ *
+ * Published as a metric because this map is keyed by entity id and only
+ * `forgetReplicatedEntity` removes an entry: if a despawn path forgets to call
+ * it, the leak is invisible until memory runs out, and a recycled id inherits
+ * another entity's history. Compared with live entities, this is the check.
+ */
+export function replicatedEntityCount(): number {
+  return previous.size;
+}
 // Serialized fragments for the current tick only.
 let fragments = new Map<string, Fragment>();
 

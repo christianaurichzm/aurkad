@@ -80,6 +80,28 @@ export function resetPlayerNetState(name: string) {
   playerInterestSets.delete(name);
 }
 
+/**
+ * Entries held per viewer, published as metrics. All five are keyed by
+ * player name and emptied only by `resetPlayerNetState`, so a disconnect
+ * path that misses it leaks an entry per session, seen only as these
+ * numbers drifting above the online count over hours.
+ */
+export function viewerCacheSizes(): {
+  cold: number;
+  drops: number;
+  self: number;
+  chunks: number;
+  interest: number;
+} {
+  return {
+    cold: lastSentPlayerCold.size,
+    drops: lastSentDroppedItems.size,
+    self: lastSentSelf.size,
+    chunks: playerChunkState.size,
+    interest: playerInterestSets.size,
+  };
+}
+
 // Called when an entity stops existing (disconnect/despawn) so a recycled id
 // can never inherit another entity's diff history.
 export function forgetReplicatedEntity(id: string) {

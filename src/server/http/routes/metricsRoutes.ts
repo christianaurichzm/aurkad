@@ -163,6 +163,65 @@ export function buildMetricsSamples(): Sample[] {
       type: 'gauge',
       value: netNum(net, ['dynamicSnapshots', 'avgDeltaSizeBytes']),
     },
+    // Memory and per-player caches: a soak reads these as a slope, and the
+    // cache counts are what turn "it grows" into "this map grows".
+    {
+      name: 'engine_process_rss_bytes',
+      help: 'Resident set size of the server process.',
+      type: 'gauge',
+      value: m.memory.rss,
+    },
+    {
+      name: 'engine_process_heap_used_bytes',
+      help: 'V8 heap in use.',
+      type: 'gauge',
+      value: m.memory.heapUsed,
+    },
+    {
+      name: 'engine_process_heap_total_bytes',
+      help: 'V8 heap reserved.',
+      type: 'gauge',
+      value: m.memory.heapTotal,
+    },
+    {
+      name: 'engine_process_external_bytes',
+      help: 'Memory held outside the V8 heap (buffers, sockets).',
+      type: 'gauge',
+      value: m.memory.external,
+    },
+    ...(
+      [
+        ['viewer_cold', m.caches.viewerCold, 'cold state last sent per viewer'],
+        [
+          'viewer_drops',
+          m.caches.viewerDrops,
+          'dropped items last sent per viewer',
+        ],
+        [
+          'viewer_self',
+          m.caches.viewerSelf,
+          'self payload last sent per viewer',
+        ],
+        ['viewer_chunks', m.caches.viewerChunks, 'map chunk state per viewer'],
+        ['viewer_interest', m.caches.viewerInterest, 'interest set per viewer'],
+        [
+          'replication',
+          m.caches.replication,
+          'entities holding a diff baseline',
+        ],
+        [
+          'rate_limit',
+          m.caches.rateLimit,
+          'rate-limiter entries per connection',
+        ],
+        ['dirty_players', m.caches.dirtyPlayers, 'players awaiting a write'],
+      ] as const
+    ).map(([key, value, help]) => ({
+      name: `engine_cache_entries_${key}`,
+      help: `Entries held in the ${help.replace(/\.$/, '')} cache.`,
+      type: 'gauge' as const,
+      value,
+    })),
   ];
 }
 

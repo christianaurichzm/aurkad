@@ -1,6 +1,10 @@
 import { WebSocket } from 'ws';
 import { getRuntimeState } from './services/world/gameData.js';
 import { playersWsMap } from './net/connections.js';
+import { viewerCacheSizes } from './net/snapshot.js';
+import { replicatedEntityCount } from './net/entityReplication.js';
+import { rateLimiterEntryCount } from './net/transport.js';
+import { dirtyPlayerCount } from './persistence/dirtyPlayers.js';
 
 export interface TickMetrics {
   tickMs: number;
@@ -94,6 +98,9 @@ export function getMetrics() {
     totalNpcs += Object.keys(map.npcs).length;
   }
 
+  const memory = process.memoryUsage();
+  const viewers = viewerCacheSizes();
+
   return {
     uptime: Math.floor(process.uptime()),
     wsConnections: [...playersWsMap.values()].filter(
@@ -103,6 +110,28 @@ export function getMetrics() {
     npcs: totalNpcs,
     maps: maps.length,
     tick: getTickStats(),
+    // Read straight from the process rather than sampled into a window: a soak
+    // reads memory as a slope over hours, and the sampling belongs to whoever
+    // is scraping, not here.
+    memory: {
+      rss: memory.rss,
+      heapUsed: memory.heapUsed,
+      heapTotal: memory.heapTotal,
+      external: memory.external,
+    },
+    // Every one of these is keyed by a player or an entity that eventually goes
+    // away. Published together because "does it leak" is answered by comparing
+    // them with the online count, and "which one leaks" needs them separate.
+    caches: {
+      viewerCold: viewers.cold,
+      viewerDrops: viewers.drops,
+      viewerSelf: viewers.self,
+      viewerChunks: viewers.chunks,
+      viewerInterest: viewers.interest,
+      replication: replicatedEntityCount(),
+      rateLimit: rateLimiterEntryCount(),
+      dirtyPlayers: dirtyPlayerCount(),
+    },
   };
 }
 

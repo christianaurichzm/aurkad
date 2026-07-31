@@ -5,11 +5,37 @@
 import { describe, it, expect } from 'vitest';
 import {
   buildReport,
+  formatSoak,
   parseMetrics,
   percentile,
   toServerSnapshot,
+  toSoakCsv,
   type BotSample,
+  type ServerSnapshot,
+  type SoakSample,
 } from './report.js';
+
+const serverSnapshot = (
+  over: Partial<ServerSnapshot> = {},
+): ServerSnapshot => ({
+  tickP50: 0,
+  tickP95: 0,
+  tickP99: 0,
+  tickMax: 0,
+  playersOnline: 0,
+  wsConnections: 0,
+  bytesPerTick: 0,
+  bytesPerPlayerPerTick: 0,
+  deltaRatioPercent: 0,
+  actionQueueP95: 0,
+  catchUpTicks: 0,
+  rssBytes: 0,
+  heapUsedBytes: 0,
+  caches: {},
+  ...over,
+});
+
+const MB = 1024 * 1024;
 
 const sample = (over: Partial<BotSample> = {}): BotSample => ({
   bytesReceived: 0,
@@ -168,6 +194,9 @@ describe('buildReport', () => {
       deltaRatioPercent: 80,
       actionQueueP95: 3,
       catchUpTicks,
+      rssBytes: 0,
+      heapUsedBytes: 0,
+      caches: {},
     });
 
     const report = buildReport({
@@ -195,6 +224,9 @@ describe('buildReport', () => {
       deltaRatioPercent: 91.4,
       actionQueueP95: 7,
       catchUpTicks: 0,
+      rssBytes: 0,
+      heapUsedBytes: 0,
+      caches: {},
     };
 
     const report = buildReport({
@@ -267,5 +299,98 @@ describe('toServerSnapshot', () => {
     const snapshot = toServerSnapshot({});
     expect(snapshot.tickP95).toBe(0);
     expect(snapshot.catchUpTicks).toBe(0);
+  });
+});
+
+// The soak verdict rests on this arithmetic: a wrong slope invents or
+// hides a leak.
+describe('soak summary', () => {
+  const series = (
+    points: Array<[number, Partial<ServerSnapshot>]>,
+  ): SoakSample[] =>
+    points.map(([minutes, over]) => ({
+      atMs: minutes * 60_000,
+      server: serverSnapshot(over),
+    }));
+
+  it('reports growth as MB per hour, not as a total', () => {
+    // 30 MB gained over half an hour is 60 MB/h, whatever the sample count.
+    const samples = series([
+      [0, { rssBytes: 100 * MB, playersOnline: 150 }],
+      [15, { rssBytes: 115 * MB, playersOnline: 150 }],
+      [30, { rssBytes: 130 * MB, playersOnline: 150 }],
+    ]);
+
+    expect(formatSoak(samples)).toContain('+60.0 MB/h');
+  });
+
+  it('reads a flat run as no slope', () => {
+    const samples = series([
+      [0, { rssBytes: 200 * MB }],
+      [30, { rssBytes: 200 * MB }],
+      [60, { rssBytes: 200 * MB }],
+    ]);
+
+    expect(formatSoak(samples)).toContain('+0.0 MB/h');
+  });
+
+  it('measures memory per player against the run with no bots', () => {
+    const baseline = serverSnapshot({ rssBytes: 100 * MB, playersOnline: 0 });
+    const samples = series([
+      [0, { rssBytes: 130 * MB, playersOnline: 100 }],
+      [60, { rssBytes: 150 * MB, playersOnline: 100 }],
+    ]);
+
+    // 150 MB now minus 100 MB idle, over 100 players.
+    expect(formatSoak(samples, baseline)).toContain('0.50 MB');
+  });
+
+  it('flags a per-viewer cache left above the online count', () => {
+    const samples = series([
+      [0, { playersOnline: 150, caches: { viewer_self: 150 } }],
+      [60, { playersOnline: 150, caches: { viewer_self: 900 } }],
+    ]);
+
+    expect(formatSoak(samples)).toContain('above the online count');
+  });
+
+  it('says nothing when the caches drain with the players', () => {
+    const samples = series([
+      [0, { playersOnline: 150, caches: { viewer_self: 150 } }],
+      [60, { playersOnline: 150, caches: { viewer_self: 150 } }],
+    ]);
+
+    expect(formatSoak(samples)).not.toContain('above the online count');
+  });
+
+  it('writes one CSV row per sample, with a column per cache', () => {
+    const csv = toSoakCsv(
+      series([
+        [0, { rssBytes: 100 * MB, caches: { viewer_self: 1, replication: 2 } }],
+        [1, { rssBytes: 101 * MB, caches: { viewer_self: 3, replication: 4 } }],
+      ]),
+    );
+    const [header, ...rows] = csv.trim().split('\n');
+
+    expect(header).toContain('cache_replication');
+    expect(rows).toHaveLength(2);
+    expect(rows[1]).toContain('101.00');
+  });
+});
+
+// Warm-up growth never repeats, so fitting through it reports a false leak.
+describe('soak warm-up', () => {
+  it('ignores the opening samples when fitting the slope', () => {
+    const samples: SoakSample[] = [
+      // A 100 MB jump in the first minute, then perfectly flat for an hour.
+      { atMs: 0, server: serverSnapshot({ rssBytes: 100 * MB }) },
+      { atMs: 60_000, server: serverSnapshot({ rssBytes: 200 * MB }) },
+      ...Array.from({ length: 10 }, (_, i) => ({
+        atMs: (i + 2) * 300_000,
+        server: serverSnapshot({ rssBytes: 200 * MB }),
+      })),
+    ];
+
+    expect(formatSoak(samples)).toContain('+0.0 MB/h');
   });
 });

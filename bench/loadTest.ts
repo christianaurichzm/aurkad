@@ -5,6 +5,11 @@
 //   npm run loadtest -- --bots=200 --duration=60 --behavior=wander
 //   npm run loadtest -- --scenario=L1 --admin-user=root --admin-pass=secret
 //
+// Soak, memory over time:
+//
+//   npm run loadtest -- --bots=150 --behavior=reconnect --duration=3600 \
+//     --sample-every=30 --csv=soak.csv --admin-user=root --admin-pass=secret
+//
 // Bots on the server's machine compete with it, so treat those numbers as a
 // floor. /login allows 20 per 15 minutes per IP by default, so raise
 // AUTH_RATE_LIMIT_MAX on the server first.
@@ -16,17 +21,25 @@ import {
   type BotBehavior,
   type Scenario,
 } from './load/scenarios.js';
+import { writeFileSync } from 'node:fs';
 import {
   buildReport,
   formatReport,
+  formatSoak,
   parseMetrics,
   toServerSnapshot,
+  toSoakCsv,
   type ServerSnapshot,
+  type SoakSample,
 } from './load/report.js';
 
 const args = process.argv.slice(2);
 const argOf = (name: string): string | undefined =>
-  args.find((a) => a.startsWith(`--${name}=`))?.split('=').slice(1).join('=');
+  args
+    .find((a) => a.startsWith(`--${name}=`))
+    ?.split('=')
+    .slice(1)
+    .join('=');
 const hasFlag = (name: string): boolean => args.includes(`--${name}`);
 
 const baseUrl = (argOf('url') ?? 'http://localhost:8080').replace(/\/$/, '');
@@ -76,9 +89,10 @@ function applyOverrides(scenario: Scenario): Scenario {
   return {
     ...scenario,
     ...(Number.isFinite(bots) && bots > 0 && { bots }),
-    ...(Number.isFinite(duration) && duration > 0 && {
-      durationSeconds: duration,
-    }),
+    ...(Number.isFinite(duration) &&
+      duration > 0 && {
+        durationSeconds: duration,
+      }),
     ...(behavior && { behavior }),
   };
 }
@@ -119,6 +133,28 @@ async function adminCookie(): Promise<string | null> {
 }
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+
+/**
+ * Scrapes /metrics on an interval for the length of the run, since telling
+ * a leak from a warm cache needs a slope.
+ */
+function startSampler(
+  cookie: string | null,
+  everySeconds: number,
+): { samples: SoakSample[]; stop: () => void } {
+  const samples: SoakSample[] = [];
+  const startedAt = Date.now();
+
+  const timer = setInterval(() => {
+    void (async () => {
+      const server = await scrapeMetrics(cookie);
+      if (server) samples.push({ atMs: Date.now() - startedAt, server });
+    })();
+  }, everySeconds * 1000);
+  timer.unref?.();
+
+  return { samples, stop: () => clearInterval(timer) };
+}
 
 async function run(): Promise<void> {
   const scenario = resolveScenario();
@@ -183,6 +219,12 @@ async function run(): Promise<void> {
     bot.sample.worldUpdates = 0;
   }
 
+  const sampleEvery = Number(argOf('sample-every'));
+  const sampler =
+    Number.isFinite(sampleEvery) && sampleEvery > 0
+      ? startSampler(cookie, sampleEvery)
+      : undefined;
+
   const measureStarted = Date.now();
   if (scenario.behavior === 'reconnect') {
     await runReconnectChurn(connected, scenario, random);
@@ -191,6 +233,7 @@ async function run(): Promise<void> {
   }
   const measuredSeconds = (Date.now() - measureStarted) / 1000;
 
+  sampler?.stop();
   const after = await scrapeMetrics(cookie);
   await Promise.all(connected.map((b) => b.close()));
 
@@ -204,6 +247,16 @@ async function run(): Promise<void> {
   });
 
   console.log(jsonOut ? JSON.stringify(report, null, 2) : formatReport(report));
+
+  if (sampler && sampler.samples.length) {
+    // `before` has no bots connected, so memory per player is a difference.
+    console.log(formatSoak(sampler.samples, before));
+    const csvPath = argOf('csv');
+    if (csvPath) {
+      writeFileSync(csvPath, toSoakCsv(sampler.samples));
+      console.log(`  series written to ${csvPath}\n`);
+    }
+  }
 
   if (!after) {
     console.log(

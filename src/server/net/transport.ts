@@ -76,6 +76,17 @@ let lastQueueDropLogTime = 0;
 
 const messageRate = new Map<string, RateState>();
 
+/**
+ * Rate-limiter entries, published as a metric.
+ *
+ * Keyed by username and removed when the connection closes. Exposed because
+ * "removed on close" is a claim about every close path, and the only honest
+ * check is watching this against the connection count over a long run.
+ */
+export function rateLimiterEntryCount(): number {
+  return messageRate.size;
+}
+
 function isRateLimited(username: string): boolean {
   const limit = config.limits.wsMaxMessagesPerSecond;
   if (limit <= 0) return false;

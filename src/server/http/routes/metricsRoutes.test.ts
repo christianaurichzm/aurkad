@@ -66,4 +66,34 @@ describe('GET /metrics', () => {
     expect(res.text).not.toContain('NaN');
     expect(res.text).not.toContain('undefined');
   });
+
+  // Without these a soak can say "memory grew" and nothing else. The cache
+  // counts are what name the map that grew.
+  it('exposes process memory and the caches keyed by player or entity', async () => {
+    const res = await request(appAs(Access.ADMIN)).get('/metrics');
+    const valueOf = (name: string) =>
+      Number(
+        res.text
+          .split('\n')
+          .find((l) => l.startsWith(`${name} `))
+          ?.split(' ')[1],
+      );
+
+    expect(valueOf('engine_process_rss_bytes')).toBeGreaterThan(0);
+    expect(valueOf('engine_process_heap_used_bytes')).toBeGreaterThan(0);
+
+    for (const cache of [
+      'viewer_cold',
+      'viewer_drops',
+      'viewer_self',
+      'viewer_chunks',
+      'viewer_interest',
+      'replication',
+      'rate_limit',
+      'dirty_players',
+    ]) {
+      expect(res.text).toContain(`# TYPE engine_cache_entries_${cache} gauge`);
+      expect(valueOf(`engine_cache_entries_${cache}`)).toBe(0);
+    }
+  });
 });
