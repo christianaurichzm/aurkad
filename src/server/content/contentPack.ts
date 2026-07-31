@@ -18,8 +18,10 @@ import {
   createOrUpdateLootTable,
   listLootTables,
 } from '../services/economy/lootTableService.js';
+import { gameConfig } from '../gameConfig.js';
 import {
   validateContentReferences,
+  validateWorldGraph,
   validateScriptReferences,
 } from '../services/content/contentValidation.js';
 import { registeredBehaviorParams } from '../engine/scripting/entityScripts.js';
@@ -310,13 +312,23 @@ async function reportBrokenReferences(): Promise<void> {
       listLootTables(),
     ]);
 
-    const { errors, warnings } = validateContentReferences({
+    const graph = {
       items: items as { id: number }[],
       npcs: npcs as Array<{ id: string; name?: string }>,
       shops: shops as Array<{ id: string; name?: string }>,
       maps: maps as Array<{ id: string; name?: string }>,
       lootTables,
+    };
+    const references = validateContentReferences(graph);
+    // Only the boot has the whole world in memory, which reachability and warp
+    // landings need; the editor sees one map at a time.
+    const world = validateWorldGraph(graph, {
+      startMapId: gameConfig.world.startMapId,
+      respawnTile: gameConfig.world.respawnTile,
     });
+
+    const errors = [...references.errors, ...world.errors];
+    const warnings = [...references.warnings, ...world.warnings];
 
     for (const message of errors) logger.error(`[content] ${message}`);
     for (const message of warnings) logger.warn(`[content] ${message}`);

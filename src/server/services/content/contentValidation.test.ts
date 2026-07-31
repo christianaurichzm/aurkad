@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import {
   validateContentReferences,
+  validateWorldGraph,
   validateScriptReferences,
 } from './contentValidation.js';
 
@@ -408,5 +409,170 @@ describe('loot tables', () => {
       npcs: [{ id: 'goblin', lootTableId: 'anything' }],
     });
     expect(result.warnings).toEqual([]);
+  });
+});
+
+describe('validateWorldGraph', () => {
+  const T = 64; // TILE_SIZE
+  const at = (col: number, row: number) => ({ x: col * T, y: row * T });
+
+  /** A rectangular map of plain tiles, with specific tiles overridden. */
+  const mapOf = (
+    id: string,
+    overrides: Record<string, Record<string, unknown>> = {},
+    extra: Record<string, unknown> = {},
+  ) => ({
+    id,
+    name: id,
+    tiles: Array.from({ length: 3 }, (_, row) =>
+      // No tileIndex: this validator reads warps, blocking and spawns, and
+      // TileRef models exactly that.
+      Array.from({ length: 3 }, (_, col) => ({
+        ...(overrides[`${col},${row}`] ?? {}),
+      })),
+    ),
+    ...extra,
+  });
+
+  const world = { startMapId: 'a', respawnTile: { col: 0, row: 0 } };
+
+  describe('warp landings', () => {
+    it('reports a warp that lands on another warp', () => {
+      const result = validateWorldGraph({
+        maps: [
+          mapOf('a', { '1,1': { warp: { to: 'b', position: at(2, 2) } } }),
+          mapOf('b', { '2,2': { warp: { to: 'a', position: at(1, 1) } } }),
+        ],
+      });
+
+      // Both directions are reported: each one bounces the player on arrival.
+      expect(result.warnings).toHaveLength(2);
+      expect(result.warnings[0]).toMatch(/lands on another warp/);
+    });
+
+    it('accepts a two-way door, which is a loop and is meant to be', () => {
+      const result = validateWorldGraph({
+        maps: [
+          // The return warp sits on a different tile than the one it lands on,
+          // which is what a normal door looks like. Naive cycle detection
+          // would call this a bug.
+          mapOf('a', { '1,1': { warp: { to: 'b', position: at(0, 0) } } }),
+          mapOf('b', { '1,1': { warp: { to: 'a', position: at(0, 0) } } }),
+        ],
+      });
+
+      expect(result.warnings).toEqual([]);
+      expect(result.errors).toEqual([]);
+    });
+
+    it('reports a warp that lands inside a wall', () => {
+      const result = validateWorldGraph({
+        maps: [
+          mapOf('a', { '1,1': { warp: { to: 'b', position: at(2, 2) } } }),
+          mapOf('b', { '2,2': { blocked: true } }),
+        ],
+      });
+
+      expect(result.warnings).toHaveLength(1);
+      expect(result.warnings[0]).toMatch(/blocked tile/);
+    });
+  });
+
+  describe('reachability', () => {
+    it('reports a map no warp or border link leads to', () => {
+      const result = validateWorldGraph(
+        { maps: [mapOf('a'), mapOf('island')] },
+        world,
+      );
+
+      expect(result.warnings).toHaveLength(1);
+      expect(result.warnings[0]).toMatch(/"island".*cannot be reached/);
+    });
+
+    it('follows border links, not just warp tiles', () => {
+      const result = validateWorldGraph(
+        {
+          maps: [
+            mapOf(
+              'a',
+              {},
+              { borderLinks: { up: { to: 'b', position: at(0, 0) } } },
+            ),
+            mapOf('b'),
+          ],
+        },
+        world,
+      );
+
+      expect(result.warnings).toEqual([]);
+    });
+
+    it('follows a chain rather than only direct neighbours', () => {
+      const result = validateWorldGraph(
+        {
+          maps: [
+            mapOf('a', { '1,1': { warp: { to: 'b', position: at(0, 0) } } }),
+            mapOf('b', { '1,1': { warp: { to: 'c', position: at(0, 0) } } }),
+            mapOf('c'),
+          ],
+        },
+        world,
+      );
+
+      expect(result.warnings).toEqual([]);
+    });
+
+    it('says nothing about reachability with no start to measure from', () => {
+      // Without a root every map is unreachable, and reporting all of them
+      // would be worse than staying quiet.
+      const result = validateWorldGraph({
+        maps: [mapOf('a'), mapOf('island')],
+      });
+      expect(result.warnings).toEqual([]);
+    });
+  });
+
+  describe('spawn coverage', () => {
+    it('errors when the respawn tile is inside a wall', () => {
+      const result = validateWorldGraph(
+        { maps: [mapOf('a', { '0,0': { blocked: true } })] },
+        world,
+      );
+
+      // Every player at once, not one piece of content, so an error.
+      expect(result.errors).toHaveLength(1);
+      expect(result.errors[0]).toMatch(/spawn inside a wall/);
+    });
+
+    it('errors when the respawn tile is off the map', () => {
+      const result = validateWorldGraph(
+        { maps: [mapOf('a')] },
+        {
+          startMapId: 'a',
+          respawnTile: { col: 99, row: 99 },
+        },
+      );
+
+      expect(result.errors[0]).toMatch(/outside the start map/);
+    });
+
+    it('reports an npc no tile spawns', () => {
+      const result = validateWorldGraph({
+        maps: [mapOf('a', { '1,1': { npcSpawn: 'goblin' } })],
+        npcs: [{ id: 'goblin' }, { id: 'dragon', name: 'Dragon' }],
+      });
+
+      expect(result.warnings).toHaveLength(1);
+      expect(result.warnings[0]).toMatch(/"dragon" \(Dragon\).*never appears/);
+    });
+  });
+
+  it('stays quiet when maps carry no tiles, as the editor sends them', () => {
+    const result = validateWorldGraph(
+      { maps: [{ id: 'a', name: 'A' }], npcs: [{ id: 'goblin' }] },
+      world,
+    );
+
+    expect(result).toEqual({ errors: [], warnings: [] });
   });
 });

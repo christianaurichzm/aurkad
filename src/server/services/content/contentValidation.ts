@@ -9,6 +9,7 @@ import {
   checkStoredParams,
   type ScriptParamSpec,
 } from '../../../shared/scriptParams.js';
+import { TILE_SIZE } from '../../../shared/constants.js';
 
 export interface ContentValidationResult {
   errors: string[];
@@ -43,6 +44,9 @@ interface ShopRef {
   products?: Array<{ itemId: number }> | undefined;
 }
 interface TileRef {
+  blocked?: boolean;
+  warp?: { to: string; position: { x: number; y: number } } | undefined;
+  npcSpawn?: string | undefined;
   triggers?:
     | Array<{
         action: string;
@@ -56,6 +60,20 @@ interface MapRef {
   name?: string;
   droppedItems?: Array<{ itemId: number }> | undefined;
   tiles?: TileRef[][] | undefined;
+  borderLinks?:
+    | Partial<
+        Record<
+          'up' | 'down' | 'left' | 'right',
+          { to: string; position: { x: number; y: number } }
+        >
+      >
+    | undefined;
+}
+
+/** Where players enter the world, so reachability has a root to start from. */
+export interface WorldStart {
+  startMapId: string;
+  respawnTile: { col: number; row: number };
 }
 
 export interface ContentGraph {
@@ -224,6 +242,126 @@ export function validateContentReferences(
       if (!itemIds.has(dropped.itemId)) {
         warnings.push(
           `Map ${label(map.id, map.name)} has a dropped unknown item ${dropped.itemId} on the ground.`,
+        );
+      }
+    }
+  }
+
+  return { errors, warnings };
+}
+
+/**
+ * Whole-world checks: can a player reach the content, and does a warp land
+ * somewhere they can stand. It needs every map's tiles, so it runs where the
+ * world is in memory, at boot and content import; the editor validates one
+ * map at a time with `mapValidation`.
+ */
+export function validateWorldGraph(
+  graph: ContentGraph,
+  world?: WorldStart,
+): ContentValidationResult {
+  const errors: string[] = [];
+  const warnings: string[] = [];
+
+  const maps = (graph.maps ?? []).filter((map) => map.id && map.tiles);
+  if (maps.length === 0) return { errors, warnings };
+
+  const byId = new Map(maps.map((map) => [map.id!, map]));
+  const tileAt = (
+    map: MapRef,
+    position: { x: number; y: number },
+  ): TileRef | undefined =>
+    map.tiles?.[Math.round(position.y / TILE_SIZE)]?.[
+      Math.round(position.x / TILE_SIZE)
+    ];
+
+  const exitsOf = (map: MapRef) => {
+    const exits: Array<{ to: string; position: { x: number; y: number } }> = [];
+    for (const row of map.tiles ?? []) {
+      for (const tile of row) if (tile.warp) exits.push(tile.warp);
+    }
+    for (const link of Object.values(map.borderLinks ?? {})) {
+      if (link) exits.push(link);
+    }
+    return exits;
+  };
+
+  // Where a warp puts the player, not whether the graph loops: a two-way
+  // door is a loop, as it should be. The bug is landing on another warp,
+  // which fires on arrival, and two pointing at each other ping-pong forever.
+  for (const map of maps) {
+    for (const exit of exitsOf(map)) {
+      const target = byId.get(exit.to);
+      if (!target) continue; // dangling target: already reported per-map
+
+      const landing = tileAt(target, exit.position);
+      if (!landing) continue; // out of bounds: mapValidation reports it
+
+      if (landing.warp) {
+        warnings.push(
+          `Warp from map ${label(map.id, map.name)} lands on another warp in ${label(target.id, target.name)} at (${exit.position.x},${exit.position.y}): the player is moved again on arrival.`,
+        );
+      } else if (landing.blocked) {
+        warnings.push(
+          `Warp from map ${label(map.id, map.name)} lands on a blocked tile in ${label(target.id, target.name)} at (${exit.position.x},${exit.position.y}).`,
+        );
+      }
+    }
+  }
+
+  // Reachability from where players enter. With no start there is no root,
+  // and calling every map an orphan would be worse than silence.
+  if (world && byId.has(world.startMapId)) {
+    const reached = new Set<string>([world.startMapId]);
+    const queue = [world.startMapId];
+    while (queue.length) {
+      const current = byId.get(queue.shift()!);
+      if (!current) continue;
+      for (const exit of exitsOf(current)) {
+        if (byId.has(exit.to) && !reached.has(exit.to)) {
+          reached.add(exit.to);
+          queue.push(exit.to);
+        }
+      }
+    }
+
+    for (const map of maps) {
+      if (!reached.has(map.id!)) {
+        warnings.push(
+          `Map ${label(map.id, map.name)} cannot be reached from the start map "${world.startMapId}" by any warp or border link.`,
+        );
+      }
+    }
+
+    // Everyone enters and respawns here, so a blocked tile is every player
+    // stuck in a wall at once: an error rather than a warning.
+    const start = byId.get(world.startMapId)!;
+    const spawn = start.tiles?.[world.respawnTile.row]?.[world.respawnTile.col];
+    if (!spawn) {
+      errors.push(
+        `Respawn tile (col ${world.respawnTile.col}, row ${world.respawnTile.row}) is outside the start map ${label(start.id, start.name)}.`,
+      );
+    } else if (spawn.blocked) {
+      errors.push(
+        `Respawn tile (col ${world.respawnTile.col}, row ${world.respawnTile.row}) on the start map ${label(start.id, start.name)} is blocked: players would spawn inside a wall.`,
+      );
+    }
+  }
+
+  // An npc with no spawn tile never appears, and one whose only tile was
+  // deleted dies once and never returns, as respawnNpc picks from the tiles
+  // naming it and gives up when there are none.
+  if (graph.npcs) {
+    const spawned = new Set<string>();
+    for (const map of maps) {
+      for (const row of map.tiles ?? []) {
+        for (const tile of row) if (tile.npcSpawn) spawned.add(tile.npcSpawn);
+      }
+    }
+    for (const npc of graph.npcs) {
+      if (npc.id && !spawned.has(String(npc.id))) {
+        warnings.push(
+          `NPC ${label(npc.id, npc.name)} has no spawn tile on any map, so it never appears.`,
         );
       }
     }
