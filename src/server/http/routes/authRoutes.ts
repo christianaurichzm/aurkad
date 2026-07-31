@@ -12,9 +12,9 @@ import {
 import { logger } from '../../logger.js';
 import { getPlayerById, registerPlayer } from '../../sim/world.js';
 import { addPlayerOnMap } from '../../services/world/mapService.js';
-import { disconnectPlayer } from '../../services/gameService.js';
 import {
   createPlayer,
+  disconnectPlayer,
   enrichPlayer,
   getPlayerByNameFromDb,
 } from '../../services/player/playerService.js';

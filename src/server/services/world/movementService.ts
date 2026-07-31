@@ -3,8 +3,8 @@ import {
   DEFAULT_PLAYER_SPEED,
   MOVEMENT_DURATION,
   RUN_MOVEMENT_DURATION,
-} from '../../shared/constants.js';
-import { getTick, msToTicks } from '../sim/clock.js';
+} from '../../../shared/constants.js';
+import { getTick, msToTicks } from '../../sim/clock.js';
 import {
   Key,
   Direction,
@@ -14,60 +14,44 @@ import {
   Tile,
   MapStateServer,
   Position,
-  MapType,
-} from '../../shared/types.js';
-import type { ClientKeyboardAction } from '../engine/actions.js';
-import { isRecording, recordKeyEvent } from '../sim/replayRecorder.js';
-import { useApi } from '../engine/modules/registry.js';
-import {
-  getMap,
-  updateMapById,
-  updatePlayer,
-  getRuntimeState,
-} from './world/gameData.js';
-import {
-  getAllPlayers,
-  getPlayerById,
-  unregisterPlayer,
-} from '../sim/world.js';
-import { clearPlayerDirty } from '../persistence/dirtyPlayers.js';
-import { clearAttackCooldown } from './combat/attackCooldown.js';
-import {
-  resetPlayerNetState,
-  forgetReplicatedEntity,
-  broadcastGameState as broadcast,
-} from '../net/snapshot.js';
-import { playersWsMap } from '../net/connections.js';
-import { emitGameEvent } from '../engine/eventBus.js';
-import { emit } from '../engine/hooks.js';
-import { dispatchEntityScript } from '../engine/scripting/entityScripts.js';
-import { removeItem } from './economy/economyService.js';
-import { handleAttack } from './combat/index.js';
-import { pickUpItem } from './economy/inventoryService.js';
-import { handleInteract } from './world/interactionService.js';
-import {
-  insertModeCell,
-  updatePlayerMap,
-  createOrUpdateMap,
-} from './world/mapService.js';
-import {
-  findPlacement,
-  hasCollision,
-  hasWarp,
-} from './world/physicsService.js';
+} from '../../../shared/types.js';
+import type { ClientKeyboardAction } from '../../engine/actions.js';
+import { isRecording, recordKeyEvent } from '../../sim/replayRecorder.js';
+import { useApi } from '../../engine/modules/registry.js';
+import { getMap, updatePlayer } from './gameData.js';
+import { getAllPlayers } from '../../sim/world.js';
+import { emitGameEvent } from '../../engine/eventBus.js';
+import { emit } from '../../engine/hooks.js';
+import { dispatchEntityScript } from '../../engine/scripting/entityScripts.js';
+import { removeItem } from '../economy/economyService.js';
+import { handleAttack } from '../combat/index.js';
+import { pickUpItem } from '../economy/inventoryService.js';
+import { handleInteract } from './interactionService.js';
+import { updatePlayerMap, createOrUpdateMap } from './mapService.js';
+import { findPlacement, hasCollision, hasWarp } from './physicsService.js';
 import {
   getPlayerByName,
-  handlePlayerUpdates,
-  persistPlayerSessionState,
   respawnPlayer,
-} from './player/playerService.js';
-import { handleChatAction } from './comms/chatService.js';
-import { logger } from '../logger.js';
-import { lookupInstanceUrl } from '../persistence/instanceRegistry.js';
+  disconnectPlayer,
+} from '../player/playerService.js';
+import { handleChatAction } from '../comms/chatService.js';
+import { logger } from '../../logger.js';
+import { lookupInstanceUrl } from '../../persistence/instanceRegistry.js';
+import { playersWsMap } from '../../net/connections.js';
+
+// A player moving through the world: held-key intent each tick, warp, door,
+// tile trigger, and the keyboard actions (attack, pickup, interact) sharing
+// the held-key bookkeeping. Alongside physicsService (collision) and
+// interactionService (NPC talk), this decides where a player ends up.
 
 // Per-player set of currently held keys. Input state, consumed by
 // processMovementIntent and handleKeyAction below.
 export const pressedKeysMap = new Map<string, Set<Key>>();
+
+/** Drops held-key state for a player leaving, so a disconnect leaks none. */
+export function clearPressedKeys(username: string): void {
+  pressedKeysMap.delete(username);
+}
 
 function resetMovement(player: PlayerServer): void {
   player.targetPosition = undefined;
@@ -452,61 +436,5 @@ export const handleKeyAction = (action: ClientKeyboardAction) => {
 
       break;
     }
-  }
-};
-
-export const mapSave = async (
-  mapId: string,
-  tiles: Tile[][],
-  name: string,
-  type: MapType,
-  music?: string,
-) => {
-  const newMap = await insertModeCell(mapId, tiles);
-  await updateMapById({ ...newMap, name, type, music } as MapStateServer);
-};
-
-export const getGameState = () => getRuntimeState();
-
-export const handlePlayerUpdate = (player: PlayerServer): void => {
-  handlePlayerUpdates(player);
-};
-
-export async function kickPlayer(
-  username: string,
-  reason = 'You were kicked from the server.',
-): Promise<boolean> {
-  const ws = playersWsMap.get(username);
-  if (ws && ws.readyState === ws.OPEN) {
-    ws.send(JSON.stringify({ type: 'kick', message: reason }));
-    ws.close();
-  }
-  playersWsMap.delete(username);
-  await disconnectPlayer(username);
-  broadcast();
-  return true;
-}
-
-export const disconnectPlayer = async (username?: string) => {
-  const player = username ? getPlayerByName(username) : undefined;
-  if (!player) {
-    if (username) pressedKeysMap.delete(username);
-    return;
-  }
-
-  if (username) {
-    pressedKeysMap.delete(username);
-  }
-
-  await persistPlayerSessionState(player);
-  clearPlayerDirty(player.id);
-  clearAttackCooldown(player.id);
-  if (getPlayerById(player.id)) {
-    emit('playerLeave', { player });
-    unregisterPlayer(player.id);
-    resetPlayerNetState(player.name);
-    // Per-viewer caches are keyed by viewer name and cleared above; the
-    // entity's own diff baseline is keyed by id and lives elsewhere.
-    forgetReplicatedEntity(player.id);
   }
 };

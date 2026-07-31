@@ -3,7 +3,7 @@ import { isSuspicious, runCensus } from '../services/economy/economyCensus.js';
 import { Access } from '../../shared/types.js';
 import { serverState, type ServerMode } from '../services/world/serverState.js';
 import { handleChatAction } from '../services/comms/chatService.js';
-import { getGameState } from '../services/gameService.js';
+import { getRuntimeState } from '../services/world/gameData.js';
 import {
   clearFlag,
   listFlags,
@@ -162,7 +162,7 @@ function describeFlag(flag: LiveOpsFlag): string {
 
 function onlinePlayerNames(): string[] {
   const names = new Set<string>();
-  for (const map of Object.values(getGameState().maps)) {
+  for (const map of Object.values(getRuntimeState().maps)) {
     for (const player of Object.values(map.players)) names.add(player.name);
   }
   return [...names].sort((a, b) => a.localeCompare(b));

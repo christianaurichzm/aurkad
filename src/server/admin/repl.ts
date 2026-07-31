@@ -8,7 +8,6 @@ import {
   type PlayerServer,
   type Position,
 } from '../../shared/types.js';
-import { getGameState, kickPlayer } from '../services/gameService.js';
 import {
   banPlayer,
   unbanPlayer,
@@ -23,10 +22,11 @@ import {
   isMuted,
   type ServerMode,
 } from '../services/world/serverState.js';
-import { updatePlayer } from '../services/world/gameData.js';
+import { getRuntimeState, updatePlayer } from '../services/world/gameData.js';
 import { updatePlayerMap } from '../services/world/mapService.js';
 import {
   getPlayerByName,
+  kickPlayer,
   levelUpPlayer,
   respawnPlayer,
 } from '../services/player/playerService.js';
@@ -158,7 +158,7 @@ function parseNonNegativeInt(value: string | undefined): number | null {
 }
 
 function getOnlinePlayers(): PlayerServer[] {
-  const state = getGameState();
+  const state = getRuntimeState();
   const byId = new Map<string, PlayerServer>();
 
   for (const map of Object.values(state.maps)) {
@@ -257,7 +257,7 @@ function resolveTeleportDestination(args: string[]): TeleportDestination {
 
   if (args.length === 3) {
     const [mapId, xArg, yArg] = args;
-    if (!mapId || !getGameState().maps[mapId]) {
+    if (!mapId || !getRuntimeState().maps[mapId]) {
       return { ok: false, error: `Map not found: ${mapId ?? '<missing>'}` };
     }
 
@@ -373,7 +373,7 @@ async function handleCommand(cmd: string, args: string[]): Promise<void> {
     }
 
     case 'maps': {
-      const state = getGameState();
+      const state = getRuntimeState();
       const entries = Object.entries(state.maps);
       if (entries.length === 0) {
         out(ui.warn('No active maps.'));
@@ -401,7 +401,7 @@ async function handleCommand(cmd: string, args: string[]): Promise<void> {
       const player = requireOnlinePlayer(username);
       if (!player) break;
 
-      const state = getGameState();
+      const state = getRuntimeState();
       const map = state.maps[player.mapId];
       const t = tile(player.position);
       const ws = playersWsMap.get(player.name);

@@ -7,7 +7,7 @@ import {
 import { PROTOCOL_VERSION } from '../../shared/wsProtocol.js';
 import { config } from '../config.js';
 import { logger } from '../logger.js';
-import { getGameState } from '../services/gameService.js';
+import { getRuntimeState } from '../services/world/gameData.js';
 import {
   toPlayerPublic,
   toNpcPublic,
@@ -329,7 +329,7 @@ function withinViewport(pos: { x: number; y: number }, vp: Viewport): boolean {
 }
 
 export function broadcastGameState() {
-  const gameState = getGameState();
+  const gameState = getRuntimeState();
   const marginPx = config.net.aoiMarginTiles * TILE_SIZE;
 
   // Fragments are per-tick; clear them before any map is serialized.

@@ -18,12 +18,13 @@ import { getMap } from '../../services/world/gameData.js';
 import { findPlacement } from '../../services/world/physicsService.js';
 import checkAccess from '../middleware/checkAccess.js';
 import { broadcast } from '../../net/index.js';
-import { kickPlayer, handlePlayerUpdate } from '../../services/gameService.js';
 import { updatePlayerMap } from '../../services/world/mapService.js';
 import { banPlayer } from '../../services/content/banService.js';
 import {
   getPlayerByName,
   changeSprite,
+  handlePlayerUpdates,
+  kickPlayer,
 } from '../../services/player/playerService.js';
 import { createRouter } from '../../app.js';
 
@@ -196,7 +197,7 @@ export function createModRouter() {
       if (!target) return res.status(404).send('Player not found');
 
       target.sprite = spriteId;
-      handlePlayerUpdate(target);
+      handlePlayerUpdates(target);
       broadcast();
 
       res.status(200).send('Sprite updated');
@@ -214,7 +215,7 @@ export function createModRouter() {
       if (!target) return res.status(404).send('Player not found');
 
       target.access = accessLevel;
-      handlePlayerUpdate(target);
+      handlePlayerUpdates(target);
       broadcast();
 
       res.status(200).send('Access updated');
@@ -258,7 +259,7 @@ export function createModRouter() {
       if (!me) return;
 
       me.access = accessLevel;
-      handlePlayerUpdate(me);
+      handlePlayerUpdates(me);
       req.session.accessLevel = accessLevel;
       req.session.save(() => {});
       broadcast();

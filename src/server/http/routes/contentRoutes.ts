@@ -30,11 +30,11 @@ import {
   updateMapById,
   updatePlayer,
 } from '../../services/world/gameData.js';
-import { mapSave } from '../../services/gameService.js';
 import {
   createOrUpdateMap,
   getMapById,
   listMaps,
+  mapSave,
 } from '../../services/world/mapService.js';
 import {
   validateMapTiles,

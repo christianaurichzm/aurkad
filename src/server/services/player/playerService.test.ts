@@ -4,8 +4,14 @@ import {
   Direction,
   PlayerServer,
 } from '../../../shared/types.js';
-import { toPlayerCold, awardExperience } from './playerService.js';
+import {
+  toPlayerCold,
+  awardExperience,
+  handlePlayerUpdates,
+} from './playerService.js';
 import { on, clearAll } from '../../engine/hooks.js';
+import { createFixture } from '../../sim/simFixture.js';
+import { getPlayerByName } from '../../sim/world.js';
 
 function mkPlayer(overrides: Partial<PlayerServer> = {}): PlayerServer {
   return {
@@ -99,5 +105,46 @@ describe('awardExperience', () => {
     awardExperience(player, -100, 'script');
     awardExperience(player, NaN, 'script');
     expect(player.experience).toBe(5);
+  });
+});
+
+// F-4: handlePlayerUpdates must not swap the registered player object's
+// identity. A reference held elsewhere (in-flight combat, a script, an async
+// op mid-await) would otherwise become detached and its later mutations
+// would be lost.
+describe('handlePlayerUpdates identity (F-4)', () => {
+  it('keeps the registered object identity stable across an update', () => {
+    const sim = createFixture(0);
+    const alice = sim.addPlayer({ name: 'Alice', sprite: 0 });
+    const held = getPlayerByName('Alice');
+
+    handlePlayerUpdates({ ...alice, sprite: 7 });
+
+    const after = getPlayerByName('Alice');
+    expect(after?.sprite).toBe(7);
+    expect(after).toBe(held);
+  });
+
+  it('does not detach a reference held before the update', () => {
+    const sim = createFixture(0);
+    const alice = sim.addPlayer({ name: 'Alice' });
+    const held = getPlayerByName('Alice')!;
+
+    handlePlayerUpdates({ ...alice, sprite: 9 });
+
+    // A mutation through the pre-update reference must still be visible via
+    // the registry, as they have to be the same object.
+    held.health = 42;
+    expect(getPlayerByName('Alice')?.health).toBe(42);
+  });
+
+  it('map.players and the name index resolve to the same object after update', () => {
+    const sim = createFixture(0);
+    const alice = sim.addPlayer({ name: 'Alice' });
+
+    handlePlayerUpdates({ ...alice, sprite: 3 });
+
+    const byName = getPlayerByName('Alice');
+    expect(sim.map.players[alice.id]).toBe(byName);
   });
 });

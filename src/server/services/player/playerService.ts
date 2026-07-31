@@ -22,12 +22,26 @@ import {
 import { playerRepository } from '../../persistence/playerRepository.js';
 
 import { getPlayer, updatePlayer } from '../world/gameData.js';
-import { getPlayerByName as lookupPlayerByName } from '../../sim/world.js';
+import {
+  getPlayerByName as lookupPlayerByName,
+  // Runtime registry lookup, distinct from this file's own getPlayerById
+  // (a database read), only to check disconnectPlayer is not racing a
+  // second disconnect for the same player.
+  getPlayerById as getRegisteredPlayer,
+  unregisterPlayer,
+} from '../../sim/world.js';
 import { emit } from '../../engine/hooks.js';
 import { addPlayerOnMap, removePlayerFromMap } from '../world/mapService.js';
 import { getItemById } from '../economy/inventoryService.js';
-import { broadcast } from '../../net/index.js';
-import { handlePlayerUpdate } from '../gameService.js';
+import {
+  broadcast,
+  playersWsMap,
+  resetPlayerNetState,
+  forgetReplicatedEntity,
+} from '../../net/index.js';
+import { clearPlayerDirty } from '../../persistence/dirtyPlayers.js';
+import { clearAttackCooldown } from '../combat/attackCooldown.js';
+import { clearPressedKeys } from '../world/movementService.js';
 import { logger } from '../../logger.js';
 
 export async function getPlayerById(id: string): Promise<PlayerRecord | null> {
@@ -426,6 +440,45 @@ export const changeSprite = (spriteId: number, username: string) => {
     ...getPlayerByName(username)!,
     sprite: spriteId,
   };
-  handlePlayerUpdate(newPlayer);
+  handlePlayerUpdates(newPlayer);
   broadcast();
+};
+
+export async function kickPlayer(
+  username: string,
+  reason = 'You were kicked from the server.',
+): Promise<boolean> {
+  const ws = playersWsMap.get(username);
+  if (ws && ws.readyState === ws.OPEN) {
+    ws.send(JSON.stringify({ type: 'kick', message: reason }));
+    ws.close();
+  }
+  playersWsMap.delete(username);
+  await disconnectPlayer(username);
+  broadcast();
+  return true;
+}
+
+export const disconnectPlayer = async (username?: string) => {
+  // Cleared unconditionally, even when the player isn't found below: stale
+  // held-key state for a name nobody answers to would otherwise sit in
+  // movementService's map until something else happens to overwrite it.
+  if (username) clearPressedKeys(username);
+
+  const player = username ? getPlayerByName(username) : undefined;
+  if (!player) {
+    return;
+  }
+
+  await persistPlayerSessionState(player);
+  clearPlayerDirty(player.id);
+  clearAttackCooldown(player.id);
+  if (getRegisteredPlayer(player.id)) {
+    emit('playerLeave', { player });
+    unregisterPlayer(player.id);
+    resetPlayerNetState(player.name);
+    // Per-viewer caches are keyed by viewer name and cleared above; the
+    // entity's own diff baseline is keyed by id and lives elsewhere.
+    forgetReplicatedEntity(player.id);
+  }
 };

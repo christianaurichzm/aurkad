@@ -15,11 +15,9 @@ import { ClientMessageSchema } from './clientMessage.js';
 import { config } from '../config.js';
 import type { ExtendedRequest } from '../http/session.js';
 import { handleChatAction } from '../services/comms/chatService.js';
-import {
-  disconnectPlayer,
-  handleKeyAction,
-  getGameState,
-} from '../services/gameService.js';
+import { disconnectPlayer } from '../services/player/playerService.js';
+import { handleKeyAction } from '../services/world/movementService.js';
+import { getRuntimeState } from '../services/world/gameData.js';
 import { handleItemAction } from '../services/economy/inventoryService.js';
 import { handleCustomAction } from '../services/comms/customEventService.js';
 import { updateNpcs } from '../services/npc/index.js';
@@ -155,7 +153,7 @@ function isServerAction(action: ActionQueueItem): action is ServerAction {
 function handleServerAction(action: ServerAction) {
   switch (action.action) {
     case ServerActionType.UpdateNpcPositions:
-      Object.values(getGameState().maps).forEach((map) => {
+      Object.values(getRuntimeState().maps).forEach((map) => {
         const livePlayers = Object.values(map.players).filter(
           (player) => player.health > 0,
         );
@@ -165,7 +163,7 @@ function handleServerAction(action: ServerAction) {
       });
       break;
     case ServerActionType.RegeneratePlayersHP:
-      Object.values(getGameState().maps).forEach((map) => {
+      Object.values(getRuntimeState().maps).forEach((map) => {
         Object.values(map.players).forEach((player) => {
           if (player.health < player.maxHealth) {
             const { regenPercent, minRegen } = gameConfig.combat;

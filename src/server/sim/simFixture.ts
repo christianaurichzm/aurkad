@@ -10,7 +10,7 @@ import {
   handleKeyAction,
   processMovementIntent,
   processMovementCompletion,
-} from '../services/gameService.js';
+} from '../services/world/movementService.js';
 import { clearAllAttackCooldowns } from '../services/combat/attackCooldown.js';
 import { updateNpcs } from '../services/npc/index.js';
 import { clearAllNpcAiState } from '../services/npc/aiBrain.js';

@@ -17,7 +17,7 @@ import {
   handleKeyAction,
   processMovementIntent,
   processMovementCompletion,
-} from '../services/gameService.js';
+} from '../services/world/movementService.js';
 
 function makeTiles(rows: number, cols: number): Tile[][] {
   return Array.from({ length: rows }, () =>

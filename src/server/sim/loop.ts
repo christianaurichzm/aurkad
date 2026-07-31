@@ -4,9 +4,9 @@ import { recordTick, recordCatchUpTick } from '../metrics.js';
 import {
   processMovementIntent,
   processMovementCompletion,
-} from '../services/gameService.js';
+} from '../services/world/movementService.js';
 import { rebuildQuadtree } from '../spatial/spatialManager.js';
-import { getGameState } from '../services/gameService.js';
+import { getRuntimeState } from '../services/world/gameData.js';
 import { ServerActionType } from '../engine/actions.js';
 import {
   processActions,
@@ -37,7 +37,7 @@ function scheduledServerActions() {
 
 function rebuildSpatialIndexes() {
   try {
-    const state = getGameState();
+    const state = getRuntimeState();
     if (!state?.maps) return;
 
     for (const [mapId, map] of Object.entries(state.maps)) {

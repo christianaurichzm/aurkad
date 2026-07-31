@@ -2,13 +2,14 @@ import { TILE_SIZE } from '../../../shared/constants.js';
 import {
   Tile,
   MapStateServer,
+  MapType,
   DroppedItem,
   PlayerServer,
   RuntimeNpc,
   Direction,
   CharacterAction,
 } from '../../../shared/types.js';
-import { getMap, getPlayer, runtimeState } from './gameData.js';
+import { getMap, getPlayer, runtimeState, updateMapById } from './gameData.js';
 import { placePlayerOnMap, detachFromMap } from '../../sim/world.js';
 
 import { mapRepository } from '../../persistence/mapRepository.js';
@@ -83,6 +84,17 @@ export const insertModeCell = async (mapId: string, tiles: Tile[][]) => {
   };
 
   return newMap;
+};
+
+export const mapSave = async (
+  mapId: string,
+  tiles: Tile[][],
+  name: string,
+  type: MapType,
+  music?: string,
+) => {
+  const newMap = await insertModeCell(mapId, tiles);
+  await updateMapById({ ...newMap, name, type, music } as MapStateServer);
 };
 
 export const insertItems = async (
