@@ -15,7 +15,17 @@ export interface CommandContext {
   args: string[];
   reply: (message: string) => void;
   source: 'chat' | 'repl' | 'web';
+  /**
+   * Who is running this, resolved by the dispatcher: the player's name from
+   * chat, the session's account from the web console, or "console" for the
+   * terminal. The same string the audit trail records, so a command that
+   * stores who changed something agrees with the trail.
+   */
+  actor: string;
 }
+
+/** What an entry point builds; the dispatcher resolves the rest. */
+type IncomingCommand = Omit<CommandContext, 'actor'>;
 
 /**
  * A handler may be async, and a caller that can wait should. The web console
@@ -105,11 +115,12 @@ function auditCommand(
 
 function runHandler(
   cmd: CommandDef,
-  ctx: CommandContext,
+  incoming: IncomingCommand,
   // Chat carries the player; the web console knows its session; the terminal
   // has no account behind it, which is itself worth recording as such.
-  actor = ctx.player?.name ?? 'console',
+  actor = incoming.player?.name ?? 'console',
 ): CommandResult {
+  const ctx: CommandContext = { ...incoming, actor };
   auditCommand(cmd, ctx, actor);
   const failed = (e: unknown) => {
     logger.error(`[command] "${cmd.name}" threw`, { err: e });
