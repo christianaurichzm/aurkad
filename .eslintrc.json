@@ -160,6 +160,7 @@
         "getPlayerData": "readonly",
         "setPlayerData": "readonly",
         "store": "readonly",
+        "flags": "readonly",
         "teleportPlayer": "readonly",
         "sendMessage": "readonly",
         "broadcastMessage": "readonly",

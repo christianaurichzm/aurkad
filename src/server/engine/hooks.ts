@@ -32,6 +32,13 @@ export type HookMap = {
   };
   beforeXpGain: { player: PlayerServer; amount: number; source: string };
   customAction: { player: PlayerServer; channel: string; payload: unknown };
+  // Fires on the edge, when a live-ops flag starts or ends, which a scheduled
+  // event needs and a read of the value cannot give.
+  liveOpsFlag: {
+    name: string;
+    value: boolean | number | string;
+    active: boolean;
+  };
   tick: { tick: number };
 };
 

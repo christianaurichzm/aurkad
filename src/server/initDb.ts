@@ -12,6 +12,7 @@ import {
 } from './services/world/gameData.js';
 import { listItems } from './services/economy/inventoryService.js';
 import { loadLootTables } from './services/economy/lootTableService.js';
+import { loadLiveOpsFlags } from './services/liveOpsService.js';
 import { loadArrows } from './services/content/arrowService.js';
 import { loadSpells } from './services/content/spellService.js';
 import { MapStateServer } from '../shared/types.js';
@@ -91,6 +92,9 @@ export async function loadInitialData() {
 
     await loadArrows();
     await loadSpells();
+    // Before the tick starts: a flag read by a hook on the first tick has to be
+    // the one the operator left running, not the default.
+    await loadLiveOpsFlags();
     logger.info('Data successfully loaded from database into memory');
   } catch (error) {
     // Essential world data (maps, items) failed to load: abort the boot, which

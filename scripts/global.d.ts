@@ -146,6 +146,11 @@ interface HookPayloads {
   beforeXpGain:  { player: PlayerServer; amount: number; source: string };
   /** A custom message from client code. The payload is untrusted input. */
   customAction:  { player: PlayerServer; channel: string; payload: unknown };
+  /**
+   * A live-ops flag started or ended (see `flags`), once per transition, not
+   * per boot; read `flags.enabled` at load for the current state.
+   */
+  liveOpsFlag:   { name: string; value: boolean | number | string; active: boolean };
   /** Fires every game tick (~20/sec). Throttle with `if (tick % n === 0)`. */
   tick:          { tick: number };
 }
@@ -562,6 +567,25 @@ declare const store: {
   delete(scope: string, key: string): void;
   keys(scope: string): string[];
   entries<T = unknown>(scope: string): Array<[string, T]>;
+};
+
+/**
+ * Live-ops flags an operator sets with the `flag` command; read only here.
+ *
+ *     on('beforeXpGain', (ctx) => {
+ *       if (flags.enabled('winterEvent')) ctx.amount *= 2;
+ *     });
+ *
+ * Reading gives the current value, scheduled or not; the `liveOpsFlag` hook
+ * gives the start and end. The engine itself applies only `xpMultiplier`.
+ */
+declare const flags: {
+  /** The raw value, or undefined when unset or expired. */
+  get(name: string): boolean | number | string | undefined;
+  /** True only for a flag set to boolean true. */
+  enabled(name: string): boolean;
+  /** A numeric flag, or the fallback when unset or not a number. */
+  number(name: string, fallback?: number): number;
 };
 
 /** Teleport a player to a map tile (col, row). */

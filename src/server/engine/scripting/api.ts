@@ -7,6 +7,12 @@ import {
   persistPlayersNow,
 } from '../../services/player/playerService.js';
 import { runtimeState } from '../../sim/state.js';
+import {
+  flagEnabled,
+  flagNumber,
+  getFlag,
+  type FlagValue,
+} from '../../services/liveOpsService.js';
 import { getMap, updatePlayer } from '../../services/world/gameData.js';
 import { handleChatAction } from '../../services/comms/chatService.js';
 import { updatePlayerMap } from '../../services/world/mapService.js';
@@ -544,6 +550,21 @@ export function buildApi(
       keys: (scope: string): string[] => kvKeys(String(scope)),
       entries: <T = unknown>(scope: string): Array<[string, T]> =>
         kvEntries<T>(String(scope)),
+    },
+
+    // Live-ops flags an operator changes while the server runs, read-only here.
+    // Mutation stays on the `flag` command: that path is access-gated and lands
+    // in the audit trail, and "who turned this on" is the whole point of a
+    // switch that changes the game for everyone at once.
+    flags: {
+      /** The raw value, or undefined when unset or expired. */
+      get: (name: string): FlagValue | undefined =>
+        getFlag(String(name))?.value,
+      /** True only for a flag set to boolean true. */
+      enabled: (name: string): boolean => flagEnabled(String(name)),
+      /** A numeric flag, or the fallback when it is unset or not a number. */
+      number: (name: string, fallback = 0): number =>
+        flagNumber(String(name), fallback),
     },
 
     // Teleport (same map or cross-map)

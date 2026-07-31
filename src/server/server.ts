@@ -39,6 +39,7 @@ import {
   stopWebSocketServer,
 } from './net/index.js';
 import { connectToDatabase, loadInitialData } from './initDb.js';
+import { startLiveOps } from './services/liveOpsService.js';
 import {
   importContentPack,
   reportUnknownBehaviors,
@@ -145,6 +146,7 @@ async function startServer() {
     await rebuildContentConstants();
     writeContentDts();
     registerServerCommands();
+    startLiveOps();
     loadModules();
     await loadScripts();
     // Only now can content that names a script behaviour be checked: before

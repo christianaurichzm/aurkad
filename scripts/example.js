@@ -262,6 +262,31 @@ command(
 //   if (day === 0 || day === 6) ctx.amount *= 2;
 // });
 
+// ── Live-ops flags: an admin decides, mid-event, with /flag ─────────────────
+//
+// The rule above fires on a date; this one fires when someone turns it on:
+//   /flag winterEvent true for 180 snow week   (three hours from now)
+//   /flag winterEvent true at 20:00 for 120    (tonight at 8, for two hours)
+//   /flag winterEvent clear
+//
+// on('beforeXpGain', (ctx) => {
+//   if (flags.enabled('winterEvent')) ctx.amount *= 1.5;
+// });
+//
+// on('npcDeath', ({ killer }) => {
+//   if (randomChance(5 * flags.number('dropRate', 1))) {
+//     giveItem(killer, Items.Trophy, 1);
+//   }
+// });
+//
+// Reading gives the value; the hook gives the moment it changed, which is
+// what a scheduled event needs, since nobody is watching at 20:00.
+//
+// on('liveOpsFlag', ({ name, active }) => {
+//   if (name !== 'winterEvent') return;
+//   broadcastMessage(active ? 'Winter has arrived!' : 'Winter is over.');
+// });
+
 // ── Custom client event: player requests their kill stats ────────────────────
 //
 // on('customAction', ({ player, channel }) => {
@@ -503,6 +528,27 @@ command(
 //
 //   Passe `undefined` para limpar a chave - também é como liberar espaço se
 //   bater no limite de chaves.
+//
+// LIVE-OPS FLAGS (read-only here; an admin sets them with /flag)
+//   flags.enabled(name)          → boolean  true only for a flag set to true
+//   flags.number(name, fallback) → number   fallback when unset or not a number
+//   flags.get(name)              → the raw value | undefined
+//   on('liveOpsFlag', ({ name, value, active }) => …)   started / ended
+//
+//   Set from the terminal, the web console or chat. It applies at once (or at
+//   the time you schedule), survives a restart, and ends on its own:
+//     /flag xpMultiplier 2 for 120 launch weekend
+//     /flag bossWeek true at 20:00 for 120     20:00 today, or tomorrow if past
+//     /flag bossWeek true at +2h               also +90 (minutes) or +3d
+//     /flag bossWeek true at 2026-08-02T20:00
+//     /flag xpMultiplier clear
+//
+//   The hook fires on the **edge**, once per transition and not per boot, so
+//   a restart mid-event does not re-spawn the boss. Need the current state at
+//   load time? Read `flags.enabled` directly.
+//
+//   `xpMultiplier` is the one the engine applies by itself; any other name
+//   means whatever your script decides it means.
 //
 // CONSTANTS
 //   TILE_SIZE                      - tile size in pixels (positions are in pixels)
