@@ -27,11 +27,13 @@
     "replay": "cross-env TS_NODE_PROJECT=tools/tsconfig.json node --loader ts-node/esm tools/replay.ts",
     "dev:seed": "npm run db:reset && sleep 2 && npm run seed && npm run dev",
     "fresh": "npm run db:reset && npm run build && npm start",
-    "typecheck": "tsc -p tsconfig.server.json --noEmit && tsc -p tsconfig.client.json --noEmit && npm run typecheck:scripts && npm run typecheck:modules && npm run typecheck:bench && npm run typecheck:tools",
+    "typecheck": "tsc -p tsconfig.server.json --noEmit && tsc -p tsconfig.client.json --noEmit && npm run typecheck:scripts && npm run typecheck:modules && npm run typecheck:bench && npm run typecheck:tools && npm run typecheck:e2e",
     "typecheck:bench": "tsc -p bench/tsconfig.json --noEmit",
     "typecheck:tools": "tsc -p tools/tsconfig.json --noEmit",
     "typecheck:scripts": "tsc -p scripts/tsconfig.json --noEmit",
     "typecheck:modules": "tsc -p modules/tsconfig.json --noEmit",
+    "typecheck:e2e": "tsc -p e2e/tsconfig.json --noEmit",
+    "e2e": "playwright test",
     "lint": "eslint src --ext .ts,.tsx && eslint modules scripts --ext .js",
     "format:check": "prettier --check \"src/**/*.{ts,tsx}\" \"modules/**/*.js\" \"scripts/**/*.js\"",
     "format:write": "prettier --write \"src/**/*.{ts,tsx}\" \"modules/**/*.js\" \"scripts/**/*.js\"",
@@ -59,6 +61,7 @@
     "zustand": "^5.0.9"
   },
   "devDependencies": {
+    "@playwright/test": "^1.62.1",
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.3.1",
     "@testing-library/user-event": "^14.6.1",

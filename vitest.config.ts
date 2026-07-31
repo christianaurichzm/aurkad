@@ -8,7 +8,10 @@ export default defineConfig({
     globals: true,
     environment: 'jsdom',
     setupFiles: ['./src/test/setup.ts'],
-    exclude: ['node_modules/**', 'dist/**'],
+    // e2e/*.spec.ts runs under Playwright's own runner (npm run e2e) against a
+    // real browser and server; Vitest's default glob would pick it up and fail
+    // at once on @playwright/test's incompatible `test`/`expect`.
+    exclude: ['node_modules/**', 'dist/**', 'e2e/**'],
     // Slow userEvent-driven UI tests can exceed the 5s default under parallel
     // load (many test files + the in-memory Mongo integration suites).
     testTimeout: 15000,
