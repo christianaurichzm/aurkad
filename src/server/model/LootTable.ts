@@ -9,6 +9,9 @@ const LootEntrySchema = new mongoose.Schema(
     weight: { type: Number, min: 0 },
     chance: { type: Number, min: 0, max: 1 },
     quantity: { type: mongoose.Schema.Types.Mixed },
+    // Names a predicate a script registers as `lootCondition.<name>`. Declared
+    // so it survives a restart: a field the model drops silently does nothing.
+    condition: { type: String },
   },
   { _id: false },
 );

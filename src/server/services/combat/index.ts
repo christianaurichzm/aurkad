@@ -6,6 +6,9 @@ import {
   CombatTarget,
   PvpMorale,
   RuntimeNpc,
+  LootEntry,
+  LootTable,
+  DamageContributor,
 } from '../../../shared/types.js';
 import { getMap, updatePlayer } from '../world/gameData.js';
 import { logger } from '../../logger.js';
@@ -13,7 +16,12 @@ import { getTick } from '../../sim/clock.js';
 import { queryEntitiesInRadius } from '../../spatial/spatialManager.js';
 import { gameConfig } from '../../gameConfig.js';
 import { tryConsumeAttackCooldown } from './attackCooldown.js';
-import { clampDamage } from './damage.js';
+import {
+  clampDamage,
+  clearDamageContributions,
+  damageContributors,
+  recordDamageContribution,
+} from './damage.js';
 import { handleChatAction } from '../comms/chatService.js';
 import { getItemById } from '../economy/inventoryService.js';
 import { rollItemDrops, rollLootTable } from '../economy/lootService.js';
@@ -23,6 +31,7 @@ import { respawnPlayer, awardExperience } from '../player/playerService.js';
 import { emit } from '../../engine/hooks.js';
 import { dispatchEntityScript } from '../../engine/scripting/entityScripts.js';
 import { sendCustomEvent } from '../comms/customEventService.js';
+import { useApi } from '../../engine/modules/registry.js';
 
 export type ResolveDamageOptions = {
   attacker?: CombatTarget;
@@ -133,6 +142,82 @@ const findAttackTarget = (
   return undefined;
 };
 
+/** What a `lootCondition.<name>` predicate is handed to decide with. */
+export interface LootConditionContext {
+  npc: RuntimeNpc;
+  /** Absent when something other than a player finished the npc off. */
+  killer?: PlayerServer;
+  /** Damage this killer dealt over the fight, not just the killing blow. */
+  contribution: number;
+  /** Damage every player dealt together, so a share can be worked out. */
+  totalDamage: number;
+  contributors: DamageContributor[];
+}
+
+/**
+ * Drops entries whose condition says no, before anything is rolled, so a
+ * weighted pool spreads the missing weight over what remains instead of
+ * turning it into "nothing dropped". A condition nothing registered removes
+ * the entry, and is logged: a script that failed to load gives nobody boss
+ * loot rather than everybody.
+ */
+function applyLootConditions(
+  table: LootTable,
+  npc: RuntimeNpc,
+  killer: PlayerServer | undefined,
+  contributors: DamageContributor[],
+): LootTable {
+  const hasCondition =
+    (table.guaranteed ?? []).some((entry) => entry.condition) ||
+    (table.entries ?? []).some((entry) => entry.condition);
+  if (!hasCondition) return table;
+
+  const totalDamage = contributors.reduce((sum, c) => sum + c.damage, 0);
+  const ctx: LootConditionContext = {
+    npc,
+    ...(killer ? { killer } : {}),
+    contribution: killer
+      ? contributors.find((c) => c.playerId === killer.id)?.damage ?? 0
+      : 0,
+    totalDamage,
+    contributors,
+  };
+
+  const allowed = (entry: LootEntry): boolean => {
+    if (!entry.condition) return true;
+    const predicate = useApi<(context: LootConditionContext) => boolean>(
+      `lootCondition.${entry.condition}`,
+    );
+    if (!predicate) {
+      logger.warn('[drop] loot entry names an unregistered condition', {
+        npc: npc.id,
+        condition: entry.condition,
+      });
+      return false;
+    }
+    try {
+      return predicate(ctx) === true;
+    } catch (err) {
+      // Same reasoning as the missing predicate: a throwing condition is a
+      // condition that did not say yes.
+      logger.error('[drop] loot condition threw', {
+        npc: npc.id,
+        condition: entry.condition,
+        err,
+      });
+      return false;
+    }
+  };
+
+  return {
+    ...table,
+    ...(table.guaranteed
+      ? { guaranteed: table.guaranteed.filter(allowed) }
+      : {}),
+    ...(table.entries ? { entries: table.entries.filter(allowed) } : {}),
+  };
+}
+
 /**
  * Turns an NPC's death into the items that hit the ground.
  *
@@ -140,7 +225,11 @@ const findAttackTarget = (
  * deliberate, editable thing, and silently merging the two would make the
  * result impossible to reason about.
  */
-function rollNpcLoot(npc: RuntimeNpc): DroppedItem[] {
+function rollNpcLoot(
+  npc: RuntimeNpc,
+  killer: PlayerServer | undefined,
+  contributors: DamageContributor[],
+): DroppedItem[] {
   const table = npc.lootTableId ? getLootTable(npc.lootTableId) : undefined;
   if (npc.lootTableId && !table) {
     logger.warn('[drop] npc references an unknown loot table', {
@@ -150,7 +239,7 @@ function rollNpcLoot(npc: RuntimeNpc): DroppedItem[] {
   }
 
   const rolled = table
-    ? rollLootTable(table)
+    ? rollLootTable(applyLootConditions(table, npc, killer, contributors))
     : rollItemDrops(npc.itemsToDrop ?? []);
 
   const dropped: DroppedItem[] = [];
@@ -185,6 +274,12 @@ export const resolveDamage = async (
   const damage = clampDamage(damageCtx.value);
   if (damage <= 0) return 0;
 
+  // After the clamp, so the ledger holds what was actually dealt rather than
+  // what a beforeDamage handler asked for.
+  if (attacker?.kind === 'player') {
+    recordDamageContribution(target.id, attacker.id, damage);
+  }
+
   target.health -= damage;
 
   const lethal = target.health <= 0;
@@ -202,6 +297,7 @@ export const resolveDamage = async (
   switch (target.kind) {
     case 'player': {
       emit('playerDeath', { player: target, killer: attacker });
+      clearDamageContributions(target.id);
       respawnPlayer(target);
       updatePlayer(target);
 
@@ -217,8 +313,9 @@ export const resolveDamage = async (
     }
 
     case 'npc': {
+      const contributors = damageContributors(target.id);
       if (attacker?.kind === 'player') {
-        emit('npcDeath', { npc: target, killer: attacker });
+        emit('npcDeath', { npc: target, killer: attacker, contributors });
         dispatchEntityScript(
           target.scriptId,
           'onDeath',
@@ -232,9 +329,19 @@ export const resolveDamage = async (
       }
 
       if (map) {
-        map.droppedItems.push(...rollNpcLoot(target));
+        map.droppedItems.push(
+          ...rollNpcLoot(
+            target,
+            attacker?.kind === 'player' ? attacker : undefined,
+            contributors,
+          ),
+        );
       }
       respawnNpc(map?.id ?? target.mapId, target);
+      // Cleared last, so the loot roll above still sees the fight. A respawn
+      // keeps the id, so the next kill would inherit these contributors, and an
+      // npc finished off by something else would hold its ledger forever.
+      clearDamageContributions(target.id);
       break;
     }
   }

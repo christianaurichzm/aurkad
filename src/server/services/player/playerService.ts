@@ -41,6 +41,7 @@ import {
 } from '../../net/index.js';
 import { clearPlayerDirty } from '../../persistence/dirtyPlayers.js';
 import { clearAttackCooldown } from '../combat/attackCooldown.js';
+import { clearDamageContributions } from '../combat/damage.js';
 import { clearPressedKeys } from '../world/movementService.js';
 import { logger } from '../../logger.js';
 
@@ -480,5 +481,8 @@ export const disconnectPlayer = async (username?: string) => {
     // Per-viewer caches are keyed by viewer name and cleared above; the
     // entity's own diff baseline is keyed by id and lives elsewhere.
     forgetReplicatedEntity(player.id);
+    // Logging out mid-fight is the one way a player leaves without dying, and
+    // the ledger is keyed by the victim.
+    clearDamageContributions(player.id);
   }
 };

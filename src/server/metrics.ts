@@ -5,6 +5,7 @@ import { viewerCacheSizes } from './net/snapshot.js';
 import { replicatedEntityCount } from './net/entityReplication.js';
 import { rateLimiterEntryCount } from './net/transport.js';
 import { dirtyPlayerCount } from './persistence/dirtyPlayers.js';
+import { damageLedgerSize } from './services/combat/damage.js';
 
 export interface TickMetrics {
   tickMs: number;
@@ -131,6 +132,7 @@ export function getMetrics() {
       replication: replicatedEntityCount(),
       rateLimit: rateLimiterEntryCount(),
       dirtyPlayers: dirtyPlayerCount(),
+      damageLedger: damageLedgerSize(),
     },
   };
 }

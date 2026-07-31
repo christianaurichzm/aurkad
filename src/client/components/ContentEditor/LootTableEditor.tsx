@@ -23,6 +23,8 @@ type EntryRow = {
   chance: number;
   minQty: number;
   maxQty: number;
+  /** Empty means unconditional; see the field's help text below. */
+  condition: string;
 };
 
 type LootFormValues = {
@@ -62,12 +64,14 @@ const tableToForm = (table: LootTable): LootFormValues => ({
     itemId: e.itemId,
     weight: e.weight ?? 1,
     chance: e.chance ?? 1,
+    condition: e.condition ?? '',
     ...quantityToRow(e.quantity),
   })),
   entries: (table.entries ?? []).map((e) => ({
     itemId: e.itemId,
     weight: e.weight ?? 1,
     chance: e.chance ?? 1,
+    condition: e.condition ?? '',
     ...quantityToRow(e.quantity),
   })),
   minRolls: table.rolls?.min ?? 1,
@@ -78,6 +82,8 @@ const tableToForm = (table: LootTable): LootFormValues => ({
 const rowToEntry = (row: EntryRow, includeChance: boolean) => ({
   itemId: row.itemId,
   ...(includeChance ? { chance: row.chance } : { weight: row.weight }),
+  // Omitted when empty, so an unconditional entry stores no condition.
+  ...(row.condition.trim() ? { condition: row.condition.trim() } : {}),
   // A fixed amount stays a plain number, so a table without ranges saves back
   // exactly as it was.
   quantity:
@@ -92,6 +98,7 @@ const newRow = (): EntryRow => ({
   chance: 1,
   minQty: 1,
   maxQty: 1,
+  condition: '',
 });
 
 export const LootTableEditor: React.FC<LootTableEditorProps> = ({
@@ -243,6 +250,20 @@ export const LootTableEditor: React.FC<LootTableEditorProps> = ({
               {...register(`${kind}.${i}.maxQty` as const, {
                 setValueAs: Number,
               })}
+            />
+          </div>
+          <div style={{ width: 110, flexShrink: 0 }}>
+            <label
+              style={label}
+              title="Name of a condition a script registered with provide('lootCondition.<name>'). Leave empty to always allow. An entry whose condition says no is removed before the roll, so it does not take odds from the pool."
+            >
+              Condition
+            </label>
+            <input
+              style={input}
+              type="text"
+              placeholder="none"
+              {...register(`${kind}.${i}.condition` as const)}
             />
           </div>
           {kind === 'entries' && (

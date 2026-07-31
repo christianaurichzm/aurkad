@@ -91,6 +91,7 @@ describe('GET /metrics', () => {
       'replication',
       'rate_limit',
       'dirty_players',
+      'damage_ledger',
     ]) {
       expect(res.text).toContain(`# TYPE engine_cache_entries_${cache} gauge`);
       expect(valueOf(`engine_cache_entries_${cache}`)).toBe(0);

@@ -119,6 +119,31 @@ interface RuntimeNpc {
 
 type CombatTarget = PlayerServer | RuntimeNpc;
 
+/** One player's share of the damage dealt to an entity over a whole fight. */
+interface DamageContributor {
+  playerId: string;
+  damage: number;
+}
+
+/**
+ * What a loot condition is handed. Register the predicate with
+ * `provide('lootCondition.<name>', fn)`; the entry is dropped before the roll
+ * unless it answers true, including when it is missing or throws.
+ *
+ *     provide('lootCondition.earnedIt', ({ contribution, totalDamage }) =>
+ *       totalDamage > 0 && contribution / totalDamage >= 0.25);
+ */
+interface LootConditionContext {
+  npc: RuntimeNpc;
+  /** Absent when something other than a player finished the npc off. */
+  killer?: PlayerServer;
+  /** Damage the killer dealt across the fight, not just the killing blow. */
+  contribution: number;
+  /** Damage every player dealt together. */
+  totalDamage: number;
+  contributors: DamageContributor[];
+}
+
 // Hook event payloads
 
 interface HookPayloads {
@@ -126,7 +151,11 @@ interface HookPayloads {
   playerLeave:   { player: PlayerServer };
   playerDeath:   { player: PlayerServer; killer?: CombatTarget };
   playerLevelUp: { player: PlayerServer; level: number };
-  npcDeath:      { npc: RuntimeNpc; killer: PlayerServer };
+  /**
+   * `killer` landed the last hit; `contributors` is everyone who fought it,
+   * largest share first.
+   */
+  npcDeath:      { npc: RuntimeNpc; killer: PlayerServer; contributors: DamageContributor[] };
   /** Player pressed interact (F) while facing this NPC. */
   npcInteract:   { player: PlayerServer; npc: RuntimeNpc };
   tileEnter:     { player: PlayerServer; tile: Tile; map: MapState };

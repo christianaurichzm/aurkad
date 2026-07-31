@@ -215,6 +215,11 @@ export function buildMetricsSamples(): Sample[] {
           'rate-limiter entries per connection',
         ],
         ['dirty_players', m.caches.dirtyPlayers, 'players awaiting a write'],
+        [
+          'damage_ledger',
+          m.caches.damageLedger,
+          'entities tracking who damaged them',
+        ],
       ] as const
     ).map(([key, value, help]) => ({
       name: `engine_cache_entries_${key}`,

@@ -112,6 +112,7 @@ const LootEntrySchema = z.object({
   weight: z.number().nonnegative().optional(),
   chance: z.number().min(0).max(1).optional(),
   quantity: LootQuantitySchema.optional(),
+  condition: z.string().min(1).optional(),
 });
 
 const LootTableSchema = z.object({

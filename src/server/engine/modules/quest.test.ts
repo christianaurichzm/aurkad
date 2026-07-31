@@ -111,8 +111,8 @@ describe('quest module', () => {
     );
 
     emit('npcInteract', { player: alice, npc: giver });
-    emit('npcDeath', { npc: goblin, killer: alice });
-    emit('npcDeath', { npc: goblin, killer: alice });
+    emit('npcDeath', { npc: goblin, killer: alice, contributors: [] });
+    emit('npcDeath', { npc: goblin, killer: alice, contributors: [] });
 
     const quest = useApi<QuestApi>('quest')!;
     expect(quest.get(alice, 'hunt')).toMatchObject({

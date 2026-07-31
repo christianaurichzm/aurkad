@@ -6,6 +6,7 @@ import type {
   Tile,
   CombatTarget,
   ChatScope,
+  DamageContributor,
 } from '../../shared/types.js';
 
 export type HookMap = {
@@ -13,7 +14,17 @@ export type HookMap = {
   playerLeave: { player: PlayerServer };
   playerDeath: { player: PlayerServer; killer?: CombatTarget };
   playerLevelUp: { player: PlayerServer; level: number };
-  npcDeath: { npc: RuntimeNpc; killer: PlayerServer };
+  npcDeath: {
+    npc: RuntimeNpc;
+    /** Who landed the last hit, which is not necessarily who earned it. */
+    killer: PlayerServer;
+    /**
+     * Everyone who damaged this npc, largest share first. Present so a module
+     * can decide what a kill is worth (split the reward, gate a drop, credit a
+     * quest) without the engine picking one policy for every game.
+     */
+    contributors: DamageContributor[];
+  };
   npcInteract: { player: PlayerServer; npc: RuntimeNpc };
   tileEnter: { player: PlayerServer; tile: Tile; map: MapStateServer };
   itemUse: { player: PlayerServer; itemId: number };

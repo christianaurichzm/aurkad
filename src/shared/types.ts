@@ -471,6 +471,16 @@ export interface NpcItemDrop {
 /** A fixed amount, or a range rolled per drop. */
 export type LootQuantity = number | { min: number; max: number };
 
+/**
+ * One player's share of the damage dealt to an entity. Here rather than
+ * beside the ledger because it travels through `HookMap`, and hooks.ts
+ * importing from services/combat would close a cycle.
+ */
+export interface DamageContributor {
+  playerId: string;
+  damage: number;
+}
+
 export interface LootEntry {
   itemId: Item['id'];
   /**
@@ -482,6 +492,14 @@ export interface LootEntry {
   /** 0..1, only meaningful in `guaranteed`. Defaults to 1 (always). */
   chance?: number;
   quantity?: LootQuantity;
+  /**
+   * Names a predicate a script registered as `lootCondition.<name>`, shaped
+   * like a tile's `conditionalBlock`. The entry leaves the table when it
+   * answers false, before any roll, so a failed condition holds no weight in
+   * the pool. It receives the killer, the npc and the killer's damage, for
+   * "only drops for whoever fought it".
+   */
+  condition?: string;
 }
 
 /**

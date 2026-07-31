@@ -7,6 +7,7 @@ import {
 import { TILE_SIZE } from '../../../shared/constants.js';
 import { getMap, runtimeState } from '../world/gameData.js';
 import { forgetReplicatedEntity } from '../../net/snapshot.js';
+import { clearDamageContributions } from '../combat/damage.js';
 import { resetNpcAi } from './aiBrain.js';
 
 // Runtime NPC spawning for scripts and modules (pets, summons, event
@@ -69,6 +70,7 @@ export function despawnNpc(npc: { id: string }): void {
     // what gets passed on: the AI key includes mapId, which the caller's
     // `{ id }` does not carry.
     forgetReplicatedEntity(npc.id);
+    clearDamageContributions(npc.id);
     resetNpcAi(live);
     return;
   }
