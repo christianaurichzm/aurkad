@@ -1,13 +1,11 @@
 import { test, expect, type WebSocket } from '@playwright/test';
 
-// Golden path: register, log in, move, attack. What sits behind these
-// steps (collision, damage, the wire format) is covered server-side; only a
-// real browser catches the seams: the Vite proxy, the session cookie, the
-// WebSocket handshake and the DOM the keyboard listener binds to.
+// Golden path: register, log in, move, attack. Server tests cover the rules;
+// this covers the seams only a browser has: the Vite proxy, the session
+// cookie, the WebSocket handshake and the keyboard listener.
 //
-// The client draws to a canvas with no per-tile DOM, so a move is asserted
-// from the wire (the keyboard action the client sends, see sendAction in
-// wsManager.ts) rather than from pixels.
+// The canvas has no per-tile DOM, so assertions read `self` from the
+// server's worldUpdate, which proves the input changed the world.
 
 function uniqueUsername(): string {
   return `e2e-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 6)}`;
@@ -53,34 +51,42 @@ async function registerAndLogin(
   return ws;
 }
 
-/** Resolves with the first sent frame matching `predicate`, or times out. */
-function waitForSentKeyboardFrame(
+/** The authoritative view of the logged-in player, as the server sends it. */
+interface SelfState {
+  position: { x: number; y: number };
+  action: string;
+  lastProcessedSeq?: number;
+}
+
+/**
+ * Resolves with the first `self` the server sends that satisfies `predicate`.
+ *
+ * Rejects rather than hanging so a failure names what it was waiting for
+ * instead of surfacing as a bare test timeout.
+ */
+function waitForSelf(
   ws: WebSocket,
-  predicate: (msg: {
-    keyboardAction?: { key: string; type: string };
-  }) => boolean,
-): Promise<void> {
+  what: string,
+  predicate: (self: SelfState) => boolean,
+): Promise<SelfState> {
   return new Promise((resolve, reject) => {
     const timer = setTimeout(
-      () => reject(new Error('timed out waiting for a matching WS frame')),
-      5_000,
+      () =>
+        reject(new Error(`timed out waiting for the server to report ${what}`)),
+      10_000,
     );
-    ws.on('framesent', (frame) => {
+    ws.on('framereceived', (frame) => {
       if (typeof frame.payload !== 'string') return;
-      let msg: unknown;
+      let msg: { type?: string; payload?: { self?: SelfState } };
       try {
-        msg = JSON.parse(frame.payload);
+        msg = JSON.parse(frame.payload) as typeof msg;
       } catch {
         return;
       }
-      if (
-        typeof msg === 'object' &&
-        msg !== null &&
-        (msg as { type?: string }).type === 'keyboard' &&
-        predicate(msg as { keyboardAction?: { key: string; type: string } })
-      ) {
+      const self = msg.type === 'worldUpdate' ? msg.payload?.self : undefined;
+      if (self && predicate(self)) {
         clearTimeout(timer);
-        resolve();
+        resolve(self);
       }
     });
   });
@@ -98,39 +104,35 @@ test('register, log in, move, and attack over the real stack', async ({
   // so this clicks it too rather than waiting for the form to unmount.
   await page.locator('#gameMain').click();
 
-  // Move: press and release a direction key. The client only sends a fresh
-  // 'press' while the key isn't already held (keyboard.ts), so this proves
-  // the DOM key event reached handleInput and was not swallowed by e.g. a
-  // form field still holding focus after login.
-  const movePressed = waitForSentKeyboardFrame(
+  const start = await waitForSelf(ws, 'a starting position', () => true);
+
+  // The server owns the position, so wait for it to report the player
+  // elsewhere: input, queue and collision all passed.
+  const movedPromise = waitForSelf(
     ws,
-    (m) =>
-      m.keyboardAction?.key === 'ArrowDown' &&
-      m.keyboardAction.type === 'press',
+    'the player to move',
+    (self) =>
+      self.position.x !== start.position.x ||
+      self.position.y !== start.position.y,
   );
   await page.keyboard.down('ArrowDown');
-  await movePressed;
-
-  const moveReleased = waitForSentKeyboardFrame(
-    ws,
-    (m) =>
-      m.keyboardAction?.key === 'ArrowDown' &&
-      m.keyboardAction.type === 'release',
-  );
+  const moved = await movedPromise;
   await page.keyboard.up('ArrowDown');
-  await moveReleased;
 
-  // Attack: Control is handled specially in keyboard.ts; a press sends the
-  // wire action and starts the client-side cooldown indicator at once,
-  // before any round trip, so the HUD is a second, independent signal that
-  // the keypress took effect.
-  const attackPressed = waitForSentKeyboardFrame(
+  // Down specifically, since canvas y grows downward and any move would
+  // change the position.
+  expect(moved.position.y).toBeGreaterThan(start.position.y);
+
+  // Attack. Same idea: the HUD cooldown below is client-side and fires
+  // without waiting for anyone, so the server echoing Attack is what
+  // separates "the client thinks it attacked" from "it attacked".
+  const attackedPromise = waitForSelf(
     ws,
-    (m) =>
-      m.keyboardAction?.key === 'Control' && m.keyboardAction.type === 'press',
+    'the attack to be applied',
+    (self) => self.action === 'Attack',
   );
   await page.keyboard.down('Control');
-  await attackPressed;
+  await attackedPromise;
   await expect(page.locator('#atk-cooldown-container')).toBeVisible();
   await page.keyboard.up('Control');
 
