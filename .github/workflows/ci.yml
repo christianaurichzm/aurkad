@@ -46,3 +46,55 @@ jobs:
 
       - name: bench (informational)
         run: npm run bench || true
+
+  # Separate job, single Node version: the smoke suite drives a real browser
+  # against a real server, so it is slow and gains nothing from the version
+  # matrix - what it checks (the Vite proxy, the session cookie, the WS
+  # handshake) does not vary between Node 20 and 22. `npm run typecheck` in
+  # the job above already type-checks e2e/ on both.
+  e2e:
+    runs-on: ubuntu-latest
+    services:
+      mongo:
+        image: mongo:7
+        ports:
+          - 27017:27017
+        options: >-
+          --health-cmd "mongosh --quiet --eval 'db.runCommand({ping:1})'"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+
+      - run: npm ci
+
+      # --with-deps installs the system libraries the browser needs; the
+      # runner is root, unlike a developer's machine where it needs sudo and
+      # is usually unnecessary anyway.
+      - name: install chromium
+        run: npx playwright install --with-deps chromium
+
+      # No .env.development in CI (it is not tracked): the dev defaults in
+      # config.ts cover it, with a random SESSION_SECRET, Mongo on localhost,
+      # and CORS unenforced outside production. Playwright starts the server
+      # itself (reuseExistingServer is off when CI is set).
+      - name: e2e
+        run: npm run e2e
+
+      # The trace is the only way to debug a failure that does not reproduce
+      # locally, and it is retained on failure only (see playwright.config.ts).
+      - name: upload report
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: |
+            playwright-report/
+            test-results/
+          retention-days: 7

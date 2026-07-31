@@ -44,11 +44,14 @@ async function registerAndLogin(
   );
   await page.getByRole('button', { name: 'Login' }).click();
   const ws = await wsPromise;
+  // Before any other await: the event fires when the socket is created, so
+  // no frame can be missed yet.
+  const self = trackSelf(ws);
 
   // #hud-level renders once the game has both map and player, so login
   // succeeded and the world snapshot arrived.
   await expect(page.locator('#hud-level')).toBeVisible();
-  return ws;
+  return { ws, self };
 }
 
 /** The authoritative view of the logged-in player, as the server sends it. */
@@ -59,44 +62,70 @@ interface SelfState {
 }
 
 /**
- * Resolves with the first `self` the server sends that satisfies `predicate`.
- *
- * Rejects rather than hanging so a failure names what it was waiting for
- * instead of surfacing as a bare test timeout.
+ * Follows the `self` the server publishes from the moment the socket
+ * exists. The server sends a worldUpdate only on change, so a late
+ * listener on an idle map would wait forever.
  */
-function waitForSelf(
-  ws: WebSocket,
-  what: string,
-  predicate: (self: SelfState) => boolean,
-): Promise<SelfState> {
-  return new Promise((resolve, reject) => {
-    const timer = setTimeout(
-      () =>
-        reject(new Error(`timed out waiting for the server to report ${what}`)),
-      10_000,
-    );
-    ws.on('framereceived', (frame) => {
-      if (typeof frame.payload !== 'string') return;
-      let msg: { type?: string; payload?: { self?: SelfState } };
-      try {
-        msg = JSON.parse(frame.payload) as typeof msg;
-      } catch {
-        return;
-      }
-      const self = msg.type === 'worldUpdate' ? msg.payload?.self : undefined;
-      if (self && predicate(self)) {
+function trackSelf(ws: WebSocket) {
+  let latest: SelfState | undefined;
+  const waiters: Array<(self: SelfState) => void> = [];
+
+  ws.on('framereceived', (frame) => {
+    if (typeof frame.payload !== 'string') return;
+    let msg: { type?: string; payload?: { self?: SelfState } };
+    try {
+      msg = JSON.parse(frame.payload) as typeof msg;
+    } catch {
+      return;
+    }
+    const self = msg.type === 'worldUpdate' ? msg.payload?.self : undefined;
+    if (!self) return;
+    latest = self;
+    for (const notify of waiters.splice(0)) notify(self);
+  });
+
+  /**
+   * The newest `self`, waiting for the first one if none has arrived yet.
+   * Rejects by name rather than hanging, so a failure says what it wanted.
+   */
+  async function current(what = 'any position'): Promise<SelfState> {
+    if (latest) return latest;
+    return waitUntil(what, () => true);
+  }
+
+  /** Resolves once a `self` satisfies `predicate`, checked on arrival only. */
+  function waitUntil(
+    what: string,
+    predicate: (self: SelfState) => boolean,
+  ): Promise<SelfState> {
+    return new Promise((resolve, reject) => {
+      const timer = setTimeout(
+        () =>
+          reject(
+            new Error(`timed out waiting for the server to report ${what}`),
+          ),
+        10_000,
+      );
+      const notify = (self: SelfState) => {
+        if (!predicate(self)) {
+          waiters.push(notify);
+          return;
+        }
         clearTimeout(timer);
         resolve(self);
-      }
+      };
+      waiters.push(notify);
     });
-  });
+  }
+
+  return { current, waitUntil };
 }
 
 test('register, log in, move, and attack over the real stack', async ({
   page,
 }) => {
   const username = uniqueUsername();
-  const ws = await registerAndLogin(page, username, 'e2e-password');
+  const { ws, self } = await registerAndLogin(page, username, 'e2e-password');
 
   // The keyboard listener ignores keys while an <input> holds focus
   // (isInputActive in client/io/keyboard.ts), and a real player's first
@@ -104,16 +133,14 @@ test('register, log in, move, and attack over the real stack', async ({
   // so this clicks it too rather than waiting for the form to unmount.
   await page.locator('#gameMain').click();
 
-  const start = await waitForSelf(ws, 'a starting position', () => true);
+  const start = await self.current('a starting position');
 
   // The server owns the position, so wait for it to report the player
   // elsewhere: input, queue and collision all passed.
-  const movedPromise = waitForSelf(
-    ws,
+  const movedPromise = self.waitUntil(
     'the player to move',
-    (self) =>
-      self.position.x !== start.position.x ||
-      self.position.y !== start.position.y,
+    (s) =>
+      s.position.x !== start.position.x || s.position.y !== start.position.y,
   );
   await page.keyboard.down('ArrowDown');
   const moved = await movedPromise;
@@ -126,10 +153,9 @@ test('register, log in, move, and attack over the real stack', async ({
   // Attack. Same idea: the HUD cooldown below is client-side and fires
   // without waiting for anyone, so the server echoing Attack is what
   // separates "the client thinks it attacked" from "it attacked".
-  const attackedPromise = waitForSelf(
-    ws,
+  const attackedPromise = self.waitUntil(
     'the attack to be applied',
-    (self) => self.action === 'Attack',
+    (s) => s.action === 'Attack',
   );
   await page.keyboard.down('Control');
   await attackedPromise;

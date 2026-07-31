@@ -28,6 +28,8 @@ export default defineConfig({
     // waits on /healthz, which answers only once the real server is up.
     url: 'http://localhost:8080/healthz',
     reuseExistingServer: !process.env.CI,
-    timeout: 60_000,
+    // A ceiling, not a delay; a cold CI runner pays for ts-node compiling the
+    // server and the first Mongo connection.
+    timeout: 120_000,
   },
 });
