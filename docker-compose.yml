@@ -42,6 +42,8 @@ services:
   # Uncomment and adjust to run two server instances splitting maps between them.
   # Each instance must have a unique WS_PUBLIC_URL and a non-overlapping MAP_IDS.
   # A reverse proxy (nginx/Caddy) should route players to the correct instance.
+  # Set TRUST_PROXY on each instance when you put one in front, or every player
+  # shares one rate-limit bucket - see .env.example.
   #
   # app-b:
   #   build: .

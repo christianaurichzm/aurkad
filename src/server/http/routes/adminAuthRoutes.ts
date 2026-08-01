@@ -1,6 +1,5 @@
 import bcrypt from 'bcrypt';
 import { type Response } from 'express';
-import rateLimit from 'express-rate-limit';
 import type { ExtendedRequest } from '../session.js';
 import { Access } from '../../../shared/types.js';
 import { parseBody, LoginBodySchema } from '../bodySchemas.js';
@@ -10,20 +9,16 @@ import { listAuditLog } from '../../services/auditService.js';
 import { logger } from '../../logger.js';
 import { config } from '../../config.js';
 import { createRouter } from '../../app.js';
-
-const adminLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000,
-  max: 20,
-  standardHeaders: true,
-  legacyHeaders: false,
-  message: { message: 'Too many requests, please try again later.' },
-});
+import { createAuthLimiter } from '../middleware/rateLimit.js';
 
 // Standalone operator session for the /admin dashboard: authenticate and grant
 // the panel WITHOUT registering a player in the game world. Moderation only
 // needs the session's access level, so the operator never appears in-game.
 export function createAdminAuthRouter() {
   const router = createRouter();
+  // Its own instance, not the player one: an operator locked out because
+  // players were fumbling passwords is exactly when the panel is needed.
+  const adminLimiter = createAuthLimiter();
 
   router.get('/admin/session', (req: ExtendedRequest, res: Response) => {
     const { username, accessLevel } = req.session;

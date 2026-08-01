@@ -20,6 +20,7 @@ import mongoose from 'mongoose';
 import app, { handleRouteError } from './app.js';
 import { config } from './config.js';
 import { createSessionMiddleware } from './http/session.js';
+import { createHttpLimiter } from './http/middleware/rateLimit.js';
 import { createAuthRouter } from './http/routes/authRoutes.js';
 import { createContentRouter } from './http/routes/contentRoutes.js';
 import { createModRouter } from './http/routes/modRoutes.js';
@@ -78,6 +79,23 @@ app.use(createHealthRouter());
 const sessionMiddleware = createSessionMiddleware();
 app.use(sessionMiddleware);
 
+const clientDist = path.join(__dirname, '../client');
+
+// The built client, above the limiter: the page is a dozen cached file
+// reads before anyone logs in, and counted by address one busy tab behind a
+// shared connection would lock its neighbours out of login. A path with no
+// file falls through to the routers below.
+if (config.nodeEnv === 'production') {
+  app.use(express.static(clientDist));
+}
+
+// Everything below is rate limited, and nothing above is: the probes answer
+// before this line by construction, so a liveness check can never be told to
+// slow down. After the session rather than before, so a logged-in caller is
+// counted by name instead of sharing a bucket with everyone behind their
+// address (auth routes keep their own, stricter limiter on top).
+app.use(createHttpLimiter());
+
 // After session: the scrape endpoint is admin-gated (see metricsRoutes).
 app.use(createMetricsRouter());
 
@@ -96,9 +114,9 @@ if (config.scripting.editorEnabled) {
   app.use(createScriptsRouter());
 }
 
+// The SPA fallback stays down here, under the limiter: anything reaching it is
+// neither a file nor a route, so it is the one static answer worth counting.
 if (config.nodeEnv === 'production') {
-  const clientDist = path.join(__dirname, '../client');
-  app.use(express.static(clientDist));
   app.get('*', (_, res) => {
     res.sendFile(path.join(clientDist, 'index.html'));
   });

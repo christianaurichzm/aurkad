@@ -14,6 +14,11 @@ import { requestLoggerMiddleware } from './http/requestLogger.js';
 export function createApp() {
   const app = express();
 
+  // Decides `req.ip`, which rate limits key on for a caller with no session.
+  // Express's default trusts nothing, as the header is anyone's to write;
+  // behind a proxy this must be set (see rateLimit.ts).
+  app.set('trust proxy', config.http.trustProxy);
+
   app.use(helmet());
   app.use(requestLoggerMiddleware);
   app.use(express.json({ limit: config.http.jsonBodyLimit }));

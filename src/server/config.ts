@@ -43,6 +43,29 @@ function parseIntEnv(
   return value;
 }
 
+/**
+ * `TRUST_PROXY` as Express reads it. Digits are a hop count (`1` behind one
+ * nginx); presets and address lists pass through as strings. `true` is
+ * accepted with a warning: it believes any X-Forwarded-For, so a caller picks
+ * its own rate-limit key.
+ */
+function parseTrustProxy(): boolean | number | string {
+  const raw = process.env['TRUST_PROXY']?.trim();
+  if (!raw || raw === 'false') return false;
+
+  if (raw === 'true') {
+    console.warn(
+      '[config] TRUST_PROXY=true trusts any X-Forwarded-For, so a caller can ' +
+        'choose their own rate-limit key. Prefer the number of proxies in ' +
+        'front of the server (e.g. TRUST_PROXY=1).',
+    );
+    return true;
+  }
+
+  if (/^\d+$/.test(raw)) return Number.parseInt(raw, 10);
+  return raw;
+}
+
 function parseCsvEnv(key: string): string[] | undefined {
   const raw = process.env[key];
   if (!raw) return undefined;
@@ -117,6 +140,22 @@ export const config = {
   },
   http: {
     jsonBodyLimit: '1mb',
+    // What Express believes about X-Forwarded-For, which keys every rate limit
+    // for callers with no session. Off by default, since with nobody in front
+    // the header is the caller's to write. Behind a proxy it must be set, or
+    // all clients share the proxy's address (http/middleware/rateLimit.ts).
+    trustProxy: parseTrustProxy(),
+    // Ceiling for everything that is not a login: generous enough that a
+    // player loading a map and its assets never notices, low enough that a
+    // script hammering an endpoint is capped. Per key, per window.
+    rateLimitWindowMs: parseIntEnv('HTTP_RATE_LIMIT_WINDOW_MS', 60_000, {
+      min: 1_000,
+      max: 60 * 60_000,
+    }),
+    rateLimitMax: parseIntEnv('HTTP_RATE_LIMIT_MAX', 300, {
+      min: 1,
+      max: 1_000_000,
+    }),
   },
   scriptData: {
     // Bounds on the data scripts persist (player.data and the KV store).

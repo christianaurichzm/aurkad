@@ -1,7 +1,6 @@
 import crypto from 'crypto';
 import bcrypt from 'bcrypt';
 import { type Response } from 'express';
-import rateLimit from 'express-rate-limit';
 import type { ExtendedRequest } from '../session.js';
 import { Access } from '../../../shared/types.js';
 import {
@@ -24,19 +23,12 @@ import { toMapMeta } from '../../net/serialization.js';
 import { serverState } from '../../services/world/serverState.js';
 import { playersWsMap } from '../../net/connections.js';
 import { WebSocket } from 'ws';
-import { config } from '../../config.js';
 import { createRouter } from '../../app.js';
-
-const authLimiter = rateLimit({
-  windowMs: config.auth.rateLimitWindowMs,
-  max: config.auth.rateLimitMax,
-  standardHeaders: true,
-  legacyHeaders: false,
-  message: { error: 'Too many requests, please try again later.' },
-});
+import { createAuthLimiter } from '../middleware/rateLimit.js';
 
 export function createAuthRouter() {
   const router = createRouter();
+  const authLimiter = createAuthLimiter();
 
   router.post(
     '/login',

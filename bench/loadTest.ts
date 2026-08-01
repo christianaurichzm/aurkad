@@ -11,8 +11,8 @@
 //     --sample-every=30 --csv=soak.csv --admin-user=root --admin-pass=secret
 //
 // Bots on the server's machine compete with it, so treat those numbers as a
-// floor. /login allows 20 per 15 minutes per IP by default, so raise
-// AUTH_RATE_LIMIT_MAX on the server first.
+// floor. Every bot comes from one address, so raise AUTH_RATE_LIMIT_MAX
+// and HTTP_RATE_LIMIT_MAX on the server first.
 
 import { LoadBot } from './load/bot.js';
 import {

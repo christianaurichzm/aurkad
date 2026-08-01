@@ -72,3 +72,52 @@ describe('config multi-instance guard', () => {
     await expect(import('./config.js')).resolves.toBeDefined();
   });
 });
+
+// Express reads several shapes here, and they differ in who gets rate
+// limited: the value decides req.ip for a caller without a session.
+describe('TRUST_PROXY', () => {
+  let saved: string | undefined;
+
+  beforeEach(() => {
+    saved = process.env.TRUST_PROXY;
+    delete process.env.TRUST_PROXY;
+    vi.resetModules();
+  });
+
+  afterEach(() => {
+    if (saved === undefined) delete process.env.TRUST_PROXY;
+    else process.env.TRUST_PROXY = saved;
+    vi.restoreAllMocks();
+  });
+
+  it('trusts nothing by default', async () => {
+    const { config } = await import('./config.js');
+    expect(config.http.trustProxy).toBe(false);
+  });
+
+  it('reads a hop count as a number, which is the form to use', async () => {
+    process.env.TRUST_PROXY = '1';
+    const { config } = await import('./config.js');
+    expect(config.http.trustProxy).toBe(1);
+  });
+
+  it('passes an address list through for Express to parse', async () => {
+    process.env.TRUST_PROXY = '10.0.0.1, 10.0.0.2';
+    const { config } = await import('./config.js');
+    expect(config.http.trustProxy).toBe('10.0.0.1, 10.0.0.2');
+  });
+
+  // Accepted, because an operator may genuinely mean it, but never silently:
+  // it means any caller can hand themselves a fresh rate-limit key.
+  it('warns when told to trust any X-Forwarded-For', async () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+    process.env.TRUST_PROXY = 'true';
+
+    const { config } = await import('./config.js');
+
+    expect(config.http.trustProxy).toBe(true);
+    expect(warn).toHaveBeenCalledWith(
+      expect.stringContaining('choose their own rate-limit key'),
+    );
+  });
+});
