@@ -12,6 +12,8 @@
 // and the editor renders a form from the same declaration: both must agree
 // on what `{ type: 'number', min: 1 }` means.
 
+import { EQUIPMENT_SLOTS } from './constants.js';
+
 /**
  * Field kinds the editor knows how to render.
  *
@@ -59,15 +61,34 @@ export const SCRIPT_BEHAVIOR_EVENTS = [
   'onInteract',
   'onDeath',
   'onUse',
+  'onEquip',
+  'onUnequip',
 ] as const;
 
 export type ScriptBehaviorEvent = (typeof SCRIPT_BEHAVIOR_EVENTS)[number];
 
 /**
+ * Behaviour events an item of this type can reach. The type decides: a
+ * consumable is spent by use, equipment is put on and taken off, and money
+ * dispatches nothing. Shared so the item editor offers only behaviours
+ * that can run, and the save path warns about one that cannot, instead of
+ * keeping one that silently stops firing.
+ */
+export function itemBehaviorEvents(
+  type: string | undefined,
+): ScriptBehaviorEvent[] {
+  if (type === 'consumable') return ['onUse'];
+  if ((EQUIPMENT_SLOTS as readonly string[]).includes(type ?? '')) {
+    return ['onEquip', 'onUnequip'];
+  }
+  return [];
+}
+
+/**
  * A registered behaviour as the content editors see it (`GET /behaviors`).
  *
  * `events` is what lets an editor offer only the behaviours that can run on the
- * content being edited: an item can only ever reach `onUse`.
+ * content being edited: a consumable can only ever reach `onUse`.
  */
 export interface ScriptBehaviorDescriptor {
   id: string;

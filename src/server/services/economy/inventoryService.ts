@@ -1,4 +1,9 @@
-import { MapStateServer, PlayerServer, Item } from '../../../shared/types.js';
+import {
+  MapStateServer,
+  PlayerServer,
+  Item,
+  EquipmentSlot,
+} from '../../../shared/types.js';
 import type { ClientItemAction } from '../../engine/actions.js';
 import { getMap, updatePlayer, updateMap, items } from '../world/gameData.js';
 import { logger } from '../../logger.js';
@@ -158,7 +163,7 @@ export async function useItem(
     applyItemEffects(player, itemId);
     removeItem(player.inventory, itemId, 1);
   } else {
-    const slot = item.type as keyof PlayerServer['equipped'];
+    const slot = item.type as EquipmentSlot;
     const equippedItem = player.equipped[slot];
 
     if (!invItem && equippedItem === itemId) {
@@ -182,7 +187,7 @@ export async function equipItem(
   const item = getItemById(itemId);
   if (!item) return;
 
-  const slot = item.type as keyof PlayerServer['equipped'];
+  const slot = item.type as EquipmentSlot;
 
   if (!EQUIPMENT_SLOTS.includes(slot)) {
     logger.warn('Invalid equip slot', { slot });
@@ -205,11 +210,21 @@ export async function equipItem(
   removeItem(player.inventory, itemId, 1);
 
   applyItemEffects(player, itemId);
+
+  // Last, so a handler reading the player sees the item on and its effects
+  // applied, the state it is being told about.
+  emit('itemEquip', { player, itemId, slot });
+  dispatchEntityScript(
+    item.scriptId,
+    'onEquip',
+    { player, item, itemId, slot },
+    item.scriptParams,
+  );
 }
 
 export async function unequipItem(
   player: PlayerServer,
-  slot: keyof PlayerServer['equipped'],
+  slot: EquipmentSlot,
 ): Promise<void> {
   const itemId = player.equipped[slot];
   if (!itemId) return;
@@ -224,12 +239,11 @@ export async function unequipItem(
   // A full inventory sends it to the ground rather than deleting it. Bound
   // items never get here, as the check above refuses the unequip.
   if (!addItem(player.inventory, itemId, 1).ok) {
-    const item = getItemById(itemId);
     const map = getMap(player.mapId);
-    if (item && map) {
+    if (unequipped && map) {
       map.droppedItems.push({
         itemId,
-        sprite: item.sprite,
+        sprite: unequipped.sprite,
         position: { ...player.position },
         quantity: 1,
       });
@@ -238,6 +252,19 @@ export async function unequipItem(
   }
 
   player.equipped[slot] = undefined;
+
+  // After the slot is cleared, and only on the paths that got here: the refusal
+  // above is not an unequip, and a listener told about one would take away a
+  // bonus the player is still wearing.
+  emit('itemUnequip', { player, itemId, slot });
+  if (unequipped) {
+    dispatchEntityScript(
+      unequipped.scriptId,
+      'onUnequip',
+      { player, item: unequipped, itemId, slot },
+      unequipped.scriptParams,
+    );
+  }
 }
 
 export function applyItemEffects(

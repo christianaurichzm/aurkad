@@ -355,6 +355,16 @@ command(
 //   onUse({ player }) { warpPlayer(player, Maps.Town, 9, 6); },
 // });
 //
+// attach('cursed-crown', {
+//   onEquip({ player })   { setPlayerData(player, 'cursed', true); },
+//   onUnequip({ player }) { setPlayerData(player, 'cursed', false); },
+// });
+//
+// An item's type decides which of these it can reach: a consumable is spent by
+// onUse, equipment goes through onEquip/onUnequip. Whatever onEquip grants,
+// onUnequip has to take back: the player stays in that state until they take
+// the piece off, and swapping fires onUnequip for the old piece first.
+//
 // One name can carry several of these at once: a boss that talks, hurts you on
 // its tile and drops loot is one attach with three handlers. Registrations are
 // dropped when the script reloads, and a name the content references but no
@@ -406,6 +416,7 @@ command(
 //   npcInteract                    { player, npc }         - player pressed F
 //   tileEnter                      { player, tile, map }
 //   itemUse / itemPickup           { player, itemId, quantity? }
+//   itemEquip / itemUnequip        { player, itemId, slot }  - a swap fires both
 //   chatMessage                    { player, scope, message }
 //   beforeDamage                   { attacker?, target, damage: { value } }  - mutate damage.value
 //   beforeXpGain                   { player, amount }      - mutate amount
@@ -413,12 +424,15 @@ command(
 //   tick                           { tick }                - 20/s; throttle with tick % n
 //
 // ATTACHED BEHAVIOR (attach): runs only for content naming this id
-//   attach(scriptId, { params, onEnter, onInteract, onDeath, onUse })
+//   attach(scriptId, { params, onEnter, onInteract, onDeath, onUse, onEquip,
+//                      onUnequip })
 //   onEnter     { player, tile, map, params }  tile with a `script` trigger
 //   onInteract  { player, npc, params }        NPC's "Script behavior" field
 //   onDeath     { npc, killer, params }        same NPC, when killed
 //   onUse       { player, item, itemId, params }  item's "Script behavior" field
-//                                            (consumables only - no equip event)
+//                                            (consumables - spent on use)
+//   onEquip / onUnequip  { player, item, itemId, slot, params }
+//                                            same field, on equipment
 //   params      { key: { type, label?, help?, required?, default?, min?, max?,
 //                        options? } }         a field per key in the editor
 //

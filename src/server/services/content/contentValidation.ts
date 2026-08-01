@@ -7,6 +7,8 @@
 
 import {
   checkStoredParams,
+  itemBehaviorEvents,
+  type ScriptBehaviorEvent,
   type ScriptParamSpec,
 } from '../../../shared/scriptParams.js';
 import { TILE_SIZE } from '../../../shared/constants.js';
@@ -19,6 +21,8 @@ export interface ContentValidationResult {
 interface ItemRef {
   id: number;
   name?: string;
+  /** Which behaviour events the item can reach (see itemBehaviorEvents). */
+  type?: string | undefined;
   scriptId?: string | undefined;
   scriptParams?: Record<string, unknown> | undefined;
 }
@@ -112,42 +116,63 @@ function checkDuplicateIds(
 }
 
 /**
- * Reports content naming a behaviour no script registered, and values that
- * do not fit its declared params. Both save clean and do nothing at
- * runtime: a `script` tile naming nothing is ignored, and a renamed param
- * leaves content on the old key, which resolution drops. Separate from
- * `validateContentReferences`, since it runs only once scripts load.
+ * Reports content naming a behaviour no script registered, values that do
+ * not fit its declared params, and a behaviour with no event this content
+ * reaches (an item naming an npc's behaviour, equipment a consumable's).
+ * All three save clean and do nothing at runtime; a renamed param leaves
+ * content on the old key, and changing an item's type changes its events.
+ * Separate from `validateContentReferences`, as it runs once scripts load,
+ * after content import.
  */
 export function validateScriptReferences(
   graph: ContentGraph,
-  registered: ReadonlyMap<string, ScriptParamSpec[]>,
+  registered: ReadonlyMap<
+    string,
+    { params: ScriptParamSpec[]; events: ScriptBehaviorEvent[] }
+  >,
 ): ContentValidationResult {
   const warnings: string[] = [];
 
   const report = (
     where: string,
+    reachable: ScriptBehaviorEvent[],
     scriptId: string | undefined,
     scriptParams?: Record<string, unknown> | undefined,
   ): void => {
     if (!scriptId) return;
-    const specs = registered.get(scriptId);
-    if (!specs) {
+    const behavior = registered.get(scriptId);
+    if (!behavior) {
       warnings.push(
         `${where} references unknown script behavior "${scriptId}".`,
       );
       return;
     }
-    for (const problem of checkStoredParams(specs, scriptParams)) {
+    if (reachable.length === 0) {
+      warnings.push(
+        `${where} names behavior "${scriptId}", but no behavior event ever reaches this content, so nothing runs.`,
+      );
+    } else if (!behavior.events.some((event) => reachable.includes(event))) {
+      warnings.push(
+        `${where} names behavior "${scriptId}", which has no ${reachable.join(' or ')} handler, so nothing runs.`,
+      );
+    }
+    for (const problem of checkStoredParams(behavior.params, scriptParams)) {
       warnings.push(`${where} behavior "${scriptId}": ${problem}.`);
     }
   };
 
   for (const npc of graph.npcs ?? []) {
-    report(`NPC ${label(npc.id, npc.name)}`, npc.scriptId, npc.scriptParams);
+    report(
+      `NPC ${label(npc.id, npc.name)}`,
+      ['onInteract', 'onDeath'],
+      npc.scriptId,
+      npc.scriptParams,
+    );
   }
   for (const item of graph.items ?? []) {
     report(
       `Item ${label(String(item.id), item.name)}`,
+      itemBehaviorEvents(item.type),
       item.scriptId,
       item.scriptParams,
     );
@@ -159,6 +184,7 @@ export function validateScriptReferences(
           if (trigger.action !== 'script') continue;
           report(
             `Map ${label(map.id, map.name)} tile (${col}, ${row})`,
+            ['onEnter'],
             trigger.scriptId,
             trigger.scriptParams,
           );

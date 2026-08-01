@@ -4,6 +4,11 @@ import {
   validateWorldGraph,
   validateScriptReferences,
 } from './contentValidation.js';
+import {
+  SCRIPT_BEHAVIOR_EVENTS,
+  type ScriptBehaviorEvent,
+  type ScriptParamSpec,
+} from '../../../shared/scriptParams.js';
 
 const items = [{ id: 1 }, { id: 2 }];
 
@@ -138,16 +143,22 @@ describe('validateContentReferences', () => {
 });
 
 describe('validateScriptReferences', () => {
+  const behavior = (
+    events: ScriptBehaviorEvent[],
+    params: ScriptParamSpec[] = [],
+  ) => ({ events, params });
+
   const registered = new Map([
-    ['trap', []],
-    ['sage', []],
+    ['trap', behavior(['onEnter', 'onUse'])],
+    ['sage', behavior(['onInteract'])],
+    ['crown', behavior(['onEquip', 'onUnequip'])],
   ]);
 
   it('accepts references to behaviors a script registered', () => {
     const result = validateScriptReferences(
       {
         npcs: [{ id: 'elder', scriptId: 'sage' }],
-        items: [{ id: 1, scriptId: 'trap' }],
+        items: [{ id: 1, type: 'consumable', scriptId: 'trap' }],
       },
       registered,
     );
@@ -166,11 +177,68 @@ describe('validateScriptReferences', () => {
 
   it('warns about an item naming a behavior nobody registered', () => {
     const result = validateScriptReferences(
-      { items: [{ id: 7, name: 'Scroll', scriptId: 'nope' }] },
+      {
+        items: [
+          { id: 7, name: 'Scroll', type: 'consumable', scriptId: 'nope' },
+        ],
+      },
       registered,
     );
     expect(result.warnings).toHaveLength(1);
     expect(result.warnings[0]).toContain('nope');
+  });
+
+  // The behavior exists and is wired, and still nothing runs: the silent
+  // failure of a dangling id, one level in.
+  describe('behavior with no handler for this content', () => {
+    it('warns when equipment names a consumable-only behavior', () => {
+      const result = validateScriptReferences(
+        { items: [{ id: 7, name: 'Sword', type: 'weapon', scriptId: 'trap' }] },
+        registered,
+      );
+      expect(result.warnings).toHaveLength(1);
+      expect(result.warnings[0]).toContain('onEquip or onUnequip');
+    });
+
+    it('warns when a consumable names an equip-only behavior', () => {
+      const result = validateScriptReferences(
+        {
+          items: [
+            { id: 7, name: 'Potion', type: 'consumable', scriptId: 'crown' },
+          ],
+        },
+        registered,
+      );
+      expect(result.warnings).toHaveLength(1);
+      expect(result.warnings[0]).toContain('onUse');
+    });
+
+    it('accepts equipment naming an equip behavior', () => {
+      const result = validateScriptReferences(
+        { items: [{ id: 7, type: 'helmet', scriptId: 'crown' }] },
+        registered,
+      );
+      expect(result.warnings).toEqual([]);
+    });
+
+    it('warns when an npc names a behavior that only runs on tiles', () => {
+      const result = validateScriptReferences(
+        { npcs: [{ id: 'elder', scriptId: 'trap' }] },
+        registered,
+      );
+      expect(result.warnings).toHaveLength(1);
+      expect(result.warnings[0]).toContain('onInteract or onDeath');
+    });
+
+    // Nothing dispatches behaviors on money, so any id there is dead wiring.
+    it('warns about a behavior on an item type no event reaches', () => {
+      const result = validateScriptReferences(
+        { items: [{ id: 7, type: 'money', scriptId: 'trap' }] },
+        registered,
+      );
+      expect(result.warnings).toHaveLength(1);
+      expect(result.warnings[0]).toContain('no behavior event ever reaches');
+    });
   });
 
   // The case the whole feature exists for: a tile that saves clean and does
@@ -250,13 +318,17 @@ describe('validateScriptReferences', () => {
   // Renaming a param in the script leaves every piece of content carrying
   // the old key, which resolution then drops silently.
   describe('declared params', () => {
+    // Implements every event, so what these assert is the params alone.
     const withParams = new Map([
       [
         'chest',
-        [
-          { key: 'itemId', type: 'item' as const, required: true },
-          { key: 'quantity', type: 'number' as const },
-        ],
+        behavior(
+          [...SCRIPT_BEHAVIOR_EVENTS],
+          [
+            { key: 'itemId', type: 'item' as const, required: true },
+            { key: 'quantity', type: 'number' as const },
+          ],
+        ),
       ],
     ]);
 
@@ -283,6 +355,7 @@ describe('validateScriptReferences', () => {
             {
               id: 7,
               name: 'Scroll',
+              type: 'consumable',
               scriptId: 'chest',
               scriptParams: { itemId: 3, qty: 2 },
             },

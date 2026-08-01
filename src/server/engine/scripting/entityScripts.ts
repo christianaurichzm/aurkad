@@ -17,6 +17,7 @@ import {
   type ScriptParamSpec,
 } from '../../../shared/scriptParams.js';
 import type {
+  EquipmentSlot,
   Item,
   MapStateServer,
   PlayerServer,
@@ -39,8 +40,29 @@ interface BehaviorEvents extends Record<ScriptBehaviorEvent, object> {
   onInteract: { player: PlayerServer; npc: RuntimeNpc };
   /** An npc carrying this behaviour died. */
   onDeath: { npc: RuntimeNpc; killer?: CombatTarget };
-  /** A player used an item carrying this behaviour. */
+  /** A player consumed an item carrying this behaviour. */
   onUse: { player: PlayerServer; item: Item; itemId: number };
+  /**
+   * A player put on equipment carrying this behaviour.
+   *
+   * Separate from `onUse` rather than a flag on it: equipping is a state the
+   * player stays in, so a behaviour that grants something on `onEquip` has to
+   * take it back on `onUnequip`, and a swap is one click that fires both.
+   * Both run after the transition, with the slot already holding the new value.
+   */
+  onEquip: {
+    player: PlayerServer;
+    item: Item;
+    itemId: number;
+    slot: EquipmentSlot;
+  };
+  /** A player took off equipment carrying this behaviour. */
+  onUnequip: {
+    player: PlayerServer;
+    item: Item;
+    itemId: number;
+    slot: EquipmentSlot;
+  };
 }
 
 export type EntityBehaviorEvent = ScriptBehaviorEvent;
@@ -123,15 +145,21 @@ export function getEntityBehavior(
 }
 
 /**
- * Every registered id with the params it declares, for validating content that
- * references them: an id nothing registered is a dangling reference, and a
- * stored value the declaration cannot hold is one the runtime will discard.
+ * Every registered id with what it declares, for validating content that
+ * references them: an id nothing registered is a dangling reference, a stored
+ * value the declaration cannot hold is one the runtime will discard, and a
+ * behaviour with no handler for the kind of content naming it never runs.
  */
-export function registeredBehaviorParams(): ReadonlyMap<
+export function registeredBehaviors(): ReadonlyMap<
   string,
-  ScriptParamSpec[]
+  { params: ScriptParamSpec[]; events: ScriptBehaviorEvent[] }
 > {
-  return new Map([...behaviors].map(([id, reg]) => [id, reg.specs]));
+  return new Map(
+    [...behaviors].map(([id, reg]) => [
+      id,
+      { params: reg.specs, events: implementedEvents(reg.behavior) },
+    ]),
+  );
 }
 
 /** What the content editors need to offer a behaviour and its fields. */
@@ -140,10 +168,14 @@ export function describeBehaviors(): ScriptBehaviorDescriptor[] {
     .map(([id, reg]) => ({
       id,
       owner: reg.owner,
-      events: SCRIPT_BEHAVIOR_EVENTS.filter((event) => !!reg.behavior[event]),
+      events: implementedEvents(reg.behavior),
       params: reg.specs,
     }))
     .sort((a, b) => a.id.localeCompare(b.id));
+}
+
+function implementedEvents(behavior: EntityBehavior): ScriptBehaviorEvent[] {
+  return SCRIPT_BEHAVIOR_EVENTS.filter((event) => !!behavior[event]);
 }
 
 export function clearEntityBehaviors(): void {

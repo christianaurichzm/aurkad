@@ -3,7 +3,7 @@ import {
   registerEntityBehavior,
   dispatchEntityScript,
   getEntityBehavior,
-  registeredBehaviorParams,
+  registeredBehaviors,
   describeBehaviors,
   clearEntityBehaviors,
 } from './entityScripts.js';
@@ -22,7 +22,7 @@ describe('registerEntityBehavior', () => {
     registerEntityBehavior('trap', behavior, 'traps.js');
 
     expect(getEntityBehavior('trap')).toBe(behavior);
-    expect([...registeredBehaviorParams().keys()]).toEqual(['trap']);
+    expect([...registeredBehaviors().keys()]).toEqual(['trap']);
   });
 
   it('returns a detach that removes it', () => {
@@ -280,25 +280,28 @@ describe('describeBehaviors', () => {
   });
 });
 
-describe('registeredBehaviorParams', () => {
+describe('registeredBehaviors', () => {
   it('lists every registered id with what it declares, for validating content', () => {
     registerEntityBehavior(
       'a',
-      { params: { qty: { type: 'number' } } },
+      { params: { qty: { type: 'number' } }, onUse: vi.fn() },
       'x.js',
     );
     registerEntityBehavior('b', {}, 'y.js');
 
-    const registered = registeredBehaviorParams();
+    const registered = registeredBehaviors();
     expect([...registered.keys()]).toEqual(['a', 'b']);
-    expect(registered.get('a')).toEqual([{ key: 'qty', type: 'number' }]);
-    expect(registered.get('b')).toEqual([]);
+    expect(registered.get('a')).toEqual({
+      params: [{ key: 'qty', type: 'number' }],
+      events: ['onUse'],
+    });
+    expect(registered.get('b')).toEqual({ params: [], events: [] });
   });
 
   it('is a copy, so a caller cannot corrupt the registry', () => {
     registerEntityBehavior('a', {}, 'x.js');
-    (registeredBehaviorParams() as Map<string, never[]>).set('fake', []);
+    (registeredBehaviors() as Map<string, never>).set('fake', {} as never);
 
-    expect([...registeredBehaviorParams().keys()]).toEqual(['a']);
+    expect([...registeredBehaviors().keys()]).toEqual(['a']);
   });
 });

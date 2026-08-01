@@ -7,6 +7,7 @@ import type {
   CombatTarget,
   ChatScope,
   DamageContributor,
+  EquipmentSlot,
 } from '../../shared/types.js';
 
 export type HookMap = {
@@ -29,6 +30,12 @@ export type HookMap = {
   tileEnter: { player: PlayerServer; tile: Tile; map: MapStateServer };
   itemUse: { player: PlayerServer; itemId: number };
   itemPickup: { player: PlayerServer; itemId: number; quantity: number };
+  // Fire on the transition, after the slot already holds the new value. Both
+  // fire on a swap, unequip first: that is one click, but two changes to what
+  // the player is wearing, and a listener that recomputes from `equipped` has
+  // to see each one.
+  itemEquip: { player: PlayerServer; itemId: number; slot: EquipmentSlot };
+  itemUnequip: { player: PlayerServer; itemId: number; slot: EquipmentSlot };
   chatMessage: { player: PlayerServer; scope: ChatScope; message: string };
   beforeDamage: {
     attacker?: CombatTarget;

@@ -285,15 +285,15 @@ describe('gameplay modules', () => {
 
     await equipItem(alice, 101);
     await equipItem(alice, 102);
-    sim.step(20);
 
+    // No tick in between: the module follows itemEquip/itemUnequip, so the
+    // bonus lands on the transition rather than on the next sweep.
     expect(alice.attack).toBe(17);
     expect(equipment?.activeSets(alice).map((set) => set.id)).toEqual([
       'scout',
     ]);
 
     await equipItem(alice, 102);
-    sim.step(20);
 
     expect(alice.attack).toBe(10);
     expect(equipment?.activeSets(alice)).toEqual([]);

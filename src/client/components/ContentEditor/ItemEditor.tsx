@@ -11,7 +11,10 @@ import { chatResultMsg } from '../ChatPanel';
 import { AsyncSelect } from '../common/Select/AsyncSelect';
 import { ItemIcon } from '../Inventory/ItemIcon';
 import { ScriptBehaviorFields } from './ScriptBehaviorFields';
-import type { ScriptParams } from '../../../shared/scriptParams';
+import {
+  itemBehaviorEvents,
+  type ScriptParams,
+} from '../../../shared/scriptParams';
 import { colors, radius } from '../../theme';
 
 interface ItemEditorProps {
@@ -50,6 +53,14 @@ const defaultValues: ItemFormValues = {
   bound: false,
   scriptId: '',
   scriptParams: {},
+};
+
+/** What running a behaviour means for this item, since the type decides. */
+const behaviorHint = (type: Item['type']): string => {
+  if (type === 'consumable') return 'Runs when a player consumes this item';
+  const [equip] = itemBehaviorEvents(type);
+  if (equip) return 'Runs when a player equips or unequips this item';
+  return 'Nothing runs behaviors on this item type';
 };
 
 const itemToFormValues = (item: Item): ItemFormValues => ({
@@ -281,7 +292,7 @@ export const ItemEditor: React.FC<ItemEditorProps> = ({
             Bound (cannot be dropped, traded, or banked)
           </label>
           <ScriptBehaviorFields
-            events={['onUse']}
+            events={itemBehaviorEvents(type)}
             scriptId={scriptId}
             onScriptIdChange={(value) =>
               setValue('scriptId', value, { shouldDirty: true })
@@ -290,7 +301,7 @@ export const ItemEditor: React.FC<ItemEditorProps> = ({
             onParamsChange={(value) =>
               setValue('scriptParams', value, { shouldDirty: true })
             }
-            hint="Runs when a player uses this item (consumables only)"
+            hint={behaviorHint(type)}
             loadItems={loadItems}
           />
           {type === 'weapon' && (

@@ -117,10 +117,10 @@ on('customAction', ({ player, channel }) => {
 
 on('playerJoin', ({ player }) => reconcile(player, { forceSync: true }));
 
-on('tick', ({ tick }) => {
-  if (tick % 20 !== 0) return;
-  for (const player of getPlayers()) reconcile(player);
-});
+// Only equipping changes what a set is worth, so the module reconciles on
+// equip events. A swap fires unequip then equip and reconciles twice.
+on('itemEquip', ({ player }) => reconcile(player));
+on('itemUnequip', ({ player }) => reconcile(player));
 
 provide('equipment', {
   defineSet,

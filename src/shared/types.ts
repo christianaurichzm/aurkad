@@ -128,6 +128,9 @@ export interface EquippedItems {
   boots?: Item['id'];
 }
 
+/** Where a piece of equipment goes; the names of `EQUIPMENT_SLOTS`. */
+export type EquipmentSlot = keyof EquippedItems;
+
 export interface InventoryDetailed {
   items: InventoryItemDetailed[];
   maxCapacity: number;

@@ -204,6 +204,109 @@ describe('item with a behavior', () => {
 
     handle.cleanup();
   });
+
+  it('runs onEquip and onUnequip when a player puts equipment on and takes it off', async () => {
+    const sim = createFixture(0);
+    const handle = script(`
+      attach('crown', {
+        onEquip({ player, item, slot }) { record('on ' + item.name + ' ' + slot); },
+        onUnequip({ player, item, slot }) { record('off ' + item.name + ' ' + slot); },
+      });
+    `);
+
+    items.set(2, {
+      id: 2,
+      name: 'Crown',
+      sprite: 0,
+      type: 'helmet',
+      scriptId: 'crown',
+    } as Item);
+    const player = sim.addPlayer({
+      name: 'Alice',
+      inventory: { items: [{ item: 2, quantity: 1 }], maxCapacity: 10 },
+    });
+
+    await useItem('Alice', 2);
+    expect(player.equipped.helmet).toBe(2);
+
+    await useItem('Alice', 2);
+    expect(player.equipped.helmet).toBeUndefined();
+
+    expect(calls.log).toEqual(['on Crown helmet', 'off Crown helmet']);
+
+    handle.cleanup();
+  });
+
+  // What onEquip grants, onUnequip takes back, so a handler that only sees one
+  // side of a swap leaves the bonus of a piece the player is no longer wearing.
+  it('runs the old item onUnequip before the new item onEquip on a swap', async () => {
+    const sim = createFixture(0);
+    const handle = script(`
+      attach('crown', {
+        params: { power: { type: 'number', default: 0 } },
+        onEquip({ item, params }) { record('+' + item.name + ':' + params.power); },
+        onUnequip({ item, params }) { record('-' + item.name + ':' + params.power); },
+      });
+    `);
+
+    items.set(2, {
+      id: 2,
+      name: 'Old',
+      description: '',
+      sprite: 0,
+      type: 'helmet',
+      scriptId: 'crown',
+      scriptParams: { power: 1 },
+    });
+    items.set(3, {
+      id: 3,
+      name: 'New',
+      description: '',
+      sprite: 0,
+      type: 'helmet',
+      scriptId: 'crown',
+      scriptParams: { power: 5 },
+    });
+    sim.addPlayer({
+      name: 'Alice',
+      inventory: { items: [{ item: 3, quantity: 1 }], maxCapacity: 10 },
+      equipped: { helmet: 2 },
+    });
+
+    await useItem('Alice', 3);
+
+    expect(calls.log).toEqual(['-Old:1', '+New:5']);
+
+    handle.cleanup();
+  });
+
+  // A consumable reaches onUse and equipment does not: the same field on the
+  // item means different events, and mixing them would make every handler
+  // branch on the item type it was already attached to.
+  it('does not run onUse for equipment', async () => {
+    const sim = createFixture(0);
+    const handle = script(`
+      attach('crown', { onUse() { record('used'); } });
+    `);
+
+    items.set(2, {
+      id: 2,
+      name: 'Crown',
+      sprite: 0,
+      type: 'helmet',
+      scriptId: 'crown',
+    } as Item);
+    sim.addPlayer({
+      name: 'Alice',
+      inventory: { items: [{ item: 2, quantity: 1 }], maxCapacity: 10 },
+    });
+
+    await useItem('Alice', 2);
+
+    expect(calls.log).toEqual([]);
+
+    handle.cleanup();
+  });
 });
 
 describe('reloading the script', () => {

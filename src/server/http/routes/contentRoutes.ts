@@ -46,7 +46,7 @@ import {
 } from '../../services/content/contentValidation.js';
 import {
   describeBehaviors,
-  registeredBehaviorParams,
+  registeredBehaviors,
 } from '../../engine/scripting/entityScripts.js';
 import {
   buyShopItem,
@@ -132,7 +132,7 @@ export function createContentRouter() {
         // and do nothing in game, so the editor is told at save time.
         const scriptRefs = validateScriptReferences(
           { maps: [{ id: mapId, name, tiles }] },
-          registeredBehaviorParams(),
+          registeredBehaviors(),
         );
         await mapSave(mapId, tiles, name, type, music);
         res.status(200).json({
@@ -313,10 +313,8 @@ export function createContentRouter() {
       npcs: [npcData],
     });
     warnings.push(
-      ...validateScriptReferences(
-        { npcs: [npcData] },
-        registeredBehaviorParams(),
-      ).warnings,
+      ...validateScriptReferences({ npcs: [npcData] }, registeredBehaviors())
+        .warnings,
     );
 
     await createOrUpdateNpc(npcData);
@@ -471,7 +469,7 @@ export function createContentRouter() {
     // npcs created after the rename.
     const { warnings } = validateScriptReferences(
       { npcs: [{ ...body, id }] },
-      registeredBehaviorParams(),
+      registeredBehaviors(),
     );
     const updated = await updateNpcAll(id, body);
     if (!updated) {
@@ -491,7 +489,7 @@ export function createContentRouter() {
     try {
       const { warnings } = validateScriptReferences(
         { items: [{ ...body, id: 0 }] },
-        registeredBehaviorParams(),
+        registeredBehaviors(),
       );
       await createOrUpdateItem(body);
       res.status(201).json({ ...body, warnings });
@@ -510,7 +508,7 @@ export function createContentRouter() {
     try {
       const { warnings } = validateScriptReferences(
         { items: [{ ...body, id }] },
-        registeredBehaviorParams(),
+        registeredBehaviors(),
       );
       await createOrUpdateItem({ ...body, id });
       res.status(200).json({ success: true, warnings });

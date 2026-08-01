@@ -3,7 +3,11 @@ import { on, off, clearAll } from './hooks.js';
 import { createFixture, tile } from '../sim/simFixture.js';
 import { Direction, Key } from '../../shared/types.js';
 import { msToTicks } from '../sim/clock.js';
-import { pickUpItem, useItem } from '../services/economy/inventoryService.js';
+import {
+  pickUpItem,
+  unequipItem,
+  useItem,
+} from '../services/economy/inventoryService.js';
 import { levelUpPlayer } from '../services/player/playerService.js';
 
 beforeEach(() => {
@@ -245,5 +249,89 @@ describe('itemUse hook', () => {
     await useItem('Alice', 9);
 
     expect(used).toEqual([9]);
+  });
+});
+
+describe('itemEquip / itemUnequip hooks', () => {
+  const weapon = (id: number, overrides = {}) => ({
+    id,
+    name: `Blade${id}`,
+    description: '',
+    sprite: 0,
+    type: 'weapon' as const,
+    ...overrides,
+  });
+
+  /** Both events, in order, as `slot:itemId`. */
+  const record = (log: string[]) => {
+    on('itemEquip', ({ itemId, slot }) => log.push(`equip:${slot}:${itemId}`));
+    on('itemUnequip', ({ itemId, slot }) =>
+      log.push(`unequip:${slot}:${itemId}`),
+    );
+  };
+
+  it('fires when a player equips and then takes the item off', async () => {
+    const log: string[] = [];
+    record(log);
+
+    const sim = createFixture(0);
+    sim.addItem(weapon(20));
+    const player = sim.addPlayer({ name: 'Alice' });
+    player.inventory.items.push({ item: 20, quantity: 1 });
+
+    await useItem('Alice', 20);
+    expect(player.equipped.weapon).toBe(20);
+
+    await useItem('Alice', 20);
+    expect(player.equipped.weapon).toBeUndefined();
+
+    expect(log).toEqual(['equip:weapon:20', 'unequip:weapon:20']);
+  });
+
+  // One click, two changes to what the player is wearing: a listener that
+  // recomputes from `equipped` has to see the old piece leave.
+  it('fires both, unequip first, when one piece replaces another', async () => {
+    const log: string[] = [];
+    record(log);
+
+    const sim = createFixture(0);
+    sim.addItem(weapon(20));
+    sim.addItem(weapon(21));
+    const player = sim.addPlayer({ name: 'Alice', equipped: { weapon: 20 } });
+    player.inventory.items.push({ item: 21, quantity: 1 });
+
+    await useItem('Alice', 21);
+
+    expect(log).toEqual(['unequip:weapon:20', 'equip:weapon:21']);
+    expect(player.equipped.weapon).toBe(21);
+  });
+
+  // The refusal path: a bound item with nowhere to go stays on, so telling a
+  // listener it came off would take away a bonus the player still has.
+  it('stays quiet when the unequip is refused', async () => {
+    const log: string[] = [];
+    record(log);
+
+    const sim = createFixture(0);
+    sim.addItem(weapon(20, { bound: true }));
+    for (let i = 0; i < 10; i++) {
+      sim.addItem({ ...weapon(100 + i), type: 'consumable' as const });
+    }
+    const player = sim.addPlayer({
+      name: 'Alice',
+      inventory: {
+        items: Array.from({ length: 10 }, (_, i) => ({
+          item: 100 + i,
+          quantity: 1,
+        })),
+        maxCapacity: 10,
+      },
+      equipped: { weapon: 20 },
+    });
+
+    await unequipItem(player, 'weapon');
+
+    expect(player.equipped.weapon).toBe(20);
+    expect(log).toEqual([]);
   });
 });

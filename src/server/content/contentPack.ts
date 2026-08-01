@@ -24,7 +24,7 @@ import {
   validateWorldGraph,
   validateScriptReferences,
 } from '../services/content/contentValidation.js';
-import { registeredBehaviorParams } from '../engine/scripting/entityScripts.js';
+import { registeredBehaviors } from '../engine/scripting/entityScripts.js';
 import { raiseCounter } from '../services/dbService.js';
 
 // Versionable game content lives as JSON files in content/. On boot it is
@@ -355,11 +355,11 @@ export async function reportUnknownBehaviors(): Promise<void> {
 
     const { warnings } = validateScriptReferences(
       {
-        items: items as { id: number; scriptId?: string }[],
+        items: items as { id: number; type?: string; scriptId?: string }[],
         npcs: npcs as Array<{ id: string; name?: string; scriptId?: string }>,
         maps: maps as Array<{ id: string; name?: string }>,
       },
-      registeredBehaviorParams(),
+      registeredBehaviors(),
     );
 
     for (const message of warnings) logger.warn(`[content] ${message}`);

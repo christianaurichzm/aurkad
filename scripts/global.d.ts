@@ -21,11 +21,14 @@ interface Inventory {
   maxCapacity: number;
 }
 
+/** Where equipment goes, and the `type` an equippable item carries. */
+type EquipmentSlot = 'weapon' | 'helmet' | 'chestplate' | 'gloves' | 'boots';
+
 interface EquippedItems {
   weapon?: number;
   helmet?: number;
-  armor?: number;
-  shield?: number;
+  chestplate?: number;
+  gloves?: number;
   boots?: number;
   [slot: string]: number | undefined;
 }
@@ -161,6 +164,9 @@ interface HookPayloads {
   tileEnter:     { player: PlayerServer; tile: Tile; map: MapState };
   itemUse:       { player: PlayerServer; itemId: number };
   itemPickup:    { player: PlayerServer; itemId: number; quantity: number };
+  /** Fires after the slot changed. A swap fires unequip, then equip. */
+  itemEquip:     { player: PlayerServer; itemId: number; slot: EquipmentSlot };
+  itemUnequip:   { player: PlayerServer; itemId: number; slot: EquipmentSlot };
   chatMessage:   { player: PlayerServer; scope: ChatScope; message: string };
   beforeDamage:  { attacker?: CombatTarget; target: CombatTarget; damage: { value: number } };
   /**
@@ -288,13 +294,34 @@ interface EntityBehavior<
     params: ScriptParamsOf<P>;
   }): void;
   /**
-   * A player used an item carrying this behavior. Consumables only: the
-   * engine has no "equipped" event, so equipment never reaches this.
+   * A player consumed an item carrying this behavior. Consumables only -
+   * equipment reaches onEquip/onUnequip instead, so the item's type decides
+   * which of the three can ever run.
    */
   onUse?(ctx: {
     player: PlayerServer;
     item: { id: number; name: string; type: string; scriptId?: string };
     itemId: number;
+    params: ScriptParamsOf<P>;
+  }): void;
+  /**
+   * A player put on equipment carrying this behavior, after the slot changed.
+   * `onUnequip` must take back whatever this grants; a swap fires onUnequip
+   * for the old piece, then onEquip for the new one.
+   */
+  onEquip?(ctx: {
+    player: PlayerServer;
+    item: { id: number; name: string; type: string; scriptId?: string };
+    itemId: number;
+    slot: EquipmentSlot;
+    params: ScriptParamsOf<P>;
+  }): void;
+  /** A player took off equipment carrying this behavior; the slot is clear. */
+  onUnequip?(ctx: {
+    player: PlayerServer;
+    item: { id: number; name: string; type: string; scriptId?: string };
+    itemId: number;
+    slot: EquipmentSlot;
     params: ScriptParamsOf<P>;
   }): void;
 }
