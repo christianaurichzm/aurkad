@@ -750,6 +750,15 @@ async function handleCommand(cmd: string, args: string[]): Promise<void> {
       out(
         `${ui.title('Queue')}: avg ${ui.value(String(m.tick.avgQueueSize))}  p95 ${ui.value(String(m.tick.p95QueueSize))}  max ${ui.value(String(m.tick.maxQueueSize))}  |  ${ui.title('Catch-up')}: ${ui.value(String(m.tick.catchUpTicks))} de ${ui.value(String(m.tick.totalTicks))} ticks`,
       );
+      // Right under the tick line, because "it got slower" and "this file is
+      // why" are one question. Silent until a window has closed.
+      if (m.scripts.shares.length > 0) {
+        const top = m.scripts.shares
+          .slice(0, 3)
+          .map((s) => `${ui.player(s.script)} ${ui.value(`${s.percent}%`)}`)
+          .join('  ');
+        out(`${ui.title('Scripts')}: ${top}  ${ui.muted('(last window)')}`);
+      }
       break;
     }
 

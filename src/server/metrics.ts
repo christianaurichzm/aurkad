@@ -6,6 +6,10 @@ import { replicatedEntityCount } from './net/entityReplication.js';
 import { rateLimiterEntryCount } from './net/transport.js';
 import { dirtyPlayerCount } from './persistence/dirtyPlayers.js';
 import { damageLedgerSize } from './services/combat/damage.js';
+import {
+  handlerCosts,
+  scriptTimeShares,
+} from './engine/scripting/handlerBudget.js';
 
 export interface TickMetrics {
   tickMs: number;
@@ -119,6 +123,13 @@ export function getMetrics() {
       heapUsed: memory.heapUsed,
       heapTotal: memory.heapTotal,
       external: memory.external,
+    },
+    // What the sandbox costs, and to whom. The handler budget catches one slow
+    // call; this is the volume it cannot see, which is the shape a per-tick
+    // sweep in a module has.
+    scripts: {
+      handlers: handlerCosts(),
+      shares: scriptTimeShares(),
     },
     // Every one of these is keyed by a player or an entity that eventually goes
     // away. Published together because "does it leak" is answered by comparing

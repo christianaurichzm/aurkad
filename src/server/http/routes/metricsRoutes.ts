@@ -9,14 +9,38 @@ type Sample = {
   help: string;
   type: 'gauge' | 'counter';
   value: number;
+  /** One series per distinct set; the name is then shared, not repeated. */
+  labels?: Record<string, string>;
 };
+
+/** Backslash, quote and newline: the three a label value may not carry raw. */
+function escapeLabel(value: string): string {
+  return value
+    .replace(/\\/g, '\\\\')
+    .replace(/"/g, '\\"')
+    .replace(/\n/g, '\\n');
+}
+
+function renderLabels(labels: Record<string, string> | undefined): string {
+  if (!labels) return '';
+  const pairs = Object.entries(labels).map(
+    ([key, value]) => `${key}="${escapeLabel(value)}"`,
+  );
+  return pairs.length === 0 ? '' : `{${pairs.join(',')}}`;
+}
 
 function render(samples: Sample[]): string {
   const lines: string[] = [];
+  // HELP and TYPE describe the metric, not the series: emitting them again for
+  // every labelled series is what a strict parser rejects.
+  const described = new Set<string>();
   for (const s of samples) {
-    lines.push(`# HELP ${s.name} ${s.help}`);
-    lines.push(`# TYPE ${s.name} ${s.type}`);
-    lines.push(`${s.name} ${s.value}`);
+    if (!described.has(s.name)) {
+      described.add(s.name);
+      lines.push(`# HELP ${s.name} ${s.help}`);
+      lines.push(`# TYPE ${s.name} ${s.type}`);
+    }
+    lines.push(`${s.name}${renderLabels(s.labels)} ${s.value}`);
   }
   return lines.join('\n') + '\n';
 }
@@ -226,6 +250,31 @@ export function buildMetricsSamples(): Sample[] {
       help: `Entries held in the ${help.replace(/\.$/, '')} cache.`,
       type: 'gauge' as const,
       value,
+    })),
+    // Who inside the sandbox is spending the frame. The tick percentiles above
+    // say the server got slower; these say which file to open.
+    ...m.scripts.handlers.flatMap((h) => [
+      {
+        name: 'engine_script_handler_ms_total',
+        help: 'Time spent inside a script handler since its script loaded.',
+        type: 'counter' as const,
+        value: h.totalMs,
+        labels: { script: h.script, handler: h.handler },
+      },
+      {
+        name: 'engine_script_handler_calls_total',
+        help: 'Times a script handler has been invoked since its script loaded.',
+        type: 'counter' as const,
+        value: h.calls,
+        labels: { script: h.script, handler: h.handler },
+      },
+    ]),
+    ...m.scripts.shares.map((s) => ({
+      name: 'engine_script_wallclock_percent',
+      help: 'Share of wall-clock time a script took in the last complete measurement window.',
+      type: 'gauge' as const,
+      value: s.percent,
+      labels: { script: s.script },
     })),
   ];
 }

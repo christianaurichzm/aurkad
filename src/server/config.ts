@@ -278,6 +278,19 @@ export const config = {
       min: 1,
       max: 1_000,
     }),
+    // The budget above catches one slow call. This catches the other failure:
+    // many cheap ones. A handler just under the budget on every tick never
+    // strikes and still owns a sixth of the frame, forever. Over this window
+    // the cost of each script is added up and compared with wall time, and a
+    // script over the share gets one line naming it.
+    handlerTimeWindowMs: parseIntEnv('SCRIPT_TIME_WINDOW_MS', 60_000, {
+      min: 1_000,
+      max: 10 * 60_000,
+    }),
+    handlerShareWarnPercent: parseIntEnv('SCRIPT_TIME_SHARE_WARN_PERCENT', 10, {
+      min: 1,
+      max: 100,
+    }),
   },
   persistence: {
     playerSnapshotIntervalMs: parseIntEnv(

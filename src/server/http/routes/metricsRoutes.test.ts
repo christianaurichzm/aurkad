@@ -11,6 +11,10 @@ vi.mock('../../net/connections.js', () => ({ playersWsMap: new Map() }));
 
 import { createMetricsRouter } from './metricsRoutes.js';
 import { recordTick, resetMetricsForTest } from '../../metrics.js';
+import {
+  clearHandlerBudget,
+  runWithBudget,
+} from '../../engine/scripting/handlerBudget.js';
 
 function appAs(accessLevel: Access | undefined) {
   const app = express();
@@ -96,5 +100,55 @@ describe('GET /metrics', () => {
       expect(res.text).toContain(`# TYPE engine_cache_entries_${cache} gauge`);
       expect(valueOf(`engine_cache_entries_${cache}`)).toBe(0);
     }
+  });
+
+  // "The server got slower" is the tick percentiles above; "this file is why"
+  // needs the cost broken out per script, which needs labels.
+  describe('script cost', () => {
+    beforeEach(() => {
+      clearHandlerBudget();
+    });
+
+    it('breaks the time down by script and handler', async () => {
+      runWithBudget('game.js', 'on:tick', () => {});
+      runWithBudget('quests.js', 'chest.onEnter', () => {});
+
+      const res = await request(appAs(Access.ADMIN)).get('/metrics');
+
+      expect(res.text).toContain(
+        'engine_script_handler_calls_total{script="game.js",handler="on:tick"} 1',
+      );
+      expect(res.text).toContain(
+        'engine_script_handler_calls_total{script="quests.js",handler="chest.onEnter"} 1',
+      );
+    });
+
+    // HELP and TYPE describe the metric, not the series. Repeating them per
+    // labelled series is what a strict parser rejects.
+    it('describes each metric once, however many series it has', async () => {
+      runWithBudget('a.js', 'on:tick', () => {});
+      runWithBudget('b.js', 'on:tick', () => {});
+
+      const res = await request(appAs(Access.ADMIN)).get('/metrics');
+      const count = (line: string) =>
+        res.text.split('\n').filter((l) => l === line).length;
+
+      expect(count('# TYPE engine_script_handler_ms_total counter')).toBe(1);
+      expect(
+        count(
+          '# HELP engine_script_handler_calls_total Times a script handler has been invoked since its script loaded.',
+        ),
+      ).toBe(1);
+      expect(
+        res.text
+          .split('\n')
+          .filter((l) => l.startsWith('engine_script_handler_ms_total{')),
+      ).toHaveLength(2);
+    });
+
+    it('says nothing about scripts when none has run', async () => {
+      const res = await request(appAs(Access.ADMIN)).get('/metrics');
+      expect(res.text).not.toContain('engine_script_handler_ms_total');
+    });
   });
 });
