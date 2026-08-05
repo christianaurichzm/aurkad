@@ -1,6 +1,10 @@
-// Crafting recipes. Cached: the crafting module resolves a recipe when a player
-// crafts, which happens inside the tick. The document lives here rather than in
-// the module because the content editor owns it.
+// Persistence and the in-memory cache for crafting recipes.
+//
+// Cached like dialogs and quests: the crafting module resolves a recipe when a
+// player crafts, which happens inside the tick, where an async DB round trip is
+// not an option. The document lives here rather than in the module because the
+// content editor owns it: anything with an id, a schema and a reference from
+// other content is the editor's, whatever module decides what it means.
 
 import RecipeModel from '../../model/Recipe.js';
 import type { Recipe } from '../../../shared/types.js';
