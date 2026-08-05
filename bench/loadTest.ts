@@ -32,6 +32,13 @@ import {
   type ServerSnapshot,
   type SoakSample,
 } from './load/report.js';
+import {
+  applyPlacements,
+  assessWorld,
+  fetchMaps,
+  planPlacements,
+  summarizeDistribution,
+} from './load/spread.js';
 
 const args = process.argv.slice(2);
 const argOf = (name: string): string | undefined =>
@@ -97,6 +104,29 @@ function applyOverrides(scenario: Scenario): Scenario {
   };
 }
 
+/** Players per map, straight from the server, for reading a spread back. */
+async function scrapeDistribution(
+  cookie: string | null,
+): Promise<Array<{ mapId: string; players: number }>> {
+  if (!cookie) return [];
+  try {
+    const res = await fetch(`${baseUrl}/metrics`, {
+      headers: { Cookie: cookie },
+    });
+    if (!res.ok) return [];
+    const out: Array<{ mapId: string; players: number }> = [];
+    for (const line of (await res.text()).split('\n')) {
+      const match = /^engine_players_by_map\{map="([^"]*)"\} (\d+(?:\.\d+)?)$/.exec(
+        line.trim(),
+      );
+      if (match) out.push({ mapId: match[1]!, players: Number(match[2]) });
+    }
+    return out;
+  } catch {
+    return [];
+  }
+}
+
 async function scrapeMetrics(
   cookie: string | null,
 ): Promise<ServerSnapshot | undefined> {
@@ -133,6 +163,45 @@ async function adminCookie(): Promise<string | null> {
 }
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+
+/**
+ * Places the bots around the world when the scenario asks for a spread,
+ * and says so out loud whenever it cannot.
+ */
+async function spreadIfAsked(
+  usernames: string[],
+  cookie: string | null,
+  scenario: Scenario,
+): Promise<void> {
+  const wanted = hasFlag('spread') || (scenario.spread && !hasFlag('no-spread'));
+  if (!wanted) return;
+
+  if (!cookie) {
+    console.warn(
+      '  spread SKIPPED: placing bots needs --admin-user/--admin-pass.\n' +
+        '  This run is one crowd on the start map, not a spread population.',
+    );
+    return;
+  }
+
+  try {
+    const maps = await fetchMaps(baseUrl, cookie);
+    const assessment = assessWorld(maps, usernames.length);
+    for (const warning of assessment.warnings) {
+      console.warn(`  spread WARNING: ${warning}`);
+    }
+
+    const placements = planPlacements(maps, usernames);
+    const result = await applyPlacements(baseUrl, cookie, placements);
+    console.log(
+      `  spread: placed ${result.placed}/${placements.length} across ` +
+        `${maps.length} map(s), ${assessment.viewportsAvailable} viewport(s) of room`,
+    );
+    for (const error of result.errors) console.warn(`    ${error}`);
+  } catch (err) {
+    console.warn(`  spread failed: ${String(err)}; continuing as a crowd`);
+  }
+}
 
 /**
  * Scrapes /metrics on an interval for the length of the run, since telling
@@ -209,6 +278,9 @@ async function run(): Promise<void> {
     process.exit(1);
   }
 
+  // Spread before anyone moves, so the lattice is the starting state.
+  await spreadIfAsked(connected.map((b) => b.username), cookie, scenario);
+
   for (const bot of connected) bot.startActing(random);
 
   // The first seconds are map metadata and chunk downloads, not steady state.
@@ -235,6 +307,9 @@ async function run(): Promise<void> {
 
   sampler?.stop();
   const after = await scrapeMetrics(cookie);
+  // Read where players ended up before disconnecting: only that belongs next
+  // to a number, not what placement asked for.
+  const distribution = await scrapeDistribution(cookie);
   await Promise.all(connected.map((b) => b.close()));
 
   const report = buildReport({
@@ -247,6 +322,9 @@ async function run(): Promise<void> {
   });
 
   console.log(jsonOut ? JSON.stringify(report, null, 2) : formatReport(report));
+  if (!jsonOut && distribution.length > 0) {
+    console.log(`  distribution: ${summarizeDistribution(distribution)}`);
+  }
 
   if (sampler && sampler.samples.length) {
     // `before` has no bots connected, so memory per player is a difference.

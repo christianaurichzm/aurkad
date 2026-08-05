@@ -85,6 +85,15 @@ export function buildMetricsSamples(): Sample[] {
       type: 'gauge',
       value: m.maps,
     },
+    // Where the players are, not just how many: fan-out cost depends on how
+    // many entities each viewer has in view, which the total cannot show.
+    ...m.byMap.map((entry) => ({
+      name: 'engine_players_by_map',
+      help: 'Players present, per map.',
+      type: 'gauge' as const,
+      value: entry.players,
+      labels: { map: entry.mapId },
+    })),
     {
       name: 'engine_ws_connections',
       help: 'Open WebSocket connections.',

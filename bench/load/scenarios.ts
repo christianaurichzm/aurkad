@@ -1,10 +1,9 @@
 // The load scenarios as data, testable without a server.
 //
-// The harness controls bot count, behaviour and duration, not where bots
-// stand: a bot spawns at the world's start position with no way to
-// teleport, so every scenario starts as one crowd. That keeps the crowd
-// scenarios (L3, L4) faithful and makes the spread ones (L1, L2) harsher
-// than intended, a floor rather than a measurement of the spread case.
+// Scenarios with `spread` place bots through the admin console's `tp`
+// (spread.ts), so they need --admin-user/--admin-pass, and without them the
+// run says it is a crowd. Placement only separates players on maps larger
+// than one viewport.
 
 export type BotBehavior = 'idle' | 'wander' | 'fight' | 'reconnect';
 
@@ -18,6 +17,8 @@ export interface Scenario {
   durationSeconds: number;
   /** What the run is meant to answer. */
   watch: string;
+  /** Whether bots are placed apart. L3 and L4 are crowd scenarios. */
+  spread?: boolean;
 }
 
 export const SCENARIOS: Scenario[] = [
@@ -28,6 +29,7 @@ export const SCENARIOS: Scenario[] = [
     behavior: 'wander',
     durationSeconds: 60,
     watch: 'per-map broadcast and quadtree rebuild',
+    spread: true,
   },
   {
     id: 'L2',
@@ -36,6 +38,7 @@ export const SCENARIOS: Scenario[] = [
     behavior: 'wander',
     durationSeconds: 120,
     watch: 'whether snapshot cost scales linearly, and memory per player',
+    spread: true,
   },
   {
     id: 'L3',

@@ -98,9 +98,18 @@ export function getMetrics() {
 
   let totalPlayers = 0;
   let totalNpcs = 0;
+  // Per map as well as in total, because the total cannot answer the question
+  // an operator actually has under load: a thousand players spread over twenty
+  // maps and a thousand standing on one tile are the same number here and
+  // nothing alike to the fan-out, which is per viewer and per entity in view.
+  // Cardinality is bounded by the map registry, not by traffic.
+  const byMap: Array<{ mapId: string; players: number; npcs: number }> = [];
   for (const map of maps) {
-    totalPlayers += Object.keys(map.players).length;
-    totalNpcs += Object.keys(map.npcs).length;
+    const players = Object.keys(map.players).length;
+    const npcs = Object.keys(map.npcs).length;
+    totalPlayers += players;
+    totalNpcs += npcs;
+    byMap.push({ mapId: map.id, players, npcs });
   }
 
   const memory = process.memoryUsage();
@@ -114,6 +123,7 @@ export function getMetrics() {
     players: totalPlayers,
     npcs: totalNpcs,
     maps: maps.length,
+    byMap,
     tick: getTickStats(),
     // Read straight from the process rather than sampled into a window: a soak
     // reads memory as a slope over hours, and the sampling belongs to whoever

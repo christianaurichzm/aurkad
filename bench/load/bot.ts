@@ -35,6 +35,11 @@ export class LoadBot {
 
   constructor(private readonly opts: BotOptions) {}
 
+  /** The account name, which is how the admin console addresses this bot. */
+  get username(): string {
+    return this.opts.username;
+  }
+
   /** Registers if needed, logs in, and opens the socket. */
   async connect(): Promise<void> {
     const authStarted = Date.now();
