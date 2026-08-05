@@ -91,10 +91,19 @@ export function emit<K extends keyof HookMap>(
   payload: HookMap[K],
 ): void {
   const set = registry.get(event);
-  if (!set) return;
+  if (!set || set.size === 0) return;
+  // Over a copy, as a Set visits entries added during iteration: a handler
+  // that subscribes to the event it handles would be called for the one in
+  // flight, and a coroutine on `waitFor` would loop forever inside one emit.
+  // An event reaches the handlers listening when it happened, and no others.
+  const handlers = [...set];
   // A throwing or rejecting handler must never break the game loop or
   // stop sibling handlers. Isolate both sync throws and async rejections.
-  for (const handler of set) {
+  for (const handler of handlers) {
+    // Still subscribed? The copy above fixes one direction and would break the
+    // other: a handler unsubscribed by an earlier handler in this same emit is
+    // no longer listening, and must not be called from a stale copy.
+    if (!set.has(handler)) continue;
     try {
       const result = handler(payload) as unknown;
       if (result instanceof Promise) {

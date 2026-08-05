@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { on, off, clearAll } from './hooks.js';
+import { on, off, emit, clearAll } from './hooks.js';
 import { createFixture, tile } from '../sim/simFixture.js';
 import { Direction, Key } from '../../shared/types.js';
 import { msToTicks } from '../sim/clock.js';
@@ -40,6 +40,42 @@ describe('hooks bus', () => {
     levelUpPlayer(player);
 
     expect(log).toEqual(['a', 'b']);
+  });
+
+  // An event reaches whoever was listening when it happened. Both halves of
+  // that matter, and each is the other's regression: dispatching over the live
+  // set calls a handler that subscribed mid-emit, dispatching over a plain copy
+  // calls one that unsubscribed mid-emit.
+  it('does not call a handler that subscribed during this emit', () => {
+    const log: string[] = [];
+
+    on('playerLevelUp', () => {
+      log.push('first');
+      on('playerLevelUp', () => log.push('late'));
+    });
+
+    emit('playerLevelUp', { player: {} as never, level: 2 });
+    expect(log).toEqual(['first']);
+
+    // It is listening for the next one, though.
+    emit('playerLevelUp', { player: {} as never, level: 3 });
+    expect(log).toEqual(['first', 'first', 'late']);
+  });
+
+  it('does not call a handler that another handler unsubscribed mid-emit', () => {
+    const log: string[] = [];
+    let unsubVictim = () => {};
+
+    // Registered first, so it runs before the one it drops.
+    on('playerLevelUp', () => {
+      log.push('canceller');
+      unsubVictim();
+    });
+    unsubVictim = on('playerLevelUp', () => log.push('victim'));
+
+    emit('playerLevelUp', { player: {} as never, level: 2 });
+
+    expect(log).toEqual(['canceller']);
   });
 
   it('unsubscribe returned by on() stops future calls', () => {

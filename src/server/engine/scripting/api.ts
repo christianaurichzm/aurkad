@@ -105,6 +105,7 @@ import { CharacterAction } from '../../../shared/types.js';
 import { logger } from '../../logger.js';
 import { recordScriptError, type ScriptErrorSource } from './scriptErrors.js';
 import { runWithBudget } from './handlerBudget.js';
+import { startCoroutine, wait, waitFor } from './coroutines.js';
 import {
   registerEntityBehavior,
   type EntityBehavior,
@@ -718,6 +719,17 @@ export function buildApi(
     cancel: (id: number): void => cancelScheduled(id),
     msToTicks,
     TICK_RATE: config.gameLoop.tickRate,
+
+    // Coroutines: a sequence that pauses instead of a chain of callbacks.
+    // Cancelled on reload like everything else, or a coroutine from a file
+    // that no longer exists would run old code against the new world.
+    coroutine: (fn: () => Generator<unknown, unknown, unknown>) => {
+      const handle = startCoroutine(scriptName, fn);
+      trackUnsub(() => handle.cancel());
+      return handle;
+    },
+    wait,
+    waitFor,
 
     // Deterministic RNG. Always prefer these over Math.random: the sim is
     // seeded (sim/rng.ts), and replay plus determinism.test.ts only hold if

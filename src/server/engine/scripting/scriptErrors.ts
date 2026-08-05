@@ -10,6 +10,7 @@ export type ScriptErrorSource =
   | 'schedule'
   | 'timer'
   | 'behavior'
+  | 'coroutine'
   | 'budget';
 
 export interface ScriptError {

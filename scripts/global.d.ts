@@ -912,6 +912,57 @@ declare function msToTicks(ms: number): number;
 /** Ticks per second the server simulates at (default 20). */
 declare const TICK_RATE: number;
 
+/** What a coroutine yields: build one with `wait()` or `waitFor()`. */
+interface CoroutineInstruction {
+  readonly __coroutineInstruction: unique symbol;
+}
+
+interface CoroutineHandle {
+  /** Stops it where it is, running its `finally` blocks. */
+  cancel(): void;
+  /** True once it ran to the end, threw, or was cancelled. */
+  readonly done: boolean;
+}
+
+/**
+ * Run a sequence that can pause, as a generator, so a cutscene or staged
+ * boss reads in order instead of as a chain of `after()` callbacks:
+ *
+ *     coroutine(function* gateScene() {
+ *       freeze(player);
+ *       say(npc, 'Stand back.');
+ *       yield wait(msToTicks(2000));
+ *       openGate();
+ *       const { npc: dead } = yield waitFor('npcDeath', (p) => p.npc.name === 'Warden');
+ *       say(npc, 'It is done.');
+ *     });
+ *
+ * It runs at once up to its first `yield` and is resumed by the tick, timed
+ * against the handler budget, and cancelled on script reload. A loop that
+ * never yields still hangs the server.
+ */
+declare function coroutine(
+  body: () => Generator<CoroutineInstruction, void, any>,
+): CoroutineHandle;
+
+/**
+ * Inside a coroutine: pause for `ticks` ticks. `wait(0)` resumes next tick.
+ *
+ *     yield wait(msToTicks(1500));
+ */
+declare function wait(ticks: number): CoroutineInstruction;
+
+/**
+ * Inside a coroutine: pause until `event` fires, evaluating to the hook
+ * payload. The optional filter skips resumptions that do not match:
+ *
+ *     const { killer } = yield waitFor('npcDeath', (p) => p.npc.name === 'Warden');
+ */
+declare function waitFor<E extends HookEvent>(
+  event: E,
+  filter?: (payload: HookPayloads[E]) => boolean,
+): CoroutineInstruction;
+
 /**
  * Deterministic random in [0, 1). Always prefer this over `Math.random`: the
  * simulation is seeded, and replay only reproduces if every roll that affects

@@ -193,6 +193,53 @@ on('npcDeath', ({ npc, killer }) => {
   if (npc.name === 'Orc') quest.advance(killer, 'orcSlayer', 1);
 });
 
+// ─── SEQUENCES (COROUTINES) ──────────────────────────────────────────────────
+// Anything with steps (a cutscene, a staged boss, a countdown) reads in
+// order inside a coroutine instead of a chain of after() callbacks each
+// holding one step. `yield wait(n)` pauses for n ticks, and
+// `yield waitFor(event)` until a hook fires, evaluating to its payload.
+//
+// Sequences are cancelled when this file reloads, so saving mid-cutscene
+// leaves no generator of the replaced code running. Put anything the
+// sequence has to give back in a `finally`, which cancelling runs.
+
+command(
+  'countdown',
+  { description: 'Demo: a three second countdown, then a shout' },
+  ({ player, reply }) => {
+    if (!player) return reply('In-game only.');
+    coroutine(function* countdown() {
+      for (let n = 3; n > 0; n--) {
+        sendMessage(player, `${n}...`);
+        yield wait(msToTicks(1000));
+      }
+      sendMessage(player, 'Go!');
+    });
+  },
+);
+
+// The shape a boss fight wants: announce, wait for the thing to actually
+// happen, then react. Written with hooks alone this is two handlers and a flag
+// in module scope remembering which phase we are in.
+on('npcInteract', ({ player, npc }) => {
+  if (npc.name !== 'Warden') return;
+  coroutine(function* wardenChallenge() {
+    sendMessage(player, 'The Warden raises its shield.');
+    yield wait(msToTicks(1500));
+    sendMessage(player, 'Prove yourself: slay a Goblin.');
+
+    // Only this player's kill resumes it; the filter runs on every npcDeath,
+    // and a resumption that does not match never wakes the sequence.
+    yield waitFor(
+      'npcDeath',
+      (p) => p.npc.name === 'Goblin' && p.killer?.name === player.name,
+    );
+
+    sendMessage(player, 'The Warden steps aside.');
+    giveExperience(player, 50);
+  });
+});
+
 // ─── DEATH ───────────────────────────────────────────────────────────────────
 
 on('playerDeath', ({ player, killer }) => {
@@ -533,6 +580,12 @@ command(
 //   cancel(id)                     stop a scheduled task
 //   msToTicks(ms)                  → ticks  e.g. after(msToTicks(3000), fn)
 //   Auto-cancelled when the script reloads, so no duplicates on hot reload.
+//
+// SEQUENCES (a generator that pauses, for anything with steps)
+//   coroutine(function* () { ... }) → handle {cancel(), done}
+//   yield wait(ticks)              pause, resume on that tick
+//   yield waitFor(event, filter?)  pause until a hook fires → its payload
+//   Cancelled on reload like the above; `finally` runs, so release things there.
 //
 // RANDOM (deterministic: always prefer these over Math.random)
 //   random()                       → [0, 1)
