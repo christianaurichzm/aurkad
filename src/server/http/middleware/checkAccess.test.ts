@@ -30,6 +30,10 @@ const fakeSession: express.RequestHandler = (req, _res, next) => {
 beforeAll(async () => {
   mongod = await MongoMemoryServer.create();
   await mongoose.connect(mongod.getUri());
+  // Builds the indexes up front: AuditLog declares six, and creating them on
+  // the first insert takes ~700ms, past the wait below, so the suite would
+  // pass or fail on machine load.
+  await AuditLogModel.init();
 
   app = express();
   app.use(express.json());
@@ -57,16 +61,34 @@ beforeEach(async () => {
   await AuditLogModel.deleteMany({});
 });
 
+const QUIET_MS = 200;
+const LAND_MS = 5_000;
+
 /**
- * The entry is written on response finish and never awaited by the request, so
- * a test waits for it to land. The tests that assert NOTHING was recorded pay
- * the full timeout, which is the price of not asserting on a race.
+ * Waits for the entry, written on response finish and never awaited by the
+ * request. Throws when nothing lands, so a timeout reads as one and not as
+ * `expected undefined to match object` below.
  */
 async function settled(): Promise<void> {
-  for (let attempt = 0; attempt < 40; attempt++) {
+  const deadline = Date.now() + LAND_MS;
+  while (Date.now() < deadline) {
     if ((await AuditLogModel.countDocuments()) > 0) return;
     await new Promise((resolve) => setTimeout(resolve, 5));
   }
+  throw new Error(
+    `no audit entry was written within ${LAND_MS}ms - the write is fire and ` +
+      `forget, so this is a slow or failed insert, not a wrong assertion`,
+  );
+}
+
+/**
+ * The wait for the tests that assert NOTHING was recorded.
+ *
+ * Separate from `settled` because those two cannot share a helper: one fails
+ * when the deadline passes, the other needs the deadline to pass.
+ */
+async function quiet(): Promise<void> {
+  await new Promise((resolve) => setTimeout(resolve, QUIET_MS));
 }
 
 describe('access control', () => {
@@ -165,7 +187,7 @@ describe('audit trail', () => {
       .set('x-user', 'owner')
       .set('x-access', String(Access.ADMIN))
       .expect(200);
-    await settled();
+    await quiet();
 
     expect(await listAuditLog()).toEqual([]);
   });
@@ -178,7 +200,7 @@ describe('audit trail', () => {
       .set('x-user', 'gm')
       .set('x-access', String(Access.MOD))
       .send({ line: '/kick alice' });
-    await settled();
+    await quiet();
 
     expect(await listAuditLog()).toEqual([]);
   });

@@ -31,6 +31,9 @@ let mongod: MongoMemoryServer;
 beforeAll(async () => {
   mongod = await MongoMemoryServer.create();
   await mongoose.connect(mongod.getUri());
+  // Indexes are built up front, as in checkAccess.test.ts, which says what
+  // building them on the first insert cost.
+  await AuditLogModel.init();
 }, 30_000);
 
 afterAll(async () => {
@@ -48,17 +51,30 @@ beforeEach(async () => {
  * is a real round trip, and asserting before it lands reads an empty log.
  */
 async function record(entry: Parameters<typeof recordAdminAction>[0]) {
+  // `at` is a Date, so two entries in the same millisecond sort arbitrarily,
+  // and the tests below assert newest first; spacing the writes makes the
+  // order a fact.
+  await new Promise((resolve) => setTimeout(resolve, 2));
   const before = await AuditLogModel.countDocuments();
   recordAdminAction(entry);
   await settled(before + 1);
 }
 
-/** Resolves once `expected` entries exist, or gives up so the test can fail. */
+/**
+ * Resolves once `expected` entries exist, and throws on timeout, so a slow
+ * write does not surface as `expected undefined to match object`.
+ */
 async function settled(expected: number): Promise<void> {
-  for (let attempt = 0; attempt < 100; attempt++) {
+  const deadline = Date.now() + 5_000;
+  while (Date.now() < deadline) {
     if ((await AuditLogModel.countDocuments()) >= expected) return;
     await new Promise((resolve) => setTimeout(resolve, 5));
   }
+  throw new Error(
+    `only ${await AuditLogModel.countDocuments()} of ${expected} audit ` +
+      `entries landed within 5000ms - the write is fire and forget, so this ` +
+      `is a slow or failed insert, not a wrong assertion`,
+  );
 }
 
 describe('summarizeDetails', () => {
@@ -282,8 +298,15 @@ describe('privileged commands', () => {
     handleReplCommand('ban', ['carol'], () => {});
     await settled(2);
 
+    // Sorted by source rather than taken as listed: these two are written
+    // within the same millisecond, and `at` is a Date, so the newest-first sort
+    // has nothing to break the tie with. What this test is about is that the
+    // two consoles are told apart, not which of them lands first.
     const rows = await listAuditLog();
-    expect(rows.map((r) => [r.source, r.actor, r.target])).toEqual([
+    const seen = rows
+      .map((r) => [r.source, r.actor, r.target])
+      .sort((a, b) => String(a[0]).localeCompare(String(b[0])));
+    expect(seen).toEqual([
       ['repl', 'console', 'carol'],
       ['web', 'owner', 'bob'],
     ]);
