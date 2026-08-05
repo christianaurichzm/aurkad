@@ -17,6 +17,7 @@ import {
   ResizeMapBodySchema,
   CreateItemBodySchema,
   CreateLootTableBodySchema,
+  CreateDialogBodySchema,
   CreateShopBodySchema,
   BuyShopItemBodySchema,
   AssignPointsBodySchema,
@@ -62,10 +63,17 @@ import {
   listItems,
 } from '../../services/economy/inventoryService.js';
 import {
+  cachedLootTables,
   createOrUpdateLootTable,
   deleteLootTable,
   listLootTables,
 } from '../../services/economy/lootTableService.js';
+import {
+  cachedDialogs,
+  createOrUpdateDialog,
+  deleteDialog,
+  listDialogs,
+} from '../../services/content/dialogService.js';
 import {
   enrichPlayer,
   getPlayerById,
@@ -94,7 +102,19 @@ import { createRouter } from '../../app.js';
 
 // Content-definition paths whose mutations should regenerate script constants.
 const CONTENT_DEFINITION_PATH =
-  /^\/(saveMap|npcs|items|maps|spells|arrows|loot)\b/;
+  /^\/(saveMap|npcs|items|maps|spells|arrows|loot|dialogs)\b/;
+
+/**
+ * The loot table and dialog ids that exist, for resolving what an npc points
+ * at. Ids only, from the boot caches: with full documents, saving one npc
+ * would also warn about some unrelated broken conversation.
+ */
+function existingReferences() {
+  return {
+    lootTables: cachedLootTables().map((table) => ({ id: table.id })),
+    dialogs: cachedDialogs().map((dialog) => ({ id: dialog.id })),
+  };
+}
 
 export function createContentRouter() {
   const router = createRouter();
@@ -311,6 +331,7 @@ export function createContentRouter() {
     const { warnings } = validateContentReferences({
       items: await listItems(),
       npcs: [npcData],
+      ...existingReferences(),
     });
     warnings.push(
       ...validateScriptReferences({ npcs: [npcData] }, registeredBehaviors())
@@ -471,6 +492,12 @@ export function createContentRouter() {
       { npcs: [{ ...body, id }] },
       registeredBehaviors(),
     );
+    warnings.push(
+      ...validateContentReferences({
+        npcs: [{ ...body, id }],
+        ...existingReferences(),
+      }).warnings,
+    );
     const updated = await updateNpcAll(id, body);
     if (!updated) {
       return res.status(404).json({ error: 'NPC not found.' });
@@ -546,6 +573,35 @@ export function createContentRouter() {
     } catch (err) {
       logger.error('deleteLootTable failed', { err });
       res.status(500).json({ error: 'Failed to delete loot table.' });
+    }
+  });
+
+  router.get('/dialogs', checkAccess(Access.ADMIN), async (_req, res) => {
+    res.status(200).json(await listDialogs());
+  });
+
+  router.post('/dialogs', checkAccess(Access.ADMIN), async (req, res) => {
+    const body = parseBody(CreateDialogBodySchema, req.body, res);
+    if (!body) return;
+    try {
+      // A choice pointing at a missing node is a warning, not a rejected save,
+      // as conversations are authored half-written.
+      const { warnings } = validateContentReferences({ dialogs: [body] });
+      await createOrUpdateDialog(body);
+      res.status(201).json({ ...body, warnings });
+    } catch (err) {
+      logger.error('createDialog failed', { err });
+      res.status(500).json({ error: 'Failed to save dialog.' });
+    }
+  });
+
+  router.delete('/dialogs/:id', checkAccess(Access.ADMIN), async (req, res) => {
+    try {
+      await deleteDialog(req.params.id ?? '');
+      res.status(204).send();
+    } catch (err) {
+      logger.error('deleteDialog failed', { err });
+      res.status(500).json({ error: 'Failed to delete dialog.' });
     }
   });
 

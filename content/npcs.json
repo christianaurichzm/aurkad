@@ -39,7 +39,8 @@
     "sprite": 7,
     "maxHealth": 150,
     "attack": 20,
-    "behavior": "guard"
+    "behavior": "guard",
+    "dialogId": "guard-gate"
   },
   {
     "id": "shopkeeper",

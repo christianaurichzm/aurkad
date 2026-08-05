@@ -69,6 +69,11 @@ on('playerLevelUp', ({ player, level }) => {
 on('npcInteract', ({ player, npc }) => {
   if (!dialog) return;
 
+  // An NPC with a dialog set in the content editor is already answered: the
+  // dialog module opens that conversation on its own, and greeting them here
+  // would put two boxes on screen for one keypress.
+  if (npc.dialogId) return;
+
   if (npc.name === 'Elder') {
     handleElderDialog(player);
     return;
@@ -137,6 +142,30 @@ function handleElderDialog(player) {
     text: 'Elder: You are a true hero. The village is forever grateful.',
   });
 }
+
+// ─── AUTHORED DIALOGS ────────────────────────────────────────────────────────
+// The guard by the east road says nothing in this file: his conversation is a
+// document in the content editor (Dialogs tab), and the dialog module walks it.
+// Compare it with handleElderDialog above: the same feature, one written in
+// code and one in the editor.
+//
+// What a document cannot hold is a rule, so a choice names one instead. These
+// two are the names the guard's dialog uses.
+
+// Whether to offer the choice at all. A missing or throwing condition hides it.
+provide('dialogCondition.goblinSlayer', ({ player }) => {
+  const hunt = quest && quest.get(player, 'goblinHunt');
+  return !!hunt && hunt.status === 'completed';
+});
+
+// What picking the choice does. If this throws, the conversation stops rather
+// than showing the node that thanks the player for a reward they never got.
+provide('dialogAction.guardGift', ({ player }) => {
+  if (getPlayerData(player, 'guardGift')) return; // already paid, once per player
+  setPlayerData(player, 'guardGift', true);
+  giveItem(player, 3, 25); // 25 Gold Coins
+  sendMessage(player, 'The guard hands you 25 gold coins.');
+});
 
 // ─── QUEST PROGRESSION ───────────────────────────────────────────────────────
 

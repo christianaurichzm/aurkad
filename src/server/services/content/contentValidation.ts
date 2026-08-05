@@ -33,8 +33,18 @@ interface NpcRef {
   name?: string;
   itemsToDrop?: Array<{ itemId: number }> | undefined;
   lootTableId?: string | undefined;
+  dialogId?: string | undefined;
   scriptId?: string | undefined;
   scriptParams?: Record<string, unknown> | undefined;
+}
+interface DialogRef {
+  id?: string;
+  name?: string;
+  start?: string | undefined;
+  nodes?: Array<{
+    id: string;
+    choices?: Array<{ next?: string | undefined }> | undefined;
+  }>;
 }
 interface LootTableRef {
   id?: string;
@@ -86,6 +96,7 @@ export interface ContentGraph {
   shops?: ShopRef[];
   maps?: MapRef[];
   lootTables?: LootTableRef[];
+  dialogs?: DialogRef[];
 }
 
 function label(id: string | undefined, name?: string): string {
@@ -212,6 +223,7 @@ export function validateContentReferences(
   checkDuplicateIds('shop', graph.shops, errors);
   checkDuplicateIds('map', graph.maps, errors);
   checkDuplicateIds('loot table', graph.lootTables, errors);
+  checkDuplicateIds('dialog', graph.dialogs, errors);
 
   // An npc pointing at a table that does not exist rolls its legacy
   // itemsToDrop instead, so the loot silently changes rather than failing.
@@ -222,6 +234,79 @@ export function validateContentReferences(
         warnings.push(
           `NPC ${label(npc.id, npc.name)} uses unknown loot table "${npc.lootTableId}".`,
         );
+      }
+    }
+  }
+
+  if (graph.dialogs) {
+    const dialogIds = new Set(graph.dialogs.map((d) => d.id));
+    for (const npc of graph.npcs ?? []) {
+      if (npc.dialogId && !dialogIds.has(npc.dialogId)) {
+        warnings.push(
+          `NPC ${label(npc.id, npc.name)} opens unknown dialog "${npc.dialogId}".`,
+        );
+      }
+    }
+  }
+
+  // A conversation is a graph, so it gets the same treatment the world graph
+  // gets: nodes that nothing points at are branches a player can never see, and
+  // a choice leading nowhere is the dangling reference of this collection.
+  for (const dialog of graph.dialogs ?? []) {
+    const where = `Dialog ${label(dialog.id, dialog.name)}`;
+    const nodes = dialog.nodes ?? [];
+    const nodeIds = new Set<string>();
+    for (const node of nodes) {
+      if (nodeIds.has(node.id)) {
+        // Two nodes under one id collapse on lookup: whichever the walk finds
+        // first wins, and the other text simply never appears.
+        errors.push(
+          `${where} has duplicate node id "${node.id}": only one of them can ever be reached.`,
+        );
+      }
+      nodeIds.add(node.id);
+    }
+
+    const start = dialog.start ?? nodes[0]?.id;
+    if (dialog.start && !nodeIds.has(dialog.start)) {
+      warnings.push(
+        `${where} starts at unknown node "${dialog.start}", so talking never opens it.`,
+      );
+    }
+
+    for (const node of nodes) {
+      for (const choice of node.choices ?? []) {
+        if (choice.next && !nodeIds.has(choice.next)) {
+          warnings.push(
+            `${where} node "${node.id}" leads to unknown node "${choice.next}", so that choice ends the conversation.`,
+          );
+        }
+      }
+    }
+
+    if (start && nodeIds.has(start)) {
+      const reached = new Set<string>([start]);
+      const queue = [start];
+      const byId = new Map(nodes.map((node) => [node.id, node]));
+      while (queue.length) {
+        const current = byId.get(queue.shift()!);
+        for (const choice of current?.choices ?? []) {
+          if (
+            choice.next &&
+            nodeIds.has(choice.next) &&
+            !reached.has(choice.next)
+          ) {
+            reached.add(choice.next);
+            queue.push(choice.next);
+          }
+        }
+      }
+      for (const node of nodes) {
+        if (!reached.has(node.id)) {
+          warnings.push(
+            `${where} node "${node.id}" cannot be reached from the start node, so no player ever sees it.`,
+          );
+        }
       }
     }
   }

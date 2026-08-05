@@ -113,6 +113,8 @@ interface RuntimeNpc {
   attackRange: number;
   behavior: NpcBehavior;
   experienceValue?: number;
+  /** Conversation the dialog module opens when a player talks to this npc. */
+  dialogId?: string;
   mapId: string;
   position: Position;
   direction: Direction;
@@ -348,6 +350,36 @@ interface SpellData {
 
 /** All spells defined in the database (via SpellEditor). */
 declare function getSpells(): SpellData[];
+
+interface DialogChoiceData {
+  label: string;
+  /** Node to move to. Absent ends the conversation. */
+  next?: string;
+  /** Name of a predicate registered with provide('dialogCondition.<name>'). */
+  condition?: string;
+  /** Name of a handler registered with provide('dialogAction.<name>'). */
+  action?: string;
+}
+
+interface DialogNodeData {
+  id: string;
+  text: string;
+  choices?: DialogChoiceData[];
+}
+
+interface DialogData {
+  id: string;
+  name: string;
+  /** Node the conversation opens on. Defaults to the first one. */
+  start?: string;
+  nodes: DialogNodeData[];
+}
+
+/**
+ * An authored conversation (DialogEditor) by id, as a copy. The dialog
+ * module walks these on its own; a script reads one only when it needs to.
+ */
+declare function getDialog(id: string): DialogData | undefined;
 
 /**
  * Saves spells to the database one after another, without waiting. For a
@@ -686,6 +718,32 @@ interface DialogApi {
     options: DialogOptions,
     onChoice?: (choiceIndex: number) => void,
   ): void;
+  /**
+   * Opens a conversation authored in the content editor and walks it. False
+   * when no dialog has that id. An npc with a `dialogId` does this itself;
+   * this is for tile triggers, commands or quest steps.
+   */
+  start(player: PlayerServer, dialogId: string, npc?: RuntimeNpc): boolean;
+}
+
+/**
+ * What a dialog choice's `condition` and `action` are handed. A missing or
+ * throwing condition hides the choice; a missing or throwing action ends
+ * the conversation there.
+ *
+ *     provide('dialogCondition.goblinSlayer', ({ player }) =>
+ *       quest.get(player, 'goblinHunt')?.status === 'completed');
+ *
+ *     provide('dialogAction.guardGift', ({ player }) => giveItem(player, 3, 25));
+ */
+interface DialogChoiceContext {
+  player: PlayerServer;
+  /** Absent when the conversation was opened without one (tile, command). */
+  npc?: RuntimeNpc;
+  dialog: DialogData;
+  node: DialogNodeData;
+  /** Only on an action: the choice the player picked. */
+  choice?: DialogChoiceData;
 }
 
 interface QuestDef {

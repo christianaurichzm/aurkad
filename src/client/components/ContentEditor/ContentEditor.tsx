@@ -6,6 +6,7 @@ import { ShopEditor } from './ShopEditor';
 import { SpellEditor } from './SpellEditor';
 import { ArrowEditor } from './ArrowEditor';
 import { LootTableEditor } from './LootTableEditor';
+import { DialogEditor } from './DialogEditor';
 import {
   RuntimeNpc,
   Item,
@@ -13,6 +14,7 @@ import {
   Shop,
   ProductRaw,
   LootTable,
+  Dialog,
 } from '../../../shared/types';
 import {
   fetchNpcs,
@@ -20,12 +22,21 @@ import {
   fetchMaps,
   fetchShops,
   listLootTables,
+  listDialogs,
 } from '../../io/network';
 import { Modal } from '../common/Modal';
 import { colors, radius } from '../../theme';
 import { useUIStore } from '../../stores/uiStore';
 
-type Tab = 'npcs' | 'items' | 'loot' | 'shops' | 'maps' | 'spells' | 'arrows';
+type Tab =
+  | 'npcs'
+  | 'items'
+  | 'loot'
+  | 'dialogs'
+  | 'shops'
+  | 'maps'
+  | 'spells'
+  | 'arrows';
 
 export const ContentEditor: React.FC = () => {
   const [visible, setVisible] = useState(false);
@@ -35,6 +46,7 @@ export const ContentEditor: React.FC = () => {
   const [shops, setShops] = useState<Shop<ProductRaw>[]>([]);
   const [maps, setMaps] = useState<MapStateClient[]>([]);
   const [lootTables, setLootTables] = useState<LootTable[]>([]);
+  const [dialogs, setDialogs] = useState<Dialog[]>([]);
   const [contentDirty, setContentDirty] = useState(false);
   const visibleRef = useRef(false);
   const dirtyRef = useRef(false);
@@ -74,18 +86,21 @@ export const ContentEditor: React.FC = () => {
   }, [close]);
 
   const refreshData = useCallback(async () => {
-    const [npcData, itemData, shopData, mapData, lootData] = await Promise.all([
-      fetchNpcs(),
-      fetchItems(),
-      fetchShops(),
-      fetchMaps(),
-      listLootTables(),
-    ]);
+    const [npcData, itemData, shopData, mapData, lootData, dialogData] =
+      await Promise.all([
+        fetchNpcs(),
+        fetchItems(),
+        fetchShops(),
+        fetchMaps(),
+        listLootTables(),
+        listDialogs(),
+      ]);
     setNpcs(npcData);
     setItems(itemData);
     setShops(shopData);
     setMaps(mapData);
     setLootTables(lootData);
+    setDialogs(dialogData);
   }, []);
 
   useEffect(() => {
@@ -116,6 +131,12 @@ export const ContentEditor: React.FC = () => {
     return data.map((t) => ({ value: t.id, label: `${t.id} - ${t.name}` }));
   }, []);
 
+  const loadDialogs = useCallback(async () => {
+    const data = await listDialogs();
+    setDialogs(data);
+    return data.map((d) => ({ value: d.id, label: `${d.id} - ${d.name}` }));
+  }, []);
+
   const loadMaps = useCallback(async () => {
     const data = await fetchMaps();
     setMaps(data);
@@ -134,6 +155,7 @@ export const ContentEditor: React.FC = () => {
     { id: 'npcs', label: 'NPCs' },
     { id: 'items', label: 'Items' },
     { id: 'loot', label: 'Loot' },
+    { id: 'dialogs', label: 'Dialogs' },
     { id: 'shops', label: 'Shops' },
     { id: 'maps', label: 'Maps' },
     { id: 'spells', label: 'Spells' },
@@ -163,6 +185,7 @@ export const ContentEditor: React.FC = () => {
               items={items}
               loadItems={loadItems}
               loadLootTables={loadLootTables}
+              loadDialogs={loadDialogs}
               onDirtyChange={setContentDirty}
               requestDiscard={confirmDiscard}
             />
@@ -181,6 +204,15 @@ export const ContentEditor: React.FC = () => {
               tables={lootTables}
               loadTables={loadLootTables}
               loadItems={loadItems}
+              refreshData={refreshData}
+              onDirtyChange={setContentDirty}
+              requestDiscard={confirmDiscard}
+            />
+          )}
+          {tab === 'dialogs' && (
+            <DialogEditor
+              dialogs={dialogs}
+              loadDialogs={loadDialogs}
               refreshData={refreshData}
               onDirtyChange={setContentDirty}
               requestDiscard={confirmDiscard}

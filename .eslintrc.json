@@ -126,6 +126,7 @@
         "getNearbyNpcs": "readonly",
         "getSpells": "readonly",
         "createSpells": "readonly",
+        "getDialog": "readonly",
         "getArrow": "readonly",
         "getArrows": "readonly",
         "getItem": "readonly",

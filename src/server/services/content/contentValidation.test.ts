@@ -485,6 +485,114 @@ describe('loot tables', () => {
   });
 });
 
+describe('dialogs', () => {
+  const greet = {
+    id: 'greet',
+    choices: [{ next: 'bye' }, { next: undefined }],
+  };
+  const bye = { id: 'bye' };
+
+  it('accepts a conversation whose choices all land on a node', () => {
+    const result = validateContentReferences({
+      dialogs: [{ id: 'elder', name: 'Elder', nodes: [greet, bye] }],
+    });
+    expect(result.warnings).toEqual([]);
+    expect(result.errors).toEqual([]);
+  });
+
+  // The choice looks wired in the editor and simply ends the conversation at
+  // runtime, the same silence a dangling item id would have.
+  it('warns about a choice leading to a node that does not exist', () => {
+    const result = validateContentReferences({
+      dialogs: [
+        {
+          id: 'elder',
+          nodes: [{ id: 'greet', choices: [{ next: 'missing' }] }],
+        },
+      ],
+    });
+    expect(result.warnings).toHaveLength(1);
+    expect(result.warnings[0]).toContain('missing');
+  });
+
+  it('warns when the start node does not exist', () => {
+    const result = validateContentReferences({
+      dialogs: [{ id: 'elder', start: 'nowhere', nodes: [greet, bye] }],
+    });
+    expect(result.warnings.some((w) => w.includes('nowhere'))).toBe(true);
+  });
+
+  // A node nothing points at is a branch a player never sees, the check the
+  // world graph runs on maps one level down.
+  it('warns about a node unreachable from the start', () => {
+    const result = validateContentReferences({
+      dialogs: [
+        {
+          id: 'elder',
+          nodes: [
+            { id: 'greet', choices: [{ next: 'bye' }] },
+            bye,
+            { id: 'orphan' },
+          ],
+        },
+      ],
+    });
+    expect(result.warnings).toHaveLength(1);
+    expect(result.warnings[0]).toContain('orphan');
+  });
+
+  it('follows start rather than the first node when deciding reachability', () => {
+    const result = validateContentReferences({
+      dialogs: [
+        {
+          id: 'elder',
+          start: 'bye',
+          nodes: [{ id: 'greet', choices: [{ next: 'bye' }] }, bye],
+        },
+      ],
+    });
+    expect(result.warnings).toHaveLength(1);
+    expect(result.warnings[0]).toContain('greet');
+  });
+
+  // Two nodes under one id collapse on lookup, so one of them is unreachable
+  // text that the editor still shows as saved.
+  it('errors on duplicate node ids inside one dialog', () => {
+    const result = validateContentReferences({
+      dialogs: [{ id: 'elder', nodes: [{ id: 'greet' }, { id: 'greet' }] }],
+    });
+    expect(result.errors).toHaveLength(1);
+    expect(result.errors[0]).toContain('greet');
+  });
+
+  it('errors on two dialogs sharing an id', () => {
+    const result = validateContentReferences({
+      dialogs: [
+        { id: 'elder', nodes: [greet, bye] },
+        { id: 'elder', nodes: [greet, bye] },
+      ],
+    });
+    expect(result.errors).toHaveLength(1);
+    expect(result.errors[0]).toContain('elder');
+  });
+
+  it('warns when an npc opens a dialog that does not exist', () => {
+    const result = validateContentReferences({
+      npcs: [{ id: 'goblin', name: 'Goblin', dialogId: 'gone' }],
+      dialogs: [{ id: 'elder', nodes: [greet, bye] }],
+    });
+    expect(result.warnings).toHaveLength(1);
+    expect(result.warnings[0]).toContain('gone');
+  });
+
+  it('says nothing about dialogId when no dialogs were supplied', () => {
+    const result = validateContentReferences({
+      npcs: [{ id: 'goblin', dialogId: 'anything' }],
+    });
+    expect(result.warnings).toEqual([]);
+  });
+});
+
 describe('validateWorldGraph', () => {
   const T = 64; // TILE_SIZE
   const at = (col: number, row: number) => ({ x: col * T, y: row * T });

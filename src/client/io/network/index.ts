@@ -53,6 +53,9 @@ export {
   listLootTables,
   saveLootTable,
   deleteLootTable,
+  listDialogs,
+  saveDialog,
+  deleteDialog,
   fetchBehaviors,
 } from './http/contentClient';
 

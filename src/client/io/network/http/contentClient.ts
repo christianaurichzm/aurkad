@@ -7,6 +7,7 @@ import type {
   Spell,
   Arrow,
   LootTable,
+  Dialog,
 } from '../../../../shared/types';
 import type { ScriptBehaviorDescriptor } from '../../../../shared/scriptParams';
 import { httpClient } from './httpClient';
@@ -173,6 +174,23 @@ export const saveLootTable = async (
 
 export const deleteLootTable = async (id: string): Promise<void> => {
   await httpClient(`/loot/${encodeURIComponent(id)}`, { method: 'DELETE' });
+};
+
+export const listDialogs = async (): Promise<Dialog[]> => {
+  return (await httpClient<Dialog[]>('/dialogs', { method: 'GET' })) ?? [];
+};
+
+export const saveDialog = async (
+  dialog: Dialog,
+): Promise<Saved<Dialog> | null> => {
+  return httpClient<Saved<Dialog>>('/dialogs', {
+    method: 'POST',
+    body: dialog,
+  });
+};
+
+export const deleteDialog = async (id: string): Promise<void> => {
+  await httpClient(`/dialogs/${encodeURIComponent(id)}`, { method: 'DELETE' });
 };
 
 /**

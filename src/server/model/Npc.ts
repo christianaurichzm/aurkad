@@ -34,6 +34,10 @@ const NpcSchema = new mongoose.Schema(
     experienceValue: { type: Number, min: 0 },
     itemsToDrop: [NpcItemDropSchema],
     lootTableId: { type: String },
+    // Conversation the dialog module opens on interact. Declared here or
+    // mongoose drops it on write: the editor would save, the document would
+    // come back without it, and talking to the npc would do nothing.
+    dialogId: { type: String },
     scriptId: { type: String },
     scriptParams: { type: mongoose.Schema.Types.Mixed },
   },

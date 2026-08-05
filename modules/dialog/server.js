@@ -1,11 +1,12 @@
 // @ts-check
-// Dialog module. Pure sandbox code over the script API: sends the dialog:show
-// event, routes the client's dialog:choose back to the caller's onChoice, and
-// exposes show() via provide('dialog'). The client DialogBox renders the box.
+// Dialog module: sends dialog:show, routes the client's dialog:choose back
+// to the caller, and provides show() and start() through provide('dialog').
 //
-// Consume from a script or another module:
 //   const dialog = use('dialog');
 //   dialog.show(player, { text, choices: ['Yes', 'No'] }, (i) => { ... });
+//
+// An npc with a `dialogId` opens the conversation authored in the editor,
+// whose `condition` and `action` on a choice name scripts.
 
 const pending = new Map(); // playerName -> { id, choiceCount, onChoice }
 let nextId = 1;
@@ -42,6 +43,82 @@ on('customAction', ({ player, channel, payload }) => {
   }
 });
 
-provide('dialog', { show });
+// A missing or throwing predicate counts as "no", so an unloaded script
+// hides an option rather than offering a dead one.
+function conditionAllows(choice, ctx) {
+  if (!choice.condition) return true;
+  const predicate = use('dialogCondition.' + choice.condition);
+  if (typeof predicate !== 'function') {
+    error('dialog choice names unregistered condition ' + choice.condition);
+    return false;
+  }
+  try {
+    return predicate(ctx) === true;
+  } catch (e) {
+    error('dialog condition threw: ' + e);
+    return false;
+  }
+}
+
+// Returns whether the conversation may continue. The next node assumes the
+// action ran, so a failed action stops it.
+function runAction(choice, ctx) {
+  if (!choice.action) return true;
+  const handler = use('dialogAction.' + choice.action);
+  if (typeof handler !== 'function') {
+    error('dialog choice names unregistered action ' + choice.action);
+    return false;
+  }
+  try {
+    handler(ctx);
+    return true;
+  } catch (e) {
+    error('dialog action threw: ' + e);
+    return false;
+  }
+}
+
+function openNode(player, dialog, nodeId, npc) {
+  const node = dialog.nodes.find((n) => n.id === nodeId);
+  if (!node) {
+    error('dialog ' + dialog.id + ' has no node ' + nodeId);
+    return;
+  }
+
+  const base = { player, npc, dialog, node };
+  // Filtered before the box is built, so a locked choice is absent and the
+  // index the client sends back indexes this list.
+  const choices = (node.choices || []).filter((c) => conditionAllows(c, base));
+
+  show(
+    player,
+    { text: node.text, choices: choices.map((c) => c.label) },
+    (index) => {
+      // No choices means a single "Continue": nothing to run and nowhere to go.
+      const choice = choices[index];
+      if (!choice) return;
+      if (!runAction(choice, Object.assign({ choice }, base))) return;
+      if (choice.next) openNode(player, dialog, choice.next, npc);
+    },
+  );
+}
+
+// Opens an authored conversation. `npc` is optional: a tile trigger or a script
+// can start one with nobody to talk to.
+function start(player, dialogId, npc) {
+  const dialog = getDialog(dialogId);
+  if (!dialog || dialog.nodes.length === 0) {
+    error('dialog ' + dialogId + ' is missing or empty');
+    return false;
+  }
+  openNode(player, dialog, dialog.start || dialog.nodes[0].id, npc);
+  return true;
+}
+
+on('npcInteract', ({ player, npc }) => {
+  if (npc.dialogId) start(player, npc.dialogId, npc);
+});
+
+provide('dialog', { show, start });
 
 log('Dialog module ready.');

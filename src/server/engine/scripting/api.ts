@@ -69,11 +69,16 @@ import {
   getAllSpells,
   createOrUpdateSpell,
 } from '../../services/content/spellService.js';
+import { getDialogById } from '../../services/content/dialogService.js';
 import { queryEntitiesInRadius } from '../../spatial/spatialManager.js';
 import type { SpawnNpcOptions } from '../../services/npc/spawn.js';
 import { resolveDamage, mapPvpMorale } from '../../services/combat/index.js';
 import { findPlacement } from '../../services/world/physicsService.js';
-import type { CombatTarget, RuntimeNpc } from '../../../shared/types.js';
+import type {
+  CombatTarget,
+  Dialog,
+  RuntimeNpc,
+} from '../../../shared/types.js';
 import { Access } from '../../../shared/types.js';
 import type { CommandContext, CommandOptions } from '../commands.js';
 import { TILE_SIZE } from '../../../shared/constants.js';
@@ -294,6 +299,14 @@ export function buildApi(
         ...(a.rangeTiles != null && { rangeTiles: a.rangeTiles }),
         ...(a.tileSpeed != null && { tileSpeed: a.tileSpeed }),
       })),
+
+    // An authored conversation, by id. Read-only and copied: the document is
+    // the editor's, and the cache behind it is read inside the tick, so a
+    // module walking a dialog must not be able to edit content by accident.
+    getDialog: (id: string): Dialog | undefined => {
+      const dialog = getDialogById(id);
+      return dialog ? structuredClone(dialog) : undefined;
+    },
 
     // Spell definitions from the database, each with its name, mpCost,
     // damage, cooldownMs and sprite.

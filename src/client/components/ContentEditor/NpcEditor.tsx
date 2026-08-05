@@ -21,6 +21,7 @@ interface NpcEditorProps {
   loadNpcs: () => Promise<any>;
   loadItems: () => Promise<any>;
   loadLootTables: () => Promise<{ value: string; label: string }[]>;
+  loadDialogs: () => Promise<{ value: string; label: string }[]>;
   refreshData: () => void;
   onDirtyChange: (dirty: boolean) => void;
   requestDiscard: () => Promise<boolean>;
@@ -36,6 +37,7 @@ type NpcFormValues = {
   scriptId: string;
   scriptParams: ScriptParams;
   lootTableId: string;
+  dialogId: string;
 };
 
 const defaultValues: NpcFormValues = {
@@ -48,6 +50,7 @@ const defaultValues: NpcFormValues = {
   scriptId: '',
   scriptParams: {},
   lootTableId: '',
+  dialogId: '',
 };
 
 const npcToFormValues = (npc: RuntimeNpc): NpcFormValues => ({
@@ -60,6 +63,7 @@ const npcToFormValues = (npc: RuntimeNpc): NpcFormValues => ({
   scriptId: npc.scriptId ?? '',
   scriptParams: npc.scriptParams ?? {},
   lootTableId: npc.lootTableId ?? '',
+  dialogId: npc.dialogId ?? '',
 });
 
 const npcToDrops = (npc: RuntimeNpc): NpcItemDrop[] =>
@@ -74,6 +78,7 @@ export const NpcEditor: React.FC<NpcEditorProps> = ({
   loadNpcs,
   loadItems,
   loadLootTables,
+  loadDialogs,
   refreshData,
   onDirtyChange,
   requestDiscard,
@@ -159,6 +164,7 @@ export const NpcEditor: React.FC<NpcEditorProps> = ({
     scriptId,
     scriptParams,
     lootTableId,
+    dialogId,
   }: NpcFormValues) => {
     const data = {
       name,
@@ -176,6 +182,7 @@ export const NpcEditor: React.FC<NpcEditorProps> = ({
           ? scriptParams
           : undefined,
       lootTableId: lootTableId || undefined,
+      dialogId: dialogId || undefined,
     };
     const result = selectedId
       ? await updateNpc(selectedId, data).catch(() => null)
@@ -312,6 +319,28 @@ export const NpcEditor: React.FC<NpcEditorProps> = ({
         loadItems={loadItems}
         loadNpcs={loadNpcs}
       />
+
+      <div style={dropSection}>
+        <label style={{ ...label, marginBottom: 6, display: 'block' }}>
+          Dialog
+        </label>
+        <Controller
+          control={control}
+          name="dialogId"
+          render={({ field }) => (
+            <AsyncSelect
+              loadOptions={loadDialogs}
+              value={field.value}
+              onChange={field.onChange}
+            />
+          )}
+        />
+        <p style={dropHint}>
+          {watch('dialogId')
+            ? 'Talking to this NPC opens the conversation authored in the Dialogs tab.'
+            : 'No dialog: talking to this NPC only fires the behavior above.'}
+        </p>
+      </div>
 
       <div style={dropSection}>
         <label style={{ ...label, marginBottom: 6, display: 'block' }}>

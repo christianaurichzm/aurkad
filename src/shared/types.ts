@@ -219,6 +219,12 @@ export interface PersistentNpc extends CharacterBase {
    * `itemsToDrop`, which stays supported as the simple per-item form.
    */
   lootTableId?: LootTable['id'];
+  /**
+   * Authored conversation to open when a player talks to this npc. The dialog
+   * module reads it; with the module off the field is inert content, like a
+   * spell nobody casts.
+   */
+  dialogId?: Dialog['id'];
   // Names a behaviour a script registered with attach(); runs on interact and
   // on death. This is what lets a designer wire a boss to its logic in the
   // editor instead of the script matching on npc ids.
@@ -524,6 +530,52 @@ export interface LootTable {
    * models "usually nothing", without a fake item to represent it.
    */
   emptyWeight?: number;
+}
+
+export interface DialogChoice {
+  /** What the player sees on the button. */
+  label: string;
+  /**
+   * Node this choice leads to. Absent ends the conversation, which is how a
+   * "Goodbye" is written, with no terminal node to author.
+   */
+  next?: DialogNode['id'];
+  /**
+   * Names a predicate a script registered as `dialogCondition.<name>`, in the
+   * same shape as a loot entry's condition. The choice is not offered when it
+   * answers false, so a locked option is absent rather than shown and refused.
+   */
+  condition?: string;
+  /**
+   * Names a handler a script registered as `dialogAction.<name>`, run when the
+   * player picks this choice. This is the seam where an authored conversation
+   * reaches game logic (give an item, start a quest) without the document
+   * growing a scripting language of its own.
+   */
+  action?: string;
+}
+
+export interface DialogNode {
+  /** Unique within the dialog; what `start` and `next` point at. */
+  id: string;
+  text: string;
+  /** No choices means a single "Continue" that ends the conversation. */
+  choices?: DialogChoice[];
+}
+
+/**
+ * An authored conversation: nodes of text, each offering choices that lead
+ * to other nodes. A document of its own rather than fields on the npc: two
+ * npcs open the same one, a fix lands in one place, and its references are
+ * checked on save, where a copy per npc would escape both validation and
+ * the content pack.
+ */
+export interface Dialog {
+  id: string;
+  name: string;
+  /** Node the conversation opens on. Defaults to the first one. */
+  start?: DialogNode['id'];
+  nodes: DialogNode[];
 }
 
 export type ChatScope = 'player' | 'map' | 'global';

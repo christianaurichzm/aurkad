@@ -18,6 +18,10 @@ import {
   createOrUpdateLootTable,
   listLootTables,
 } from '../services/economy/lootTableService.js';
+import {
+  createOrUpdateDialog,
+  listDialogs,
+} from '../services/content/dialogService.js';
 import { gameConfig } from '../gameConfig.js';
 import {
   validateContentReferences,
@@ -97,6 +101,7 @@ const NpcSchema = z.object({
     )
     .optional(),
   lootTableId: z.string().optional(),
+  dialogId: z.string().optional(),
   scriptId: z.string().optional(),
   scriptParams: ScriptParamsSchema.optional(),
 });
@@ -129,6 +134,30 @@ const LootTableSchema = z.object({
     .optional(),
   entries: z.array(LootEntrySchema).optional(),
   emptyWeight: z.number().nonnegative().optional(),
+});
+
+const DialogSchema = z.object({
+  id: z.string().min(1),
+  name: z.string().min(1),
+  start: z.string().min(1).optional(),
+  nodes: z
+    .array(
+      z.object({
+        id: z.string().min(1),
+        text: z.string().min(1),
+        choices: z
+          .array(
+            z.object({
+              label: z.string().min(1),
+              next: z.string().min(1).optional(),
+              condition: z.string().min(1).optional(),
+              action: z.string().min(1).optional(),
+            }),
+          )
+          .optional(),
+      }),
+    )
+    .min(1),
 });
 
 const MapSchema = z.object({
@@ -169,8 +198,8 @@ type FileSpec<T extends z.ZodType> = {
 };
 
 // Order matters on import: items first, then loot tables (which reference item
-// ids), then npcs/shops (which reference both), maps last (they reference
-// npc/item ids via tiles).
+// ids) and dialogs, then npcs/shops (which reference both), maps last (they
+// reference npc/item ids via tiles).
 const SPECS = {
   items: {
     file: 'items.json',
@@ -184,6 +213,12 @@ const SPECS = {
     upsert: (e) => createOrUpdateLootTable(e),
     list: listLootTables,
   } as FileSpec<typeof LootTableSchema>,
+  dialogs: {
+    file: 'dialogs.json',
+    schema: DialogSchema,
+    upsert: (e) => createOrUpdateDialog(e),
+    list: listDialogs,
+  } as FileSpec<typeof DialogSchema>,
   npcs: {
     file: 'npcs.json',
     schema: NpcSchema,
@@ -207,6 +242,7 @@ const SPECS = {
 const IMPORT_ORDER: (keyof typeof SPECS)[] = [
   'items',
   'loot',
+  'dialogs',
   'npcs',
   'shops',
   'maps',
@@ -304,12 +340,13 @@ async function syncIdCounters(): Promise<void> {
  */
 async function reportBrokenReferences(): Promise<void> {
   try {
-    const [items, npcs, shops, maps, lootTables] = await Promise.all([
+    const [items, npcs, shops, maps, lootTables, dialogs] = await Promise.all([
       listItems(),
       listNpcs(),
       listShops(),
       listMaps(),
       listLootTables(),
+      listDialogs(),
     ]);
 
     const graph = {
@@ -318,6 +355,7 @@ async function reportBrokenReferences(): Promise<void> {
       shops: shops as Array<{ id: string; name?: string }>,
       maps: maps as Array<{ id: string; name?: string }>,
       lootTables,
+      dialogs,
     };
     const references = validateContentReferences(graph);
     // Only the boot has the whole world in memory, which reachability and warp

@@ -4,6 +4,6 @@
   "version": "1.0.0",
   "server": "server.js",
   "client": "client.js",
-  "description": "NPC dialog boxes. Provides use('dialog').show(player, opts, onChoice).",
+  "description": "NPC dialog boxes, and walks the conversations authored in the content editor. Provides use('dialog').show/start.",
   "enabledByDefault": true
 }
