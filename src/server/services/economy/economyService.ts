@@ -135,6 +135,83 @@ export function moveItem(
   return OK;
 }
 
+export interface ItemAmount {
+  itemId: number;
+  quantity: number;
+}
+
+/**
+ * Consumes several items and produces one, or changes nothing. `removeItem`
+ * per input then `addItem` robs the player whenever the last step fails,
+ * which a full bag makes the ordinary case.
+ *
+ * Two things a naive check gets wrong, both refusing a craft that works:
+ *
+ * - Repeated ids. Two rows of 2 both pass `hasItem(3)` against a stack of
+ *   3, so amounts are summed per item before anything is compared.
+ * - Slots the inputs give back. A full bag spending its whole stack of ore
+ *   frees that slot for the sword, so capacity is judged on the bag after
+ *   consumption, not before.
+ */
+export function exchangeItems(
+  container: InventoryLike,
+  inputs: ItemAmount[],
+  output: ItemAmount,
+): EconomyResult {
+  if (inputs.length === 0) return fail('invalid-amount');
+  if (!isValidAmount(output.quantity)) return fail('invalid-amount');
+
+  const required = new Map<number, number>();
+  for (const input of inputs) {
+    if (!isValidAmount(input.quantity)) return fail('invalid-amount');
+    const itemId = Number(input.itemId);
+    required.set(itemId, (required.get(itemId) ?? 0) + input.quantity);
+  }
+
+  // How many slots the consumption empties: a stack taken down to zero is a
+  // slot back, and only a stack taken in full frees one.
+  let freedSlots = 0;
+  for (const [itemId, amount] of required) {
+    const held = countItem(container, itemId);
+    if (held < amount) return fail('not-enough');
+    if (held === amount) freedSlots++;
+  }
+
+  const outputId = Number(output.itemId);
+  const outputSurvives =
+    countItem(container, outputId) > (required.get(outputId) ?? 0);
+  if (
+    !outputSurvives &&
+    usedSlots(container) - freedSlots >= container.maxCapacity
+  ) {
+    return fail('no-space');
+  }
+
+  // Both failure paths below are unreachable given the checks above, but
+  // they put back what was taken: half a consumed recipe is the exact loss
+  // this function exists to prevent.
+  const taken: ItemAmount[] = [];
+  const restore = () => {
+    for (const entry of taken) addItem(container, entry.itemId, entry.quantity);
+  };
+
+  for (const [itemId, quantity] of required) {
+    const removed = removeItem(container, itemId, quantity);
+    if (!removed.ok) {
+      restore();
+      return removed;
+    }
+    taken.push({ itemId, quantity });
+  }
+
+  const added = addItem(container, outputId, output.quantity);
+  if (!added.ok) {
+    restore();
+    return added;
+  }
+  return OK;
+}
+
 /**
  * Total of one item across containers.
  *

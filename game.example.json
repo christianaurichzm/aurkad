@@ -39,6 +39,9 @@
     "quest": {
       "enabled": true
     },
+    "crafting": {
+      "enabled": true
+    },
     "guild": {
       "enabled": true,
       "config": {

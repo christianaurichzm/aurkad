@@ -19,6 +19,7 @@ import {
   CreateLootTableBodySchema,
   CreateDialogBodySchema,
   CreateQuestBodySchema,
+  CreateRecipeBodySchema,
   CreateShopBodySchema,
   BuyShopItemBodySchema,
   AssignPointsBodySchema,
@@ -84,6 +85,11 @@ import {
   listQuests,
 } from '../../services/content/questService.js';
 import {
+  createOrUpdateRecipe,
+  deleteRecipe,
+  listRecipes,
+} from '../../services/content/recipeService.js';
+import {
   enrichPlayer,
   getPlayerById,
   getPlayerByName,
@@ -111,7 +117,7 @@ import { createRouter } from '../../app.js';
 
 // Content-definition paths whose mutations should regenerate script constants.
 const CONTENT_DEFINITION_PATH =
-  /^\/(saveMap|npcs|items|maps|spells|arrows|loot|dialogs|quests)\b/;
+  /^\/(saveMap|npcs|items|maps|spells|arrows|loot|dialogs|quests|recipes)\b/;
 
 /**
  * The loot table, dialog and quest ids that exist, for resolving what an npc
@@ -669,6 +675,40 @@ export function createContentRouter() {
     } catch (err) {
       logger.error('deleteQuest failed', { err });
       res.status(500).json({ error: 'Failed to delete quest.' });
+    }
+  });
+
+  router.get('/recipes', checkAccess(Access.ADMIN), async (_req, res) => {
+    res.status(200).json(await listRecipes());
+  });
+
+  router.post('/recipes', checkAccess(Access.ADMIN), async (req, res) => {
+    const body = parseBody(CreateRecipeBodySchema, req.body, res);
+    if (!body) return;
+    try {
+      // Items only: a recipe names nothing else, and the item list is what
+      // decides whether it can ever be crafted.
+      const items = await listItems();
+      const { warnings } = validateContentReferences({
+        recipes: [body],
+        items: items.map((item) => ({ id: item.id })),
+      });
+      warnings.push(...namedScriptWarnings({ recipes: [body] }));
+      await createOrUpdateRecipe(body);
+      res.status(201).json({ ...body, warnings });
+    } catch (err) {
+      logger.error('createRecipe failed', { err });
+      res.status(500).json({ error: 'Failed to save recipe.' });
+    }
+  });
+
+  router.delete('/recipes/:id', checkAccess(Access.ADMIN), async (req, res) => {
+    try {
+      await deleteRecipe(req.params.id ?? '');
+      res.status(204).send();
+    } catch (err) {
+      logger.error('deleteRecipe failed', { err });
+      res.status(500).json({ error: 'Failed to delete recipe.' });
     }
   });
 

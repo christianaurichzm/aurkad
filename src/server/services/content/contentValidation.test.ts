@@ -986,3 +986,66 @@ describe('names that come from provide() rather than attach()', () => {
     expect(result.warnings).toEqual([]);
   });
 });
+
+describe('recipes', () => {
+  const sword = {
+    id: 'steel-sword',
+    name: 'Steel Sword',
+    inputs: [{ itemId: 1 }],
+    output: { itemId: 2 },
+  };
+
+  it('accepts a recipe whose items all exist', () => {
+    const result = validateContentReferences({ recipes: [sword], items });
+    expect(result.warnings).toEqual([]);
+    expect(result.errors).toEqual([]);
+  });
+
+  it('warns when an input item does not exist', () => {
+    const result = validateContentReferences({
+      recipes: [{ ...sword, inputs: [{ itemId: 99 }] }],
+      items,
+    });
+    expect(result.warnings).toHaveLength(1);
+    expect(result.warnings[0]).toMatch(/consumes unknown item 99/);
+  });
+
+  it('warns when the output item does not exist', () => {
+    const result = validateContentReferences({
+      recipes: [{ ...sword, output: { itemId: 99 } }],
+      items,
+    });
+    expect(result.warnings).toHaveLength(1);
+    expect(result.warnings[0]).toMatch(/produces unknown item 99/);
+  });
+
+  // Not wrong on its own, but it is how a craft passes an affordability check
+  // it cannot pay: 2 + 2 both fit a stack of 3 when checked one at a time.
+  it('warns when one item is listed as two separate inputs', () => {
+    const result = validateContentReferences({
+      recipes: [{ ...sword, inputs: [{ itemId: 1 }, { itemId: 1 }] }],
+      items,
+    });
+    expect(result.warnings).toHaveLength(1);
+    expect(result.warnings[0]).toMatch(/more than once/);
+  });
+
+  it('reports two recipes sharing an id, which upsert would collapse', () => {
+    const result = validateContentReferences({
+      recipes: [sword, { id: 'steel-sword', name: 'Other' }],
+      items,
+    });
+    expect(result.errors).toHaveLength(1);
+    expect(result.errors[0]).toMatch(/recipe.*steel-sword/i);
+  });
+
+  it('warns about a recipe condition nobody registered', () => {
+    const result = validateScriptReferences(
+      { recipes: [{ id: 'r', condition: 'knowsSmithing' }] },
+      new Map(),
+      () => false,
+    );
+    expect(result.warnings).toHaveLength(1);
+    expect(result.warnings[0]).toMatch(/recipeCondition\.knowsSmithing/);
+  });
+});

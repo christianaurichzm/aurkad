@@ -26,6 +26,10 @@ import {
   createOrUpdateQuest,
   listQuests,
 } from '../services/content/questService.js';
+import {
+  createOrUpdateRecipe,
+  listRecipes,
+} from '../services/content/recipeService.js';
 import { gameConfig } from '../gameConfig.js';
 import {
   validateContentReferences,
@@ -205,6 +209,19 @@ const QuestSchema = z.object({
     .optional(),
 });
 
+const RecipeIngredientSchema = z.object({
+  itemId: z.number().int().nonnegative(),
+  quantity: z.number().int().positive(),
+});
+
+const RecipeSchema = z.object({
+  id: z.string().min(1),
+  name: z.string().min(1),
+  inputs: z.array(RecipeIngredientSchema).min(1),
+  output: RecipeIngredientSchema,
+  condition: z.string().min(1).optional(),
+});
+
 const MapSchema = z.object({
   id: z.string().min(1),
   name: z.string().min(1),
@@ -271,6 +288,12 @@ const SPECS = {
     upsert: (e) => createOrUpdateQuest(e),
     list: listQuests,
   } as FileSpec<typeof QuestSchema>,
+  recipes: {
+    file: 'recipes.json',
+    schema: RecipeSchema,
+    upsert: (e) => createOrUpdateRecipe(e),
+    list: listRecipes,
+  } as FileSpec<typeof RecipeSchema>,
   npcs: {
     file: 'npcs.json',
     schema: NpcSchema,
@@ -296,6 +319,7 @@ const IMPORT_ORDER: (keyof typeof SPECS)[] = [
   'loot',
   'dialogs',
   'quests',
+  'recipes',
   'npcs',
   'shops',
   'maps',
@@ -393,7 +417,7 @@ async function syncIdCounters(): Promise<void> {
  */
 async function reportBrokenReferences(): Promise<void> {
   try {
-    const [items, npcs, shops, maps, lootTables, dialogs, quests] =
+    const [items, npcs, shops, maps, lootTables, dialogs, quests, recipes] =
       await Promise.all([
         listItems(),
         listNpcs(),
@@ -402,6 +426,7 @@ async function reportBrokenReferences(): Promise<void> {
         listLootTables(),
         listDialogs(),
         listQuests(),
+        listRecipes(),
       ]);
 
     const graph = {
@@ -412,6 +437,7 @@ async function reportBrokenReferences(): Promise<void> {
       lootTables,
       dialogs,
       quests,
+      recipes,
     };
     const references = validateContentReferences(graph);
     // Only the boot has the whole world in memory, which reachability and warp
@@ -441,14 +467,16 @@ async function reportBrokenReferences(): Promise<void> {
  */
 export async function reportUnknownBehaviors(): Promise<void> {
   try {
-    const [items, npcs, maps, lootTables, dialogs, quests] = await Promise.all([
-      listItems(),
-      listNpcs(),
-      listMaps(),
-      listLootTables(),
-      listDialogs(),
-      listQuests(),
-    ]);
+    const [items, npcs, maps, lootTables, dialogs, quests, recipes] =
+      await Promise.all([
+        listItems(),
+        listNpcs(),
+        listMaps(),
+        listLootTables(),
+        listDialogs(),
+        listQuests(),
+        listRecipes(),
+      ]);
 
     const { warnings } = validateScriptReferences(
       {
@@ -461,6 +489,7 @@ export async function reportUnknownBehaviors(): Promise<void> {
         lootTables,
         dialogs,
         quests,
+        recipes,
       },
       registeredBehaviors(),
       isProvided,

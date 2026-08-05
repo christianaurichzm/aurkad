@@ -355,6 +355,21 @@ export const CreateQuestBodySchema = z.object({
     .optional(),
 });
 
+const RecipeIngredientSchema = z.object({
+  itemId: z.number().int().nonnegative(),
+  quantity: z.number().int().positive().max(10_000),
+});
+
+export const CreateRecipeBodySchema = z.object({
+  id: z.string().min(1).max(64),
+  name: z.string().min(1).max(120),
+  // At least one input: a recipe that consumes nothing produces items from
+  // thin air, which is the one thing the economy is not allowed to do.
+  inputs: z.array(RecipeIngredientSchema).min(1).max(20),
+  output: RecipeIngredientSchema,
+  condition: z.string().min(1).max(64).optional(),
+});
+
 export const BuyShopItemBodySchema = z.object({
   shopId: z.string().min(1),
   itemId: z.number().int().nonnegative(),

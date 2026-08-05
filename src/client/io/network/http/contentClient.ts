@@ -9,6 +9,7 @@ import type {
   LootTable,
   Dialog,
   Quest,
+  Recipe,
 } from '../../../../shared/types';
 import type { ScriptBehaviorDescriptor } from '../../../../shared/scriptParams';
 import { httpClient } from './httpClient';
@@ -204,6 +205,23 @@ export const saveQuest = async (quest: Quest): Promise<Saved<Quest> | null> => {
 
 export const deleteQuest = async (id: string): Promise<void> => {
   await httpClient(`/quests/${encodeURIComponent(id)}`, { method: 'DELETE' });
+};
+
+export const listRecipes = async (): Promise<Recipe[]> => {
+  return (await httpClient<Recipe[]>('/recipes', { method: 'GET' })) ?? [];
+};
+
+export const saveRecipe = async (
+  recipe: Recipe,
+): Promise<Saved<Recipe> | null> => {
+  return httpClient<Saved<Recipe>>('/recipes', {
+    method: 'POST',
+    body: recipe,
+  });
+};
+
+export const deleteRecipe = async (id: string): Promise<void> => {
+  await httpClient(`/recipes/${encodeURIComponent(id)}`, { method: 'DELETE' });
 };
 
 /**

@@ -16,6 +16,7 @@ import { loadLiveOpsFlags } from './services/liveOpsService.js';
 import { loadArrows } from './services/content/arrowService.js';
 import { loadDialogs } from './services/content/dialogService.js';
 import { loadQuests } from './services/content/questService.js';
+import { loadRecipes } from './services/content/recipeService.js';
 import { loadSpells } from './services/content/spellService.js';
 import { MapStateServer } from '../shared/types.js';
 import { config } from './config.js';
@@ -60,6 +61,7 @@ export async function loadInitialData() {
     await loadLootTables();
     await loadDialogs();
     await loadQuests();
+    await loadRecipes();
 
     for (const map of loadedMaps) {
       if (!map.id || !map.name || !map.type || !map.tiles?.length) {

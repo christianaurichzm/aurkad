@@ -14,6 +14,7 @@ active. Maps are created in-game via the admin map editor and exported with
 - `loot.json`
 - `dialogs.json`
 - `quests.json`
+- `recipes.json`
 - `npcs.json`
 - `shops.json`
 - `maps.json`
@@ -32,7 +33,7 @@ Or edit the JSON by hand and `content:import` (or restart).
 
 ## Import order & validation
 
-Imported as items → loot → dialogs → quests → npcs → shops → maps (later types
+Imported as items → loot → dialogs → quests → recipes → npcs → shops → maps (later types
 reference earlier ids). Quests and npcs point at each other, so no order
 satisfies both; quests go first because `npc.questId` is the reference a save
 would break.
@@ -152,6 +153,28 @@ hook the objective names, with no script involved.
   payout the document cannot describe.
 - Two ways to offer one: `npc.questId` starts it on interact, or a dialog
   choice with `"action": "questStart:<id>"` lets the player accept or refuse.
+
+**recipes.json**: crafting recipes. The `crafting` module turns these into
+items; the exchange is atomic, so a bag with no room refuses the craft instead
+of taking the materials.
+
+```json
+[
+  { "id": "steel-sword", "name": "Steel Sword",
+    "inputs": [{ "itemId": 2, "quantity": 1 }, { "itemId": 3, "quantity": 50 }],
+    "output": { "itemId": 8, "quantity": 1 } }
+]
+```
+
+- `inputs`: at least one; a recipe consuming nothing would print items. List
+  an item once with the total, not twice: two rows of 2 both fit a stack of 3
+  when checked one at a time.
+- `condition`: optional, names a predicate registered as
+  `recipeCondition.<name>`. Answering false hides the recipe, which is how
+  "not learned yet" is written without a skill system. A name no script
+  registered hides it too.
+- Where players craft: attach the `workbench` behaviour to a tile trigger or an
+  npc. No recipe field points at a place, so one bench serves every recipe.
 
 **shops.json**
 

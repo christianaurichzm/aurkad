@@ -624,6 +624,33 @@ export interface Quest {
   reward?: QuestReward;
 }
 
+export interface RecipeIngredient {
+  itemId: Item['id'];
+  quantity: number;
+}
+
+/**
+ * A crafting recipe: what it consumes and what it produces. Content, not
+ * module state: a recipe is referenced by id and reused, so the editor owns
+ * it and the `crafting` module owns what making something means, as with
+ * `Spell` and `magic`. One output, so a craft stays a straight "take
+ * these, give that" through the economy funnel.
+ */
+export interface Recipe {
+  id: string;
+  name: string;
+  /** Consumed on a successful craft. */
+  inputs: RecipeIngredient[];
+  output: RecipeIngredient;
+  /**
+   * Names a predicate a script registered as `recipeCondition.<name>`, in the
+   * same shape as a loot entry's condition. Answering false hides the recipe
+   * rather than failing the craft, which is how "you have not learned this
+   * yet" is written without the document growing a skill system.
+   */
+  condition?: string;
+}
+
 export type ChatScope = 'player' | 'map' | 'global';
 export type ChatSubtype = 'death';
 

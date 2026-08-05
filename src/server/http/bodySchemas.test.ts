@@ -11,6 +11,7 @@ import {
   SaveMapBodySchema,
   CreateNpcBodySchema,
   CreateItemBodySchema,
+  CreateRecipeBodySchema,
   AssignPointsBodySchema,
   BuyShopItemBodySchema,
 } from './bodySchemas.js';
@@ -445,5 +446,50 @@ describe('script params on content', () => {
         ],
       }).success,
     ).toBe(true);
+  });
+});
+
+describe('CreateRecipeBodySchema', () => {
+  const valid = {
+    id: 'steel-sword',
+    name: 'Steel Sword',
+    inputs: [{ itemId: 2, quantity: 1 }],
+    output: { itemId: 8, quantity: 1 },
+  };
+
+  it('accepts a recipe with inputs and an output', () => {
+    expect(CreateRecipeBodySchema.safeParse(valid).success).toBe(true);
+  });
+
+  // A recipe consuming nothing prints items out of thin air, the one thing
+  // the economy may not do, so it is refused rather than warned about.
+  it('rejects a recipe with no inputs', () => {
+    expect(
+      CreateRecipeBodySchema.safeParse({ ...valid, inputs: [] }).success,
+    ).toBe(false);
+  });
+
+  it('rejects a zero or negative quantity on either side', () => {
+    expect(
+      CreateRecipeBodySchema.safeParse({
+        ...valid,
+        inputs: [{ itemId: 2, quantity: 0 }],
+      }).success,
+    ).toBe(false);
+    expect(
+      CreateRecipeBodySchema.safeParse({
+        ...valid,
+        output: { itemId: 8, quantity: -1 },
+      }).success,
+    ).toBe(false);
+  });
+
+  it('keeps the condition, which names a script predicate', () => {
+    const result = CreateRecipeBodySchema.safeParse({
+      ...valid,
+      condition: 'knowsSmithing',
+    });
+    expect(result.success).toBe(true);
+    expect(result.data).toMatchObject({ condition: 'knowsSmithing' });
   });
 });

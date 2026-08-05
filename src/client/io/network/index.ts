@@ -59,6 +59,9 @@ export {
   listQuests,
   saveQuest,
   deleteQuest,
+  listRecipes,
+  saveRecipe,
+  deleteRecipe,
   fetchBehaviors,
 } from './http/contentClient';
 

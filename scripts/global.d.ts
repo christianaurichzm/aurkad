@@ -413,6 +413,26 @@ interface QuestData {
  */
 declare function getQuests(): QuestData[];
 
+interface RecipeIngredientData {
+  itemId: number;
+  quantity: number;
+}
+
+interface RecipeData {
+  id: string;
+  name: string;
+  inputs: RecipeIngredientData[];
+  output: RecipeIngredientData;
+  /** Name of a predicate registered with provide('recipeCondition.<name>'). */
+  condition?: string;
+}
+
+/**
+ * Every authored recipe (RecipeEditor), as copies. Craft with exchangeItems,
+ * never removeItem plus giveItem.
+ */
+declare function getRecipes(): RecipeData[];
+
 /**
  * Saves spells to the database one after another, without waiting. For a
  * module seeding its built-ins in SpellEditor when getSpells() is empty.
@@ -549,6 +569,20 @@ declare function moveItem(
   to: ItemContainer,
   itemId: number,
   amount?: number,
+): EconomyResult;
+
+/**
+ * Consume several items and produce one, atomically: the whole exchange
+ * happens or none of it. Repeated ids are summed, and a slot an input
+ * empties can hold the output.
+ *
+ *     const made = exchangeItems(player, recipe.inputs, recipe.output);
+ *     if (!made.ok) reply(made.reason === 'no-space' ? 'Bag full.' : 'Missing materials.');
+ */
+declare function exchangeItems(
+  player: PlayerServer,
+  inputs: RecipeIngredientData[],
+  output: RecipeIngredientData,
 ): EconomyResult;
 
 /**

@@ -46,10 +46,12 @@ import {
   addItem,
   canFit,
   countItem,
+  exchangeItems,
   hasItem,
   moveItem,
   removeItem,
   type EconomyResult,
+  type ItemAmount,
 } from '../../services/economy/economyService.js';
 import {
   cancelDelivery,
@@ -71,6 +73,7 @@ import {
 } from '../../services/content/spellService.js';
 import { getDialogById } from '../../services/content/dialogService.js';
 import { cachedQuests } from '../../services/content/questService.js';
+import { cachedRecipes } from '../../services/content/recipeService.js';
 import { queryEntitiesInRadius } from '../../spatial/spatialManager.js';
 import type { SpawnNpcOptions } from '../../services/npc/spawn.js';
 import { resolveDamage, mapPvpMorale } from '../../services/combat/index.js';
@@ -79,6 +82,7 @@ import type {
   CombatTarget,
   Dialog,
   Quest,
+  Recipe,
   RuntimeNpc,
 } from '../../../shared/types.js';
 import { Access } from '../../../shared/types.js';
@@ -316,6 +320,10 @@ export function buildApi(
     // to learn the ids.
     getQuests: (): Quest[] => structuredClone(cachedQuests()),
 
+    // Every authored recipe, copied for the same reason getQuests copies. The
+    // crafting module reads the whole list to answer what a player can make.
+    getRecipes: (): Recipe[] => structuredClone(cachedRecipes()),
+
     // Spell definitions from the database, each with its name, mpCost,
     // damage, cooldownMs and sprite.
     getSpells: (): {
@@ -424,6 +432,28 @@ export function buildApi(
       itemId: number,
       amount = 1,
     ): EconomyResult => moveItem(from, to, itemId, amount),
+
+    // Consumes several items and produces one, or changes nothing, which
+    // removeItem plus giveItem cannot promise: a bag with no room for the
+    // result would keep the payment. Repeated ids are summed, and capacity is
+    // judged on the inventory the exchange leaves behind.
+    exchangeItems: (
+      player: PlayerServer,
+      inputs: ItemAmount[],
+      output: ItemAmount,
+    ): EconomyResult => {
+      // Producing an id no item defines would put an unresolvable entry in the
+      // inventory, the same way giveItem guards against.
+      if (!getItemById(Number(output.itemId))) {
+        logger.warn(`[script:${scriptName}] exchangeItems: no such item`, {
+          itemId: output.itemId,
+        });
+        return { ok: false, reason: 'invalid-amount' };
+      }
+      const result = exchangeItems(player.inventory, inputs, output);
+      if (result.ok) persist(scriptName, player);
+      return result;
+    },
 
     // Economic commit: persist these players now instead of waiting for the
     // snapshot loop, so a crash cannot revert a confirmed transfer.

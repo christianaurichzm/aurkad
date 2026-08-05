@@ -11,6 +11,7 @@ import {
   addItem,
   canFit,
   countItem,
+  exchangeItems,
   hasItem,
   moveItem,
   removeItem,
@@ -272,6 +273,172 @@ describe('moveItem', () => {
     });
     expect(countItem(from, 1)).toBe(5);
     expect(to.items).toEqual([]);
+  });
+});
+
+describe('exchangeItems', () => {
+  it('consumes the inputs and produces the output', () => {
+    const bag = container([
+      [1, 2],
+      [3, 60],
+    ]);
+
+    expect(
+      exchangeItems(bag, [{ itemId: 3, quantity: 50 }], {
+        itemId: 8,
+        quantity: 1,
+      }),
+    ).toEqual({ ok: true });
+    expect(countItem(bag, 3)).toBe(10);
+    expect(countItem(bag, 8)).toBe(1);
+  });
+
+  // The reason this is one operation and not remove-then-add: the failure is
+  // the ordinary case, and the naive order pays for a sword it never receives.
+  it('leaves the inputs untouched when the output does not fit', () => {
+    const bag = container(
+      [
+        [1, 1],
+        [2, 1],
+        [3, 60],
+      ],
+      3,
+    );
+
+    expect(
+      exchangeItems(bag, [{ itemId: 3, quantity: 50 }], {
+        itemId: 8,
+        quantity: 1,
+      }),
+    ).toEqual({ ok: false, reason: 'no-space' });
+    expect(countItem(bag, 3)).toBe(60);
+    expect(countItem(bag, 8)).toBe(0);
+  });
+
+  // Asking canFit before the removals answers about the inventory as it is,
+  // which refuses a craft that empties a slot to fill it.
+  it('counts the slot an entirely consumed stack gives back', () => {
+    const bag = container(
+      [
+        [1, 1],
+        [2, 1],
+        [3, 50],
+      ],
+      3,
+    );
+
+    expect(
+      exchangeItems(bag, [{ itemId: 3, quantity: 50 }], {
+        itemId: 8,
+        quantity: 1,
+      }),
+    ).toEqual({ ok: true });
+    expect(countItem(bag, 3)).toBe(0);
+    expect(countItem(bag, 8)).toBe(1);
+  });
+
+  // 2 + 2 both fit a stack of 3 when checked one at a time; only summing first
+  // gets the answer right, and getting it wrong here spends items for nothing.
+  it('sums repeated ids instead of checking them one by one', () => {
+    const bag = container([[3, 3]]);
+
+    expect(
+      exchangeItems(
+        bag,
+        [
+          { itemId: 3, quantity: 2 },
+          { itemId: 3, quantity: 2 },
+        ],
+        { itemId: 8, quantity: 1 },
+      ),
+    ).toEqual({ ok: false, reason: 'not-enough' });
+    expect(countItem(bag, 3)).toBe(3);
+  });
+
+  it('takes the total when repeated ids do add up', () => {
+    const bag = container([[3, 5]]);
+
+    expect(
+      exchangeItems(
+        bag,
+        [
+          { itemId: 3, quantity: 2 },
+          { itemId: 3, quantity: 2 },
+        ],
+        { itemId: 8, quantity: 1 },
+      ),
+    ).toEqual({ ok: true });
+    expect(countItem(bag, 3)).toBe(1);
+  });
+
+  it('refuses when one of several inputs is short, taking none of them', () => {
+    const bag = container([
+      [2, 1],
+      [3, 10],
+    ]);
+
+    expect(
+      exchangeItems(
+        bag,
+        [
+          { itemId: 2, quantity: 1 },
+          { itemId: 3, quantity: 50 },
+        ],
+        { itemId: 8, quantity: 1 },
+      ),
+    ).toEqual({ ok: false, reason: 'not-enough' });
+    expect(countItem(bag, 2)).toBe(1);
+    expect(countItem(bag, 3)).toBe(10);
+  });
+
+  // A recipe that consumes nothing is an item printer; the funnel refuses it
+  // even if a document somehow reaches here holding one.
+  it('refuses an empty input list', () => {
+    const bag = container([[3, 10]]);
+
+    expect(exchangeItems(bag, [], { itemId: 8, quantity: 1 })).toEqual({
+      ok: false,
+      reason: 'invalid-amount',
+    });
+    expect(bag.items).toHaveLength(1);
+  });
+
+  it('refuses a non-positive quantity on either side', () => {
+    const bag = container([[3, 10]]);
+
+    expect(
+      exchangeItems(bag, [{ itemId: 3, quantity: 0 }], {
+        itemId: 8,
+        quantity: 1,
+      }),
+    ).toEqual({ ok: false, reason: 'invalid-amount' });
+    expect(
+      exchangeItems(bag, [{ itemId: 3, quantity: 1 }], {
+        itemId: 8,
+        quantity: -1,
+      }),
+    ).toEqual({ ok: false, reason: 'invalid-amount' });
+    expect(countItem(bag, 3)).toBe(10);
+  });
+
+  // Upgrading a stack in place: the output slot is one of the inputs, so it is
+  // freed and refilled. A full bag must not turn that into a refusal.
+  it('handles an output that is also an input', () => {
+    const bag = container(
+      [
+        [1, 1],
+        [3, 4],
+      ],
+      2,
+    );
+
+    expect(
+      exchangeItems(bag, [{ itemId: 3, quantity: 4 }], {
+        itemId: 3,
+        quantity: 1,
+      }),
+    ).toEqual({ ok: true });
+    expect(countItem(bag, 3)).toBe(1);
   });
 });
 

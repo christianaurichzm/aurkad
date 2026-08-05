@@ -71,6 +71,13 @@ interface QuestRef {
     | { items?: Array<{ itemId: number }> | undefined; script?: string }
     | undefined;
 }
+interface RecipeRef {
+  id?: string;
+  name?: string;
+  inputs?: Array<{ itemId: number; quantity?: number }> | undefined;
+  output?: { itemId: number; quantity?: number } | undefined;
+  condition?: string | undefined;
+}
 interface LootTableRef {
   id?: string;
   name?: string;
@@ -127,6 +134,7 @@ export interface ContentGraph {
   lootTables?: LootTableRef[];
   dialogs?: DialogRef[];
   quests?: QuestRef[];
+  recipes?: RecipeRef[];
 }
 
 function label(id: string | undefined, name?: string): string {
@@ -297,6 +305,14 @@ export function validateScriptReferences(
         quest.reward?.script,
       );
     }
+
+    for (const recipe of graph.recipes ?? []) {
+      named(
+        `Recipe ${label(recipe.id, recipe.name)}`,
+        'recipeCondition',
+        recipe.condition,
+      );
+    }
   }
 
   return { errors: [], warnings };
@@ -320,6 +336,7 @@ export function validateContentReferences(
   checkDuplicateIds('loot table', graph.lootTables, errors);
   checkDuplicateIds('dialog', graph.dialogs, errors);
   checkDuplicateIds('quest', graph.quests, errors);
+  checkDuplicateIds('recipe', graph.recipes, errors);
 
   // An npc pointing at a table that does not exist rolls its legacy
   // itemsToDrop instead, so the loot silently changes rather than failing.
@@ -490,6 +507,35 @@ export function validateContentReferences(
           `Shop ${label(shop.id, shop.name)} sells unknown item ${product.itemId}.`,
         );
       }
+    }
+  }
+
+  for (const recipe of graph.recipes ?? []) {
+    const where = `Recipe ${label(recipe.id, recipe.name)}`;
+    for (const input of recipe.inputs ?? []) {
+      if (!itemIds.has(input.itemId)) {
+        warnings.push(
+          `${where} consumes unknown item ${input.itemId}, so it can never be crafted.`,
+        );
+      }
+    }
+    if (recipe.output && !itemIds.has(recipe.output.itemId)) {
+      warnings.push(
+        `${where} produces unknown item ${recipe.output.itemId}, so crafting it would give nothing.`,
+      );
+    }
+    // Two entries for one item are not wrong on their own, but they are how a
+    // craft passes an affordability check it cannot pay: checked one at a time,
+    // 2 + 2 both fit a stack of 3, and only the second removal fails. Saying it
+    // once here is cheaper than every consumer remembering to sum first.
+    const seen = new Set<number>();
+    for (const input of recipe.inputs ?? []) {
+      if (seen.has(input.itemId)) {
+        warnings.push(
+          `${where} lists item ${input.itemId} more than once: merge them into one input with the total quantity.`,
+        );
+      }
+      seen.add(input.itemId);
     }
   }
 

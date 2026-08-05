@@ -1,0 +1,168 @@
+// @ts-check
+// Crafting module. Recipes are content (RecipeEditor); what making one
+// means lives here.
+//
+// exchangeItems consumes the inputs and produces the output in one step, so
+// a full bag refuses the craft instead of eating the materials.
+//
+// From a script or another module:
+//   const crafting = use('crafting');
+//   crafting.craft(player, 'steel-sword');
+//   crafting.define({ id: 'x', name: 'X', inputs: [...], output: {...} });
+
+const defs = new Map();
+
+/**
+ * Authored recipes are read on every call, so an edit applies at once.
+ * getRecipes() is an in-memory copy, so the read is cheap.
+ */
+function allRecipes() {
+  const byId = new Map();
+  for (const recipe of getRecipes()) byId.set(recipe.id, recipe);
+  // Script definitions win over content with the same id.
+  for (const [id, recipe] of defs) byId.set(id, recipe);
+  return [...byId.values()];
+}
+
+function getRecipe(id) {
+  return defs.get(id) || getRecipes().find((r) => r.id === String(id));
+}
+
+/**
+ * Whether the player may see this recipe. A failing condition, or a named
+ * predicate nobody registered, hides it instead of failing the craft.
+ */
+function allowed(player, recipe) {
+  if (!recipe.condition) return true;
+  const predicate = use('recipeCondition.' + recipe.condition);
+  if (typeof predicate !== 'function') {
+    error(
+      'recipe ' +
+        recipe.id +
+        ' names unregistered condition ' +
+        recipe.condition,
+    );
+    return false;
+  }
+  try {
+    return !!predicate({ player, recipe });
+  } catch (e) {
+    error('recipe condition threw: ' + e);
+    return false;
+  }
+}
+
+function available(player) {
+  return allRecipes().filter((recipe) => allowed(player, recipe));
+}
+
+/** What the player is short of, so the panel can grey a row out. */
+function missing(player, recipe) {
+  const required = new Map();
+  for (const input of recipe.inputs) {
+    required.set(
+      input.itemId,
+      (required.get(input.itemId) || 0) + input.quantity,
+    );
+  }
+  const short = [];
+  for (const [itemId, quantity] of required) {
+    const held = countItem(player, itemId);
+    if (held < quantity) short.push({ itemId, quantity, held });
+  }
+  return short;
+}
+
+function craft(player, recipeId) {
+  const recipe = getRecipe(recipeId);
+  if (!recipe) return 'No such recipe.';
+  if (!allowed(player, recipe)) return 'You have not learned that recipe.';
+
+  const made = exchangeItems(player, recipe.inputs, recipe.output);
+  if (!made.ok) {
+    return made.reason === 'no-space'
+      ? 'Your bag is too full to hold that.'
+      : 'You are missing materials.';
+  }
+
+  // Crafting destroys and creates items, so it is written at once rather
+  // than left for the snapshot loop.
+  persistNow(player);
+  const name = getItem(recipe.output.itemId);
+  sendMessage(
+    player,
+    'You crafted ' +
+      (recipe.output.quantity > 1 ? recipe.output.quantity + 'x ' : '') +
+      ((name && name.name) || recipe.name) +
+      '.',
+  );
+  push(player);
+  return 'Crafted.';
+}
+
+function define(recipe) {
+  if (!recipe || !recipe.id) return;
+  defs.set(recipe.id, recipe);
+}
+
+function push(player) {
+  sendEvent(
+    player,
+    'crafting:update',
+    available(player).map((recipe) => ({
+      id: recipe.id,
+      name: recipe.name,
+      inputs: recipe.inputs,
+      output: recipe.output,
+      missing: missing(player, recipe),
+    })),
+  );
+}
+
+command(
+  'craft',
+  { description: 'Crafting: /craft <recipe> or /craft list' },
+  ({ player, args, reply }) => {
+    if (!player) return reply('Crafting must be used in-game.');
+    const target = String(args[0] || '').toLowerCase();
+    if (!target || target === 'list') {
+      const list = available(player);
+      if (list.length === 0) return reply('You know no recipes.');
+      return reply(
+        'Recipes: ' + list.map((r) => r.id + ' (' + r.name + ')').join(', '),
+      );
+    }
+    reply(craft(player, args[0]));
+  },
+);
+
+on('customAction', ({ player, channel, payload }) => {
+  const data = /** @type {any} */ (payload);
+  if (channel === 'crafting:craft') craft(player, data && data.recipeId);
+  else if (channel === 'crafting:request') push(player);
+});
+
+// A workbench is a behaviour attached to a tile trigger or an npc, so the
+// map and npc editors place one without code.
+attach('workbench', {
+  onEnter({ player }) {
+    open(player);
+  },
+  onInteract({ player }) {
+    open(player);
+  },
+});
+
+function open(player) {
+  push(player);
+  sendEvent(player, 'crafting:open');
+}
+
+provide('crafting', {
+  list: allRecipes,
+  available,
+  craft,
+  define,
+});
+
+log('Crafting module ready.');

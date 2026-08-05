@@ -8,6 +8,7 @@ import { ArrowEditor } from './ArrowEditor';
 import { LootTableEditor } from './LootTableEditor';
 import { DialogEditor } from './DialogEditor';
 import { QuestEditor } from './QuestEditor';
+import { RecipeEditor } from './RecipeEditor';
 import {
   RuntimeNpc,
   Item,
@@ -17,6 +18,7 @@ import {
   LootTable,
   Dialog,
   Quest,
+  Recipe,
 } from '../../../shared/types';
 import {
   fetchNpcs,
@@ -26,6 +28,7 @@ import {
   listLootTables,
   listDialogs,
   listQuests,
+  listRecipes,
 } from '../../io/network';
 import { Modal } from '../common/Modal';
 import { colors, radius } from '../../theme';
@@ -37,6 +40,7 @@ type Tab =
   | 'loot'
   | 'dialogs'
   | 'quests'
+  | 'recipes'
   | 'shops'
   | 'maps'
   | 'spells'
@@ -52,6 +56,7 @@ export const ContentEditor: React.FC = () => {
   const [lootTables, setLootTables] = useState<LootTable[]>([]);
   const [dialogs, setDialogs] = useState<Dialog[]>([]);
   const [quests, setQuests] = useState<Quest[]>([]);
+  const [recipes, setRecipes] = useState<Recipe[]>([]);
   const [contentDirty, setContentDirty] = useState(false);
   const visibleRef = useRef(false);
   const dirtyRef = useRef(false);
@@ -99,6 +104,7 @@ export const ContentEditor: React.FC = () => {
       lootData,
       dialogData,
       questData,
+      recipeData,
     ] = await Promise.all([
       fetchNpcs(),
       fetchItems(),
@@ -107,6 +113,7 @@ export const ContentEditor: React.FC = () => {
       listLootTables(),
       listDialogs(),
       listQuests(),
+      listRecipes(),
     ]);
     setNpcs(npcData);
     setItems(itemData);
@@ -115,6 +122,7 @@ export const ContentEditor: React.FC = () => {
     setLootTables(lootData);
     setDialogs(dialogData);
     setQuests(questData);
+    setRecipes(recipeData);
   }, []);
 
   useEffect(() => {
@@ -157,6 +165,12 @@ export const ContentEditor: React.FC = () => {
     return data.map((q) => ({ value: q.id, label: `${q.id} - ${q.name}` }));
   }, []);
 
+  const loadRecipes = useCallback(async () => {
+    const data = await listRecipes();
+    setRecipes(data);
+    return data.map((r) => ({ value: r.id, label: `${r.id} - ${r.name}` }));
+  }, []);
+
   const loadMaps = useCallback(async () => {
     const data = await fetchMaps();
     setMaps(data);
@@ -177,6 +191,7 @@ export const ContentEditor: React.FC = () => {
     { id: 'loot', label: 'Loot' },
     { id: 'dialogs', label: 'Dialogs' },
     { id: 'quests', label: 'Quests' },
+    { id: 'recipes', label: 'Recipes' },
     { id: 'shops', label: 'Shops' },
     { id: 'maps', label: 'Maps' },
     { id: 'spells', label: 'Spells' },
@@ -247,6 +262,16 @@ export const ContentEditor: React.FC = () => {
               loadNpcs={loadNpcs}
               loadItems={loadItems}
               loadMaps={loadMaps}
+              refreshData={refreshData}
+              onDirtyChange={setContentDirty}
+              requestDiscard={confirmDiscard}
+            />
+          )}
+          {tab === 'recipes' && (
+            <RecipeEditor
+              recipes={recipes}
+              loadRecipes={loadRecipes}
+              loadItems={loadItems}
               refreshData={refreshData}
               onDirtyChange={setContentDirty}
               requestDiscard={confirmDiscard}
