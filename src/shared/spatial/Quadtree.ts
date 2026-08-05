@@ -246,22 +246,42 @@ export class Quadtree {
   }
 
   /**
-   * Clears every entity. `length = 0` avoids a new array per node on every
-   * rebuild, and child nodes stay so the next insert pass reuses their bounds
-   * instead of splitting again while the entity count is stable.
+   * Clears every entity and drops the branches nothing used. `length = 0`
+   * avoids a new array per node on every rebuild, and occupied branches stay
+   * so the next insert pass reuses their bounds instead of splitting again.
+   *
+   * Empty branches go: the tree is rebuilt each tick, and a map that once
+   * held a crowd would otherwise walk that crowd's subdivision on every clear
+   * and query for the rest of the process.
+   *
+   * The decision comes from what is emptied, so it lags one rebuild: the
+   * tick a region empties keeps its nodes, the next does not. What already
+   * happened is a fact; the tick about to run has placed nothing yet.
    */
   clear(): void {
     this.clearNode(this.root);
     this.count = 0;
   }
 
-  private clearNode(node: QuadtreeNode): void {
+  /** Empties a subtree and reports whether anything was in it. */
+  private clearNode(node: QuadtreeNode): boolean {
+    const heldEntities = node.entities.length > 0;
     node.entities.length = 0;
-    if (node.children !== null) {
-      for (const child of node.children) {
-        this.clearNode(child);
-      }
+
+    if (node.children === null) return heldEntities;
+
+    let childrenHeld = false;
+    for (const child of node.children) {
+      if (this.clearNode(child)) childrenHeld = true;
     }
+
+    // Only when the whole subtree was empty, this node included. A node with
+    // entities of its own holds the ones straddling its midlines, which return
+    // to it after any split; dropping its children would make every insert
+    // pass split again for nothing. Four nodes cost less than a split a tick.
+    if (!heldEntities && !childrenHeld) node.children = null;
+
+    return heldEntities || childrenHeld;
   }
 
   /** Entities currently in the tree. */

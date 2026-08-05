@@ -321,3 +321,127 @@ describe('Quadtree - Edge Cases', () => {
     expect(results).toHaveLength(0);
   });
 });
+
+/**
+ * The tree is rebuilt every tick, so whatever `clear` leaves behind is carried
+ * for the life of the process. These pin the two halves of that: dead branches
+ * go, and branches that are still doing work stay.
+ */
+describe('Quadtree - pruning on clear', () => {
+  const at = (x: number, y: number, id: string): QuadtreeEntity => ({
+    id,
+    position: { x, y },
+    width: 16,
+    height: 16,
+  });
+
+  const fill = (qt: Quadtree, entities: QuadtreeEntity[]) => {
+    qt.clear();
+    for (const entity of entities) qt.insert(entity);
+  };
+
+  // A map that once held a crowd must not keep its subdivision forever, or
+  // every later clear and query walks nodes that cannot hold anything.
+  it('drops the subdivision a departed crowd left behind', () => {
+    const qt = new Quadtree({ x: 0, y: 0, width: 1000, height: 1000 }, 10, 8);
+
+    const crowd = Array.from({ length: 200 }, (_, i) =>
+      at((i * 37) % 990, (i * 53) % 990, `c${i}`),
+    );
+    fill(qt, crowd);
+    const crowded = qt.getStats().nodeCount;
+    expect(crowded).toBeGreaterThan(10);
+
+    // Two rebuilds: `clear` decides from what it empties, the occupancy of the
+    // tick that just ended. The tick the crowd leaves keeps its shape, the one
+    // after does not; at 20Hz that lag is 50ms, and it keeps the decision on
+    // what happened rather than a guess about the tick starting.
+    fill(qt, [at(10, 10, 'a')]);
+    fill(qt, [at(10, 10, 'a')]);
+
+    expect(qt.getStats().nodeCount).toBeLessThan(crowded);
+    expect(qt.size()).toBe(1);
+  });
+
+  it('collapses to a single node once the map empties', () => {
+    const qt = new Quadtree({ x: 0, y: 0, width: 1000, height: 1000 }, 10, 8);
+
+    fill(
+      qt,
+      Array.from({ length: 100 }, (_, i) =>
+        at((i * 37) % 990, (i * 53) % 990, `c${i}`),
+      ),
+    );
+    expect(qt.getStats().nodeCount).toBeGreaterThan(1);
+
+    qt.clear();
+    qt.clear();
+
+    expect(qt.getStats().nodeCount).toBe(1);
+  });
+
+  // The trap the guard exists for. Entities sitting across a node's midlines
+  // fit no quadrant, so they come back to the node after any split, leaving its
+  // children empty. Pruning on "children were empty" alone would drop them,
+  // the next insert pass would split again, and the tree would rebuild the
+  // same four nodes on every tick forever.
+  it('keeps the children of a node that is holding straddlers', () => {
+    const qt = new Quadtree({ x: 0, y: 0, width: 1000, height: 1000 }, 10, 8);
+    // Centred on the root's midlines, so none of them fits a quadrant.
+    const straddlers = Array.from({ length: 20 }, (_, i) =>
+      at(492, 492, `s${i}`),
+    );
+
+    fill(qt, straddlers);
+    const split = qt.getStats().nodeCount;
+    expect(split).toBeGreaterThan(1);
+
+    for (let tick = 0; tick < 5; tick++) fill(qt, straddlers);
+
+    expect(qt.getStats().nodeCount).toBe(split);
+  });
+
+  it('keeps a branch that still has something in it', () => {
+    const qt = new Quadtree({ x: 0, y: 0, width: 1000, height: 1000 }, 10, 8);
+    const cluster = Array.from({ length: 30 }, (_, i) =>
+      at(100 + i, 100, `p${i}`),
+    );
+
+    fill(qt, cluster);
+    const withCluster = qt.getStats().nodeCount;
+
+    fill(qt, cluster);
+
+    expect(qt.getStats().nodeCount).toBe(withCluster);
+  });
+
+  // Pruning is a shape change, and a shape change that loses an entity is the
+  // failure nobody sees until something stops being drawn.
+  it('answers the same queries after the shape changes', () => {
+    const qt = new Quadtree({ x: 0, y: 0, width: 1000, height: 1000 }, 10, 8);
+
+    fill(
+      qt,
+      Array.from({ length: 200 }, (_, i) =>
+        at((i * 37) % 990, (i * 53) % 990, `c${i}`),
+      ),
+    );
+
+    const survivors = [at(10, 10, 'a'), at(900, 900, 'b'), at(500, 500, 'c')];
+    fill(qt, survivors);
+
+    const whole = { x: 0, y: 0, width: 1000, height: 1000 };
+    expect(
+      qt
+        .query(whole)
+        .map((e) => e.id)
+        .sort(),
+    ).toEqual(['a', 'b', 'c']);
+    expect(
+      qt.query({ x: 0, y: 0, width: 100, height: 100 }).map((e) => e.id),
+    ).toEqual(['a']);
+    expect(qt.queryRadius({ x: 900, y: 900 }, 50).map((e) => e.id)).toEqual([
+      'b',
+    ]);
+  });
+});
