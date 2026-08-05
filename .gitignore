@@ -131,6 +131,13 @@ dist
 .yarn/install-state.gz
 .pnp.*
 
+# This project installs with npm (README, CONTRIBUTING, CI and the Dockerfile
+# all say so) and package-lock.json is the lockfile that gets validated. A
+# second lockfile nobody reads drifts: it can stop listing Playwright, and a
+# yarn install would then produce a tree the e2e suite cannot run on. Ignored
+# so a stray `yarn install` cannot commit one.
+yarn.lock
+
 # Ignore the generated bundle.js file
 public/bundle.js
 
