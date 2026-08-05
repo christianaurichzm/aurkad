@@ -45,7 +45,11 @@ interface DialogRef {
   nodes?: Array<{
     id: string;
     choices?:
-      | Array<{ next?: string | undefined; action?: string | undefined }>
+      | Array<{
+          next?: string | undefined;
+          condition?: string | undefined;
+          action?: string | undefined;
+        }>
       | undefined;
   }>;
 }
@@ -70,8 +74,12 @@ interface QuestRef {
 interface LootTableRef {
   id?: string;
   name?: string;
-  guaranteed?: Array<{ itemId: number }> | undefined;
-  entries?: Array<{ itemId: number }> | undefined;
+  guaranteed?:
+    | Array<{ itemId: number; condition?: string | undefined }>
+    | undefined;
+  entries?:
+    | Array<{ itemId: number; condition?: string | undefined }>
+    | undefined;
 }
 interface ShopRef {
   id?: string;
@@ -174,6 +182,7 @@ export function validateScriptReferences(
     string,
     { params: ScriptParamSpec[]; events: ScriptBehaviorEvent[] }
   >,
+  isProvided?: (name: string) => boolean,
 ): ContentValidationResult {
   const warnings: string[] = [];
 
@@ -234,6 +243,59 @@ export function validateScriptReferences(
           );
         }
       }
+    }
+  }
+
+  // The other half of "content names code": a condition, action or reward
+  // comes from provide(). A wrong name fails closed (a loot entry vanishes, a
+  // choice is not offered, a conversation stops), so the content just
+  // quietly does not happen.
+  if (isProvided) {
+    const named = (where: string, prefix: string, ref: string | undefined) => {
+      if (!ref) return;
+      // `name:arg` is the dialog module's form, so only the name is registered.
+      const name = ref.split(':', 1)[0]!;
+      if (!isProvided(`${prefix}.${name}`)) {
+        warnings.push(
+          `${where} names "${name}", which no script registered as ${prefix}.${name}, so it never runs.`,
+        );
+      }
+    };
+
+    for (const table of graph.lootTables ?? []) {
+      const where = `Loot table ${label(table.id, table.name)}`;
+      for (const entry of [
+        ...(table.guaranteed ?? []),
+        ...(table.entries ?? []),
+      ]) {
+        named(
+          `${where} entry ${entry.itemId}`,
+          'lootCondition',
+          entry.condition,
+        );
+      }
+    }
+
+    for (const dialog of graph.dialogs ?? []) {
+      const where = `Dialog ${label(dialog.id, dialog.name)}`;
+      for (const node of dialog.nodes ?? []) {
+        for (const choice of node.choices ?? []) {
+          named(
+            `${where} node "${node.id}"`,
+            'dialogCondition',
+            choice.condition,
+          );
+          named(`${where} node "${node.id}"`, 'dialogAction', choice.action);
+        }
+      }
+    }
+
+    for (const quest of graph.quests ?? []) {
+      named(
+        `Quest ${label(quest.id, quest.name)} reward`,
+        'questReward',
+        quest.reward?.script,
+      );
     }
   }
 

@@ -33,6 +33,7 @@ import {
   validateScriptReferences,
 } from '../services/content/contentValidation.js';
 import { registeredBehaviors } from '../engine/scripting/entityScripts.js';
+import { isProvided } from '../engine/modules/registry.js';
 import { raiseCounter } from '../services/dbService.js';
 
 // Versionable game content lives as JSON files in content/. On boot it is
@@ -440,10 +441,13 @@ async function reportBrokenReferences(): Promise<void> {
  */
 export async function reportUnknownBehaviors(): Promise<void> {
   try {
-    const [items, npcs, maps] = await Promise.all([
+    const [items, npcs, maps, lootTables, dialogs, quests] = await Promise.all([
       listItems(),
       listNpcs(),
       listMaps(),
+      listLootTables(),
+      listDialogs(),
+      listQuests(),
     ]);
 
     const { warnings } = validateScriptReferences(
@@ -451,8 +455,15 @@ export async function reportUnknownBehaviors(): Promise<void> {
         items: items as { id: number; type?: string; scriptId?: string }[],
         npcs: npcs as Array<{ id: string; name?: string; scriptId?: string }>,
         maps: maps as Array<{ id: string; name?: string }>,
+        // These name code through provide() rather than attach(), and are
+        // checked here for the same reason: the registry only has entries once
+        // scripts have run.
+        lootTables,
+        dialogs,
+        quests,
       },
       registeredBehaviors(),
+      isProvided,
     );
 
     for (const message of warnings) logger.warn(`[content] ${message}`);

@@ -167,6 +167,24 @@ provide('dialogAction.guardGift', ({ player }) => {
   sendMessage(player, 'The guard hands you 25 gold coins.');
 });
 
+// ─── LOOT CONDITIONS ─────────────────────────────────────────────────────────
+// The same idea one collection over: a loot entry names a condition in the
+// Loot tab, and the entry is filtered out before the roll whenever this
+// answers anything but true. Nothing here is wired to shipped content;
+// these give the editor's Condition field names that resolve, and show the
+// failure mode: a name nothing registers removes the entry rather than
+// granting it, which is why the boot check reports one.
+
+// "Only drops for whoever actually fought it." Contribution is damage across
+// the whole fight, not the killing blow, so a last-hit steal does not qualify.
+provide('lootCondition.earnedIt', ({ contribution, totalDamage }) => {
+  return totalDamage > 0 && contribution / totalDamage >= 0.25;
+});
+
+// Gate an entry on a live-ops flag, so a drop can be switched on for an event
+// without touching content or restarting.
+provide('lootCondition.eventActive', () => flags.enabled('lootEvent'));
+
 // ─── QUEST PROGRESSION ───────────────────────────────────────────────────────
 
 on('npcDeath', ({ npc, killer }) => {

@@ -872,3 +872,117 @@ describe('quests', () => {
     expect(result.errors[0]).toMatch(/quest.*orcs/i);
   });
 });
+
+describe('names that come from provide() rather than attach()', () => {
+  const provided = (...names: string[]) => {
+    const set = new Set(names);
+    return (name: string) => set.has(name);
+  };
+  const none = new Map();
+
+  it('accepts a loot condition a script registered', () => {
+    const result = validateScriptReferences(
+      {
+        lootTables: [
+          { id: 't', entries: [{ itemId: 1, condition: 'earnedIt' }] },
+        ],
+      },
+      none,
+      provided('lootCondition.earnedIt'),
+    );
+    expect(result.warnings).toEqual([]);
+  });
+
+  // Fails closed at runtime: the entry is filtered out before the roll, so the
+  // only symptom is loot that never drops.
+  it('warns about a loot condition nobody registered', () => {
+    const result = validateScriptReferences(
+      {
+        lootTables: [
+          {
+            id: 't',
+            name: 'Boss',
+            entries: [{ itemId: 1, condition: 'typo' }],
+          },
+        ],
+      },
+      none,
+      provided('lootCondition.earnedIt'),
+    );
+    expect(result.warnings).toHaveLength(1);
+    expect(result.warnings[0]).toMatch(/lootCondition\.typo/);
+  });
+
+  it('checks guaranteed entries too, not just the weighted pool', () => {
+    const result = validateScriptReferences(
+      {
+        lootTables: [{ id: 't', guaranteed: [{ itemId: 1, condition: 'x' }] }],
+      },
+      none,
+      provided(),
+    );
+    expect(result.warnings).toHaveLength(1);
+  });
+
+  it('warns about a dialog condition and action nobody registered', () => {
+    const result = validateScriptReferences(
+      {
+        dialogs: [
+          {
+            id: 'd',
+            nodes: [
+              { id: 'greet', choices: [{ condition: 'a', action: 'b' }] },
+            ],
+          },
+        ],
+      },
+      none,
+      provided(),
+    );
+    expect(result.warnings).toHaveLength(2);
+    expect(result.warnings[0]).toMatch(/dialogCondition\.a/);
+    expect(result.warnings[1]).toMatch(/dialogAction\.b/);
+  });
+
+  // Only the name is registered; the argument is data the handler reads.
+  it('checks the name of a parameterised action, not the whole string', () => {
+    const result = validateScriptReferences(
+      {
+        dialogs: [
+          {
+            id: 'd',
+            nodes: [
+              { id: 'greet', choices: [{ action: 'questStart:guard-orcs' }] },
+            ],
+          },
+        ],
+      },
+      none,
+      provided('dialogAction.questStart'),
+    );
+    expect(result.warnings).toEqual([]);
+  });
+
+  it('warns about a quest reward script nobody registered', () => {
+    const result = validateScriptReferences(
+      { quests: [{ id: 'q', reward: { script: 'unlockGate' } }] },
+      none,
+      provided(),
+    );
+    expect(result.warnings).toHaveLength(1);
+    expect(result.warnings[0]).toMatch(/questReward\.unlockGate/);
+  });
+
+  // At boot the registry is empty, so running this before scripts load would
+  // report every name in the game. The caller opts in by passing the predicate.
+  it('checks nothing when no registry is supplied', () => {
+    const result = validateScriptReferences(
+      {
+        lootTables: [{ id: 't', entries: [{ itemId: 1, condition: 'x' }] }],
+        quests: [{ id: 'q', reward: { script: 'y' } }],
+      },
+      none,
+    );
+    expect(result.warnings).toEqual([]);
+  });
+});

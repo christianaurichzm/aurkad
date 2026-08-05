@@ -45,7 +45,9 @@ import {
 import {
   validateContentReferences,
   validateScriptReferences,
+  type ContentGraph,
 } from '../../services/content/contentValidation.js';
+import { isProvided } from '../../engine/modules/registry.js';
 import {
   describeBehaviors,
   registeredBehaviors,
@@ -116,6 +118,17 @@ const CONTENT_DEFINITION_PATH =
  * points at. Ids only, from the boot caches: with full documents, saving one
  * npc would also warn about some unrelated broken conversation.
  */
+/**
+ * Warnings for conditions, actions and rewards naming something no script
+ * registered. Only the provide() half of `validateScriptReferences`, so the
+ * behaviour and param checks (which need their own content) are not
+ * repeated. Safe here though useless at boot: by the time an editor can
+ * POST, scripts have long since loaded.
+ */
+function namedScriptWarnings(graph: ContentGraph): string[] {
+  return validateScriptReferences(graph, new Map(), isProvided).warnings;
+}
+
 function existingReferences() {
   return {
     lootTables: cachedLootTables().map((table) => ({ id: table.id })),
@@ -566,6 +579,7 @@ export function createContentRouter() {
         items: await listItems(),
         lootTables: [body],
       });
+      warnings.push(...namedScriptWarnings({ lootTables: [body] }));
       await createOrUpdateLootTable(body);
       res.status(201).json({ ...body, warnings });
     } catch (err) {
@@ -594,7 +608,11 @@ export function createContentRouter() {
     try {
       // A choice pointing at a missing node is a warning, not a rejected save,
       // as conversations are authored half-written.
-      const { warnings } = validateContentReferences({ dialogs: [body] });
+      const { warnings } = validateContentReferences({
+        dialogs: [body],
+        quests: cachedQuests().map((quest) => ({ id: quest.id })),
+      });
+      warnings.push(...namedScriptWarnings({ dialogs: [body] }));
       await createOrUpdateDialog(body);
       res.status(201).json({ ...body, warnings });
     } catch (err) {
@@ -635,6 +653,7 @@ export function createContentRouter() {
         npcs: npcs.map((npc) => ({ id: npc.id })),
         maps: maps.map((map) => ({ id: map.id })),
       });
+      warnings.push(...namedScriptWarnings({ quests: [body] }));
       await createOrUpdateQuest(body);
       res.status(201).json({ ...body, warnings });
     } catch (err) {
