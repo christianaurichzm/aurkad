@@ -1,0 +1,19 @@
+[
+  {
+    "id": "guard-orcs",
+    "name": "Orcs at the gate",
+    "description": "The guard wants the orc warband thinned out before it reaches the village.",
+    "objective": { "type": "kill", "npcId": "orc", "count": 3 },
+    "reward": {
+      "experience": 150,
+      "items": [{ "itemId": 1, "quantity": 2 }]
+    }
+  },
+  {
+    "id": "guard-wages",
+    "name": "The guard's wages",
+    "description": "Collect the coins the tax collector dropped along the east road.",
+    "objective": { "type": "collect", "itemId": 3, "count": 10 },
+    "reward": { "experience": 60 }
+  }
+]

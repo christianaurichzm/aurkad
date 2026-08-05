@@ -22,6 +22,10 @@ import {
   createOrUpdateDialog,
   listDialogs,
 } from '../services/content/dialogService.js';
+import {
+  createOrUpdateQuest,
+  listQuests,
+} from '../services/content/questService.js';
 import { gameConfig } from '../gameConfig.js';
 import {
   validateContentReferences,
@@ -102,6 +106,7 @@ const NpcSchema = z.object({
     .optional(),
   lootTableId: z.string().optional(),
   dialogId: z.string().optional(),
+  questId: z.string().optional(),
   scriptId: z.string().optional(),
   scriptParams: ScriptParamsSchema.optional(),
 });
@@ -160,6 +165,45 @@ const DialogSchema = z.object({
     .min(1),
 });
 
+const QuestSchema = z.object({
+  id: z.string().min(1),
+  name: z.string().min(1),
+  description: z.string().optional(),
+  objective: z.discriminatedUnion('type', [
+    z.object({
+      type: z.literal('kill'),
+      npcId: z.string().min(1),
+      count: z.number().int().positive(),
+    }),
+    z.object({
+      type: z.literal('collect'),
+      itemId: z.number().int().nonnegative(),
+      count: z.number().int().positive(),
+    }),
+    z.object({ type: z.literal('talk'), npcId: z.string().min(1) }),
+    z.object({
+      type: z.literal('reach'),
+      mapId: z.string().min(1),
+      row: z.number().int().nonnegative(),
+      col: z.number().int().nonnegative(),
+    }),
+  ]),
+  reward: z
+    .object({
+      experience: z.number().int().nonnegative().optional(),
+      items: z
+        .array(
+          z.object({
+            itemId: z.number().int().nonnegative(),
+            quantity: z.number().int().positive(),
+          }),
+        )
+        .optional(),
+      script: z.string().min(1).optional(),
+    })
+    .optional(),
+});
+
 const MapSchema = z.object({
   id: z.string().min(1),
   name: z.string().min(1),
@@ -197,9 +241,10 @@ type FileSpec<T extends z.ZodType> = {
   list: () => Promise<unknown[]>;
 };
 
-// Order matters on import: items first, then loot tables (which reference item
-// ids) and dialogs, then npcs/shops (which reference both), maps last (they
-// reference npc/item ids via tiles).
+// Import order: items first, then loot tables (item ids), dialogs and
+// quests, then npcs and shops (all of them), maps last (npc and item ids in
+// tiles). Quests and npcs name each other, so quests go first: npc.questId
+// is the reference a save would enforce.
 const SPECS = {
   items: {
     file: 'items.json',
@@ -219,6 +264,12 @@ const SPECS = {
     upsert: (e) => createOrUpdateDialog(e),
     list: listDialogs,
   } as FileSpec<typeof DialogSchema>,
+  quests: {
+    file: 'quests.json',
+    schema: QuestSchema,
+    upsert: (e) => createOrUpdateQuest(e),
+    list: listQuests,
+  } as FileSpec<typeof QuestSchema>,
   npcs: {
     file: 'npcs.json',
     schema: NpcSchema,
@@ -243,6 +294,7 @@ const IMPORT_ORDER: (keyof typeof SPECS)[] = [
   'items',
   'loot',
   'dialogs',
+  'quests',
   'npcs',
   'shops',
   'maps',
@@ -340,14 +392,16 @@ async function syncIdCounters(): Promise<void> {
  */
 async function reportBrokenReferences(): Promise<void> {
   try {
-    const [items, npcs, shops, maps, lootTables, dialogs] = await Promise.all([
-      listItems(),
-      listNpcs(),
-      listShops(),
-      listMaps(),
-      listLootTables(),
-      listDialogs(),
-    ]);
+    const [items, npcs, shops, maps, lootTables, dialogs, quests] =
+      await Promise.all([
+        listItems(),
+        listNpcs(),
+        listShops(),
+        listMaps(),
+        listLootTables(),
+        listDialogs(),
+        listQuests(),
+      ]);
 
     const graph = {
       items: items as { id: number }[],
@@ -356,6 +410,7 @@ async function reportBrokenReferences(): Promise<void> {
       maps: maps as Array<{ id: string; name?: string }>,
       lootTables,
       dialogs,
+      quests,
     };
     const references = validateContentReferences(graph);
     // Only the boot has the whole world in memory, which reachability and warp

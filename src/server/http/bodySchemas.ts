@@ -196,6 +196,10 @@ export const CreateNpcBodySchema = z.object({
   itemsToDrop: z.array(NpcItemDropSchema).optional(),
   lootTableId: z.string().optional(),
   dialogId: z.string().optional(),
+  // Declared here or the field never reaches mongoose: z.object strips what it
+  // does not know, so the editor would save and the npc would come back
+  // without the quest it offers.
+  questId: z.string().optional(),
   scriptId: z.string().optional(),
   scriptParams: ScriptParamsSchema.optional(),
 });
@@ -304,6 +308,51 @@ export const CreateDialogBodySchema = z.object({
   name: z.string().min(1).max(120),
   start: z.string().min(1).max(64).optional(),
   nodes: z.array(DialogNodeSchema).min(1).max(100),
+});
+
+// A discriminated union, so "kill" cannot be saved with a mapId and "reach"
+// cannot be saved without one; with every field optional, an objective
+// nothing can complete could be authored.
+const QuestObjectiveSchema = z.discriminatedUnion('type', [
+  z.object({
+    type: z.literal('kill'),
+    npcId: z.string().min(1).max(64),
+    count: z.number().int().positive().max(10_000),
+  }),
+  z.object({
+    type: z.literal('collect'),
+    itemId: z.number().int().nonnegative(),
+    count: z.number().int().positive().max(10_000),
+  }),
+  z.object({ type: z.literal('talk'), npcId: z.string().min(1).max(64) }),
+  z.object({
+    type: z.literal('reach'),
+    mapId: z.string().min(1).max(64),
+    row: z.number().int().nonnegative(),
+    col: z.number().int().nonnegative(),
+  }),
+]);
+
+export const CreateQuestBodySchema = z.object({
+  id: z.string().min(1).max(64),
+  name: z.string().min(1).max(120),
+  description: z.string().max(2000).optional(),
+  objective: QuestObjectiveSchema,
+  reward: z
+    .object({
+      experience: z.number().int().nonnegative().optional(),
+      items: z
+        .array(
+          z.object({
+            itemId: z.number().int().nonnegative(),
+            quantity: z.number().int().positive(),
+          }),
+        )
+        .max(20)
+        .optional(),
+      script: z.string().min(1).max(64).optional(),
+    })
+    .optional(),
 });
 
 export const BuyShopItemBodySchema = z.object({

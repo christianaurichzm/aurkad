@@ -34,6 +34,7 @@ interface NpcRef {
   itemsToDrop?: Array<{ itemId: number }> | undefined;
   lootTableId?: string | undefined;
   dialogId?: string | undefined;
+  questId?: string | undefined;
   scriptId?: string | undefined;
   scriptParams?: Record<string, unknown> | undefined;
 }
@@ -43,8 +44,28 @@ interface DialogRef {
   start?: string | undefined;
   nodes?: Array<{
     id: string;
-    choices?: Array<{ next?: string | undefined }> | undefined;
+    choices?:
+      | Array<{ next?: string | undefined; action?: string | undefined }>
+      | undefined;
   }>;
+}
+interface QuestRef {
+  id?: string;
+  name?: string;
+  objective?:
+    | {
+        type?: string;
+        npcId?: string | undefined;
+        itemId?: number | undefined;
+        count?: number | undefined;
+        mapId?: string | undefined;
+        row?: number | undefined;
+        col?: number | undefined;
+      }
+    | undefined;
+  reward?:
+    | { items?: Array<{ itemId: number }> | undefined; script?: string }
+    | undefined;
 }
 interface LootTableRef {
   id?: string;
@@ -97,11 +118,23 @@ export interface ContentGraph {
   maps?: MapRef[];
   lootTables?: LootTableRef[];
   dialogs?: DialogRef[];
+  quests?: QuestRef[];
 }
 
 function label(id: string | undefined, name?: string): string {
   if (!id) return name ? `"${name}"` : '(unsaved)';
   return name && name !== id ? `"${id}" (${name})` : `"${id}"`;
+}
+
+/**
+ * The quest id in a dialog action `questStart:<id>`, or undefined for any
+ * other. The split is the dialog module's and the name the quest module's,
+ * both sandbox code that cannot import from here, so this reads the same
+ * convention a second time; a typo is a quest offer that does nothing.
+ */
+function questStartTarget(action: string | undefined): string | undefined {
+  if (!action?.startsWith('questStart:')) return undefined;
+  return action.slice('questStart:'.length) || undefined;
 }
 
 /** Reports duplicate ids, which upsert silently collapses into one document. */
@@ -224,6 +257,7 @@ export function validateContentReferences(
   checkDuplicateIds('map', graph.maps, errors);
   checkDuplicateIds('loot table', graph.lootTables, errors);
   checkDuplicateIds('dialog', graph.dialogs, errors);
+  checkDuplicateIds('quest', graph.quests, errors);
 
   // An npc pointing at a table that does not exist rolls its legacy
   // itemsToDrop instead, so the loot silently changes rather than failing.
@@ -244,6 +278,67 @@ export function validateContentReferences(
       if (npc.dialogId && !dialogIds.has(npc.dialogId)) {
         warnings.push(
           `NPC ${label(npc.id, npc.name)} opens unknown dialog "${npc.dialogId}".`,
+        );
+      }
+    }
+  }
+
+  if (graph.quests) {
+    const questIds = new Set(graph.quests.map((q) => q.id));
+    for (const npc of graph.npcs ?? []) {
+      if (npc.questId && !questIds.has(npc.questId)) {
+        warnings.push(
+          `NPC ${label(npc.id, npc.name)} offers unknown quest "${npc.questId}".`,
+        );
+      }
+    }
+    // The other door into a quest is a dialog choice, so it is checked here
+    // too: `questStart:<id>` naming nothing is a button that looks like an
+    // offer and does nothing when pressed.
+    for (const dialog of graph.dialogs ?? []) {
+      for (const node of dialog.nodes ?? []) {
+        for (const choice of node.choices ?? []) {
+          const id = questStartTarget(choice.action);
+          if (id && !questIds.has(id)) {
+            warnings.push(
+              `Dialog ${label(dialog.id, dialog.name)} node "${node.id}" starts unknown quest "${id}".`,
+            );
+          }
+        }
+      }
+    }
+  }
+
+  // An objective nothing can satisfy is the failure mode here: the quest is
+  // offered, accepted, and then sits in the tracker forever because the npc it
+  // counts does not exist.
+  if (graph.npcs) {
+    const npcIds = new Set(graph.npcs.map((n) => n.id));
+    for (const quest of graph.quests ?? []) {
+      const objective = quest.objective;
+      if (
+        (objective?.type === 'kill' || objective?.type === 'talk') &&
+        objective.npcId &&
+        !npcIds.has(objective.npcId)
+      ) {
+        warnings.push(
+          `Quest ${label(quest.id, quest.name)} counts unknown NPC "${objective.npcId}", so it can never be completed.`,
+        );
+      }
+    }
+  }
+
+  if (graph.maps) {
+    const mapIds = new Set(graph.maps.map((m) => m.id));
+    for (const quest of graph.quests ?? []) {
+      const objective = quest.objective;
+      if (
+        objective?.type === 'reach' &&
+        objective.mapId &&
+        !mapIds.has(objective.mapId)
+      ) {
+        warnings.push(
+          `Quest ${label(quest.id, quest.name)} sends the player to unknown map "${objective.mapId}", so it can never be completed.`,
         );
       }
     }
@@ -332,6 +427,25 @@ export function validateContentReferences(
         warnings.push(
           `Shop ${label(shop.id, shop.name)} sells unknown item ${product.itemId}.`,
         );
+      }
+    }
+  }
+
+  for (const quest of graph.quests ?? []) {
+    const where = `Quest ${label(quest.id, quest.name)}`;
+    const objective = quest.objective;
+    if (
+      objective?.type === 'collect' &&
+      objective.itemId != null &&
+      !itemIds.has(objective.itemId)
+    ) {
+      warnings.push(
+        `${where} asks for unknown item ${objective.itemId}, so it can never be completed.`,
+      );
+    }
+    for (const reward of quest.reward?.items ?? []) {
+      if (!itemIds.has(reward.itemId)) {
+        warnings.push(`${where} rewards unknown item ${reward.itemId}.`);
       }
     }
   }

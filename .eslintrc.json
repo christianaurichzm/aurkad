@@ -127,6 +127,7 @@
         "getSpells": "readonly",
         "createSpells": "readonly",
         "getDialog": "readonly",
+        "getQuests": "readonly",
         "getArrow": "readonly",
         "getArrows": "readonly",
         "getItem": "readonly",

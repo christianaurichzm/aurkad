@@ -15,6 +15,7 @@ import { loadLootTables } from './services/economy/lootTableService.js';
 import { loadLiveOpsFlags } from './services/liveOpsService.js';
 import { loadArrows } from './services/content/arrowService.js';
 import { loadDialogs } from './services/content/dialogService.js';
+import { loadQuests } from './services/content/questService.js';
 import { loadSpells } from './services/content/spellService.js';
 import { MapStateServer } from '../shared/types.js';
 import { config } from './config.js';
@@ -55,9 +56,10 @@ export async function loadInitialData() {
     const loadedItems = await listItems();
     // Loot tables are read inside the tick on every npc death, so they are
     // cached up front rather than fetched per kill. Dialogs are the same case
-    // one interaction earlier.
+    // one interaction earlier, and quests are read from four hooks at once.
     await loadLootTables();
     await loadDialogs();
+    await loadQuests();
 
     for (const map of loadedMaps) {
       if (!map.id || !map.name || !map.type || !map.tiles?.length) {

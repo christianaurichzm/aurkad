@@ -56,6 +56,9 @@ export {
   listDialogs,
   saveDialog,
   deleteDialog,
+  listQuests,
+  saveQuest,
+  deleteQuest,
   fetchBehaviors,
 } from './http/contentClient';
 

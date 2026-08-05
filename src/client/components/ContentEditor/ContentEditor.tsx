@@ -7,6 +7,7 @@ import { SpellEditor } from './SpellEditor';
 import { ArrowEditor } from './ArrowEditor';
 import { LootTableEditor } from './LootTableEditor';
 import { DialogEditor } from './DialogEditor';
+import { QuestEditor } from './QuestEditor';
 import {
   RuntimeNpc,
   Item,
@@ -15,6 +16,7 @@ import {
   ProductRaw,
   LootTable,
   Dialog,
+  Quest,
 } from '../../../shared/types';
 import {
   fetchNpcs,
@@ -23,6 +25,7 @@ import {
   fetchShops,
   listLootTables,
   listDialogs,
+  listQuests,
 } from '../../io/network';
 import { Modal } from '../common/Modal';
 import { colors, radius } from '../../theme';
@@ -33,6 +36,7 @@ type Tab =
   | 'items'
   | 'loot'
   | 'dialogs'
+  | 'quests'
   | 'shops'
   | 'maps'
   | 'spells'
@@ -47,6 +51,7 @@ export const ContentEditor: React.FC = () => {
   const [maps, setMaps] = useState<MapStateClient[]>([]);
   const [lootTables, setLootTables] = useState<LootTable[]>([]);
   const [dialogs, setDialogs] = useState<Dialog[]>([]);
+  const [quests, setQuests] = useState<Quest[]>([]);
   const [contentDirty, setContentDirty] = useState(false);
   const visibleRef = useRef(false);
   const dirtyRef = useRef(false);
@@ -86,21 +91,30 @@ export const ContentEditor: React.FC = () => {
   }, [close]);
 
   const refreshData = useCallback(async () => {
-    const [npcData, itemData, shopData, mapData, lootData, dialogData] =
-      await Promise.all([
-        fetchNpcs(),
-        fetchItems(),
-        fetchShops(),
-        fetchMaps(),
-        listLootTables(),
-        listDialogs(),
-      ]);
+    const [
+      npcData,
+      itemData,
+      shopData,
+      mapData,
+      lootData,
+      dialogData,
+      questData,
+    ] = await Promise.all([
+      fetchNpcs(),
+      fetchItems(),
+      fetchShops(),
+      fetchMaps(),
+      listLootTables(),
+      listDialogs(),
+      listQuests(),
+    ]);
     setNpcs(npcData);
     setItems(itemData);
     setShops(shopData);
     setMaps(mapData);
     setLootTables(lootData);
     setDialogs(dialogData);
+    setQuests(questData);
   }, []);
 
   useEffect(() => {
@@ -137,6 +151,12 @@ export const ContentEditor: React.FC = () => {
     return data.map((d) => ({ value: d.id, label: `${d.id} - ${d.name}` }));
   }, []);
 
+  const loadQuests = useCallback(async () => {
+    const data = await listQuests();
+    setQuests(data);
+    return data.map((q) => ({ value: q.id, label: `${q.id} - ${q.name}` }));
+  }, []);
+
   const loadMaps = useCallback(async () => {
     const data = await fetchMaps();
     setMaps(data);
@@ -156,6 +176,7 @@ export const ContentEditor: React.FC = () => {
     { id: 'items', label: 'Items' },
     { id: 'loot', label: 'Loot' },
     { id: 'dialogs', label: 'Dialogs' },
+    { id: 'quests', label: 'Quests' },
     { id: 'shops', label: 'Shops' },
     { id: 'maps', label: 'Maps' },
     { id: 'spells', label: 'Spells' },
@@ -186,6 +207,7 @@ export const ContentEditor: React.FC = () => {
               loadItems={loadItems}
               loadLootTables={loadLootTables}
               loadDialogs={loadDialogs}
+              loadQuests={loadQuests}
               onDirtyChange={setContentDirty}
               requestDiscard={confirmDiscard}
             />
@@ -213,6 +235,18 @@ export const ContentEditor: React.FC = () => {
             <DialogEditor
               dialogs={dialogs}
               loadDialogs={loadDialogs}
+              refreshData={refreshData}
+              onDirtyChange={setContentDirty}
+              requestDiscard={confirmDiscard}
+            />
+          )}
+          {tab === 'quests' && (
+            <QuestEditor
+              quests={quests}
+              loadQuests={loadQuests}
+              loadNpcs={loadNpcs}
+              loadItems={loadItems}
+              loadMaps={loadMaps}
               refreshData={refreshData}
               onDirtyChange={setContentDirty}
               requestDiscard={confirmDiscard}

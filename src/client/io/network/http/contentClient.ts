@@ -8,6 +8,7 @@ import type {
   Arrow,
   LootTable,
   Dialog,
+  Quest,
 } from '../../../../shared/types';
 import type { ScriptBehaviorDescriptor } from '../../../../shared/scriptParams';
 import { httpClient } from './httpClient';
@@ -191,6 +192,18 @@ export const saveDialog = async (
 
 export const deleteDialog = async (id: string): Promise<void> => {
   await httpClient(`/dialogs/${encodeURIComponent(id)}`, { method: 'DELETE' });
+};
+
+export const listQuests = async (): Promise<Quest[]> => {
+  return (await httpClient<Quest[]>('/quests', { method: 'GET' })) ?? [];
+};
+
+export const saveQuest = async (quest: Quest): Promise<Saved<Quest> | null> => {
+  return httpClient<Saved<Quest>>('/quests', { method: 'POST', body: quest });
+};
+
+export const deleteQuest = async (id: string): Promise<void> => {
+  await httpClient(`/quests/${encodeURIComponent(id)}`, { method: 'DELETE' });
 };
 
 /**

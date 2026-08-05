@@ -225,6 +225,13 @@ export interface PersistentNpc extends CharacterBase {
    * spell nobody casts.
    */
   dialogId?: Dialog['id'];
+  /**
+   * Quest this npc offers on interact. The direct door, for a giver with
+   * nothing to say; the other one is a dialog choice whose action is
+   * `questStart:<id>`, which is how an offer that can be turned down is
+   * written. Both end in the same `quest.start`.
+   */
+  questId?: Quest['id'];
   // Names a behaviour a script registered with attach(); runs on interact and
   // on death. This is what lets a designer wire a boss to its logic in the
   // editor instead of the script matching on npc ids.
@@ -576,6 +583,45 @@ export interface Dialog {
   /** Node the conversation opens on. Defaults to the first one. */
   start?: DialogNode['id'];
   nodes: DialogNode[];
+}
+
+/**
+ * What a quest asks for. A closed union, as each arm is wired to a hook
+ * the engine emits (kill to npcDeath, collect to itemPickup, talk to
+ * npcInteract, reach to tileEnter), so the quest module advances progress
+ * with no script. A rule that does not fit belongs in `Quest.reward.script`
+ * or a dialog action.
+ */
+export type QuestObjective =
+  | { type: 'kill'; npcId: PersistentNpc['id']; count: number }
+  | { type: 'collect'; itemId: Item['id']; count: number }
+  | { type: 'talk'; npcId: PersistentNpc['id'] }
+  | { type: 'reach'; mapId: string; row: number; col: number };
+
+export interface QuestReward {
+  experience?: number;
+  items?: Array<{ itemId: Item['id']; quantity: number }>;
+  /**
+   * Names a handler a script registered as `questReward.<name>`, run on
+   * completion after the declarative rewards above. The escape hatch for a
+   * payout the document cannot describe (unlock a door, start a follow-up),
+   * in the same shape as a dialog action.
+   */
+  script?: string;
+}
+
+/**
+ * An authored quest: one objective, a reward, and the tracker's text.
+ * One objective, since per-player progress is a single
+ * `progress`/`target` pair and the shipped tracker draws exactly that;
+ * a chain is written as several quests.
+ */
+export interface Quest {
+  id: string;
+  name: string;
+  description?: string;
+  objective: QuestObjective;
+  reward?: QuestReward;
 }
 
 export type ChatScope = 'player' | 'map' | 'global';

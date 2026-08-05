@@ -30,6 +30,7 @@ export async function createOrUpdateNpc(
 const CLEARABLE_NPC_FIELDS = [
   'lootTableId',
   'dialogId',
+  'questId',
   'scriptId',
   'scriptParams',
 ] as const;

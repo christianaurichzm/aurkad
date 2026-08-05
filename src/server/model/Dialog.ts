@@ -18,7 +18,10 @@ const DialogNodeSchema = new mongoose.Schema(
   {
     id: { type: String, required: true },
     text: { type: String, required: true },
-    choices: [DialogChoiceSchema],
+    // `default: undefined` for the same reason the editor omits the key: a node
+    // that ends the conversation must not come back carrying an empty array,
+    // which the next content export would write into dialogs.json.
+    choices: { type: [DialogChoiceSchema], default: undefined },
   },
   { _id: false },
 );

@@ -22,6 +22,7 @@ interface NpcEditorProps {
   loadItems: () => Promise<any>;
   loadLootTables: () => Promise<{ value: string; label: string }[]>;
   loadDialogs: () => Promise<{ value: string; label: string }[]>;
+  loadQuests: () => Promise<{ value: string; label: string }[]>;
   refreshData: () => void;
   onDirtyChange: (dirty: boolean) => void;
   requestDiscard: () => Promise<boolean>;
@@ -38,6 +39,7 @@ type NpcFormValues = {
   scriptParams: ScriptParams;
   lootTableId: string;
   dialogId: string;
+  questId: string;
 };
 
 const defaultValues: NpcFormValues = {
@@ -51,6 +53,7 @@ const defaultValues: NpcFormValues = {
   scriptParams: {},
   lootTableId: '',
   dialogId: '',
+  questId: '',
 };
 
 const npcToFormValues = (npc: RuntimeNpc): NpcFormValues => ({
@@ -64,6 +67,7 @@ const npcToFormValues = (npc: RuntimeNpc): NpcFormValues => ({
   scriptParams: npc.scriptParams ?? {},
   lootTableId: npc.lootTableId ?? '',
   dialogId: npc.dialogId ?? '',
+  questId: npc.questId ?? '',
 });
 
 const npcToDrops = (npc: RuntimeNpc): NpcItemDrop[] =>
@@ -79,6 +83,7 @@ export const NpcEditor: React.FC<NpcEditorProps> = ({
   loadItems,
   loadLootTables,
   loadDialogs,
+  loadQuests,
   refreshData,
   onDirtyChange,
   requestDiscard,
@@ -165,6 +170,7 @@ export const NpcEditor: React.FC<NpcEditorProps> = ({
     scriptParams,
     lootTableId,
     dialogId,
+    questId,
   }: NpcFormValues) => {
     const data = {
       name,
@@ -183,6 +189,7 @@ export const NpcEditor: React.FC<NpcEditorProps> = ({
           : undefined,
       lootTableId: lootTableId || undefined,
       dialogId: dialogId || undefined,
+      questId: questId || undefined,
     };
     const result = selectedId
       ? await updateNpc(selectedId, data).catch(() => null)
@@ -339,6 +346,28 @@ export const NpcEditor: React.FC<NpcEditorProps> = ({
           {watch('dialogId')
             ? 'Talking to this NPC opens the conversation authored in the Dialogs tab.'
             : 'No dialog: talking to this NPC only fires the behavior above.'}
+        </p>
+      </div>
+
+      <div style={dropSection}>
+        <label style={{ ...label, marginBottom: 6, display: 'block' }}>
+          Quest
+        </label>
+        <Controller
+          control={control}
+          name="questId"
+          render={({ field }) => (
+            <AsyncSelect
+              loadOptions={loadQuests}
+              value={field.value}
+              onChange={field.onChange}
+            />
+          )}
+        />
+        <p style={dropHint}>
+          {watch('questId')
+            ? 'Talking to this NPC starts the quest directly. To let the player accept or refuse, leave this empty and give a dialog choice the action questStart:<id>.'
+            : 'No quest offered on interact.'}
         </p>
       </div>
 

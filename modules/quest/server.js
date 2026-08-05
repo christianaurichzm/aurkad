@@ -7,6 +7,10 @@
 //     reward: (p) => giveExperience(p, 100) });
 //   quest.start(player, 'hunt');
 //   quest.advance(player, 'hunt', 1);
+//
+// A script's define() owns the whole quest. Quests authored in the editor
+// load first through getQuests() and advance by the hook their objective
+// type names, so a script defining the same id wins.
 
 const defs = new Map();
 
@@ -18,12 +22,48 @@ function save(player, bag) {
   sendEvent(player, 'quest:update', list);
 }
 
+// A reward the player cannot hold is the failure this guards: the quest is
+// completed either way, so an item that does not fit goes to the mailbox rather
+// than nowhere. Queueing is a database write, hence the promise in a hook.
+function payItems(player, items) {
+  for (const entry of items) {
+    const quantity = entry.quantity || 1;
+    if (giveItem(player, entry.itemId, quantity)) continue;
+    sendMessage(player, 'Your bag is full - the reward was mailed to you.');
+    delivery
+      .queue({ to: player.name, itemId: entry.itemId, quantity })
+      .then((r) => {
+        if (!r.ok) error('quest reward delivery refused: ' + r.reason);
+      })
+      .catch((e) => error('quest reward delivery threw: ' + e));
+  }
+}
+
 function finish(player, id, bag) {
   bag[id].status = 'completed';
   const def = defs.get(id);
-  if (def && typeof def.reward === 'function') {
+  if (!def) return;
+  // A script's reward is a function. An authored one describes the reward
+  // and may name a handler, run last, for what a document cannot say.
+  if (typeof def.reward === 'function') {
     try {
       def.reward(player);
+    } catch (e) {
+      error('quest reward threw: ' + e);
+    }
+    return;
+  }
+  if (!def.reward) return;
+  if (def.reward.experience) giveExperience(player, def.reward.experience);
+  if (def.reward.items) payItems(player, def.reward.items);
+  if (def.reward.script) {
+    const handler = use('questReward.' + def.reward.script);
+    if (typeof handler !== 'function') {
+      error('quest ' + id + ' names unregistered reward ' + def.reward.script);
+      return;
+    }
+    try {
+      handler({ player, quest: def });
     } catch (e) {
       error('quest reward threw: ' + e);
     }
@@ -85,4 +125,93 @@ on('customAction', ({ player, channel }) => {
   }
 });
 
-log('Quest module ready.');
+// ─── AUTHORED QUESTS ─────────────────────────────────────────────────────────
+
+// Content quests register at load, before any script has run, so a script that
+// defines the same id overrides rather than races.
+const authored = getQuests();
+for (const q of authored) {
+  defs.set(q.id, {
+    id: q.id,
+    name: q.name,
+    description: q.description || '',
+    target:
+      q.objective.type === 'talk' || q.objective.type === 'reach'
+        ? 1
+        : q.objective.count,
+    objective: q.objective,
+    reward: q.reward,
+  });
+}
+
+/** The authored quests this player has open, so a hook only walks their own. */
+function activeObjectives(player, type) {
+  const bag = bagOf(player);
+  const out = [];
+  for (const id of Object.keys(bag)) {
+    if (bag[id].status !== 'active') continue;
+    const def = defs.get(id);
+    if (def && def.objective && def.objective.type === type) {
+      out.push({ id, objective: def.objective });
+    }
+  }
+  return out;
+}
+
+// A map-spawned npc's id is "<template>:<row>:<col>", while an objective
+// names the content id, so it matches on templateId.
+const contentIdOf = (npc) => npc.templateId || npc.id;
+
+on('npcDeath', ({ npc, killer }) => {
+  if (!killer) return;
+  const target = contentIdOf(npc);
+  for (const { id, objective } of activeObjectives(killer, 'kill')) {
+    if (objective.npcId === target) advance(killer, id, 1);
+  }
+});
+
+on('itemPickup', ({ player, itemId }) => {
+  // Counted from the inventory, not per pickup, so dropping and picking up
+  // again does not count twice.
+  for (const { id, objective } of activeObjectives(player, 'collect')) {
+    if (objective.itemId !== itemId) continue;
+    const bag = bagOf(player);
+    const q = bag[id];
+    if (!q) continue;
+    q.progress = Math.min(q.target, countItem(player, itemId));
+    if (q.progress >= q.target) finish(player, id, bag);
+    save(player, bag);
+  }
+});
+
+on('tileEnter', ({ player, map }) => {
+  const row = Math.round(player.position.y / TILE_SIZE);
+  const col = Math.round(player.position.x / TILE_SIZE);
+  for (const { id, objective } of activeObjectives(player, 'reach')) {
+    if (
+      objective.mapId === map.id &&
+      objective.row === row &&
+      objective.col === col
+    ) {
+      complete(player, id);
+    }
+  }
+});
+
+on('npcInteract', ({ player, npc }) => {
+  const target = contentIdOf(npc);
+  // Advance before offering, or an npc that gives a quest and is also its
+  // talk target would complete it at once.
+  for (const { id, objective } of activeObjectives(player, 'talk')) {
+    if (objective.npcId === target) complete(player, id);
+  }
+  if (npc.questId) start(player, npc.questId);
+});
+
+// A dialog choice with the action `questStart:<id>` starts a quest; the
+// dialog module splits the id off and hands it over.
+provide('dialogAction.questStart', ({ player, arg }) => {
+  if (arg) start(player, arg);
+});
+
+log(`Quest module ready (${authored.length} authored).`);

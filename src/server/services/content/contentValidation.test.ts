@@ -757,3 +757,118 @@ describe('validateWorldGraph', () => {
     expect(result).toEqual({ errors: [], warnings: [] });
   });
 });
+
+describe('quests', () => {
+  const orcs = {
+    id: 'orcs',
+    name: 'Orcs',
+    objective: { type: 'kill', npcId: 'orc' },
+  };
+
+  it('accepts an objective whose npc exists', () => {
+    const result = validateContentReferences({
+      quests: [orcs],
+      npcs: [{ id: 'orc' }],
+    });
+    expect(result.warnings).toEqual([]);
+    expect(result.errors).toEqual([]);
+  });
+
+  // The quest is offered, accepted, and then sits in the tracker forever,
+  // which is worse than a save that refuses: nothing looks wrong until a
+  // player has already spent an evening on it.
+  it('warns when the npc it counts does not exist', () => {
+    const result = validateContentReferences({
+      quests: [orcs],
+      npcs: [{ id: 'goblin' }],
+    });
+    expect(result.warnings).toHaveLength(1);
+    expect(result.warnings[0]).toMatch(/orc.*never be completed/);
+  });
+
+  it('warns when a collect objective asks for an unknown item', () => {
+    const result = validateContentReferences({
+      quests: [
+        { id: 'coins', objective: { type: 'collect', itemId: 99, count: 5 } },
+      ],
+      items: [{ id: 3 }],
+    });
+    expect(result.warnings).toHaveLength(1);
+    expect(result.warnings[0]).toMatch(/99.*never be completed/);
+  });
+
+  it('warns when a reward hands out an item that does not exist', () => {
+    const result = validateContentReferences({
+      quests: [
+        {
+          id: 'coins',
+          objective: { type: 'collect', itemId: 3, count: 5 },
+          reward: { items: [{ itemId: 99 }] },
+        },
+      ],
+      items: [{ id: 3 }],
+    });
+    expect(result.warnings).toHaveLength(1);
+    expect(result.warnings[0]).toMatch(/rewards unknown item 99/);
+  });
+
+  it('warns when a reach objective names a map that does not exist', () => {
+    const result = validateContentReferences({
+      quests: [
+        {
+          id: 'scout',
+          objective: { type: 'reach', mapId: '7', row: 1, col: 1 },
+        },
+      ],
+      maps: [{ id: '1' }],
+    });
+    expect(result.warnings).toHaveLength(1);
+    expect(result.warnings[0]).toMatch(/unknown map "7"/);
+  });
+
+  it('warns when an npc offers a quest that does not exist', () => {
+    const result = validateContentReferences({
+      npcs: [{ id: 'guard', questId: 'ghost' }, { id: 'orc' }],
+      quests: [orcs],
+    });
+    expect(result.warnings).toHaveLength(1);
+    expect(result.warnings[0]).toMatch(/offers unknown quest "ghost"/);
+  });
+
+  // The other door into a quest. A typo here is a dialog button that looks
+  // like an offer and does nothing at all when pressed.
+  it('warns when a dialog choice starts a quest that does not exist', () => {
+    const result = validateContentReferences({
+      quests: [orcs],
+      dialogs: [
+        {
+          id: 'guard-gate',
+          nodes: [{ id: 'gate', choices: [{ action: 'questStart:ghost' }] }],
+        },
+      ],
+    });
+    expect(result.warnings).toHaveLength(1);
+    expect(result.warnings[0]).toMatch(/starts unknown quest "ghost"/);
+  });
+
+  it('leaves other dialog actions alone', () => {
+    const result = validateContentReferences({
+      quests: [orcs],
+      dialogs: [
+        {
+          id: 'guard-gate',
+          nodes: [{ id: 'gate', choices: [{ action: 'guardGift' }] }],
+        },
+      ],
+    });
+    expect(result.warnings).toEqual([]);
+  });
+
+  it('reports two quests sharing an id, which upsert would collapse', () => {
+    const result = validateContentReferences({
+      quests: [orcs, { id: 'orcs', name: 'Other' }],
+    });
+    expect(result.errors).toHaveLength(1);
+    expect(result.errors[0]).toMatch(/quest.*orcs/i);
+  });
+});

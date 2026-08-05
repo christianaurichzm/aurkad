@@ -1,7 +1,7 @@
 // Exercises the real shipped quest module (modules/quest) end to end,
 // including a consumer script whose reward callback (a sandbox function)
 // fires across the module boundary.
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { runInSandbox } from '../scripting/sandbox.js';
 import { loadModules, unloadAllModules } from './moduleLoader.js';
 import { useApi, clearProvides } from './registry.js';
@@ -9,7 +9,21 @@ import { clearCommands } from '../commands.js';
 import { clearAll, emit } from '../hooks.js';
 import { drainGameEvents } from '../eventBus.js';
 import { createFixture, tile } from '../../sim/simFixture.js';
-import type { PlayerServer } from '../../../shared/types.js';
+import type { Quest, PlayerServer } from '../../../shared/types.js';
+
+// Authored quests live in the content cache the editor writes to; the model
+// behind it is mocked so seeding one needs no database.
+vi.mock('../../model/Quest.js', () => ({
+  default: {
+    findOneAndUpdate: () => Promise.resolve(undefined),
+    deleteOne: () => Promise.resolve(undefined),
+    find: () => ({ lean: () => ({ exec: async () => [] }) }),
+  },
+}));
+
+const { createOrUpdateQuest, clearQuestCache } = await import(
+  '../../services/content/questService.js'
+);
 
 interface QuestState {
   progress: number;
@@ -32,6 +46,7 @@ beforeEach(() => {
   clearAll();
   clearCommands();
   clearProvides();
+  clearQuestCache();
   drainGameEvents();
   loadModules(); // real modules/ (quest enabled in game.json)
 });
@@ -122,5 +137,179 @@ describe('quest module', () => {
     expect(alice.experience).toBe(500); // reward (a sandbox fn) fired across the boundary
 
     handle.cleanup();
+  });
+});
+
+/**
+ * The authored side: a quest is a document and the module advances it from
+ * the hook its objective names. Nothing here registers a progress handler,
+ * which is what separates the editor path from the script one above.
+ */
+describe('quest module with authored quests', () => {
+  const killOrcs: Quest = {
+    id: 'orcs',
+    name: 'Orcs at the gate',
+    objective: { type: 'kill', npcId: 'orc', count: 2 },
+    reward: { experience: 50 },
+  };
+
+  // Content goes in the cache before the module loads, as it reads
+  // getQuests() once at load, the same as on a real boot.
+  async function bootWith(...quests: Quest[]): Promise<QuestApi> {
+    unloadAllModules();
+    clearAll();
+    clearProvides();
+    for (const quest of quests) await createOrUpdateQuest(quest);
+    loadModules();
+    return useApi<QuestApi>('quest')!;
+  }
+
+  it('registers a content quest so it can be started by id', async () => {
+    const quest = await bootWith(killOrcs);
+    const sim = createFixture(0);
+    const alice = sim.addPlayer({ name: 'Alice' });
+
+    expect(quest.start(alice, 'orcs')).toBe(true);
+    expect(quest.get(alice, 'orcs')).toMatchObject({
+      progress: 0,
+      target: 2,
+      status: 'active',
+    });
+  });
+
+  // The trap: a map-spawned npc's id is "<template>:<row>:<col>", so matching
+  // on id rather than templateId would never advance anything in a real world.
+  it('counts kills by template id, not the runtime instance id', async () => {
+    const quest = await bootWith(killOrcs);
+    const sim = createFixture(0);
+    const alice = sim.addPlayer({ name: 'Alice' });
+    quest.start(alice, 'orcs');
+
+    const orc = sim.addNpc({ id: 'orc:4:9', templateId: 'orc' });
+    emit('npcDeath', { npc: orc, killer: alice, contributors: [] });
+
+    expect(quest.get(alice, 'orcs')?.progress).toBe(1);
+  });
+
+  it('completes on the last kill and pays the declared reward', async () => {
+    const quest = await bootWith(killOrcs);
+    const sim = createFixture(0);
+    const alice = sim.addPlayer({
+      name: 'Alice',
+      experience: 0,
+      experienceToNextLevel: 10000,
+    });
+    quest.start(alice, 'orcs');
+
+    const orc = sim.addNpc({ id: 'orc:1:1', templateId: 'orc' });
+    emit('npcDeath', { npc: orc, killer: alice, contributors: [] });
+    emit('npcDeath', { npc: orc, killer: alice, contributors: [] });
+
+    expect(quest.get(alice, 'orcs')?.status).toBe('completed');
+    expect(alice.experience).toBe(50);
+  });
+
+  it('ignores a kill of an npc the objective does not name', async () => {
+    const quest = await bootWith(killOrcs);
+    const sim = createFixture(0);
+    const alice = sim.addPlayer({ name: 'Alice' });
+    quest.start(alice, 'orcs');
+
+    const goblin = sim.addNpc({ id: 'goblin:2:2', templateId: 'goblin' });
+    emit('npcDeath', { npc: goblin, killer: alice, contributors: [] });
+
+    expect(quest.get(alice, 'orcs')?.progress).toBe(0);
+  });
+
+  it('does not advance a quest the player never started', async () => {
+    const quest = await bootWith(killOrcs);
+    const sim = createFixture(0);
+    const alice = sim.addPlayer({ name: 'Alice' });
+
+    const orc = sim.addNpc({ id: 'orc:1:1', templateId: 'orc' });
+    emit('npcDeath', { npc: orc, killer: alice, contributors: [] });
+
+    expect(quest.get(alice, 'orcs')).toBeUndefined();
+  });
+
+  it('completes a talk objective on interact', async () => {
+    const quest = await bootWith({
+      id: 'visit',
+      name: 'Visit the elder',
+      objective: { type: 'talk', npcId: 'elder' },
+    });
+    const sim = createFixture(0);
+    const alice = sim.addPlayer({ name: 'Alice' });
+    quest.start(alice, 'visit');
+
+    const elder = sim.addNpc({ id: 'elder:3:3', templateId: 'elder' });
+    emit('npcInteract', { player: alice, npc: elder });
+
+    expect(quest.get(alice, 'visit')?.status).toBe('completed');
+  });
+
+  // Offering and completing in one keypress is the failure: the module advances
+  // what is already open before it offers anything new.
+  it('does not complete a talk quest on the interact that offered it', async () => {
+    const quest = await bootWith({
+      id: 'visit',
+      name: 'Visit the elder',
+      objective: { type: 'talk', npcId: 'elder' },
+    });
+    const sim = createFixture(0);
+    const alice = sim.addPlayer({ name: 'Alice' });
+
+    const elder = sim.addNpc({
+      id: 'elder:3:3',
+      templateId: 'elder',
+      questId: 'visit',
+    });
+    emit('npcInteract', { player: alice, npc: elder });
+
+    expect(quest.get(alice, 'visit')?.status).toBe('active');
+  });
+
+  it('starts the quest an npc offers through questId', async () => {
+    const quest = await bootWith(killOrcs);
+    const sim = createFixture(0);
+    const alice = sim.addPlayer({ name: 'Alice' });
+
+    const giver = sim.addNpc({ id: 'guard:1:1', questId: 'orcs' });
+    emit('npcInteract', { player: alice, npc: giver });
+
+    expect(quest.get(alice, 'orcs')?.status).toBe('active');
+  });
+
+  it('completes a reach objective on the named tile only', async () => {
+    const quest = await bootWith({
+      id: 'scout',
+      name: 'Scout the ridge',
+      objective: { type: 'reach', mapId: '1', row: 4, col: 6 },
+    });
+    const sim = createFixture(0);
+    const alice = sim.addPlayer({ name: 'Alice' });
+    quest.start(alice, 'scout');
+    const map = { id: '1' } as never;
+    const emptyTile = {} as never;
+
+    alice.position = tile(5, 4);
+    emit('tileEnter', { player: alice, tile: emptyTile, map });
+    expect(quest.get(alice, 'scout')?.status).toBe('active');
+
+    alice.position = tile(6, 4);
+    emit('tileEnter', { player: alice, tile: emptyTile, map });
+    expect(quest.get(alice, 'scout')?.status).toBe('completed');
+  });
+
+  // A script definition has to win, or the escape hatch is not one.
+  it('lets a script override a content quest of the same id', async () => {
+    const quest = await bootWith(killOrcs);
+    const sim = createFixture(0);
+    const alice = sim.addPlayer({ name: 'Alice' });
+
+    quest.define({ id: 'orcs', name: 'Scripted', target: 99 });
+    quest.start(alice, 'orcs');
+
+    expect(quest.get(alice, 'orcs')?.target).toBe(99);
   });
 });

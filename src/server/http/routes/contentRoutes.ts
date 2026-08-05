@@ -18,6 +18,7 @@ import {
   CreateItemBodySchema,
   CreateLootTableBodySchema,
   CreateDialogBodySchema,
+  CreateQuestBodySchema,
   CreateShopBodySchema,
   BuyShopItemBodySchema,
   AssignPointsBodySchema,
@@ -75,6 +76,12 @@ import {
   listDialogs,
 } from '../../services/content/dialogService.js';
 import {
+  cachedQuests,
+  createOrUpdateQuest,
+  deleteQuest,
+  listQuests,
+} from '../../services/content/questService.js';
+import {
   enrichPlayer,
   getPlayerById,
   getPlayerByName,
@@ -102,17 +109,18 @@ import { createRouter } from '../../app.js';
 
 // Content-definition paths whose mutations should regenerate script constants.
 const CONTENT_DEFINITION_PATH =
-  /^\/(saveMap|npcs|items|maps|spells|arrows|loot|dialogs)\b/;
+  /^\/(saveMap|npcs|items|maps|spells|arrows|loot|dialogs|quests)\b/;
 
 /**
- * The loot table and dialog ids that exist, for resolving what an npc points
- * at. Ids only, from the boot caches: with full documents, saving one npc
- * would also warn about some unrelated broken conversation.
+ * The loot table, dialog and quest ids that exist, for resolving what an npc
+ * points at. Ids only, from the boot caches: with full documents, saving one
+ * npc would also warn about some unrelated broken conversation.
  */
 function existingReferences() {
   return {
     lootTables: cachedLootTables().map((table) => ({ id: table.id })),
     dialogs: cachedDialogs().map((dialog) => ({ id: dialog.id })),
+    quests: cachedQuests().map((quest) => ({ id: quest.id })),
   };
 }
 
@@ -602,6 +610,46 @@ export function createContentRouter() {
     } catch (err) {
       logger.error('deleteDialog failed', { err });
       res.status(500).json({ error: 'Failed to delete dialog.' });
+    }
+  });
+
+  router.get('/quests', checkAccess(Access.ADMIN), async (_req, res) => {
+    res.status(200).json(await listQuests());
+  });
+
+  router.post('/quests', checkAccess(Access.ADMIN), async (req, res) => {
+    const body = parseBody(CreateQuestBodySchema, req.body, res);
+    if (!body) return;
+    try {
+      // The objective names npcs, items and maps, resolved as ids only, like
+      // the npc save; full documents would make a quest save report an
+      // unrelated npc dropping a deleted item.
+      const [items, npcs, maps] = await Promise.all([
+        listItems(),
+        listNpcs(),
+        listMaps(),
+      ]);
+      const { warnings } = validateContentReferences({
+        quests: [body],
+        items: items.map((item) => ({ id: item.id })),
+        npcs: npcs.map((npc) => ({ id: npc.id })),
+        maps: maps.map((map) => ({ id: map.id })),
+      });
+      await createOrUpdateQuest(body);
+      res.status(201).json({ ...body, warnings });
+    } catch (err) {
+      logger.error('createQuest failed', { err });
+      res.status(500).json({ error: 'Failed to save quest.' });
+    }
+  });
+
+  router.delete('/quests/:id', checkAccess(Access.ADMIN), async (req, res) => {
+    try {
+      await deleteQuest(req.params.id ?? '');
+      res.status(204).send();
+    } catch (err) {
+      logger.error('deleteQuest failed', { err });
+      res.status(500).json({ error: 'Failed to delete quest.' });
     }
   });
 

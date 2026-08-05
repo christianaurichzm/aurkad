@@ -43,17 +43,26 @@ on('customAction', ({ player, channel, payload }) => {
   }
 });
 
+// `name` or `name:arg`, split on the first colon, so one handler like
+// `questStart:goblinHunt` serves every quest.
+function splitRef(ref) {
+  const at = ref.indexOf(':');
+  if (at === -1) return { name: ref, arg: undefined };
+  return { name: ref.slice(0, at), arg: ref.slice(at + 1) };
+}
+
 // A missing or throwing predicate counts as "no", so an unloaded script
 // hides an option rather than offering a dead one.
 function conditionAllows(choice, ctx) {
   if (!choice.condition) return true;
-  const predicate = use('dialogCondition.' + choice.condition);
+  const { name, arg } = splitRef(choice.condition);
+  const predicate = use('dialogCondition.' + name);
   if (typeof predicate !== 'function') {
-    error('dialog choice names unregistered condition ' + choice.condition);
+    error('dialog choice names unregistered condition ' + name);
     return false;
   }
   try {
-    return predicate(ctx) === true;
+    return predicate(Object.assign({ arg }, ctx)) === true;
   } catch (e) {
     error('dialog condition threw: ' + e);
     return false;
@@ -64,13 +73,14 @@ function conditionAllows(choice, ctx) {
 // action ran, so a failed action stops it.
 function runAction(choice, ctx) {
   if (!choice.action) return true;
-  const handler = use('dialogAction.' + choice.action);
+  const { name, arg } = splitRef(choice.action);
+  const handler = use('dialogAction.' + name);
   if (typeof handler !== 'function') {
-    error('dialog choice names unregistered action ' + choice.action);
+    error('dialog choice names unregistered action ' + name);
     return false;
   }
   try {
-    handler(ctx);
+    handler(Object.assign({ arg }, ctx));
     return true;
   } catch (e) {
     error('dialog action threw: ' + e);

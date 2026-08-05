@@ -242,6 +242,27 @@ describe('CreateNpcBodySchema', () => {
       }).success,
     ).toBe(false);
   });
+  // z.object strips what it does not declare, so a field missing here is
+  // saved by the editor and never reaches the database: the npc would come
+  // back with no quest.
+  it('keeps the content references an npc points at', () => {
+    const result = CreateNpcBodySchema.safeParse({
+      name: 'X',
+      sprite: 0,
+      maxHealth: 1,
+      attack: 0,
+      behavior: 'neutral',
+      lootTableId: 'common',
+      dialogId: 'greet',
+      questId: 'orcs',
+    });
+    expect(result.success).toBe(true);
+    expect(result.data).toMatchObject({
+      lootTableId: 'common',
+      dialogId: 'greet',
+      questId: 'orcs',
+    });
+  });
   it('rejects zero or negative maxHealth', () => {
     expect(
       CreateNpcBodySchema.safeParse({

@@ -38,6 +38,8 @@ const NpcSchema = new mongoose.Schema(
     // mongoose drops it on write: the editor would save, the document would
     // come back without it, and talking to the npc would do nothing.
     dialogId: { type: String },
+    // Quest the npc offers on interact. Same reason as dialogId above.
+    questId: { type: String },
     scriptId: { type: String },
     scriptParams: { type: mongoose.Schema.Types.Mixed },
   },

@@ -70,6 +70,7 @@ import {
   createOrUpdateSpell,
 } from '../../services/content/spellService.js';
 import { getDialogById } from '../../services/content/dialogService.js';
+import { cachedQuests } from '../../services/content/questService.js';
 import { queryEntitiesInRadius } from '../../spatial/spatialManager.js';
 import type { SpawnNpcOptions } from '../../services/npc/spawn.js';
 import { resolveDamage, mapPvpMorale } from '../../services/combat/index.js';
@@ -77,6 +78,7 @@ import { findPlacement } from '../../services/world/physicsService.js';
 import type {
   CombatTarget,
   Dialog,
+  Quest,
   RuntimeNpc,
 } from '../../../shared/types.js';
 import { Access } from '../../../shared/types.js';
@@ -307,6 +309,12 @@ export function buildApi(
       const dialog = getDialogById(id);
       return dialog ? structuredClone(dialog) : undefined;
     },
+
+    // Every authored quest, copied for the same reason getDialog copies. The
+    // whole list rather than one by id: the quest module registers all of them
+    // at load, and asking for them one at a time would need a second call just
+    // to learn the ids.
+    getQuests: (): Quest[] => structuredClone(cachedQuests()),
 
     // Spell definitions from the database, each with its name, mpCost,
     // damage, cooldownMs and sprite.

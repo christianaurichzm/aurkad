@@ -12,6 +12,8 @@ active. Maps are created in-game via the admin map editor and exported with
 
 - `items.json`
 - `loot.json`
+- `dialogs.json`
+- `quests.json`
 - `npcs.json`
 - `shops.json`
 - `maps.json`
@@ -30,8 +32,10 @@ Or edit the JSON by hand and `content:import` (or restart).
 
 ## Import order & validation
 
-Imported as items → loot → npcs → shops → maps (later types reference earlier
-ids).
+Imported as items → loot → dialogs → quests → npcs → shops → maps (later types
+reference earlier ids). Quests and npcs point at each other, so no order
+satisfies both; quests go first because `npc.questId` is the reference a save
+would break.
 Each entry is validated; invalid entries are skipped with a logged reason, so
 one bad row never blocks the rest.
 
@@ -94,6 +98,60 @@ relative rarity, a bounded number of drops or quantity ranges, use a table from
   a draw is 65/100 nothing, 30/100 item 2, 5/100 item 3.
 - `quantity`: a number, or `{ "min": n, "max": m }` rolled per drop. Repeats
   of one item merge into a single stack.
+
+**dialogs.json**: authored conversations. Point an NPC at one with `dialogId`;
+the `dialog` module walks it on interact.
+
+```json
+[
+  { "id": "guard-gate", "name": "Guard - east gate", "start": "gate",
+    "nodes": [
+      { "id": "gate", "text": "Halt. Have you dealt with the goblins?",
+        "choices": [
+          { "label": "I have.", "next": "praise", "condition": "goblinSlayer",
+            "action": "guardGift" },
+          { "label": "Not yet.", "next": "advice" },
+          { "label": "Just passing through." }
+        ] },
+      { "id": "praise", "text": "Then the road is yours." },
+      { "id": "advice", "text": "Speak to the Elder by the well." }
+    ] }
+]
+```
+
+- `start`: node the conversation opens on; defaults to the first.
+- `choices[].next`: absent ends the conversation, which is how "Goodbye" is
+  written. No terminal node to author.
+- `condition` / `action`: names a predicate or handler a script registered as
+  `dialogCondition.<name>` / `dialogAction.<name>`. Both fail closed: a missing
+  or throwing condition hides the choice, and a failing action stops the
+  conversation instead of showing a node that thanks the player for nothing.
+  Either may take an argument after a colon (`questStart:goblin-hunt`).
+
+**quests.json**: authored quests. The `quest` module advances these from the
+hook the objective names, with no script involved.
+
+```json
+[
+  { "id": "guard-orcs", "name": "Orcs at the gate",
+    "description": "Thin out the warband.",
+    "objective": { "type": "kill", "npcId": "orc", "count": 3 },
+    "reward": { "experience": 150, "items": [{ "itemId": 1, "quantity": 2 }] } }
+]
+```
+
+- `objective.type`: one of:
+  - `kill` (`npcId`, `count`): counts on npcDeath, for the killer.
+  - `collect` (`itemId`, `count`): counted from the inventory on pickup, so
+    dropping and re-taking the same item does not count twice.
+  - `talk` (`npcId`): completes on interact.
+  - `reach` (`mapId`, `row`, `col`): completes on stepping onto that tile.
+- `reward`: `experience` and `items` are handed over on completion; an item
+  that does not fit goes to the player's mailbox rather than nowhere.
+  `script` names a handler registered as `questReward.<name>`, run last, for a
+  payout the document cannot describe.
+- Two ways to offer one: `npc.questId` starts it on interact, or a dialog
+  choice with `"action": "questStart:<id>"` lets the player accept or refuse.
 
 **shops.json**
 

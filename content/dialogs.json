@@ -15,8 +15,18 @@
             "action": "guardGift"
           },
           { "label": "Not yet.", "next": "advice" },
+          {
+            "label": "Is there other work?",
+            "next": "orders",
+            "action": "questStart:guard-orcs"
+          },
           { "label": "Just passing through." }
         ]
+      },
+      {
+        "id": "orders",
+        "text": "Guard: Orcs have been massing east of here. Cut three of them down and come back to me.",
+        "choices": [{ "label": "Consider it done." }]
       },
       {
         "id": "praise",

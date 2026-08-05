@@ -115,6 +115,8 @@ interface RuntimeNpc {
   experienceValue?: number;
   /** Conversation the dialog module opens when a player talks to this npc. */
   dialogId?: string;
+  /** Quest the quest module offers when a player talks to this npc. */
+  questId?: string;
   mapId: string;
   position: Position;
   direction: Direction;
@@ -380,6 +382,36 @@ interface DialogData {
  * module walks these on its own; a script reads one only when it needs to.
  */
 declare function getDialog(id: string): DialogData | undefined;
+
+type QuestObjectiveData =
+  | { type: 'kill'; npcId: string; count: number }
+  | { type: 'collect'; itemId: number; count: number }
+  | { type: 'talk'; npcId: string }
+  | { type: 'reach'; mapId: string; row: number; col: number };
+
+interface QuestRewardData {
+  experience?: number;
+  items?: Array<{ itemId: number; quantity: number }>;
+  /** Name of a handler registered with provide('questReward.<name>'). */
+  script?: string;
+}
+
+interface QuestData {
+  id: string;
+  name: string;
+  description?: string;
+  objective: QuestObjectiveData;
+  reward?: QuestRewardData;
+}
+
+/**
+ * Every authored quest from the database (via QuestEditor).
+ *
+ * A copy: editing what comes back changes nothing. The quest module registers
+ * these at load and advances them from the matching hook, so a script only
+ * needs this to read one directly.
+ */
+declare function getQuests(): QuestData[];
 
 /**
  * Saves spells to the database one after another, without waiting. For a
@@ -744,6 +776,11 @@ interface DialogChoiceContext {
   node: DialogNodeData;
   /** Only on an action: the choice the player picked. */
   choice?: DialogChoiceData;
+  /**
+   * The part after the first colon of `name:arg`, so one handler serves
+   * many contents (`questStart:goblinHunt`).
+   */
+  arg?: string;
 }
 
 interface QuestDef {
