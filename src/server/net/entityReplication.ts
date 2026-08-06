@@ -11,7 +11,7 @@
 
 type PublicState = Record<string, unknown>;
 
-interface Fragment {
+export interface Fragment {
   /** Full state, for an entity entering a viewport. */
   full: string;
   /** Only the fields that changed this tick; undefined when nothing changed. */
@@ -22,6 +22,10 @@ interface Fragment {
    * a viewport ever held all 300 instead of roughly 50.
    */
   quotedId: string;
+  /** This entity's slot, so a viewer can index instead of hash. */
+  slot: number;
+  /** Tick the current occupant took `slot`; see the slot section below. */
+  born: number;
 }
 
 // Last state broadcast for each entity, kept across ticks to diff against.
@@ -41,8 +45,66 @@ export function replicatedEntityCount(): number {
 // Serialized fragments for the current tick only.
 let fragments = new Map<string, Fragment>();
 
+// Monotonic broadcast counter, starting at 1 so the 0 a fresh Int32Array
+// is full of can never read as "seen on some tick".
+let tick = 0;
+
 export function beginTick(): void {
   fragments = new Map();
+  tick++;
+}
+
+export function currentTick(): number {
+  return tick;
+}
+
+// ---------------------------------------------------------------------------
+// Entity slots: ids as small integers
+//
+// Per entity per tick a viewer asks: do I know this one, and which of the
+// ones I knew are gone? As Set<string> membership that is a string hash per
+// entity per viewer, the largest per-viewer cost in a crowd. So ids get a
+// small dense integer here, in the per-map phase, and the question becomes
+// an array index.
+//
+// The slot rides on the fragment, not the entity: a symbol-keyed load at a
+// site that sees players and npcs does not inline and costs more than the
+// hash, while the fragment is already looked up by id. Slots are recycled,
+// which is the whole hazard (see `slotOwner`).
+const slotOf = new Map<string, number>();
+/**
+ * Who occupies each slot right now, and since when.
+ *
+ * Both exist to survive recycling. A viewer remembers slots it saw; if the
+ * entity that held one despawned and another took it over, the viewer's memory
+ * of "slot 5" is about somebody else. `slotOwner` is what lets the leave scan
+ * notice, and `slotBorn` is what stops a newcomer inheriting the previous
+ * occupant's "already known" status and being sent a delta the client has
+ * nothing to apply to.
+ */
+const slotOwner: Array<string | undefined> = [];
+const slotBorn: number[] = [];
+const freeSlots: number[] = [];
+
+/** Assigns (or confirms) this entity's slot. Per-map phase, not per viewer. */
+function claimSlot(id: string): number {
+  const existing = slotOf.get(id);
+  if (existing !== undefined) return existing;
+
+  const slot = freeSlots.pop() ?? slotOwner.length;
+  slotOf.set(id, slot);
+  slotOwner[slot] = id;
+  slotBorn[slot] = tick;
+  return slot;
+}
+
+export function slotOwnerId(slot: number): string | undefined {
+  return slotOwner[slot];
+}
+
+/** Upper bound for sizing a per-viewer slot array. */
+export function slotCapacity(): number {
+  return slotOwner.length;
 }
 
 /**
@@ -99,8 +161,24 @@ export function recordEntity(id: string, pub: PublicState): void {
     if (changed) delta = JSON.stringify(changed);
   }
 
-  fragments.set(id, { full, delta, quotedId: JSON.stringify(id) });
+  const slot = claimSlot(id);
+  fragments.set(id, {
+    full,
+    delta,
+    quotedId: JSON.stringify(id),
+    slot,
+    born: slotBorn[slot] ?? tick,
+  });
   previous.set(id, pub);
+}
+
+/**
+ * This tick's fragment for an entity, or undefined when it was not recorded.
+ * Handed out whole, since the caller needs the slot, the body and the quoted
+ * id, and fetching them separately is a map lookup each.
+ */
+export function fragmentAt(id: string): Fragment | undefined {
+  return fragments.get(id);
 }
 
 /**
@@ -118,30 +196,29 @@ export function fragmentFor(
   return viewerKnowsEntity ? fragment.delta : fragment.full;
 }
 
-/**
- * This tick's `"id":fragment` pair for one viewer, ready to concatenate.
- *
- * Returning the joined pair rather than the fragment alone is what lets the
- * quoted id be computed once per entity instead of once per entity per viewer.
- */
-export function entryFor(
-  id: string,
-  viewerKnowsEntity: boolean,
-): string | undefined {
-  const fragment = fragments.get(id);
-  if (!fragment) return undefined;
-  const body = viewerKnowsEntity ? fragment.delta : fragment.full;
-  if (body === undefined) return undefined;
-  return `${fragment.quotedId}:${body}`;
-}
-
 /** Drop an entity's history (despawn/disconnect) so ids cannot leak state. */
 export function forgetEntity(id: string): void {
   previous.delete(id);
   fragments.delete(id);
+
+  const slot = slotOf.get(id);
+  if (slot !== undefined) {
+    slotOf.delete(id);
+    // Left owner-less rather than handed out again on the spot. A viewer that
+    // has not been served for a while (backpressure skips ticks) still holds
+    // this slot in its known list, and `slotOwner` going undefined is how the
+    // leave scan tells "gone" from "someone else lives here now".
+    slotOwner[slot] = undefined;
+    freeSlots.push(slot);
+  }
 }
 
 export function resetEntityReplication(): void {
   previous.clear();
   fragments = new Map();
+  slotOf.clear();
+  slotOwner.length = 0;
+  slotBorn.length = 0;
+  freeSlots.length = 0;
+  tick = 0;
 }

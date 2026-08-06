@@ -20,6 +20,7 @@
 
 import WebSocket from 'ws';
 import { readFileSync, writeFileSync } from 'node:fs';
+import { SourceMap } from 'node:module';
 
 interface CallFrame {
   functionName: string;
@@ -34,6 +35,7 @@ interface ProfileNode {
   callFrame: CallFrame;
   hitCount?: number;
   children?: number[];
+  positionTicks?: Array<{ line: number; ticks: number }>;
 }
 
 interface CpuProfile {
@@ -280,13 +282,83 @@ function report(profile: CpuProfile): void {
   console.log('');
 }
 
+/**
+ * Self time inside one function, line by line, mapped back to the
+ * TypeScript. A bucket says which function to open, not which line in it
+ * to delete: in `sendWorldUpdate`, "the AOI loop" against "the two Sets it
+ * allocates per viewer" is the whole decision about what to do next.
+ *
+ * V8 reports this as `positionTicks` on every node, the sample count per
+ * line of the emitted JS, and the dist build's source maps carry those
+ * lines back to the file worth editing.
+ */
+function reportFrame(profile: CpuProfile, needle: string): void {
+  const byLine = new Map<number, number>();
+  let matched = 0;
+  let url = '';
+
+  for (const node of profile.nodes) {
+    if (!node.callFrame.functionName.includes(needle)) continue;
+    if (!node.positionTicks) continue;
+    url = node.callFrame.url;
+    for (const { line, ticks } of node.positionTicks) {
+      byLine.set(line, (byLine.get(line) ?? 0) + ticks);
+      matched += ticks;
+    }
+  }
+
+  if (!matched) {
+    console.log(`\nno samples inside a frame matching "${needle}"\n`);
+    return;
+  }
+
+  const path = url.replace(/^file:\/\//, '');
+  let mapper: InstanceType<typeof SourceMap> | undefined;
+  let sourceLines: string[] | undefined;
+  try {
+    const raw = JSON.parse(
+      readFileSync(`${path}.map`, 'utf8'),
+    ) as ConstructorParameters<typeof SourceMap>[0];
+    mapper = new SourceMap(raw);
+  } catch {
+    // No source map: the JS line numbers are still the answer, just less
+    // pleasant to read. Better than refusing to report.
+  }
+
+  console.log(`\n${needle}: ${matched} samples of self time, by source line\n`);
+
+  const ranked = [...byLine.entries()].sort((a, b) => b[1] - a[1]);
+  for (const [line, ticks] of ranked.slice(0, 20)) {
+    const share = ((ticks / matched) * 100).toFixed(1).padStart(5);
+    // positionTicks lines are 1-based; findEntry wants 0-based.
+    const entry = mapper?.findEntry(line - 1, 0);
+    let where = `${shortUrl(url)}:${line}`;
+    let text = '';
+    if (entry?.originalSource && entry.originalLine !== undefined) {
+      const original = entry.originalSource.replace(/^file:\/\//, '');
+      where = `${shortUrl(entry.originalSource)}:${entry.originalLine + 1}`;
+      try {
+        sourceLines ??= readFileSync(original, 'utf8').split('\n');
+        text = (sourceLines[entry.originalLine] ?? '').trim().slice(0, 72);
+      } catch {
+        // Source moved since the build; the location alone still locates it.
+      }
+    }
+    console.log(`  ${share}%  ${where.padEnd(34)} ${text}`);
+  }
+  console.log('');
+}
+
 async function main(): Promise<void> {
   // Re-bucketing a saved profile costs nothing; re-taking one costs a
   // 300-bot run. Whenever the attribution turns out wrong, that has to be
   // fixable without paying for the measurement again.
   const from = argOf('from');
   if (from) {
-    report(JSON.parse(readFileSync(from, 'utf8')) as CpuProfile);
+    const saved = JSON.parse(readFileSync(from, 'utf8')) as CpuProfile;
+    const frame = argOf('frame');
+    if (frame) reportFrame(saved, frame);
+    else report(saved);
     return;
   }
 
@@ -317,7 +389,9 @@ async function main(): Promise<void> {
     console.log(`raw profile written to ${outPath}`);
   }
 
-  report(profile);
+  const frame = argOf('frame');
+  if (frame) reportFrame(profile, frame);
+  else report(profile);
 }
 
 main().catch((err) => {

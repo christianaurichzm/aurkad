@@ -16,8 +16,11 @@ import {
 } from './serialization.js';
 import {
   beginTick,
+  currentTick,
+  fragmentAt,
+  slotOwnerId,
+  slotCapacity,
   recordEntity,
-  entryFor,
   forgetEntity,
 } from './entityReplication.js';
 import { queryEntitiesInRect } from '../spatial/spatialManager.js';
@@ -62,11 +65,26 @@ interface ChunkState {
 }
 const playerChunkState = new Map<string, ChunkState>();
 
-interface InterestSets {
-  players: Set<string>;
-  npcs: Set<string>;
+/**
+ * What one viewer currently has on screen, indexed by entity slot.
+ *
+ * `seen[slot]` is the tick this viewer was last told about that slot's
+ * occupant, so "does the viewer know this entity" is an array read instead of
+ * a string hash. `knownIds`/`knownSlots` are the same membership in the order
+ * it was built, because the leave list has to name ids and a slot alone cannot
+ * (it may have changed hands since).
+ *
+ * `lastTick` is per viewer rather than global: a congested client
+ * is skipped for a tick or more, and its knowledge is still whatever it was
+ * when it was last served.
+ */
+interface InterestState {
+  seen: Int32Array;
+  knownIds: string[];
+  knownSlots: number[];
+  lastTick: number;
 }
-const playerInterestSets = new Map<string, InterestSets>();
+const playerInterestSets = new Map<string, InterestState>();
 
 const MAX_CHUNKS_PER_TICK = 8;
 
@@ -233,9 +251,12 @@ function sendWorldUpdate(
     height: viewport.bottom - viewport.top,
   });
 
-  const known = playerInterestSets.get(player.name);
-  const currentPlayerIds = new Set<string>();
-  const currentNpcIds = new Set<string>();
+  const tick = currentTick();
+  const known = interestStateFor(player.name);
+  const lastTick = known.lastTick;
+  const seen = known.seen;
+  const knownIds: string[] = [];
+  const knownSlots: number[] = [];
   const parts: string[] = [];
   let fullCount = 0;
   let partialCount = 0;
@@ -243,43 +264,51 @@ function sendWorldUpdate(
   for (const entity of nearby) {
     if (!entity.id) continue;
 
-    let viewerKnows: boolean;
     if (entity.kind === 'player') {
       // The viewer's own state travels in `self`, not in `entities`.
       if (entity.id === player.id) continue;
       if (!map.players[entity.id]) continue;
-      currentPlayerIds.add(entity.id);
-      viewerKnows = known?.players.has(entity.id) ?? false;
     } else if (entity.kind === 'npc') {
       const npc = map.npcs[entity.id];
       if (!npc || npc.health <= 0) continue;
-      currentNpcIds.add(entity.id);
-      viewerKnows = known?.npcs.has(entity.id) ?? false;
     } else {
       continue;
     }
 
-    const entry = entryFor(entity.id, viewerKnows);
-    if (!entry) continue;
-    parts.push(entry);
+    // Anything phase 1 did not record has neither a slot nor a body to send.
+    const fragment = fragmentAt(entity.id);
+    if (!fragment) continue;
+    const slot = fragment.slot;
+
+    // Knowledge is read before membership is written. A slot that changed
+    // hands since this viewer was last served is not knowledge of its new
+    // holder, which needs full state. A fresh viewer has `lastTick` -1, which
+    // zero-filled `seen` (written only with ticks from 1) never holds.
+    const viewerKnows = seen[slot] === lastTick && fragment.born <= lastTick;
+    seen[slot] = tick;
+    knownIds.push(entity.id);
+    knownSlots.push(slot);
+
+    const body = viewerKnows ? fragment.delta : fragment.full;
+    if (body === undefined) continue;
+    parts.push(`${fragment.quotedId}:${body}`);
     if (viewerKnows) partialCount++;
     else fullCount++;
   }
 
   const leaving: string[] = [];
-  if (known) {
-    for (const id of known.players) {
-      if (!currentPlayerIds.has(id)) leaving.push(id);
-    }
-    for (const id of known.npcs) {
-      if (!currentNpcIds.has(id)) leaving.push(id);
-    }
+  for (let i = 0; i < known.knownIds.length; i++) {
+    const id = known.knownIds[i]!;
+    const slot = known.knownSlots[i]!;
+    // `slotOwnerId` is what makes recycling safe here: if the slot has been
+    // taken over (or freed) since, the sighting recorded in `seen` is not
+    // about `id`, and `id` is gone as far as this viewer is concerned.
+    if (slotOwnerId(slot) !== id || seen[slot] !== tick) leaving.push(id);
   }
 
-  playerInterestSets.set(player.name, {
-    players: currentPlayerIds,
-    npcs: currentNpcIds,
-  });
+  known.knownIds = knownIds;
+  known.knownSlots = knownSlots;
+  known.lastTick = tick;
 
   const visibleDrops = map.droppedItems.filter((item: DroppedItem) =>
     withinViewport(item.position, viewport),
@@ -317,6 +346,37 @@ function sendWorldUpdate(
   nsCountBytes(data.length);
   nsCountWorldUpdate(data.length, fullCount, partialCount);
   if (leaving.length > 0) nsCountEntityLeave(leaving.length, 0);
+}
+
+/**
+ * This viewer's interest state, grown to cover every slot in existence. A
+ * fresh array is zero-filled and `lastTick` starts below zero, so no slot
+ * reads as "seen last tick" and a new viewer is not sent deltas for
+ * entities it never saw.
+ */
+function interestStateFor(name: string): InterestState {
+  const capacity = slotCapacity();
+  const existing = playerInterestSets.get(name);
+
+  if (existing) {
+    if (existing.seen.length < capacity) {
+      const grown = new Int32Array(
+        Math.max(capacity, existing.seen.length * 2),
+      );
+      grown.set(existing.seen);
+      existing.seen = grown;
+    }
+    return existing;
+  }
+
+  const fresh: InterestState = {
+    seen: new Int32Array(Math.max(capacity, 64)),
+    knownIds: [],
+    knownSlots: [],
+    lastTick: -1,
+  };
+  playerInterestSets.set(name, fresh);
+  return fresh;
 }
 
 function withinViewport(pos: { x: number; y: number }, vp: Viewport): boolean {

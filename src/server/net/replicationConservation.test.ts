@@ -1,7 +1,8 @@
 import { describe, it, expect, afterEach } from 'vitest';
 import WebSocket from 'ws';
 import { broadcastGameState, resetPlayerNetState } from './snapshot.js';
-import { resetEntityReplication } from './entityReplication.js';
+import { resetEntityReplication, slotCapacity } from './entityReplication.js';
+import { spawnNpc, despawnNpc } from '../services/npc/spawn.js';
 import { playersWsMap } from './connections.js';
 import { createFixture, tile } from '../sim/simFixture.js';
 import { rebuildQuadtree } from '../spatial/spatialManager.js';
@@ -248,6 +249,44 @@ describe('entity replication conserves state', () => {
     const updates = worldUpdates();
     expect(updates.length).toBeGreaterThan(before);
     expect(updates.at(-1)!.self.position).toEqual(tile(3, 2));
+  });
+
+  // The interest set is indexed by recycled slots, so an entity taking over
+  // a despawned one's slot could pass as known to a viewer that never saw it,
+  // and its predecessor never be reported gone.
+  it('does not let an entity inherit the slot of the one it replaced', () => {
+    const sim = createFixture(0);
+    const alice = sim.addPlayer({ name: 'Alice', position: tile(2, 2) });
+    resetPlayerNetState('Alice');
+
+    const { ws, worldUpdates } = collectingWs();
+    playersWsMap.set('Alice', ws);
+    const client = makeClient();
+
+    const first = spawnNpc({ mapId: sim.mapId, col: 3, row: 3 })!;
+    rebuildQuadtree(sim.mapId, sim.map);
+    broadcastGameState();
+    for (const p of worldUpdates()) client.apply(p);
+    expect(client.npcs[first.id]).toBeDefined();
+
+    const capacityWithFirst = slotCapacity();
+    despawnNpc(first);
+    const second = spawnNpc({ mapId: sim.mapId, col: 3, row: 3 })!;
+
+    rebuildQuadtree(sim.mapId, sim.map);
+    broadcastGameState();
+    for (const p of worldUpdates()) client.apply(p);
+
+    // Without this the test would be vacuous: it only exercises recycling if
+    // the replacement actually took the freed slot instead of a fresh one.
+    expect(slotCapacity()).toBe(capacityWithFirst);
+    expect(second.id).not.toBe(first.id);
+
+    // The replacement arrived complete, not as a delta against its predecessor.
+    const truth = serverTruth(sim.map, alice);
+    expect(client.npcs[second.id]).toEqual(truth.npcs[second.id]);
+    // And the one it replaced was retired rather than silently overwritten.
+    expect(client.npcs[first.id]).toBeUndefined();
   });
 
   it('propagates dropped items to the viewer', () => {
