@@ -11,9 +11,11 @@ import { config } from '../../config.js';
 import { createRouter } from '../../app.js';
 import { createAuthLimiter } from '../middleware/rateLimit.js';
 
-// Standalone operator session for the /admin dashboard: authenticate and grant
-// the panel WITHOUT registering a player in the game world. Moderation only
-// needs the session's access level, so the operator never appears in-game.
+// Standalone operator session for the /admin dashboard: authenticate and
+// grant the panel WITHOUT registering a player in the game world, since
+// moderation needs only the session's access level. The "may I open this
+// editor" pings live here too: each answers the session's access level for
+// a different domain, so no domain router owns them.
 export function createAdminAuthRouter() {
   const router = createRouter();
   // Its own instance, not the player one: an operator locked out because
@@ -100,6 +102,18 @@ export function createAdminAuthRouter() {
 
   router.post('/admin/logout', (req: ExtendedRequest, res: Response) => {
     req.session.destroy(() => res.json({ ok: true }));
+  });
+
+  router.post('/openMapEditor', checkAccess(Access.ADMIN), (_req, res) => {
+    res.status(200).send('Authorized');
+  });
+
+  router.post('/openModEditor', checkAccess(Access.MOD), (_req, res) => {
+    res.status(200).send('Authorized');
+  });
+
+  router.post('/openContentEditor', checkAccess(Access.ADMIN), (_req, res) => {
+    res.status(200).send('Authorized');
   });
 
   return router;

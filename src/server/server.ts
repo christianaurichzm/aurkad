@@ -23,6 +23,10 @@ import { createSessionMiddleware } from './http/session.js';
 import { createHttpLimiter } from './http/middleware/rateLimit.js';
 import { createAuthRouter } from './http/routes/authRoutes.js';
 import { createContentRouter } from './http/routes/contentRoutes.js';
+import { createMapRouter } from './http/routes/mapRoutes.js';
+import { createPlayerRouter } from './http/routes/playerRoutes.js';
+import { createShopRouter } from './http/routes/shopRoutes.js';
+import { contentRefresh } from './http/middleware/contentRefresh.js';
 import { createModRouter } from './http/routes/modRoutes.js';
 import { createAssetsRouter } from './http/routes/assetsRoutes.js';
 import { createAudioRouter } from './http/routes/audioRoutes.js';
@@ -100,7 +104,12 @@ app.use(createHttpLimiter());
 app.use(createMetricsRouter());
 
 app.use(createAuthRouter());
+// Above the routers that write content, so it sees the response of any of them.
+app.use(contentRefresh);
 app.use(createContentRouter());
+app.use(createMapRouter());
+app.use(createPlayerRouter());
+app.use(createShopRouter());
 app.use(createModRouter());
 app.use(createAssetsRouter());
 app.use(createAudioRouter());

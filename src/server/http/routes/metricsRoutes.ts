@@ -301,5 +301,13 @@ export function createMetricsRouter() {
     res.send(render(buildMetricsSamples()));
   });
 
+  // The same netcode counters as raw JSON, unaggregated: `/metrics` flattens
+  // them into named series for a scraper, this answers "what is the fan-out
+  // doing right now" for a person with a terminal. One source, so the two
+  // can never disagree.
+  router.get('/debug/net', checkAccess(Access.ADMIN), (_req, res) => {
+    res.json(getNetStats());
+  });
+
   return router;
 }
