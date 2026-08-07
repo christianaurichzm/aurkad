@@ -295,7 +295,7 @@ describe('privileged commands', () => {
     registerCommand('ban', { access: Access.ADMIN }, () => {});
 
     await handleWebCommand('ban', ['bob'], Access.ADMIN, () => {}, 'owner');
-    handleReplCommand('ban', ['carol'], () => {});
+    await handleReplCommand('ban', ['carol'], () => {});
     await settled(2);
 
     // Sorted by source rather than taken as listed: these two are written

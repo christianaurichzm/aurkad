@@ -35,6 +35,7 @@ import { createConsoleRouter } from './http/routes/consoleRoutes.js';
 import { createAdminAuthRouter } from './http/routes/adminAuthRoutes.js';
 import { createScriptsRouter } from './http/routes/scriptsRoutes.js';
 import { registerServerCommands } from './admin/serverCommands.js';
+import { registerPlayerCommands } from './admin/playerCommands.js';
 import { createHealthRouter } from './http/routes/healthRoutes.js';
 import { createMetricsRouter } from './http/routes/metricsRoutes.js';
 import {
@@ -173,6 +174,7 @@ async function startServer() {
     await rebuildContentConstants();
     writeContentDts();
     registerServerCommands();
+    registerPlayerCommands();
     startLiveOps();
     loadModules();
     await loadScripts();

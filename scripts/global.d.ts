@@ -861,12 +861,31 @@ declare function use<T = any>(name: string): T | undefined;
 /** Permission levels for command access. */
 declare const Access: { readonly USER: 0; readonly MOD: 1; readonly ADMIN: 2 };
 
+/**
+ * How the surface running the command wants text emphasised. The terminal
+ * paints with ANSI; chat and the web console hand back the text unchanged,
+ * because they would print the escape codes.
+ */
+interface CommandStyle {
+  title(text: string): string;
+  player(text: string): string;
+  map(text: string): string;
+  ok(text: string): string;
+  warn(text: string): string;
+  error(text: string): string;
+  muted(text: string): string;
+  value(text: string): string;
+}
+
 interface CommandContext {
-  /** Present when run from chat; undefined when run from the terminal REPL. */
+  /** Present when run from chat; undefined from the terminal or web console. */
   player?: PlayerServer;
   args: string[];
   reply: (message: string) => void;
-  source: 'chat' | 'repl';
+  style: CommandStyle;
+  source: 'chat' | 'repl' | 'web';
+  /** Who runs it: the player's name, the operator's account or "console". */
+  actor: string;
 }
 
 interface CommandOptions {

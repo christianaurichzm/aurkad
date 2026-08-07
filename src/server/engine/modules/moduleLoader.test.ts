@@ -29,9 +29,9 @@ function writeModule(id: string, manifest: object, server: string) {
   fs.writeFileSync(path.join(dir, 'server.js'), server);
 }
 
-function repl(name: string, args: string[] = []): string[] {
+async function repl(name: string, args: string[] = []): Promise<string[]> {
   const out: string[] = [];
-  handleReplCommand(name, args, (s) => out.push(s));
+  await handleReplCommand(name, args, (s) => out.push(s));
   return out;
 }
 
@@ -51,7 +51,7 @@ afterEach(() => {
 });
 
 describe('loadModules', () => {
-  it('loads an enabled module and injects its config', () => {
+  it('loads an enabled module and injects its config', async () => {
     writeModule(
       'echo',
       { config: { greeting: 'hello' } },
@@ -60,10 +60,10 @@ describe('loadModules', () => {
 
     loadModules();
 
-    expect(repl('echo')).toEqual(['hello']);
+    expect(await repl('echo')).toEqual(['hello']);
   });
 
-  it('does not load a module disabled by default', () => {
+  it('does not load a module disabled by default', async () => {
     writeModule(
       'secret',
       { enabledByDefault: false },
@@ -74,21 +74,23 @@ describe('loadModules', () => {
 
     // Command was never registered, so the REPL reports it as unhandled.
     const out: string[] = [];
-    expect(handleReplCommand('secret', [], (s) => out.push(s))).toBe(false);
+    expect(await handleReplCommand('secret', [], (s) => out.push(s))).toBe(
+      false,
+    );
   });
 
-  it('unloadAllModules unregisters what a module registered', () => {
+  it('unloadAllModules unregisters what a module registered', async () => {
     writeModule('echo', {}, `command('echo', {}, ({ reply }) => reply('hi'));`);
     loadModules();
-    expect(repl('echo')).toEqual(['hi']);
+    expect(await repl('echo')).toEqual(['hi']);
 
     unloadAllModules();
 
     const out: string[] = [];
-    expect(handleReplCommand('echo', [], (s) => out.push(s))).toBe(false);
+    expect(await handleReplCommand('echo', [], (s) => out.push(s))).toBe(false);
   });
 
-  it('skips a module folder with an invalid manifest', () => {
+  it('skips a module folder with an invalid manifest', async () => {
     const dir = path.join(tmpDir, 'broken');
     fs.mkdirSync(dir, { recursive: true });
     fs.writeFileSync(path.join(dir, 'module.json'), '{ not valid json');
@@ -99,7 +101,9 @@ describe('loadModules', () => {
 
     expect(() => loadModules()).not.toThrow();
     const out: string[] = [];
-    expect(handleReplCommand('broken', [], (s) => out.push(s))).toBe(false);
+    expect(await handleReplCommand('broken', [], (s) => out.push(s))).toBe(
+      false,
+    );
   });
 
   it('does nothing when modules dir is absent', () => {
@@ -109,7 +113,7 @@ describe('loadModules', () => {
 });
 
 describe('inter-module API', () => {
-  it('a dependent loads after its dependency and consumes its API', () => {
+  it('a dependent loads after its dependency and consumes its API', async () => {
     writeModule(
       'provider',
       {},
@@ -124,10 +128,10 @@ describe('inter-module API', () => {
 
     loadModules();
 
-    expect(repl('greet')).toEqual(['hi from provider']);
+    expect(await repl('greet')).toEqual(['hi from provider']);
   });
 
-  it('skips a module whose dependency is disabled', () => {
+  it('skips a module whose dependency is disabled', async () => {
     writeModule(
       'provider',
       { enabledByDefault: false }, // disabled
@@ -143,7 +147,9 @@ describe('inter-module API', () => {
 
     expect(isProvided('greeter')).toBe(false);
     const out: string[] = [];
-    expect(handleReplCommand('greet', [], (s) => out.push(s))).toBe(false); // consumer skipped
+    expect(await handleReplCommand('greet', [], (s) => out.push(s))).toBe(
+      false,
+    ); // consumer skipped
   });
 
   it('unload withdraws a module provided API', () => {

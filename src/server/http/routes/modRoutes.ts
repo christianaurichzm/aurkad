@@ -1,6 +1,6 @@
 import { type Request, type Response } from 'express';
 import type { ExtendedRequest } from '../session.js';
-import { Access, CharacterAction } from '../../../shared/types.js';
+import { Access } from '../../../shared/types.js';
 import type { PlayerServer } from '../../../shared/types.js';
 import { TILE_SIZE } from '../../../shared/constants.js';
 import {
@@ -15,10 +15,9 @@ import {
   WarpPlayerBodySchema,
 } from '../bodySchemas.js';
 import { getMap } from '../../services/world/gameData.js';
-import { findPlacement } from '../../services/world/physicsService.js';
 import checkAccess from '../middleware/checkAccess.js';
 import { broadcast } from '../../net/index.js';
-import { updatePlayerMap } from '../../services/world/mapService.js';
+import { teleportPlayer } from '../../services/world/movementService.js';
 import { banPlayer } from '../../services/content/banService.js';
 import {
   getPlayerByName,
@@ -113,18 +112,9 @@ export function createModRouter() {
       const target = getPlayerByName(playerName);
       if (!target) return res.status(404).send('Player not found');
 
-      const previousMapId = target.mapId;
       // Beside the operator, not on top of them: placement keeps two players
       // off one tile.
-      target.mapId = me.mapId;
-      target.position = findPlacement(target, me.mapId, { ...me.position });
-      target.targetPosition = undefined;
-      target.moving = false;
-      target.action = CharacterAction.Idle;
-      target.moveTick = undefined;
-      target.moveDurationTicks = undefined;
-
-      updatePlayerMap(target.id, target, previousMapId);
+      teleportPlayer(target, me.mapId, { ...me.position });
       broadcast();
 
       res.status(200).send('Player brought to you');
@@ -143,16 +133,7 @@ export function createModRouter() {
       const target = getPlayerByName(playerName);
       if (!target) return res.status(404).send('Player not found');
 
-      const previousMapId = me.mapId;
-      me.mapId = target.mapId;
-      me.position = findPlacement(me, target.mapId, { ...target.position });
-      me.targetPosition = undefined;
-      me.moving = false;
-      me.action = CharacterAction.Idle;
-      me.moveTick = undefined;
-      me.moveDurationTicks = undefined;
-
-      updatePlayerMap(me.id, me, previousMapId);
+      teleportPlayer(me, target.mapId, { ...target.position });
       broadcast();
 
       res.status(200).send('Teleported to player');
@@ -170,16 +151,7 @@ export function createModRouter() {
       if (!target) return res.status(404).send('Player not found');
       if (!getMap(mapId)) return res.status(400).send('Map not loaded');
 
-      const previousMapId = target.mapId;
-      target.mapId = mapId;
-      target.position = { x: col * TILE_SIZE, y: row * TILE_SIZE };
-      target.targetPosition = undefined;
-      target.moving = false;
-      target.action = CharacterAction.Idle;
-      target.moveTick = undefined;
-      target.moveDurationTicks = undefined;
-
-      updatePlayerMap(target.id, target, previousMapId);
+      teleportPlayer(target, mapId, { x: col * TILE_SIZE, y: row * TILE_SIZE });
       broadcast();
 
       res.status(200).send('Player warped');
@@ -232,16 +204,7 @@ export function createModRouter() {
       const me = requireSelfInWorld(req, res);
       if (!me) return;
 
-      const previousMapId = me.mapId;
-      me.mapId = mapId;
-      me.position = { x: 9 * 64, y: 6 * 64 };
-      me.targetPosition = undefined;
-      me.moving = false;
-      me.action = CharacterAction.Idle;
-      me.moveTick = undefined;
-      me.moveDurationTicks = undefined;
-
-      updatePlayerMap(me.id, me, previousMapId);
+      teleportPlayer(me, mapId, { x: 9 * TILE_SIZE, y: 6 * TILE_SIZE });
       broadcast();
 
       res.status(200).send('Moved to map');

@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 import {
   registerCommand,
   handleChatCommand,
@@ -9,6 +9,7 @@ import {
 import { drainGameEvents } from './eventBus.js';
 import { createFixture } from '../sim/simFixture.js';
 import { Access } from '../../shared/types.js';
+import { logger } from '../logger.js';
 
 beforeEach(() => {
   clearCommands();
@@ -33,6 +34,19 @@ describe('registry', () => {
   it('names are case-insensitive', () => {
     registerCommand('Vip', {}, () => {});
     expect(listCommands().map((c) => c.name)).toEqual(['vip']);
+  });
+
+  it('says so when a name takes over one already registered', () => {
+    // A game may replace an engine command, but by accident an operator ends
+    // up wondering why /tp answers something else.
+    const warn = vi.spyOn(logger, 'warn').mockImplementation(() => {});
+    registerCommand('tp', {}, () => {});
+    expect(warn).not.toHaveBeenCalled();
+
+    registerCommand('tp', {}, () => {});
+
+    expect(warn).toHaveBeenCalledWith(expect.stringContaining('"tp"'));
+    warn.mockRestore();
   });
 });
 
@@ -127,7 +141,7 @@ describe('chat dispatch', () => {
 });
 
 describe('repl dispatch', () => {
-  it('runs the handler bypassing access, with no player', () => {
+  it('runs the handler bypassing access, with no player', async () => {
     const out: string[] = [];
     const seen: { args: string[]; source: string; hasPlayer: boolean } = {
       args: [],
@@ -145,27 +159,27 @@ describe('repl dispatch', () => {
       },
     );
 
-    const handled = handleReplCommand('vip', ['Bob'], (s) => out.push(s));
+    const handled = await handleReplCommand('vip', ['Bob'], (s) => out.push(s));
 
     expect(handled).toBe(true);
     expect(seen).toEqual({ args: ['Bob'], source: 'repl', hasPlayer: false });
     expect(out).toEqual(['done']);
   });
 
-  it('returns false for an unknown command', () => {
-    expect(handleReplCommand('nope', [], () => {})).toBe(false);
+  it('returns false for an unknown command', async () => {
+    expect(await handleReplCommand('nope', [], () => {})).toBe(false);
   });
 });
 
 describe('error isolation', () => {
-  it('a throwing handler is caught and replies an error', () => {
+  it('a throwing handler is caught and replies an error', async () => {
     const out: string[] = [];
     registerCommand('boom', {}, () => {
       throw new Error('kaboom');
     });
-    expect(() =>
+    await expect(
       handleReplCommand('boom', [], (s) => out.push(s)),
-    ).not.toThrow();
+    ).resolves.toBe(true);
     expect(out).toEqual(['Command error.']);
   });
 });

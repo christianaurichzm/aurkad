@@ -2,8 +2,9 @@ import { registerCommand } from '../engine/commands.js';
 import { isSuspicious, runCensus } from '../services/economy/economyCensus.js';
 import { Access } from '../../shared/types.js';
 import { serverState, type ServerMode } from '../services/world/serverState.js';
-import { handleChatAction } from '../services/comms/chatService.js';
+import { getChatLog, handleChatAction } from '../services/comms/chatService.js';
 import { getRuntimeState } from '../services/world/gameData.js';
+import { getMetrics } from '../metrics.js';
 import {
   clearFlag,
   listFlags,
@@ -12,9 +13,10 @@ import {
   type LiveOpsFlag,
 } from '../services/liveOpsService.js';
 
-// Server-wide ops as registry commands, so they work from the web console
-// and in-game chat, access-gated. The terminal REPL matches its own richer
-// built-ins first, so these never shadow it. Registered once at boot.
+// Server-wide ops as registry commands: one implementation, reached from the
+// terminal, the web console and in-game chat alike, and audited through the one
+// dispatcher all three cross. Registered once at boot; the player-subject half
+// is in playerCommands.ts.
 
 /**
  * Reads the value an operator typed. `2` is a multiplier and `true` a switch,
@@ -160,53 +162,121 @@ function describeFlag(flag: LiveOpsFlag): string {
   return `${flag.name} = ${String(flag.value)}${window}${who}${note}`;
 }
 
-function onlinePlayerNames(): string[] {
-  const names = new Set<string>();
-  for (const map of Object.values(getRuntimeState().maps)) {
-    for (const player of Object.values(map.players)) names.add(player.name);
-  }
-  return [...names].sort((a, b) => a.localeCompare(b));
-}
-
 export function registerServerCommands(): void {
   registerCommand(
     'broadcast',
     { access: Access.MOD, description: 'Broadcast a message to everyone' },
-    ({ args, reply }) => {
+    ({ args, reply, style }) => {
       const message = args.join(' ').trim();
       if (!message) return reply('Usage: broadcast <message>');
+      // Through the chat service, not straight at the sockets: that is what
+      // records the line in the chat log, so `chat` can show the announcement
+      // that was just made.
       handleChatAction({ type: 'chat', scope: 'global', message });
-      reply('Broadcast sent.');
+      reply(style.ok(`Broadcast sent: ${message}`));
+    },
+  );
+  registerCommand(
+    'say',
+    { access: Access.MOD, description: 'Broadcast a message to everyone' },
+    ({ args, reply, style }) => {
+      const message = args.join(' ').trim();
+      if (!message) return reply('Usage: say <message>');
+      handleChatAction({ type: 'chat', scope: 'global', message });
+      reply(style.ok(`Broadcast sent: ${message}`));
     },
   );
 
-  const listPlayers = ({ reply }: { reply: (m: string) => void }) => {
-    const names = onlinePlayerNames();
-    reply(
-      names.length
-        ? `Online (${names.length}): ${names.join(', ')}`
-        : 'No players online.',
-    );
-  };
   registerCommand(
-    'players',
-    { access: Access.MOD, description: 'List online players' },
-    listPlayers,
+    'maps',
+    { access: Access.MOD, description: 'List active maps and entity counts' },
+    ({ reply, style }) => {
+      const entries = Object.entries(getRuntimeState().maps);
+      if (entries.length === 0) return reply(style.warn('No active maps.'));
+
+      reply(
+        `${style.title('Active maps')}: ${style.value(String(entries.length))}`,
+      );
+      for (const [mapId, map] of entries) {
+        const players = Object.keys(map.players).length;
+        const npcs = Object.keys(map.npcs).length;
+        reply(
+          `  ${style.map(mapId.padEnd(20))} players:${style.value(String(players))}  npcs:${style.value(String(npcs))}`,
+        );
+      }
+    },
   );
+
   registerCommand(
-    'online',
-    { access: Access.MOD, description: 'List online players' },
-    listPlayers,
+    'chat',
+    { access: Access.MOD, description: 'Show the last n chat messages' },
+    ({ args, reply, style }) => {
+      const asked = args[0] ? parseInt(args[0], 10) : 20;
+      const entries = getChatLog(isNaN(asked) ? 20 : asked);
+      if (entries.length === 0) {
+        return reply(style.warn('No chat messages yet.'));
+      }
+      for (const entry of entries) {
+        const at = new Date(entry.ts).toLocaleTimeString();
+        reply(
+          `  ${style.muted(`[${at}]`)} ${style.value(`[${entry.scope}]`)} ${style.player(entry.username ?? '[server]')}: ${entry.message}`,
+        );
+      }
+    },
+  );
+
+  registerCommand(
+    'stats',
+    { access: Access.ADMIN, description: 'Show server metrics' },
+    ({ reply, style }) => {
+      const m = getMetrics();
+      reply(
+        `${style.title('Uptime')}: ${style.value(`${m.uptime}s`)}  |  WS: ${style.value(String(m.wsConnections))}  |  Players: ${style.value(String(m.players))}  |  NPCs: ${style.value(String(m.npcs))}  |  Maps: ${style.value(String(m.maps))}`,
+      );
+      reply(
+        `${style.title('Tick')}: avg ${style.value(`${m.tick.avgMs}ms`)}  p50 ${style.value(`${m.tick.p50Ms}ms`)}  p95 ${style.value(`${m.tick.p95Ms}ms`)}  p99 ${style.value(`${m.tick.p99Ms}ms`)}  max ${style.value(`${m.tick.maxMs}ms`)}  (${m.tick.samples} samples)`,
+      );
+      reply(
+        `${style.title('Queue')}: avg ${style.value(String(m.tick.avgQueueSize))}  p95 ${style.value(String(m.tick.p95QueueSize))}  max ${style.value(String(m.tick.maxQueueSize))}  |  ${style.title('Catch-up')}: ${style.value(String(m.tick.catchUpTicks))} of ${style.value(String(m.tick.totalTicks))} ticks`,
+      );
+      // Right under the tick line, because "it got slower" and "this file is
+      // why" are one question. Silent until a window has closed.
+      if (m.scripts.shares.length > 0) {
+        const top = m.scripts.shares
+          .slice(0, 3)
+          .map(
+            (s) => `${style.player(s.script)} ${style.value(`${s.percent}%`)}`,
+          )
+          .join('  ');
+        reply(
+          `${style.title('Scripts')}: ${top}  ${style.muted('(last window)')}`,
+        );
+      }
+    },
   );
 
   registerCommand(
     'motd',
-    { access: Access.ADMIN, description: 'Set the message of the day' },
-    ({ args, reply }) => {
+    {
+      access: Access.ADMIN,
+      description: 'Get, set or clear the message of the day',
+    },
+    ({ args, reply, style }) => {
+      // A bare `motd` reads it, the same as in the terminal, so the one word
+      // never wipes the notice on one surface and prints it on another.
+      if (args.length === 0) {
+        return reply(
+          serverState.motd
+            ? `${style.title('MOTD')}: ${serverState.motd}`
+            : style.warn('No MOTD set.'),
+        );
+      }
+      if (args[0] === 'clear') {
+        serverState.motd = '';
+        return reply(style.ok('MOTD cleared.'));
+      }
       serverState.motd = args.join(' ').trim();
-      reply(
-        serverState.motd ? `MOTD set: ${serverState.motd}` : 'MOTD cleared.',
-      );
+      reply(style.ok(`MOTD set: ${serverState.motd}`));
     },
   );
 
@@ -214,45 +284,32 @@ export function registerServerCommands(): void {
     'mode',
     {
       access: Access.ADMIN,
-      description: 'Set server mode: normal | maintenance | gm_only',
+      description: 'Get or set server mode: normal | maintenance | gm_only',
     },
-    ({ args, reply }) => {
-      const mode = args[0] as ServerMode;
+    ({ args, reply, style }) => {
+      const mode = args[0] as ServerMode | undefined;
+      if (!mode) {
+        return reply(
+          `${style.title('Server mode')}: ${style.value(serverState.mode)}`,
+        );
+      }
       if (mode !== 'normal' && mode !== 'maintenance' && mode !== 'gm_only') {
-        return reply('Usage: mode <normal|maintenance|gm_only>');
+        return reply('Usage: mode [normal|maintenance|gm_only]');
       }
       serverState.mode = mode;
-      reply(`Server mode is now: ${mode}`);
-    },
-  );
-
-  registerCommand(
-    'mute',
-    {
-      access: Access.ADMIN,
-      description: 'Mute a player: mute <name> [minutes]',
-    },
-    ({ args, reply }) => {
-      const name = args[0];
-      if (!name) return reply('Usage: mute <name> [minutes]');
-      const minutes = Number(args[1]);
-      const expiry =
-        Number.isFinite(minutes) && minutes > 0
-          ? Date.now() + minutes * 60_000
-          : 0;
-      serverState.mutes.set(name, expiry);
-      reply(`${name} muted${expiry ? ` for ${minutes}m` : ' permanently'}.`);
-    },
-  );
-
-  registerCommand(
-    'unmute',
-    { access: Access.ADMIN, description: 'Unmute a player' },
-    ({ args, reply }) => {
-      const name = args[0];
-      if (!name) return reply('Usage: unmute <name>');
-      serverState.mutes.delete(name);
-      reply(`${name} unmuted.`);
+      reply(style.ok(`Server mode set to: ${mode}`));
+      // Players find out from the game, not from the log: the modes that
+      // restrict logins are the ones somebody is about to run into.
+      if (mode !== 'normal') {
+        handleChatAction({
+          type: 'chat',
+          scope: 'global',
+          message:
+            mode === 'maintenance'
+              ? 'Server entering maintenance mode. New logins are restricted.'
+              : 'Server is now GM-only. New logins are restricted.',
+        });
+      }
     },
   );
 

@@ -75,7 +75,7 @@ describe('server ops commands', () => {
 
   it('broadcast queues a global chat event', async () => {
     const { out } = await run('broadcast hello world');
-    expect(out).toEqual(['Broadcast sent.']);
+    expect(out).toEqual(['Broadcast sent: hello world']);
     const events = drainGameEvents();
     expect(events).toEqual([
       {
@@ -92,17 +92,44 @@ describe('server ops commands', () => {
     expect(serverState.mode).toBe('maintenance');
   });
 
-  it('motd sets and clears the message of the day', async () => {
-    await run('motd Event at 8pm');
-    expect(serverState.motd).toBe('Event at 8pm');
+  it('mode announces the restriction to the players it affects', async () => {
+    drainGameEvents();
+    await run('mode maintenance');
+
+    expect(drainGameEvents()).toContainEqual(
+      expect.objectContaining({ type: 'chatGlobal' }),
+    );
   });
 
-  it('players lists online players', async () => {
+  it('mode with no argument reads it back', async () => {
+    serverState.mode = 'gm_only';
+    expect((await run('mode')).out[0]).toMatch(/gm_only/);
+    expect(serverState.mode).toBe('gm_only');
+  });
+
+  it('motd sets, reads and clears the message of the day', async () => {
+    await run('motd Event at 8pm');
+    expect(serverState.motd).toBe('Event at 8pm');
+
+    // Reading it must not lose it: a bare `motd` shows the notice and
+    // leaves it set.
+    expect((await run('motd')).out[0]).toContain('Event at 8pm');
+    expect(serverState.motd).toBe('Event at 8pm');
+
+    await run('motd clear');
+    expect(serverState.motd).toBe('');
+  });
+
+  it('maps lists the active maps with what is on them', async () => {
     const sim = createFixture(0);
     sim.addPlayer({ name: 'Alice' });
-    sim.addPlayer({ name: 'Bob' });
-    const { out } = await run('players');
-    expect(out[0]).toBe('Online (2): Alice, Bob');
+    sim.addNpc({});
+
+    const { out } = await run('maps');
+
+    expect(out[0]).toContain('Active maps');
+    expect(out[1]).toContain('players:1');
+    expect(out[1]).toContain('npcs:1');
   });
 });
 

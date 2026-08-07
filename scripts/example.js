@@ -249,17 +249,11 @@ on('playerDeath', ({ player, killer }) => {
 
 // ─── ADMIN COMMANDS ──────────────────────────────────────────────────────────
 
-command(
-  'heal',
-  { access: Access.MOD, description: 'Fully heal a player' },
-  ({ args, reply }) => {
-    const target = args[0] ? getPlayer(args[0]) : null;
-    if (!target) return reply('Usage: /heal <player>');
-    healPlayer(target);
-    reply(`${target.name} healed.`);
-  },
-);
-
+// The engine already registers the operator's own set (heal, tp, kill,
+// ban, kick and the rest), and a name registered twice leaves the earlier
+// one unreachable, which the server warns about at boot. So a script
+// command takes a name of its own, like this one, unless it is meant to
+// replace the built-in.
 command(
   'give',
   {
@@ -274,24 +268,6 @@ command(
       return reply('Usage: /give <player> <itemId> [qty]');
     giveItem(target, itemId, qty);
     reply(`Gave ${qty}× item #${itemId} to ${target.name}.`);
-  },
-);
-
-command(
-  'tp',
-  {
-    access: Access.ADMIN,
-    description: 'Teleport: /tp <player> <mapId> <col> <row>',
-  },
-  ({ args, reply }) => {
-    const target = getPlayer(args[0]);
-    const mapId = args[1];
-    const col = parseInt(args[2]);
-    const row = parseInt(args[3]);
-    if (!target || !mapId || isNaN(col) || isNaN(row))
-      return reply('Usage: /tp <player> <mapId> <col> <row>');
-    teleportPlayer(target, mapId, col, row);
-    reply(`Teleported ${target.name} to map ${mapId} (${col}, ${row}).`);
   },
 );
 

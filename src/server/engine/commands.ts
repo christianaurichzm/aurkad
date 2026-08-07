@@ -9,11 +9,41 @@ import type { PlayerServer } from '../../shared/types.js';
 // Chat enforces the access level AND an optional canRun predicate (e.g. a VIP
 // flag that isn't an access tier); the REPL operator bypasses both.
 
+/**
+ * How a surface wants a reply emphasised. The terminal speaks ANSI, while the
+ * browser console and chat would print the codes as garbage, so a handler
+ * asks for emphasis by role and the surface decides. The default does nothing.
+ */
+export interface CommandStyle {
+  title: (text: string) => string;
+  player: (text: string) => string;
+  map: (text: string) => string;
+  ok: (text: string) => string;
+  warn: (text: string) => string;
+  error: (text: string) => string;
+  muted: (text: string) => string;
+  value: (text: string) => string;
+}
+
+const asIs = (text: string) => text;
+
+export const plainStyle: CommandStyle = {
+  title: asIs,
+  player: asIs,
+  map: asIs,
+  ok: asIs,
+  warn: asIs,
+  error: asIs,
+  muted: asIs,
+  value: asIs,
+};
+
 export interface CommandContext {
   // Present when invoked from chat; absent when invoked from the REPL.
   player?: PlayerServer;
   args: string[];
   reply: (message: string) => void;
+  style: CommandStyle;
   source: 'chat' | 'repl' | 'web';
   /**
    * Who is running this, resolved by the dispatcher: the player's name from
@@ -25,7 +55,9 @@ export interface CommandContext {
 }
 
 /** What an entry point builds; the dispatcher resolves the rest. */
-type IncomingCommand = Omit<CommandContext, 'actor'>;
+type IncomingCommand = Omit<CommandContext, 'actor' | 'style'> & {
+  style?: CommandStyle;
+};
 
 /**
  * A handler may be async, and a caller that can wait should. The web console
@@ -59,6 +91,14 @@ export function registerCommand(
   handler: (ctx: CommandContext) => CommandResult,
 ): () => void {
   const key = name.toLowerCase();
+  // Last registration wins, so a game can override an engine command; the
+  // warning keeps it from going unnoticed. Scripts unregister before a
+  // reload, so a hot reload does not trip it.
+  if (commands.has(key)) {
+    logger.warn(
+      `[command] "${key}" was already registered; the earlier one is now unreachable`,
+    );
+  }
   commands.set(key, {
     name: key,
     access: options.access ?? Access.USER,
@@ -120,7 +160,11 @@ function runHandler(
   // has no account behind it, which is itself worth recording as such.
   actor = incoming.player?.name ?? 'console',
 ): CommandResult {
-  const ctx: CommandContext = { ...incoming, actor };
+  const ctx: CommandContext = {
+    ...incoming,
+    style: incoming.style ?? plainStyle,
+    actor,
+  };
   auditCommand(cmd, ctx, actor);
   const failed = (e: unknown) => {
     logger.error(`[command] "${cmd.name}" threw`, { err: e });
@@ -168,16 +212,28 @@ export function handleChatCommand(
   return true;
 }
 
-// REPL entry point. The operator is trusted, so access is bypassed. Returns
-// true if a command matched (so the REPL doesn't print "unknown command").
-export function handleReplCommand(
+/**
+ * REPL entry point. The operator is trusted, so access is bypassed. Returns
+ * true if a command matched (so the REPL doesn't print "unknown command").
+ *
+ * Awaited for the same reason the web console awaits: a handler that reads the
+ * database replies after its first await, and the terminal would otherwise
+ * redraw the prompt over the answer.
+ */
+export async function handleReplCommand(
   name: string,
   args: string[],
   out: (message: string) => void,
-): boolean {
+  style?: CommandStyle,
+): Promise<boolean> {
   const cmd = commands.get(name.toLowerCase());
   if (!cmd) return false;
-  void runHandler(cmd, { args, reply: out, source: 'repl' });
+  await runHandler(cmd, {
+    args,
+    reply: out,
+    source: 'repl',
+    ...(style && { style }),
+  });
   return true;
 }
 
