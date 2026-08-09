@@ -36,7 +36,13 @@ interface EquippedItems {
 /** Direction as stored at runtime: 0=Down, 1=Left, 2=Right, 3=Up. */
 type Direction = 0 | 1 | 2 | 3;
 type CharacterAction = 'Idle' | 'Walk' | 'Run' | 'Attack';
-type NpcBehavior = 'aggressive' | 'hostile' | 'neutral' | 'friendly' | 'shopkeeper' | 'guard';
+type NpcBehavior =
+  | 'aggressive'
+  | 'hostile'
+  | 'neutral'
+  | 'friendly'
+  | 'shopkeeper'
+  | 'guard';
 type ChatScope = 'global' | 'map' | 'player';
 type MapType = 'pvp' | 'normal';
 
@@ -154,44 +160,61 @@ interface LootConditionContext {
 // Hook event payloads
 
 interface HookPayloads {
-  playerJoin:    { player: PlayerServer };
-  playerLeave:   { player: PlayerServer };
-  playerDeath:   { player: PlayerServer; killer?: CombatTarget };
+  playerJoin: { player: PlayerServer };
+  playerLeave: { player: PlayerServer };
+  playerDeath: { player: PlayerServer; killer?: CombatTarget };
   playerLevelUp: { player: PlayerServer; level: number };
   /**
    * `killer` landed the last hit; `contributors` is everyone who fought it,
    * largest share first.
    */
-  npcDeath:      { npc: RuntimeNpc; killer: PlayerServer; contributors: DamageContributor[] };
+  npcDeath: {
+    npc: RuntimeNpc;
+    killer: PlayerServer;
+    contributors: DamageContributor[];
+  };
   /** Player pressed interact (F) while facing this NPC. */
-  npcInteract:   { player: PlayerServer; npc: RuntimeNpc };
-  tileEnter:     { player: PlayerServer; tile: Tile; map: MapState };
-  itemUse:       { player: PlayerServer; itemId: number };
-  itemPickup:    { player: PlayerServer; itemId: number; quantity: number };
+  npcInteract: { player: PlayerServer; npc: RuntimeNpc };
+  tileEnter: { player: PlayerServer; tile: Tile; map: MapState };
+  itemUse: { player: PlayerServer; itemId: number };
+  itemPickup: { player: PlayerServer; itemId: number; quantity: number };
   /** Fires after the slot changed. A swap fires unequip, then equip. */
-  itemEquip:     { player: PlayerServer; itemId: number; slot: EquipmentSlot };
-  itemUnequip:   { player: PlayerServer; itemId: number; slot: EquipmentSlot };
-  chatMessage:   { player: PlayerServer; scope: ChatScope; message: string };
-  beforeDamage:  { attacker?: CombatTarget; target: CombatTarget; damage: { value: number } };
+  itemEquip: { player: PlayerServer; itemId: number; slot: EquipmentSlot };
+  itemUnequip: { player: PlayerServer; itemId: number; slot: EquipmentSlot };
+  chatMessage: { player: PlayerServer; scope: ChatScope; message: string };
+  beforeDamage: {
+    attacker?: CombatTarget;
+    target: CombatTarget;
+    damage: { value: number };
+  };
   /**
    * Fires after damage is applied, with the final `damage` (read only), for
    * on-hit effects like knockback.
    */
-  afterDamage:   { attacker?: CombatTarget; target: CombatTarget; damage: number; lethal: boolean };
+  afterDamage: {
+    attacker?: CombatTarget;
+    target: CombatTarget;
+    damage: number;
+    lethal: boolean;
+  };
   /**
    * Mutate `amount` to scale XP gain (VIP 2x, say). `source` is 'kill',
    * 'script' or another tag.
    */
-  beforeXpGain:  { player: PlayerServer; amount: number; source: string };
+  beforeXpGain: { player: PlayerServer; amount: number; source: string };
   /** A custom message from client code. The payload is untrusted input. */
-  customAction:  { player: PlayerServer; channel: string; payload: unknown };
+  customAction: { player: PlayerServer; channel: string; payload: unknown };
   /**
    * A live-ops flag started or ended (see `flags`), once per transition, not
    * per boot; read `flags.enabled` at load for the current state.
    */
-  liveOpsFlag:   { name: string; value: boolean | number | string; active: boolean };
+  liveOpsFlag: {
+    name: string;
+    value: boolean | number | string;
+    active: boolean;
+  };
   /** Fires every game tick (~20/sec). Throttle with `if (tick % n === 0)`. */
-  tick:          { tick: number };
+  tick: { tick: number };
 }
 
 type HookEvent = keyof HookPayloads;
@@ -245,7 +268,12 @@ declare function attach<P extends Record<string, ScriptParamDecl>>(
  */
 type ScriptParamDecl = { label?: string; help?: string; required?: boolean } & (
   | { type: 'text' | 'map'; default?: string }
-  | { type: 'number' | 'item' | 'npc'; default?: number; min?: number; max?: number }
+  | {
+      type: 'number' | 'item' | 'npc';
+      default?: number;
+      min?: number;
+      max?: number;
+    }
   | { type: 'boolean'; default?: boolean }
   | { type: 'select'; options: string[]; default?: string }
 );
@@ -337,7 +365,12 @@ declare function getPlayer(name: string): PlayerServer | undefined;
 declare function getPlayers(): PlayerServer[];
 
 /** Living NPCs within `radius` px of a point (AoE spells, pet targeting). */
-declare function getNearbyNpcs(mapId: string, x: number, y: number, radius: number): RuntimeNpc[];
+declare function getNearbyNpcs(
+  mapId: string,
+  x: number,
+  y: number,
+  radius: number,
+): RuntimeNpc[];
 
 interface SpellData {
   id: number;
@@ -438,15 +471,17 @@ declare function getRecipes(): RecipeData[];
  * module seeding its built-ins in SpellEditor when getSpells() is empty.
  * `visualTarget` defaults to 'targets' when damage > 0, else 'self'.
  */
-declare function createSpells(spells: {
-  name: string;
-  description?: string;
-  sprite: number;
-  mpCost: number;
-  damage: number;
-  cooldownMs: number;
-  visualTarget?: 'self' | 'targets';
-}[]): void;
+declare function createSpells(
+  spells: {
+    name: string;
+    description?: string;
+    sprite: number;
+    mpCost: number;
+    damage: number;
+    cooldownMs: number;
+    visualTarget?: 'self' | 'targets';
+  }[],
+): void;
 
 interface ArrowData {
   id: number;
@@ -467,13 +502,29 @@ declare function getArrows(): ArrowData[];
  * Looks up an item by numeric id. A `bound` item cannot be dropped,
  * traded or banked.
  */
-declare function getItem(id: number): { id: number; name: string; type: string; arrowId?: number; bound?: boolean } | undefined;
+declare function getItem(
+  id: number,
+):
+  | {
+      id: number;
+      name: string;
+      type: string;
+      arrowId?: number;
+      bound?: boolean;
+    }
+  | undefined;
 
 /** Tile size in pixels for a map (returns undefined if map doesn't exist). */
-declare function getMapSize(mapId: string): { cols: number; rows: number } | undefined;
+declare function getMapSize(
+  mapId: string,
+): { cols: number; rows: number } | undefined;
 
 /** Returns tile info at (col, row), or null if out of bounds. */
-declare function getMapTile(mapId: string, col: number, row: number): { blocked: boolean } | null;
+declare function getMapTile(
+  mapId: string,
+  col: number,
+  row: number,
+): { blocked: boolean } | null;
 
 type PvpMorale = 'safe' | 'normal' | 'no-penalty';
 
@@ -535,7 +586,11 @@ interface EconomyResult {
  * Add items to a player's inventory. False when it did not happen (a full
  * inventory or an unknown item), so check it before telling the player.
  */
-declare function giveItem(player: PlayerServer, itemId: number, quantity?: number): boolean;
+declare function giveItem(
+  player: PlayerServer,
+  itemId: number,
+  quantity?: number,
+): boolean;
 
 /**
  * Remove items from a player's inventory.
@@ -543,10 +598,18 @@ declare function giveItem(player: PlayerServer, itemId: number, quantity?: numbe
  * All or nothing: asking for more than the player has removes nothing and
  * returns false, rather than taking what is there.
  */
-declare function removeItem(player: PlayerServer, itemId: number, quantity?: number): boolean;
+declare function removeItem(
+  player: PlayerServer,
+  itemId: number,
+  quantity?: number,
+): boolean;
 
 /** Whether the player holds at least `quantity` of an item. */
-declare function hasItem(player: PlayerServer, itemId: number, quantity?: number): boolean;
+declare function hasItem(
+  player: PlayerServer,
+  itemId: number,
+  quantity?: number,
+): boolean;
 
 /** How many of an item the player holds. */
 declare function countItem(player: PlayerServer, itemId: number): number;
@@ -598,7 +661,11 @@ type DeliveryFailure =
   | 'unknown-item'
   | 'unknown-recipient'
   | 'mailbox-full'
-  | 'meta-too-large';
+  | 'meta-too-large'
+  /** `send` only: the sender no longer has that quantity. */
+  | 'not-enough'
+  /** `send` only: the write failed, so nothing was queued or debited. */
+  | 'not-committed';
 
 /** Flat rather than a union, for the reason given on EconomyResult above. */
 interface DeliveryQueueResult {
@@ -644,6 +711,20 @@ declare const delivery: {
     quantity?: number;
     meta?: unknown;
   }): Promise<DeliveryQueueResult>;
+  /**
+   * Queue an item taken from `from`'s inventory: the debit and the queued row
+   * are one commit. Do not remove the item, persist, or refund around this -
+   * on failure the sender's inventory is untouched.
+   */
+  send(
+    from: PlayerServer,
+    input: {
+      to: string;
+      itemId: number;
+      quantity?: number;
+      meta?: unknown;
+    },
+  ): Promise<DeliveryQueueResult>;
   /** Everything waiting for a player, oldest first. */
   list(name: string): Promise<PendingDelivery[]>;
   count(name: string): Promise<number>;
@@ -663,16 +744,26 @@ declare function healPlayer(player: PlayerServer): void;
 declare function killPlayer(player: PlayerServer): void;
 
 /** Apply damage through combat: beforeDamage, death hooks, drops, XP. */
-declare function dealDamage(target: CombatTarget, amount: number, attacker?: CombatTarget): void;
+declare function dealDamage(
+  target: CombatTarget,
+  amount: number,
+  attacker?: CombatTarget,
+): void;
 
 /** Grant XP (passes through the beforeXpGain hook, so multipliers apply). */
 declare function giveExperience(player: PlayerServer, amount: number): void;
 
 /** Set the cosmetic name color above a player (undefined clears it). */
-declare function setNameColor(player: PlayerServer, color: string | undefined): void;
+declare function setNameColor(
+  player: PlayerServer,
+  color: string | undefined,
+): void;
 
 /** Set the cosmetic tag drawn above a player's name (undefined clears it). */
-declare function setNameTag(player: PlayerServer, tag: string | undefined): void;
+declare function setNameTag(
+  player: PlayerServer,
+  tag: string | undefined,
+): void;
 
 /**
  * Contribute a named source to a cosmetic field. The highest priority wins,
@@ -701,14 +792,21 @@ declare function clearCosmetic(
  *     log.push(entry);
  *     setPlayerData(p, 'log', log);   // required; the push alone does nothing
  */
-declare function getPlayerData<T = unknown>(player: PlayerServer, key: string): T | undefined;
+declare function getPlayerData<T = unknown>(
+  player: PlayerServer,
+  key: string,
+): T | undefined;
 
 /**
  * Write a custom data field to a player (persisted). False when refused:
  * too large, too many keys or not JSON. A player document past 16 MB stops
  * saving, so check the result. `undefined` clears the key.
  */
-declare function setPlayerData(player: PlayerServer, key: string, value: unknown): boolean;
+declare function setPlayerData(
+  player: PlayerServer,
+  key: string,
+  value: unknown,
+): boolean;
 
 /**
  * Scoped key-value store shared across players and persisted, with any
@@ -760,10 +858,18 @@ declare function broadcastMessage(message: string): void;
  * Sends a custom event to one player's client code. The channel and
  * payload are yours.
  */
-declare function sendEvent(player: PlayerServer, channel: string, payload?: unknown): void;
+declare function sendEvent(
+  player: PlayerServer,
+  channel: string,
+  payload?: unknown,
+): void;
 
 /** Send a custom event to every client on a map. */
-declare function sendMapEvent(mapId: string, channel: string, payload?: unknown): void;
+declare function sendMapEvent(
+  mapId: string,
+  channel: string,
+  payload?: unknown,
+): void;
 
 /** Send a custom event to all connected clients. */
 declare function broadcastEvent(channel: string, payload?: unknown): void;
@@ -905,7 +1011,10 @@ interface CommandOptions {
  * Chat enforces `access`; the REPL operator always passes. Auto-unregistered
  * on script reload.
  */
-declare function command(name: string, handler: (ctx: CommandContext) => void): void;
+declare function command(
+  name: string,
+  handler: (ctx: CommandContext) => void,
+): void;
 declare function command(
   name: string,
   options: CommandOptions,

@@ -92,6 +92,27 @@ npm run replay -- replays/<file>.json --run              # re-simulate the movem
 
 `--run` rebuilds a world from the recorded seed and replays the keyboard input through it. It reproduces the input, not the incident: a capture started mid-session does not carry the state that predates it.
 
+## Atomic economy writes (replica set)
+
+A trade moves an item between two player documents, and mailing one moves it from a player into the delivery queue. MongoDB can only write two documents together on a **replica set**; standalone `mongod` cannot, so the engine writes them one at a time and a crash in between duplicates or loses the item.
+
+The server detects which it is talking to and says so on boot:
+
+```
+[DB] Transactions available; economic commits are atomic
+[DB] Standalone MongoDB: no transactions. A trade writes each player separately, ...
+```
+
+Standalone is a fine default for a small server. To close the window, run the same single node as a replica set - no cluster, no extra host:
+
+```bash
+docker run -d --name engine-mongo -p 127.0.0.1:27017:27017 mongo:7 --replSet rs0 --bind_ip_all
+docker exec engine-mongo mongosh --quiet --eval \
+  'rs.initiate({_id:"rs0",members:[{_id:0,host:"127.0.0.1:27017"}]})'
+# then point the server at it
+MONGO_URI='mongodb://127.0.0.1:27017/game?replicaSet=rs0' npm start
+```
+
 ## Multi-instance (sharding by map)
 
 Each instance declares which maps it owns. On cross-map warp the client is transparently redirected to the correct instance.

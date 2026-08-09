@@ -34,6 +34,8 @@ const FAILURE_TEXT = {
   'unknown-recipient': 'No player by that name.',
   'mailbox-full': 'That player has too much mail waiting.',
   'meta-too-large': 'That note is too long.',
+  'not-enough': 'You do not have that item quantity.',
+  'not-committed': 'Could not send that; nothing was taken. Try again.',
 };
 
 /** Rows the recipient can read, with item names resolved for display. */
@@ -59,11 +61,11 @@ async function push(player) {
 }
 
 /**
- * Takes the item from the sender, then queues it.
+ * Hands the item to the engine, which debits and queues it as one commit.
  *
- * The refund path matters: a rejected queue (bad name, recipient's mailbox
- * full) must not cost the sender the item, and re-adding always fits because
- * the slot it came from was freed a moment earlier.
+ * Postage is the module's own policy and stays here, so it is the only thing
+ * this function refunds: `delivery.send` leaves the inventory untouched when it
+ * fails, and giving the letter's item back on top of that would print a copy.
  */
 async function send(player, toName, itemIdValue, quantityValue, message) {
   const to = String(toName || '').trim();
@@ -94,15 +96,7 @@ async function send(player, toName, itemIdValue, quantityValue, message) {
     }
   }
 
-  if (!removeItem(player, itemId, quantity)) {
-    if (costPerLetter > 0) giveItem(player, currencyItemId, costPerLetter);
-    return 'You do not have that item quantity.';
-  }
-  // Commit the debit before the row exists: the reverse order would leave a
-  // claimable copy in the queue while the sender still holds the original.
-  persistNow(player);
-
-  const queued = await delivery.queue({
+  const queued = await delivery.send(player, {
     to,
     itemId,
     quantity,
@@ -118,9 +112,10 @@ async function send(player, toName, itemIdValue, quantityValue, message) {
     return `Sent ${quantity}x ${info.name} to ${to}.`;
   }
 
-  giveItem(player, itemId, quantity);
-  if (costPerLetter > 0) giveItem(player, currencyItemId, costPerLetter);
-  persistNow(player);
+  if (costPerLetter > 0) {
+    giveItem(player, currencyItemId, costPerLetter);
+    persistNow(player);
+  }
   return FAILURE_TEXT[queued.reason] || 'Could not send that.';
 }
 

@@ -1,3 +1,4 @@
+import type { ClientSession } from 'mongoose';
 import PlayerModel from '../model/Player.js';
 import { PlayerRecord, PlayerServer } from '../../shared/types.js';
 import { gameConfig } from '../gameConfig.js';
@@ -37,11 +38,13 @@ export const playerRepository = {
     return docs.map(normalizePlayerRecord);
   },
 
-  async save(player: PlayerServer): Promise<void> {
+  // With `session`, an economic commit writes both sides of a trade as one
+  // pair (see persistence/transactions.ts); without it they are independent.
+  async save(player: PlayerServer, session?: ClientSession): Promise<void> {
     await PlayerModel.findOneAndUpdate(
       { id: player.id },
       { $set: player },
-      { upsert: false },
+      { upsert: false, ...(session ? { session } : {}) },
     );
   },
 

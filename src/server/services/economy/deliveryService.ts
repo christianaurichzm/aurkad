@@ -18,7 +18,11 @@
 
 import crypto from 'crypto';
 import DeliveryModel from '../../model/Delivery.js';
-import { addItem } from './economyService.js';
+import { addItem, removeItem } from './economyService.js';
+import {
+  supportsTransactions,
+  withTransaction,
+} from '../../persistence/transactions.js';
 import { getItemById } from './inventoryService.js';
 import { getPlayerByName } from '../../sim/world.js';
 import {
@@ -63,7 +67,10 @@ export type DeliveryFailure =
   | 'unknown-item'
   | 'unknown-recipient'
   | 'mailbox-full'
-  | 'meta-too-large';
+  | 'meta-too-large'
+  | 'not-enough'
+  /** The write failed: nothing was queued and the sender keeps the item. */
+  | 'not-committed';
 
 export type QueueResult =
   | { ok: true; id: string }
@@ -82,7 +89,14 @@ export interface DeliveryInput {
   meta?: unknown;
 }
 
-const fail = (reason: DeliveryFailure): QueueResult => ({ ok: false, reason });
+// Narrowly typed so the same helper serves every result shape that can be
+// refused, not only QueueResult.
+const fail = (
+  reason: DeliveryFailure,
+): { ok: false; reason: DeliveryFailure } => ({
+  ok: false,
+  reason,
+});
 
 function toRow(doc: PendingDelivery): PendingDelivery {
   return {
@@ -97,16 +111,18 @@ function toRow(doc: PendingDelivery): PendingDelivery {
 }
 
 /**
- * Queues an item for `to`, online or not.
+ * Everything that has to be true before a row exists, and the row itself.
  *
  * The recipient is resolved against the database rather than the online
  * registry, because delivering to an offline player is the entire point; the
  * lookup also rejects a mistyped name, which would otherwise be a row nobody
  * can ever claim.
  */
-export async function queueDelivery(
+async function prepareRow(
   input: DeliveryInput,
-): Promise<QueueResult> {
+): Promise<
+  { ok: true; row: PendingDelivery } | { ok: false; reason: DeliveryFailure }
+> {
   const quantity = Math.floor(Number(input.quantity ?? 1));
   if (!Number.isFinite(quantity) || quantity < 1) return fail('invalid-amount');
 
@@ -125,20 +141,98 @@ export async function queueDelivery(
   const pending = await DeliveryModel.countDocuments({ to: recipientName });
   if (pending >= MAX_PENDING_PER_PLAYER) return fail('mailbox-full');
 
-  // Not from sim/rng: a row id is storage identity, not simulation state, so it
-  // must not consume the seeded sequence that replay reproduces.
-  const id = crypto.randomUUID();
-  await DeliveryModel.create({
-    id,
-    to: recipientName,
-    itemId,
-    quantity,
-    source: String(input.source),
-    meta: input.meta,
-    createdAt: Date.now(),
-  });
+  return {
+    ok: true,
+    row: {
+      // Not from sim/rng: a row id is storage identity, not simulation state,
+      // so it must not consume the seeded sequence that replay reproduces.
+      id: crypto.randomUUID(),
+      to: recipientName,
+      itemId,
+      quantity,
+      source: String(input.source),
+      ...(input.meta !== undefined && { meta: input.meta }),
+      createdAt: Date.now(),
+    },
+  };
+}
 
-  return { ok: true, id };
+/** Queues an item for `to`, online or not, out of nowhere (a script grant). */
+export async function queueDelivery(
+  input: DeliveryInput,
+): Promise<QueueResult> {
+  const prepared = await prepareRow(input);
+  if (!prepared.ok) return prepared;
+
+  await DeliveryModel.create(prepared.row);
+  return { ok: true, id: prepared.row.id };
+}
+
+/**
+ * Takes the item out of the sender's inventory and queues it, as one commit.
+ * The debit and the row are separate documents: row first prints an item,
+ * debit first loses one. With transactions they commit together; without,
+ * the debit goes first, since a GM can give an item back but cannot recall
+ * a duplicate. On failure the sender's inventory is as it was, and the
+ * caller must not refund, or the item comes back twice.
+ */
+export async function sendDelivery(
+  from: PlayerServer,
+  input: DeliveryInput,
+): Promise<QueueResult> {
+  const prepared = await prepareRow(input);
+  if (!prepared.ok) return prepared;
+  const { row } = prepared;
+
+  // Synchronous with the check inside it, and only now: everything above this
+  // line awaited, and an inventory can change across an await.
+  if (!removeItem(from.inventory, row.itemId, row.quantity).ok) {
+    return fail('not-enough');
+  }
+
+  const restore = () => {
+    // Always fits: the slot it came from was freed a moment ago.
+    addItem(from.inventory, row.itemId, row.quantity);
+  };
+
+  if (supportsTransactions()) {
+    const committed = await withTransaction(async (session) => {
+      await persistPlayerSessionState(from, session);
+      await DeliveryModel.create([row], { session });
+    }, `delivery send: ${from.name} -> ${row.to}`);
+    if (!committed) {
+      restore();
+      return fail('not-committed');
+    }
+    return { ok: true, id: row.id };
+  }
+
+  try {
+    await persistPlayerSessionState(from);
+  } catch (err) {
+    logger.error('[delivery] sender debit not persisted; nothing queued', {
+      player: from.name,
+      err,
+    });
+    restore();
+    return fail('not-committed');
+  }
+
+  try {
+    await DeliveryModel.create(row);
+  } catch (err) {
+    // The window this ADR-0024 note is about: the debit is already durable, so
+    // the item is gone until the refund below is itself persisted.
+    logger.error('[delivery] row not created after debit; refunding sender', {
+      player: from.name,
+      err,
+    });
+    restore();
+    await persistPlayerSessionState(from).catch(() => undefined);
+    return fail('not-committed');
+  }
+
+  return { ok: true, id: row.id };
 }
 
 /** Everything waiting for a player, oldest first. */

@@ -22,6 +22,7 @@ import {
   countDeliveries,
   listDeliveries,
   queueDelivery,
+  sendDelivery,
 } from './deliveryService.js';
 import { items } from '../world/gameData.js';
 import { createPlayer } from '../player/playerService.js';
@@ -88,6 +89,101 @@ async function makePlayer(name: string, capacity = 10): Promise<PlayerServer> {
   player.inventory = { items: [], maxCapacity: capacity };
   return player;
 }
+
+// Standalone MongoDB, which is what `docker-compose.yml` starts: no
+// transactions, so this is the degraded path. The atomic one is in
+// persistence/transactions.test.ts, against a real replica set.
+describe('sendDelivery without transactions', () => {
+  const withSword = async (name: string): Promise<PlayerServer> => {
+    const player = await makePlayer(name);
+    player.inventory.items.push({ item: SWORD, quantity: 1 });
+    return player;
+  };
+
+  it('debits the sender and queues the row', async () => {
+    const alice = await withSword('Alice');
+    await makePlayer('Bob');
+
+    const result = await sendDelivery(alice, {
+      to: 'Bob',
+      itemId: SWORD,
+      source: 'mail',
+    });
+
+    expect(result.ok).toBe(true);
+    expect(alice.inventory.items).toEqual([]);
+    expect(await countDeliveries('Bob')).toBe(1);
+  });
+
+  it('takes nothing when the recipient does not exist', async () => {
+    const alice = await withSword('Alice');
+
+    expect(
+      await sendDelivery(alice, {
+        to: 'Nobody',
+        itemId: SWORD,
+        source: 'mail',
+      }),
+    ).toEqual({ ok: false, reason: 'unknown-recipient' });
+    expect(alice.inventory.items).toEqual([{ item: SWORD, quantity: 1 }]);
+  });
+
+  it('refuses what the sender no longer holds', async () => {
+    const alice = await makePlayer('Alice');
+    await makePlayer('Bob');
+
+    expect(
+      await sendDelivery(alice, { to: 'Bob', itemId: SWORD, source: 'mail' }),
+    ).toEqual({ ok: false, reason: 'not-enough' });
+    expect(await countDeliveries('Bob')).toBe(0);
+  });
+
+  it('queues nothing and keeps the item when the debit cannot be written', async () => {
+    const alice = await withSword('Alice');
+    await makePlayer('Bob');
+    hooks.persistFails = true;
+
+    const result = await sendDelivery(alice, {
+      to: 'Bob',
+      itemId: SWORD,
+      source: 'mail',
+    });
+
+    expect(result).toEqual({ ok: false, reason: 'not-committed' });
+    // The order is what makes this recoverable: no row exists, so the sender
+    // keeping the item is the whole outcome.
+    expect(alice.inventory.items).toEqual([{ item: SWORD, quantity: 1 }]);
+    expect(await countDeliveries('Bob')).toBe(0);
+  });
+
+  it('refunds the sender when the row cannot be created after the debit', async () => {
+    const alice = await withSword('Alice');
+    await makePlayer('Bob');
+    // What a reader sees while the row is written. The debit is already
+    // durable, so a crash here loses the item, the window only a replica set
+    // closes (persistence/transactions.test.ts reads 1).
+    let visibleDuringRowWrite = -1;
+    vi.spyOn(DeliveryModel, 'create').mockImplementationOnce(async () => {
+      const record = await getPlayerByNameFromDb('Alice');
+      visibleDuringRowWrite =
+        record?.inventory.items.find((s) => Number(s.item) === SWORD)
+          ?.quantity ?? 0;
+      throw new Error('collection unavailable');
+    });
+
+    const result = await sendDelivery(alice, {
+      to: 'Bob',
+      itemId: SWORD,
+      source: 'mail',
+    });
+
+    expect(visibleDuringRowWrite).toBe(0);
+    expect(result).toEqual({ ok: false, reason: 'not-committed' });
+    expect(alice.inventory.items).toEqual([{ item: SWORD, quantity: 1 }]);
+    expect(await countDeliveries('Bob')).toBe(0);
+    vi.restoreAllMocks();
+  });
+});
 
 describe('queueDelivery', () => {
   it('queues for a player who is offline', async () => {

@@ -59,6 +59,7 @@ import {
   countDeliveries,
   listDeliveries,
   queueDelivery,
+  sendDelivery,
   type ClaimOutcome,
   type PendingDelivery,
   type QueueResult,
@@ -474,6 +475,19 @@ export function buildApi(
         meta?: unknown;
       }): Promise<QueueResult> =>
         queueDelivery({ ...input, source: scriptName }),
+      // Queues this player's item: the debit and the row are one commit, so
+      // the caller neither persists nor refunds. `queue` creates an item from
+      // nothing, a different risk, as only a transfer can half-happen.
+      send: (
+        from: PlayerServer,
+        input: {
+          to: string;
+          itemId: number;
+          quantity?: number;
+          meta?: unknown;
+        },
+      ): Promise<QueueResult> =>
+        sendDelivery(from, { ...input, source: scriptName }),
       list: (name: string): Promise<PendingDelivery[]> =>
         listDeliveries(String(name)),
       count: (name: string): Promise<number> => countDeliveries(String(name)),

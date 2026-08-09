@@ -1,4 +1,4 @@
-import mongoose from 'mongoose';
+import mongoose, { type ClientSession } from 'mongoose';
 import {
   SPRITE_WIDTH,
   SPRITE_HEIGHT,
@@ -40,6 +40,10 @@ import {
   forgetReplicatedEntity,
 } from '../../net/index.js';
 import { clearPlayerDirty } from '../../persistence/dirtyPlayers.js';
+import {
+  supportsTransactions,
+  withTransaction,
+} from '../../persistence/transactions.js';
 import { clearAttackCooldown } from '../combat/attackCooldown.js';
 import { clearDamageContributions } from '../combat/damage.js';
 import { clearPressedKeys } from '../world/movementService.js';
@@ -51,8 +55,9 @@ export async function getPlayerById(id: string): Promise<PlayerRecord | null> {
 
 export async function createOrUpdatePlayer(
   player: PlayerServer,
+  session?: ClientSession,
 ): Promise<void> {
-  await playerRepository.save(player);
+  await playerRepository.save(player, session);
 }
 
 export async function deletePlayer(id: string): Promise<void> {
@@ -122,15 +127,21 @@ export const createPlayer = async (
   return newPlayer;
 };
 
-export const persistPlayerSessionState = async (player: PlayerServer) => {
-  await createOrUpdatePlayer({
-    ...player,
-    position: player.position,
-    direction: player.direction,
-    action: player.action,
-    mapId: player.mapId,
-    health: player.health,
-  });
+export const persistPlayerSessionState = async (
+  player: PlayerServer,
+  session?: ClientSession,
+) => {
+  await createOrUpdatePlayer(
+    {
+      ...player,
+      position: player.position,
+      direction: player.direction,
+      action: player.action,
+      mapId: player.mapId,
+      health: player.health,
+    },
+    session,
+  );
 };
 
 /**
@@ -171,16 +182,41 @@ export async function persistPlayersOnShutdown(
   return { saved: playersToSave.length - failed, failed };
 }
 
-// Immediate persistence for economic commits (bank, trade, shop), since
-// write-behind alone leaves a crash window where a confirmed transfer
-// reverts. Failures are only logged: the dirty flag set by updatePlayer
-// keeps write-behind as the retry, and without a DB connection that retry
-// is all there is.
+/**
+ * Immediate persistence for economic commits (bank, trade, shop, crafting),
+ * since write-behind alone leaves a crash window where a confirmed transfer
+ * reverts. A trade moves an item between two documents, and a crash between
+ * the writes duplicates or destroys it, so with transactions both go in
+ * one; a standalone Mongo writes them one after the other.
+ *
+ * A failed transaction is not retried as separate writes: an abort wrote
+ * nothing, and writing one half afterwards is the inconsistency it exists
+ * to prevent. Both paths leave the dirty flag set by `updatePlayer`, so
+ * write-behind is the retry.
+ */
 export async function persistPlayersNow(
   playersToSave: PlayerServer[],
 ): Promise<void> {
   if (mongoose.connection.readyState !== mongoose.ConnectionStates.connected)
     return;
+
+  if (playersToSave.length > 1 && supportsTransactions()) {
+    const committed = await withTransaction(
+      async (session) => {
+        // Sequential: one session cannot run operations in parallel.
+        for (const player of playersToSave) {
+          await persistPlayerSessionState(player, session);
+        }
+      },
+      `economic commit: ${playersToSave.map((p) => p.name).join(', ')}`,
+    );
+    if (committed) return;
+    logger.error('[economy] atomic commit failed; write-behind retries', {
+      players: playersToSave.map((p) => p.name),
+    });
+    return;
+  }
+
   const results = await Promise.allSettled(
     playersToSave.map((p) => persistPlayerSessionState(p)),
   );

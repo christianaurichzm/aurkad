@@ -20,6 +20,7 @@ import { loadRecipes } from './services/content/recipeService.js';
 import { loadSpells } from './services/content/spellService.js';
 import { MapStateServer } from '../shared/types.js';
 import { config } from './config.js';
+import { probeTransactionSupport } from './persistence/transactions.js';
 
 export async function connectToDatabase() {
   try {
@@ -28,6 +29,9 @@ export async function connectToDatabase() {
       process.env.MONGO_URI || 'mongodb://localhost:27017/game',
     );
     logger.info('[DB] Connected successfully');
+    // Asked once, here, because it is a property of the deployment and not of
+    // any write: whether two documents can be committed together.
+    await probeTransactionSupport();
   } catch (err) {
     logger.error('[DB] Connection failed', { err });
     process.exit(1);
