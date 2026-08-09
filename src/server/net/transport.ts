@@ -4,6 +4,7 @@ import { Server } from 'http';
 import { logger } from '../logger.js';
 import {
   ActionQueueItem,
+  ClientAction,
   ClientChatAction,
   ClientCustomAction,
   ClientItemAction,
@@ -23,6 +24,7 @@ import { handleCustomAction } from '../services/comms/customEventService.js';
 import { updateNpcs } from '../services/npc/index.js';
 import { gameConfig } from '../gameConfig.js';
 import { playersWsMap } from './connections.js';
+import { recordAction, recordSession } from '../sim/replayRecorder.js';
 
 type IntervalHandle = ReturnType<typeof setInterval>;
 type AliveWebSocket = WebSocket & { isAlive?: boolean };
@@ -136,13 +138,7 @@ function enqueueAction(action: ActionQueueItem) {
   actionQueue.enqueue(action);
 }
 
-function isClientAction(
-  action: ActionQueueItem,
-): action is
-  | ClientKeyboardAction
-  | ClientItemAction
-  | ClientChatAction
-  | ClientCustomAction {
+function isClientAction(action: ActionQueueItem): action is ClientAction {
   return 'username' in action;
 }
 
@@ -188,6 +184,10 @@ export function processActions() {
 
     if (action) {
       if (isClientAction(action)) {
+        // Recorded before the handler, here where every client action passes,
+        // so a recording holds the item use and chat line as well as the arrow
+        // key, and an action that makes a handler throw is in the file too.
+        recordAction(action);
         if (action.type === 'keyboard') {
           handleKeyAction(action);
         } else if (action.type === 'item') {
@@ -273,6 +273,9 @@ export const startWebSocketServer = (
       }
 
       playersWsMap.set(username, ws);
+      // The socket edges are recorded too (recordSession): actions alone
+      // cannot tell "stopped playing" from "kept walking".
+      recordSession(username, 'join');
 
       ws.on('message', (message, isBinary) => {
         if (isBinary) return;
@@ -300,6 +303,7 @@ export const startWebSocketServer = (
       });
 
       ws.on('close', () => {
+        recordSession(username, 'leave');
         if (!shuttingDown) {
           disconnectPlayer(username).catch((e) => {
             logger.error('disconnectPlayer failed', { err: e });

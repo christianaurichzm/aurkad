@@ -6,6 +6,13 @@ import { getChatLog, handleChatAction } from '../services/comms/chatService.js';
 import { getRuntimeState } from '../services/world/gameData.js';
 import { getMetrics } from '../metrics.js';
 import {
+  listReplays,
+  recordingStatus,
+  saveReplay,
+  startRecording,
+  stopRecording,
+} from '../sim/replayRecorder.js';
+import {
   clearFlag,
   listFlags,
   setFlag,
@@ -359,6 +366,85 @@ export function registerServerCommands(): void {
       })
         .then((flag) => reply(`Flag set: ${describeFlag(flag)}`))
         .catch(() => reply('Could not set the flag; see the server log.'));
+    },
+  );
+
+  // Session recording, as a command: REPLAY_RECORD is read only at boot, and
+  // restarting during an incident ends the session you wanted to see.
+  registerCommand(
+    'replay',
+    {
+      access: Access.ADMIN,
+      description:
+        'Session recording: replay | replay start [label] | replay save [label] | replay stop | replay list',
+    },
+    ({ args, reply, style }) => {
+      const [sub, ...rest] = args;
+      const label = rest.join(' ').trim();
+
+      if (!sub || sub === 'status') {
+        const status = recordingStatus();
+        if (!status.recording && status.events === 0) {
+          return reply(style.warn('Not recording. Start with: replay start'));
+        }
+        const filled = Math.round((status.events / status.capacity) * 100);
+        return reply(
+          `${style.title('Replay')}: ${status.recording ? style.ok('recording') : style.warn('stopped')}` +
+            `${status.label ? ` (${status.label})` : ''} since ${status.startedAt}, ` +
+            `${style.value(String(status.events))} actions (${filled}% of ${status.capacity})` +
+            (status.dropped
+              ? `, ${style.warn(`${status.dropped} dropped`)}`
+              : ''),
+        );
+      }
+
+      if (sub === 'start') {
+        startRecording(label || undefined);
+        return reply(
+          style.ok(
+            `Recording started${label ? ` (${label})` : ''}. Save it with: replay save`,
+          ),
+        );
+      }
+
+      if (sub === 'save' || sub === 'stop') {
+        // Save keeps the capture running: whoever noticed something at 20:03
+        // usually wants the minutes after it too.
+        const path = saveReplay(label || undefined);
+        if (sub === 'stop') stopRecording();
+        if (!path) {
+          return reply(
+            style.warn(
+              `Nothing buffered; no file written${sub === 'stop' ? ', recording stopped.' : '.'}`,
+            ),
+          );
+        }
+        return reply(
+          style.ok(
+            `Saved ${path} (${sub === 'stop' ? 'recording stopped' : 'still recording'}).` +
+              ` Read it with: npm run replay -- ${path}`,
+          ),
+        );
+      }
+
+      if (sub === 'list') {
+        const files = listReplays();
+        if (files.length === 0)
+          return reply(style.warn('No recordings saved.'));
+        for (const file of files.slice(0, 20)) {
+          reply(
+            `  ${style.value(file.name)}  ${Math.round(file.bytes / 1024)} KB  ${new Date(
+              file.savedAt,
+            ).toLocaleString()}`,
+          );
+        }
+        // Read them with `npm run replay -- <file>`; the server only writes.
+        return;
+      }
+
+      reply(
+        'Usage: replay | replay start [label] | replay save [label] | replay stop | replay list',
+      );
     },
   );
 

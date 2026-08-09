@@ -15,6 +15,13 @@ import {
   listFlags,
 } from '../services/liveOpsService.js';
 import { logger } from '../logger.js';
+import { config } from '../config.js';
+import {
+  isRecording,
+  recordAction,
+  resetRecorder,
+} from '../sim/replayRecorder.js';
+import { existsSync, rmSync } from 'fs';
 
 // Awaited: a handler that reads the database replies after its first await,
 // and the web console serialises the collected replies into one response.
@@ -270,5 +277,114 @@ describe('flag', () => {
     const { out } = await run('flag xpMultiplier 2', Access.MOD);
     expect(out[0]).toMatch(/permission/i);
     expect(getFlag('xpMultiplier')).toBeUndefined();
+  });
+});
+
+// REPLAY_RECORD is read at boot, and a restart ends the session somebody
+// wants to see, so recording is a command. The recorder itself is covered in
+// replayRecorder.test.ts; this tests the operator interface over it.
+describe('replay', () => {
+  const TMP_DIR = '/tmp/replay-command-test';
+  // The command writes where the operator's config points; the test points it
+  // somewhere disposable instead of dropping recordings into the repo.
+  const replayConfig = config.replay as { dir: string };
+  const configuredDir = replayConfig.dir;
+
+  beforeEach(() => {
+    registerServerCommands();
+    resetRecorder();
+    replayConfig.dir = TMP_DIR;
+    rmSync(TMP_DIR, { recursive: true, force: true });
+  });
+
+  afterEach(() => {
+    replayConfig.dir = configuredDir;
+    resetRecorder();
+    rmSync(TMP_DIR, { recursive: true, force: true });
+  });
+
+  it('says it is not recording, and how to start', async () => {
+    const { out } = await run('replay');
+    expect(out[0]).toMatch(/Not recording.*replay start/);
+  });
+
+  it('starts a labelled recording and reports what is buffered', async () => {
+    await run('replay start item loss');
+    recordAction({
+      type: 'chat',
+      username: 'Alice',
+      scope: 'global',
+      message: 'my sword is gone',
+    });
+
+    const { out } = await run('replay');
+    expect(out[0]).toContain('recording');
+    expect(out[0]).toContain('item loss');
+    expect(out[0]).toContain('1 actions');
+  });
+
+  it('saves without ending the capture', async () => {
+    await run('replay start');
+    recordAction({
+      type: 'item',
+      username: 'Alice',
+      item: 3,
+      action: 'drop',
+    });
+
+    const { out } = await run('replay save incident');
+    const path = out[0]!.match(/Saved (\S+)/)?.[1];
+    expect(path).toBeTruthy();
+    expect(existsSync(path!)).toBe(true);
+    expect(isRecording()).toBe(true);
+    // The file is only half the feature; reading it is the other half.
+    expect(out[0]).toContain('npm run replay --');
+  });
+
+  it('stop writes what is buffered and ends the capture', async () => {
+    await run('replay start');
+    recordAction({
+      type: 'chat',
+      username: 'Alice',
+      scope: 'map',
+      message: 'still here',
+    });
+
+    const { out } = await run('replay stop');
+    expect(out[0]).toContain('recording stopped');
+    expect(isRecording()).toBe(false);
+  });
+
+  it('stop with nothing buffered writes no file and says so', async () => {
+    await run('replay start');
+    const { out } = await run('replay stop');
+    expect(out[0]).toMatch(/no file written, recording stopped/);
+    expect(isRecording()).toBe(false);
+    expect(existsSync(TMP_DIR)).toBe(false);
+  });
+
+  it('lists what was saved', async () => {
+    await run('replay start');
+    recordAction({
+      type: 'custom',
+      username: 'Bob',
+      channel: 'trade:offer',
+    });
+    await run('replay save first');
+
+    const { out } = await run('replay list');
+    expect(out).toHaveLength(1);
+    expect(out[0]).toContain('first');
+  });
+
+  it('answers an unknown subcommand with the usage', async () => {
+    const { out } = await run('replay wat');
+    expect(out[0]).toMatch(/^Usage: replay/);
+  });
+
+  it('is not a command an ordinary moderator can run', async () => {
+    const { out } = await run('replay start', Access.MOD);
+    expect(out[0]).toMatch(/permission/i);
+    expect(isRecording()).toBe(false);
   });
 });

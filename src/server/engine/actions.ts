@@ -41,9 +41,11 @@ export interface ServerAction {
   action: ServerActionType;
 }
 
-export type ActionQueueItem =
+/** Everything a client can ask for: the four the tick drains and records. */
+export type ClientAction =
   | ClientKeyboardAction
   | ClientItemAction
   | ClientChatAction
-  | ClientCustomAction
-  | ServerAction;
+  | ClientCustomAction;
+
+export type ActionQueueItem = ClientAction | ServerAction;

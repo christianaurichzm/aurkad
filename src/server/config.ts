@@ -200,6 +200,17 @@ export const config = {
       max: 1_000_000,
     }),
   },
+  replay: {
+    // What a session recording may cost in memory. It is a ring: at the
+    // ceiling the oldest action is dropped and counted, so recording left on
+    // keeps the recent minutes. At ~150 bytes an action, the default is a few
+    // MB, which a busy server fills in minutes.
+    maxEvents: parseIntEnv('REPLAY_MAX_EVENTS', 50_000, {
+      min: 100,
+      max: 5_000_000,
+    }),
+    dir: process.env.REPLAY_DIR || 'replays',
+  },
   audit: {
     // How long the administrative trail is kept. MongoDB expires the entries
     // itself (TTL index), so the collection stays bounded on a server nobody

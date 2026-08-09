@@ -70,12 +70,27 @@ npm run content:import   # loads content/pack.json into MongoDB
 
 ## Replay
 
-Record a session by starting the server with `REPLAY_RECORD=true`. On shutdown the session is saved to `replays/<timestamp>.json`.
+Records what players did (keys, item use, chat, custom actions), so a support ticket ("my sword vanished around eight") has something to read. Start a capture from the admin console or in-game chat, without restarting:
+
+```
+replay start item-loss   # begin capturing (ADMIN, lands in the audit trail)
+replay                   # status: how much is buffered, what was dropped
+replay save incident     # write a file and keep recording
+replay stop              # write what is left and stop
+replay list              # recordings on disk
+```
+
+`REPLAY_RECORD=true` starts a capture at boot instead, saved on shutdown. Either way the buffer is a ring (`REPLAY_MAX_EVENTS`): a capture left running keeps the recent minutes rather than growing without bound, and the file says how many older actions fell out. Nothing reaches disk until someone saves it.
 
 ```bash
-npm run replay -- replays/<file>.json        # summary + ASCII timeline
-npm run replay -- replays/<file>.json --run  # also runs headless simulation
+npm run replay -- replays/<file>.json                    # summary, timeline, action log
+npm run replay -- replays/<file>.json --at=20:03         # only a minute around the complaint
+npm run replay -- replays/<file>.json --player=Alice --grep=sword
+npm run replay -- replays/<file>.json --type=keyboard    # log kinds (default: all but keyboard)
+npm run replay -- replays/<file>.json --run              # re-simulate the movement headlessly
 ```
+
+`--run` rebuilds a world from the recorded seed and replays the keyboard input through it. It reproduces the input, not the incident: a capture started mid-session does not carry the state that predates it.
 
 ## Multi-instance (sharding by map)
 
