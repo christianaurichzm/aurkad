@@ -1,0 +1,9675 @@
+[
+  {
+    "id": "1",
+    "name": "Pallet Town",
+    "type": "normal",
+    "borderLinks": {
+      "up": {
+        "to": "3",
+        "position": {
+          "x": 1920,
+          "y": 2496
+        }
+      }
+    },
+    "tiles": [
+      [
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        }
+      ],
+      [
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0,
+          "warp": {
+            "to": "2",
+            "position": {
+              "x": 128,
+              "y": 384
+            }
+          }
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        }
+      ],
+      [
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 1
+        },
+        {
+          "tileIndex": 2
+        },
+        {
+          "tileIndex": 3
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0,
+          "triggers": [
+            {
+              "action": "heal"
+            }
+          ]
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        }
+      ],
+      [
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0,
+          "npcSpawn": "orc"
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        }
+      ],
+      [
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0,
+          "triggers": [
+            {
+              "action": "script",
+              "scriptId": "chest",
+              "scriptParams": {
+                "itemId": 1,
+                "quantity": 2,
+                "message": "A dusty chest: two potions."
+              }
+            }
+          ]
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0,
+          "npcSpawn": "goblin"
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        }
+      ],
+      [
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 5,
+          "fringeIndex": 5
+        },
+        {
+          "tileIndex": 5,
+          "fringeIndex": 5
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        }
+      ],
+      [
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0,
+          "npcSpawn": "elder"
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0,
+          "npcSpawn": "shopkeeper"
+        },
+        {
+          "tileIndex": 0,
+          "shop": "general"
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0,
+          "npcSpawn": "guard"
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        }
+      ],
+      [
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        }
+      ],
+      [
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0,
+          "npcSpawn": "goblin"
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        }
+      ],
+      [
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0,
+          "blocked": true
+        },
+        {
+          "tileIndex": 0,
+          "blocked": true
+        },
+        {
+          "tileIndex": 0,
+          "blocked": true
+        },
+        {
+          "tileIndex": 0,
+          "blocked": true
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        }
+      ],
+      [
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0,
+          "npcSpawn": "orc"
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        }
+      ],
+      [
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0,
+          "triggers": [
+            {
+              "action": "script",
+              "scriptId": "chest",
+              "scriptParams": {
+                "itemId": 2,
+                "message": "Someone left a sword here.",
+                "once": true
+              }
+            }
+          ]
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        }
+      ],
+      [
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0,
+          "triggers": [
+            {
+              "action": "kill"
+            }
+          ]
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        }
+      ],
+      [
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        }
+      ]
+    ],
+    "players": {},
+    "npcs": {},
+    "droppedItems": []
+  },
+  {
+    "id": "2",
+    "name": "Arena",
+    "type": "pvp",
+    "pvp": "normal",
+    "tiles": [
+      [
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        }
+      ],
+      [
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        }
+      ],
+      [
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        }
+      ],
+      [
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        }
+      ],
+      [
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        }
+      ],
+      [
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0,
+          "npcSpawn": "goblin"
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0,
+          "npcSpawn": "goblin"
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        }
+      ],
+      [
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0,
+          "warp": {
+            "to": "1",
+            "position": {
+              "x": 576,
+              "y": 384
+            }
+          }
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        }
+      ],
+      [
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        }
+      ],
+      [
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        }
+      ],
+      [
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0,
+          "npcSpawn": "orc"
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        }
+      ],
+      [
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        }
+      ],
+      [
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        }
+      ],
+      [
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        }
+      ],
+      [
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        }
+      ]
+    ],
+    "players": {},
+    "npcs": {},
+    "droppedItems": []
+  },
+  {
+    "id": "3",
+    "name": "Northfields",
+    "type": "normal",
+    "tiles": [
+      [
+        {
+          "tileIndex": 3,
+          "blocked": true
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 3,
+          "blocked": true
+        },
+        {
+          "tileIndex": 3,
+          "blocked": true
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 3,
+          "blocked": true
+        },
+        {
+          "tileIndex": 3,
+          "blocked": true
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 3,
+          "blocked": true
+        },
+        {
+          "tileIndex": 3,
+          "blocked": true
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 3,
+          "blocked": true
+        },
+        {
+          "tileIndex": 3,
+          "blocked": true
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 3,
+          "blocked": true
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 3,
+          "blocked": true
+        },
+        {
+          "tileIndex": 3,
+          "blocked": true
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 3,
+          "blocked": true
+        },
+        {
+          "tileIndex": 3,
+          "blocked": true
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        }
+      ],
+      [
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 3,
+          "blocked": true
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 3,
+          "blocked": true
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 3,
+          "blocked": true
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        }
+      ],
+      [
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        }
+      ],
+      [
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        }
+      ],
+      [
+        {
+          "tileIndex": 3,
+          "blocked": true
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 3,
+          "blocked": true
+        },
+        {
+          "tileIndex": 3,
+          "blocked": true
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 1
+        },
+        {
+          "tileIndex": 1
+        },
+        {
+          "tileIndex": 1
+        },
+        {
+          "tileIndex": 1
+        },
+        {
+          "tileIndex": 1
+        },
+        {
+          "tileIndex": 1
+        },
+        {
+          "tileIndex": 1
+        },
+        {
+          "tileIndex": 1
+        },
+        {
+          "tileIndex": 1
+        },
+        {
+          "tileIndex": 1
+        },
+        {
+          "tileIndex": 1
+        },
+        {
+          "tileIndex": 1
+        },
+        {
+          "tileIndex": 1
+        },
+        {
+          "tileIndex": 1
+        },
+        {
+          "tileIndex": 1
+        },
+        {
+          "tileIndex": 1
+        },
+        {
+          "tileIndex": 1
+        },
+        {
+          "tileIndex": 1
+        },
+        {
+          "tileIndex": 1
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 3,
+          "blocked": true
+        },
+        {
+          "tileIndex": 3,
+          "blocked": true
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 3,
+          "blocked": true
+        },
+        {
+          "tileIndex": 3,
+          "blocked": true
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 3,
+          "blocked": true
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 3,
+          "blocked": true
+        },
+        {
+          "tileIndex": 3,
+          "blocked": true
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 3,
+          "blocked": true
+        },
+        {
+          "tileIndex": 3,
+          "blocked": true
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 3,
+          "blocked": true
+        },
+        {
+          "tileIndex": 3,
+          "blocked": true
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 3,
+          "blocked": true
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        }
+      ],
+      [
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 3,
+          "blocked": true
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 3,
+          "blocked": true
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 1
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 3,
+          "blocked": true
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        }
+      ],
+      [
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 1
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0,
+          "npcSpawn": "orc"
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        }
+      ],
+      [
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 1
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        }
+      ],
+      [
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 3,
+          "blocked": true
+        },
+        {
+          "tileIndex": 3,
+          "blocked": true
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 3,
+          "blocked": true
+        },
+        {
+          "tileIndex": 3,
+          "blocked": true
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 3,
+          "blocked": true
+        },
+        {
+          "tileIndex": 3,
+          "blocked": true
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 3,
+          "blocked": true
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 3,
+          "blocked": true
+        },
+        {
+          "tileIndex": 3,
+          "blocked": true
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 3,
+          "blocked": true
+        },
+        {
+          "tileIndex": 3,
+          "blocked": true
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 1
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 3,
+          "blocked": true
+        },
+        {
+          "tileIndex": 3,
+          "blocked": true
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 3,
+          "blocked": true
+        },
+        {
+          "tileIndex": 3,
+          "blocked": true
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 3,
+          "blocked": true
+        },
+        {
+          "tileIndex": 3,
+          "blocked": true
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 3,
+          "blocked": true
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 3,
+          "blocked": true
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        }
+      ],
+      [
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 3,
+          "blocked": true
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 3,
+          "blocked": true
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 3,
+          "blocked": true
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 3,
+          "blocked": true
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 1
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 3,
+          "blocked": true
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 3,
+          "blocked": true
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        }
+      ],
+      [
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0,
+          "npcSpawn": "orc"
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 1
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        }
+      ],
+      [
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0,
+          "npcSpawn": "orc"
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0,
+          "npcSpawn": "orc"
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 1
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        }
+      ],
+      [
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 3,
+          "blocked": true
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 3,
+          "blocked": true
+        },
+        {
+          "tileIndex": 3,
+          "blocked": true
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 1
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 3,
+          "blocked": true
+        },
+        {
+          "tileIndex": 3,
+          "blocked": true
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 3,
+          "blocked": true
+        },
+        {
+          "tileIndex": 3,
+          "blocked": true
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 3,
+          "blocked": true
+        },
+        {
+          "tileIndex": 3,
+          "blocked": true
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 3,
+          "blocked": true
+        },
+        {
+          "tileIndex": 3,
+          "blocked": true
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        }
+      ],
+      [
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 1
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0,
+          "npcSpawn": "orc"
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 3,
+          "blocked": true
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        }
+      ],
+      [
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 1
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        }
+      ],
+      [
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 1
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        }
+      ],
+      [
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 3,
+          "blocked": true
+        },
+        {
+          "tileIndex": 3,
+          "blocked": true
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 3,
+          "blocked": true
+        },
+        {
+          "tileIndex": 3,
+          "blocked": true
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 1
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 3,
+          "blocked": true
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 3,
+          "blocked": true
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 3,
+          "blocked": true
+        },
+        {
+          "tileIndex": 3,
+          "blocked": true
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 3,
+          "blocked": true
+        },
+        {
+          "tileIndex": 3,
+          "blocked": true
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        }
+      ],
+      [
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 3,
+          "blocked": true
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 3,
+          "blocked": true
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 1
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        }
+      ],
+      [
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 1
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0,
+          "npcSpawn": "goblin"
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        }
+      ],
+      [
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 1
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        }
+      ],
+      [
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 3,
+          "blocked": true
+        },
+        {
+          "tileIndex": 3,
+          "blocked": true
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 3,
+          "blocked": true
+        },
+        {
+          "tileIndex": 3,
+          "blocked": true
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 3,
+          "blocked": true
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 3,
+          "blocked": true
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 1
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 3,
+          "blocked": true
+        },
+        {
+          "tileIndex": 3,
+          "blocked": true
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 3,
+          "blocked": true
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 3,
+          "blocked": true
+        },
+        {
+          "tileIndex": 3,
+          "blocked": true
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 3,
+          "blocked": true
+        },
+        {
+          "tileIndex": 3,
+          "blocked": true
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 3,
+          "blocked": true
+        },
+        {
+          "tileIndex": 3,
+          "blocked": true
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        }
+      ],
+      [
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 3,
+          "blocked": true
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 1
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 3,
+          "blocked": true
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 3,
+          "blocked": true
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 3,
+          "blocked": true
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 3,
+          "blocked": true
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        }
+      ],
+      [
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0,
+          "npcSpawn": "goblin"
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 1
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        }
+      ],
+      [
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0,
+          "npcSpawn": "goblin"
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 1
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        }
+      ],
+      [
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 3,
+          "blocked": true
+        },
+        {
+          "tileIndex": 3,
+          "blocked": true
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 3,
+          "blocked": true
+        },
+        {
+          "tileIndex": 3,
+          "blocked": true
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 3,
+          "blocked": true
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 3,
+          "blocked": true
+        },
+        {
+          "tileIndex": 3,
+          "blocked": true
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 1
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 3,
+          "blocked": true
+        },
+        {
+          "tileIndex": 3,
+          "blocked": true
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 3,
+          "blocked": true
+        },
+        {
+          "tileIndex": 3,
+          "blocked": true
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 3,
+          "blocked": true
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 3,
+          "blocked": true
+        },
+        {
+          "tileIndex": 3,
+          "blocked": true
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        }
+      ],
+      [
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 3,
+          "blocked": true
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 1
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 3,
+          "blocked": true
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 3,
+          "blocked": true
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 3,
+          "blocked": true
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        }
+      ],
+      [
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 1
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        }
+      ],
+      [
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0,
+          "npcSpawn": "goblin"
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 1
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        }
+      ],
+      [
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 3,
+          "blocked": true
+        },
+        {
+          "tileIndex": 3,
+          "blocked": true
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 3,
+          "blocked": true
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 1
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 3,
+          "blocked": true
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 3,
+          "blocked": true
+        },
+        {
+          "tileIndex": 3,
+          "blocked": true
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 3,
+          "blocked": true
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 3,
+          "blocked": true
+        },
+        {
+          "tileIndex": 3,
+          "blocked": true
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        }
+      ],
+      [
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 3,
+          "blocked": true
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 1
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 3,
+          "blocked": true
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 3,
+          "blocked": true
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        }
+      ],
+      [
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 1
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0,
+          "npcSpawn": "goblin"
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        }
+      ],
+      [
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 1
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0,
+          "npcSpawn": "goblin"
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        }
+      ],
+      [
+        {
+          "tileIndex": 3,
+          "blocked": true
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 3,
+          "blocked": true
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 3,
+          "blocked": true
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 1
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 3,
+          "blocked": true
+        },
+        {
+          "tileIndex": 3,
+          "blocked": true
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 3,
+          "blocked": true
+        },
+        {
+          "tileIndex": 3,
+          "blocked": true
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 3,
+          "blocked": true
+        },
+        {
+          "tileIndex": 3,
+          "blocked": true
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 3,
+          "blocked": true
+        },
+        {
+          "tileIndex": 3,
+          "blocked": true
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 3,
+          "blocked": true
+        },
+        {
+          "tileIndex": 3,
+          "blocked": true
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 3,
+          "blocked": true
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        }
+      ],
+      [
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 1
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 3,
+          "blocked": true
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 3,
+          "blocked": true
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 3,
+          "blocked": true
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        }
+      ],
+      [
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0,
+          "npcSpawn": "goblin"
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 1
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        }
+      ],
+      [
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 1
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        }
+      ],
+      [
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 3,
+          "blocked": true
+        },
+        {
+          "tileIndex": 3,
+          "blocked": true
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0,
+          "npcSpawn": "goblin"
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 3,
+          "blocked": true
+        },
+        {
+          "tileIndex": 3,
+          "blocked": true
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 3,
+          "blocked": true
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 3,
+          "blocked": true
+        },
+        {
+          "tileIndex": 3,
+          "blocked": true
+        },
+        {
+          "tileIndex": 1
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 3,
+          "blocked": true
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 3,
+          "blocked": true
+        },
+        {
+          "tileIndex": 3,
+          "blocked": true
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0,
+          "npcSpawn": "goblin"
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 3,
+          "blocked": true
+        },
+        {
+          "tileIndex": 3,
+          "blocked": true
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        }
+      ],
+      [
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 3,
+          "blocked": true
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 1
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 3,
+          "blocked": true
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        }
+      ],
+      [
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0,
+          "npcSpawn": "goblin"
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 1
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        }
+      ],
+      [
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 1
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0,
+          "npcSpawn": "goblin"
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        }
+      ],
+      [
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        }
+      ],
+      [
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        },
+        {
+          "tileIndex": 0
+        }
+      ]
+    ],
+    "borderLinks": {
+      "down": {
+        "to": "1",
+        "position": {
+          "x": 640,
+          "y": 64
+        }
+      }
+    },
+    "players": {},
+    "npcs": {},
+    "droppedItems": []
+  }
+]

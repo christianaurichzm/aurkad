@@ -2,7 +2,11 @@ import fs from 'fs';
 import path from 'path';
 import { z } from 'zod';
 import { logger } from '../logger.js';
-import { ScriptParamsSchema, TileSchema } from '../http/bodySchemas.js';
+import {
+  BorderLinksSchema,
+  ScriptParamsSchema,
+  TileSchema,
+} from '../http/bodySchemas.js';
 import { EQUIPMENT_SLOTS } from '../../shared/constants.js';
 import {
   createOrUpdateItem,
@@ -227,6 +231,11 @@ const MapSchema = z.object({
   name: z.string().min(1),
   type: z.enum(['pvp', 'normal']),
   pvp: z.enum(['safe', 'normal', 'no-penalty']).optional(),
+  // What joins one map to the next. Undeclared here, `z.object` would drop it
+  // between the file and the database and adjacent maps would arrive as
+  // islands, though the model declares it.
+  borderLinks: BorderLinksSchema,
+  music: z.string().optional(),
   tiles: z.array(z.array(TileSchema)),
   droppedItems: z
     .array(

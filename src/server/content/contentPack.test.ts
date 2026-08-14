@@ -128,6 +128,30 @@ describe('importContentPack', () => {
     expect(maps[0]!.tiles[0]![0]!.triggers).toEqual([{ action: 'kill' }]);
   });
 
+  // These hold a world of several maps together, and the schema that parses
+  // the file decides what survives, so adjacent maps must not arrive as
+  // islands while the import reports every map written.
+  it('persists border links through the map import', async () => {
+    write('maps.json', [
+      {
+        id: 'town',
+        name: 'Town',
+        type: 'normal',
+        borderLinks: { up: { to: 'fields', position: { x: 64, y: 128 } } },
+        music: 'town-theme',
+        tiles: [[{ tileIndex: 0 }]],
+      },
+    ]);
+
+    await importContentPack();
+
+    const [map] = await listMaps();
+    expect(map!.borderLinks).toEqual({
+      up: { to: 'fields', position: { x: 64, y: 128 } },
+    });
+    expect(map!.music).toBe('town-theme');
+  });
+
   it('skips invalid entries but imports the valid ones', async () => {
     write('items.json', [
       { id: 1, name: 'Valid', sprite: 0, type: 'consumable' },

@@ -52,7 +52,7 @@ const WarpSchema = z.object({
   position: PositionSchema,
 });
 
-const BorderLinksSchema = z
+export const BorderLinksSchema = z
   .object({
     up: WarpSchema.optional(),
     down: WarpSchema.optional(),
