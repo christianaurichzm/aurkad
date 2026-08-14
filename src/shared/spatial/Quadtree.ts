@@ -145,8 +145,11 @@ export class Quadtree {
   }
 
   /**
-   * Get which quadrant an entity belongs to
-   * Returns -1 if entity doesn't fit completely in any quadrant
+   * Which quadrant an entity belongs to, or -1 when it lies across a midline
+   * and belongs to none. Those stay on the parent, where every query reaching
+   * it tests them. Filing them lower (grid-snapped splits, filing by centre)
+   * trades entity tests for node visits, which the viewport query, most of
+   * the spatial cost, pays for in a longer walk.
    */
   private getQuadrant(node: QuadtreeNode, entity: QuadtreeEntity): number {
     if (node.children === null) return -1;
