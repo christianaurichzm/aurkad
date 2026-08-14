@@ -2,6 +2,7 @@
   "//": "E2E smoke suite (playwright test), typechecked separately per the project rule: a new top-level TS directory needs its own tsconfig wired into the typecheck aggregate. playwright.config.ts lives at the repo root but belongs to this suite, so it is included here rather than in the root config.",
   "extends": "../tsconfig.base.json",
   "compilerOptions": {
+    "noUncheckedIndexedAccess": true,
     "module": "NodeNext",
     "moduleResolution": "NodeNext",
     "target": "ES2022",

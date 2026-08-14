@@ -136,10 +136,34 @@ const diffPatcher = jsondiffpatch.create({
 // Synthetic world.
 function buildItems() {
   items.clear();
-  items.set(1, { id: 1, name: 'Potion', description: 'Heals', sprite: 10, type: 'consumable' });
-  items.set(2, { id: 2, name: 'Sword', description: 'Sharp', sprite: 11, type: 'weapon' });
-  items.set(3, { id: 3, name: 'Helm', description: 'Sturdy', sprite: 12, type: 'helmet' });
-  items.set(4, { id: 4, name: 'Boots', description: 'Fast', sprite: 13, type: 'boots' });
+  items.set(1, {
+    id: 1,
+    name: 'Potion',
+    description: 'Heals',
+    sprite: 10,
+    type: 'consumable',
+  });
+  items.set(2, {
+    id: 2,
+    name: 'Sword',
+    description: 'Sharp',
+    sprite: 11,
+    type: 'weapon',
+  });
+  items.set(3, {
+    id: 3,
+    name: 'Helm',
+    description: 'Sturdy',
+    sprite: 12,
+    type: 'helmet',
+  });
+  items.set(4, {
+    id: 4,
+    name: 'Boots',
+    description: 'Fast',
+    sprite: 13,
+    type: 'boots',
+  });
 }
 
 function buildTiles(rows: number, cols: number): Tile[][] {
@@ -204,7 +228,12 @@ function buildNpc(i: number, cols: number, rows: number): RuntimeNpc {
   };
 }
 
-function buildMap(rows: number, cols: number, players: PlayerServer[], npcCount: number): MapStateServer {
+function buildMap(
+  rows: number,
+  cols: number,
+  players: PlayerServer[],
+  npcCount: number,
+): MapStateServer {
   const npcs: Record<string, RuntimeNpc> = {};
   for (let i = 0; i < npcCount; i++) {
     const npc = buildNpc(i, cols, rows);
@@ -253,7 +282,10 @@ function inViewport(
   vp: { left: number; right: number; top: number; bottom: number },
 ): boolean {
   return (
-    pos.x >= vp.left && pos.x <= vp.right && pos.y >= vp.top && pos.y <= vp.bottom
+    pos.x >= vp.left &&
+    pos.x <= vp.right &&
+    pos.y >= vp.top &&
+    pos.y <= vp.bottom
   );
 }
 
@@ -315,7 +347,12 @@ function toMapStateClient(
   };
 }
 
-function runOld(map: MapStateServer, ticks: number, rows: number, cols: number) {
+function runOld(
+  map: MapStateServer,
+  ticks: number,
+  rows: number,
+  cols: number,
+) {
   const lastSent = new Map<string, any>();
   let bytes = 0;
   const t0 = performance.now();
@@ -354,7 +391,12 @@ function runOld(map: MapStateServer, ticks: number, rows: number, cols: number) 
   return { ms: performance.now() - t0, bytes };
 }
 
-function runNew(map: MapStateServer, ticks: number, rows: number, cols: number) {
+function runNew(
+  map: MapStateServer,
+  ticks: number,
+  rows: number,
+  cols: number,
+) {
   const lastSent = new Map<string, any>();
   const lastMapId = new Map<string, string>();
   const lastMapRev = new Map<string, number>();
@@ -367,8 +409,14 @@ function runNew(map: MapStateServer, ticks: number, rows: number, cols: number) 
     const mapRev = map.tilesRevision ?? 0;
     for (const player of Object.values(map.players)) {
       // static map (once)
-      if (lastMapId.get(player.name) !== map.id || lastMapRev.get(player.name) !== mapRev) {
-        bytes += JSON.stringify({ type: 'mapStatic', payload: toMapStaticClient(map) }).length;
+      if (
+        lastMapId.get(player.name) !== map.id ||
+        lastMapRev.get(player.name) !== mapRev
+      ) {
+        bytes += JSON.stringify({
+          type: 'mapStatic',
+          payload: toMapStaticClient(map),
+        }).length;
         lastMapId.set(player.name, map.id);
         lastMapRev.set(player.name, mapRev);
         lastSent.delete(player.name);
@@ -376,7 +424,10 @@ function runNew(map: MapStateServer, ticks: number, rows: number, cols: number) 
       // cold stats (on change)
       const sig = playerColdSignature(player);
       if (lastColdSig.get(player.name) !== sig) {
-        bytes += JSON.stringify({ type: 'playerStats', payload: toPlayerCold(player) }).length;
+        bytes += JSON.stringify({
+          type: 'playerStats',
+          payload: toPlayerCold(player),
+        }).length;
         lastColdSig.set(player.name, sig);
       }
       // hot dynamic (per tick). No structuredClone: toMapDynamicClient and
@@ -445,7 +496,12 @@ function fieldDelta(prev: PubState, next: PubState): PubState | null {
   return out;
 }
 
-function runProto(map: MapStateServer, ticks: number, rows: number, cols: number) {
+function runProto(
+  map: MapStateServer,
+  ticks: number,
+  rows: number,
+  cols: number,
+) {
   const prevEntity = new Map<string, PubState>();
   const viewerKnown = new Map<string, Set<string>>();
   let bytes = 0;
@@ -514,8 +570,9 @@ function runProto(map: MapStateServer, ticks: number, rows: number, cols: number
         const self = JSON.stringify(toPlayerHot(viewer));
         const leave =
           leaving.length > 0 ? `,"leave":${JSON.stringify(leaving)}` : '';
-        bytes += `{"type":"entityUpdate","e":{${parts.join(',')}},"self":${self}${leave}}`
-          .length;
+        bytes +=
+          `{"type":"entityUpdate","e":{${parts.join(',')}},"self":${self}${leave}}`
+            .length;
       }
 
       viewerKnown.set(viewer.name, current);
@@ -539,14 +596,22 @@ const runNewEnabled = pathFilter === undefined || pathFilter === 'new';
 const runProtoEnabled = pathFilter === undefined || pathFilter === 'proto';
 
 // Runner.
-function bench(label: string, rows: number, cols: number, nPlayers: number, nNpcs: number) {
+function bench(
+  label: string,
+  rows: number,
+  cols: number,
+  nPlayers: number,
+  nNpcs: number,
+) {
   if (scenarioFilter && !label.toLowerCase().includes(scenarioFilter)) return;
 
   const WARMUP = 30;
   const TICKS = 300;
 
   const mk = () => {
-    const players = Array.from({ length: nPlayers }, (_, i) => buildPlayer(i, cols, rows));
+    const players = Array.from({ length: nPlayers }, (_, i) =>
+      buildPlayer(i, cols, rows),
+    );
     return buildMap(rows, cols, players, nNpcs);
   };
 
@@ -559,9 +624,15 @@ function bench(label: string, rows: number, cols: number, nPlayers: number, nNpc
   const newR = runNewEnabled ? runNew(mk(), TICKS, rows, cols) : null;
   const protoR = runProtoEnabled ? runProto(mk(), TICKS, rows, cols) : null;
 
-  console.log(`\n### ${label}  (map ${cols}x${rows} tiles, ${nPlayers} players, ${nNpcs} npcs)`);
+  console.log(
+    `\n### ${label}  (map ${cols}x${rows} tiles, ${nPlayers} players, ${nNpcs} npcs)`,
+  );
 
-  const line = (tag: string, r: { ms: number; bytes: number }, ref?: { ms: number; bytes: number } | null) => {
+  const line = (
+    tag: string,
+    r: { ms: number; bytes: number },
+    ref?: { ms: number; bytes: number } | null,
+  ) => {
     const ms = r.ms / TICKS;
     const b = r.bytes / TICKS;
     let suffix = '';
@@ -570,7 +641,9 @@ function bench(label: string, rows: number, cols: number, nPlayers: number, nNpc
       const eg = (1 - b / (ref.bytes / TICKS)) * 100;
       suffix = `   (CPU ${cpu >= 0 ? '-' : '+'}${Math.abs(cpu).toFixed(1)}%, egress ${eg >= 0 ? '-' : '+'}${Math.abs(eg).toFixed(1)}% vs agora)`;
     }
-    console.log(`  ${tag.padEnd(6)}: ${ms.toFixed(3).padStart(8)} ms/tick   ${Math.round(b).toLocaleString().padStart(9)} bytes/tick${suffix}`);
+    console.log(
+      `  ${tag.padEnd(6)}: ${ms.toFixed(3).padStart(8)} ms/tick   ${Math.round(b).toLocaleString().padStart(9)} bytes/tick${suffix}`,
+    );
   };
 
   if (oldR) line('antes', oldR);

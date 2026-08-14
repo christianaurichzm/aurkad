@@ -116,9 +116,10 @@ async function scrapeDistribution(
     if (!res.ok) return [];
     const out: Array<{ mapId: string; players: number }> = [];
     for (const line of (await res.text()).split('\n')) {
-      const match = /^engine_players_by_map\{map="([^"]*)"\} (\d+(?:\.\d+)?)$/.exec(
-        line.trim(),
-      );
+      const match =
+        /^engine_players_by_map\{map="([^"]*)"\} (\d+(?:\.\d+)?)$/.exec(
+          line.trim(),
+        );
       if (match) out.push({ mapId: match[1]!, players: Number(match[2]) });
     }
     return out;
@@ -173,7 +174,8 @@ async function spreadIfAsked(
   cookie: string | null,
   scenario: Scenario,
 ): Promise<void> {
-  const wanted = hasFlag('spread') || (scenario.spread && !hasFlag('no-spread'));
+  const wanted =
+    hasFlag('spread') || (scenario.spread && !hasFlag('no-spread'));
   if (!wanted) return;
 
   if (!cookie) {
@@ -279,7 +281,11 @@ async function run(): Promise<void> {
   }
 
   // Spread before anyone moves, so the lattice is the starting state.
-  await spreadIfAsked(connected.map((b) => b.username), cookie, scenario);
+  await spreadIfAsked(
+    connected.map((b) => b.username),
+    cookie,
+    scenario,
+  );
 
   for (const bot of connected) bot.startActing(random);
 

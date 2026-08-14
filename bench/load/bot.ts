@@ -111,9 +111,16 @@ export class LoadBot {
   }
 
   private onMessage(data: WebSocket.RawData): void {
-    const text = data.toString();
-    this.sample.bytesReceived += Buffer.byteLength(text);
+    // `ws` hands over an array of Buffers for a fragmented frame, whose
+    // toString() joins with commas, so the fragments are concatenated first.
+    const bytes = Buffer.isBuffer(data)
+      ? data
+      : Array.isArray(data)
+        ? Buffer.concat(data.map((part) => new Uint8Array(part)))
+        : Buffer.from(data);
+    this.sample.bytesReceived += bytes.length;
     this.sample.messagesReceived++;
+    const text = bytes.toString('utf8');
 
     // Only parse enough to classify the frame; decoding every frame would make
     // the harness the bottleneck.

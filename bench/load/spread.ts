@@ -5,7 +5,11 @@
 // `assessWorld` checks that before the run, so a crowd is never reported
 // under a spread label.
 
-import { GAME_HEIGHT, GAME_WIDTH, TILE_SIZE } from '../../src/shared/constants.js';
+import {
+  GAME_HEIGHT,
+  GAME_WIDTH,
+  TILE_SIZE,
+} from '../../src/shared/constants.js';
 
 export interface LoadMap {
   id: string;
@@ -127,7 +131,10 @@ export function planPlacements(
     const usableX = Math.max(1, map.tileWidth - EDGE_MARGIN * 2);
     const usableY = Math.max(1, map.tileHeight - EDGE_MARGIN * 2);
     // Square-ish, since the point is distance between neighbours on both axes.
-    const columns = Math.max(1, Math.min(usableX, Math.ceil(Math.sqrt(names.length))));
+    const columns = Math.max(
+      1,
+      Math.min(usableX, Math.ceil(Math.sqrt(names.length))),
+    );
     const rows = Math.max(1, Math.ceil(names.length / columns));
 
     names.forEach((username, i) => {
@@ -179,7 +186,9 @@ export async function applyPlacements(
         const output = (body.output ?? []).join(' ');
         // `tp` answers 200 even when it refuses, so the body is checked.
         if (!/Teleported/i.test(output)) {
-          throw new Error(`${p.username}: ${output.slice(0, 80) || 'no output'}`);
+          throw new Error(
+            `${p.username}: ${output.slice(0, 80) || 'no output'}`,
+          );
         }
       }),
     );
