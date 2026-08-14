@@ -5,6 +5,7 @@
 import { describe, it, expect } from 'vitest';
 import {
   assessWorld,
+  planGathering,
   planPlacements,
   summarizeDistribution,
   type LoadMap,
@@ -61,6 +62,39 @@ describe('planning where bots stand', () => {
 
   it('has nothing to do when there are no maps', () => {
     expect(planPlacements([], names(5))).toEqual([]);
+  });
+});
+
+// Accounts stay where a spread run moved them, so a crowd run puts them back.
+describe('planning a crowd', () => {
+  const world = [map('1', 20, 14), map('3', 60, 42)];
+
+  it('puts everyone on the start map', () => {
+    const placements = planGathering(world, names(50), '1');
+
+    expect(placements).toHaveLength(50);
+    expect(new Set(placements.map((p) => p.mapId))).toEqual(new Set(['1']));
+  });
+
+  it('keeps the crowd inside one viewport, so they are in view of each other', () => {
+    for (const p of planGathering([map('3', 60, 42)], names(120), '3')) {
+      expect(p.tileX).toBeGreaterThanOrEqual(1);
+      expect(p.tileY).toBeGreaterThanOrEqual(1);
+      // A viewport is 20x14 tiles, centred on a 60x42 map.
+      expect(p.tileX).toBeLessThan(21 + 20);
+      expect(p.tileY).toBeLessThan(15 + 14);
+    }
+  });
+
+  it('falls back to the first map when the named one is gone', () => {
+    const placements = planGathering(world, names(3), 'deleted');
+
+    expect(placements.map((p) => p.mapId)).toEqual(['1', '1', '1']);
+  });
+
+  it('has nothing to do without maps or without bots', () => {
+    expect(planGathering([], names(5), '1')).toEqual([]);
+    expect(planGathering(world, [], '1')).toEqual([]);
   });
 });
 

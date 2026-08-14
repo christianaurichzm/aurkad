@@ -151,6 +151,43 @@ export function planPlacements(
   return placements;
 }
 
+/**
+ * Where each bot should stand for a crowd run: one viewport of the start
+ * map. Accounts keep their position between runs, so a crowd run has to
+ * gather them again.
+ */
+export function planGathering(
+  maps: LoadMap[],
+  usernames: string[],
+  mapId: string,
+): Placement[] {
+  const map = maps.find((m) => m.id === mapId) ?? maps[0];
+  if (!map || usernames.length === 0) return [];
+
+  // One screen, centred, since a crowd means everyone in view of each other.
+  const viewportX = Math.ceil(GAME_WIDTH / TILE_SIZE);
+  const viewportY = Math.ceil(GAME_HEIGHT / TILE_SIZE);
+  const width = Math.max(
+    1,
+    Math.min(map.tileWidth - EDGE_MARGIN * 2, viewportX),
+  );
+  const height = Math.max(
+    1,
+    Math.min(map.tileHeight - EDGE_MARGIN * 2, viewportY),
+  );
+  const originX = EDGE_MARGIN + Math.floor((map.tileWidth - width) / 2);
+  const originY = EDGE_MARGIN + Math.floor((map.tileHeight - height) / 2);
+
+  // Several bots per tile is fine: `tp` goes through findPlacement, which
+  // moves each one to the nearest free tile.
+  return usernames.map((username, i) => ({
+    username,
+    mapId: map.id,
+    tileX: originX + (i % width),
+    tileY: originY + (Math.floor(i / width) % height),
+  }));
+}
+
 export interface SpreadResult {
   placed: number;
   failed: number;

@@ -36,6 +36,7 @@ import {
   applyPlacements,
   assessWorld,
   fetchMaps,
+  planGathering,
   planPlacements,
   summarizeDistribution,
 } from './load/spread.js';
@@ -174,20 +175,37 @@ async function spreadIfAsked(
   cookie: string | null,
   scenario: Scenario,
 ): Promise<void> {
-  const wanted =
+  const wantsSpread =
     hasFlag('spread') || (scenario.spread && !hasFlag('no-spread'));
-  if (!wanted) return;
+  const wantsGather = hasFlag('gather');
+  if (!wantsSpread && !wantsGather) {
+    await warnIfAlreadyScattered(usernames.length, cookie);
+    return;
+  }
 
   if (!cookie) {
     console.warn(
-      '  spread SKIPPED: placing bots needs --admin-user/--admin-pass.\n' +
-        '  This run is one crowd on the start map, not a spread population.',
+      `  ${wantsGather ? 'gather' : 'spread'} SKIPPED: placing bots needs ` +
+        '--admin-user/--admin-pass.\n  This run stands wherever the accounts ' +
+        'were left, which is not necessarily what the label says.',
     );
     return;
   }
 
   try {
     const maps = await fetchMaps(baseUrl, cookie);
+
+    if (wantsGather) {
+      const placements = planGathering(maps, usernames, startMapId(maps));
+      const result = await applyPlacements(baseUrl, cookie, placements);
+      console.log(
+        `  gather: placed ${result.placed}/${placements.length} on map ` +
+          `${placements[0]?.mapId ?? '?'}, one viewport, all in view of each other`,
+      );
+      for (const error of result.errors) console.warn(`    ${error}`);
+      return;
+    }
+
     const assessment = assessWorld(maps, usernames.length);
     for (const warning of assessment.warnings) {
       console.warn(`  spread WARNING: ${warning}`);
@@ -201,7 +219,39 @@ async function spreadIfAsked(
     );
     for (const error of result.errors) console.warn(`    ${error}`);
   } catch (err) {
-    console.warn(`  spread failed: ${String(err)}; continuing as a crowd`);
+    console.warn(
+      `  placement failed: ${String(err)}; continuing wherever they stand`,
+    );
+  }
+}
+
+/** The map the bots log in on, which is where a crowd belongs. */
+function startMapId(maps: Array<{ id: string }>): string {
+  return argOf('gather-map') ?? maps[0]?.id ?? '1';
+}
+
+/**
+ * Warns when bots already stand spread out. Accounts log in where the last
+ * run left them, so a crowd run after a spread run is not a crowd.
+ */
+async function warnIfAlreadyScattered(
+  bots: number,
+  cookie: string | null,
+): Promise<void> {
+  const distribution = await scrapeDistribution(cookie);
+  if (distribution.length === 0) return;
+  const total = distribution.reduce((sum, entry) => sum + entry.players, 0);
+  const busiest = Math.max(...distribution.map((entry) => entry.players));
+  if (total > 0 && busiest / total < 0.8) {
+    console.warn(
+      `  WARNING: the population starts spread (busiest map holds ${busiest} ` +
+        `of ${total}), because the accounts kept the positions an earlier run ` +
+        'gave them. Pass --gather for a crowd run.',
+    );
+  } else if (bots > 0 && busiest < bots * 0.8) {
+    console.warn(
+      `  note: ${busiest} of ${bots} bots are on the busiest map at the start.`,
+    );
   }
 }
 
