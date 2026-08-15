@@ -31,12 +31,58 @@ export interface WorldAssessment {
   screenSizedMaps: string[];
   /** Viewports that fit in the world side by side. A spread needs many. */
   viewportsAvailable: number;
+  /** Players per screen this run will actually stand at, asked for or not. */
+  perScreen: number;
   /** Empty when the world can express a spread. */
   warnings: string[];
 }
 
 /** Tiles left clear of the edges, so a placement is never in the border. */
 const EDGE_MARGIN = 1;
+
+/** What one player sees, in tiles: the unit density is counted in. */
+const VIEWPORT_TILES_X = Math.ceil(GAME_WIDTH / TILE_SIZE);
+const VIEWPORT_TILES_Y = Math.ceil(GAME_HEIGHT / TILE_SIZE);
+
+/** More than this per screen makes the run a crowd, whatever its label. */
+const CROWD_THRESHOLD = 10;
+
+interface ViewportCell {
+  map: LoadMap;
+  originX: number;
+  originY: number;
+}
+
+/**
+ * The world cut into screens, in a fixed order. The criterion is players
+ * per screen, and a map smaller than one screen still counts as one.
+ */
+function viewportCells(maps: LoadMap[]): ViewportCell[] {
+  const cells: ViewportCell[] = [];
+  for (const map of maps) {
+    const across = Math.max(1, Math.floor(map.tileWidth / VIEWPORT_TILES_X));
+    const down = Math.max(1, Math.floor(map.tileHeight / VIEWPORT_TILES_Y));
+    for (let row = 0; row < down; row++) {
+      for (let col = 0; col < across; col++) {
+        cells.push({
+          map,
+          originX: col * VIEWPORT_TILES_X,
+          originY: row * VIEWPORT_TILES_Y,
+        });
+      }
+    }
+  }
+  return cells;
+}
+
+/** Density this run ends up at: what was asked, or what the world forces. */
+function densityOf(cells: number, bots: number, perScreen?: number): number {
+  if (cells === 0 || bots === 0) return 0;
+  const spreadThin = Math.ceil(bots / cells);
+  if (!perScreen || perScreen < 1) return spreadThin;
+  // Placement cannot spread people thinner than the world allows.
+  return Math.max(perScreen, spreadThin);
+}
 
 /** Maps an admin can see, reduced to the two numbers placement needs. */
 export async function fetchMaps(
@@ -64,20 +110,19 @@ export async function fetchMaps(
  * Whether this world can express a spread at all. The number of viewports
  * that fit in it caps how far apart the population can be.
  */
-export function assessWorld(maps: LoadMap[], bots: number): WorldAssessment {
-  const viewportTilesX = Math.ceil(GAME_WIDTH / TILE_SIZE);
-  const viewportTilesY = Math.ceil(GAME_HEIGHT / TILE_SIZE);
-
-  const screenSizedMaps: string[] = [];
-  let viewportsAvailable = 0;
-  for (const map of maps) {
-    const across = Math.max(1, Math.floor(map.tileWidth / viewportTilesX));
-    const down = Math.max(1, Math.floor(map.tileHeight / viewportTilesY));
-    viewportsAvailable += across * down;
-    if (map.tileWidth <= viewportTilesX && map.tileHeight <= viewportTilesY) {
-      screenSizedMaps.push(map.id);
-    }
-  }
+export function assessWorld(
+  maps: LoadMap[],
+  bots: number,
+  perScreen?: number,
+): WorldAssessment {
+  const screenSizedMaps = maps
+    .filter(
+      (map) =>
+        map.tileWidth <= VIEWPORT_TILES_X && map.tileHeight <= VIEWPORT_TILES_Y,
+    )
+    .map((map) => map.id);
+  const viewportsAvailable = viewportCells(maps).length;
+  const density = densityOf(viewportsAvailable, bots, perScreen);
 
   const warnings: string[] = [];
   if (maps.length === 0) warnings.push('no maps to place bots on');
@@ -87,10 +132,17 @@ export function assessWorld(maps: LoadMap[], bots: number): WorldAssessment {
         `position cannot separate anyone - each map is a single viewport`,
     );
   }
-  if (viewportsAvailable > 0 && bots / viewportsAvailable > 10) {
+  if (perScreen && perScreen >= 1 && density > perScreen) {
+    warnings.push(
+      `asked for ${perScreen} per screen, but ${bots} bots need ` +
+        `${Math.ceil(bots / perScreen)} screens and the world has ` +
+        `${viewportsAvailable}: this run stands at ${density} per screen`,
+    );
+  }
+  if (density > CROWD_THRESHOLD) {
     warnings.push(
       `${bots} bots over ${viewportsAvailable} viewport(s) of room is ` +
-        `${Math.round(bots / viewportsAvailable)} per screen: this run is a ` +
+        `${density} per screen: this run is a ` +
         `crowd scenario, whatever it is labelled`,
     );
   }
@@ -99,56 +151,67 @@ export function assessWorld(maps: LoadMap[], bots: number): WorldAssessment {
     maps: maps.length,
     screenSizedMaps,
     viewportsAvailable,
+    perScreen: density,
     warnings,
   };
 }
 
 /**
- * Where each bot should stand: round robin across maps, then a lattice
- * within each map, so the population is as far apart as the world allows.
- * Repeatable, so a load number that moves between runs is the server
- * changing, not the placement.
+ * Where each bot should stand: `perScreen` per screen of world, filling
+ * screens in a fixed order until everyone is placed.
+ *
+ * Counting screens rather than maps keeps a one-screen town from holding a
+ * crowd, and makes density a setting instead of a side effect of population.
  */
 export function planPlacements(
   maps: LoadMap[],
   usernames: string[],
+  perScreen?: number,
 ): Placement[] {
-  if (maps.length === 0) return [];
+  const cells = viewportCells(maps);
+  if (cells.length === 0 || usernames.length === 0) return [];
 
-  const perMap = new Map<string, string[]>();
-  usernames.forEach((username, i) => {
-    const map = maps[i % maps.length]!;
-    const list = perMap.get(map.id) ?? [];
-    list.push(username);
-    perMap.set(map.id, list);
-  });
-
+  const density = densityOf(cells.length, usernames.length, perScreen);
   const placements: Placement[] = [];
-  for (const map of maps) {
-    const names = perMap.get(map.id) ?? [];
-    if (names.length === 0) continue;
-
-    const usableX = Math.max(1, map.tileWidth - EDGE_MARGIN * 2);
-    const usableY = Math.max(1, map.tileHeight - EDGE_MARGIN * 2);
-    // Square-ish, since the point is distance between neighbours on both axes.
-    const columns = Math.max(
-      1,
-      Math.min(usableX, Math.ceil(Math.sqrt(names.length))),
-    );
-    const rows = Math.max(1, Math.ceil(names.length / columns));
-
-    names.forEach((username, i) => {
-      const col = i % columns;
-      const row = Math.floor(i / columns);
-      placements.push({
-        username,
-        mapId: map.id,
-        tileX: EDGE_MARGIN + Math.floor(((col + 0.5) * usableX) / columns),
-        tileY: EDGE_MARGIN + Math.floor(((row + 0.5) * usableY) / rows),
-      });
-    });
+  for (let i = 0; i < usernames.length; i += density) {
+    // Screens fill in order, so a small population occupies one contiguous
+    // part of the world.
+    const cell = cells[Math.floor(i / density) % cells.length]!;
+    placements.push(...latticeIn(cell, usernames.slice(i, i + density)));
   }
   return placements;
+}
+
+/** Names spread over one screen, square-ish, never on the map border. */
+function latticeIn(cell: ViewportCell, names: string[]): Placement[] {
+  const { map } = cell;
+  const minX = Math.max(EDGE_MARGIN, cell.originX);
+  const minY = Math.max(EDGE_MARGIN, cell.originY);
+  const usableX = Math.max(
+    1,
+    Math.min(map.tileWidth - EDGE_MARGIN, cell.originX + VIEWPORT_TILES_X) -
+      minX,
+  );
+  const usableY = Math.max(
+    1,
+    Math.min(map.tileHeight - EDGE_MARGIN, cell.originY + VIEWPORT_TILES_Y) -
+      minY,
+  );
+
+  // Square-ish, since the point is distance between neighbours on both axes.
+  const columns = Math.max(
+    1,
+    Math.min(usableX, Math.ceil(Math.sqrt(names.length))),
+  );
+  const rows = Math.max(1, Math.ceil(names.length / columns));
+
+  return names.map((username, i) => ({
+    username,
+    mapId: map.id,
+    tileX: minX + Math.floor((((i % columns) + 0.5) * usableX) / columns),
+    tileY:
+      minY + Math.floor(((Math.floor(i / columns) + 0.5) * usableY) / rows),
+  }));
 }
 
 /**

@@ -24,17 +24,54 @@ const SEEDED = [map('1', 20, 14), map('2', 20, 14)];
 const names = (n: number) =>
   Array.from({ length: n }, (_, i) => `loadbot_${i}`);
 
+const countByMap = (placements: Array<{ mapId: string }>) => {
+  const perMap = new Map<string, number>();
+  for (const p of placements) {
+    perMap.set(p.mapId, (perMap.get(p.mapId) ?? 0) + 1);
+  }
+  return perMap;
+};
+
 describe('planning where bots stand', () => {
   it('divides them between the maps', () => {
-    const placements = planPlacements(SEEDED, names(10));
+    const perMap = countByMap(planPlacements(SEEDED, names(10)));
 
-    expect(placements).toHaveLength(10);
-    const perMap = new Map<string, number>();
-    for (const p of placements) {
-      perMap.set(p.mapId, (perMap.get(p.mapId) ?? 0) + 1);
-    }
     expect(perMap.get('1')).toBe(5);
     expect(perMap.get('2')).toBe(5);
+  });
+
+  // The share is per screen, not per map: a round robin would put half the
+  // bots on the one-screen town.
+  it('gives each map the share of the population its size can hold', () => {
+    const world = [map('town', 20, 14), map('moor', 100, 56)];
+
+    const perMap = countByMap(planPlacements(world, names(210)));
+
+    expect(perMap.get('town')).toBe(10);
+    expect(perMap.get('moor')).toBe(200);
+  });
+
+  // On a fixed world, population and density move together, so a series
+  // of runs cannot tell their costs apart.
+  it('holds density still when asked, and uses more world instead', () => {
+    const world = [map('moor', 100, 56)]; // 20 screens
+
+    const small = planPlacements(world, names(90), 9);
+    const large = planPlacements(world, names(180), 9);
+
+    expect(new Set(small.map((p) => `${p.tileX},${p.tileY}`)).size).toBe(90);
+    // Twice the population over twice the screens: the neighbours each bot has
+    // are the same, which is the point of the knob.
+    expect(new Set(large.map((p) => `${p.tileX},${p.tileY}`)).size).toBe(180);
+  });
+
+  it('cannot grant a density the world has no room for', () => {
+    const world = [map('moor', 100, 56)]; // 20 screens
+    const assessment = assessWorld(world, 1000, 5);
+
+    expect(assessment.perScreen).toBe(50);
+    expect(assessment.warnings.join(' ')).toMatch(/stands at 50 per screen/);
+    expect(planPlacements(world, names(1000), 5)).toHaveLength(1000);
   });
 
   it('keeps every placement inside the map, clear of the border', () => {

@@ -5,6 +5,12 @@
 //   npm run loadtest -- --bots=200 --duration=60 --behavior=wander
 //   npm run loadtest -- --scenario=L1 --admin-user=root --admin-pass=secret
 //
+// --per-screen=N fixes how many players share a screen and lets the
+// population take as much world as it needs; without it, density follows
+// the bot count.
+//
+//   npm run loadtest -- --bots=1000 --per-screen=9 --admin-user=... --admin-pass=...
+//
 // Soak, memory over time:
 //
 //   npm run loadtest -- --bots=150 --behavior=reconnect --duration=3600 \
@@ -206,16 +212,18 @@ async function spreadIfAsked(
       return;
     }
 
-    const assessment = assessWorld(maps, usernames.length);
+    const perScreen = Number(argOf('per-screen')) || undefined;
+    const assessment = assessWorld(maps, usernames.length, perScreen);
     for (const warning of assessment.warnings) {
       console.warn(`  spread WARNING: ${warning}`);
     }
 
-    const placements = planPlacements(maps, usernames);
+    const placements = planPlacements(maps, usernames, perScreen);
     const result = await applyPlacements(baseUrl, cookie, placements);
     console.log(
       `  spread: placed ${result.placed}/${placements.length} across ` +
-        `${maps.length} map(s), ${assessment.viewportsAvailable} viewport(s) of room`,
+        `${maps.length} map(s), ${assessment.viewportsAvailable} viewport(s) ` +
+        `of room, ${assessment.perScreen} per screen`,
     );
     for (const error of result.errors) console.warn(`    ${error}`);
   } catch (err) {
