@@ -100,16 +100,20 @@ const mapIds = rawMapIds?.length ? rawMapIds : undefined;
 // playersWsMap, so one account can log in on two instances whose saves
 // clobber each other. So that mode refuses to boot rather than silently
 // losing player data.
-if (
-  process.env.WS_PUBLIC_URL &&
-  mapIds &&
-  process.env.ALLOW_UNSAFE_MULTI_INSTANCE !== 'true'
-) {
-  throw new Error(
-    '[config] Multi-instance mode (WS_PUBLIC_URL + MAP_IDS) is disabled: login presence ' +
-      'is per-process, so the same account can log in on two instances at once and lose ' +
-      'progress when their saves overwrite each other. Run a single instance (unset one of ' +
-      'the two), or set ALLOW_UNSAFE_MULTI_INSTANCE=true to accept the risk.',
+if (process.env.WS_PUBLIC_URL && mapIds) {
+  if (process.env.ALLOW_UNSAFE_MULTI_INSTANCE !== 'true') {
+    throw new Error(
+      '[config] Multi-instance mode (WS_PUBLIC_URL + MAP_IDS) is disabled: login presence ' +
+        'is per-process, so the same account can log in on two instances at once and lose ' +
+        'progress when their saves overwrite each other. Run a single instance (unset one of ' +
+        'the two), or set ALLOW_UNSAFE_MULTI_INSTANCE=true to accept the risk.',
+    );
+  }
+  // The opt-in is set once and outlives whoever set it, so it says so on every
+  // boot: the risk it accepts is silent data loss, which has no other symptom.
+  console.warn(
+    '[config] ALLOW_UNSAFE_MULTI_INSTANCE=true: login presence is per-process, so the same ' +
+      'account logging in on two instances loses progress when the saves overwrite each other.',
   );
 }
 

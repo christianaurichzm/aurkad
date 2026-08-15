@@ -49,12 +49,17 @@ describe('config multi-instance guard', () => {
     );
   });
 
-  it('boots when the operator opts in explicitly', async () => {
+  it('boots when the operator opts in explicitly, and warns every boot', async () => {
     process.env.WS_PUBLIC_URL = 'ws://localhost:8080';
     process.env.MAP_IDS = '1,2';
     process.env.ALLOW_UNSAFE_MULTI_INSTANCE = 'true';
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
     const { config } = await import('./config.js');
     expect(config.instance.mapIds).toEqual(['1', '2']);
+    expect(warn).toHaveBeenCalledWith(
+      expect.stringContaining('ALLOW_UNSAFE_MULTI_INSTANCE=true'),
+    );
+    warn.mockRestore();
   });
 
   it('only accepts the exact opt-in value', async () => {
