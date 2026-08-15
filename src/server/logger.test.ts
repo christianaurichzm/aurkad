@@ -1,5 +1,6 @@
 import { describe, it, expect, afterEach, vi } from 'vitest';
 import { logger } from './logger.js';
+import { reqCtx } from './context.js';
 
 function captureStderr(fn: () => void): string {
   let written = '';
@@ -72,5 +73,54 @@ describe('error serialization', () => {
 
     // `message` alone is not enough; without a stack it stays as written.
     expect(line).toContain('"other":1');
+  });
+});
+
+// What ties a line to whoever caused it: HTTP fills this per request, and the
+// tick fills it per client action (`processActions`). Without it an error from
+// inside a hook names the failure and nothing else.
+describe('request context', () => {
+  it('stamps the id and the player on lines logged inside it', () => {
+    const line = captureStderr(() =>
+      reqCtx.run({ requestId: '4210.7', username: 'Alice' }, () =>
+        logger.error('handler threw'),
+      ),
+    );
+
+    expect(line).toContain('"requestId":"4210.7"');
+    expect(line).toContain('"username":"Alice"');
+  });
+
+  it('survives the async continuation of the action that opened it', async () => {
+    let written = '';
+    const spy = vi
+      .spyOn(process.stderr, 'write')
+      .mockImplementation((chunk: string | Uint8Array) => {
+        written += String(chunk);
+        return true;
+      });
+
+    await new Promise<void>((resolve) => {
+      reqCtx.run({ requestId: '4211.0', username: 'Bob' }, () => {
+        // The dispatch is synchronous but the handlers are not: `handleAttack`
+        // logs its failure long after `run` returned, and that line is the one
+        // an incident starts from.
+        void Promise.resolve().then(() => {
+          logger.error('late failure');
+          resolve();
+        });
+      });
+    });
+
+    spy.mockRestore();
+    expect(written).toContain('"requestId":"4211.0"');
+    expect(written).toContain('"username":"Bob"');
+  });
+
+  it('leaves lines outside it alone', () => {
+    const line = captureStderr(() => logger.error('no owner'));
+
+    expect(line).not.toContain('requestId');
+    expect(line).not.toContain('username');
   });
 });

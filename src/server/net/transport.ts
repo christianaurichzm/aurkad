@@ -25,6 +25,8 @@ import { updateNpcs } from '../services/npc/index.js';
 import { gameConfig } from '../gameConfig.js';
 import { playersWsMap } from './connections.js';
 import { recordAction, recordSession } from '../sim/replayRecorder.js';
+import { getTick } from '../sim/clock.js';
+import { reqCtx } from '../context.js';
 
 type IntervalHandle = ReturnType<typeof setInterval>;
 type AliveWebSocket = WebSocket & { isAlive?: boolean };
@@ -178,7 +180,20 @@ function handleServerAction(action: ServerAction) {
   }
 }
 
+function dispatchClientAction(action: ClientAction): void {
+  if (action.type === 'keyboard') {
+    handleKeyAction(action);
+  } else if (action.type === 'item') {
+    handleItemAction(action);
+  } else if (action.type === 'chat') {
+    handleChatAction(action);
+  } else if (action.type === 'custom') {
+    handleCustomAction(action);
+  }
+}
+
 export function processActions() {
+  let n = 0;
   while (actionQueue.size > 0) {
     const action = actionQueue.dequeue();
 
@@ -188,16 +203,19 @@ export function processActions() {
         // so a recording holds the item use and chat line as well as the arrow
         // key, and an action that makes a handler throw is in the file too.
         recordAction(action);
-        if (action.type === 'keyboard') {
-          handleKeyAction(action);
-        } else if (action.type === 'item') {
-          handleItemAction(action);
-        } else if (action.type === 'chat') {
-          handleChatAction(action);
-        } else if (action.type === 'custom') {
-          handleCustomAction(action);
-        }
+        // Everything logged while this action is handled (a script that threw,
+        // a warp with no map) names the action's player and tick. The id is a
+        // counter, cheaper than a uuid and keyed to the tick like every other
+        // line. `run` takes the action as an argument, so the hot path
+        // allocates only the context object.
+        reqCtx.run(
+          { requestId: `${getTick()}.${n++}`, username: action.username },
+          dispatchClientAction,
+          action,
+        );
       } else if (isServerAction(action)) {
+        // No username to name: these are the tick's own work (npc update,
+        // regen), not somebody's request.
         handleServerAction(action);
       }
     }
