@@ -1,0 +1,47 @@
+import { act, fireEvent, render, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
+import { beforeEach, describe, expect, it } from 'vitest';
+import { getAudioSettings, setAudioSettings } from '../audio';
+import { SettingsModal } from './SettingsModal';
+
+const open = () => {
+  render(<SettingsModal />);
+  act(() => {
+    window.dispatchEvent(new Event('toggleSettings'));
+  });
+};
+
+describe('SettingsModal', () => {
+  beforeEach(() => {
+    localStorage.clear();
+    setAudioSettings({ music: 0.4, effects: 0.6, muted: false });
+  });
+
+  it('stays closed until the toggle event fires', () => {
+    render(<SettingsModal />);
+    expect(screen.queryByText('Settings')).not.toBeInTheDocument();
+  });
+
+  it('applies and persists a volume change', () => {
+    open();
+
+    // userEvent has no gesture for a range input; the change event is what the
+    // browser emits when the thumb moves.
+    fireEvent.change(screen.getByLabelText('Music'), {
+      target: { value: '0.15' },
+    });
+
+    expect(getAudioSettings().music).toBe(0.15);
+    expect(localStorage.getItem('audio')).toContain('0.15');
+    expect(screen.getByText('15%')).toBeInTheDocument();
+  });
+
+  it('mutes from the checkbox and disables the sliders', async () => {
+    open();
+
+    await userEvent.click(screen.getByLabelText('Mute everything'));
+
+    expect(getAudioSettings().muted).toBe(true);
+    expect(screen.getByLabelText('Music')).toBeDisabled();
+  });
+});

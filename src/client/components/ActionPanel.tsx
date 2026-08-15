@@ -17,7 +17,9 @@ import { useUIStore } from '../stores/uiStore';
 type QuickAction = {
   id: string;
   label: string;
-  keyLabel: string;
+  // Optional: a hotkey has to be a member of the shared `Key` enum, which the
+  // server validates on the wire. Panels that are not worth that go without.
+  keyLabel?: string;
   eventName: string;
   minAccess: Access;
   className?: string;
@@ -46,6 +48,13 @@ const quickActions: QuickAction[] = [
     label: 'Online players',
     keyLabel: 'O',
     eventName: 'toggleOnlinePlayers',
+    minAccess: Access.USER,
+    className: 'action-button-primary',
+  },
+  {
+    id: 'settings',
+    label: 'Settings',
+    eventName: 'toggleSettings',
     minAccess: Access.USER,
     className: 'action-button-primary',
   },
@@ -137,7 +146,9 @@ export const ActionPanel: React.FC = () => {
             onClick={() => void openAction(action)}
             title={`Open ${action.label}`}
           >
-            <span className="action-key">{action.keyLabel}</span>
+            {action.keyLabel && (
+              <span className="action-key">{action.keyLabel}</span>
+            )}
             <span>
               {loadingPanel === action.id ? 'Opening...' : action.label}
             </span>
