@@ -12,7 +12,8 @@ import session from 'express-session';
 import request from 'supertest';
 import mongoose from 'mongoose';
 import bcrypt from 'bcrypt';
-import { MongoMemoryServer } from 'mongodb-memory-server';
+import type { MongoMemoryServer } from 'mongodb-memory-server';
+import { startMemoryMongo } from '../../../test/mongo.js';
 
 // The script editor flag comes from the environment, so pin it here instead
 // of letting a developer's local .env decide what the responses assert.
@@ -38,7 +39,7 @@ async function setAccess(username: string, access: Access) {
 }
 
 beforeAll(async () => {
-  mongod = await MongoMemoryServer.create();
+  mongod = await startMemoryMongo();
   await mongoose.connect(mongod.getUri());
 
   app = express();

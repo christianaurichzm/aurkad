@@ -4,7 +4,8 @@ import session from 'express-session';
 import request from 'supertest';
 import mongoose from 'mongoose';
 import bcrypt from 'bcrypt';
-import { MongoMemoryServer } from 'mongodb-memory-server';
+import type { MongoMemoryServer } from 'mongodb-memory-server';
+import { startMemoryMongo } from '../../../test/mongo.js';
 import { WebSocket } from 'ws';
 import { createAuthRouter } from './authRoutes.js';
 import PlayerModel from '../../model/Player.js';
@@ -28,7 +29,7 @@ async function setAccess(username: string, access: Access) {
 }
 
 beforeAll(async () => {
-  mongod = await MongoMemoryServer.create();
+  mongod = await startMemoryMongo();
   await mongoose.connect(mongod.getUri());
 
   app = express();

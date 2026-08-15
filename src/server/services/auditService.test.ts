@@ -8,7 +8,8 @@
  */
 import { beforeAll, afterAll, beforeEach, describe, it, expect } from 'vitest';
 import mongoose from 'mongoose';
-import { MongoMemoryServer } from 'mongodb-memory-server';
+import type { MongoMemoryServer } from 'mongodb-memory-server';
+import { startMemoryMongo } from '../../test/mongo.js';
 import AuditLogModel from '../model/AuditLog.js';
 import {
   listAuditLog,
@@ -29,7 +30,7 @@ import { Access } from '../../shared/types.js';
 let mongod: MongoMemoryServer;
 
 beforeAll(async () => {
-  mongod = await MongoMemoryServer.create();
+  mongod = await startMemoryMongo();
   await mongoose.connect(mongod.getUri());
   // Indexes are built up front, as in checkAccess.test.ts, which says what
   // building them on the first insert cost.

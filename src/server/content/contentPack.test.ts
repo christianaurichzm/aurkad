@@ -17,7 +17,8 @@ import {
 } from 'vitest';
 import { logger } from '../logger.js';
 import mongoose from 'mongoose';
-import { MongoMemoryServer } from 'mongodb-memory-server';
+import type { MongoMemoryServer } from 'mongodb-memory-server';
+import { startMemoryMongo } from '../../test/mongo.js';
 import { importContentPack, exportContentPack } from './contentPack.js';
 import {
   listItems,
@@ -36,7 +37,7 @@ let mongod: MongoMemoryServer;
 let tmpDir: string;
 
 beforeAll(async () => {
-  mongod = await MongoMemoryServer.create();
+  mongod = await startMemoryMongo();
   await mongoose.connect(mongod.getUri());
 }, 30_000);
 

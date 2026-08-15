@@ -19,7 +19,11 @@ import {
   vi,
 } from 'vitest';
 import mongoose from 'mongoose';
-import { MongoMemoryServer, MongoMemoryReplSet } from 'mongodb-memory-server';
+import type {
+  MongoMemoryServer,
+  MongoMemoryReplSet,
+} from 'mongodb-memory-server';
+import { startMemoryMongo, startMemoryReplSet } from '../../test/mongo.js';
 import { playerRepository } from './playerRepository.js';
 import {
   probeTransactionSupport,
@@ -88,7 +92,7 @@ describe('standalone mongod', () => {
   let mongod: MongoMemoryServer;
 
   beforeAll(async () => {
-    mongod = await MongoMemoryServer.create();
+    mongod = await startMemoryMongo();
     await mongoose.connect(mongod.getUri());
     await probeTransactionSupport();
   }, 60_000);
@@ -136,7 +140,7 @@ describe('replica set', () => {
   let replset: MongoMemoryReplSet;
 
   beforeAll(async () => {
-    replset = await MongoMemoryReplSet.create({ replSet: { count: 1 } });
+    replset = await startMemoryReplSet();
     await mongoose.connect(replset.getUri());
     await probeTransactionSupport();
   }, 60_000);

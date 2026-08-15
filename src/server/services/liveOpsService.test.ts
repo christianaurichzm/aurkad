@@ -15,13 +15,14 @@ import {
   vi,
 } from 'vitest';
 import mongoose from 'mongoose';
-import { MongoMemoryServer } from 'mongodb-memory-server';
+import type { MongoMemoryServer } from 'mongodb-memory-server';
+import { startMemoryMongo } from '../../test/mongo.js';
 import LiveOpsFlagModel from '../model/LiveOpsFlag.js';
 
 let mongod: MongoMemoryServer;
 
 beforeAll(async () => {
-  mongod = await MongoMemoryServer.create();
+  mongod = await startMemoryMongo();
   await mongoose.connect(mongod.getUri());
 }, 30_000);
 

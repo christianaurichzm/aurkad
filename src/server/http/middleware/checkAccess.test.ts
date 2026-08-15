@@ -7,7 +7,8 @@ import { beforeAll, afterAll, beforeEach, describe, it, expect } from 'vitest';
 import express from 'express';
 import request from 'supertest';
 import mongoose from 'mongoose';
-import { MongoMemoryServer } from 'mongodb-memory-server';
+import type { MongoMemoryServer } from 'mongodb-memory-server';
+import { startMemoryMongo } from '../../../test/mongo.js';
 import checkAccess from './checkAccess.js';
 import AuditLogModel from '../../model/AuditLog.js';
 import { listAuditLog } from '../../services/auditService.js';
@@ -28,7 +29,7 @@ const fakeSession: express.RequestHandler = (req, _res, next) => {
 };
 
 beforeAll(async () => {
-  mongod = await MongoMemoryServer.create();
+  mongod = await startMemoryMongo();
   await mongoose.connect(mongod.getUri());
   // Builds the indexes up front: AuditLog declares six, and creating them on
   // the first insert takes ~700ms, past the wait below, so the suite would
