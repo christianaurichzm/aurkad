@@ -9,8 +9,16 @@ import { Access } from '../../shared/types';
 import { PlayerModeration } from '../components/moderation/PlayerModeration';
 import { CommandConsole } from '../components/moderation/CommandConsole';
 import { AuditLog } from '../components/moderation/AuditLog';
-import { ScriptEditor } from '../components/scripting/ScriptEditor';
 import { colors, radius } from '../theme';
+
+// Lazy, since Monaco is about 90% of the client bundle and the game shares
+// it with this panel: a static import makes every player download the editor,
+// which SCRIPT_EDITOR_ENABLED leaves off by default.
+const ScriptEditor = React.lazy(() =>
+  import('../components/scripting/ScriptEditor').then((m) => ({
+    default: m.ScriptEditor,
+  })),
+);
 
 // Standalone operator dashboard served at /admin, apart from the game client:
 // log in with a mod/admin account and moderate from any browser, no gameplay.
@@ -72,7 +80,9 @@ export const AdminApp: React.FC = () => {
         {session.scriptEditorEnabled && (
           <section style={{ ...panel, ...wideSection }}>
             <h2 style={panelTitle}>Scripts</h2>
-            <ScriptEditor height={520} />
+            <React.Suspense fallback={<div style={statusLine}>Loading…</div>}>
+              <ScriptEditor height={520} />
+            </React.Suspense>
           </section>
         )}
         {session.access >= Access.ADMIN && (
