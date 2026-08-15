@@ -246,7 +246,7 @@ describe('gameplay modules', () => {
     ).toBeUndefined();
   });
 
-  it('equipment applies and removes configured set bonuses', async () => {
+  it('equipment applies and removes configured set bonuses', () => {
     const equipment = useApi<EquipmentApi>('equipment');
     expect(
       equipment?.defineSet({
@@ -283,8 +283,8 @@ describe('gameplay modules', () => {
       },
     });
 
-    await equipItem(alice, 101);
-    await equipItem(alice, 102);
+    equipItem(alice, 101);
+    equipItem(alice, 102);
 
     // No tick in between: the module follows itemEquip/itemUnequip, so the
     // bonus lands on the transition rather than on the next sweep.
@@ -293,13 +293,13 @@ describe('gameplay modules', () => {
       'scout',
     ]);
 
-    await equipItem(alice, 102);
+    equipItem(alice, 102);
 
     expect(alice.attack).toBe(10);
     expect(equipment?.activeSets(alice)).toEqual([]);
   });
 
-  it('status effects modify damage and tick healing', async () => {
+  it('status effects modify damage and tick healing', () => {
     const sim = createFixture(0);
     const alice = sim.addPlayer({ name: 'Alice' });
     const bob = sim.addPlayer({ name: 'Bob', health: 100, maxHealth: 100 });
@@ -308,7 +308,7 @@ describe('gameplay modules', () => {
     expect(status?.apply(alice, 'fury', { durationTicks: 40 })).toBe(true);
     expect(status?.apply(bob, 'shield', { durationTicks: 40 })).toBe(true);
 
-    await resolveDamage(bob, 20, { attacker: alice, map: sim.map });
+    resolveDamage(bob, 20, { attacker: alice, map: sim.map });
 
     expect(bob.health).toBe(85);
 

@@ -17,7 +17,7 @@ const item = (id: number, overrides: Partial<Item> = {}): Item => ({
 });
 
 describe('bound items', () => {
-  it('cannot be dropped; unbound items can', async () => {
+  it('cannot be dropped; unbound items can', () => {
     const sim = createFixture(0);
     sim.addItem(item(50, { bound: true }));
     sim.addItem(item(51));
@@ -32,16 +32,16 @@ describe('bound items', () => {
       },
     });
 
-    expect(await dropItemFromInventory('Alice', 50)).toBe(false);
+    expect(dropItemFromInventory('Alice', 50)).toBe(false);
     expect(alice.inventory.items.find((e) => e.item === 50)?.quantity).toBe(1);
     expect(sim.map.droppedItems).toHaveLength(0);
 
-    expect(await dropItemFromInventory('Alice', 51)).toBe(true);
+    expect(dropItemFromInventory('Alice', 51)).toBe(true);
     expect(alice.inventory.items.find((e) => e.item === 51)).toBeUndefined();
     expect(sim.map.droppedItems).toHaveLength(1);
   });
 
-  it('refuse to unequip into a full inventory instead of hitting the ground', async () => {
+  it('refuse to unequip into a full inventory instead of hitting the ground', () => {
     const sim = createFixture(0);
     sim.addItem(item(50, { bound: true }));
     for (let i = 0; i < 10; i++) {
@@ -59,14 +59,14 @@ describe('bound items', () => {
       equipped: { weapon: 50 },
     });
 
-    await unequipItem(alice, 'weapon');
+    unequipItem(alice, 'weapon');
 
     expect(alice.equipped.weapon).toBe(50);
     expect(sim.map.droppedItems).toHaveLength(0);
     expect(alice.inventory.items).toHaveLength(10);
   });
 
-  it('unequip normally when there is inventory space', async () => {
+  it('unequip normally when there is inventory space', () => {
     const sim = createFixture(0);
     sim.addItem(item(50, { bound: true }));
     const alice = sim.addPlayer({
@@ -75,13 +75,13 @@ describe('bound items', () => {
       equipped: { weapon: 50 },
     });
 
-    await unequipItem(alice, 'weapon');
+    unequipItem(alice, 'weapon');
 
     expect(alice.equipped.weapon).toBeUndefined();
     expect(alice.inventory.items).toEqual([{ item: 50, quantity: 1 }]);
   });
 
-  it('equipping a replacement never destroys an equipped bound item', async () => {
+  it('equipping a replacement never destroys an equipped bound item', () => {
     const sim = createFixture(0);
     sim.addItem(item(50, { bound: true }));
     sim.addItem(item(60));
@@ -103,7 +103,7 @@ describe('bound items', () => {
       equipped: { weapon: 50 },
     });
 
-    await equipItem(alice, 60);
+    equipItem(alice, 60);
 
     expect(alice.equipped.weapon).toBe(50);
     expect(alice.inventory.items.find((e) => e.item === 60)?.quantity).toBe(1);

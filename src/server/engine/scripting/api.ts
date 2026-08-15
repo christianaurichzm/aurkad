@@ -183,7 +183,7 @@ export function buildApi(
         recordScriptError(scriptName, e, 'hook', event);
       }
     };
-    const unsub = hookOn(event, wrapped as any);
+    const unsub = hookOn(event, wrapped);
     trackUnsub(unsub);
     return unsub;
   }
@@ -513,12 +513,10 @@ export function buildApi(
       attacker?: CombatTarget | null,
     ): void => {
       if (!target) return;
-      void resolveDamage(target, amount, {
+      resolveDamage(target, amount, {
         attacker: attacker ?? undefined,
         map: getMap(target.mapId),
-      }).catch((e) =>
-        logger.error(`[script:${scriptName}] dealDamage failed`, { err: e }),
-      );
+      });
     },
 
     // Grant XP (routes through the beforeXpGain hook, so multipliers apply).

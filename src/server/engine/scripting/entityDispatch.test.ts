@@ -150,7 +150,7 @@ describe('npc with a behavior', () => {
     handle.cleanup();
   });
 
-  it('runs onDeath when the npc is killed', async () => {
+  it('runs onDeath when the npc is killed', () => {
     const sim = createFixture(0);
     const handle = script(`
       attach('boss', {
@@ -169,7 +169,7 @@ describe('npc with a behavior', () => {
     });
     rebuildQuadtree(sim.mapId, sim.map);
 
-    await resolveDamage(npc, 999, { attacker: player, map: sim.map });
+    resolveDamage(npc, 999, { attacker: player, map: sim.map });
 
     expect(calls.log).toEqual(['Boss killed by Alice']);
 
@@ -178,7 +178,7 @@ describe('npc with a behavior', () => {
 });
 
 describe('item with a behavior', () => {
-  it('runs onUse when a player consumes it', async () => {
+  it('runs onUse when a player consumes it', () => {
     const sim = createFixture(0);
     const handle = script(`
       attach('scroll', {
@@ -198,14 +198,14 @@ describe('item with a behavior', () => {
       inventory: { items: [{ item: 1, quantity: 1 }], maxCapacity: 10 },
     });
 
-    await useItem('Alice', 1);
+    useItem('Alice', 1);
 
     expect(calls.log).toEqual(['Alice used Scroll']);
 
     handle.cleanup();
   });
 
-  it('runs onEquip and onUnequip when a player puts equipment on and takes it off', async () => {
+  it('runs onEquip and onUnequip when a player puts equipment on and takes it off', () => {
     const sim = createFixture(0);
     const handle = script(`
       attach('crown', {
@@ -226,10 +226,10 @@ describe('item with a behavior', () => {
       inventory: { items: [{ item: 2, quantity: 1 }], maxCapacity: 10 },
     });
 
-    await useItem('Alice', 2);
+    useItem('Alice', 2);
     expect(player.equipped.helmet).toBe(2);
 
-    await useItem('Alice', 2);
+    useItem('Alice', 2);
     expect(player.equipped.helmet).toBeUndefined();
 
     expect(calls.log).toEqual(['on Crown helmet', 'off Crown helmet']);
@@ -239,7 +239,7 @@ describe('item with a behavior', () => {
 
   // What onEquip grants, onUnequip takes back, so a handler that only sees one
   // side of a swap leaves the bonus of a piece the player is no longer wearing.
-  it('runs the old item onUnequip before the new item onEquip on a swap', async () => {
+  it('runs the old item onUnequip before the new item onEquip on a swap', () => {
     const sim = createFixture(0);
     const handle = script(`
       attach('crown', {
@@ -273,7 +273,7 @@ describe('item with a behavior', () => {
       equipped: { helmet: 2 },
     });
 
-    await useItem('Alice', 3);
+    useItem('Alice', 3);
 
     expect(calls.log).toEqual(['-Old:1', '+New:5']);
 
@@ -283,7 +283,7 @@ describe('item with a behavior', () => {
   // A consumable reaches onUse and equipment does not: the same field on the
   // item means different events, and mixing them would make every handler
   // branch on the item type it was already attached to.
-  it('does not run onUse for equipment', async () => {
+  it('does not run onUse for equipment', () => {
     const sim = createFixture(0);
     const handle = script(`
       attach('crown', { onUse() { record('used'); } });
@@ -301,7 +301,7 @@ describe('item with a behavior', () => {
       inventory: { items: [{ item: 2, quantity: 1 }], maxCapacity: 10 },
     });
 
-    await useItem('Alice', 2);
+    useItem('Alice', 2);
 
     expect(calls.log).toEqual([]);
 
@@ -417,7 +417,7 @@ describe('exported params', () => {
     handle.cleanup();
   });
 
-  it('passes an item behavior the values stored on the item', async () => {
+  it('passes an item behavior the values stored on the item', () => {
     const sim = createFixture(0);
     const handle = script(`
       attach('scroll', {
@@ -441,7 +441,7 @@ describe('exported params', () => {
       inventory: { items: [{ item: 1, quantity: 1 }], maxCapacity: 10 },
     });
 
-    await useItem('Alice', 1);
+    useItem('Alice', 1);
 
     expect(calls.log).toEqual(['town:9']);
 

@@ -277,7 +277,7 @@ describe('playerAttack hook', () => {
 });
 
 describe('itemPickup hook', () => {
-  it('fires when a player picks up a dropped item', async () => {
+  it('fires when a player picks up a dropped item', () => {
     const picked: Array<{ itemId: number; quantity: number }> = [];
     on('itemPickup', ({ itemId, quantity }) =>
       picked.push({ itemId, quantity }),
@@ -299,14 +299,14 @@ describe('itemPickup hook', () => {
       quantity: 3,
     });
 
-    await pickUpItem(sim.map, player);
+    pickUpItem(sim.map, player);
 
     expect(picked).toEqual([{ itemId: 5, quantity: 3 }]);
   });
 });
 
 describe('itemUse hook', () => {
-  it('fires when a player uses a consumable', async () => {
+  it('fires when a player uses a consumable', () => {
     const used: number[] = [];
     on('itemUse', ({ itemId }) => used.push(itemId));
 
@@ -322,7 +322,7 @@ describe('itemUse hook', () => {
     const player = sim.addPlayer({ name: 'Alice', health: 80, maxHealth: 100 });
     player.inventory.items.push({ item: 9, quantity: 1 });
 
-    await useItem('Alice', 9);
+    useItem('Alice', 9);
 
     expect(used).toEqual([9]);
   });
@@ -346,7 +346,7 @@ describe('itemEquip / itemUnequip hooks', () => {
     );
   };
 
-  it('fires when a player equips and then takes the item off', async () => {
+  it('fires when a player equips and then takes the item off', () => {
     const log: string[] = [];
     record(log);
 
@@ -355,10 +355,10 @@ describe('itemEquip / itemUnequip hooks', () => {
     const player = sim.addPlayer({ name: 'Alice' });
     player.inventory.items.push({ item: 20, quantity: 1 });
 
-    await useItem('Alice', 20);
+    useItem('Alice', 20);
     expect(player.equipped.weapon).toBe(20);
 
-    await useItem('Alice', 20);
+    useItem('Alice', 20);
     expect(player.equipped.weapon).toBeUndefined();
 
     expect(log).toEqual(['equip:weapon:20', 'unequip:weapon:20']);
@@ -366,7 +366,7 @@ describe('itemEquip / itemUnequip hooks', () => {
 
   // One click, two changes to what the player is wearing: a listener that
   // recomputes from `equipped` has to see the old piece leave.
-  it('fires both, unequip first, when one piece replaces another', async () => {
+  it('fires both, unequip first, when one piece replaces another', () => {
     const log: string[] = [];
     record(log);
 
@@ -376,7 +376,7 @@ describe('itemEquip / itemUnequip hooks', () => {
     const player = sim.addPlayer({ name: 'Alice', equipped: { weapon: 20 } });
     player.inventory.items.push({ item: 21, quantity: 1 });
 
-    await useItem('Alice', 21);
+    useItem('Alice', 21);
 
     expect(log).toEqual(['unequip:weapon:20', 'equip:weapon:21']);
     expect(player.equipped.weapon).toBe(21);
@@ -384,7 +384,7 @@ describe('itemEquip / itemUnequip hooks', () => {
 
   // The refusal path: a bound item with nowhere to go stays on, so telling a
   // listener it came off would take away a bonus the player still has.
-  it('stays quiet when the unequip is refused', async () => {
+  it('stays quiet when the unequip is refused', () => {
     const log: string[] = [];
     record(log);
 
@@ -405,7 +405,7 @@ describe('itemEquip / itemUnequip hooks', () => {
       equipped: { weapon: 20 },
     });
 
-    await unequipItem(player, 'weapon');
+    unequipItem(player, 'weapon');
 
     expect(player.equipped.weapon).toBe(20);
     expect(log).toEqual([]);

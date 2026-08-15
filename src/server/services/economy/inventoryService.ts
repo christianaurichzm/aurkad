@@ -67,7 +67,7 @@ export async function listItems(): Promise<Item[]> {
   return await ItemModel.find().lean<Item[]>().exec();
 }
 
-export const pickUpItem = async (map: MapStateServer, player: PlayerServer) => {
+export const pickUpItem = (map: MapStateServer, player: PlayerServer) => {
   const dropIndex = map.droppedItems.findIndex(
     (drop) =>
       drop.position.x === player.position.x &&
@@ -92,14 +92,10 @@ export const handleItemAction = (action: ClientItemAction) => {
 
   switch (itemAction) {
     case 'use':
-      useItem(username, item).catch((e) => {
-        logger.error('useItem failed', { err: e });
-      });
+      useItem(username, item);
       break;
     case 'drop':
-      dropItemFromInventory(username, item, quantity).catch((e) => {
-        logger.error('dropItemFromInventory failed', { err: e });
-      });
+      dropItemFromInventory(username, item, quantity);
       break;
     default:
       logger.warn('Unknown item action', { itemAction });
@@ -107,11 +103,11 @@ export const handleItemAction = (action: ClientItemAction) => {
   }
 };
 
-export async function dropItemFromInventory(
+export function dropItemFromInventory(
   username: string,
   itemId: number,
   requestedQuantity = 1,
-): Promise<boolean> {
+): boolean {
   const player = getPlayerByName(username);
   if (!player) return false;
 
@@ -143,10 +139,7 @@ export async function dropItemFromInventory(
   return true;
 }
 
-export async function useItem(
-  username: string,
-  itemId: number,
-): Promise<boolean> {
+export function useItem(username: string, itemId: number): boolean {
   const player = getPlayerByName(username);
   if (!player) return false;
 
@@ -172,9 +165,9 @@ export async function useItem(
     const equippedItem = player.equipped[slot];
 
     if (!invItem && equippedItem === itemId) {
-      await unequipItem(player, slot);
+      unequipItem(player, slot);
     } else if (invItem) {
-      await equipItem(player, itemId);
+      equipItem(player, itemId);
     } else {
       logger.warn('[useItem] item not in inventory nor equipped');
       return false;
@@ -185,10 +178,7 @@ export async function useItem(
   return true;
 }
 
-export async function equipItem(
-  player: PlayerServer,
-  itemId: number,
-): Promise<void> {
+export function equipItem(player: PlayerServer, itemId: number): void {
   const item = getItemById(itemId);
   if (!item) return;
 
@@ -200,12 +190,12 @@ export async function equipItem(
   }
 
   if (Number(player.equipped[slot]) === Number(itemId)) {
-    await unequipItem(player, slot);
+    unequipItem(player, slot);
     return;
   }
 
   if (player.equipped[slot]) {
-    await unequipItem(player, slot);
+    unequipItem(player, slot);
     // Unequip can refuse (a bound item, full inventory); never overwrite it.
     if (player.equipped[slot]) return;
   }
@@ -227,10 +217,7 @@ export async function equipItem(
   );
 }
 
-export async function unequipItem(
-  player: PlayerServer,
-  slot: EquipmentSlot,
-): Promise<void> {
+export function unequipItem(player: PlayerServer, slot: EquipmentSlot): void {
   const itemId = player.equipped[slot];
   if (!itemId) return;
 

@@ -102,9 +102,9 @@ describe('request context', () => {
 
     await new Promise<void>((resolve) => {
       reqCtx.run({ requestId: '4211.0', username: 'Bob' }, () => {
-        // The dispatch is synchronous but the handlers are not: `handleAttack`
-        // logs its failure long after `run` returned, and that line is the one
-        // an incident starts from.
+        // The dispatch is synchronous but the handlers need not be: a persist
+        // or a DB write logs its failure long after `run` returned, and that
+        // line is the one an incident starts from.
         void Promise.resolve().then(() => {
           logger.error('late failure');
           resolve();

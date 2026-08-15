@@ -32,7 +32,7 @@ vi.mock('../../model/LootTable.js', () => ({
   default: {
     findOneAndUpdate: vi.fn().mockResolvedValue(undefined),
     deleteOne: vi.fn().mockResolvedValue(undefined),
-    find: vi.fn(() => ({ lean: () => ({ exec: async () => [] }) })),
+    find: vi.fn(() => ({ lean: () => ({ exec: () => Promise.resolve([]) }) })),
   },
 }));
 
@@ -73,7 +73,7 @@ describe('loot table on death', () => {
       lootTableId: 'goblin-loot',
     });
 
-    await resolveDamage(npc, 99, { attacker: player, map: sim.map });
+    resolveDamage(npc, 99, { attacker: player, map: sim.map });
 
     expect(sim.map.droppedItems).toEqual([
       {
@@ -101,12 +101,12 @@ describe('loot table on death', () => {
       itemsToDrop: [{ itemId: 1, chance: 1 }],
     });
 
-    await resolveDamage(npc, 99, { attacker: player, map: sim.map });
+    resolveDamage(npc, 99, { attacker: player, map: sim.map });
 
     expect(sim.map.droppedItems.map((d) => d.itemId)).toEqual([2]);
   });
 
-  it('falls back to the legacy list and warns when the table is gone', async () => {
+  it('falls back to the legacy list and warns when the table is gone', () => {
     const { sim, player } = setupWorld();
     const warn = vi.spyOn(logger, 'warn').mockImplementation(() => {});
     const npc = sim.addNpc({
@@ -118,7 +118,7 @@ describe('loot table on death', () => {
       itemsToDrop: [{ itemId: 1, chance: 1 }],
     });
 
-    await resolveDamage(npc, 99, { attacker: player, map: sim.map });
+    resolveDamage(npc, 99, { attacker: player, map: sim.map });
 
     expect(sim.map.droppedItems.map((d) => d.itemId)).toEqual([1]);
     expect(warn).toHaveBeenCalled();
@@ -128,7 +128,7 @@ describe('loot table on death', () => {
 
 describe('legacy itemsToDrop', () => {
   // The case the chance fix is for: without it this lands ~1% of the time.
-  it('drops an entry configured at 100%', async () => {
+  it('drops an entry configured at 100%', () => {
     const { sim, player } = setupWorld();
     const npc = sim.addNpc({
       id: 'g1',
@@ -138,12 +138,12 @@ describe('legacy itemsToDrop', () => {
       itemsToDrop: [{ itemId: 1, chance: 1 }],
     });
 
-    await resolveDamage(npc, 99, { attacker: player, map: sim.map });
+    resolveDamage(npc, 99, { attacker: player, map: sim.map });
 
     expect(sim.map.droppedItems).toHaveLength(1);
   });
 
-  it('drops nothing when the npc has no loot at all', async () => {
+  it('drops nothing when the npc has no loot at all', () => {
     const { sim, player } = setupWorld();
     const npc = sim.addNpc({
       id: 'g1',
@@ -152,7 +152,7 @@ describe('legacy itemsToDrop', () => {
       maxHealth: 5,
     });
 
-    await resolveDamage(npc, 99, { attacker: player, map: sim.map });
+    resolveDamage(npc, 99, { attacker: player, map: sim.map });
 
     expect(sim.map.droppedItems).toEqual([]);
   });
@@ -175,7 +175,7 @@ describe('broken references', () => {
       lootTableId: 'table',
     });
 
-    await resolveDamage(npc, 99, { attacker: player, map: sim.map });
+    resolveDamage(npc, 99, { attacker: player, map: sim.map });
 
     // The good item still drops; only the dangling one is skipped.
     expect(sim.map.droppedItems.map((d) => d.itemId)).toEqual([1]);
@@ -185,7 +185,7 @@ describe('broken references', () => {
 });
 
 describe('damage contribution', () => {
-  it('credits the whole fight, not just the killing blow', async () => {
+  it('credits the whole fight, not just the killing blow', () => {
     const { sim, player } = setupWorld();
     const bob = sim.addPlayer({ name: 'Bob', position: tile(2, 3) });
     const npc = sim.addNpc({
@@ -201,9 +201,9 @@ describe('damage contribution', () => {
     // Alice does the work and Bob taps it as it falls. The finishing blow is
     // small, or the killer would top the contributors and nothing would be
     // measured at all.
-    await resolveDamage(npc, 60, { attacker: player, map: sim.map });
-    await resolveDamage(npc, 30, { attacker: player, map: sim.map });
-    await resolveDamage(npc, 20, { attacker: bob, map: sim.map });
+    resolveDamage(npc, 60, { attacker: player, map: sim.map });
+    resolveDamage(npc, 30, { attacker: player, map: sim.map });
+    resolveDamage(npc, 20, { attacker: bob, map: sim.map });
 
     // Sorted by share, so "who earned this" comes first, which here is not the
     // killer: the reason the ledger exists.
@@ -211,7 +211,7 @@ describe('damage contribution', () => {
     expect(seen[0]?.[0]?.damage).toBeGreaterThan(seen[0]?.[1]?.damage ?? 0);
   });
 
-  it('starts the next fight from zero after a respawn reuses the id', async () => {
+  it('starts the next fight from zero after a respawn reuses the id', () => {
     const { sim, player } = setupWorld();
     const npc = sim.addNpc({
       id: 'g1',
@@ -220,14 +220,14 @@ describe('damage contribution', () => {
       maxHealth: 10,
     });
 
-    await resolveDamage(npc, 99, { attacker: player, map: sim.map });
+    resolveDamage(npc, 99, { attacker: player, map: sim.map });
     // respawnNpc keeps the id and restores health, so a ledger left behind
     // would make the next kill report damage from the previous one.
     expect(damageContributors('g1')).toEqual([]);
     expect(damageLedgerSize()).toBe(0);
   });
 
-  it('does not hold a ledger for an npc nothing killed', async () => {
+  it('does not hold a ledger for an npc nothing killed', () => {
     const { sim, player } = setupWorld();
     const npc = sim.addNpc({
       id: 'g1',
@@ -236,7 +236,7 @@ describe('damage contribution', () => {
       maxHealth: 100,
     });
 
-    await resolveDamage(npc, 10, { attacker: player, map: sim.map });
+    resolveDamage(npc, 10, { attacker: player, map: sim.map });
     expect(damageLedgerSize()).toBe(1);
 
     // A pet or summon that leaves without dying still has to release it.
@@ -262,7 +262,7 @@ describe('loot conditions', () => {
       lootTableId: 'table',
     });
 
-    await resolveDamage(npc, 99, { attacker: player, map: sim.map });
+    resolveDamage(npc, 99, { attacker: player, map: sim.map });
 
     expect(sim.map.droppedItems.map((d) => d.itemId)).toEqual([1]);
   });
@@ -288,8 +288,8 @@ describe('loot conditions', () => {
       lootTableId: 'table',
     });
 
-    await resolveDamage(npc, 40, { attacker: player, map: sim.map });
-    await resolveDamage(npc, 500, { attacker: bob, map: sim.map });
+    resolveDamage(npc, 40, { attacker: player, map: sim.map });
+    resolveDamage(npc, 500, { attacker: bob, map: sim.map });
 
     expect(seen?.killer?.id).toBe(bob.id);
     expect(seen?.totalDamage).toBeGreaterThan(seen?.contribution ?? 0);
@@ -317,7 +317,7 @@ describe('loot conditions', () => {
       lootTableId: 'table',
     });
 
-    await resolveDamage(npc, 99, { attacker: player, map: sim.map });
+    resolveDamage(npc, 99, { attacker: player, map: sim.map });
 
     expect(sim.map.droppedItems.map((d) => d.itemId)).toEqual([1]);
   });
@@ -338,7 +338,7 @@ describe('loot conditions', () => {
       lootTableId: 'table',
     });
 
-    await resolveDamage(npc, 99, { attacker: player, map: sim.map });
+    resolveDamage(npc, 99, { attacker: player, map: sim.map });
 
     // A script that failed to load must not hand boss loot to everyone.
     expect(sim.map.droppedItems).toEqual([]);
@@ -365,7 +365,7 @@ describe('loot conditions', () => {
       lootTableId: 'table',
     });
 
-    await resolveDamage(npc, 99, { attacker: player, map: sim.map });
+    resolveDamage(npc, 99, { attacker: player, map: sim.map });
 
     expect(sim.map.droppedItems).toEqual([]);
     expect(error).toHaveBeenCalled();

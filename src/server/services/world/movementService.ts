@@ -409,20 +409,13 @@ export const handleKeyAction = (action: ClientKeyboardAction) => {
           const attack = { player, handled: false };
           emit('playerAttack', attack);
           if (!attack.handled) {
-            handleAttack(player).catch((e) => {
-              logger.error('handleAttack failed', { err: e });
-            });
+            handleAttack(player);
           }
           updatePlayerMap(player.id, player);
         }
       } else if (key === Key.e) {
-        pickUpItem(getMap(player.mapId)!, player)
-          .then(() => {
-            updatePlayerMap(player.id, player);
-          })
-          .catch((e) => {
-            logger.error('pickUpItem failed', { err: e });
-          });
+        pickUpItem(getMap(player.mapId)!, player);
+        updatePlayerMap(player.id, player);
       } else if (key === Key.f) {
         handleInteract(player);
       }

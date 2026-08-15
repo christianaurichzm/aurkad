@@ -130,7 +130,7 @@ describe('shop', () => {
 // Inventory: equip and use
 
 describe('inventory', () => {
-  it('equipping a weapon moves it to the equipped slot and applies stat effects', async () => {
+  it('equipping a weapon moves it to the equipped slot and applies stat effects', () => {
     const sword = {
       id: 20,
       name: 'Sword',
@@ -146,14 +146,14 @@ describe('inventory', () => {
     const player = sim.addPlayer({ name: 'Alice', attack: 10 });
     player.inventory.items.push({ item: 20, quantity: 1 });
 
-    await equipItem(player, 20);
+    equipItem(player, 20);
 
     expect(player.equipped['weapon']).toBe(20);
     expect(player.inventory.items.find((i) => i.item === 20)).toBeUndefined();
     expect(player.attack).toBe(25);
   });
 
-  it('equipping same weapon again unequips it and returns to inventory', async () => {
+  it('equipping same weapon again unequips it and returns to inventory', () => {
     const sword = {
       id: 20,
       name: 'Sword',
@@ -169,15 +169,15 @@ describe('inventory', () => {
     const player = sim.addPlayer({ name: 'Alice', attack: 10 });
     player.inventory.items.push({ item: 20, quantity: 1 });
 
-    await equipItem(player, 20);
-    await equipItem(player, 20);
+    equipItem(player, 20);
+    equipItem(player, 20);
 
     expect(player.equipped['weapon']).toBeUndefined();
     expect(player.inventory.items.find((i) => i.item === 20)?.quantity).toBe(1);
     expect(player.attack).toBe(10);
   });
 
-  it('using a consumable restores health and reduces quantity', async () => {
+  it('using a consumable restores health and reduces quantity', () => {
     const potion = {
       id: 30,
       name: 'Potion',
@@ -193,13 +193,13 @@ describe('inventory', () => {
     const player = sim.addPlayer({ name: 'Alice', health: 50, maxHealth: 100 });
     player.inventory.items.push({ item: 30, quantity: 3 });
 
-    await useItem('Alice', 30);
+    useItem('Alice', 30);
 
     expect(player.health).toBe(80);
     expect(player.inventory.items.find((i) => i.item === 30)?.quantity).toBe(2);
   });
 
-  it('using the last consumable removes it from inventory entirely', async () => {
+  it('using the last consumable removes it from inventory entirely', () => {
     const potion = {
       id: 30,
       name: 'Potion',
@@ -215,12 +215,12 @@ describe('inventory', () => {
     const player = sim.addPlayer({ name: 'Alice', health: 80, maxHealth: 100 });
     player.inventory.items.push({ item: 30, quantity: 1 });
 
-    await useItem('Alice', 30);
+    useItem('Alice', 30);
 
     expect(player.inventory.items.find((i) => i.item === 30)).toBeUndefined();
   });
 
-  it('dropping part of a stack creates a single stacked drop on the map', async () => {
+  it('dropping part of a stack creates a single stacked drop on the map', () => {
     const potion = {
       id: 30,
       name: 'Potion',
@@ -233,7 +233,7 @@ describe('inventory', () => {
     const player = sim.addPlayer({ name: 'Alice' });
     player.inventory.items.push({ item: 30, quantity: 5 });
 
-    const ok = await dropItemFromInventory('Alice', 30, 3);
+    const ok = dropItemFromInventory('Alice', 30, 3);
 
     expect(ok).toBe(true);
     expect(player.inventory.items.find((i) => i.item === 30)?.quantity).toBe(2);
@@ -248,7 +248,7 @@ describe('inventory', () => {
     );
   });
 
-  it('equipping a weapon with a multiply effect scales the stat', async () => {
+  it('equipping a weapon with a multiply effect scales the stat', () => {
     const sword = {
       id: 21,
       name: 'PowerSword',
@@ -264,12 +264,12 @@ describe('inventory', () => {
     const player = sim.addPlayer({ name: 'Bob', attack: 10 });
     player.inventory.items.push({ item: 21, quantity: 1 });
 
-    await equipItem(player, 21);
+    equipItem(player, 21);
 
     expect(player.attack).toBe(15);
   });
 
-  it('unequipping a multiply-effect weapon restores original stat exactly', async () => {
+  it('unequipping a multiply-effect weapon restores original stat exactly', () => {
     const sword = {
       id: 21,
       name: 'PowerSword',
@@ -285,13 +285,13 @@ describe('inventory', () => {
     const player = sim.addPlayer({ name: 'Bob', attack: 10 });
     player.inventory.items.push({ item: 21, quantity: 1 });
 
-    await equipItem(player, 21);
-    await equipItem(player, 21);
+    equipItem(player, 21);
+    equipItem(player, 21);
 
     expect(player.attack).toBe(10);
   });
 
-  it('swapping equipped weapon unequips old and equips new', async () => {
+  it('swapping equipped weapon unequips old and equips new', () => {
     const sword = {
       id: 20,
       name: 'Sword',
@@ -319,17 +319,17 @@ describe('inventory', () => {
     player.inventory.items.push({ item: 20, quantity: 1 });
     player.inventory.items.push({ item: 22, quantity: 1 });
 
-    await equipItem(player, 20);
+    equipItem(player, 20);
     expect(player.attack).toBe(15);
     expect(player.equipped['weapon']).toBe(20);
 
-    await equipItem(player, 22);
+    equipItem(player, 22);
     expect(player.equipped['weapon']).toBe(22);
     expect(player.attack).toBe(30);
     expect(player.inventory.items.find((i) => i.item === 20)?.quantity).toBe(1);
   });
 
-  it('picking up a stacked drop recovers the whole quantity at once', async () => {
+  it('picking up a stacked drop recovers the whole quantity at once', () => {
     sim.addItem({
       id: 31,
       name: 'Arrow',
@@ -346,7 +346,7 @@ describe('inventory', () => {
       quantity: 7,
     });
 
-    await pickUpItem(sim.map, player);
+    pickUpItem(sim.map, player);
 
     expect(player.inventory.items.find((i) => i.item === 31)?.quantity).toBe(7);
     expect(sim.map.droppedItems).toHaveLength(0);

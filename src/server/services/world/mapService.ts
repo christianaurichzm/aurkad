@@ -76,7 +76,7 @@ export const insertModeCell = async (mapId: string, tiles: Tile[][]) => {
   };
 
   await insertNpcs(partialMap, mapId, tiles);
-  await insertItems(partialMap, tiles);
+  insertItems(partialMap, tiles);
 
   const newMap = {
     ...baseMap,
@@ -97,7 +97,7 @@ export const mapSave = async (
   await updateMapById({ ...newMap, name, type, music } as MapStateServer);
 };
 
-export const insertItems = async (
+export const insertItems = (
   partialMap: Partial<MapStateServer>,
   tiles: Tile[][],
 ) => {

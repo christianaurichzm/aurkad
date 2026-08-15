@@ -12,7 +12,6 @@ import { hasCollision } from '../world/physicsService.js';
 import { resolveDamage } from '../combat/index.js';
 import { queryEntitiesInRadius } from '../../spatial/spatialManager.js';
 import { randomInt } from '../../sim/rng.js';
-import { logger } from '../../logger.js';
 
 // Hoisted, since these objects are never mutated.
 const WANDER_DIRECTIONS = [
@@ -219,9 +218,7 @@ export function isPlayerInAttackRange(
 }
 
 export function attackPlayer(npc: RuntimeNpc, player: PlayerServer) {
-  void resolveDamage(player, npc.attack, { attacker: npc }).catch((e) => {
-    logger.error('resolveDamage failed', { err: e });
-  });
+  resolveDamage(player, npc.attack, { attacker: npc });
   npc.action = CharacterAction.Attack;
 }
 

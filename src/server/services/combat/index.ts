@@ -259,11 +259,11 @@ function rollNpcLoot(
   return dropped;
 }
 
-export const resolveDamage = async (
+export const resolveDamage = (
   target: CombatTarget,
   amount: number,
   options: ResolveDamageOptions = {},
-): Promise<number> => {
+): number => {
   if (target.health <= 0) return 0;
 
   const { attacker } = options;
@@ -349,7 +349,7 @@ export const resolveDamage = async (
   return damage;
 };
 
-export const handleAttack = async (attacker: PlayerServer): Promise<void> => {
+export const handleAttack = (attacker: PlayerServer): void => {
   if (!attacker) return;
 
   if (!tryConsumeAttackCooldown(attacker.id, getTick())) return;
@@ -376,5 +376,5 @@ export const handleAttack = async (attacker: PlayerServer): Promise<void> => {
     dir: attacker.direction,
   });
 
-  await resolveDamage(attackTarget, attacker.attack, { attacker, map });
+  resolveDamage(attackTarget, attacker.attack, { attacker, map });
 };
