@@ -23,7 +23,9 @@ import {
   listDeliveries,
   queueDelivery,
   sendDelivery,
+  sweepUnclaimableDeliveries,
 } from './deliveryService.js';
+import { deleteItem } from './inventoryService.js';
 import { items } from '../world/gameData.js';
 import { createPlayer } from '../player/playerService.js';
 import { playersByName } from '../../sim/state.js';
@@ -454,5 +456,45 @@ describe('cancelDelivery', () => {
 
   it('reports an id that was not there', async () => {
     expect(await cancelDelivery('nope')).toBe(false);
+  });
+});
+
+// A row whose item left the catalogue can never be claimed (see the claim test
+// above), so nobody frees the slot it holds unless something drops it.
+describe('sweepUnclaimableDeliveries', () => {
+  const queueBoth = async () => {
+    await makePlayer('Alice');
+    await queueDelivery({ to: 'Alice', itemId: POTION, source: 'test' });
+    await queueDelivery({ to: 'Alice', itemId: SWORD, source: 'test' });
+  };
+
+  it('drops the rows owing a deleted item and keeps the rest', async () => {
+    await queueBoth();
+    items.delete(SWORD);
+
+    expect(await sweepUnclaimableDeliveries()).toBe(1);
+    expect((await listDeliveries('Alice')).map((r) => r.itemId)).toEqual([
+      POTION,
+    ]);
+  });
+
+  it('keeps every row when the catalogue is empty', async () => {
+    await queueBoth();
+    // Content that failed to load, not a catalogue where everything was
+    // deleted: sweeping on this would empty every mailbox in the game.
+    items.clear();
+
+    expect(await sweepUnclaimableDeliveries()).toBe(0);
+    expect(await countDeliveries('Alice')).toBe(2);
+  });
+
+  it('runs when an item is deleted from the catalogue', async () => {
+    await queueBoth();
+
+    await deleteItem(SWORD);
+
+    expect((await listDeliveries('Alice')).map((r) => r.itemId)).toEqual([
+      POTION,
+    ]);
   });
 });

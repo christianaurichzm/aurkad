@@ -11,6 +11,7 @@ import {
   runtimeState,
 } from './services/world/gameData.js';
 import { listItems } from './services/economy/inventoryService.js';
+import { sweepUnclaimableDeliveries } from './services/economy/deliveryService.js';
 import { loadLootTables } from './services/economy/lootTableService.js';
 import { loadLiveOpsFlags } from './services/liveOpsService.js';
 import { loadArrows } from './services/content/arrowService.js';
@@ -100,6 +101,11 @@ export async function loadInitialData() {
       }
       items.set(item.id, item);
     }
+
+    // After the catalogue is in memory, because that is what it compares
+    // against: it catches rows left owing an item that was removed while this
+    // instance was down, or by a restore that never crossed `deleteItem`.
+    await sweepUnclaimableDeliveries();
 
     await loadArrows();
     await loadSpells();

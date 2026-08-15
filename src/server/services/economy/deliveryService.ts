@@ -24,6 +24,7 @@ import {
   withTransaction,
 } from '../../persistence/transactions.js';
 import { getItemById } from './inventoryService.js';
+import { items } from '../world/gameData.js';
 import { getPlayerByName } from '../../sim/world.js';
 import {
   getPlayerByNameFromDb,
@@ -252,6 +253,32 @@ export async function countDeliveries(name: string): Promise<number> {
 export async function cancelDelivery(id: string): Promise<boolean> {
   const result = await DeliveryModel.deleteOne({ id: String(id) });
   return result.deletedCount > 0;
+}
+
+/**
+ * Drops the rows owing an item the catalogue no longer has. Such a row is
+ * stuck: `claimDeliveries` refuses it forever, and it holds a pending slot
+ * until cancelled by an id nobody knows. Dropping it loses nothing the
+ * deletion had not. Runs on item deletion and at boot, the only times a
+ * row can turn unclaimable. An empty catalogue means content did not load,
+ * so then it sweeps nothing rather than every mailbox in the game.
+ */
+export async function sweepUnclaimableDeliveries(): Promise<number> {
+  const known = [...items.keys()];
+  if (known.length === 0) return 0;
+
+  const { deletedCount } = await DeliveryModel.deleteMany({
+    itemId: { $nin: known },
+  });
+  if (deletedCount > 0) {
+    logger.warn(
+      '[delivery] dropped rows owing items no longer in the catalogue',
+      {
+        rows: deletedCount,
+      },
+    );
+  }
+  return deletedCount;
 }
 
 function readClaimedHistory(player: PlayerServer): string[] {
