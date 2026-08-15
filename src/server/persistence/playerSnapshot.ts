@@ -1,13 +1,29 @@
 import { config } from '../config.js';
 import { getPlayerById } from '../sim/world.js';
 import { persistPlayerSessionState } from '../services/player/playerService.js';
-import { drainDirtyPlayerIds, markPlayerDirty } from './dirtyPlayers.js';
+import {
+  drainDirtyPlayerIds,
+  isPlayerCommitting,
+  markPlayerDirty,
+} from './dirtyPlayers.js';
 import { logger } from '../logger.js';
 
 type IntervalHandle = ReturnType<typeof setInterval>;
 
-async function persistDirtyPlayers(): Promise<void> {
-  const ids = drainDirtyPlayerIds().filter((id) => getPlayerById(id));
+/** One sweep of the write-behind loop, exported for the test of its rule. */
+export async function persistDirtyPlayers(): Promise<void> {
+  const ids: string[] = [];
+  for (const id of drainDirtyPlayerIds()) {
+    // Checked before the world lookup: a player inside an economic commit stays
+    // pending whatever else is true of them, because writing them here is the
+    // independent write that commit exists to avoid (ADR-0035).
+    if (isPlayerCommitting(id)) {
+      markPlayerDirty(id);
+      continue;
+    }
+    if (getPlayerById(id)) ids.push(id);
+  }
+
   const results = await Promise.allSettled(
     ids.map((id) => persistPlayerSessionState(getPlayerById(id)!)),
   );

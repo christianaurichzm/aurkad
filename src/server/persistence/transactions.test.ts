@@ -32,6 +32,9 @@ import {
   persistPlayersNow,
 } from '../services/player/playerService.js';
 import { moveItem } from '../services/economy/economyService.js';
+import { drainDirtyPlayerIds, markPlayerDirty } from './dirtyPlayers.js';
+import { persistDirtyPlayers } from './playerSnapshot.js';
+import { players } from '../sim/state.js';
 import { sendDelivery } from '../services/economy/deliveryService.js';
 import { items } from '../services/world/gameData.js';
 import DeliveryModel from '../model/Delivery.js';
@@ -72,6 +75,8 @@ const heldBy = async (name: string): Promise<number> => {
 beforeEach(async () => {
   const cols = mongoose.connection.collections;
   await Promise.all(Object.values(cols).map((c) => c.deleteMany({})));
+  for (const id of Object.keys(players)) delete players[id];
+  drainDirtyPlayerIds();
   // Errors are the expected output of the abort tests; asserting on them is the
   // job of the assertions below, not of the console.
   vi.spyOn(logger, 'error').mockImplementation(() => {});
@@ -166,6 +171,44 @@ describe('replica set', () => {
     // the players can retry. "Bob has it and Alice still does" is not.
     expect(await heldBy('Alice')).toBe(1);
     expect(await heldBy('Bob')).toBe(0);
+  });
+
+  // The other way a committed pair comes apart, and the residual ADR-0035
+  // declared: write-behind writes each dirty player on its own, so a sweep
+  // landing while the trade is committing could write one of the two and, on a
+  // crash right there, leave exactly the torn trade the transaction prevents.
+  it('holds the write-behind sweep off a pair being committed', async () => {
+    const [from, to] = await tradingPair();
+    moveItem(from.inventory, to.inventory, SWORD, 1);
+    players[from.id] = from;
+    players[to.id] = to;
+    markPlayerDirty(from.id);
+    markPlayerDirty(to.id);
+
+    // Not awaited: the sweep runs while the transaction is open,
+    // which is the window itself.
+    const commit = persistPlayersNow([from, to]);
+    await persistDirtyPlayers();
+
+    // Both still pending: the sweep wrote neither, so nothing left the commit's
+    // hands on its own.
+    expect(drainDirtyPlayerIds().sort()).toEqual([from.id, to.id].sort());
+
+    await commit;
+    expect(await heldBy('Alice')).toBe(0);
+    expect(await heldBy('Bob')).toBe(1);
+  });
+
+  it('still sweeps a player nobody is committing', async () => {
+    const [from] = await tradingPair();
+    players[from.id] = from;
+    from.health = 21;
+    markPlayerDirty(from.id);
+
+    await persistDirtyPlayers();
+
+    expect(drainDirtyPlayerIds()).toEqual([]);
+    expect((await playerRepository.findByName('Alice'))!.health).toBe(21);
   });
 
   it('does not open a transaction for a single player', async () => {

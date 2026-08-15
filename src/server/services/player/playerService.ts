@@ -39,7 +39,11 @@ import {
   resetPlayerNetState,
   forgetReplicatedEntity,
 } from '../../net/index.js';
-import { clearPlayerDirty } from '../../persistence/dirtyPlayers.js';
+import {
+  beginPlayerCommit,
+  clearPlayerDirty,
+  endPlayerCommit,
+} from '../../persistence/dirtyPlayers.js';
 import {
   supportsTransactions,
   withTransaction,
@@ -200,6 +204,19 @@ export async function persistPlayersNow(
   if (mongoose.connection.readyState !== mongoose.ConnectionStates.connected)
     return;
 
+  // Held for the whole call, not just the transaction: until the last await,
+  // the write-behind sweep must not write one of these documents alone. A
+  // single player needs no hold, as one document write is atomic.
+  const held = playersToSave.length > 1 ? playersToSave.map((p) => p.id) : [];
+  beginPlayerCommit(held);
+  try {
+    await commitPlayers(playersToSave);
+  } finally {
+    endPlayerCommit(held);
+  }
+}
+
+async function commitPlayers(playersToSave: PlayerServer[]): Promise<void> {
   if (playersToSave.length > 1 && supportsTransactions()) {
     const committed = await withTransaction(
       async (session) => {
