@@ -2,7 +2,12 @@ import React, { useEffect, useReducer, useState } from 'react';
 import { Access } from '../../shared/types';
 import { useGame } from '../context/GameContext';
 import { usePlayerForceUpdate } from '../hooks/usePlayerForceUpdate';
-import { openContentEditor, openMapEditor, openModEditor } from '../io/network';
+import {
+  httpError,
+  openContentEditor,
+  openMapEditor,
+  openModEditor,
+} from '../io/network';
 import {
   getModuleActions,
   subscribeModuleActions,
@@ -106,10 +111,10 @@ export const ActionPanel: React.FC = () => {
           kind: 'error',
         });
       }
-    } catch (error: any) {
+    } catch (error) {
       await showDialog({
         title: 'Panel unavailable',
-        message: error?.message || `Could not open ${action.label}.`,
+        message: httpError(error).message || `Could not open ${action.label}.`,
         kind: 'error',
       });
     } finally {

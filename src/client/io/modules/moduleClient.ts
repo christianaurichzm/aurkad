@@ -324,7 +324,7 @@ function makeEngineApi(id: string) {
 export async function loadClientModules(): Promise<void> {
   let modules: ClientModule[];
   try {
-    modules = await (await fetch('/modules')).json();
+    modules = (await (await fetch('/modules')).json()) as ClientModule[];
   } catch (e) {
     console.error('[modules] failed to fetch module list', e);
     return;

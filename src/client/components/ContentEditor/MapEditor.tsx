@@ -56,11 +56,11 @@ const mapToFormValues = (map: MapStateClient): MapFormValues => ({
   type: map.type ?? 'normal',
   cols: map.tiles?.[0]?.length ?? 20,
   rows: map.tiles?.length ?? 14,
-  music: (map as any).music ?? '',
-  borderUp: warpToForm((map as any).borderLinks?.up),
-  borderDown: warpToForm((map as any).borderLinks?.down),
-  borderLeft: warpToForm((map as any).borderLinks?.left),
-  borderRight: warpToForm((map as any).borderLinks?.right),
+  music: map.music ?? '',
+  borderUp: warpToForm(map.borderLinks?.up),
+  borderDown: warpToForm(map.borderLinks?.down),
+  borderLeft: warpToForm(map.borderLinks?.left),
+  borderRight: warpToForm(map.borderLinks?.right),
 });
 
 export const MapEditor: React.FC<MapEditorProps> = ({
@@ -143,7 +143,7 @@ export const MapEditor: React.FC<MapEditorProps> = ({
           type,
           music: music || undefined,
           borderLinks,
-        } as any)
+        })
       : await createMap({ name, type, cols, rows });
     chatResultMsg(!!result, 'Map saved!', 'Error saving map');
     refreshData();
@@ -194,7 +194,7 @@ export const MapEditor: React.FC<MapEditorProps> = ({
           name="type"
           render={({ field }) => (
             <AsyncSelect<MapType>
-              loadOptions={async () => mapTypeOptions}
+              loadOptions={() => Promise.resolve(mapTypeOptions)}
               value={field.value}
               onChange={field.onChange}
             />

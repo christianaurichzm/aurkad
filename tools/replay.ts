@@ -200,7 +200,7 @@ export function renderTimeline(events: ReplayEvent[]): string[] {
   const glyphs = new Map<string, string[]>();
   for (const player of players) {
     heldNow.set(player, new Set());
-    glyphs.set(player, Array(cols).fill(' '));
+    glyphs.set(player, Array<string>(cols).fill(' '));
   }
 
   for (let colIdx = 0; colIdx < cols; colIdx++) {
@@ -487,7 +487,7 @@ async function main() {
     process.exit(1);
   }
 
-  const raw: ReplayFile | LegacyFile = JSON.parse(readFileSync(file, 'utf8'));
+  const raw = JSON.parse(readFileSync(file, 'utf8')) as ReplayFile | LegacyFile;
   const data = normalize(raw);
 
   const selection: Selection = {

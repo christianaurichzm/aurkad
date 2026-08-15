@@ -16,12 +16,7 @@ import { rebuildQuadtree } from '../spatial/spatialManager.js';
 import { items } from '../services/world/gameData.js';
 import { PROTOCOL_VERSION } from '../../shared/wsProtocol.js';
 import { PROTOCOL_GOLDEN_STEPS } from '../../shared/testFixtures/wsProtocolGoldens.js';
-import {
-  CharacterAction,
-  Direction,
-  type Item,
-  type PlayerServer,
-} from '../../shared/types.js';
+import { CharacterAction, Direction, type Item } from '../../shared/types.js';
 
 afterEach(() => {
   playersWsMap.clear();

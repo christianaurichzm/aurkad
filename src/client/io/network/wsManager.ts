@@ -1,6 +1,7 @@
 import {
   PROTOCOL_VERSION,
   type WsClientMessage,
+  type WsServerMessage,
 } from '../../../shared/wsProtocol';
 import { hideConnectionStatus, showConnectionStatus } from '../../graphics/hud';
 import { useUIStore } from '../../stores/uiStore';
@@ -79,15 +80,18 @@ export const initializeWebSocket = (url = currentWsUrl) => {
     setTimeout(hideConnectionStatus, 2000);
   };
 
-  socket.onmessage = (event) => {
+  socket.onmessage = (event: MessageEvent<string>) => {
     try {
-      const data = JSON.parse(event.data);
+      const data = JSON.parse(event.data) as WsServerMessage;
 
       // A versioned message whose version we do not speak means the server was
       // deployed with a new wire format while this tab stayed open. Applying it
       // would corrupt local state silently (audit F-7), so resync by reloading.
-      if (typeof data.v === 'number' && data.v !== PROTOCOL_VERSION) {
-        handleProtocolMismatch(data.v);
+      // Read off the raw shape: only the game-state messages carry `v`, and a
+      // mismatch is exactly the case where the declared union may be wrong.
+      const version = (data as { v?: unknown }).v;
+      if (typeof version === 'number' && version !== PROTOCOL_VERSION) {
+        handleProtocolMismatch(version);
         return;
       }
 
@@ -111,7 +115,7 @@ export const initializeWebSocket = (url = currentWsUrl) => {
         case 'redirect':
           kicked = true;
           socket.close();
-          setTimeout(() => initializeWebSocket(data.url as string), 200);
+          setTimeout(() => initializeWebSocket(data.url), 200);
           break;
         case 'openShop':
           if (data.shopId) {
@@ -144,7 +148,7 @@ export const initializeWebSocket = (url = currentWsUrl) => {
     scheduleReconnect();
   };
 
-  socket.onerror = (error: any) => {
+  socket.onerror = (error) => {
     console.error('WebSocket error:', error);
     socket.close();
   };

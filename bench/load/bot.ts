@@ -200,7 +200,7 @@ export class LoadBot {
     this.closed = false;
   }
 
-  async close(): Promise<void> {
+  close(): void {
     this.closed = true;
     this.stopActing();
     this.ws?.close();

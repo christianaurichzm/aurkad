@@ -17,7 +17,7 @@ vi.mock('../../model/Quest.js', () => ({
   default: {
     findOneAndUpdate: () => Promise.resolve(undefined),
     deleteOne: () => Promise.resolve(undefined),
-    find: () => ({ lean: () => ({ exec: async () => [] }) }),
+    find: () => ({ lean: () => ({ exec: () => Promise.resolve([]) }) }),
   },
 }));
 

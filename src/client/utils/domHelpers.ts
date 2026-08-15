@@ -10,7 +10,12 @@ export function getInputValue(id: string): string {
   const element = document.getElementById(id) as HTMLInputElement | null;
   if (element) return element.value;
 
-  return (window as any)[`selected${capitalizeFirst(id)}`] || '';
+  // The tileset editor parks its current selection on window under this name
+  // for the tile kinds that have no input of their own to read back.
+  const selection = (window as unknown as Record<string, string | undefined>)[
+    `selected${capitalizeFirst(id)}`
+  ];
+  return selection || '';
 }
 
 export function setVisibility(id: string, visible: boolean, display = 'flex') {
@@ -26,25 +31,25 @@ export function hide(id: string) {
   setVisibility(id, false);
 }
 
-export function addEvent<T extends HTMLElement>(
+export function addEvent<K extends keyof HTMLElementEventMap>(
   id: string,
-  event: keyof HTMLElementEventMap,
-  handler: (e: any) => any,
+  event: K,
+  handler: (e: HTMLElementEventMap[K]) => void,
 ) {
-  const el = getEl<T>(id);
+  const el = getEl(id);
   if (el) el.addEventListener(event, handler);
 }
 
-export const removeEvent = (
+export const removeEvent = <K extends keyof HTMLElementEventMap>(
   id: string,
-  evt: keyof HTMLElementEventMap,
-  fn: any,
+  evt: K,
+  fn: (e: HTMLElementEventMap[K]) => void,
 ) => {
   const el = getEl(id);
   if (el) el.removeEventListener(evt, fn);
 };
 
-export function safeParseInt(value: any, fallback = 0): number {
+export function safeParseInt(value: string, fallback = 0): number {
   const n = parseInt(value, 10);
   return isNaN(n) ? fallback : n;
 }

@@ -18,7 +18,7 @@ vi.mock('../../model/Recipe.js', () => ({
   default: {
     findOneAndUpdate: () => Promise.resolve(undefined),
     deleteOne: () => Promise.resolve(undefined),
-    find: () => ({ lean: () => ({ exec: async () => [] }) }),
+    find: () => ({ lean: () => ({ exec: () => Promise.resolve([]) }) }),
   },
 }));
 

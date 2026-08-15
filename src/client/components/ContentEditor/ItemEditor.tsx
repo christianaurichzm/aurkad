@@ -272,7 +272,7 @@ export const ItemEditor: React.FC<ItemEditorProps> = ({
               name="type"
               render={({ field }) => (
                 <AsyncSelect<Item['type']>
-                  loadOptions={async () => typeOptions}
+                  loadOptions={() => Promise.resolve(typeOptions)}
                   value={field.value}
                   onChange={field.onChange}
                 />
@@ -351,7 +351,7 @@ export const ItemEditor: React.FC<ItemEditorProps> = ({
                 name={`effects.${i}.attribute`}
                 render={({ field }) => (
                   <AsyncSelect<ModifiablePlayerAttribute>
-                    loadOptions={async () => attributes}
+                    loadOptions={() => Promise.resolve(attributes)}
                     value={field.value}
                     onChange={field.onChange}
                   />
@@ -364,10 +364,12 @@ export const ItemEditor: React.FC<ItemEditorProps> = ({
                 name={`effects.${i}.type`}
                 render={({ field }) => (
                   <AsyncSelect<Effect['type']>
-                    loadOptions={async () => [
-                      { value: 'add' as const, label: '+ add' },
-                      { value: 'multiply' as const, label: '× mul' },
-                    ]}
+                    loadOptions={() =>
+                      Promise.resolve([
+                        { value: 'add' as const, label: '+ add' },
+                        { value: 'multiply' as const, label: '× mul' },
+                      ])
+                    }
                     value={field.value}
                     onChange={field.onChange}
                   />

@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
-import { register as registerUser } from '../io/network';
+import { httpError, register as registerUser } from '../io/network';
 import { colors, radius, zIndex } from '../theme';
 
 type FormValues = { username: string; password: string };
@@ -26,8 +26,8 @@ export const Register = ({ onSwitch }: { onSwitch: () => void }) => {
     try {
       await registerUser(username, password);
       setSuccessMsg('Account created! Redirecting to login...');
-    } catch (err: any) {
-      setServerError(err?.message || 'Registration failed');
+    } catch (err) {
+      setServerError(httpError(err).message || 'Registration failed');
     }
   };
 

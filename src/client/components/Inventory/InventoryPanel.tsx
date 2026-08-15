@@ -59,7 +59,7 @@ export const InventoryPanel: React.FC = () => {
 
   const equippedSlot =
     player && selected
-      ? Object.entries(player.equipped).find(
+      ? (Object.entries(player.equipped) as [string, Item | undefined][]).find(
           ([, eq]) => eq?.id === selected.item.id,
         )?.[0]
       : null;

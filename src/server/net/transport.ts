@@ -1,14 +1,10 @@
-import { RequestHandler } from 'express';
+import { RequestHandler, Response } from 'express';
 import WebSocket, { WebSocketServer } from 'ws';
 import { Server } from 'http';
 import { logger } from '../logger.js';
 import {
   ActionQueueItem,
   ClientAction,
-  ClientChatAction,
-  ClientCustomAction,
-  ClientItemAction,
-  ClientKeyboardAction,
   ServerAction,
   ServerActionType,
 } from '../engine/actions.js';
@@ -265,7 +261,9 @@ export const startWebSocketServer = (
       return;
     }
 
-    sessionMiddleware(request as ExtendedRequest, {} as any, () => {
+    // An upgrade has no response to write to; the session middleware only
+    // reads the cookie off the request.
+    sessionMiddleware(request as ExtendedRequest, {} as Response, () => {
       if ((request as ExtendedRequest).session.username) {
         wss.handleUpgrade(request, socket, head, (ws) => {
           wss.emit('connection', ws, request);

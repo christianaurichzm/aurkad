@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
-import { login } from '../io/network';
+import { httpError, login } from '../io/network';
 import { setAssetKey } from '../io/assets';
 import { MapMetaClient, Player } from '../../shared/types';
 import { useGame } from '../context/GameContext';
@@ -22,8 +22,8 @@ export const Login = ({ onSwitch }: { onSwitch: () => void }) => {
 
   useEffect(() => {
     fetch('/healthz')
-      .then((r) => r.json())
-      .then((d) => setOnlinePlayers(d.players))
+      .then((r) => r.json() as Promise<{ players?: number }>)
+      .then((d) => setOnlinePlayers(d.players ?? null))
       .catch(() => {});
   }, []);
 
@@ -44,8 +44,8 @@ export const Login = ({ onSwitch }: { onSwitch: () => void }) => {
       } else {
         setServerError('Unexpected response from server');
       }
-    } catch (err: any) {
-      setServerError(err?.message || 'Login failed');
+    } catch (err) {
+      setServerError(httpError(err).message || 'Login failed');
     }
   };
 

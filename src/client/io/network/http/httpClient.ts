@@ -1,9 +1,22 @@
 import type { HttpRequestOptions } from '../../../../shared/types';
 
-const API_URL = import.meta.env.VITE_APP_API_URL;
-const REST_PROTO = import.meta.env.VITE_REST_PROTOCOL;
+const API_URL = import.meta.env.VITE_APP_API_URL as string | undefined;
+const REST_PROTO = import.meta.env.VITE_REST_PROTOCOL as string | undefined;
 
 export { API_URL, REST_PROTO };
+
+/**
+ * What every rejected httpClient call throws. Not an Error: callers branch
+ * on `status` (silentAction swallows 401/403) and show `message` as is. Read
+ * it through `httpError`, since a fetch can also reject with a TypeError.
+ */
+export interface HttpError {
+  status: number;
+  message: string;
+}
+
+export const httpError = (e: unknown): Partial<HttpError> =>
+  typeof e === 'object' && e !== null ? (e as Partial<HttpError>) : {};
 
 const buildUrl = (endpoint: string): string =>
   API_URL && REST_PROTO ? `${REST_PROTO}://${API_URL}${endpoint}` : endpoint;
@@ -23,19 +36,22 @@ export const httpClient = async <T>(
   });
 
   const contentType = response.headers.get('Content-Type');
-  let data: any;
-  if (contentType && contentType.includes('application/json')) {
-    data = await response.json();
-  } else {
-    data = await response.text();
-  }
+  const data: unknown =
+    contentType && contentType.includes('application/json')
+      ? await (response.json() as Promise<unknown>)
+      : await response.text();
 
   if (!response.ok) {
+    const body =
+      typeof data === 'object' && data !== null
+        ? (data as { message?: string; error?: string })
+        : null;
     const message =
-      (typeof data === 'object' && (data?.message || data?.error)) ||
+      body?.message ||
+      body?.error ||
       (typeof data === 'string' && data) ||
       `Request failed (${response.status})`;
-    throw { status: response.status, message };
+    throw { status: response.status, message } satisfies HttpError;
   }
 
   return data as T;

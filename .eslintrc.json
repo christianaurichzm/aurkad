@@ -69,18 +69,22 @@
       { "checksVoidReturn": { "attributes": false } }
     ],
     // The engine talks to three untyped worlds - the wire, the sandbox, and
-    // JSON on disk - so `any` legitimately crosses those seams. Warn keeps the
-    // debt countable (the decoder in io/network/wsManager.ts is most of it)
-    // without failing a build over a boundary that is doing its job.
+    // JSON on disk - so `any` legitimately crosses those seams. The count is
+    // zero today: every crossing casts once, at the seam, to the type the rest
+    // of the code already declares (WsServerMessage for the inbound decoder,
+    // HttpError for a rejected fetch). Warn rather than error because the next
+    // seam is a boundary doing its job, not a defect - it just has to be
+    // deliberate. Raise these to "error" once that stops being a live tension.
     "@typescript-eslint/no-unsafe-argument": "warn",
     "@typescript-eslint/no-unsafe-assignment": "warn",
     "@typescript-eslint/no-unsafe-member-access": "warn",
     "@typescript-eslint/no-unsafe-return": "warn",
     "@typescript-eslint/no-unsafe-call": "warn",
     // An async function that never awaits is a signature that drifted, not a
-    // defect: awaiting it still works. Several are service entry points on the
-    // tick path (dealDamage, pickUpItem), where making them synchronous moves
-    // work between microtasks and is a change to argue on its own merits.
+    // defect: awaiting it still works. None are left - the tick path is
+    // synchronous (a hit resolves inside the tick that caused it, not a
+    // microtask later) and the stubs that owe a caller a promise return
+    // `Promise.resolve` instead of pretending to await.
     // await-thenable stays an error - that one is the caller being wrong.
     "@typescript-eslint/require-await": "warn"
   },

@@ -276,7 +276,7 @@ export const NpcEditor: React.FC<NpcEditorProps> = ({
               name="behavior"
               render={({ field }) => (
                 <AsyncSelect<NpcBehavior>
-                  loadOptions={async () => behaviorOptions}
+                  loadOptions={() => Promise.resolve(behaviorOptions)}
                   value={field.value}
                   onChange={field.onChange}
                 />

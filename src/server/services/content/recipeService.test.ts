@@ -19,7 +19,7 @@ vi.mock('../../model/Recipe.js', () => ({
       deleteOne(...args);
       return Promise.resolve(undefined);
     },
-    find: () => ({ lean: () => ({ exec: async () => stored }) }),
+    find: () => ({ lean: () => ({ exec: () => Promise.resolve(stored) }) }),
   },
 }));
 

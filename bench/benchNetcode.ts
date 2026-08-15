@@ -128,8 +128,10 @@ function enrichPlayer(player: PlayerServer): Player {
 
 // Same diff config as wsServer.ts / client gameState.ts.
 const diffPatcher = jsondiffpatch.create({
-  objectHash: (obj: any, index?: number): string | undefined =>
-    obj.id || obj.name || `$$index:${index}`,
+  objectHash: (
+    obj: { id?: string; name?: string },
+    index?: number,
+  ): string | undefined => obj.id || obj.name || `$$index:${index}`,
   arrays: { detectMove: true, includeValueOnMove: false },
 });
 
@@ -353,7 +355,7 @@ function runOld(
   rows: number,
   cols: number,
 ) {
-  const lastSent = new Map<string, any>();
+  const lastSent = new Map<string, unknown>();
   let bytes = 0;
   const t0 = performance.now();
   for (let t = 0; t < ticks; t++) {
@@ -376,7 +378,7 @@ function runOld(
         player: enrichPlayer(player),
       });
       const lastState = lastSent.get(player.name);
-      let msg: any = null;
+      let msg: { type: string; payload: unknown } | null = null;
       if (!lastState) msg = { type: 'fullGameState', payload: currentState };
       else {
         const delta = diffPatcher.diff(lastState, currentState);
@@ -397,7 +399,7 @@ function runNew(
   rows: number,
   cols: number,
 ) {
-  const lastSent = new Map<string, any>();
+  const lastSent = new Map<string, unknown>();
   const lastMapId = new Map<string, string>();
   const lastMapRev = new Map<string, number>();
   const lastColdSig = new Map<string, string>();
@@ -448,7 +450,7 @@ function runNew(
         player: toPlayerHot(player),
       };
       const lastState = lastSent.get(player.name);
-      let msg: any = null;
+      let msg: { type: string; payload: unknown } | null = null;
       if (!lastState) msg = { type: 'fullGameState', payload: currentState };
       else {
         const delta = diffPatcher.diff(lastState, currentState);

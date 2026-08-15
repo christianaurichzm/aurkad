@@ -292,5 +292,5 @@ export const useStyles = () => ({
     cursor: 'pointer',
     fontWeight: 700,
   },
-  slotArea: (area: string) => ({ gridArea: area as any }),
+  slotArea: (area: string) => ({ gridArea: area }),
 });

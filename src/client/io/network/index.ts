@@ -6,7 +6,7 @@ export { updateWebSocket } from './sync/gameStateSync';
 export { updateChat, sendChatMessage } from './sync/chatSync';
 
 // HTTP Base
-export { httpClient, API_URL, REST_PROTO } from './http/httpClient';
+export { httpClient, httpError, API_URL, REST_PROTO } from './http/httpClient';
 
 // Authentication
 export { login, register, silentAction } from './http/authClient';

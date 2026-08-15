@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { usePlayerForceUpdate } from '../hooks/usePlayerForceUpdate';
-import { assignPointsPlayer } from '../io/network';
+import { assignPointsPlayer, httpError } from '../io/network';
 import { Modal } from './common/Modal';
 import { colors, radius } from '../theme';
 
@@ -64,8 +64,8 @@ export const AttributeDistributorModal: React.FC = () => {
     try {
       await assignPointsPlayer(player.id, queued);
       setQueued({ ...emptyQueued });
-    } catch (e: any) {
-      setError(e.message || 'Failed to assign points');
+    } catch (e) {
+      setError(httpError(e).message || 'Failed to assign points');
     } finally {
       setLoading(false);
     }

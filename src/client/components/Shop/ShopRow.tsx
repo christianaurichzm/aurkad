@@ -3,7 +3,7 @@ import { ITEM_SIZE } from '../../../shared/constants';
 import { ProductDetailed } from '../../../shared/types';
 import { updatePlayerInventory } from '../../core/gameState';
 import { drawItemGeneric } from '../../graphics/render';
-import { buyShopItem } from '../../io/network';
+import { buyShopItem, httpError } from '../../io/network';
 import { useUIStore } from '../../stores/uiStore';
 import { colors, radius } from '../../theme';
 
@@ -66,10 +66,10 @@ export const ShopRow: React.FC<ShopRowProps> = ({
         type: 'chat',
       });
       onBought?.();
-    } catch (error: any) {
+    } catch (error) {
       await useUIStore.getState().showDialog({
         title: 'Purchase failed',
-        message: error?.message || 'Error purchasing.',
+        message: httpError(error).message || 'Error purchasing.',
         kind: 'error',
       });
     } finally {

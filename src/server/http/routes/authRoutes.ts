@@ -146,8 +146,10 @@ export function createAuthRouter() {
         const newPlayer = await createPlayer(username, hashedPassword);
 
         res.status(201).json({ success: true, playerId: newPlayer.id });
-      } catch (err: any) {
-        if (err?.code === 11000) {
+      } catch (err) {
+        // Mongo's duplicate-key code: the unique index caught a racing signup
+        // that the existence check above could not see.
+        if ((err as { code?: number })?.code === 11000) {
           return res.status(409).json({ message: 'Username already taken' });
         }
         logger.error('Registration failed', { err });

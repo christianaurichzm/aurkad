@@ -337,11 +337,11 @@ const IMPORT_ORDER: (keyof typeof SPECS)[] = [
 function readArray(file: string): unknown[] | null {
   const full = path.join(contentDir(), file);
   if (!fs.existsSync(full)) return null;
-  const parsed = JSON.parse(fs.readFileSync(full, 'utf-8'));
+  const parsed: unknown = JSON.parse(fs.readFileSync(full, 'utf-8'));
   if (!Array.isArray(parsed)) {
     throw new Error(`${file} must contain a JSON array`);
   }
-  return parsed;
+  return parsed as unknown[];
 }
 
 /**

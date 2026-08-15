@@ -113,6 +113,10 @@ const layerActiveColor: Partial<Record<TileEditMode, string>> = {
   fringe: '#9c27b0',
 };
 
+// The painter reads these back by id (domHelpers.getInputValue): they are the
+// selection for the tile kinds that have no DOM input of their own.
+const editorSelection = window as unknown as Record<string, string | number>;
+
 const TilesetModeControlsComponent: React.FC = () => {
   const mapEdited = useUIStore((state) => state.mapEdited);
 
@@ -135,7 +139,7 @@ const TilesetModeControlsComponent: React.FC = () => {
       if (map) {
         setMapType(map.type);
         setMapName(map.name);
-        const music = (map as any).music ?? '';
+        const music = map.music ?? '';
         setMapMusic(music);
         setEditorMusic(music);
       } else {
@@ -152,16 +156,16 @@ const TilesetModeControlsComponent: React.FC = () => {
   }, [loadMapData]);
 
   useEffect(() => {
-    (window as any).selectedNpc = selectedNpc;
+    editorSelection.selectedNpc = selectedNpc;
   }, [selectedNpc]);
   useEffect(() => {
-    (window as any).selectedItem = selectedItem;
+    editorSelection.selectedItem = selectedItem;
   }, [selectedItem]);
   useEffect(() => {
-    (window as any).selectedShop = selectedShop;
+    editorSelection.selectedShop = selectedShop;
   }, [selectedShop]);
   useEffect(() => {
-    (window as any).selectedWarpMap = selectedWarpMap;
+    editorSelection.selectedWarpMap = selectedWarpMap;
   }, [selectedWarpMap]);
   // Typed values cannot survive a round trip through a DOM input, so the
   // painter is told about them instead of reading them back out.

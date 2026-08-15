@@ -21,8 +21,8 @@ export const ShopModal: React.FC = () => {
         .catch(() => setShop(null))
         .finally(() => setLoading(false));
     };
-    window.addEventListener('open-shop', handler as any);
-    return () => window.removeEventListener('open-shop', handler as any);
+    window.addEventListener('open-shop', handler);
+    return () => window.removeEventListener('open-shop', handler);
   }, []);
 
   const close = () => setShopId(null);
