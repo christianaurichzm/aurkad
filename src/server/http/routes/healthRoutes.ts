@@ -1,5 +1,6 @@
 import mongoose from 'mongoose';
 import { getLastTickAt } from '../../metrics.js';
+import { openConnectionCount } from '../../net/connections.js';
 import { createRouter } from '../../app.js';
 
 // If no tick has been recorded in this window the simulation loop is
@@ -10,9 +11,15 @@ export function createHealthRouter() {
   const router = createRouter();
 
   // Liveness: the process is up and the event loop responds. No dependency
-  // checks here so a slow DB never restarts an otherwise-healthy process.
+  // checks, so a slow DB never restarts a healthy process. `players` is
+  // counted in memory too, and lives here because the login screen shows it
+  // before authentication, which /players/online (USER-gated) cannot serve.
   router.get('/healthz', (_req, res) => {
-    res.json({ status: 'ok', uptime: Math.floor(process.uptime()) });
+    res.json({
+      status: 'ok',
+      uptime: Math.floor(process.uptime()),
+      players: openConnectionCount(),
+    });
   });
 
   // Readiness: safe to route game traffic, with the DB connected and the loop

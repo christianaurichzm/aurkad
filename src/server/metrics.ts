@@ -1,6 +1,5 @@
-import { WebSocket } from 'ws';
 import { getRuntimeState } from './services/world/gameData.js';
-import { playersWsMap } from './net/connections.js';
+import { openConnectionCount } from './net/connections.js';
 import { viewerCacheSizes } from './net/snapshot.js';
 import { replicatedEntityCount } from './net/entityReplication.js';
 import { rateLimiterEntryCount } from './net/transport.js';
@@ -117,9 +116,7 @@ export function getMetrics() {
 
   return {
     uptime: Math.floor(process.uptime()),
-    wsConnections: [...playersWsMap.values()].filter(
-      (ws) => ws.readyState === WebSocket.OPEN,
-    ).length,
+    wsConnections: openConnectionCount(),
     players: totalPlayers,
     npcs: totalNpcs,
     maps: maps.length,

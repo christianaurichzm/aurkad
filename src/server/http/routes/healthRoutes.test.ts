@@ -10,6 +10,8 @@ import {
 import express from 'express';
 import request from 'supertest';
 import mongoose from 'mongoose';
+import { WebSocket } from 'ws';
+import { playersWsMap } from '../../net/connections.js';
 import type { MongoMemoryServer } from 'mongodb-memory-server';
 import { startMemoryMongo } from '../../../test/mongo.js';
 import { createHealthRouter } from './healthRoutes.js';
@@ -26,6 +28,7 @@ beforeAll(() => {
 
 afterEach(() => {
   vi.useRealTimers();
+  playersWsMap.clear();
 });
 
 afterAll(async () => {
@@ -40,6 +43,18 @@ describe('healthRoutes', () => {
     expect(res.status).toBe(200);
     expect(res.body.status).toBe('ok');
     expect(typeof res.body.uptime).toBe('number');
+    expect(res.body.players).toBe(0);
+  });
+
+  // The login screen reads this count before there is a session, so it is
+  // the one field of the probe a player sees.
+  it('GET /healthz counts open sockets only', async () => {
+    playersWsMap.set('Alice', { readyState: WebSocket.OPEN } as WebSocket);
+    playersWsMap.set('Bob', { readyState: WebSocket.CLOSED } as WebSocket);
+
+    const res = await request(app).get('/healthz');
+
+    expect(res.body.players).toBe(1);
   });
 
   it('GET /readyz returns 503 while the DB is not connected', async () => {

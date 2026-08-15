@@ -7,7 +7,10 @@ import { Access } from '../../../shared/types.js';
 vi.mock('../../services/world/gameData.js', () => ({
   getRuntimeState: () => ({ maps: {} }),
 }));
-vi.mock('../../net/connections.js', () => ({ playersWsMap: new Map() }));
+vi.mock('../../net/connections.js', () => ({
+  playersWsMap: new Map(),
+  openConnectionCount: () => 0,
+}));
 
 import { createMetricsRouter } from './metricsRoutes.js';
 import { recordTick, resetMetricsForTest } from '../../metrics.js';
