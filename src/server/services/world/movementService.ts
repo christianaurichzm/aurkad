@@ -402,9 +402,17 @@ export const handleKeyAction = (action: ClientKeyboardAction) => {
       if (key === Key.Control) {
         if (player.action !== CharacterAction.Attack) {
           player.action = CharacterAction.Attack;
-          handleAttack(player).catch((e) => {
-            logger.error('handleAttack failed', { err: e });
-          });
+          // Emitted before the melee runs, because the cooldown and the target
+          // rule inside it are the policy a replacement wants to own. The pose
+          // is set first so a handler reads the state it is being told about,
+          // the same order the equip hooks use.
+          const attack = { player, handled: false };
+          emit('playerAttack', attack);
+          if (!attack.handled) {
+            handleAttack(player).catch((e) => {
+              logger.error('handleAttack failed', { err: e });
+            });
+          }
           updatePlayerMap(player.id, player);
         }
       } else if (key === Key.e) {

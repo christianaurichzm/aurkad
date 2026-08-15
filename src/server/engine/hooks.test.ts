@@ -236,6 +236,46 @@ describe('beforeDamage hook', () => {
   });
 });
 
+// The seam a game replacing melee combat needs (ADR-0012): the core still owns
+// damage, the module owns what a press does.
+describe('playerAttack hook', () => {
+  function aliceAttacksBob() {
+    const sim = createFixture(0);
+    sim.map.pvp = 'normal';
+    sim.addPlayer({
+      name: 'Alice',
+      position: tile(5, 5),
+      direction: Direction.Right,
+      attack: 20,
+    });
+    const bob = sim.addPlayer({
+      name: 'Bob',
+      position: tile(6, 5),
+      health: 100,
+      maxHealth: 100,
+    });
+
+    sim.press('Alice', Key.Control);
+    sim.step(1);
+    return bob;
+  }
+
+  it('runs the built-in melee when nothing claims the press', () => {
+    expect(aliceAttacksBob().health).toBeLessThan(100);
+  });
+
+  it('stands the melee down when a handler claims the press', () => {
+    const claimed: string[] = [];
+    on('playerAttack', (ctx) => {
+      claimed.push(ctx.player.name);
+      ctx.handled = true;
+    });
+
+    expect(aliceAttacksBob().health).toBe(100);
+    expect(claimed).toEqual(['Alice']);
+  });
+});
+
 describe('itemPickup hook', () => {
   it('fires when a player picks up a dropped item', async () => {
     const picked: Array<{ itemId: number; quantity: number }> = [];

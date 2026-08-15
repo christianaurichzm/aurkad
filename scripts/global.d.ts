@@ -182,6 +182,11 @@ interface HookPayloads {
   itemEquip: { player: PlayerServer; itemId: number; slot: EquipmentSlot };
   itemUnequip: { player: PlayerServer; itemId: number; slot: EquipmentSlot };
   chatMessage: { player: PlayerServer; scope: ChatScope; message: string };
+  /**
+   * Player pressed attack (Ctrl), before any melee runs. Set `handled = true`
+   * to own the attack; the built-in swing is skipped for that press.
+   */
+  playerAttack: { player: PlayerServer; handled: boolean };
   beforeDamage: {
     attacker?: CombatTarget;
     target: CombatTarget;
@@ -502,9 +507,7 @@ declare function getArrows(): ArrowData[];
  * Looks up an item by numeric id. A `bound` item cannot be dropped,
  * traded or banked.
  */
-declare function getItem(
-  id: number,
-):
+declare function getItem(id: number):
   | {
       id: number;
       name: string;

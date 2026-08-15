@@ -37,6 +37,11 @@ export type HookMap = {
   itemEquip: { player: PlayerServer; itemId: number; slot: EquipmentSlot };
   itemUnequip: { player: PlayerServer; itemId: number; slot: EquipmentSlot };
   chatMessage: { player: PlayerServer; scope: ChatScope; message: string };
+  // The attack input, before the melee policy runs (cooldown, facing tile,
+  // the passive-npc rule). A handler that owns combat sets `handled` and the
+  // built-in melee stands down, so a game can replace the style. Damage stays
+  // in the core either way.
+  playerAttack: { player: PlayerServer; handled: boolean };
   beforeDamage: {
     attacker?: CombatTarget;
     target: CombatTarget;

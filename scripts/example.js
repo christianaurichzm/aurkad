@@ -488,6 +488,7 @@ command(
 //   itemUse / itemPickup           { player, itemId, quantity? }
 //   itemEquip / itemUnequip        { player, itemId, slot }  - a swap fires both
 //   chatMessage                    { player, scope, message }
+//   playerAttack                   { player, handled }     - set handled = true to own the attack
 //   beforeDamage                   { attacker?, target, damage: { value } }  - mutate damage.value
 //   beforeXpGain                   { player, amount }      - mutate amount
 //   customAction                   { player, channel, payload }  - from client sendServerEvent
