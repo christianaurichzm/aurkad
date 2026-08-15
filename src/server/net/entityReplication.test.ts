@@ -2,10 +2,13 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import {
   beginTick,
   recordEntity,
+  fragmentAt,
   fragmentFor,
+  gapDelta,
   fieldDelta,
   forgetEntity,
   resetEntityReplication,
+  resyncBody,
 } from './entityReplication.js';
 
 beforeEach(() => {
@@ -96,6 +99,116 @@ describe('fragmentFor', () => {
     recordEntity('a', { id: 'a', health: 10 });
     // Identical string instance is the whole point: no per-viewer work.
     expect(fragmentFor('a', false)).toBe(fragmentFor('a', false));
+  });
+});
+
+describe('gapDelta', () => {
+  function record(states: Array<Record<string, unknown>>) {
+    for (const state of states) {
+      beginTick();
+      recordEntity('a', state);
+    }
+    return fragmentAt('a')!;
+  }
+
+  it('merges the ticks a viewer missed into one body', () => {
+    const fragment = record([
+      { id: 'a', health: 10, action: 'Idle' },
+      { id: 'a', health: 8, action: 'Idle' },
+      { id: 'a', health: 8, action: 'Attack' },
+    ]);
+
+    // Two ticks back covers both changes; one tick back covers only the last.
+    expect(JSON.parse(gapDelta(fragment, 2)!)).toEqual({
+      health: 8,
+      action: 'Attack',
+    });
+    expect(JSON.parse(gapDelta(fragment, 1)!)).toEqual({ action: 'Attack' });
+  });
+
+  it('keeps the latest value when a field moved more than once', () => {
+    const fragment = record([
+      { id: 'a', health: 10 },
+      { id: 'a', health: 9 },
+      { id: 'a', health: 7 },
+    ]);
+
+    expect(JSON.parse(gapDelta(fragment, 2)!)).toEqual({ health: 7 });
+  });
+
+  // The history is short, and a viewer away longer than it has to be
+  // told so rather than handed a merge that skips what fell off the end.
+  it('gives no answer for a gap longer than the history', () => {
+    const fragment = record([
+      { id: 'a', health: 10 },
+      { id: 'a', health: 9 },
+      { id: 'a', health: 8 },
+      { id: 'a', health: 7 },
+      { id: 'a', health: 6 },
+      { id: 'a', health: 5 },
+    ]);
+
+    expect(gapDelta(fragment, 4)).not.toBeNull();
+    expect(gapDelta(fragment, 5)).toBeNull();
+  });
+
+  it('gives no answer when the entity was not recorded inside the span', () => {
+    beginTick();
+    recordEntity('a', { id: 'a', health: 10 });
+    beginTick(); // the entity is not recorded on this one (dead npc, say)
+    beginTick();
+    recordEntity('a', { id: 'a', health: 4 });
+
+    const fragment = fragmentAt('a')!;
+    expect(gapDelta(fragment, 2)).toBeNull();
+    expect(gapDelta(fragment, 3)).toBeNull();
+  });
+
+  it('does not answer with the changes of a slot the entity inherited', () => {
+    beginTick();
+    recordEntity('gone', { id: 'gone', health: 10 });
+    beginTick();
+    recordEntity('gone', { id: 'gone', health: 3 });
+    forgetEntity('gone');
+
+    beginTick();
+    recordEntity('new', { id: 'new', health: 50 });
+    beginTick();
+    recordEntity('new', { id: 'new', health: 49 });
+
+    const fragment = fragmentAt('new')!;
+    // The slot is the freed one, so a merge that trusted the ring blindly would
+    // hand out the dead entity's history.
+    expect(gapDelta(fragment, 3)).toBeNull();
+    expect(JSON.parse(gapDelta(fragment, 2)!)).toEqual({ health: 49 });
+  });
+});
+
+describe('resyncBody', () => {
+  it('spells out a field that went away, which the full state cannot', () => {
+    beginTick();
+    recordEntity('a', { id: 'a', health: 10, targetPosition: { x: 1, y: 2 } });
+    beginTick();
+    recordEntity('a', { id: 'a', health: 10, targetPosition: undefined });
+
+    const fragment = fragmentAt('a')!;
+    // What an entity entering a viewport gets is inserted whole, so the key is
+    // simply absent there. A viewer that already holds the entity merges, and
+    // for it the key has to arrive as an explicit clear or it never goes away.
+    expect(JSON.parse(fragment.full)).toEqual({ id: 'a', health: 10 });
+    expect(JSON.parse(resyncBody(fragment))).toEqual({
+      id: 'a',
+      health: 10,
+      targetPosition: null,
+    });
+  });
+
+  it('builds the body once per entity per tick', () => {
+    beginTick();
+    recordEntity('a', { id: 'a', health: 10 });
+
+    const fragment = fragmentAt('a')!;
+    expect(resyncBody(fragment)).toBe(resyncBody(fragment));
   });
 });
 

@@ -18,9 +18,11 @@ import {
   beginTick,
   currentTick,
   fragmentAt,
+  gapDelta,
   slotOwnerId,
   slotCapacity,
   recordEntity,
+  resyncBody,
   forgetEntity,
 } from './entityReplication.js';
 import { queryEntitiesInRect } from '../spatial/spatialManager.js';
@@ -42,6 +44,7 @@ import { playersWsMap } from './connections.js';
 import {
   nsCountBytes,
   nsCountChunk,
+  nsCountDeferred,
   nsCountEntityLeave,
   nsCountWorldUpdate,
   nsCountPlayer,
@@ -83,8 +86,15 @@ interface InterestState {
   knownIds: string[];
   knownSlots: number[];
   lastTick: number;
+  /** Which tick of the cadence cycle this viewer is served on. */
+  phase: number;
 }
 const playerInterestSets = new Map<string, InterestState>();
+
+// Handed out in creation order so viewers spread evenly over the cycle instead
+// of all landing on the same tick, which would keep the peak this is meant to
+// flatten and just make it happen half as often.
+let nextPhase = 0;
 
 const MAX_CHUNKS_PER_TICK = 8;
 
@@ -243,6 +253,7 @@ function sendWorldUpdate(
   map: MapStateServer,
   ws: WebSocket,
   viewport: Viewport,
+  known: InterestState,
 ) {
   const nearby = queryEntitiesInRect(map.id, {
     x: viewport.left,
@@ -252,8 +263,10 @@ function sendWorldUpdate(
   });
 
   const tick = currentTick();
-  const known = interestStateFor(player.name);
   const lastTick = known.lastTick;
+  // Ticks this viewer has to be caught up on: 1 for one served every tick, more
+  // when cadence or backpressure left it behind.
+  const gap = tick - lastTick;
   const seen = known.seen;
   const knownIds: string[] = [];
   const knownSlots: number[] = [];
@@ -289,10 +302,27 @@ function sendWorldUpdate(
     knownIds.push(entity.id);
     knownSlots.push(slot);
 
-    const body = viewerKnows ? fragment.delta : fragment.full;
+    // Nothing has happened to it since this viewer was last served, whether
+    // that was last tick or ten ticks ago: it is already showing the truth.
+    if (viewerKnows && fragment.changedAt <= lastTick) continue;
+
+    // A viewer that never saw this entity gets the full state and inserts it.
+    // One that knows it gets the changes over its gap, or the resync body when
+    // the gap outruns the history, which is merged and so spells out the
+    // fields that went away.
+    let body: string | undefined;
+    let isDelta = false;
+    if (viewerKnows) {
+      const merged = gapDelta(fragment, gap);
+      body = merged ?? resyncBody(fragment);
+      isDelta = merged !== null;
+    } else {
+      body = fragment.full;
+    }
+
     if (body === undefined) continue;
     parts.push(`${fragment.quotedId}:${body}`);
-    if (viewerKnows) partialCount++;
+    if (isDelta) partialCount++;
     else fullCount++;
   }
 
@@ -374,9 +404,22 @@ function interestStateFor(name: string): InterestState {
     knownIds: [],
     knownSlots: [],
     lastTick: -1,
+    phase: nextPhase++ % Math.max(1, config.net.viewerCadenceTicks),
   };
   playerInterestSets.set(name, fresh);
   return fresh;
+}
+
+/**
+ * Whether this viewer gets a world update on this tick. One never served is
+ * always due, or a client that just connected could stare at an empty map
+ * for a cycle; otherwise it is the plain cycle, and what a skipped viewer
+ * misses is handled where the fragment is chosen.
+ */
+function viewerDue(known: InterestState, tick: number): boolean {
+  const cadence = config.net.viewerCadenceTicks;
+  if (cadence <= 1 || known.lastTick < 0) return true;
+  return (tick + known.phase) % cadence === 0;
 }
 
 function withinViewport(pos: { x: number; y: number }, vp: Viewport): boolean {
@@ -434,7 +477,15 @@ export function broadcastGameState() {
         );
         sendViewportChunks(player, map, ws, viewport);
         sendPlayerStatsIfNeeded(player, ws);
-        sendWorldUpdate(player, map, ws, viewport);
+
+        // Read after the calls above, because a map change drops this viewer's
+        // interest state and the fresh one has to be the one that decides.
+        const known = interestStateFor(player.name);
+        if (!viewerDue(known, currentTick())) {
+          nsCountDeferred();
+          continue;
+        }
+        sendWorldUpdate(player, map, ws, viewport, known);
       } catch (error) {
         logger.error('Error broadcasting to player', {
           player: player.name,

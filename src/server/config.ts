@@ -263,6 +263,14 @@ export const config = {
       min: 0,
       max: 20,
     }),
+    // Ticks between one viewer's world updates. 2 halves the messages written,
+    // and the client learns of the world, its own corrections included, up to a
+    // tick later. A viewer that skips ticks gets their deltas merged, so the
+    // saving does not come back as bandwidth. The default is 1, every tick.
+    viewerCadenceTicks: parseIntEnv('NET_VIEWER_CADENCE_TICKS', 1, {
+      min: 1,
+      max: 4,
+    }),
   },
   instance: {
     wsPublicUrl: process.env.WS_PUBLIC_URL,

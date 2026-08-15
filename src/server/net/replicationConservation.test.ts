@@ -56,12 +56,17 @@ function makeClient() {
 
 function collectingWs() {
   const sent: string[] = [];
+  const socket = {
+    readyState: WebSocket.OPEN,
+    bufferedAmount: 0,
+    send: (data: string) => sent.push(data),
+  };
   return {
-    ws: {
-      readyState: WebSocket.OPEN,
-      bufferedAmount: 0,
-      send: (data: string) => sent.push(data),
-    } as unknown as WebSocket,
+    ws: socket as unknown as WebSocket,
+    /** Drives the backpressure path, which is how a viewer misses a tick. */
+    setBuffered(bytes: number) {
+      socket.bufferedAmount = bytes;
+    },
     worldUpdates(): WorldUpdatePayload[] {
       return sent
         .map((s) => JSON.parse(s))
@@ -287,6 +292,91 @@ describe('entity replication conserves state', () => {
     expect(client.npcs[second.id]).toEqual(truth.npcs[second.id]);
     // And the one it replaced was retired rather than silently overwritten.
     expect(client.npcs[first.id]).toBeUndefined();
+  });
+
+  // A fragment's delta is shared and covers one tick, so a viewer not served
+  // on some tick cannot just get the next delta: what it slept through is in
+  // neither. Backpressure does this by accident, cadence by design.
+  it('does not lose changes a viewer slept through', () => {
+    const sim = createFixture(0);
+    const alice = sim.addPlayer({ name: 'Alice', position: tile(2, 2) });
+    const bob = sim.addPlayer({ name: 'Bob', position: tile(4, 2) });
+    resetPlayerNetState('Alice');
+
+    const { ws, setBuffered, worldUpdates } = collectingWs();
+    playersWsMap.set('Alice', ws);
+    const client = makeClient();
+
+    rebuildQuadtree(sim.mapId, sim.map);
+    broadcastGameState();
+    for (const p of worldUpdates()) client.apply(p);
+    expect(client.players[bob.id]!.position).toEqual(tile(4, 2));
+
+    // Alice is congested for exactly one tick, and Bob moves during it.
+    setBuffered(config.ws.maxBufferedBytes + 1);
+    bob.position = tile(5, 2);
+    rebuildQuadtree(sim.mapId, sim.map);
+    broadcastGameState();
+
+    // Next tick Bob holds still, so the shared fragment has no delta to carry
+    // the move Alice missed. She has to be brought up to date some other way.
+    setBuffered(0);
+    rebuildQuadtree(sim.mapId, sim.map);
+    broadcastGameState();
+    for (const p of worldUpdates()) client.apply(p);
+
+    expect(client.players[bob.id]!.position).toEqual(tile(5, 2));
+    expect(client.players[bob.id]).toEqual(
+      serverTruth(sim.map, alice).players[bob.id],
+    );
+  });
+
+  // Same claim as the first test in this file, but with the viewer served on
+  // half the ticks: what it is not told about has to reach it later, and an
+  // entity that came and went entirely inside a skipped tick must not linger.
+  it('conserves state when the viewer is served on a cadence', () => {
+    const net = config.net as { viewerCadenceTicks: number };
+    const before = net.viewerCadenceTicks;
+    net.viewerCadenceTicks = 2;
+
+    try {
+      const sim = createFixture(0);
+      const alice = sim.addPlayer({ name: 'Alice', position: tile(2, 2) });
+      const bob = sim.addPlayer({ name: 'Bob', position: tile(4, 2) });
+      const roamer = sim.addPlayer({ name: 'Roamer', position: tile(60, 60) });
+      sim.addNpc({ position: tile(3, 3) });
+      resetPlayerNetState('Alice');
+
+      const { ws, worldUpdates } = collectingWs();
+      playersWsMap.set('Alice', ws);
+      const client = makeClient();
+
+      for (let i = 0; i < 12; i++) {
+        if (i === 0) sim.press('Bob', Key.ArrowRight);
+        if (i === 5) sim.release('Bob', Key.ArrowRight);
+        // In and out of view within one cycle, so at least one of the two
+        // transitions happens on a tick Alice is not served.
+        if (i === 7) roamer.position = tile(3, 2);
+        if (i === 8) roamer.position = tile(60, 60);
+        sim.step(1);
+        rebuildQuadtree(sim.mapId, sim.map);
+        broadcastGameState();
+        for (const payload of worldUpdates()) client.apply(payload);
+      }
+
+      const truth = serverTruth(sim.map, alice);
+
+      expect(Object.keys(client.players)).toEqual([bob.id]);
+      expect(client.players[bob.id]).toEqual(truth.players[bob.id]);
+      for (const [id, npc] of Object.entries(truth.npcs)) {
+        expect(client.npcs[id]).toEqual(npc);
+      }
+      expect(Object.keys(client.npcs).sort()).toEqual(
+        Object.keys(truth.npcs).sort(),
+      );
+    } finally {
+      net.viewerCadenceTicks = before;
+    }
   });
 
   it('propagates dropped items to the viewer', () => {

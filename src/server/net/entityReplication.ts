@@ -26,6 +26,20 @@ export interface Fragment {
   slot: number;
   /** Tick the current occupant took `slot`; see the slot section below. */
   born: number;
+  /**
+   * Last tick this entity's public state actually changed.
+   *
+   * A viewer that missed some ticks needs to know whether this entity is one it
+   * has to be told about at all. Standing still while it slept costs nothing:
+   * what it has on screen is already the truth.
+   */
+  changedAt: number;
+  /** This tick's public state, kept for `resyncBody`. Not copied. */
+  pub: PublicState;
+  /** Built on demand by `resyncBody`, at most once per entity per tick. */
+  resync?: string;
+  /** Merged deltas by gap, built on demand by `gapDelta`. Null = no answer. */
+  gapBodies?: Map<number, string | null>;
 }
 
 // Last state broadcast for each entity, kept across ticks to diff against.
@@ -84,7 +98,26 @@ const slotOf = new Map<string, number>();
  */
 const slotOwner: Array<string | undefined> = [];
 const slotBorn: number[] = [];
+const slotChangedAt: number[] = [];
 const freeSlots: number[] = [];
+
+/**
+ * The last few ticks of changes per slot, so a viewer that missed some is
+ * told what happened rather than handed the entity again. Field deltas
+ * merge, the later write winning, so catching up costs about one tick's
+ * delta: without this, cadence cost 2.4x the bytes it was meant to save.
+ *
+ * Flat rings rather than an object per tick, since this is written for every
+ * entity every tick and allocates nothing. `historyTick` says whether a ring
+ * cell is about the tick asked for or stale.
+ */
+const HISTORY_TICKS = 4;
+const historyTick: number[] = [];
+const historyDelta: Array<PublicState | null> = [];
+
+function historyBase(slot: number): number {
+  return slot * HISTORY_TICKS;
+}
 
 /** Assigns (or confirms) this entity's slot. Per-map phase, not per viewer. */
 function claimSlot(id: string): number {
@@ -95,6 +128,13 @@ function claimSlot(id: string): number {
   slotOf.set(id, slot);
   slotOwner[slot] = id;
   slotBorn[slot] = tick;
+  // A recycled slot arrives with the previous occupant's changes still in it,
+  // and those describe somebody else.
+  const base = historyBase(slot);
+  for (let i = 0; i < HISTORY_TICKS; i++) {
+    historyTick[base + i] = -1;
+    historyDelta[base + i] = null;
+  }
   return slot;
 }
 
@@ -155,19 +195,26 @@ export function recordEntity(id: string, pub: PublicState): void {
   const prev = previous.get(id);
   const full = JSON.stringify(pub);
 
-  let delta: string | undefined;
-  if (prev) {
-    const changed = fieldDelta(prev, pub);
-    if (changed) delta = JSON.stringify(changed);
-  }
+  const changed = prev ? fieldDelta(prev, pub) : null;
+  const delta = changed ? JSON.stringify(changed) : undefined;
 
   const slot = claimSlot(id);
+  // No baseline means this is the entity's first tick under its current id, so
+  // everything about it is new even though `delta` is empty.
+  if (!prev || delta !== undefined) slotChangedAt[slot] = tick;
+
+  const cell = historyBase(slot) + (tick % HISTORY_TICKS);
+  historyTick[cell] = tick;
+  historyDelta[cell] = changed;
+
   fragments.set(id, {
     full,
     delta,
     quotedId: JSON.stringify(id),
     slot,
     born: slotBorn[slot] ?? tick,
+    changedAt: slotChangedAt[slot] ?? tick,
+    pub,
   });
   previous.set(id, pub);
 }
@@ -179,6 +226,56 @@ export function recordEntity(id: string, pub: PublicState): void {
  */
 export function fragmentAt(id: string): Fragment | undefined {
   return fragments.get(id);
+}
+
+/**
+ * Changes this entity accumulated over the viewer's last `gap` ticks, or null
+ * when memory cannot answer: the viewer was away longer than the history, or
+ * the entity was not recorded on some tick in the span (a dead npc), where a
+ * merge would be a guess. The caller then falls back to `resyncBody`.
+ */
+export function gapDelta(fragment: Fragment, gap: number): string | null {
+  if (gap === 1) return fragment.delta ?? null;
+  if (gap < 1 || gap > HISTORY_TICKS || gap > tick) return null;
+
+  const cached = fragment.gapBodies?.get(gap);
+  if (cached !== undefined) return cached;
+
+  const base = historyBase(fragment.slot);
+  let merged: PublicState | null = null;
+  for (let t = tick - gap + 1; t <= tick; t++) {
+    const cell = base + (t % HISTORY_TICKS);
+    if (historyTick[cell] !== t) {
+      merged = null;
+      break;
+    }
+    const step = historyDelta[cell];
+    if (step) merged = Object.assign(merged ?? {}, step);
+  }
+
+  const body = merged ? JSON.stringify(merged) : null;
+  (fragment.gapBodies ??= new Map()).set(gap, body);
+  return body;
+}
+
+/**
+ * Body that brings a viewer which already HAS this entity back to the
+ * current state after missed ticks. Unlike `full`, which a client inserts
+ * whole, this is merged, and a merge cannot express "this field went away"
+ * since `JSON.stringify` drops undefined keys. So absent fields are spelled
+ * out as CLEARED, as the deltas do. Built on demand, as at the default
+ * cadence nobody needs it.
+ */
+export function resyncBody(fragment: Fragment): string {
+  if (fragment.resync === undefined) {
+    const cleared: PublicState = {};
+    for (const key of Object.keys(fragment.pub)) {
+      const value = fragment.pub[key];
+      cleared[key] = value === undefined ? CLEARED : value;
+    }
+    fragment.resync = JSON.stringify(cleared);
+  }
+  return fragment.resync;
 }
 
 /**
@@ -219,6 +316,9 @@ export function resetEntityReplication(): void {
   slotOf.clear();
   slotOwner.length = 0;
   slotBorn.length = 0;
+  slotChangedAt.length = 0;
+  historyTick.length = 0;
+  historyDelta.length = 0;
   freeSlots.length = 0;
   tick = 0;
 }

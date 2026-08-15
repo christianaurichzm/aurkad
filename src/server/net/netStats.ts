@@ -2,6 +2,9 @@ const WINDOW_SIZE = 100; // ticks (~5 s at 20 Hz)
 
 interface TickRecord {
   players: number;
+  // Viewers visited but not sent a world update, because their cadence puts
+  // them on another tick of the cycle.
+  viewersDeferred: number;
   bytesSent: number;
   worldUpdates: number;
   worldUpdateBytes: number;
@@ -17,6 +20,7 @@ interface TickRecord {
 function makeEmpty(): TickRecord {
   return {
     players: 0,
+    viewersDeferred: 0,
     bytesSent: 0,
     worldUpdates: 0,
     worldUpdateBytes: 0,
@@ -37,6 +41,10 @@ let acc: TickRecord = makeEmpty();
 
 export function nsCountPlayer(): void {
   acc.players++;
+}
+
+export function nsCountDeferred(): void {
+  acc.viewersDeferred++;
 }
 
 export function nsCountBytes(n: number): void {
@@ -80,6 +88,7 @@ export function getNetStats(): Record<string, unknown> {
   if (n === 0) return { windowTicks: 0, note: 'no data yet' };
 
   let players = 0,
+    deferred = 0,
     bytes = 0,
     updates = 0,
     updateBytes = 0,
@@ -93,6 +102,7 @@ export function getNetStats(): Record<string, unknown> {
   for (let i = 0; i < n; i++) {
     const r = records[i]!;
     players += r.players;
+    deferred += r.viewersDeferred;
     bytes += r.bytesSent;
     updates += r.worldUpdates;
     updateBytes += r.worldUpdateBytes;
@@ -111,6 +121,7 @@ export function getNetStats(): Record<string, unknown> {
     windowSeconds: +(n / 20).toFixed(1),
     players: {
       avgPerTick: +(players / n).toFixed(2),
+      avgDeferredPerTick: +(deferred / n).toFixed(2),
     },
     bandwidth: {
       avgBytesPerTick: +(bytes / n).toFixed(0),

@@ -1,10 +1,12 @@
 import { describe, it, expect, afterEach, vi } from 'vitest';
 import WebSocket from 'ws';
 import { broadcastGameState, resetPlayerNetState } from './snapshot.js';
+import { resetEntityReplication } from './entityReplication.js';
 import { playersWsMap } from './connections.js';
 import { config } from '../config.js';
-import { createFixture } from '../sim/simFixture.js';
+import { createFixture, tile } from '../sim/simFixture.js';
 import { rebuildQuadtree } from '../spatial/spatialManager.js';
+import type { PlayerServer } from '../../shared/types.js';
 
 function fakeWs(bufferedAmount: number) {
   return {
@@ -14,9 +16,18 @@ function fakeWs(bufferedAmount: number) {
   };
 }
 
+// The knob is read straight off the config object, which is const to callers
+// and plain to the runtime. Restoring it matters: the module state deciding
+// who is due outlives a single test.
+function setCadence(ticks: number) {
+  (config.net as { viewerCadenceTicks: number }).viewerCadenceTicks = ticks;
+}
+const DEFAULT_CADENCE = config.net.viewerCadenceTicks;
+
 afterEach(() => {
   playersWsMap.clear();
   resetPlayerNetState('Alice');
+  setCadence(DEFAULT_CADENCE);
 });
 
 describe('broadcast backpressure', () => {
@@ -35,5 +46,195 @@ describe('broadcast backpressure', () => {
     playersWsMap.set('Alice', healthy as unknown as WebSocket);
     broadcastGameState();
     expect(healthy.send).toHaveBeenCalled();
+  });
+});
+
+describe('viewer cadence', () => {
+  // Everyone moves every tick, so `self` alone would earn each viewer an
+  // update: what these tests count is the schedule, not whether there was news.
+  function crowd(count: number) {
+    const sim = createFixture(0);
+    const sockets: ReturnType<typeof fakeWs>[] = [];
+    const names: string[] = [];
+    const people: PlayerServer[] = [];
+
+    for (let i = 0; i < count; i++) {
+      const name = `Cadet${i}`;
+      names.push(name);
+      people.push(
+        sim.addPlayer({
+          name,
+          position: tile(2 + (i % 8), 2 + Math.floor(i / 8)),
+        }),
+      );
+      resetPlayerNetState(name);
+      const ws = fakeWs(0);
+      sockets.push(ws);
+      playersWsMap.set(name, ws as unknown as WebSocket);
+    }
+
+    return {
+      sim,
+      count,
+      tick() {
+        for (const person of people) person.position.x += 1;
+        rebuildQuadtree(sim.mapId, sim.map);
+        broadcastGameState();
+      },
+      /** World updates this viewer has been sent so far. */
+      updatesTo(i: number): number {
+        return sockets[i]!.send.mock.calls.filter((c) =>
+          String(c[0]).includes('"worldUpdate"'),
+        ).length;
+      },
+      cleanup() {
+        for (const name of names) resetPlayerNetState(name);
+      },
+    };
+  }
+
+  afterEach(() => {
+    resetEntityReplication();
+  });
+
+  it('serves every viewer every tick by default', () => {
+    setCadence(1);
+    const world = crowd(4);
+    for (let t = 0; t < 6; t++) world.tick();
+
+    for (let i = 0; i < world.count; i++) expect(world.updatesTo(i)).toBe(6);
+    world.cleanup();
+  });
+
+  it('halves the updates at cadence 2 without silencing anyone', () => {
+    setCadence(2);
+    const world = crowd(4);
+    for (let t = 0; t < 8; t++) world.tick();
+
+    // Every viewer is served, and none more often than the cycle allows. The
+    // first tick is free for everyone (nobody has been served yet), so over 8
+    // ticks a viewer gets that one plus every other one after it.
+    for (let i = 0; i < world.count; i++) {
+      expect(world.updatesTo(i)).toBeGreaterThanOrEqual(4);
+      expect(world.updatesTo(i)).toBeLessThanOrEqual(5);
+    }
+    world.cleanup();
+  });
+
+  // Staggering is the point: the same number of messages all landing on one
+  // tick and none on the next would keep the peak this exists to flatten.
+  it('spreads viewers across the cycle instead of batching them', () => {
+    setCadence(2);
+    const world = crowd(8);
+
+    // Burn the free first tick, where everyone is due whatever their phase.
+    world.tick();
+    const served = Array.from({ length: world.count }, (_, i) =>
+      world.updatesTo(i),
+    );
+
+    const perTick: number[] = [];
+    for (let t = 0; t < 4; t++) {
+      world.tick();
+      let thisTick = 0;
+      for (let i = 0; i < world.count; i++) {
+        const now = world.updatesTo(i);
+        if (now > served[i]!) thisTick++;
+        served[i] = now;
+      }
+      perTick.push(thisTick);
+    }
+
+    expect(perTick).toEqual([4, 4, 4, 4]);
+    world.cleanup();
+  });
+
+  // Catching a viewer up costs full state, so the saving depends on charging
+  // only for what actually moved. Without this the resume tick re-sends every
+  // entity on screen and the cadence trades messages for bytes.
+  it('does not re-send an entity that stood still while the viewer slept', () => {
+    setCadence(2);
+    const sim = createFixture(0);
+    const alice = sim.addPlayer({ name: 'Alice', position: tile(2, 2) });
+    const statue = sim.addPlayer({ name: 'Statue', position: tile(4, 2) });
+    resetPlayerNetState('Alice');
+    resetPlayerNetState('Statue');
+
+    const ws = fakeWs(0);
+    playersWsMap.set('Alice', ws as unknown as WebSocket);
+    // Statue has no socket, so only Alice is a viewer here.
+
+    let carryingStatue = 0;
+    for (let t = 0; t < 8; t++) {
+      alice.position.x += 1;
+      rebuildQuadtree(sim.mapId, sim.map);
+      broadcastGameState();
+      for (const call of ws.send.mock.calls.splice(0)) {
+        const message = JSON.parse(String(call[0])) as {
+          type: string;
+          payload: { entities: Record<string, unknown> };
+        };
+        if (message.type !== 'worldUpdate') continue;
+        if (statue.id in message.payload.entities) carryingStatue++;
+      }
+    }
+
+    expect(carryingStatue).toBe(1);
+    resetPlayerNetState('Statue');
+  });
+
+  // Halving the messages only pays if each does not grow to make up for it.
+  // Merging an entity's recent changes keeps a cadenced update update-sized;
+  // sending the entity whole cost 2.4x the bandwidth of no cadence.
+  it('carries merged changes, not the whole entity, to a viewer it skipped', () => {
+    setCadence(2);
+    const sim = createFixture(0);
+    const alice = sim.addPlayer({ name: 'Alice', position: tile(2, 2) });
+    const walker = sim.addPlayer({ name: 'Walker', position: tile(4, 2) });
+    resetPlayerNetState('Alice');
+    resetPlayerNetState('Walker');
+
+    const ws = fakeWs(0);
+    playersWsMap.set('Alice', ws as unknown as WebSocket);
+
+    const patches: Record<string, unknown>[] = [];
+    for (let t = 0; t < 6; t++) {
+      alice.position.x += 1;
+      walker.position.x += 1;
+      rebuildQuadtree(sim.mapId, sim.map);
+      broadcastGameState();
+      for (const call of ws.send.mock.calls.splice(0)) {
+        const message = JSON.parse(String(call[0])) as {
+          type: string;
+          payload: { entities: Record<string, Record<string, unknown>> };
+        };
+        if (message.type !== 'worldUpdate') continue;
+        const patch = message.payload.entities[walker.id];
+        if (patch) patches.push(patch);
+      }
+    }
+
+    // The first one is the insert, complete by contract. Every one after it is
+    // a viewer catching up across a skipped tick, and must carry what moved.
+    expect(patches.length).toBeGreaterThan(1);
+    expect(patches[0]).toHaveProperty('name');
+    for (const patch of patches.slice(1)) {
+      expect(patch).toHaveProperty('position');
+      expect(patch).not.toHaveProperty('name');
+    }
+    resetPlayerNetState('Walker');
+  });
+
+  it('serves a viewer its first update without waiting for its phase', () => {
+    setCadence(4);
+    const sim = createFixture(0);
+    sim.addPlayer({ name: 'Alice', position: tile(2, 2) });
+    const ws = fakeWs(0);
+    playersWsMap.set('Alice', ws as unknown as WebSocket);
+    rebuildQuadtree(sim.mapId, sim.map);
+
+    broadcastGameState();
+
+    expect(ws.send).toHaveBeenCalled();
   });
 });
