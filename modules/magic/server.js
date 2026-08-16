@@ -34,6 +34,8 @@ function pushState(player) {
       name: s.name,
       cost: s.cost,
       readyAt: cd[s.id] || 0,
+      // The whole duration, so the slot can show the share left.
+      cooldownMs: s.cooldownMs || 0,
     })),
   });
 }
