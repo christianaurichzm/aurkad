@@ -892,6 +892,47 @@ declare function sendMapEvent(
 /** Send a custom event to all connected clients. */
 declare function broadcastEvent(channel: string, payload?: unknown): void;
 
+interface HttpRequestOptions {
+  /** Defaults to GET, or POST when a body or json is given. */
+  method?: string;
+  headers?: Record<string, string>;
+  /** Raw body. Ignored when `json` is given. */
+  body?: string;
+  /** Serialized as the body, with the content type set. The common case. */
+  json?: unknown;
+  /** Defaults to 5000, capped at 30000. */
+  timeoutMs?: number;
+}
+
+interface HttpResponse {
+  ok: boolean;
+  /** 0 when the request never reached a server. */
+  status: number;
+  /** Truncated at 256 KB. */
+  body: string;
+  /** Set only when there was no response at all. */
+  error?: string;
+}
+
+/**
+ * Call a service outside this server: a Discord webhook, an alert, your
+ * site. Never throws or rejects; a failure comes back as
+ * `{ ok: false, error }`, so fire and forget is safe:
+ *
+ * ```js
+ * on('npcDeath', ({ npc, killer }) => {
+ *   httpRequest(WEBHOOK, { json: { content: `${killer.name} killed ${npc.name}` } });
+ * });
+ * ```
+ *
+ * Addresses on this machine or private network are refused, and redirects
+ * are not followed.
+ */
+declare function httpRequest(
+  url: string,
+  options?: HttpRequestOptions,
+): Promise<HttpResponse>;
+
 interface DialogOptions {
   text: string;
   /** Buttons. Omit for a single "Continue" (onChoice receives 0). */

@@ -106,6 +106,11 @@ import { CharacterAction } from '../../../shared/types.js';
 import { logger } from '../../logger.js';
 import { recordScriptError, type ScriptErrorSource } from './scriptErrors.js';
 import { runWithBudget } from './handlerBudget.js';
+import {
+  httpRequest,
+  type HttpRequestOptions,
+  type HttpResponse,
+} from './httpOut.js';
 import { startCoroutine, wait, waitFor } from './coroutines.js';
 import {
   registerEntityBehavior,
@@ -678,6 +683,15 @@ export function buildApi(
       sendMapCustomEvent(String(mapId), String(channel), payload),
     broadcastEvent: (channel: string, payload?: unknown): void =>
       broadcastCustomEvent(String(channel), payload),
+
+    // Outbound HTTP: webhook, alert, community site. Never rejects (a failure
+    // is `{ ok: false, error }`), as calls are usually not awaited and an
+    // unhandled rejection ends the process. Awaited in a tick handler, it
+    // stalls nothing but answers on a later tick.
+    httpRequest: (
+      url: string,
+      options?: HttpRequestOptions,
+    ): Promise<HttpResponse> => httpRequest(scriptName, String(url), options),
 
     // Inter-module API. provide publishes an API under a name; use consumes
     // another module's API. Provided APIs are withdrawn on reload/unload.

@@ -292,6 +292,30 @@ describe('scripted beforeDamage via fixture', () => {
   });
 });
 
+describe('outbound http', () => {
+  // httpRequest has to reach the vm context, and since scripts fire it
+  // without awaiting, a refused call must settle rather than reject.
+  it('reaches a script, and a refused call settles instead of throwing', async () => {
+    const results: unknown[] = [];
+    const handle = runInSandbox(
+      `
+      on('playerJoin', () => {
+        httpRequest('http://127.0.0.1/steal').then((res) => report(res));
+      });
+    `,
+      'webhook.js',
+      { report: (res: unknown) => results.push(res) },
+    );
+
+    emit('playerJoin', { player: createFixture(0).addPlayer({ name: 'A' }) });
+    await new Promise((resolve) => setImmediate(resolve));
+
+    expect(results[0]).toMatchObject({ ok: false, status: 0 });
+
+    handle.cleanup();
+  });
+});
+
 describe('API helpers', () => {
   it('giveItem adds the item to inventory', () => {
     const sim = createFixture(0);

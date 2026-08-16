@@ -539,6 +539,12 @@ command(
 //   sendMapEvent(mapId, channel, payload)
 //   broadcastEvent(channel, payload)
 //
+// OUTBOUND HTTP (webhook, alert, your site)
+//   httpRequest(url, { method?, headers?, body?, json?, timeoutMs? })
+//     → Promise<{ ok, status, body, error? }>   never throws, never rejects
+//   httpRequest(WEBHOOK, { json: { content: 'Boss down' } })   fire and forget
+//   Refuses this machine and the private network; does not follow redirects.
+//
 // COMMANDS
 //   command(name, handler)
 //   command(name, { access, description, canRun }, handler)

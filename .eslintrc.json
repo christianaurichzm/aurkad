@@ -197,6 +197,7 @@
         "sendEvent": "readonly",
         "sendMapEvent": "readonly",
         "broadcastEvent": "readonly",
+        "httpRequest": "readonly",
         "provide": "readonly",
         "use": "readonly",
         "Access": "readonly",
