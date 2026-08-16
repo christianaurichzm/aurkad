@@ -202,6 +202,12 @@ export const CreateNpcBodySchema = z.object({
   questId: z.string().optional(),
   scriptId: z.string().optional(),
   scriptParams: ScriptParamsSchema.optional(),
+  // AI tuning in tiles. Clamped here rather than defaulted: absent has to stay
+  // absent so the engine default for the behaviour keeps applying, and a sight
+  // of 200 tiles would make every npc query the whole map.
+  sight: z.number().int().min(1).max(20).optional(),
+  pathDepth: z.number().int().min(0).max(40).optional(),
+  leash: z.number().int().min(0).max(60).optional(),
 });
 
 export const CreateMapBodySchema = z.object({

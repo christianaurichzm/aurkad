@@ -44,13 +44,10 @@ export function calculateDirection(
   return { dx, dy, distanceSq };
 }
 
-export function moveNpcTowardsPlayer(
-  npc: RuntimeNpc,
-  player: PlayerServer,
-  map: MapStateServer,
-) {
-  stepNpcToward(npc, player, map);
-}
+// How far the path search looks when the npc does not say otherwise. Content
+// lowers it for a dumb animal and raises it for a hunter; 0 means no search at
+// all (see greedyStep).
+export const DEFAULT_PATH_DEPTH = 30;
 
 // Cardinal directions for BFS. Right/Down first so ties resolve toward the
 // south-east, which matches the typical RPG "forward" feel.
@@ -69,7 +66,7 @@ function bfsNextStep(
   npcPos: Position,
   targetPos: Position,
   map: MapStateServer,
-  maxDepth = 30,
+  maxDepth: number,
 ): { x: number; y: number; dir: Direction } | null {
   const sc = Math.floor(npcPos.x / TILE_SIZE);
   const sr = Math.floor(npcPos.y / TILE_SIZE);
@@ -88,8 +85,11 @@ function bfsNextStep(
   const visited = new Set<number>();
   visited.add(sr * 10000 + sc);
 
-  while (queue.length > 0) {
-    const curr = queue.shift()!;
+  // A read index rather than shift(): an unreachable target floods the whole
+  // depth, and shifting that frontier makes the search quadratic.
+  let head = 0;
+  while (head < queue.length) {
+    const curr = queue[head++]!;
 
     for (const { dc, dr, dir } of BFS_DIRS) {
       const nc = curr.c + dc;
@@ -117,6 +117,26 @@ function bfsNextStep(
   return null;
 }
 
+// One step along the dominant axis, with no idea what a wall is. This is what
+// pathDepth 0 buys: the caller's collision check stops the step and the stuck
+// counter makes the npc shuffle, which is what an unintelligent chase looks
+// like from the outside.
+function greedyStep(
+  npcPos: Position,
+  targetPos: Position,
+): { x: number; y: number; dir: Direction } | null {
+  const dx = targetPos.x - npcPos.x;
+  const dy = targetPos.y - npcPos.y;
+  if (dx === 0 && dy === 0) return null;
+
+  if (Math.abs(dx) >= Math.abs(dy)) {
+    const dir = dx > 0 ? Direction.Right : Direction.Left;
+    return { x: npcPos.x + Math.sign(dx) * TILE_SIZE, y: npcPos.y, dir };
+  }
+  const dir = dy > 0 ? Direction.Down : Direction.Up;
+  return { x: npcPos.x, y: npcPos.y + Math.sign(dy) * TILE_SIZE, dir };
+}
+
 // Takes one tile step toward target using BFS-derived optimal path.
 export function stepNpcToward(
   npc: RuntimeNpc,
@@ -131,7 +151,11 @@ export function stepNpcToward(
     return;
   }
 
-  const step = bfsNextStep(npc.position, target.position, map);
+  const depth = npc.pathDepth ?? DEFAULT_PATH_DEPTH;
+  const step =
+    depth > 0
+      ? bfsNextStep(npc.position, target.position, map, depth)
+      : greedyStep(npc.position, target.position);
 
   if (!step) {
     npc.action = CharacterAction.Idle;
@@ -225,15 +249,15 @@ export function attackPlayer(npc: RuntimeNpc, player: PlayerServer) {
 export function findClosestPlayer(
   npc: RuntimeNpc,
   players: PlayerServer[],
+  radiusPx: number,
 ): PlayerServer | null {
   if (players.length === 0) return null;
 
-  const SEARCH_RADIUS = 500;
   const nearbyEntities = queryEntitiesInRadius(
     npc.mapId,
     npc.position.x,
     npc.position.y,
-    SEARCH_RADIUS,
+    radiusPx,
   );
 
   if (nearbyEntities.length === 0) return null;
@@ -245,11 +269,13 @@ export function findClosestPlayer(
   if (nearbyPlayers.length === 0) return null;
 
   let closest: PlayerServer | null = null;
-  let minDistanceSq = Infinity;
+  // The quadtree query is the broad phase (it answers by node box), so the
+  // radius only becomes the sight radius after this exact check.
+  let minDistanceSq = radiusPx * radiusPx;
 
   for (const player of nearbyPlayers) {
     const { distanceSq } = calculateDirection(npc, player);
-    if (distanceSq < minDistanceSq) {
+    if (distanceSq <= minDistanceSq) {
       minDistanceSq = distanceSq;
       closest = player;
     }

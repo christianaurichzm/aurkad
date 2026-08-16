@@ -42,6 +42,11 @@ const NpcSchema = new mongoose.Schema(
     questId: { type: String },
     scriptId: { type: String },
     scriptParams: { type: mongoose.Schema.Types.Mixed },
+    // AI tuning in tiles, all optional: absent means the engine default for the
+    // behaviour. Declared here or mongoose drops them, same trap as dialogId.
+    sight: { type: Number, min: 1, max: 20 },
+    pathDepth: { type: Number, min: 0, max: 40 },
+    leash: { type: Number, min: 0, max: 60 },
   },
   { _id: false },
 );

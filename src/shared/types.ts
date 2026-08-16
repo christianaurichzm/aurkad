@@ -240,6 +240,24 @@ export interface PersistentNpc extends CharacterBase {
   // one behaviour with different settings. Only declared keys are honoured,
   // as shared/scriptParams.ts defines.
   scriptParams?: ScriptParams;
+  /**
+   * How far, in tiles, this npc notices a player on its own. Absent means the
+   * default for its behaviour (aggressive 8, hostile 4). Being hit ignores it:
+   * an attacker is a target at any distance.
+   */
+  sight?: number;
+  /**
+   * How many tiles deep the path search looks, and so how clever the chase is.
+   * Absent means 30 (rounds any obstacle a screen holds); 0 turns the search
+   * off, leaving an animal that walks straight at you and bumps into walls.
+   */
+  pathDepth?: number;
+  /**
+   * How far from its spawn this npc follows a target before giving up and
+   * walking back. Absent means 12 tiles; 0 means no rope at all, for a boss
+   * that should hunt across the map.
+   */
+  leash?: number;
 }
 
 export interface RuntimeNpc extends PersistentNpc, CharacterRuntime {

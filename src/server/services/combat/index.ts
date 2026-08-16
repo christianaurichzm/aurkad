@@ -27,6 +27,7 @@ import { getItemById } from '../economy/inventoryService.js';
 import { rollItemDrops, rollLootTable } from '../economy/lootService.js';
 import { getLootTable } from '../economy/lootTableService.js';
 import { respawnNpc } from '../npc/index.js';
+import { markNpcAggro } from '../npc/aiBrain.js';
 import { respawnPlayer, awardExperience } from '../player/playerService.js';
 import { emit } from '../../engine/hooks.js';
 import { dispatchEntityScript } from '../../engine/scripting/entityScripts.js';
@@ -288,6 +289,10 @@ export const resolveDamage = (
   if (target.health > 0) {
     if (target.kind === 'player') {
       updatePlayer(target);
+    } else if (attacker?.kind === 'player') {
+      // Retaliation. Acquisition by sight cannot see an archer two tiles
+      // outside the notice radius, and without this the npc dies wandering.
+      markNpcAggro(target, attacker.id);
     }
     return damage;
   }

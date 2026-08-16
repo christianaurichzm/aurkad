@@ -123,6 +123,21 @@ interface RuntimeNpc {
   dialogId?: string;
   /** Quest the quest module offers when a player talks to this npc. */
   questId?: string;
+  /**
+   * Tiles this npc notices a player from on its own. Absent means the default
+   * for its behavior (aggressive 8, hostile 4). Being hit ignores it.
+   */
+  sight?: number;
+  /**
+   * Tiles the path search looks ahead: how well the chase rounds an obstacle.
+   * Absent means 30; 0 walks straight at the target and bumps into walls.
+   */
+  pathDepth?: number;
+  /**
+   * Tiles from its spawn this npc follows a target before walking back.
+   * Absent means 12; 0 means it never gives up.
+   */
+  leash?: number;
   mapId: string;
   position: Position;
   direction: Direction;

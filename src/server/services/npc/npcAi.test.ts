@@ -9,6 +9,7 @@ import {
   stepNpcToward,
 } from './behaviors.js';
 import { respawnNpc } from './index.js';
+import { resolveDamage } from '../combat/index.js';
 import { TILE_SIZE } from '../../../shared/constants.js';
 
 let sim: ReturnType<typeof createFixture>;
@@ -313,5 +314,121 @@ describe('respawnNpc', () => {
     const npc = sim.addNpc({ id: 'ghost', maxHealth: 30, health: 1 });
     respawnNpc(sim.mapId, npc);
     expect(npc.health).toBe(1);
+  });
+});
+
+// retaliation, leash and the walk home
+
+describe('aggro and leash', () => {
+  it('a hostile npc answers a hit struck from outside its notice radius', () => {
+    const npc = sim.addNpc({ behavior: 'hostile', position: tile(5, 5) });
+    const archer = sim.addPlayer({ name: 'Archer', position: tile(5, 11) });
+
+    // Six tiles: past the four it notices on its own, inside the six an arrow
+    // flies. Left alone it never comes.
+    sim.step(1);
+    expect(getOrInitNpcAi(npc).state).toBe('wander');
+
+    resolveDamage(npc, 1, { attacker: archer });
+    sim.step(1);
+
+    expect(getOrInitNpcAi(npc).state).toBe('chase');
+    expect(npc.position.y).toBeGreaterThan(5 * TILE_SIZE);
+  });
+
+  it('walks back to its post once the target is gone', () => {
+    const npc = sim.addNpc({ behavior: 'aggressive', position: tile(5, 5) });
+    const bait = sim.addPlayer({ name: 'Bait', position: tile(9, 5) });
+
+    sim.step(2);
+    expect(npc.position).not.toEqual(tile(5, 5));
+
+    bait.health = 0;
+    sim.step(6);
+
+    expect(npc.position).toEqual(tile(5, 5));
+    expect(getOrInitNpcAi(npc).state).toBe('idle');
+  });
+
+  it('gives up at the leash and stays deaf on the way back', () => {
+    const npc = sim.addNpc({
+      behavior: 'aggressive',
+      position: tile(5, 5),
+      leash: 2,
+    });
+    const kiter = sim.addPlayer({ name: 'Kiter', position: tile(12, 5) });
+
+    sim.step(2);
+    expect(npc.position).toEqual(tile(7, 5));
+
+    // Two tiles from home is the end of the rope: it turns around.
+    sim.step(1);
+    expect(getOrInitNpcAi(npc).state).toBe('return');
+
+    // A hit now must not pull it out again, or the leash buys nothing.
+    resolveDamage(npc, 1, { attacker: kiter });
+    sim.step(1);
+
+    expect(getOrInitNpcAi(npc).state).toBe('return');
+    expect(npc.position).toEqual(tile(5, 5));
+  });
+
+  it('sight on the npc widens what it notices on its own', () => {
+    const npc = sim.addNpc({
+      behavior: 'hostile',
+      position: tile(5, 5),
+      sight: 8,
+    });
+    sim.addPlayer({ name: 'Seen', position: tile(5, 11) });
+
+    sim.step(1);
+
+    expect(getOrInitNpcAi(npc).state).toBe('chase');
+  });
+});
+
+// pathDepth: how clever the chase is
+
+describe('path depth', () => {
+  // Walls on three sides, opening to the left: the shape a greedy chase cannot
+  // leave, because every step that helps points away from the target.
+  const buildDeadEnd = () => {
+    for (let col = 6; col <= 9; col++) {
+      sim.map.tiles[4]![col]!.blocked = true;
+      sim.map.tiles[8]![col]!.blocked = true;
+    }
+    for (let row = 4; row <= 8; row++) sim.map.tiles[row]![9]!.blocked = true;
+  };
+
+  it('finds the way out of a dead end', () => {
+    buildDeadEnd();
+    const npc = sim.addNpc({ position: tile(7, 6) });
+
+    for (let i = 0; i < 14; i++) {
+      stepNpcToward(npc, { position: tile(12, 6) }, sim.map);
+    }
+
+    expect(npc.position.x).toBeGreaterThan(9 * TILE_SIZE);
+  });
+
+  it('pathDepth 0 stays trapped in the same dead end', () => {
+    buildDeadEnd();
+    const npc = sim.addNpc({ position: tile(7, 6), pathDepth: 0 });
+
+    for (let i = 0; i < 14; i++) {
+      stepNpcToward(npc, { position: tile(12, 6) }, sim.map);
+    }
+
+    expect(npc.position.x).toBeLessThanOrEqual(8 * TILE_SIZE);
+  });
+
+  it('pathDepth 0 walks into a wall instead of around it', () => {
+    sim.map.tiles[5]![6]!.blocked = true;
+    const npc = sim.addNpc({ position: tile(5, 5), pathDepth: 0 });
+
+    stepNpcToward(npc, { position: tile(9, 5) }, sim.map);
+
+    expect(npc.position).toEqual(tile(5, 5));
+    expect(npc.action).toBe(CharacterAction.Idle);
   });
 });

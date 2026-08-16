@@ -40,6 +40,11 @@ type NpcFormValues = {
   lootTableId: string;
   dialogId: string;
   questId: string;
+  // Strings, so empty survives the round trip: absent selects the engine
+  // default for the behaviour.
+  sight: string;
+  pathDepth: string;
+  leash: string;
 };
 
 const defaultValues: NpcFormValues = {
@@ -54,6 +59,14 @@ const defaultValues: NpcFormValues = {
   lootTableId: '',
   dialogId: '',
   questId: '',
+  sight: '',
+  pathDepth: '',
+  leash: '',
+};
+
+const optionalTiles = (value: string): number | undefined => {
+  const trimmed = value.trim();
+  return trimmed === '' ? undefined : Number(trimmed);
 };
 
 const npcToFormValues = (npc: RuntimeNpc): NpcFormValues => ({
@@ -68,6 +81,9 @@ const npcToFormValues = (npc: RuntimeNpc): NpcFormValues => ({
   lootTableId: npc.lootTableId ?? '',
   dialogId: npc.dialogId ?? '',
   questId: npc.questId ?? '',
+  sight: npc.sight?.toString() ?? '',
+  pathDepth: npc.pathDepth?.toString() ?? '',
+  leash: npc.leash?.toString() ?? '',
 });
 
 const npcToDrops = (npc: RuntimeNpc): NpcItemDrop[] =>
@@ -101,6 +117,9 @@ export const NpcEditor: React.FC<NpcEditorProps> = ({
   const sprite = watch('sprite');
   const scriptId = watch('scriptId');
   const scriptParams = watch('scriptParams');
+  const behavior = watch('behavior');
+  // The chase fields only matter for behaviours that chase.
+  const hunts = behavior === 'aggressive' || behavior === 'hostile';
 
   const [drops, setDrops] = useState<NpcItemDrop[]>([]);
   const [dropsBaseline, setDropsBaseline] = useState<NpcItemDrop[]>([]);
@@ -171,6 +190,9 @@ export const NpcEditor: React.FC<NpcEditorProps> = ({
     lootTableId,
     dialogId,
     questId,
+    sight,
+    pathDepth,
+    leash,
   }: NpcFormValues) => {
     const data = {
       name,
@@ -190,6 +212,9 @@ export const NpcEditor: React.FC<NpcEditorProps> = ({
       lootTableId: lootTableId || undefined,
       dialogId: dialogId || undefined,
       questId: questId || undefined,
+      sight: optionalTiles(sight),
+      pathDepth: optionalTiles(pathDepth),
+      leash: optionalTiles(leash),
     };
     const result = selectedId
       ? await updateNpc(selectedId, data).catch(() => null)
@@ -311,6 +336,56 @@ export const NpcEditor: React.FC<NpcEditorProps> = ({
           </div>
         </div>
       </div>
+
+      {hunts && (
+        <div style={dropSection}>
+          <label style={{ ...label, marginBottom: 6, display: 'block' }}>
+            AI (tiles)
+          </label>
+          <div style={triRow}>
+            <div style={field}>
+              <label style={label}>Sight</label>
+              <input
+                style={input}
+                type="number"
+                min={1}
+                max={20}
+                placeholder={behavior === 'aggressive' ? '8' : '4'}
+                {...register('sight')}
+              />
+            </div>
+            <div style={field}>
+              <label style={label}>Path depth</label>
+              <input
+                style={input}
+                type="number"
+                min={0}
+                max={40}
+                placeholder="30"
+                {...register('pathDepth')}
+              />
+            </div>
+            <div style={field}>
+              <label style={label}>Leash</label>
+              <input
+                style={input}
+                type="number"
+                min={0}
+                max={60}
+                placeholder="12"
+                {...register('leash')}
+              />
+            </div>
+          </div>
+          <p style={dropHint}>
+            Empty uses the default for the behavior. Sight is how far it notices
+            a player on its own - being hit ignores it. Path depth 0 walks
+            straight at you and bumps into walls; higher rounds bigger
+            obstacles. Leash is how far it follows before walking back to its
+            spawn, 0 for no limit.
+          </p>
+        </div>
+      )}
 
       <ScriptBehaviorFields
         events={['onInteract', 'onDeath']}
