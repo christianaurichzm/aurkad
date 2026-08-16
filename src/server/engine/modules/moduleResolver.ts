@@ -8,7 +8,10 @@ export interface ModuleManifest {
   id: string;
   name: string;
   version: string;
-  server: string; // server entry file, relative to the module dir
+  // Server entry, relative to the module dir. Absent for a module that only
+  // draws (a minimap, a day/night tint): it has a client entry and nothing to
+  // run in the sandbox. One of the two is required.
+  server?: string;
   client?: string; // optional browser entry, served to clients
   description?: string;
   enabledByDefault?: boolean;

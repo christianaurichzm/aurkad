@@ -5,7 +5,7 @@ import { getGameState, getPlayer } from '../../core/gameState';
 import { enqueueChatMessage } from '../network/sync/chatSync';
 import { TILE_SIZE } from '../../../shared/constants';
 import { getCamera, screenToWorld, worldToScreen } from '../../graphics/camera';
-import { registerOverlay } from '../../graphics/overlayRegistry';
+import { OverlayLayer, registerOverlay } from '../../graphics/overlayRegistry';
 
 // Loads the module browser entries the server serves and runs them with an
 // `engine` API. Like server scripts, this is the server owner's code, so it
@@ -317,7 +317,14 @@ function makeEngineApi(id: string) {
         ctx: CanvasRenderingContext2D,
         cam: { x: number; y: number },
       ) => void,
-    ) => registerOverlay(fn),
+      order?: number,
+    ) => registerOverlay(fn, order),
+    /**
+     * Draw order for registerOverlay. Anything on `hud` covers `world` (the
+     * default), so a minimap or counter belongs there, where a day/night tint
+     * cannot dim it.
+     */
+    OverlayLayer,
   };
 }
 

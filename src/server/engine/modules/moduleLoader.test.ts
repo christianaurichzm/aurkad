@@ -221,3 +221,57 @@ describe('client entries', () => {
     expect(readModuleClientFile('evil')).toBeNull();
   });
 });
+
+// A minimap or a day/night tint has nothing to run on the server. It is still
+// a module: listed, toggled by game.json, and its browser half served.
+describe('client-only modules', () => {
+  function writeClientOnly(id: string, manifest: object = {}) {
+    const dir = path.join(tmpDir, id);
+    fs.mkdirSync(dir, { recursive: true });
+    fs.writeFileSync(
+      path.join(dir, 'module.json'),
+      JSON.stringify({
+        id,
+        name: id,
+        version: '1.0.0',
+        client: 'client.js',
+        enabledByDefault: true,
+        ...manifest,
+      }),
+    );
+    fs.writeFileSync(path.join(dir, 'client.js'), '/* drawing only */');
+  }
+
+  it('loads a module that declares only a client entry', () => {
+    // Not a real module id: game.json in this repo lists minimap and daynight,
+    // and isModuleEnabled would read that instead of the manifest here.
+    writeClientOnly('drawonly');
+
+    loadModules();
+
+    expect(getClientModules()).toContainEqual({
+      id: 'drawonly',
+      client: 'client.js',
+    });
+    expect(readModuleClientFile('drawonly')).toContain('drawing only');
+  });
+
+  it('refuses a manifest that declares neither entry', () => {
+    const dir = path.join(tmpDir, 'empty');
+    fs.mkdirSync(dir, { recursive: true });
+    fs.writeFileSync(
+      path.join(dir, 'module.json'),
+      JSON.stringify({
+        id: 'empty',
+        name: 'empty',
+        version: '1.0.0',
+        enabledByDefault: true,
+      }),
+    );
+
+    loadModules();
+
+    expect(getClientModules()).toEqual([]);
+    expect(readModuleClientFile('empty')).toBeNull();
+  });
+});

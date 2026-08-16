@@ -1,0 +1,8 @@
+{
+  "id": "daynight",
+  "name": "Day/Night Cycle",
+  "version": "1.0.0",
+  "client": "client.js",
+  "description": "Tints the world through a day cycle driven by the wall clock, so every player sees the same hour. Client-only: no server entry.",
+  "enabledByDefault": false
+}

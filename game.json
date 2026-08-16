@@ -42,6 +42,8 @@
     "trade": { "enabled": true },
     "equipment": { "enabled": true },
     "status": { "enabled": true },
+    "minimap": { "enabled": false },
+    "daynight": { "enabled": false },
     "bank": { "enabled": true, "config": { "maxSlots": 50 } },
     "mail": {
       "enabled": true,

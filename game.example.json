@@ -79,6 +79,12 @@
     "status": {
       "enabled": true
     },
+    "minimap": {
+      "enabled": false
+    },
+    "daynight": {
+      "enabled": false
+    },
     "bank": {
       "enabled": true,
       "config": {

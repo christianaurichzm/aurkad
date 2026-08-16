@@ -1,0 +1,8 @@
+{
+  "id": "minimap",
+  "name": "Minimap",
+  "version": "1.0.0",
+  "client": "client.js",
+  "description": "Corner minimap of the current map, drawn from tiles the client already holds. Client-only: no server entry.",
+  "enabledByDefault": false
+}

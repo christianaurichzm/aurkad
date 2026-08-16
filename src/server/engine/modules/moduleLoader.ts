@@ -12,9 +12,10 @@ import {
 } from './moduleResolver.js';
 
 // Loads official/optional modules from modules/<id>/. Each module is a manifest
-// (module.json) plus a .js server entry that runs in the SAME sandbox as game
-// scripts, with its merged config injected as a `config` global. Toggled and
-// configured via game.json's `modules` section.
+// (module.json) plus at least one entry: a .js server entry that runs in the
+// SAME sandbox as game scripts, with its merged config injected as a `config`
+// global, and/or a browser entry served to the client. Toggled and configured
+// via game.json's `modules` section.
 
 const modulesDir = (): string =>
   process.env.MODULES_PATH
@@ -25,7 +26,9 @@ const ManifestSchema = z.object({
   id: z.string().min(1),
   name: z.string().min(1),
   version: z.string().min(1),
-  server: z.string().min(1),
+  // One of the two is required; the check is in the loader, where the missing
+  // file can be named in the log.
+  server: z.string().min(1).optional(),
   client: z.string().min(1).optional(),
   description: z.string().optional(),
   enabledByDefault: z.boolean().optional(),
@@ -95,25 +98,38 @@ export function loadModules(): void {
       continue;
     }
 
-    const entryPath = path.join(dir, manifest.id, manifest.server);
-    if (!fs.existsSync(entryPath)) {
+    // A module with no server entry only draws (a minimap, a day/night tint).
+    // It is still listed, toggled and configured like the rest, with nothing
+    // to run in the sandbox.
+    if (manifest.server) {
+      const entryPath = path.join(dir, manifest.id, manifest.server);
+      if (!fs.existsSync(entryPath)) {
+        logger.error(
+          `[modules] ${manifest.id}: entry not found: ${manifest.server}`,
+        );
+        continue;
+      }
+      let code: string;
+      try {
+        code = fs.readFileSync(entryPath, 'utf-8');
+      } catch (e) {
+        logger.error(`[modules] ${manifest.id}: failed to read entry`, {
+          err: e,
+        });
+        continue;
+      }
+      const config = resolveModuleConfig(manifest, gameConfig.modules);
+      handles.set(
+        manifest.id,
+        runInSandbox(code, `module:${manifest.id}`, { config }),
+      );
+    } else if (!manifest.client) {
       logger.error(
-        `[modules] ${manifest.id}: entry not found: ${manifest.server}`,
+        `[modules] ${manifest.id}: has neither a server nor a client entry`,
       );
       continue;
     }
-    let code: string;
-    try {
-      code = fs.readFileSync(entryPath, 'utf-8');
-    } catch (e) {
-      logger.error(`[modules] ${manifest.id}: failed to read entry`, {
-        err: e,
-      });
-      continue;
-    }
-    const config = resolveModuleConfig(manifest, gameConfig.modules);
-    const handle = runInSandbox(code, `module:${manifest.id}`, { config });
-    handles.set(manifest.id, handle);
+
     loadedManifests.set(manifest.id, manifest);
     loaded.add(manifest.id);
     logger.info(`[modules] Loaded ${manifest.id} v${manifest.version}`);

@@ -1,4 +1,4 @@
-import { registerOverlay } from './overlayRegistry';
+import { OverlayLayer, registerOverlay } from './overlayRegistry';
 import { getGameState, getPlayer } from '../core/gameState';
 import { getAnimatedState } from './movementAnimation';
 import { TILE_SIZE } from '../../shared/constants';
@@ -61,5 +61,5 @@ export function initDebugOverlay(): void {
       ctx.fillText(lines[i], 10, 18 + i * 16);
     }
     ctx.restore();
-  });
+  }, OverlayLayer.hud);
 }

@@ -35,10 +35,16 @@ beforeDamage), and **bank** (per-player item storage). All are opt-in via
 }
 ```
 
-- `server` - entry file (JavaScript). Compile TypeScript modules to `.js`.
-- `enabledByDefault` - loaded unless `game.json` disables it (default `true`).
-- `config` - default config, overridable per game.
-- `dependencies` - module ids that must load first.
+- `server`: entry file (JavaScript). Compile TypeScript modules to `.js`.
+- `client`: browser entry, served to the game client.
+- `enabledByDefault`: loaded unless `game.json` disables it (default `true`).
+- `config`: default config, overridable per game.
+- `dependencies`: module ids that must load first.
+
+**One of `server` and `client` is required, not both.** A module that only
+draws - the `minimap`, the `daynight` tint - declares `client` alone and never
+enters the sandbox. Note that `config` reaches the **server** entry only, so a
+client-only module keeps its settings as constants in its own file.
 
 ## Toggling & config (`game.json`)
 

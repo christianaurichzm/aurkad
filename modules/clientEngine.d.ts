@@ -21,6 +21,35 @@ interface ModuleUi {
   actionButton(label: string, onClick: () => void, hotkey?: string): HTMLButtonElement;
 }
 
+/** Another player as the client knows them: no inventory, no stats. */
+interface ClientPlayer {
+  id: string;
+  name: string;
+  sprite: number;
+  width: number;
+  height: number;
+  maxHealth: number;
+  health: number;
+  level: number;
+  position: Position;
+  direction: Direction;
+  action: CharacterAction;
+  nameColor?: string;
+  nameTag?: string;
+  kind: 'player';
+}
+
+/** The client's map, composed from static tiles and the per-tick update. */
+interface ClientMapState {
+  id: string;
+  name: string;
+  type: MapType;
+  tiles: Tile[][];
+  players: Record<string, ClientPlayer>;
+  npcs: Record<string, RuntimeNpc>;
+  droppedItems: { id: string; itemId: number; position: Position }[];
+}
+
 declare const engine: {
   onServerEvent(channel: string, handler: (payload: any) => void): void;
   sendServerEvent(channel: string, payload?: unknown): void;
@@ -43,8 +72,11 @@ declare const engine: {
   error(...args: unknown[]): void;
   /** Current local player state (position, health, stats). */
   getPlayer(): PlayerServer | undefined;
-  /** Visible map + entity state (players, npcs, droppedItems, tiles). */
-  getGameState(): unknown;
+  /**
+   * Visible map + entity state (players, npcs, droppedItems, tiles). Null
+   * before the first world update arrives.
+   */
+  getGameState(): ClientMapState | null;
   /** Current camera offset in world-space pixels. */
   getCamera(): { x: number; y: number };
   /**
@@ -68,5 +100,12 @@ declare const engine: {
    */
   registerOverlay(
     fn: (ctx: CanvasRenderingContext2D, cam: { x: number; y: number }) => void,
+    order?: number,
   ): () => void;
+  /**
+   * Draw order for `registerOverlay`. Anything on `hud` covers `world` (the
+   * default), so a minimap or counter belongs there, where a day/night tint
+   * cannot dim it.
+   */
+  OverlayLayer: { world: number; hud: number };
 };
