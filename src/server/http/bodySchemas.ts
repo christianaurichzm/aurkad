@@ -210,6 +210,21 @@ export const CreateNpcBodySchema = z.object({
   leash: z.number().int().min(0).max(60).optional(),
 });
 
+/**
+ * A crash in a player's browser, reported by the client.
+ *
+ * Every field is capped rather than merely typed: this is the one endpoint that
+ * accepts free text from an unauthenticated caller and writes it to the log an
+ * operator reads. A stack is long, so 4 KB; nothing useful is past that.
+ */
+export const ClientErrorBodySchema = z.object({
+  kind: z.enum(['error', 'unhandledrejection']),
+  message: z.string().min(1).max(500),
+  stack: z.string().max(4000).optional(),
+  /** Where in the client it happened, not where it was sent from. */
+  source: z.string().max(500).optional(),
+});
+
 export const CreateMapBodySchema = z.object({
   name: z.string().min(1),
   type: MapTypeSchema,

@@ -1,8 +1,13 @@
+import { timingSafeEqual } from 'node:crypto';
+import type { RequestHandler } from 'express';
 import { Access } from '../../../shared/types.js';
 import checkAccess from '../middleware/checkAccess.js';
 import { getMetrics } from '../../metrics.js';
 import { getNetStats } from '../../net/netStats.js';
 import { createRouter } from '../../app.js';
+import { config } from '../../config.js';
+import { logger } from '../../logger.js';
+import { ClientErrorBodySchema, parseBody } from '../bodySchemas.js';
 
 type Sample = {
   name: string;
@@ -288,17 +293,67 @@ export function buildMetricsSamples(): Sample[] {
   ];
 }
 
-// OpenMetrics/Prometheus scrape endpoint. Admin-gated: the same numbers are a
+/**
+ * Bearer token, or fall through to the admin session. Prometheus sends a
+ * header and keeps no cookie, so without this only a human with a browser
+ * could read the endpoint. Compared in constant time, as a secret should be.
+ */
+export function metricsAuth(token: string | undefined): RequestHandler {
+  const adminOnly = checkAccess(Access.ADMIN);
+  if (!token) return adminOnly;
+
+  const encoder = new TextEncoder();
+  const expected = encoder.encode(token);
+  return (req, res, next) => {
+    const header = req.get('authorization') ?? '';
+    const offered = header.startsWith('Bearer ')
+      ? encoder.encode(header.slice(7))
+      : null;
+
+    if (
+      offered &&
+      offered.length === expected.length &&
+      timingSafeEqual(offered, expected)
+    ) {
+      return next();
+    }
+    return adminOnly(req, res, next);
+  };
+}
+
+// OpenMetrics/Prometheus scrape endpoint. Gated: the same numbers are a
 // capacity map of the server, and this is not a public health probe (see
-// healthRoutes for those). Point a scraper at it with an operator session, or
-// expose it only on an internal network.
+// healthRoutes for those). It takes METRICS_TOKEN as a bearer token, or
+// an operator session.
 export function createMetricsRouter() {
   const router = createRouter();
 
-  router.get('/metrics', checkAccess(Access.ADMIN), (_req, res) => {
+  router.get('/metrics', metricsAuth(config.metrics.token), (_req, res) => {
     res.setHeader('Content-Type', 'text/plain; version=0.0.4; charset=utf-8');
     res.setHeader('Cache-Control', 'no-store');
     res.send(render(buildMetricsSamples()));
+  });
+
+  /**
+   * A crash in a player's browser, which neither `/metrics` nor the replay
+   * can see. Unauthenticated, since a crash on the login screen is the one
+   * nobody would otherwise hear of. The general limiter and the capped
+   * schema leave a spammer only their own bucket, spent on short log lines.
+   */
+  router.post('/client-error', (req, res) => {
+    const body = parseBody(ClientErrorBodySchema, req.body, res);
+    if (!body) return;
+
+    logger.error('[client] uncaught error in a browser', {
+      kind: body.kind,
+      message: body.message,
+      stack: body.stack,
+      source: body.source,
+      // Whoever is logged in on this session, when there is one.
+      player: req.session?.username,
+      userAgent: req.get('user-agent')?.slice(0, 200),
+    });
+    res.status(204).end();
   });
 
   // The same netcode counters as raw JSON, unaggregated: `/metrics` flattens

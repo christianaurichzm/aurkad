@@ -11,8 +11,24 @@ vi.mock('../../net/connections.js', () => ({
   playersWsMap: new Map(),
   openConnectionCount: () => 0,
 }));
+// checkAccess pulls in the audit trail, which registers a mongoose model at
+// import time. The trail has its own tests; this file is about who gets to
+// read the numbers.
+vi.mock('../../services/auditService.js', () => ({
+  recordAdminAction: vi.fn(),
+  summarizeDetails: () => undefined,
+}));
+const logged = vi.fn();
+vi.mock('../../logger.js', () => ({
+  logger: {
+    error: (...args: unknown[]) => logged(...args),
+    warn: vi.fn(),
+    info: vi.fn(),
+    debug: vi.fn(),
+  },
+}));
 
-import { createMetricsRouter } from './metricsRoutes.js';
+import { createMetricsRouter, metricsAuth } from './metricsRoutes.js';
 import { recordTick, resetMetricsForTest } from '../../metrics.js';
 import {
   clearHandlerBudget,
@@ -27,6 +43,7 @@ function appAs(accessLevel: Access | undefined) {
     } as ExtendedRequest['session'];
     next();
   });
+  app.use(express.json());
   app.use(createMetricsRouter());
   return app;
 }
@@ -153,5 +170,103 @@ describe('GET /metrics', () => {
       const res = await request(appAs(Access.ADMIN)).get('/metrics');
       expect(res.text).not.toContain('engine_script_handler_ms_total');
     });
+  });
+});
+
+// The scraper path: a bearer token, because a scraper cannot hold a session.
+describe('metricsAuth', () => {
+  const TOKEN = 'a'.repeat(32);
+
+  function appWithToken(token: string | undefined) {
+    const app = express();
+    // No session at all, which is exactly what a scraper has.
+    app.use((req: ExtendedRequest, _res: Response, next: NextFunction) => {
+      req.session = {} as ExtendedRequest['session'];
+      next();
+    });
+    app.get('/metrics', metricsAuth(token), (_req, res) => res.send('ok'));
+    return app;
+  }
+
+  it('serves a scraper carrying the token, with no session', async () => {
+    const res = await request(appWithToken(TOKEN))
+      .get('/metrics')
+      .set('authorization', `Bearer ${TOKEN}`);
+
+    expect(res.status).toBe(200);
+  });
+
+  it.each([
+    ['b'.repeat(32), 'same length, wrong value'],
+    ['a'.repeat(31), 'one character short'],
+    ['a'.repeat(33), 'one character long'],
+    ['', 'empty'],
+  ])('refuses a token that is %s (%s)', async (offered) => {
+    const res = await request(appWithToken(TOKEN))
+      .get('/metrics')
+      .set('authorization', `Bearer ${offered}`);
+
+    expect(res.status).toBe(401);
+  });
+
+  it('refuses a request carrying no authorization', async () => {
+    expect((await request(appWithToken(TOKEN)).get('/metrics')).status).toBe(
+      401,
+    );
+  });
+
+  it('ignores the header entirely when no token is configured', async () => {
+    const res = await request(appWithToken(undefined))
+      .get('/metrics')
+      .set('authorization', `Bearer ${TOKEN}`);
+
+    expect(res.status).toBe(401);
+  });
+});
+
+// The one incident /metrics cannot see, because it happens in a browser.
+describe('POST /client-error', () => {
+  beforeEach(() => {
+    logged.mockClear();
+  });
+
+  it('logs a crash reported by a player who is not logged in', async () => {
+    const res = await request(appAs(undefined)).post('/client-error').send({
+      kind: 'error',
+      message: 'Cannot read properties of undefined',
+      stack: 'at render (game.ts:12:3)',
+      source: 'game.ts:12:3',
+    });
+
+    expect(res.status).toBe(204);
+    expect(logged).toHaveBeenCalledOnce();
+    expect(logged.mock.calls[0]![1]).toMatchObject({
+      kind: 'error',
+      message: 'Cannot read properties of undefined',
+      source: 'game.ts:12:3',
+    });
+  });
+
+  it('names the player when the report carries a session', async () => {
+    await request(appAs(Access.USER))
+      .post('/client-error')
+      .send({ kind: 'unhandledrejection', message: 'boom' });
+
+    expect(logged.mock.calls[0]![1]).toMatchObject({ player: 'op' });
+  });
+
+  it.each<[Record<string, unknown>, string]>([
+    [{ kind: 'error' }, 'no message'],
+    [{ kind: 'nonsense', message: 'x' }, 'unknown kind'],
+    [{ kind: 'error', message: '' }, 'empty message'],
+    [{ kind: 'error', message: 'x'.repeat(501) }, 'message past the cap'],
+    [{ kind: 'error', message: 'x', stack: 'y'.repeat(4001) }, 'stack past it'],
+  ])('refuses %j (%s)', async (body) => {
+    const res = await request(appAs(undefined))
+      .post('/client-error')
+      .send(body);
+
+    expect(res.status).toBe(400);
+    expect(logged).not.toHaveBeenCalled();
   });
 });

@@ -90,6 +90,16 @@ if (nodeEnv === 'production' && !process.env.CORS_ALLOWED_ORIGINS) {
   );
 }
 
+// A short token is worse than none: it reads as protection while being
+// guessable, and this endpoint is a capacity map of the server. Fail at boot
+// rather than serve it.
+const metricsToken = process.env.METRICS_TOKEN?.trim() || undefined;
+if (metricsToken !== undefined && metricsToken.length < 16) {
+  throw new Error(
+    '[config] METRICS_TOKEN must be at least 16 characters. Use a secure random string (e.g. openssl rand -hex 32).',
+  );
+}
+
 // An all-blank MAP_IDS parses to [], which would read as sharding. It means
 // "own all maps", like unset, so both become undefined here.
 const rawMapIds = parseCsvEnv('MAP_IDS');
@@ -160,6 +170,11 @@ export const config = {
       min: 1,
       max: 1_000_000,
     }),
+  },
+  metrics: {
+    // Bearer token for /metrics, since a scraper cannot hold an operator
+    // session. Unset, only an admin session reads it.
+    token: metricsToken,
   },
   scriptData: {
     // Bounds on the data scripts persist (player.data and the KV store).
