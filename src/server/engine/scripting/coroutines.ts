@@ -223,8 +223,9 @@ export function startCoroutine(
       return;
     }
 
-    const unsub = hookOn(instruction.event, ((payload: unknown) =>
-      resume(payload, instruction.predicate)) as never);
+    const unsub = hookOn(instruction.event, (payload: unknown) =>
+      resume(payload, instruction.predicate),
+    );
     stopWaiting = unsub;
   };
 

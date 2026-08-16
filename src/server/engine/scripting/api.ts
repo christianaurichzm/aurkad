@@ -780,7 +780,7 @@ export function buildApi(
           recordScriptError(scriptName, e, 'timer', 'setTimeout');
         }
       }, ms);
-      trackTimer(id as unknown as TimerId);
+      trackTimer(id);
     },
     setInterval: (fn: () => void, ms: number): TimerId => {
       warnWallClockTimer(scriptName, 'setInterval', 'every');

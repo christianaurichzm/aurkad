@@ -336,7 +336,7 @@ export async function loadClientModules(): Promise<void> {
       // A module's client half is the server owner's own code, served by
       // this server (see the trust model in the server's sandbox.ts). There is
       // no other way to run code fetched at runtime.
-      // eslint-disable-next-line no-new-func, @typescript-eslint/no-implied-eval
+      // eslint-disable-next-line @typescript-eslint/no-implied-eval, @typescript-eslint/no-unsafe-call
       new Function('engine', code)(makeEngineApi(m.id));
       console.log(`[modules] client loaded: ${m.id}`);
     } catch (e) {

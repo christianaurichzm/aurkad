@@ -156,7 +156,17 @@ function coerce(
     return n;
   }
 
-  if (typeof raw === 'object') return undefined;
+  // Only a primitive becomes a string worth storing. An object, a function or
+  // a symbol stringifies to something nobody authored ([object Object], source
+  // text, Symbol(x)), so it is refused rather than written back looking real.
+  if (
+    typeof raw !== 'string' &&
+    typeof raw !== 'number' &&
+    typeof raw !== 'boolean' &&
+    typeof raw !== 'bigint'
+  ) {
+    return undefined;
+  }
   const s = String(raw);
   if (spec.type === 'select') {
     return spec.options?.includes(s) ? s : undefined;

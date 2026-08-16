@@ -2,7 +2,6 @@ import { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { httpError, login } from '../io/network';
 import { setAssetKey } from '../io/assets';
-import { MapMetaClient, Player } from '../../shared/types';
 import { useGame } from '../context/GameContext';
 import { useUIStore } from '../stores/uiStore';
 import { colors, radius, zIndex } from '../theme';
@@ -33,7 +32,7 @@ export const Login = ({ onSwitch }: { onSwitch: () => void }) => {
       const data = await login(username, password);
       if (data?.player && data?.map && data?.assetKey) {
         setAssetKey(data.assetKey);
-        loginSuccess(data as { map: MapMetaClient; player: Player });
+        loginSuccess(data);
         if (data.motd) {
           useUIStore.getState().addChatMessage({
             type: 'chat',

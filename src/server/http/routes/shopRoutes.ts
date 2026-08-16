@@ -39,7 +39,7 @@ export function createShopRouter() {
       try {
         const shops = await listShops();
         res.status(200).json(shops);
-      } catch (error) {
+      } catch (_error) {
         res.status(500).json({ error: 'Could not fetch items' });
       }
     },

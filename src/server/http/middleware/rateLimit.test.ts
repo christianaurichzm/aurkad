@@ -38,8 +38,8 @@ afterEach(() => {
  */
 async function appWithLimiter({
   max = 2,
-  trustProxy = false as boolean | number,
-} = {}) {
+  trustProxy = false,
+}: { max?: number; trustProxy?: boolean | number } = {}) {
   vi.resetModules();
   process.env.HTTP_RATE_LIMIT_MAX = String(max);
   process.env.HTTP_RATE_LIMIT_WINDOW_MS = '60000';

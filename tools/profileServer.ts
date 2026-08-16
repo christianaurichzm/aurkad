@@ -173,6 +173,10 @@ class Inspector {
   private constructor(ws: WebSocket) {
     this.ws = ws;
     this.ws.on('message', (raw) => {
+      // ws types the payload as Buffer | ArrayBuffer | Buffer[], and only the
+      // ArrayBuffer arm stringifies badly, which never arrives: the default
+      // binaryType is nodebuffer and CDP sends text frames.
+      // eslint-disable-next-line @typescript-eslint/no-base-to-string
       const msg = JSON.parse(String(raw)) as {
         id?: number;
         result?: unknown;

@@ -70,7 +70,7 @@ export function createMapRouter() {
       try {
         const items = await listMaps();
         res.status(200).json(items);
-      } catch (error) {
+      } catch (_error) {
         res.status(500).json({ error: 'Could not fetch items' });
       }
     },

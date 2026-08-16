@@ -34,7 +34,7 @@ export function buildEntityAtlas(
 
   let y = 0;
   for (const [key, img] of entries) {
-    ctx.drawImage(img as CanvasImageSource, 0, y);
+    ctx.drawImage(img, 0, y);
     entityAtlasOffsets[key] = { x: 0, y, width: img.width, height: img.height };
     y += img.height;
   }

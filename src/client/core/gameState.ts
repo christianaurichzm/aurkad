@@ -175,12 +175,12 @@ export const applyWorldUpdate = (payload: WorldUpdatePayload) => {
     if (players[id]) {
       players[id] = mergeEntity(
         players[id] as unknown as Record<string, unknown>,
-        patch as Record<string, unknown>,
+        patch,
       ) as unknown as PlayerPublic;
     } else if (npcs[id]) {
       npcs[id] = mergeEntity(
         npcs[id] as unknown as Record<string, unknown>,
-        patch as Record<string, unknown>,
+        patch,
       ) as unknown as RuntimeNpc;
     } else if ((patch as { kind?: string }).kind === 'npc') {
       npcs[id] = patch as RuntimeNpc;

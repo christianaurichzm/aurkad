@@ -52,7 +52,7 @@ describe('shop', () => {
       products: [{ itemId: 20, currency: 10, price: 3 }],
     };
 
-    const ok = await buyShopItem(player, 20, shop as any);
+    const ok = await buyShopItem(player, 20, shop);
 
     expect(ok).toBe(true);
     expect(player.inventory.items.find((i) => i.item === 20)?.quantity).toBe(1);
@@ -86,7 +86,7 @@ describe('shop', () => {
       products: [{ itemId: 20, currency: 10, price: 5 }],
     };
 
-    const ok = await buyShopItem(player, 20, shop as any);
+    const ok = await buyShopItem(player, 20, shop);
 
     expect(ok).toBe(false);
     expect(player.inventory.items.find((i) => i.item === 20)).toBeUndefined();
@@ -121,7 +121,7 @@ describe('shop', () => {
       products: [{ itemId: 30, currency: 10, price: 2 }],
     };
 
-    await buyShopItem(player, 30, shop as any);
+    await buyShopItem(player, 30, shop);
 
     expect(player.inventory.items.find((i) => i.item === 30)?.quantity).toBe(3);
   });

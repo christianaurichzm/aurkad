@@ -15,11 +15,11 @@ function mkRecord(overrides: Partial<PlayerRecord>): PlayerRecord {
 describe('normalizePlayerRecord', () => {
   it('fills equipped and inventory dropped by mongoose minimize', () => {
     const record = mkRecord({
-      equipped: undefined as unknown as PlayerRecord['equipped'],
-      inventory: undefined as unknown as PlayerRecord['inventory'],
-      strength: undefined as unknown as PlayerRecord['strength'],
-      defense: undefined as unknown as PlayerRecord['defense'],
-      agility: undefined as unknown as PlayerRecord['agility'],
+      equipped: undefined,
+      inventory: undefined,
+      strength: undefined,
+      defense: undefined,
+      agility: undefined,
     });
 
     const normalized = normalizePlayerRecord(record);

@@ -198,7 +198,7 @@ export function validateScriptReferences(
     where: string,
     reachable: ScriptBehaviorEvent[],
     scriptId: string | undefined,
-    scriptParams?: Record<string, unknown> | undefined,
+    scriptParams?: Record<string, unknown>,
   ): void => {
     if (!scriptId) return;
     const behavior = registered.get(scriptId);

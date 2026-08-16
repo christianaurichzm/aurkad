@@ -54,7 +54,7 @@ describe('findPlacement', () => {
     const self = {
       ...probe(sim, alice.id),
       width: alice.width,
-    } as CombatTarget;
+    };
     expect(findPlacement(self, sim.mapId, tile(5, 5))).toEqual(tile(5, 5));
   });
 

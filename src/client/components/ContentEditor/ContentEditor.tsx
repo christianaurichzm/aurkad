@@ -89,7 +89,8 @@ export const ContentEditor: React.FC = () => {
 
   useEffect(() => {
     const toggle = () => {
-      visibleRef.current ? void close() : setVisible(true);
+      if (visibleRef.current) void close();
+      else setVisible(true);
     };
     window.addEventListener('toggleContentEditor', toggle);
     return () => window.removeEventListener('toggleContentEditor', toggle);

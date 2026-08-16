@@ -416,29 +416,86 @@ export function updateColdSnapshot(
   let changed = false;
 
   const s = snapshot.scalars;
-  if (s[0] !== player.name) (s[0] = player.name), (changed = true);
-  if (s[1] !== player.sprite) (s[1] = player.sprite), (changed = true);
-  if (s[2] !== player.width) (s[2] = player.width), (changed = true);
-  if (s[3] !== player.height) (s[3] = player.height), (changed = true);
-  if (s[4] !== player.maxHealth) (s[4] = player.maxHealth), (changed = true);
-  if (s[5] !== player.attack) (s[5] = player.attack), (changed = true);
-  if (s[6] !== player.attackRange)
-    (s[6] = player.attackRange), (changed = true);
-  if (s[7] !== player.level) (s[7] = player.level), (changed = true);
-  if (s[8] !== player.experience) (s[8] = player.experience), (changed = true);
-  if (s[9] !== player.experienceToNextLevel)
-    (s[9] = player.experienceToNextLevel), (changed = true);
-  if (s[10] !== player.access) (s[10] = player.access), (changed = true);
-  if (s[11] !== player.strength) (s[11] = player.strength), (changed = true);
-  if (s[12] !== player.defense) (s[12] = player.defense), (changed = true);
-  if (s[13] !== player.agility) (s[13] = player.agility), (changed = true);
-  if (s[14] !== player.vitality) (s[14] = player.vitality), (changed = true);
-  if (s[15] !== player.unspentPoints)
-    (s[15] = player.unspentPoints), (changed = true);
-  if (s[16] !== player.speed) (s[16] = player.speed), (changed = true);
-  if (s[17] !== player.mapId) (s[17] = player.mapId), (changed = true);
-  if (s[18] !== player.nameColor) (s[18] = player.nameColor), (changed = true);
-  if (s[19] !== player.nameTag) (s[19] = player.nameTag), (changed = true);
+  if (s[0] !== player.name) {
+    s[0] = player.name;
+    changed = true;
+  }
+  if (s[1] !== player.sprite) {
+    s[1] = player.sprite;
+    changed = true;
+  }
+  if (s[2] !== player.width) {
+    s[2] = player.width;
+    changed = true;
+  }
+  if (s[3] !== player.height) {
+    s[3] = player.height;
+    changed = true;
+  }
+  if (s[4] !== player.maxHealth) {
+    s[4] = player.maxHealth;
+    changed = true;
+  }
+  if (s[5] !== player.attack) {
+    s[5] = player.attack;
+    changed = true;
+  }
+  if (s[6] !== player.attackRange) {
+    s[6] = player.attackRange;
+    changed = true;
+  }
+  if (s[7] !== player.level) {
+    s[7] = player.level;
+    changed = true;
+  }
+  if (s[8] !== player.experience) {
+    s[8] = player.experience;
+    changed = true;
+  }
+  if (s[9] !== player.experienceToNextLevel) {
+    s[9] = player.experienceToNextLevel;
+    changed = true;
+  }
+  if (s[10] !== player.access) {
+    s[10] = player.access;
+    changed = true;
+  }
+  if (s[11] !== player.strength) {
+    s[11] = player.strength;
+    changed = true;
+  }
+  if (s[12] !== player.defense) {
+    s[12] = player.defense;
+    changed = true;
+  }
+  if (s[13] !== player.agility) {
+    s[13] = player.agility;
+    changed = true;
+  }
+  if (s[14] !== player.vitality) {
+    s[14] = player.vitality;
+    changed = true;
+  }
+  if (s[15] !== player.unspentPoints) {
+    s[15] = player.unspentPoints;
+    changed = true;
+  }
+  if (s[16] !== player.speed) {
+    s[16] = player.speed;
+    changed = true;
+  }
+  if (s[17] !== player.mapId) {
+    s[17] = player.mapId;
+    changed = true;
+  }
+  if (s[18] !== player.nameColor) {
+    s[18] = player.nameColor;
+    changed = true;
+  }
+  if (s[19] !== player.nameTag) {
+    s[19] = player.nameTag;
+    changed = true;
+  }
 
   const items = player.inventory?.items;
   const count = items?.length ?? 0;
@@ -458,16 +515,24 @@ export function updateColdSnapshot(
   for (let i = 0; i < count; i++) {
     const entry = items[i]!;
     const at = i * 2;
-    if (inv[at] !== entry.item) (inv[at] = entry.item), (changed = true);
-    if (inv[at + 1] !== entry.quantity)
-      (inv[at + 1] = entry.quantity), (changed = true);
+    if (inv[at] !== entry.item) {
+      inv[at] = entry.item;
+      changed = true;
+    }
+    if (inv[at + 1] !== entry.quantity) {
+      inv[at + 1] = entry.quantity;
+      changed = true;
+    }
   }
 
   const equippedSource = player.equipped;
   const eq = snapshot.equipped;
   for (let i = 0; i < EQUIPMENT_SLOTS.length; i++) {
     const value = equippedSource?.[EQUIPMENT_SLOTS[i]!];
-    if (eq[i] !== value) (eq[i] = value), (changed = true);
+    if (eq[i] !== value) {
+      eq[i] = value;
+      changed = true;
+    }
   }
 
   return changed;

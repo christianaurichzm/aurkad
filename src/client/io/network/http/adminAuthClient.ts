@@ -1,4 +1,4 @@
-import { httpClient } from './httpClient';
+import { httpClient, type HttpError } from './httpClient';
 import { Access } from '../../../../shared/types';
 
 export interface AdminSession {
@@ -15,7 +15,12 @@ export async function adminLogin(
     method: 'POST',
     body: { username, password },
   });
-  if (!res) throw { message: 'Login failed' };
+  // Status 0: the request succeeded, so there is no HTTP status to report;
+  // the server answered without a session.
+  if (!res) {
+    const failure: HttpError = { status: 0, message: 'Login failed' };
+    throw failure;
+  }
   return res;
 }
 

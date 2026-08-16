@@ -374,7 +374,7 @@ async function run(): Promise<void> {
   // Read where players ended up before disconnecting: only that belongs next
   // to a number, not what placement asked for.
   const distribution = await scrapeDistribution(cookie);
-  await Promise.all(connected.map((b) => b.close()));
+  connected.forEach((b) => b.close());
 
   const report = buildReport({
     scenario: `${scenario.id} (${scenario.description})`,

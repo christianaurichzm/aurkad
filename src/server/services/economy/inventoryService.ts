@@ -51,7 +51,7 @@ export async function createOrUpdateItem(
     },
     { upsert: true },
   );
-  items.set(id, { ...item, id } as Item);
+  items.set(id, { ...item, id });
 }
 
 export async function deleteItem(id: number): Promise<void> {

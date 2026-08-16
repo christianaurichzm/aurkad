@@ -31,7 +31,7 @@ import { items } from '../world/gameData.js';
 import { createPlayer } from '../player/playerService.js';
 import { playersByName } from '../../sim/state.js';
 import { getPlayerByNameFromDb } from '../player/playerService.js';
-import type { Item, PlayerServer } from '../../../shared/types.js';
+import type { PlayerServer } from '../../../shared/types.js';
 
 // The database write is the half of a claim that can fail on its own, and
 // what happens then is the whole design, so only this call fails on demand
@@ -76,14 +76,14 @@ beforeEach(async () => {
     description: '',
     sprite: 0,
     type: 'consumable',
-  } as Item);
+  });
   items.set(SWORD, {
     id: SWORD,
     name: 'Sword',
     description: '',
     sprite: 1,
     type: 'weapon',
-  } as Item);
+  });
 });
 
 /** A player who exists in the database, as a recipient must. */

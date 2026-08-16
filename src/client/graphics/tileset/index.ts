@@ -145,7 +145,7 @@ function toggleTrigger(
           Object.keys(params).length > 0 && { scriptParams: { ...params } }),
       });
     } else {
-      triggers.push({ action } as TileAction);
+      triggers.push({ action });
     }
   }
   tile.triggers = triggers.length ? triggers : undefined;

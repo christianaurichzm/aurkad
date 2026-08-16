@@ -16,7 +16,7 @@ export interface HttpError {
 }
 
 export const httpError = (e: unknown): Partial<HttpError> =>
-  typeof e === 'object' && e !== null ? (e as Partial<HttpError>) : {};
+  typeof e === 'object' && e !== null ? e : {};
 
 const buildUrl = (endpoint: string): string =>
   API_URL && REST_PROTO ? `${REST_PROTO}://${API_URL}${endpoint}` : endpoint;
@@ -51,7 +51,8 @@ export const httpClient = async <T>(
       body?.error ||
       (typeof data === 'string' && data) ||
       `Request failed (${response.status})`;
-    throw { status: response.status, message } satisfies HttpError;
+    const failure: HttpError = { status: response.status, message };
+    throw failure;
   }
 
   return data as T;

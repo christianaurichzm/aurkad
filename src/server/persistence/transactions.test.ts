@@ -43,7 +43,7 @@ import { sendDelivery } from '../services/economy/deliveryService.js';
 import { items } from '../services/world/gameData.js';
 import DeliveryModel from '../model/Delivery.js';
 import { logger } from '../logger.js';
-import type { Item, PlayerServer } from '../../shared/types.js';
+import type { PlayerServer } from '../../shared/types.js';
 
 const SWORD = 7;
 
@@ -239,7 +239,7 @@ describe('replica set', () => {
       description: '',
       sprite: 0,
       type: 'weapon',
-    } as Item);
+    });
     // Read from outside the session at the moment the row is written: this is
     // the crash window itself. Under a transaction the debit is invisible until
     // the row commits with it, so a process that dies here leaves the item with

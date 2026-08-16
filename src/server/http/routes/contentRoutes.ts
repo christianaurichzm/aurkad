@@ -111,7 +111,7 @@ export function createContentRouter() {
     try {
       const npcs = await listNpcs();
       res.status(200).json(npcs);
-    } catch (error) {
+    } catch (_error) {
       res.status(500).json({ error: 'Could not fetch NPCs' });
     }
   });
@@ -177,7 +177,7 @@ export function createContentRouter() {
     try {
       const items = await listItems();
       res.status(200).json(items);
-    } catch (error) {
+    } catch (_error) {
       res.status(500).json({ error: 'Could not fetch items' });
     }
   });
@@ -192,7 +192,7 @@ export function createContentRouter() {
       );
       await createOrUpdateItem(body);
       res.status(201).json({ ...body, warnings });
-    } catch (err) {
+    } catch (_err) {
       res.status(500).json({ error: 'Failed to create item.' });
     }
   });
@@ -211,7 +211,7 @@ export function createContentRouter() {
       );
       await createOrUpdateItem({ ...body, id });
       res.status(200).json({ success: true, warnings });
-    } catch (err) {
+    } catch (_err) {
       res.status(500).json({ error: 'Failed to update item.' });
     }
   });
@@ -224,7 +224,7 @@ export function createContentRouter() {
     try {
       await deleteItem(id);
       res.status(204).send();
-    } catch (err) {
+    } catch (_err) {
       res.status(500).json({ error: 'Failed to delete item.' });
     }
   });

@@ -195,7 +195,7 @@ export function dispatchEntityScript<K extends EntityBehaviorEvent>(
   scriptId: string | undefined,
   event: K,
   payload: BehaviorEvents[K],
-  storedParams?: Readonly<Record<string, unknown>> | undefined,
+  storedParams?: Readonly<Record<string, unknown>>,
 ): boolean {
   if (!scriptId) return false;
 
