@@ -78,6 +78,7 @@ export function toNpcPublic(npc: RuntimeNpc): RuntimeNpc {
     sight: _sight,
     pathDepth: _pathDepth,
     leash: _leash,
+    moveIntervalMs: _moveIntervalMs,
     ...rest
   } = npc;
   return {

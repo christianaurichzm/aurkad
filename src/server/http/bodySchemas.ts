@@ -208,6 +208,9 @@ export const CreateNpcBodySchema = z.object({
   sight: z.number().int().min(1).max(20).optional(),
   pathDepth: z.number().int().min(0).max(40).optional(),
   leash: z.number().int().min(0).max(60).optional(),
+  // Milliseconds between steps. Floored at one tick at 20 Hz; a minute is
+  // already a statue that twitches.
+  moveIntervalMs: z.number().int().min(50).max(60_000).optional(),
 });
 
 /**

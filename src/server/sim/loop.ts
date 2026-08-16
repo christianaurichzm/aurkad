@@ -22,14 +22,14 @@ import { emit } from '../engine/hooks.js';
 
 type TimeoutHandle = ReturnType<typeof setTimeout>;
 
-const NPC_UPDATE_TICKS = msToTicks(gameConfig.combat.npcUpdateIntervalMs);
 const REGEN_TICKS = msToTicks(gameConfig.combat.regenIntervalMs);
 
 function scheduledServerActions() {
   const tick = getTick();
-  if (tick % NPC_UPDATE_TICKS === 0) {
-    enqueueServerAction(ServerActionType.UpdateNpcPositions);
-  }
+  // Every tick, because each npc now carries its own interval and the handler
+  // asks each one whether it is due (see npcMoveTicks). Gating here again would
+  // cap every npc at the slowest common cadence.
+  enqueueServerAction(ServerActionType.UpdateNpcPositions);
   if (tick % REGEN_TICKS === 0) {
     enqueueServerAction(ServerActionType.RegeneratePlayersHP);
   }

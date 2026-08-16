@@ -45,6 +45,7 @@ type NpcFormValues = {
   sight: string;
   pathDepth: string;
   leash: string;
+  moveIntervalMs: string;
 };
 
 const defaultValues: NpcFormValues = {
@@ -62,9 +63,11 @@ const defaultValues: NpcFormValues = {
   sight: '',
   pathDepth: '',
   leash: '',
+  moveIntervalMs: '',
 };
 
-const optionalTiles = (value: string): number | undefined => {
+// Empty reaches the server as absent, not 0, so the engine default applies.
+const optionalNumber = (value: string): number | undefined => {
   const trimmed = value.trim();
   return trimmed === '' ? undefined : Number(trimmed);
 };
@@ -84,6 +87,7 @@ const npcToFormValues = (npc: RuntimeNpc): NpcFormValues => ({
   sight: npc.sight?.toString() ?? '',
   pathDepth: npc.pathDepth?.toString() ?? '',
   leash: npc.leash?.toString() ?? '',
+  moveIntervalMs: npc.moveIntervalMs?.toString() ?? '',
 });
 
 const npcToDrops = (npc: RuntimeNpc): NpcItemDrop[] =>
@@ -193,6 +197,7 @@ export const NpcEditor: React.FC<NpcEditorProps> = ({
     sight,
     pathDepth,
     leash,
+    moveIntervalMs,
   }: NpcFormValues) => {
     const data = {
       name,
@@ -212,9 +217,10 @@ export const NpcEditor: React.FC<NpcEditorProps> = ({
       lootTableId: lootTableId || undefined,
       dialogId: dialogId || undefined,
       questId: questId || undefined,
-      sight: optionalTiles(sight),
-      pathDepth: optionalTiles(pathDepth),
-      leash: optionalTiles(leash),
+      sight: optionalNumber(sight),
+      pathDepth: optionalNumber(pathDepth),
+      leash: optionalNumber(leash),
+      moveIntervalMs: optionalNumber(moveIntervalMs),
     };
     const result = selectedId
       ? await updateNpc(selectedId, data).catch(() => null)
@@ -377,12 +383,24 @@ export const NpcEditor: React.FC<NpcEditorProps> = ({
               />
             </div>
           </div>
+          <div style={{ ...field, marginTop: 8, maxWidth: 180 }}>
+            <label style={label}>Step every (ms)</label>
+            <input
+              style={input}
+              type="number"
+              min={50}
+              max={60000}
+              placeholder="1250"
+              {...register('moveIntervalMs')}
+            />
+          </div>
           <p style={dropHint}>
             Empty uses the default for the behavior. Sight is how far it notices
             a player on its own - being hit ignores it. Path depth 0 walks
             straight at you and bumps into walls; higher rounds bigger
             obstacles. Leash is how far it follows before walking back to its
-            spawn, 0 for no limit.
+            spawn, 0 for no limit. Step every is speed: lower is faster, and 50
+            is one step per tick.
           </p>
         </div>
       )}

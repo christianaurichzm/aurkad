@@ -47,6 +47,8 @@ const NpcSchema = new mongoose.Schema(
     sight: { type: Number, min: 1, max: 20 },
     pathDepth: { type: Number, min: 0, max: 40 },
     leash: { type: Number, min: 0, max: 60 },
+    // Milliseconds, not tiles: how often this npc steps.
+    moveIntervalMs: { type: Number, min: 50, max: 60_000 },
   },
   { _id: false },
 );

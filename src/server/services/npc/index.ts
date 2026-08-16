@@ -217,6 +217,19 @@ export const findNpcSpawnPositions = (
   return positions;
 };
 
+/**
+ * Ticks between this npc's steps: how fast it is.
+ *
+ * Content sets it in milliseconds and the engine rounds up to a whole tick, so
+ * the floor is one tick (50 ms at 20 Hz). Absent means the game-wide interval.
+ */
+export function npcMoveTicks(npc: RuntimeNpc): number {
+  return Math.max(
+    1,
+    msToTicks(npc.moveIntervalMs ?? gameConfig.combat.npcUpdateIntervalMs),
+  );
+}
+
 export function updateNpcs(
   npc: RuntimeNpc,
   map: MapStateServer,

@@ -138,6 +138,11 @@ interface RuntimeNpc {
    * Absent means 12; 0 means it never gives up.
    */
   leash?: number;
+  /**
+   * Milliseconds between this npc's steps. Absent means the game-wide
+   * interval (1250 by default); 50 is one step per tick.
+   */
+  moveIntervalMs?: number;
   mapId: string;
   position: Position;
   direction: Direction;

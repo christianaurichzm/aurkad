@@ -8,7 +8,8 @@ import {
   isPlayerInAttackRange,
   stepNpcToward,
 } from './behaviors.js';
-import { respawnNpc } from './index.js';
+import { npcMoveTicks, respawnNpc } from './index.js';
+import { gameConfig } from '../../gameConfig.js';
 import { resolveDamage } from '../combat/index.js';
 import { TILE_SIZE } from '../../../shared/constants.js';
 
@@ -430,5 +431,31 @@ describe('path depth', () => {
 
     expect(npc.position).toEqual(tile(5, 5));
     expect(npc.action).toBe(CharacterAction.Idle);
+  });
+});
+
+// speed, which is the one ai number measured in time rather than tiles
+
+describe('npcMoveTicks', () => {
+  it('falls back to the game-wide interval', () => {
+    const npc = sim.addNpc();
+    expect(npcMoveTicks(npc)).toBe(
+      msToTicks(gameConfig.combat.npcUpdateIntervalMs),
+    );
+  });
+
+  it('takes the interval from the npc when it declares one', () => {
+    expect(npcMoveTicks(sim.addNpc({ moveIntervalMs: 250 }))).toBe(5);
+  });
+
+  // A step cannot happen between ticks, so anything under one tick is one
+  // tick, and a 0 would divide by zero in the caller's modulo.
+  it('never asks for less than a whole tick', () => {
+    expect(npcMoveTicks(sim.addNpc({ moveIntervalMs: 50 }))).toBe(1);
+    expect(npcMoveTicks(sim.addNpc({ moveIntervalMs: 1 }))).toBe(1);
+  });
+
+  it('rounds up, so an interval is never shorter than asked', () => {
+    expect(npcMoveTicks(sim.addNpc({ moveIntervalMs: 120 }))).toBe(3);
   });
 });

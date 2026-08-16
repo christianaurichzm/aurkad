@@ -258,6 +258,12 @@ export interface PersistentNpc extends CharacterBase {
    * that should hunt across the map.
    */
   leash?: number;
+  /**
+   * Milliseconds between this npc's steps, its speed. Absent means the
+   * game-wide `combat.npcUpdateIntervalMs` (1250 by default). Rounded up to a
+   * whole tick, so 50 is the floor at 20 Hz.
+   */
+  moveIntervalMs?: number;
 }
 
 export interface RuntimeNpc extends PersistentNpc, CharacterRuntime {

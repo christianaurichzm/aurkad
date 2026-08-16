@@ -17,7 +17,7 @@ import { handleKeyAction } from '../services/world/movementService.js';
 import { getRuntimeState } from '../services/world/gameData.js';
 import { handleItemAction } from '../services/economy/inventoryService.js';
 import { handleCustomAction } from '../services/comms/customEventService.js';
-import { updateNpcs } from '../services/npc/index.js';
+import { npcMoveTicks, updateNpcs } from '../services/npc/index.js';
 import { gameConfig } from '../gameConfig.js';
 import { playersWsMap } from './connections.js';
 import { recordAction, recordSession } from '../sim/replayRecorder.js';
@@ -146,16 +146,23 @@ function isServerAction(action: ActionQueueItem): action is ServerAction {
 
 function handleServerAction(action: ServerAction) {
   switch (action.action) {
-    case ServerActionType.UpdateNpcPositions:
+    case ServerActionType.UpdateNpcPositions: {
+      // Queued every tick, and each npc answers for itself: speed is per npc
+      // (moveIntervalMs), so there is no single cadence to gate on. The check
+      // is a modulo per npc per tick; what it guards, the sight query and the
+      // path search, is what actually costs.
+      const tick = getTick();
       Object.values(getRuntimeState().maps).forEach((map) => {
         const livePlayers = Object.values(map.players).filter(
           (player) => player.health > 0,
         );
         Object.values(map.npcs).forEach((npc) => {
+          if (tick % npcMoveTicks(npc) !== 0) return;
           updateNpcs(npc, map, livePlayers);
         });
       });
       break;
+    }
     case ServerActionType.RegeneratePlayersHP:
       Object.values(getRuntimeState().maps).forEach((map) => {
         Object.values(map.players).forEach((player) => {
