@@ -26,18 +26,16 @@ export default defineConfig({
         '**/mockData',
         'dist/',
       ],
-      // Ratchet floor sits ~3 points under the measured baseline (2026-08-08:
-      // 69.1 lines / 67.7 statements / 60.9 functions / 62.4 branches) so CI
-      // catches regressions without flaking on normal variance. The margin is
-      // not decoration: mongodb-memory-server occasionally fails to start and
-      // takes a whole DB test file with it, which is worth a couple of points.
-      // Raise it as coverage improves; the client content editors are the main
-      // gap, and tools/replay.ts is the largest single one outside them.
+      // The floor sits about 3 points under the measured baseline (70.1 lines,
+      // 68.6 statements, 62.1 functions, 63.2 branches), so CI catches a drop
+      // without flaking on normal variance, such as a DB test file lost to a
+      // mongod that failed to start. Raise it as coverage improves; the client
+      // content editors and tools/replay.ts are the largest gaps.
       thresholds: {
-        lines: 66,
-        statements: 64,
-        functions: 57,
-        branches: 59,
+        lines: 67,
+        statements: 65,
+        functions: 59,
+        branches: 60,
       },
     },
   },
