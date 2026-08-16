@@ -1,4 +1,5 @@
 import mongoose from 'mongoose';
+import { logger } from '../logger.js';
 
 const CounterSchema = new mongoose.Schema({
   _id: { type: String, required: true },
@@ -6,6 +7,64 @@ const CounterSchema = new mongoose.Schema({
 });
 
 const Counter = mongoose.model('Counter', CounterSchema);
+
+const MetaSchema = new mongoose.Schema({
+  _id: { type: String, required: true },
+  value: { type: Number, required: true },
+});
+
+const Meta = mongoose.model('Meta', MetaSchema);
+
+/**
+ * Shape version of the whole store, not of any one collection: what it answers
+ * is "was this database written by a build I can run", and a restore replaces
+ * every collection at once.
+ *
+ * Bump it, and write the upgrade step in `checkDatabaseSchemaVersion`, in the
+ * same commit as a change that makes an existing document wrong, wherever
+ * that document lives.
+ */
+export const DB_SCHEMA_VERSION = 1;
+
+/**
+ * Boot gate for the store, run before anything reads or writes game data.
+ * Its job is the refusal: a dump from a newer build restored onto older
+ * code reads fine, as Mongoose ignores unknown fields, and the first flush
+ * writes it back in the old shape with no error. Only a version tells that
+ * from a normal boot.
+ *
+ * Not a migration framework: an incompatible change bumps the constant and
+ * writes its step here, between the refusal and the stamp. One document
+ * rather than a marker per row, which only pays once a migration is too big
+ * for a single pass.
+ */
+export async function checkDatabaseSchemaVersion(): Promise<void> {
+  const stored = await Meta.findById('schemaVersion').lean<{
+    value: number;
+  } | null>();
+
+  if (stored && stored.value > DB_SCHEMA_VERSION) {
+    throw new Error(
+      `Database is at schema version ${stored.value}; this build writes ${DB_SCHEMA_VERSION}. ` +
+        'Running it would save documents back in an older shape and drop what it does not know about. ' +
+        'Deploy the newer build, or restore a dump that matches this one.',
+    );
+  }
+
+  if (!stored) {
+    // A fresh database, or one stamped by no build yet; both are the current
+    // shape, as nothing older was released.
+    logger.info('[DB] Stamping schema version', { version: DB_SCHEMA_VERSION });
+  }
+
+  // Unconditional write of a constant, so every instance of a sharded
+  // deployment can run this at its own boot without coordinating.
+  await Meta.findByIdAndUpdate(
+    'schemaVersion',
+    { $set: { value: DB_SCHEMA_VERSION } },
+    { upsert: true },
+  );
+}
 
 export async function getNextItemId(): Promise<number> {
   const result = await Counter.findByIdAndUpdate(

@@ -11,6 +11,10 @@ import type { MongoMemoryServer } from 'mongodb-memory-server';
 import { startMemoryMongo } from '../../test/mongo.js';
 import { playerRepository } from '../persistence/playerRepository.js';
 import {
+  DB_SCHEMA_VERSION,
+  checkDatabaseSchemaVersion,
+} from '../services/dbService.js';
+import {
   createPlayer,
   persistPlayerSessionState,
   getPlayerByNameFromDb,
@@ -134,6 +138,52 @@ describe('player persistence', () => {
     await createPlayer('Bob', 'hash');
     const record = await playerRepository.findByName('Bob');
     expect(record!.data).toEqual({});
+  });
+});
+
+// Schema version of the store
+
+describe('database schema version', () => {
+  const readVersion = () =>
+    mongoose.connection
+      .collection('metas')
+      .findOne<{ value: number }>({ _id: 'schemaVersion' as never });
+
+  it('stamps a database that has never been stamped', async () => {
+    await checkDatabaseSchemaVersion();
+
+    expect(await readVersion()).toMatchObject({ value: DB_SCHEMA_VERSION });
+  });
+
+  it('is idempotent, so every instance can run it at its own boot', async () => {
+    await checkDatabaseSchemaVersion();
+    await checkDatabaseSchemaVersion();
+
+    expect(await readVersion()).toMatchObject({ value: DB_SCHEMA_VERSION });
+  });
+
+  it('refuses to boot on a store written by a newer build', async () => {
+    await mongoose.connection.collection('metas').insertOne({
+      _id: 'schemaVersion' as never,
+      value: DB_SCHEMA_VERSION + 1,
+    });
+
+    await expect(checkDatabaseSchemaVersion()).rejects.toThrow(
+      /this build writes/,
+    );
+  });
+
+  it('leaves the stored version alone when it refuses', async () => {
+    const ahead = DB_SCHEMA_VERSION + 1;
+    await mongoose.connection
+      .collection('metas')
+      .insertOne({ _id: 'schemaVersion' as never, value: ahead });
+
+    await expect(checkDatabaseSchemaVersion()).rejects.toThrow();
+
+    // The throw has to happen before the stamp, or one refused boot rewrites
+    // the version down and the next one comes up happy on the same data.
+    expect(await readVersion()).toMatchObject({ value: ahead });
   });
 });
 

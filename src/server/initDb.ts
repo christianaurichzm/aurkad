@@ -22,6 +22,7 @@ import { loadSpells } from './services/content/spellService.js';
 import { MapStateServer } from '../shared/types.js';
 import { config } from './config.js';
 import { probeTransactionSupport } from './persistence/transactions.js';
+import { checkDatabaseSchemaVersion } from './services/dbService.js';
 
 export async function connectToDatabase() {
   try {
@@ -41,6 +42,10 @@ export async function connectToDatabase() {
 
 export async function loadInitialData() {
   try {
+    // First, before any world work: a store this build cannot write without
+    // losing data has to stop the boot, not be discovered on the first save.
+    await checkDatabaseSchemaVersion();
+
     const ownedMapIds = config.instance.mapIds;
     let loadedMaps: MapStateServer[] = await listMaps();
     if (ownedMapIds) {
