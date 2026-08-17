@@ -25,10 +25,17 @@ vi.mock('../services/content/banService.js', () => ({
   unbanPlayer: () => Promise.resolve(),
   getBan: () => Promise.resolve(null),
 }));
+const stored = new Map<string, Record<string, unknown>>();
+const deletePlayer = vi.fn();
+const disconnectPlayer = vi.fn();
 vi.mock('../services/player/playerService.js', async () => {
   const world = await import('../sim/world.js');
   return {
     getPlayerByName: world.getPlayerByName,
+    getPlayerByNameFromDb: (name: string) =>
+      Promise.resolve(stored.get(name) ?? null),
+    deletePlayer: (id: string) => deletePlayer(id),
+    disconnectPlayer: (name: string) => disconnectPlayer(name),
     kickPlayer: () => Promise.resolve(),
     levelUpPlayer: () => {},
     respawnPlayer: (p: { health: number; maxHealth: number }) => {
@@ -36,6 +43,15 @@ vi.mock('../services/player/playerService.js', async () => {
     },
   };
 });
+const cancelDelivery = vi.fn();
+const mail: { id: string }[] = [];
+vi.mock('../services/economy/deliveryService.js', () => ({
+  listDeliveries: () => Promise.resolve(mail),
+  cancelDelivery: (id: string) => {
+    cancelDelivery(id);
+    return Promise.resolve(true);
+  },
+}));
 
 const run = async (line: string) => {
   const [name, ...args] = line.split(/\s+/);
@@ -50,6 +66,11 @@ beforeEach(() => {
   serverState.mutes.clear();
   recordAdminAction.mockClear();
   banPlayer.mockClear();
+  deletePlayer.mockClear();
+  disconnectPlayer.mockClear();
+  cancelDelivery.mockClear();
+  stored.clear();
+  mail.length = 0;
 });
 
 afterEach(() => clearCommands());
@@ -207,5 +228,79 @@ describe('the trail', () => {
         actor: 'console',
       }),
     );
+  });
+});
+
+// Account data. The obligation is the operator's; what the engine owes is a
+// command, so nobody has to write the delete query by hand.
+describe('account export and erasure', () => {
+  const account = {
+    id: 'p-1',
+    name: 'Alice',
+    password: 'a-bcrypt-hash',
+    level: 4,
+    data: { vip: true },
+  };
+
+  it('exports what is stored, without the password hash', async () => {
+    stored.set('Alice', account);
+    mail.push({ id: 'm1' });
+
+    const { out } = await run('accountexport Alice');
+    const parsed = JSON.parse(out) as {
+      player: Record<string, unknown>;
+      mail: unknown[];
+    };
+
+    expect(parsed.player).toMatchObject({ name: 'Alice', level: 4 });
+    expect(parsed.player.data).toEqual({ vip: true });
+    expect(parsed.player.password).toBeUndefined();
+    expect(parsed.mail).toHaveLength(1);
+  });
+
+  it('says so plainly when there is no such account', async () => {
+    const { out } = await run('accountexport Nobody');
+
+    expect(out).toMatch(/No account named Nobody/);
+    expect(out).not.toContain('{');
+  });
+
+  // The one command here with nothing behind it: no undo, no copy.
+  it('refuses to erase without the typed confirmation', async () => {
+    stored.set('Alice', account);
+
+    const { out } = await run('accountdelete Alice');
+
+    expect(out).toMatch(/permanently/);
+    expect(deletePlayer).not.toHaveBeenCalled();
+  });
+
+  it('erases the account and its queued mail once confirmed', async () => {
+    stored.set('Alice', account);
+    mail.push({ id: 'm1' }, { id: 'm2' });
+
+    const { out } = await run('accountdelete Alice confirm');
+
+    expect(deletePlayer).toHaveBeenCalledWith('p-1');
+    expect(cancelDelivery).toHaveBeenCalledTimes(2);
+    expect(out).toMatch(/Erased Alice/);
+  });
+
+  it('disconnects a live session first, or the snapshot writes it back', async () => {
+    stored.set('Alice', account);
+    const sim = createFixture(0);
+    sim.addPlayer({ name: 'Alice' });
+
+    await run('accountdelete Alice confirm');
+
+    expect(disconnectPlayer).toHaveBeenCalledWith('Alice');
+  });
+
+  it('leaves an audit entry, like every other privileged action', async () => {
+    stored.set('Alice', account);
+
+    await run('accountdelete Alice confirm');
+
+    expect(recordAdminAction).toHaveBeenCalled();
   });
 });

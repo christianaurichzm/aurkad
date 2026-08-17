@@ -22,11 +22,18 @@ import { teleportPlayer } from '../services/world/movementService.js';
 import { getAllPlayers } from '../sim/world.js';
 import { isMuted, serverState } from '../services/world/serverState.js';
 import {
+  deletePlayer,
+  disconnectPlayer,
   getPlayerByName,
+  getPlayerByNameFromDb,
   kickPlayer,
   levelUpPlayer,
   respawnPlayer,
 } from '../services/player/playerService.js';
+import {
+  cancelDelivery,
+  listDeliveries,
+} from '../services/economy/deliveryService.js';
 
 // Commands whose subject is a player. Registered once at boot, so the
 // terminal, the web console and in-game chat share one implementation and
@@ -581,6 +588,84 @@ export function registerPlayerCommands(): void {
           ? 'permanent'
           : `until ${new Date(expiry).toLocaleString()}`;
       reply(style.warn(`${username} is muted (${until}).`));
+    },
+  );
+
+  // Account data: export and erasure. The obligation is the operator's, but
+  // without a command it is a hand-written Mongo query. As commands they get
+  // the access gate and the audit trail of every other privileged action.
+  registerCommand(
+    'accountexport',
+    {
+      access: Access.ADMIN,
+      description: 'Everything stored about a player: accountexport <username>',
+    },
+    async ({ args, reply, style }) => {
+      const username = args[0];
+      if (!username) return reply('Usage: accountexport <username>');
+
+      const record = await getPlayerByNameFromDb(username);
+      if (!record) return reply(style.warn(`No account named ${username}.`));
+
+      // The hash is the one field that is about the account rather than the
+      // person, and handing it out helps an attacker and nobody else.
+      const { password: _password, ...personal } = record;
+      const [mail, ban] = await Promise.all([
+        listDeliveries(username),
+        getBan(username),
+      ]);
+
+      reply(
+        JSON.stringify({ player: personal, mail, ban: ban ?? null }, null, 2),
+      );
+    },
+  );
+
+  registerCommand(
+    'accountdelete',
+    {
+      access: Access.ADMIN,
+      description:
+        'Erase an account and its mail: accountdelete <username> confirm',
+    },
+    async ({ args, reply, style }) => {
+      const username = args[0];
+      if (!username) return reply('Usage: accountdelete <username> confirm');
+      // Typed confirmation, because this is the one command here with nothing
+      // behind it: there is no undo and no copy.
+      if (args[1] !== 'confirm') {
+        return reply(
+          style.warn(
+            `This erases ${username} permanently. Repeat as: accountdelete ${username} confirm`,
+          ),
+        );
+      }
+
+      const record = await getPlayerByNameFromDb(username);
+      if (!record) return reply(style.warn(`No account named ${username}.`));
+
+      // Disconnected and awaited first: a live session holds the player in
+      // memory, and its flush would write the deleted document back.
+      const online = getPlayerByName(username);
+      if (online) {
+        playersWsMap.get(username)?.close();
+        await disconnectPlayer(username);
+      }
+
+      const mail = await listDeliveries(username);
+      for (const entry of mail) await cancelDelivery(entry.id);
+      await deletePlayer(record.id);
+
+      // The ban stays: it is keyed by name and is all that stops the account
+      // being made again to escape it. Erasing a banned account on request
+      // means unbanning first.
+      const banned = await getBan(username);
+      reply(
+        style.ok(
+          `Erased ${username}: account and ${mail.length} queued mail.` +
+            (banned ? ' The ban on that name was kept.' : ''),
+        ),
+      );
     },
   );
 }
