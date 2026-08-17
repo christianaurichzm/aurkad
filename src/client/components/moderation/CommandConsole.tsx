@@ -5,14 +5,19 @@ import {
   type CommandInfo,
 } from '../../io/network';
 import { colors, radius } from '../../theme';
+import { useT } from '../../i18n';
 
 type Line = { kind: 'in' | 'out'; text: string };
+
+// Typed exactly as written, so they are code, not translated prose.
+const EXAMPLES = ['players', 'broadcast Hello', 'mode maintenance'];
 
 // The command console shared by the GM panel and /admin. It runs registered
 // commands only, never arbitrary code.
 export const CommandConsole: React.FC<{ height?: number }> = ({
   height = 220,
 }) => {
+  const t = useT();
   const [input, setInput] = useState('');
   const [lines, setLines] = useState<Line[]>([]);
   const [commands, setCommands] = useState<CommandInfo[]>([]);
@@ -42,13 +47,13 @@ export const CommandConsole: React.FC<{ height?: number }> = ({
       const out = await runConsoleCommand(line);
       setLines((l) => [
         ...l,
-        ...(out.length ? out : ['(no output)']).map((text) => ({
+        ...(out.length ? out : [t('console.noOutput')]).map((text) => ({
           kind: 'out' as const,
           text,
         })),
       ]);
     } catch (e: unknown) {
-      const msg = (e as { message?: string })?.message ?? 'Command failed.';
+      const msg = (e as { message?: string })?.message ?? t('console.failed');
       setLines((l) => [...l, { kind: 'out', text: msg }]);
     }
   };
@@ -78,9 +83,13 @@ export const CommandConsole: React.FC<{ height?: number }> = ({
       <div ref={logRef} style={{ ...log, height }}>
         {lines.length === 0 ? (
           <p style={hint}>
-            Run a command, e.g. <code style={code}>players</code>,{' '}
-            <code style={code}>broadcast Hello</code>,{' '}
-            <code style={code}>mode maintenance</code>.
+            {t('console.hint')}{' '}
+            {EXAMPLES.map((example, i) => (
+              <React.Fragment key={example}>
+                <code style={code}>{example}</code>
+                {i < EXAMPLES.length - 1 ? ', ' : '.'}
+              </React.Fragment>
+            ))}
           </p>
         ) : (
           lines.map((l, i) => (
@@ -100,7 +109,7 @@ export const CommandConsole: React.FC<{ height?: number }> = ({
           value={input}
           spellCheck={false}
           autoComplete="off"
-          placeholder="type a command and press Enter"
+          placeholder={t('console.placeholder')}
           onChange={(e) => setInput(e.target.value)}
           onKeyDown={onKeyDown}
         />

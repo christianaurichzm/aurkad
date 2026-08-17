@@ -13,11 +13,11 @@ import {
   subscribeModuleActions,
 } from '../io/modules/moduleActions';
 import { useUIStore } from '../stores/uiStore';
-import { useT } from '../i18n';
+import { moduleText, useT, type TranslationKey } from '../i18n';
 
 type QuickAction = {
   id: string;
-  label: string;
+  label: TranslationKey;
   // Optional: a hotkey has to be a member of the shared `Key` enum, which the
   // server validates on the wire. Panels that are not worth that go without.
   keyLabel?: string;
@@ -30,7 +30,7 @@ type QuickAction = {
 const quickActions: QuickAction[] = [
   {
     id: 'inventory',
-    label: 'Inventory',
+    label: 'actions.inventory',
     keyLabel: 'I',
     eventName: 'toggleInventory',
     minAccess: Access.USER,
@@ -38,7 +38,7 @@ const quickActions: QuickAction[] = [
   },
   {
     id: 'attributes',
-    label: 'Attributes',
+    label: 'actions.attributes',
     keyLabel: 'V',
     eventName: 'toggleAttributeDistributor',
     minAccess: Access.USER,
@@ -46,7 +46,7 @@ const quickActions: QuickAction[] = [
   },
   {
     id: 'onlinePlayers',
-    label: 'Online players',
+    label: 'actions.onlinePlayers',
     keyLabel: 'O',
     eventName: 'toggleOnlinePlayers',
     minAccess: Access.USER,
@@ -54,14 +54,14 @@ const quickActions: QuickAction[] = [
   },
   {
     id: 'settings',
-    label: 'Settings',
+    label: 'actions.settings',
     eventName: 'toggleSettings',
     minAccess: Access.USER,
     className: 'action-button-primary',
   },
   {
     id: 'map',
-    label: 'Map editor',
+    label: 'actions.mapEditor',
     keyLabel: 'Z',
     eventName: 'toggleTilesetEditor',
     minAccess: Access.ADMIN,
@@ -69,7 +69,7 @@ const quickActions: QuickAction[] = [
   },
   {
     id: 'content',
-    label: 'Content',
+    label: 'actions.content',
     keyLabel: 'C',
     eventName: 'toggleContentEditor',
     minAccess: Access.ADMIN,
@@ -77,7 +77,7 @@ const quickActions: QuickAction[] = [
   },
   {
     id: 'gm',
-    label: 'GM panel',
+    label: 'actions.gmPanel',
     keyLabel: 'X',
     eventName: 'toggleGMPanel',
     minAccess: Access.MOD,
@@ -117,15 +117,17 @@ export const ActionPanel: React.FC = () => {
         togglePanel(action.eventName);
       } else {
         await showDialog({
-          title: 'Access denied',
-          message: `You do not have permission to open ${action.label}.`,
+          title: t('actions.accessDenied'),
+          message: t('actions.noPermission', { panel: t(action.label) }),
           kind: 'error',
         });
       }
     } catch (error) {
       await showDialog({
-        title: 'Panel unavailable',
-        message: httpError(error).message || `Could not open ${action.label}.`,
+        title: t('actions.unavailable'),
+        message:
+          httpError(error).message ||
+          t('actions.couldNotOpen', { panel: t(action.label) }),
         kind: 'error',
       });
     } finally {
@@ -134,7 +136,7 @@ export const ActionPanel: React.FC = () => {
   };
 
   return (
-    <section id="actionPanel" aria-label="Quick actions">
+    <section id="actionPanel" aria-label={t('actions.title')}>
       <div className="panel-title">{t('actions.title')}</div>
       <div className="action-grid">
         {visibleActions.map((action) => (
@@ -146,28 +148,33 @@ export const ActionPanel: React.FC = () => {
               .join(' ')}
             disabled={loadingPanel === action.id}
             onClick={() => void openAction(action)}
-            title={`Open ${action.label}`}
+            title={t('actions.open', { panel: t(action.label) })}
           >
             {action.keyLabel && (
               <span className="action-key">{action.keyLabel}</span>
             )}
             <span>
-              {loadingPanel === action.id ? 'Opening...' : action.label}
+              {loadingPanel === action.id
+                ? t('actions.opening')
+                : t(action.label)}
             </span>
           </button>
         ))}
+        {/* A module label is its own English, translated by the table its
+            module declared (engine.i18n), so it follows a switch like the
+            built-ins above rather than staying in the language it registered. */}
         {moduleActions.map((action) => (
           <button
             key={action.id}
             type="button"
             className="action-button action-button-primary"
             onClick={action.onClick}
-            title={`Open ${action.label}`}
+            title={t('actions.open', { panel: moduleText(action.label) })}
           >
             {action.key && (
               <span className="action-key">{action.key.toUpperCase()}</span>
             )}
-            <span>{action.label}</span>
+            <span>{moduleText(action.label)}</span>
           </button>
         ))}
       </div>

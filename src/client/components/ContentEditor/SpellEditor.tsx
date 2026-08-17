@@ -11,6 +11,7 @@ import { AsyncSelect } from '../common/Select/AsyncSelect';
 import { SpritePreview } from '../common/SpritePreview';
 import { spellSheet } from '../../io/assets';
 import { colors, radius } from '../../theme';
+import { useT } from '../../i18n';
 
 interface SpellEditorProps {
   onDirtyChange: (dirty: boolean) => void;
@@ -41,6 +42,7 @@ export const SpellEditor: React.FC<SpellEditorProps> = ({
   onDirtyChange,
   requestDiscard,
 }) => {
+  const t = useT();
   const [selectedId, setSelectedId] = useState('');
   const {
     formState: { isDirty },
@@ -85,7 +87,7 @@ export const SpellEditor: React.FC<SpellEditorProps> = ({
           .then(() => true)
           .catch(() => false)
       : !!(await createSpell(data).catch(() => null));
-    chatResultMsg(!!result, 'Spell saved!', 'Error saving spell');
+    chatResultMsg(!!result, t('spell.saved'), t('spell.saveError'));
     reset(defaults);
     setSelectedId('');
   };
@@ -95,7 +97,7 @@ export const SpellEditor: React.FC<SpellEditorProps> = ({
     const ok = await deleteSpell(Number(selectedId))
       .then(() => true)
       .catch(() => false);
-    chatResultMsg(ok, 'Spell deleted!', 'Error deleting spell');
+    chatResultMsg(ok, t('spell.deleted'), t('spell.deleteError'));
     reset(defaults);
     setSelectedId('');
   };
@@ -105,7 +107,7 @@ export const SpellEditor: React.FC<SpellEditorProps> = ({
   return (
     <form style={container} onSubmit={handleSubmit(handleSave)}>
       <div style={field}>
-        <label style={label}>Spell</label>
+        <label style={label}>{t('spell.spell')}</label>
         <div style={{ display: 'flex', gap: 8 }}>
           <div style={{ flex: 1 }}>
             <AsyncSelect
@@ -123,22 +125,26 @@ export const SpellEditor: React.FC<SpellEditorProps> = ({
                 setSelectedId('');
               }}
             >
-              New
+              {t('editor.new')}
             </button>
           )}
         </div>
       </div>
       <div style={field}>
-        <label style={label}>Name</label>
-        <input style={input} {...register('name')} placeholder="Fireball" />
+        <label style={label}>{t('editor.name')}</label>
+        <input
+          style={input}
+          {...register('name')}
+          placeholder={t('spell.namePlaceholder')}
+        />
       </div>
       <div style={field}>
-        <label style={label}>Description</label>
+        <label style={label}>{t('editor.description')}</label>
         <input style={input} {...register('description')} placeholder="..." />
       </div>
       <div style={{ display: 'flex', gap: 8, alignItems: 'flex-end' }}>
         <div style={field}>
-          <label style={label}>Sprite</label>
+          <label style={label}>{t('editor.sprite')}</label>
           <input
             style={{ ...input, width: 70 }}
             type="number"
@@ -152,7 +158,7 @@ export const SpellEditor: React.FC<SpellEditorProps> = ({
           size={48}
         />
         <div style={field}>
-          <label style={label}>MP Cost</label>
+          <label style={label}>{t('spell.mpCost')}</label>
           <input
             style={{ ...input, width: 70 }}
             type="number"
@@ -160,7 +166,7 @@ export const SpellEditor: React.FC<SpellEditorProps> = ({
           />
         </div>
         <div style={field}>
-          <label style={label}>Damage</label>
+          <label style={label}>{t('editor.damage')}</label>
           <input
             style={{ ...input, width: 70 }}
             type="number"
@@ -168,7 +174,7 @@ export const SpellEditor: React.FC<SpellEditorProps> = ({
           />
         </div>
         <div style={field}>
-          <label style={label}>CD (ms)</label>
+          <label style={label}>{t('spell.cooldown')}</label>
           <input
             style={{ ...input, width: 80 }}
             type="number"
@@ -178,15 +184,15 @@ export const SpellEditor: React.FC<SpellEditorProps> = ({
         </div>
       </div>
       <div style={field}>
-        <label style={label}>Visual target</label>
+        <label style={label}>{t('spell.visualTarget')}</label>
         <select style={input} {...register('visualTarget')}>
-          <option value="self">Self (buff / heal)</option>
-          <option value="targets">Targets hit (damage)</option>
+          <option value="self">{t('spell.visualSelf')}</option>
+          <option value="targets">{t('spell.visualTargets')}</option>
         </select>
       </div>
       <div style={{ display: 'flex', gap: 8 }}>
         <button type="submit" style={saveBtn} disabled={!name.trim()}>
-          {selectedId ? 'Save' : 'Create'}
+          {selectedId ? t('common.save') : t('editor.create')}
         </button>
         {selectedId && (
           <button
@@ -194,7 +200,7 @@ export const SpellEditor: React.FC<SpellEditorProps> = ({
             style={deleteBtn}
             onClick={() => void handleDelete()}
           >
-            Delete
+            {t('common.delete')}
           </button>
         )}
       </div>

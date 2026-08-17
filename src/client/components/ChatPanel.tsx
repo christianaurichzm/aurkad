@@ -2,8 +2,10 @@ import React, { useEffect, useRef } from 'react';
 import { ChatMessagePayload, ChatScope } from '../../shared/types';
 import { updateChat, sendChatMessage } from '../io/network';
 import { useUIStore } from '../stores/uiStore';
+import { useT } from '../i18n';
 
 export const ChatPanel: React.FC = () => {
+  const t = useT();
   const chatBoxRef = useRef<HTMLDivElement>(null);
   const messages = useUIStore((state) => state.chat.messages);
   const inputValue = useUIStore((state) => state.chat.inputValue);
@@ -59,14 +61,14 @@ export const ChatPanel: React.FC = () => {
           value={scope}
           onChange={(e) => setChatScope(e.target.value as ChatScope)}
         >
-          <option value="map">Map</option>
-          <option value="global">Global</option>
+          <option value="map">{t('chat.scopeMap')}</option>
+          <option value="global">{t('chat.scopeGlobal')}</option>
         </select>
 
         <input
           id="chatInput"
           type="text"
-          placeholder="Mensagem..."
+          placeholder={t('chat.placeholder')}
           value={inputValue}
           onChange={(e) => setChatInput(e.target.value)}
           onKeyDown={handleKeyDown}

@@ -5,6 +5,7 @@ import { saveRecipe, deleteRecipe } from '../../io/network';
 import { chatResultMsg } from '../ChatPanel';
 import { AsyncSelect } from '../common/Select/AsyncSelect';
 import { colors, radius } from '../../theme';
+import { useT } from '../../i18n';
 
 interface RecipeEditorProps {
   recipes: Recipe[];
@@ -57,6 +58,7 @@ export const RecipeEditor: React.FC<RecipeEditorProps> = ({
   onDirtyChange,
   requestDiscard,
 }) => {
+  const t = useT();
   const [selectedId, setSelectedId] = useState('');
   const {
     control,
@@ -105,7 +107,7 @@ export const RecipeEditor: React.FC<RecipeEditorProps> = ({
         : {}),
     };
     const result = await saveRecipe(recipe).catch(() => null);
-    chatResultMsg(!!result, 'Recipe saved!', 'Error saving recipe');
+    chatResultMsg(!!result, t('recipe.saved'), t('recipe.saveError'));
     for (const warning of result?.warnings ?? []) {
       chatResultMsg(false, '', warning);
     }
@@ -117,7 +119,7 @@ export const RecipeEditor: React.FC<RecipeEditorProps> = ({
   const remove = async () => {
     if (!selectedId) return;
     await deleteRecipe(selectedId);
-    chatResultMsg(true, 'Recipe deleted!', 'Error deleting recipe');
+    chatResultMsg(true, t('recipe.deleted'), t('recipe.deleteError'));
     refreshData();
     setSelectedId('');
     resetForm(defaultValues);
@@ -134,7 +136,7 @@ export const RecipeEditor: React.FC<RecipeEditorProps> = ({
   return (
     <form style={container} onSubmit={handleSubmit(save)}>
       <div style={field}>
-        <label style={label}>Recipe</label>
+        <label style={label}>{t('recipe.recipe')}</label>
         <div style={{ display: 'flex', gap: 8 }}>
           <div style={{ flex: 1 }}>
             <AsyncSelect
@@ -145,7 +147,7 @@ export const RecipeEditor: React.FC<RecipeEditorProps> = ({
           </div>
           {selectedId && (
             <button type="button" style={ghostBtn} onClick={() => void reset()}>
-              New
+              {t('editor.new')}
             </button>
           )}
         </div>
@@ -153,39 +155,39 @@ export const RecipeEditor: React.FC<RecipeEditorProps> = ({
 
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
         <div style={field}>
-          <label style={label}>ID</label>
+          <label style={label}>{t('editor.id')}</label>
           <input
             style={{ ...input, ...(selectedId ? { opacity: 0.5 } : {}) }}
             {...register('id')}
-            placeholder="steel-sword"
+            placeholder={t('recipe.idPlaceholder')}
             readOnly={!!selectedId}
           />
         </div>
         <div style={field}>
-          <label style={label}>Name</label>
+          <label style={label}>{t('editor.name')}</label>
           <input
             style={input}
             {...register('name')}
-            placeholder="Steel Sword"
+            placeholder={t('recipe.namePlaceholder')}
           />
         </div>
       </div>
 
       <div style={box}>
         <div style={boxHeader}>
-          <span style={label}>Consumes</span>
+          <span style={label}>{t('recipe.consumes')}</span>
           <button
             type="button"
             style={addBtn}
             onClick={() => inputs.append({ itemId: 0, quantity: 1 })}
           >
-            + Add
+            {t('editor.add')}
           </button>
         </div>
         {inputs.fields.map((f, i) => (
           <div key={f.id} style={entryRow}>
             <div style={{ flex: 2, minWidth: 0 }}>
-              <label style={label}>Item</label>
+              <label style={label}>{t('item.item')}</label>
               <Controller
                 control={control}
                 name={`inputs.${i}.itemId` as const}
@@ -199,7 +201,7 @@ export const RecipeEditor: React.FC<RecipeEditorProps> = ({
               />
             </div>
             <div style={{ width: 80, flexShrink: 0 }}>
-              <label style={label}>Qty</label>
+              <label style={label}>{t('npc.qty')}</label>
               <input
                 style={input}
                 type="number"
@@ -210,8 +212,8 @@ export const RecipeEditor: React.FC<RecipeEditorProps> = ({
               />
             </div>
             {duplicated.has(Number(watchedInputs[i]?.itemId)) && (
-              <span style={hint} title="Listed twice">
-                dup
+              <span style={hint} title={t('recipe.duplicateHelp')}>
+                {t('recipe.duplicate')}
               </span>
             )}
             {/* The last input cannot go: a recipe consuming nothing prints
@@ -221,7 +223,7 @@ export const RecipeEditor: React.FC<RecipeEditorProps> = ({
                 type="button"
                 style={removeBtn}
                 onClick={() => inputs.remove(i)}
-                title="Remove"
+                title={t('editor.remove')}
               >
                 ✕
               </button>
@@ -231,10 +233,10 @@ export const RecipeEditor: React.FC<RecipeEditorProps> = ({
       </div>
 
       <div style={box}>
-        <span style={label}>Produces</span>
+        <span style={label}>{t('recipe.produces')}</span>
         <div style={entryRow}>
           <div style={{ flex: 2, minWidth: 0 }}>
-            <label style={label}>Item</label>
+            <label style={label}>{t('item.item')}</label>
             <Controller
               control={control}
               name="outputItemId"
@@ -248,7 +250,7 @@ export const RecipeEditor: React.FC<RecipeEditorProps> = ({
             />
           </div>
           <div style={{ width: 80, flexShrink: 0 }}>
-            <label style={label}>Qty</label>
+            <label style={label}>{t('npc.qty')}</label>
             <input
               style={input}
               type="number"
@@ -260,27 +262,24 @@ export const RecipeEditor: React.FC<RecipeEditorProps> = ({
       </div>
 
       <div style={field}>
-        <label
-          style={label}
-          title="Name of a condition a script registered with provide('recipeCondition.<name>'). Leave empty to always allow. A recipe whose condition says no is hidden from the player rather than failing when they craft."
-        >
-          Condition
+        <label style={label} title={t('recipe.conditionHelp')}>
+          {t('loot.condition')}
         </label>
         <input
           style={input}
           type="text"
-          placeholder="none"
+          placeholder={t('loot.conditionNone')}
           {...register('condition')}
         />
       </div>
 
       <div style={actions}>
         <button type="submit" style={saveBtn}>
-          {selectedId ? 'Save recipe' : 'Create recipe'}
+          {selectedId ? t('recipe.save') : t('recipe.createBtn')}
         </button>
         {selectedId && (
           <button type="button" style={deleteBtn} onClick={() => void remove()}>
-            Delete
+            {t('common.delete')}
           </button>
         )}
       </div>

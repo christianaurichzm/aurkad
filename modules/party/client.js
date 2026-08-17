@@ -4,6 +4,24 @@
 // pushes party:update on every change, and party:invite fires when
 // someone invites you.
 
+// Strings this module draws, keyed by the English itself: text handed to the
+// `ui` helpers is translated for free, the rest goes through engine.t.
+engine.i18n({
+  pt: {
+    Party: 'Grupo',
+    'Party ({size}/{max})': 'Grupo ({size}/{max})',
+    'Player name to invite': 'Nome do jogador a convidar',
+    'Create Party': 'Criar grupo',
+    'Invite player': 'Convidar jogador',
+    Invite: 'Convidar',
+    Leave: 'Sair',
+    Accept: 'Aceitar',
+    Decline: 'Recusar',
+    'Invite to Party': 'Convidar para o grupo',
+    'Party invite from {player}': 'Convite de grupo de {player}',
+  },
+});
+
 const ui = engine.ui;
 const panel = ui.panel({ title: 'Party' });
 ui.actionButton('Party', () => panel.toggle(), 'p');
@@ -52,7 +70,12 @@ function render() {
   leaveBtn.onmouseenter = () => (leaveBtn.style.background = '#e74c3c');
   leaveBtn.onmouseleave = () => (leaveBtn.style.background = '#c0392b');
 
-  panel.setTitle(`Party (${state.members.length}/${state.maxMembers})`);
+  panel.setTitle(
+    engine.t('Party ({size}/{max})', {
+      size: state.members.length,
+      max: state.maxMembers,
+    }),
+  );
   panel.setBody(memberList, ui.row(nameInput, inviteBtn), leaveBtn);
 }
 
@@ -62,7 +85,9 @@ engine.onServerEvent('party:update', (data) => {
 });
 
 engine.onServerEvent('party:invite', ({ from }) => {
-  const notif = ui.panel({ title: `Party invite from ${from}` });
+  const notif = ui.panel({
+    title: engine.t('Party invite from {player}', { player: from }),
+  });
   const acceptBtn = ui.button('Accept', () => {
     engine.sendServerEvent('party:accept', { leader: from });
     notif.remove();

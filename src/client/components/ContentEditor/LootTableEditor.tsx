@@ -5,6 +5,7 @@ import { saveLootTable, deleteLootTable } from '../../io/network';
 import { chatResultMsg } from '../ChatPanel';
 import { AsyncSelect } from '../common/Select/AsyncSelect';
 import { colors, radius } from '../../theme';
+import { useT } from '../../i18n';
 
 interface LootTableEditorProps {
   tables: LootTable[];
@@ -109,6 +110,7 @@ export const LootTableEditor: React.FC<LootTableEditorProps> = ({
   onDirtyChange,
   requestDiscard,
 }) => {
+  const t = useT();
   const [selectedId, setSelectedId] = useState('');
   const {
     control,
@@ -151,7 +153,7 @@ export const LootTableEditor: React.FC<LootTableEditorProps> = ({
       emptyWeight: Number(values.emptyWeight),
     };
     const result = await saveLootTable(table).catch(() => null);
-    chatResultMsg(!!result, 'Loot table saved!', 'Error saving loot table');
+    chatResultMsg(!!result, t('loot.saved'), t('loot.saveError'));
     for (const warning of result?.warnings ?? []) {
       chatResultMsg(false, '', warning);
     }
@@ -163,7 +165,7 @@ export const LootTableEditor: React.FC<LootTableEditorProps> = ({
   const remove = async () => {
     if (!selectedId) return;
     await deleteLootTable(selectedId);
-    chatResultMsg(true, 'Loot table deleted!', 'Error deleting loot table');
+    chatResultMsg(true, t('loot.deleted'), t('loot.deleteError'));
     refreshData();
     setSelectedId('');
     resetForm(defaultValues);
@@ -186,15 +188,13 @@ export const LootTableEditor: React.FC<LootTableEditorProps> = ({
     <>
       {fieldArray.fields.length === 0 && (
         <p style={emptyHint}>
-          {kind === 'guaranteed'
-            ? 'Nothing always drops. Click + Add for a quest key or boss trophy.'
-            : 'No weighted entries. Click + Add to build a random pool.'}
+          {kind === 'guaranteed' ? t('loot.noGuaranteed') : t('loot.noEntries')}
         </p>
       )}
       {fieldArray.fields.map((f, i) => (
         <div key={f.id} style={entryRow}>
           <div style={{ flex: 2, minWidth: 0 }}>
-            <label style={label}>Item</label>
+            <label style={label}>{t('item.item')}</label>
             <Controller
               control={control}
               name={`${kind}.${i}.itemId` as const}
@@ -209,7 +209,7 @@ export const LootTableEditor: React.FC<LootTableEditorProps> = ({
           </div>
           {kind === 'guaranteed' ? (
             <div style={{ width: 80, flexShrink: 0 }}>
-              <label style={label}>Chance</label>
+              <label style={label}>{t('loot.chance')}</label>
               <input
                 style={input}
                 type="number"
@@ -221,7 +221,7 @@ export const LootTableEditor: React.FC<LootTableEditorProps> = ({
             </div>
           ) : (
             <div style={{ width: 80, flexShrink: 0 }}>
-              <label style={label}>Weight</label>
+              <label style={label}>{t('loot.weight')}</label>
               <input
                 style={input}
                 type="number"
@@ -231,7 +231,7 @@ export const LootTableEditor: React.FC<LootTableEditorProps> = ({
             </div>
           )}
           <div style={{ width: 62, flexShrink: 0 }}>
-            <label style={label}>Min</label>
+            <label style={label}>{t('loot.min')}</label>
             <input
               style={input}
               type="number"
@@ -242,7 +242,7 @@ export const LootTableEditor: React.FC<LootTableEditorProps> = ({
             />
           </div>
           <div style={{ width: 62, flexShrink: 0 }}>
-            <label style={label}>Max</label>
+            <label style={label}>{t('loot.max')}</label>
             <input
               style={input}
               type="number"
@@ -253,16 +253,13 @@ export const LootTableEditor: React.FC<LootTableEditorProps> = ({
             />
           </div>
           <div style={{ width: 110, flexShrink: 0 }}>
-            <label
-              style={label}
-              title="Name of a condition a script registered with provide('lootCondition.<name>'). Leave empty to always allow. An entry whose condition says no is removed before the roll, so it does not take odds from the pool."
-            >
-              Condition
+            <label style={label} title={t('loot.conditionHelp')}>
+              {t('loot.condition')}
             </label>
             <input
               style={input}
               type="text"
-              placeholder="none"
+              placeholder={t('loot.conditionNone')}
               {...register(`${kind}.${i}.condition` as const)}
             />
           </div>
@@ -277,7 +274,7 @@ export const LootTableEditor: React.FC<LootTableEditorProps> = ({
             type="button"
             style={removeBtn}
             onClick={() => fieldArray.remove(i)}
-            title="Remove"
+            title={t('editor.remove')}
           >
             ✕
           </button>
@@ -289,7 +286,7 @@ export const LootTableEditor: React.FC<LootTableEditorProps> = ({
   return (
     <form style={container} onSubmit={handleSubmit(save)}>
       <div style={field}>
-        <label style={label}>Loot table</label>
+        <label style={label}>{t('npc.lootTable')}</label>
         <div style={{ display: 'flex', gap: 8 }}>
           <div style={{ flex: 1 }}>
             <AsyncSelect
@@ -300,7 +297,7 @@ export const LootTableEditor: React.FC<LootTableEditorProps> = ({
           </div>
           {selectedId && (
             <button type="button" style={ghostBtn} onClick={() => void reset()}>
-              New
+              {t('editor.new')}
             </button>
           )}
         </div>
@@ -308,33 +305,33 @@ export const LootTableEditor: React.FC<LootTableEditorProps> = ({
 
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
         <div style={field}>
-          <label style={label}>ID</label>
+          <label style={label}>{t('editor.id')}</label>
           <input
             style={{ ...input, ...(selectedId ? { opacity: 0.5 } : {}) }}
             {...register('id')}
-            placeholder="goblin-tier1"
+            placeholder={t('loot.idPlaceholder')}
             readOnly={!!selectedId}
           />
         </div>
         <div style={field}>
-          <label style={label}>Name</label>
+          <label style={label}>{t('editor.name')}</label>
           <input
             style={input}
             {...register('name')}
-            placeholder="Goblin (tier 1)"
+            placeholder={t('loot.namePlaceholder')}
           />
         </div>
       </div>
 
       <div style={box}>
         <div style={boxHeader}>
-          <span style={label}>Always drops</span>
+          <span style={label}>{t('loot.always')}</span>
           <button
             type="button"
             style={addBtn}
             onClick={() => guaranteed.append(newRow())}
           >
-            + Add
+            {t('editor.add')}
           </button>
         </div>
         {renderRows('guaranteed', guaranteed)}
@@ -342,19 +339,19 @@ export const LootTableEditor: React.FC<LootTableEditorProps> = ({
 
       <div style={box}>
         <div style={boxHeader}>
-          <span style={label}>Random pool</span>
+          <span style={label}>{t('loot.pool')}</span>
           <button
             type="button"
             style={addBtn}
             onClick={() => entries.append(newRow())}
           >
-            + Add
+            {t('editor.add')}
           </button>
         </div>
 
         <div style={{ display: 'flex', gap: 8, alignItems: 'flex-end' }}>
           <div style={{ width: 72 }}>
-            <label style={label}>Min rolls</label>
+            <label style={label}>{t('loot.minRolls')}</label>
             <input
               style={input}
               type="number"
@@ -363,7 +360,7 @@ export const LootTableEditor: React.FC<LootTableEditorProps> = ({
             />
           </div>
           <div style={{ width: 72 }}>
-            <label style={label}>Max rolls</label>
+            <label style={label}>{t('loot.maxRolls')}</label>
             <input
               style={input}
               type="number"
@@ -372,8 +369,8 @@ export const LootTableEditor: React.FC<LootTableEditorProps> = ({
             />
           </div>
           <div style={{ width: 96 }}>
-            <label style={label} title="Weight of drawing nothing at all">
-              Nothing
+            <label style={label} title={t('loot.nothingHelp')}>
+              {t('loot.nothing')}
             </label>
             <input
               style={input}
@@ -384,7 +381,9 @@ export const LootTableEditor: React.FC<LootTableEditorProps> = ({
           </div>
           {emptyWeight > 0 && totalWeight > 0 && (
             <span style={odds}>
-              {((emptyWeight / totalWeight) * 100).toFixed(1)}% nothing
+              {t('loot.nothingOdds', {
+                percent: ((emptyWeight / totalWeight) * 100).toFixed(1),
+              })}
             </span>
           )}
         </div>
@@ -394,11 +393,11 @@ export const LootTableEditor: React.FC<LootTableEditorProps> = ({
 
       <div style={actions}>
         <button type="submit" style={saveBtn}>
-          {selectedId ? 'Save table' : 'Create table'}
+          {selectedId ? t('loot.save') : t('loot.createBtn')}
         </button>
         {selectedId && (
           <button type="button" style={deleteBtn} onClick={() => void remove()}>
-            Delete
+            {t('common.delete')}
           </button>
         )}
       </div>

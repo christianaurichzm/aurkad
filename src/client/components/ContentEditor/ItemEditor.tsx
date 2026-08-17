@@ -16,6 +16,7 @@ import {
   type ScriptParams,
 } from '../../../shared/scriptParams';
 import { colors, radius } from '../../theme';
+import { useT, type TranslationKey } from '../../i18n';
 
 interface ItemEditorProps {
   items: Item[];
@@ -56,11 +57,11 @@ const defaultValues: ItemFormValues = {
 };
 
 /** What running a behaviour means for this item, since the type decides. */
-const behaviorHint = (type: Item['type']): string => {
-  if (type === 'consumable') return 'Runs when a player consumes this item';
+const behaviorHint = (type: Item['type']): TranslationKey => {
+  if (type === 'consumable') return 'item.hintConsumable';
   const [equip] = itemBehaviorEvents(type);
-  if (equip) return 'Runs when a player equips or unequips this item';
-  return 'Nothing runs behaviors on this item type';
+  if (equip) return 'item.hintEquip';
+  return 'item.hintNone';
 };
 
 const itemToFormValues = (item: Item): ItemFormValues => ({
@@ -81,24 +82,20 @@ const itemToFormValues = (item: Item): ItemFormValues => ({
 
 const ALL_ATTRIBUTES: {
   value: ModifiablePlayerAttribute;
-  label: string;
+  label: TranslationKey;
   meleeOnly?: true;
 }[] = [
-  { value: 'health', label: 'Health' },
-  { value: 'maxHealth', label: 'Max Health' },
-  { value: 'attack', label: 'Attack (melee base dmg)', meleeOnly: true },
-  { value: 'strength', label: 'Strength (dmg bonus)' },
-  { value: 'defense', label: 'Defense' },
-  { value: 'agility', label: 'Agility' },
-  { value: 'vitality', label: 'Vitality' },
-  { value: 'speed', label: 'Speed (movement)' },
-  {
-    value: 'attackRange',
-    label: 'Attack Range (melee reach)',
-    meleeOnly: true,
-  },
-  { value: 'experience', label: 'Experience' },
-  { value: 'level', label: 'Level' },
+  { value: 'health', label: 'attr.health' },
+  { value: 'maxHealth', label: 'attr.maxHealth' },
+  { value: 'attack', label: 'attr.attack', meleeOnly: true },
+  { value: 'strength', label: 'attr.strength' },
+  { value: 'defense', label: 'attr.defense' },
+  { value: 'agility', label: 'attr.agility' },
+  { value: 'vitality', label: 'attr.vitality' },
+  { value: 'speed', label: 'attr.speed' },
+  { value: 'attackRange', label: 'attr.attackRange', meleeOnly: true },
+  { value: 'experience', label: 'attr.experience' },
+  { value: 'level', label: 'attr.level' },
 ];
 
 export const ItemEditor: React.FC<ItemEditorProps> = ({
@@ -108,6 +105,7 @@ export const ItemEditor: React.FC<ItemEditorProps> = ({
   onDirtyChange,
   requestDiscard,
 }) => {
+  const t = useT();
   const [selectedId, setSelectedId] = useState('');
   const {
     control,
@@ -130,14 +128,14 @@ export const ItemEditor: React.FC<ItemEditorProps> = ({
   const scriptParams = watch('scriptParams');
   const isRanged = type === 'weapon' && arrowId !== '';
 
-  const attributes = isRanged
-    ? ALL_ATTRIBUTES.filter((a) => !a.meleeOnly)
-    : ALL_ATTRIBUTES;
+  const attributes = (
+    isRanged ? ALL_ATTRIBUTES.filter((a) => !a.meleeOnly) : ALL_ATTRIBUTES
+  ).map(({ value, label }) => ({ value, label: t(label) }));
 
   const loadArrowOptions = async () => {
     const data = await fetchArrows();
     return [
-      { value: '' as const, label: 'None' },
+      { value: '' as const, label: t('editor.none') },
       ...data.map((a) => ({
         value: String(a.id),
         label: `${a.id} - ${a.name}`,
@@ -192,7 +190,7 @@ export const ItemEditor: React.FC<ItemEditorProps> = ({
     const result = selectedId
       ? await updateItem(Number(selectedId), data)
       : await createItem(data);
-    chatResultMsg(!!result, 'Item saved!', 'Error saving item');
+    chatResultMsg(!!result, t('item.saved'), t('item.saveError'));
     // Dangling references never block a save, so this is where their author
     // hears about them.
     for (const warning of result?.warnings ?? []) {
@@ -206,26 +204,26 @@ export const ItemEditor: React.FC<ItemEditorProps> = ({
   const removeItem = async () => {
     if (!selectedId) return;
     await deleteItem(Number(selectedId));
-    chatResultMsg(true, 'Item deleted!', 'Error deleting item');
+    chatResultMsg(true, t('item.deleted'), t('item.deleteError'));
     refreshData();
     setSelectedId('');
     resetForm(defaultValues);
   };
 
   const typeOptions: { value: Item['type']; label: string }[] = [
-    { value: 'weapon', label: 'Weapon' },
-    { value: 'helmet', label: 'Helmet' },
-    { value: 'chestplate', label: 'Chestplate' },
-    { value: 'gloves', label: 'Gloves' },
-    { value: 'boots', label: 'Boots' },
-    { value: 'consumable', label: 'Consumable' },
-    { value: 'money', label: 'Money' },
+    { value: 'weapon', label: t('item.typeWeapon') },
+    { value: 'helmet', label: t('item.typeHelmet') },
+    { value: 'chestplate', label: t('item.typeChestplate') },
+    { value: 'gloves', label: t('item.typeGloves') },
+    { value: 'boots', label: t('item.typeBoots') },
+    { value: 'consumable', label: t('item.typeConsumable') },
+    { value: 'money', label: t('item.typeMoney') },
   ];
 
   return (
     <form style={container} onSubmit={handleSubmit(saveItem)}>
       <div style={field}>
-        <label style={label}>Item</label>
+        <label style={label}>{t('item.item')}</label>
         <div style={{ display: 'flex', gap: 8 }}>
           <div style={{ flex: 1 }}>
             <AsyncSelect<Item['id']>
@@ -236,7 +234,7 @@ export const ItemEditor: React.FC<ItemEditorProps> = ({
           </div>
           {selectedId && (
             <button type="button" style={resetBtn} onClick={() => void reset()}>
-              New
+              {t('editor.new')}
             </button>
           )}
         </div>
@@ -246,7 +244,7 @@ export const ItemEditor: React.FC<ItemEditorProps> = ({
         <div style={leftCol}>
           <ItemIcon spriteId={sprite ?? 0} style={previewIcon} />
           <div style={field}>
-            <label style={label}>Sprite ID</label>
+            <label style={label}>{t('editor.spriteId')}</label>
             <input
               style={input}
               type="number"
@@ -258,15 +256,15 @@ export const ItemEditor: React.FC<ItemEditorProps> = ({
 
         <div style={rightCol}>
           <div style={field}>
-            <label style={label}>Name</label>
+            <label style={label}>{t('editor.name')}</label>
             <input
               style={input}
               {...register('name')}
-              placeholder="Item name"
+              placeholder={t('item.namePlaceholder')}
             />
           </div>
           <div style={field}>
-            <label style={label}>Type</label>
+            <label style={label}>{t('editor.type')}</label>
             <Controller
               control={control}
               name="type"
@@ -280,16 +278,16 @@ export const ItemEditor: React.FC<ItemEditorProps> = ({
             />
           </div>
           <div style={field}>
-            <label style={label}>Description</label>
+            <label style={label}>{t('editor.description')}</label>
             <input
               style={input}
               {...register('desc')}
-              placeholder="Optional description"
+              placeholder={t('item.descPlaceholder')}
             />
           </div>
           <label style={checkboxField}>
             <input type="checkbox" {...register('bound')} />
-            Bound (cannot be dropped, traded, or banked)
+            {t('item.bound')}
           </label>
           <ScriptBehaviorFields
             events={itemBehaviorEvents(type)}
@@ -301,12 +299,12 @@ export const ItemEditor: React.FC<ItemEditorProps> = ({
             onParamsChange={(value) =>
               setValue('scriptParams', value, { shouldDirty: true })
             }
-            hint={behaviorHint(type)}
+            hint={t(behaviorHint(type))}
             loadItems={loadItems}
           />
           {type === 'weapon' && (
             <div style={field}>
-              <label style={label}>Arrow (ranged)</label>
+              <label style={label}>{t('item.arrow')}</label>
               <Controller
                 control={control}
                 name="arrowId"
@@ -325,7 +323,7 @@ export const ItemEditor: React.FC<ItemEditorProps> = ({
 
       <div style={effectsBox}>
         <div style={effectsHeader}>
-          <span style={label}>Effects</span>
+          <span style={label}>{t('item.effects')}</span>
           <button
             type="button"
             style={addBtn}
@@ -333,15 +331,11 @@ export const ItemEditor: React.FC<ItemEditorProps> = ({
               append({ attribute: 'health', type: 'add', value: 0 })
             }
           >
-            + Add
+            {t('editor.add')}
           </button>
         </div>
 
-        {fields.length === 0 && (
-          <p style={emptyHint}>
-            No effects. Click + Add to define stat changes.
-          </p>
-        )}
+        {fields.length === 0 && <p style={emptyHint}>{t('item.noEffects')}</p>}
 
         {fields.map((f, i) => (
           <div key={f.id} style={effectRow}>
@@ -366,8 +360,11 @@ export const ItemEditor: React.FC<ItemEditorProps> = ({
                   <AsyncSelect<Effect['type']>
                     loadOptions={() =>
                       Promise.resolve([
-                        { value: 'add' as const, label: '+ add' },
-                        { value: 'multiply' as const, label: '× mul' },
+                        { value: 'add' as const, label: t('effect.add') },
+                        {
+                          value: 'multiply' as const,
+                          label: t('effect.multiply'),
+                        },
                       ])
                     }
                     value={field.value}
@@ -387,7 +384,7 @@ export const ItemEditor: React.FC<ItemEditorProps> = ({
               type="button"
               style={removeEffectBtn}
               onClick={() => remove(i)}
-              title="Remove effect"
+              title={t('item.removeEffect')}
             >
               ✕
             </button>
@@ -397,11 +394,11 @@ export const ItemEditor: React.FC<ItemEditorProps> = ({
 
       <div style={actions}>
         <button type="submit" style={saveBtn}>
-          {selectedId ? 'Save Item' : 'Create Item'}
+          {selectedId ? t('item.save') : t('item.createBtn')}
         </button>
         {selectedId && (
           <button type="button" style={deleteBtn} onClick={removeItem}>
-            Delete
+            {t('common.delete')}
           </button>
         )}
       </div>

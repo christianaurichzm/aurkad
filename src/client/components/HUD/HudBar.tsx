@@ -2,8 +2,10 @@ import { useEffect, useState } from 'react';
 import { useUIStore } from '../../stores/uiStore';
 import { getHealthBarInfo } from '../../graphics/hud';
 import { PLAYER_ATTACK_COOLDOWN_MS } from '../../../shared/constants';
+import { useT } from '../../i18n';
 
 export const HudBar = () => {
+  const t = useT();
   const { current, max, level = 1 } = useUIStore((state) => state.playerHealth);
   const xp = useUIStore((state) => state.playerXp);
   const attackCooldownUntil = useUIStore((s) => s.attackCooldownUntil);
@@ -31,8 +33,8 @@ export const HudBar = () => {
   return (
     <div id="hud">
       <div id="hud-row">
-        <span id="hud-level">Level {level}</span>
-        <span id="hud-hp-label">HP</span>
+        <span id="hud-level">{t('hud.level', { level })}</span>
+        <span id="hud-hp-label">{t('hud.hp')}</span>
         <div id="health-bar-container">
           <div
             id="health-bar"
@@ -50,16 +52,16 @@ export const HudBar = () => {
       <div id="xp-bar-container" title={`${xp.current}/${xp.max} XP`}>
         <div id="xp-bar" style={{ width: `${xpPercentage * 100}%` }} />
         <div id="xp-bar-text">
-          XP {xp.current}/{xp.max}
+          {t('hud.xp', { current: xp.current, max: xp.max })}
         </div>
       </div>
       {cooldownFraction > 0 && (
-        <div id="atk-cooldown-container" title="Attack cooldown">
+        <div id="atk-cooldown-container" title={t('hud.attackCooldown')}>
           <div
             id="atk-cooldown-bar"
             style={{ width: `${cooldownFraction * 100}%` }}
           />
-          <div id="atk-cooldown-label">ATK</div>
+          <div id="atk-cooldown-label">{t('hud.atk')}</div>
         </div>
       )}
     </div>

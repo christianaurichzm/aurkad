@@ -42,8 +42,8 @@ beforeDamage), and **bank** (per-player item storage). All are opt-in via
 - `dependencies`: module ids that must load first.
 
 **One of `server` and `client` is required, not both.** A module that only
-draws - the `minimap`, the `daynight` tint - declares `client` alone and never
-enters the sandbox. Note that `config` reaches the **server** entry only, so a
+draws - the `minimap`, the `daynight` tint, the `weather` - declares `client`
+alone and never enters the sandbox. Note that `config` reaches the **server** entry only, so a
 client-only module keeps its settings as constants in its own file.
 
 ## Toggling & config (`game.json`)
@@ -106,6 +106,7 @@ engine.sendServerEvent('guild:request');    // talk back to the server entry
 - `ui` → styled helpers matching the core look:
   - `ui.panel({ title?, anchor? })` → `{ body, setTitle, setBody(...nodes), show, hide, remove }`
   - `ui.button(label, onClick)`, `ui.input(placeholder)`, `ui.row(...)`, `ui.column(...)`
+- `i18n(tables)` / `t(text, params?)` - translations, see below.
 - `log` / `warn` / `error`.
 
 ```js
@@ -113,6 +114,27 @@ const ui = engine.ui;
 const panel = ui.panel({ title: 'Guild' });
 panel.setBody(ui.input('name'), ui.button('Create', () => engine.sendServerEvent('guild:create', ...)));
 ```
+
+### Translations
+
+The key is the English string the module already draws, so a language with no
+entry for it renders that English rather than nothing, so a module that ships
+one language still reads.
+
+```js
+engine.i18n({ pt: { Guild: 'Guilda', 'Leave Guild': 'Sair da guilda' } });
+
+ui.panel({ title: 'Guild' });         // translated by the toolkit
+ui.button('Leave Guild', leave);      // same
+engine.t('{player} left', { player }) // DOM you build yourself, and any value
+```
+
+Text handed to the `ui` helpers follows a language switch on its own. A string
+built with `engine.t` is translated once, where it is built, so it changes with
+the next redraw, which for a panel fed by a server event is the next update.
+
+Item, NPC and spell names are content, not module text: they stay in whatever
+language the game was authored in.
 
 The server pushes state on a channel; the client renders it. Because the client
 may connect after the first push, have the client request current state on load

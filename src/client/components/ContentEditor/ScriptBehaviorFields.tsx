@@ -12,6 +12,7 @@ import { fetchBehaviors } from '../../io/network';
 import { AsyncSelect } from '../common/Select/AsyncSelect';
 import { Select } from '../common/Select/Select';
 import { colors, radius } from '../../theme';
+import { useT } from '../../i18n';
 
 type OptionLoader<T extends string | number> = () => Promise<
   { value: T; label: string }[]
@@ -47,6 +48,7 @@ export const ScriptBehaviorFields: React.FC<ScriptBehaviorFieldsProps> = ({
   loadItems,
   loadNpcs,
 }) => {
+  const t = useT();
   const [behaviors, setBehaviors] = useState<ScriptBehaviorDescriptor[]>([]);
   const [loadFailed, setLoadFailed] = useState(false);
 
@@ -70,7 +72,7 @@ export const ScriptBehaviorFields: React.FC<ScriptBehaviorFieldsProps> = ({
   );
 
   const options = [
-    { value: '', label: 'None' },
+    { value: '', label: t('editor.none') },
     ...usable.map((b) => ({ value: b.id, label: `${b.id} - ${b.owner}` })),
     // A behaviour that cannot run here is offered with the reason, rather than
     // looking like it was never written.
@@ -78,11 +80,14 @@ export const ScriptBehaviorFields: React.FC<ScriptBehaviorFieldsProps> = ({
       .filter((b) => !usable.includes(b))
       .map((b) => ({
         value: b.id,
-        label: `${b.id} - no handler for this content`,
+        label: t('behavior.noHandler', { id: b.id }),
       })),
   ];
   if (scriptId && !behaviors.some((b) => b.id === scriptId)) {
-    options.push({ value: scriptId, label: `${scriptId} - not registered` });
+    options.push({
+      value: scriptId,
+      label: t('behavior.notRegistered', { id: scriptId }),
+    });
   }
 
   const setParam = useCallback(
@@ -106,22 +111,15 @@ export const ScriptBehaviorFields: React.FC<ScriptBehaviorFieldsProps> = ({
   return (
     <div style={box}>
       <label style={label} title={hint}>
-        Script behavior
+        {t('behavior.title')}
       </label>
       <Select options={options} value={scriptId} onChange={selectBehavior} />
-      {loadFailed && (
-        <p style={warning}>
-          Could not load the behavior list. The saved value is kept.
-        </p>
-      )}
+      {loadFailed && <p style={warning}>{t('behavior.loadFailed')}</p>}
       {scriptId && !selected && !loadFailed && (
-        <p style={warning}>
-          No script registers &quot;{scriptId}&quot; right now, so nothing will
-          run.
-        </p>
+        <p style={warning}>{t('behavior.unregistered', { id: scriptId })}</p>
       )}
       {selected && selected.params.length === 0 && (
-        <p style={note}>Runs as written in {selected.owner}; no settings.</p>
+        <p style={note}>{t('behavior.noParams', { owner: selected.owner })}</p>
       )}
 
       {selected?.params.map((spec) => (

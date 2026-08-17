@@ -7,6 +7,16 @@
 // The hotkeys work with the panel closed, which is how the game is played,
 // so the hotbar below always draws the same state on the canvas.
 
+// Strings this module draws, keyed by the English itself: text handed to the
+// `ui` helpers is translated for free, the rest goes through engine.t. Spell
+// names are content, so they stay in the language the operator wrote them in.
+engine.i18n({
+  pt: {
+    Spells: 'Magias',
+    'Mana: {mana}/{max}': 'Mana: {mana}/{max}',
+  },
+});
+
 const ui = engine.ui;
 const panel = ui.panel({ title: 'Spells' });
 ui.actionButton('Spells', () => panel.toggle(), 's'); // S opens/closes
@@ -28,7 +38,10 @@ function render() {
     return;
   }
   const mana = document.createElement('div');
-  mana.textContent = `Mana: ${Math.round(state.mana)}/${state.manaMax}`;
+  mana.textContent = engine.t('Mana: {mana}/{max}', {
+    mana: Math.round(state.mana),
+    max: state.manaMax,
+  });
 
   const now = Date.now();
   const buttons = state.spells.map((s, i) => {

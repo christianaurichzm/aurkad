@@ -1,10 +1,12 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { fetchAuditLog, type AuditRecord } from '../../io/network';
 import { colors, radius } from '../../theme';
+import { useT } from '../../i18n';
 
 // Read-only view of the audit trail; nothing edits or deletes it, here or
 // on the server.
 export const AuditLog: React.FC<{ height?: number }> = ({ height = 260 }) => {
+  const t = useT();
   const [rows, setRows] = useState<AuditRecord[]>([]);
   const [actor, setActor] = useState('');
   const [deniedOnly, setDeniedOnly] = useState(false);
@@ -18,8 +20,8 @@ export const AuditLog: React.FC<{ height?: number }> = ({ height = 260 }) => {
       limit: 100,
     })
       .then(setRows)
-      .catch(() => setError('Could not read the audit log.'));
-  }, [actor, deniedOnly]);
+      .catch(() => setError(t('audit.readFailed')));
+  }, [actor, deniedOnly, t]);
 
   useEffect(() => {
     load();
@@ -30,7 +32,7 @@ export const AuditLog: React.FC<{ height?: number }> = ({ height = 260 }) => {
       <div style={controls}>
         <input
           style={input}
-          placeholder="Filter by operator"
+          placeholder={t('audit.filter')}
           value={actor}
           onChange={(e) => setActor(e.target.value)}
         />
@@ -40,10 +42,10 @@ export const AuditLog: React.FC<{ height?: number }> = ({ height = 260 }) => {
             checked={deniedOnly}
             onChange={(e) => setDeniedOnly(e.target.checked)}
           />
-          Denied only
+          {t('audit.deniedOnly')}
         </label>
         <button style={refreshBtn} onClick={load}>
-          Refresh
+          {t('mod.refresh')}
         </button>
       </div>
 
@@ -51,7 +53,7 @@ export const AuditLog: React.FC<{ height?: number }> = ({ height = 260 }) => {
 
       <div style={{ ...list, height }}>
         {rows.length === 0 && !error && (
-          <div style={empty}>Nothing recorded yet.</div>
+          <div style={empty}>{t('audit.empty')}</div>
         )}
         {rows.map((row, i) => (
           <div key={`${row.at}-${i}`} style={rowStyle}>
@@ -71,9 +73,9 @@ export const AuditLog: React.FC<{ height?: number }> = ({ height = 260 }) => {
                 color: row.outcome === 'denied' ? '#fff' : colors.textMuted,
               }}
             >
-              {row.outcome}
+              {t(row.outcome === 'denied' ? 'audit.denied' : 'audit.allowed')}
             </span>
-            <span style={who}>{row.actor ?? 'anonymous'}</span>
+            <span style={who}>{row.actor ?? t('audit.anonymous')}</span>
             <span style={action}>{row.action}</span>
             {row.target && <span style={target}>{row.target}</span>}
             <span style={meta}>

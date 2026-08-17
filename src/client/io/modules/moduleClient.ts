@@ -1,5 +1,10 @@
 import { onServerEvent, sendServerEvent } from '../network/customEvents';
 import { colors, radius, shadow, zIndex } from '../../theme';
+import {
+  moduleText,
+  onLanguageChange,
+  registerModuleStrings,
+} from '../../i18n';
 import { registerModuleAction } from './moduleActions';
 import { getGameState, getPlayer } from '../../core/gameState';
 import { enqueueChatMessage } from '../network/sync/chatSync';
@@ -10,6 +15,32 @@ import { OverlayLayer, registerOverlay } from '../../graphics/overlayRegistry';
 // Loads the module browser entries the server serves and runs them with an
 // `engine` API. Like server scripts, this is the server owner's code, so it
 // runs with no sandbox.
+
+// ---------- translated text --------------------------------------------------
+
+// Text the toolkit drew keeps its English on the element, so a language
+// switch re-applies the table to what is on screen. The DOM forgets an
+// element once it leaves, so there is no registry to sweep.
+function setText(el: HTMLElement, source: string): void {
+  el.dataset.i18n = source;
+  el.textContent = moduleText(source);
+}
+
+function setPlaceholder(el: HTMLInputElement, source: string): void {
+  el.dataset.i18nPlaceholder = source;
+  el.placeholder = moduleText(source);
+}
+
+onLanguageChange(() => {
+  document
+    .querySelectorAll<HTMLElement>('[data-i18n]')
+    .forEach((el) => (el.textContent = moduleText(el.dataset.i18n ?? '')));
+  document
+    .querySelectorAll<HTMLInputElement>('[data-i18n-placeholder]')
+    .forEach(
+      (el) => (el.placeholder = moduleText(el.dataset.i18nPlaceholder ?? '')),
+    );
+});
 
 // ---------- player context menu ----------------------------------------------
 
@@ -45,7 +76,7 @@ function showContextMenu(name: string, x: number, y: number) {
 
   for (const action of playerActions) {
     const btn = document.createElement('button');
-    btn.textContent = action.label;
+    setText(btn, action.label);
     btn.style.cssText =
       `background:transparent;border:none;color:${colors.text};padding:5px 8px;` +
       `text-align:left;cursor:pointer;border-radius:${radius.sm}px;width:100%;`;
@@ -146,7 +177,7 @@ function moduleContainer(id: string): HTMLElement {
 function makeUi(container: HTMLElement) {
   const button = (label: string, onClick?: () => void): HTMLButtonElement => {
     const b = document.createElement('button');
-    b.textContent = label;
+    setText(b, label);
     b.style.cssText =
       `background:${colors.primary};color:#fff;border:none;border-radius:${radius.sm}px;` +
       `padding:6px 10px;cursor:pointer;font:13px sans-serif;`;
@@ -158,7 +189,7 @@ function makeUi(container: HTMLElement) {
 
   const input = (placeholder = ''): HTMLInputElement => {
     const i = document.createElement('input');
-    i.placeholder = placeholder;
+    setPlaceholder(i, placeholder);
     i.style.cssText =
       `width:100%;box-sizing:border-box;padding:6px 8px;border:1px solid ${colors.border};` +
       `border-radius:${radius.sm}px;font:13px sans-serif;`;
@@ -188,7 +219,7 @@ function makeUi(container: HTMLElement) {
       `padding:6px 10px;font-weight:bold;cursor:move;user-select:none;` +
       `border-bottom:1px solid ${colors.border};background:${colors.surfaceMuted};`;
     const titleEl = document.createElement('span');
-    titleEl.textContent = opts.title ?? '';
+    setText(titleEl, opts.title ?? '');
     const closeEl = document.createElement('span');
     closeEl.textContent = '×';
     closeEl.style.cssText =
@@ -230,7 +261,7 @@ function makeUi(container: HTMLElement) {
     return {
       el,
       body,
-      setTitle: (text: string) => (titleEl.textContent = text),
+      setTitle: (text: string) => setText(titleEl, text),
       setBody: (...nodes: Node[]) => body.replaceChildren(...nodes),
       show,
       hide,
@@ -263,6 +294,22 @@ function makeEngineApi(id: string) {
     mount: () => container,
     /** Styled UI helpers (panel/button/input/row/column) in the core look. */
     ui: makeUi(container),
+    /**
+     * Declare this module's translations. The key is the English string the
+     * module already draws, so a language with no entry for it renders that
+     * English rather than nothing.
+     *
+     * @example engine.i18n({ pt: { Guild: 'Guilda' } });
+     */
+    i18n: registerModuleStrings,
+    /**
+     * Translate one string, filling `{placeholders}`. `ui` helpers translate on
+     * their own; this is for DOM the module builds and sentences with values.
+     * The result does not follow a language switch until the module redraws it.
+     *
+     * @example engine.t('Quests ({count} active)', { count: list.length })
+     */
+    t: moduleText,
     /**
      * Register an action shown in the player context menu when another player
      * is clicked on the game canvas. `callback` receives the player's name.

@@ -6,6 +6,7 @@ import { chatResultMsg } from '../ChatPanel';
 import { AsyncSelect } from '../common/Select/AsyncSelect';
 import { Select } from '../common/Select/Select';
 import { colors, radius } from '../../theme';
+import { useT, type TranslationKey } from '../../i18n';
 
 interface QuestEditorProps {
   quests: Quest[];
@@ -109,19 +110,18 @@ const buildObjective = (values: QuestFormValues): QuestObjective => {
   }
 };
 
-const objectiveTypes: { value: ObjectiveType; label: string }[] = [
-  { value: 'kill', label: 'Kill NPCs' },
-  { value: 'collect', label: 'Collect items' },
-  { value: 'talk', label: 'Talk to an NPC' },
-  { value: 'reach', label: 'Reach a tile' },
+const objectiveTypes: { value: ObjectiveType; label: TranslationKey }[] = [
+  { value: 'kill', label: 'questEditor.typeKill' },
+  { value: 'collect', label: 'questEditor.typeCollect' },
+  { value: 'talk', label: 'questEditor.typeTalk' },
+  { value: 'reach', label: 'questEditor.typeReach' },
 ];
 
-const hints: Record<ObjectiveType, string> = {
-  kill: 'Counts on npcDeath, for the player who lands the killing blow.',
-  collect:
-    'Counted from the inventory on pickup, so dropping and re-taking the same item does not count twice.',
-  talk: 'Completes the first time the player interacts with this NPC.',
-  reach: 'Completes when the player steps onto this exact tile.',
+const hints: Record<ObjectiveType, TranslationKey> = {
+  kill: 'questEditor.hintKill',
+  collect: 'questEditor.hintCollect',
+  talk: 'questEditor.hintTalk',
+  reach: 'questEditor.hintReach',
 };
 
 export const QuestEditor: React.FC<QuestEditorProps> = ({
@@ -134,6 +134,7 @@ export const QuestEditor: React.FC<QuestEditorProps> = ({
   onDirtyChange,
   requestDiscard,
 }) => {
+  const t = useT();
   const [selectedId, setSelectedId] = useState('');
   const {
     control,
@@ -185,7 +186,7 @@ export const QuestEditor: React.FC<QuestEditorProps> = ({
       ...(Object.keys(reward).length > 0 ? { reward } : {}),
     };
     const result = await saveQuest(quest).catch(() => null);
-    chatResultMsg(!!result, 'Quest saved!', 'Error saving quest');
+    chatResultMsg(!!result, t('questEditor.saved'), t('questEditor.saveError'));
     for (const warning of result?.warnings ?? []) {
       chatResultMsg(false, '', warning);
     }
@@ -197,7 +198,7 @@ export const QuestEditor: React.FC<QuestEditorProps> = ({
   const remove = async () => {
     if (!selectedId) return;
     await deleteQuest(selectedId);
-    chatResultMsg(true, 'Quest deleted!', 'Error deleting quest');
+    chatResultMsg(true, t('questEditor.deleted'), t('questEditor.deleteError'));
     refreshData();
     setSelectedId('');
     resetForm(defaultValues);
@@ -206,7 +207,7 @@ export const QuestEditor: React.FC<QuestEditorProps> = ({
   return (
     <form style={container} onSubmit={handleSubmit(save)}>
       <div style={field}>
-        <label style={label}>Quest</label>
+        <label style={label}>{t('npc.quest')}</label>
         <div style={{ display: 'flex', gap: 8 }}>
           <div style={{ flex: 1 }}>
             <AsyncSelect
@@ -217,7 +218,7 @@ export const QuestEditor: React.FC<QuestEditorProps> = ({
           </div>
           {selectedId && (
             <button type="button" style={ghostBtn} onClick={() => void reset()}>
-              New
+              {t('editor.new')}
             </button>
           )}
         </div>
@@ -225,51 +226,54 @@ export const QuestEditor: React.FC<QuestEditorProps> = ({
 
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
         <div style={field}>
-          <label style={label}>ID</label>
+          <label style={label}>{t('editor.id')}</label>
           <input
             style={{ ...input, ...(selectedId ? { opacity: 0.5 } : {}) }}
             {...register('id')}
-            placeholder="goblin-hunt"
+            placeholder={t('questEditor.idPlaceholder')}
             readOnly={!!selectedId}
           />
         </div>
         <div style={field}>
-          <label style={label}>Name</label>
+          <label style={label}>{t('editor.name')}</label>
           <input
             style={input}
             {...register('name')}
-            placeholder="Goblin trouble"
+            placeholder={t('questEditor.namePlaceholder')}
           />
         </div>
       </div>
 
       <div style={field}>
-        <label style={label}>Description</label>
+        <label style={label}>{t('editor.description')}</label>
         <textarea
           style={{ ...input, minHeight: 46, resize: 'vertical' }}
           {...register('description')}
-          placeholder="The elder wants the goblins by the road thinned out."
+          placeholder={t('questEditor.descPlaceholder')}
         />
       </div>
 
       <div style={box}>
-        <span style={label}>Objective</span>
+        <span style={label}>{t('questEditor.objective')}</span>
         <Controller
           control={control}
           name="objectiveType"
           render={({ field: type }) => (
             <Select
-              options={objectiveTypes}
+              options={objectiveTypes.map(({ value, label }) => ({
+                value,
+                label: t(label),
+              }))}
               value={type.value}
               onChange={type.onChange}
             />
           )}
         />
-        <p style={emptyHint}>{hints[objectiveType]}</p>
+        <p style={emptyHint}>{t(hints[objectiveType])}</p>
 
         {(objectiveType === 'kill' || objectiveType === 'talk') && (
           <div style={field}>
-            <label style={label}>NPC</label>
+            <label style={label}>{t('npc.npc')}</label>
             <Controller
               control={control}
               name="npcId"
@@ -286,7 +290,7 @@ export const QuestEditor: React.FC<QuestEditorProps> = ({
 
         {objectiveType === 'collect' && (
           <div style={field}>
-            <label style={label}>Item</label>
+            <label style={label}>{t('item.item')}</label>
             <Controller
               control={control}
               name="itemId"
@@ -303,7 +307,7 @@ export const QuestEditor: React.FC<QuestEditorProps> = ({
 
         {(objectiveType === 'kill' || objectiveType === 'collect') && (
           <div style={field}>
-            <label style={label}>How many</label>
+            <label style={label}>{t('questEditor.howMany')}</label>
             <input
               style={input}
               type="number"
@@ -316,7 +320,7 @@ export const QuestEditor: React.FC<QuestEditorProps> = ({
         {objectiveType === 'reach' && (
           <>
             <div style={field}>
-              <label style={label}>Map</label>
+              <label style={label}>{t('map.map')}</label>
               <Controller
                 control={control}
                 name="mapId"
@@ -331,7 +335,7 @@ export const QuestEditor: React.FC<QuestEditorProps> = ({
             </div>
             <div style={{ display: 'flex', gap: 8 }}>
               <div style={{ ...field, flex: 1 }}>
-                <label style={label}>Row</label>
+                <label style={label}>{t('questEditor.row')}</label>
                 <input
                   style={input}
                   type="number"
@@ -340,7 +344,7 @@ export const QuestEditor: React.FC<QuestEditorProps> = ({
                 />
               </div>
               <div style={{ ...field, flex: 1 }}>
-                <label style={label}>Col</label>
+                <label style={label}>{t('questEditor.col')}</label>
                 <input
                   style={input}
                   type="number"
@@ -355,17 +359,17 @@ export const QuestEditor: React.FC<QuestEditorProps> = ({
 
       <div style={box}>
         <div style={boxHeader}>
-          <span style={label}>Reward</span>
+          <span style={label}>{t('questEditor.reward')}</span>
           <button
             type="button"
             style={addBtn}
             onClick={() => rewardItems.append({ itemId: 0, quantity: 1 })}
           >
-            + Add item
+            {t('questEditor.addItem')}
           </button>
         </div>
         <div style={field}>
-          <label style={label}>Experience</label>
+          <label style={label}>{t('questEditor.experience')}</label>
           <input
             style={input}
             type="number"
@@ -376,7 +380,7 @@ export const QuestEditor: React.FC<QuestEditorProps> = ({
         {rewardItems.fields.map((entry, i) => (
           <div key={entry.id} style={choiceRow}>
             <div style={{ flex: 2, minWidth: 0 }}>
-              <label style={label}>Item</label>
+              <label style={label}>{t('item.item')}</label>
               <Controller
                 control={control}
                 name={`rewardItems.${i}.itemId` as const}
@@ -390,7 +394,7 @@ export const QuestEditor: React.FC<QuestEditorProps> = ({
               />
             </div>
             <div style={{ width: 90, flexShrink: 0 }}>
-              <label style={label}>Qty</label>
+              <label style={label}>{t('npc.qty')}</label>
               <input
                 style={input}
                 type="number"
@@ -404,38 +408,32 @@ export const QuestEditor: React.FC<QuestEditorProps> = ({
               type="button"
               style={removeBtn}
               onClick={() => rewardItems.remove(i)}
-              title="Remove reward"
+              title={t('questEditor.removeReward')}
             >
               ✕
             </button>
           </div>
         ))}
         <div style={field}>
-          <label
-            style={label}
-            title="Name of a handler a script registered with provide('questReward.<name>'). Runs after the rewards above."
-          >
-            Script reward
+          <label style={label} title={t('questEditor.scriptRewardHelp')}>
+            {t('questEditor.scriptReward')}
           </label>
           <input
             style={input}
             {...register('rewardScript')}
-            placeholder="unlockGate"
+            placeholder={t('questEditor.scriptRewardPlaceholder')}
           />
-          <p style={emptyHint}>
-            For a payout this form cannot describe. Runs last, so it can build
-            on what was already granted.
-          </p>
+          <p style={emptyHint}>{t('questEditor.scriptRewardNote')}</p>
         </div>
       </div>
 
       <div style={actions}>
         <button type="submit" style={saveBtn}>
-          {selectedId ? 'Save quest' : 'Create quest'}
+          {selectedId ? t('questEditor.save') : t('questEditor.createBtn')}
         </button>
         {selectedId && (
           <button type="button" style={deleteBtn} onClick={() => void remove()}>
-            Delete
+            {t('common.delete')}
           </button>
         )}
       </div>

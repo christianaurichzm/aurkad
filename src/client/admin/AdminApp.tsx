@@ -10,6 +10,7 @@ import { PlayerModeration } from '../components/moderation/PlayerModeration';
 import { CommandConsole } from '../components/moderation/CommandConsole';
 import { AuditLog } from '../components/moderation/AuditLog';
 import { colors, radius } from '../theme';
+import { useT } from '../i18n';
 
 // Lazy, since Monaco is about 90% of the client bundle and the game shares
 // it with this panel: a static import makes every player download the editor,
@@ -23,6 +24,7 @@ const ScriptEditor = React.lazy(() =>
 // Standalone operator dashboard served at /admin, apart from the game client:
 // log in with a mod/admin account and moderate from any browser, no gameplay.
 export const AdminApp: React.FC = () => {
+  const t = useT();
   const [session, setSession] = useState<AdminSession | null>(null);
   const [checked, setChecked] = useState(false);
   const [status, setStatus] = useState('');
@@ -35,7 +37,7 @@ export const AdminApp: React.FC = () => {
   }, []);
 
   if (!checked) {
-    return <div style={centered}>Loading…</div>;
+    return <div style={centered}>{t('common.loading')}</div>;
   }
 
   if (!session) {
@@ -45,7 +47,7 @@ export const AdminApp: React.FC = () => {
   return (
     <div style={page}>
       <header style={header}>
-        <div style={brand}>Admin panel</div>
+        <div style={brand}>{t('admin.title')}</div>
         <div style={headerRight}>
           <span style={who}>
             {session.username} · {Access[session.access]}
@@ -53,7 +55,7 @@ export const AdminApp: React.FC = () => {
           {/* A new tab, not a navigation: an operator who moderates while
               playing keeps both, and the panel session survives either way. */}
           <a style={gameLink} href="/" target="_blank" rel="noreferrer">
-            Open game
+            {t('admin.openGame')}
           </a>
           <button
             style={logoutBtn}
@@ -63,31 +65,33 @@ export const AdminApp: React.FC = () => {
               })
             }
           >
-            Log out
+            {t('admin.logout')}
           </button>
         </div>
       </header>
       <main style={grid}>
         <section style={panel}>
-          <h2 style={panelTitle}>Online players</h2>
+          <h2 style={panelTitle}>{t('online.title')}</h2>
           <PlayerModeration access={session.access} onResult={setStatus} />
           {status && <div style={statusLine}>{status}</div>}
         </section>
         <section style={panel}>
-          <h2 style={panelTitle}>Console</h2>
+          <h2 style={panelTitle}>{t('admin.console')}</h2>
           <CommandConsole height={260} />
         </section>
         {session.scriptEditorEnabled && (
           <section style={{ ...panel, ...wideSection }}>
-            <h2 style={panelTitle}>Scripts</h2>
-            <React.Suspense fallback={<div style={statusLine}>Loading…</div>}>
+            <h2 style={panelTitle}>{t('admin.scripts')}</h2>
+            <React.Suspense
+              fallback={<div style={statusLine}>{t('common.loading')}</div>}
+            >
               <ScriptEditor height={520} />
             </React.Suspense>
           </section>
         )}
         {session.access >= Access.ADMIN && (
           <section style={{ ...panel, ...wideSection }}>
-            <h2 style={panelTitle}>Audit trail</h2>
+            <h2 style={panelTitle}>{t('admin.audit')}</h2>
             <AuditLog height={260} />
           </section>
         )}
@@ -99,6 +103,7 @@ export const AdminApp: React.FC = () => {
 const AdminLogin: React.FC<{ onLogin: (s: AdminSession) => void }> = ({
   onLogin,
 }) => {
+  const t = useT();
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
@@ -111,7 +116,7 @@ const AdminLogin: React.FC<{ onLogin: (s: AdminSession) => void }> = ({
     try {
       onLogin(await adminLogin(username, password));
     } catch (e: unknown) {
-      setError((e as { message?: string })?.message || 'Login failed');
+      setError((e as { message?: string })?.message || t('admin.loginFailed'));
     } finally {
       setBusy(false);
     }
@@ -126,11 +131,11 @@ const AdminLogin: React.FC<{ onLogin: (s: AdminSession) => void }> = ({
           void submit();
         }}
       >
-        <h1 style={loginTitle}>Admin panel</h1>
-        <p style={loginSub}>Sign in with a moderator or admin account.</p>
+        <h1 style={loginTitle}>{t('admin.title')}</h1>
+        <p style={loginSub}>{t('admin.loginHint')}</p>
         <input
           style={loginInput}
-          placeholder="Username"
+          placeholder={t('auth.username')}
           value={username}
           autoFocus
           onChange={(e) => setUsername(e.target.value)}
@@ -138,13 +143,13 @@ const AdminLogin: React.FC<{ onLogin: (s: AdminSession) => void }> = ({
         <input
           style={loginInput}
           type="password"
-          placeholder="Password"
+          placeholder={t('auth.password')}
           value={password}
           onChange={(e) => setPassword(e.target.value)}
         />
         {error && <div style={loginError}>{error}</div>}
         <button style={loginBtn} type="submit" disabled={busy}>
-          {busy ? 'Signing in…' : 'Sign in'}
+          {busy ? t('admin.signingIn') : t('admin.signIn')}
         </button>
       </form>
     </div>

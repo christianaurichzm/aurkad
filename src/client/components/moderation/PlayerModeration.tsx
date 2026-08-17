@@ -11,6 +11,7 @@ import {
 } from '../../io/network';
 import { Access } from '../../../shared/types';
 import { colors, radius } from '../../theme';
+import { useT } from '../../i18n';
 
 // Moderation core shared by the in-game GM panel and the /admin dashboard.
 // The name field is the one target: type a known name to act on it, offline
@@ -22,6 +23,7 @@ export const PlayerModeration: React.FC<{
   allowRelativeTeleport?: boolean;
   onResult: (message: string) => void;
 }> = ({ access, allowRelativeTeleport = false, onResult }) => {
+  const t = useT();
   const canAdmin = access >= Access.ADMIN;
 
   const [players, setPlayers] = useState<string[]>([]);
@@ -52,11 +54,11 @@ export const PlayerModeration: React.FC<{
       setPlayers(res.players);
       setCount(res.count);
     } catch (e: unknown) {
-      onResult((e as { message?: string })?.message || 'Failed to load');
+      onResult((e as { message?: string })?.message || t('mod.loadFailed'));
     } finally {
       setLoading(false);
     }
-  }, [onResult]);
+  }, [onResult, t]);
 
   useEffect(() => {
     void load();
@@ -88,15 +90,15 @@ export const PlayerModeration: React.FC<{
   return (
     <div style={wrap}>
       <div style={head}>
-        <span style={countBadge}>{count} online</span>
+        <span style={countBadge}>{t('online.count', { count })}</span>
         <button style={ghostBtn} onClick={() => void load()} disabled={loading}>
-          {loading ? '…' : 'Refresh'}
+          {loading ? '…' : t('mod.refresh')}
         </button>
       </div>
 
       <input
         style={input}
-        placeholder="Player name (type or pick below)"
+        placeholder={t('mod.targetPlaceholder')}
         value={target}
         onChange={(e) => setTarget(e.target.value)}
       />
@@ -104,7 +106,7 @@ export const PlayerModeration: React.FC<{
       <ul style={list}>
         {filtered.length === 0 ? (
           <li style={emptyRow}>
-            {players.length === 0 ? 'No players online.' : 'No match.'}
+            {players.length === 0 ? t('mod.nobodyOnline') : t('mod.noMatch')}
           </li>
         ) : (
           filtered.map((p) => (
@@ -126,26 +128,33 @@ export const PlayerModeration: React.FC<{
           <button
             style={dangerBtn}
             onClick={() =>
-              run(() => modKick(name), 'Kicked.', 'Kick failed.', true)
+              run(
+                () => modKick(name),
+                t('mod.kicked'),
+                t('mod.kickFailed'),
+                true,
+              )
             }
           >
-            Kick
+            {t('mod.kick')}
           </button>
           {allowRelativeTeleport && (
             <>
               <button
                 style={btn}
-                onClick={() => run(() => modBring(name), 'Brought.', 'Failed.')}
+                onClick={() =>
+                  run(() => modBring(name), t('mod.brought'), t('gm.failed'))
+                }
               >
-                Bring
+                {t('mod.bring')}
               </button>
               <button
                 style={btn}
                 onClick={() =>
-                  run(() => modGoto(name), 'Teleported.', 'Failed.')
+                  run(() => modGoto(name), t('mod.teleported'), t('gm.failed'))
                 }
               >
-                Go To
+                {t('mod.goTo')}
               </button>
             </>
           )}
@@ -154,21 +163,21 @@ export const PlayerModeration: React.FC<{
         <div style={rowWrap}>
           <input
             style={{ ...input, flex: 2 }}
-            placeholder="Map ID"
+            placeholder={t('gm.mapId')}
             value={warpMap}
             onChange={(e) => setWarpMap(e.target.value)}
           />
           <input
             style={{ ...input, width: 56 }}
             type="number"
-            title="col"
+            title={t('questEditor.col')}
             value={warpCol}
             onChange={(e) => setWarpCol(+e.target.value)}
           />
           <input
             style={{ ...input, width: 56 }}
             type="number"
-            title="row"
+            title={t('questEditor.row')}
             value={warpRow}
             onChange={(e) => setWarpRow(+e.target.value)}
           />
@@ -177,12 +186,12 @@ export const PlayerModeration: React.FC<{
             onClick={() =>
               run(
                 () => modWarp(name, warpMap.trim(), warpCol, warpRow),
-                'Warped.',
-                'Warp failed.',
+                t('mod.warped'),
+                t('mod.warpFailed'),
               )
             }
           >
-            Warp
+            {t('mod.warp')}
           </button>
         </div>
 
@@ -190,17 +199,21 @@ export const PlayerModeration: React.FC<{
           <input
             style={{ ...input, flex: 1 }}
             type="number"
-            placeholder="Sprite ID"
+            placeholder={t('editor.spriteId')}
             value={spriteId}
             onChange={(e) => setSpriteId(+e.target.value)}
           />
           <button
             style={btn}
             onClick={() =>
-              run(() => modSetSprite(name, spriteId), 'Sprite set.', 'Failed.')
+              run(
+                () => modSetSprite(name, spriteId),
+                t('gm.spriteSet'),
+                t('gm.failed'),
+              )
             }
           >
-            Set sprite
+            {t('gm.setSprite')}
           </button>
         </div>
 
@@ -223,19 +236,19 @@ export const PlayerModeration: React.FC<{
                 onClick={() =>
                   run(
                     () => modSetAccess(name, accessLevel),
-                    'Access set.',
-                    'Failed.',
+                    t('gm.accessSet'),
+                    t('gm.failed'),
                   )
                 }
               >
-                Set access
+                {t('gm.setAccess')}
               </button>
             </div>
 
             <div style={banBox}>
               <input
                 style={input}
-                placeholder="Ban reason (optional)"
+                placeholder={t('mod.banReason')}
                 value={banReason}
                 onChange={(e) => setBanReason(e.target.value)}
               />
@@ -243,7 +256,7 @@ export const PlayerModeration: React.FC<{
                 <input
                   style={{ ...input, flex: 1 }}
                   type="number"
-                  placeholder="Minutes (0 = permanent)"
+                  placeholder={t('mod.banMinutes')}
                   value={banDuration}
                   onChange={(e) => setBanDuration(+e.target.value)}
                 />
@@ -259,13 +272,13 @@ export const PlayerModeration: React.FC<{
                             ? Date.now() + banDuration * 60000
                             : undefined,
                         ),
-                      'Banned.',
-                      'Ban failed.',
+                      t('mod.banned'),
+                      t('mod.banFailed'),
                       true,
                     )
                   }
                 >
-                  Ban
+                  {t('mod.ban')}
                 </button>
               </div>
             </div>

@@ -5,6 +5,7 @@ import { createShop, updateShop, deleteShop } from '../../io/network';
 import { chatResultMsg } from '../ChatPanel';
 import { AsyncSelect } from '../common/Select/AsyncSelect';
 import { colors, radius } from '../../theme';
+import { useT } from '../../i18n';
 
 interface ShopEditorProps {
   shops: Shop<ProductRaw>[];
@@ -39,6 +40,7 @@ export const ShopEditor: React.FC<ShopEditorProps> = ({
   onDirtyChange,
   requestDiscard,
 }) => {
+  const t = useT();
   const [selectedId, setSelectedId] = useState('');
   const {
     control,
@@ -77,7 +79,7 @@ export const ShopEditor: React.FC<ShopEditorProps> = ({
       : await createShop({ id, name, products })
           .then((r) => !!r)
           .catch(() => false);
-    chatResultMsg(ok, 'Shop saved!', 'Error saving shop');
+    chatResultMsg(ok, t('shopEditor.saved'), t('shopEditor.saveError'));
     refreshData();
     setSelectedId('');
     resetForm(defaultValues);
@@ -86,7 +88,7 @@ export const ShopEditor: React.FC<ShopEditorProps> = ({
   const removeShop = async () => {
     if (!selectedId) return;
     await deleteShop(selectedId);
-    chatResultMsg(true, 'Shop deleted!', 'Error deleting shop');
+    chatResultMsg(true, t('shopEditor.deleted'), t('shopEditor.deleteError'));
     refreshData();
     setSelectedId('');
     resetForm(defaultValues);
@@ -95,7 +97,7 @@ export const ShopEditor: React.FC<ShopEditorProps> = ({
   return (
     <form style={container} onSubmit={handleSubmit(saveShop)}>
       <div style={field}>
-        <label style={label}>Shop</label>
+        <label style={label}>{t('shopEditor.shop')}</label>
         <div style={{ display: 'flex', gap: 8 }}>
           <div style={{ flex: 1 }}>
             <AsyncSelect
@@ -106,7 +108,7 @@ export const ShopEditor: React.FC<ShopEditorProps> = ({
           </div>
           {selectedId && (
             <button type="button" style={ghostBtn} onClick={() => void reset()}>
-              New
+              {t('editor.new')}
             </button>
           )}
         </div>
@@ -114,44 +116,44 @@ export const ShopEditor: React.FC<ShopEditorProps> = ({
 
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
         <div style={field}>
-          <label style={label}>ID</label>
+          <label style={label}>{t('editor.id')}</label>
           <input
             style={{ ...input, ...(selectedId ? { opacity: 0.5 } : {}) }}
             {...register('id')}
-            placeholder="general"
+            placeholder={t('shopEditor.idPlaceholder')}
             readOnly={!!selectedId}
           />
         </div>
         <div style={field}>
-          <label style={label}>Name</label>
+          <label style={label}>{t('editor.name')}</label>
           <input
             style={input}
             {...register('name')}
-            placeholder="General Store"
+            placeholder={t('shopEditor.namePlaceholder')}
           />
         </div>
       </div>
 
       <div style={productsBox}>
         <div style={productsHeader}>
-          <span style={label}>Products</span>
+          <span style={label}>{t('shopEditor.products')}</span>
           <button
             type="button"
             style={addBtn}
             onClick={() => append({ itemId: 0, currency: 0, price: 1 })}
           >
-            + Add
+            {t('editor.add')}
           </button>
         </div>
 
         {fields.length === 0 && (
-          <p style={emptyHint}>No products yet. Click + Add to add one.</p>
+          <p style={emptyHint}>{t('shopEditor.noProducts')}</p>
         )}
 
         {fields.map((f, i) => (
           <div key={f.id} style={productRow}>
             <div style={{ flex: 2, minWidth: 0 }}>
-              <label style={label}>Item</label>
+              <label style={label}>{t('item.item')}</label>
               <Controller
                 control={control}
                 name={`products.${i}.itemId`}
@@ -165,7 +167,7 @@ export const ShopEditor: React.FC<ShopEditorProps> = ({
               />
             </div>
             <div style={{ flex: 2, minWidth: 0 }}>
-              <label style={label}>Currency item</label>
+              <label style={label}>{t('shopEditor.currency')}</label>
               <Controller
                 control={control}
                 name={`products.${i}.currency`}
@@ -179,7 +181,7 @@ export const ShopEditor: React.FC<ShopEditorProps> = ({
               />
             </div>
             <div style={{ width: 72, flexShrink: 0 }}>
-              <label style={label}>Price</label>
+              <label style={label}>{t('shopEditor.price')}</label>
               <input
                 style={input}
                 type="number"
@@ -191,7 +193,7 @@ export const ShopEditor: React.FC<ShopEditorProps> = ({
               type="button"
               style={removeBtn}
               onClick={() => remove(i)}
-              title="Remove"
+              title={t('editor.remove')}
             >
               ✕
             </button>
@@ -201,7 +203,7 @@ export const ShopEditor: React.FC<ShopEditorProps> = ({
 
       <div style={actions}>
         <button type="submit" style={saveBtn}>
-          {selectedId ? 'Save Shop' : 'Create Shop'}
+          {selectedId ? t('shopEditor.save') : t('shopEditor.createBtn')}
         </button>
         {selectedId && (
           <button
@@ -209,7 +211,7 @@ export const ShopEditor: React.FC<ShopEditorProps> = ({
             style={deleteBtn}
             onClick={() => void removeShop()}
           >
-            Delete
+            {t('common.delete')}
           </button>
         )}
       </div>

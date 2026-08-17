@@ -13,6 +13,7 @@ import {
   type ScriptError,
 } from '../../io/network';
 import { colors, radius } from '../../theme';
+import { useT } from '../../i18n';
 
 // Self-hosted Monaco: point the react wrapper at the bundled npm package
 // instead of its default jsdelivr CDN fetch (vite-plugin-monaco-editor-esm
@@ -42,6 +43,9 @@ async function configureJsDefaults(): Promise<void> {
 // Own marker namespace, so runtime failures sit alongside Monaco's static
 // javascript diagnostics instead of overwriting them.
 const RUNTIME_MARKER_OWNER = 'script-runtime';
+
+// The variable as it is spelled in .env, not a sentence about it.
+const ENV_FLAG = 'SCRIPT_EDITOR_ENABLED=true';
 const ERROR_POLL_MS = 5000;
 
 const modelFor = (name: string) =>
@@ -81,6 +85,7 @@ function applyRuntimeMarkers(name: string, errors: ScriptError[]): void {
 export const ScriptEditor: React.FC<{ height?: number }> = ({
   height = 520,
 }) => {
+  const t = useT();
   const [files, setFiles] = useState<ScriptFileInfo[]>([]);
   const [selected, setSelected] = useState<string | null>(null);
   const [content, setContent] = useState('');
@@ -141,7 +146,10 @@ export const ScriptEditor: React.FC<{ height?: number }> = ({
   }, [dirty]);
 
   const openFile = async (name: string) => {
-    if (dirty && !window.confirm(`Discard unsaved changes to ${selected}?`)) {
+    if (
+      dirty &&
+      !window.confirm(t('script.discard', { file: selected ?? '' }))
+    ) {
       return;
     }
     setStatus('');
@@ -155,7 +163,7 @@ export const ScriptEditor: React.FC<{ height?: number }> = ({
     if (!selected) return;
     const ok = await saveScript(selected, content);
     setSavedContent(ok ? content : savedContent);
-    setStatus(ok ? 'Saved · hot-reloaded' : 'Save failed.');
+    setStatus(ok ? t('script.saved') : t('script.saveFailed'));
     if (!ok) return;
     // A filesystem watcher drives the reload, so errors in what was just saved
     // land after the response; wait for them.
@@ -196,7 +204,7 @@ export const ScriptEditor: React.FC<{ height?: number }> = ({
     const fileName = /\.(js|ts)$/.test(name) ? name : `${name}.js`;
     const ok = await createScript(fileName);
     if (!ok) {
-      setStatus('Could not create file (name taken or invalid).');
+      setStatus(t('script.createFailed'));
       return;
     }
     setNewName('');
@@ -205,7 +213,7 @@ export const ScriptEditor: React.FC<{ height?: number }> = ({
   };
 
   const remove = async (name: string) => {
-    if (!window.confirm(`Delete ${name}? This removes it from the server.`)) {
+    if (!window.confirm(t('script.confirmDelete', { file: name }))) {
       return;
     }
     await deleteScript(name);
@@ -223,9 +231,8 @@ export const ScriptEditor: React.FC<{ height?: number }> = ({
         <div style={fileList}>
           {unavailable && (
             <p style={disabledNote}>
-              Script editor is off. Set <code>SCRIPT_EDITOR_ENABLED=true</code>{' '}
-              and restart the server - saving a script here runs it on the
-              server, so it is opt-in.
+              {t('script.disabledBefore')} <code>{ENV_FLAG}</code>{' '}
+              {t('script.disabledAfter')}
             </p>
           )}
           {files.map((f) => (
@@ -243,7 +250,7 @@ export const ScriptEditor: React.FC<{ height?: number }> = ({
               </button>
               <button
                 style={deleteBtn}
-                title="Delete"
+                title={t('common.delete')}
                 onClick={() => void remove(f.name)}
               >
                 ×
@@ -254,19 +261,19 @@ export const ScriptEditor: React.FC<{ height?: number }> = ({
         <div style={newFileRow}>
           <input
             style={newFileInput}
-            placeholder="new-script.js"
+            placeholder={t('script.newPlaceholder')}
             value={newName}
             onChange={(e) => setNewName(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && void create()}
           />
           <button style={fileBtn} onClick={() => void create()}>
-            + New
+            {t('script.newFile')}
           </button>
         </div>
       </div>
       <div style={main}>
         <div style={toolbar}>
-          <span style={fileName}>{selected ?? 'Select a file'}</span>
+          <span style={fileName}>{selected ?? t('script.pickFile')}</span>
           <button
             style={{
               ...saveBtn,
@@ -275,7 +282,7 @@ export const ScriptEditor: React.FC<{ height?: number }> = ({
             disabled={!selected || !dirty}
             onClick={() => void save()}
           >
-            Save
+            {t('common.save')}
           </button>
           {status && <span style={statusLine}>{status}</span>}
         </div>
@@ -291,14 +298,14 @@ export const ScriptEditor: React.FC<{ height?: number }> = ({
               options={{ minimap: { enabled: false }, fontSize: 13 }}
             />
           ) : (
-            <div style={emptyHint}>
-              Pick a script on the left, or create a new one.
-            </div>
+            <div style={emptyHint}>{t('script.emptyHint')}</div>
           )}
         </div>
         {selected && fileErrors.length > 0 && (
           <div style={errorPanel}>
-            <div style={errorHeader}>Runtime errors ({fileErrors.length})</div>
+            <div style={errorHeader}>
+              {t('script.runtimeErrors', { count: fileErrors.length })}
+            </div>
             {fileErrors.map((e) => (
               <button
                 key={`${e.source}:${e.context ?? ''}:${e.line ?? ''}:${e.message}`}
@@ -307,7 +314,7 @@ export const ScriptEditor: React.FC<{ height?: number }> = ({
                 title={e.stack ?? e.message}
               >
                 <span style={errorWhere}>
-                  {e.line ? `line ${e.line}` : e.source}
+                  {e.line ? t('script.line', { line: e.line }) : e.source}
                   {e.context ? ` · ${e.context}` : ''}
                   {e.count > 1 ? ` · x${e.count}` : ''}
                 </span>

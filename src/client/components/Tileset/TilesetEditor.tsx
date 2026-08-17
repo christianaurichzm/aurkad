@@ -9,8 +9,10 @@ import { TilesetModeControls } from './TilesetModeControls';
 import { useDraggable } from '../../hooks/useDraggable';
 import { useEscapeClose } from '../../hooks/useEscapeClose';
 import { colors, radius, shadow, zIndex } from '../../theme';
+import { useT } from '../../i18n';
 
 export const TilesetEditor: React.FC = () => {
+  const t = useT();
   const [visible, setVisible] = useState(false);
   const visibleRef = useRef(false);
 
@@ -24,11 +26,11 @@ export const TilesetEditor: React.FC = () => {
     const { mapEdited, setMapEdited } = useUIStore.getState();
     if (mapEdited) {
       const discard = await useUIStore.getState().showDialog({
-        title: 'Discard map changes?',
-        message: 'You have unsaved changes. Discard them?',
+        title: t('tileset.discardTitle'),
+        message: t('tileset.discardMessage'),
         kind: 'confirm',
-        confirmLabel: 'Discard',
-        cancelLabel: 'Keep editing',
+        confirmLabel: t('editor.discard'),
+        cancelLabel: t('editor.keepEditing'),
       });
       if (!discard) return;
       resetToOriginalMap();
@@ -95,7 +97,7 @@ export const TilesetEditor: React.FC = () => {
         }}
       >
         <span style={{ fontWeight: 700, fontSize: 13, color: colors.text }}>
-          Map Editor
+          {t('tileset.title')}
         </span>
         <button
           style={{

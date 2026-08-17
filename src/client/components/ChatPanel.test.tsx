@@ -26,7 +26,7 @@ describe('ChatPanel Component', () => {
   it('should render input and scope selector', () => {
     render(<ChatPanel />);
 
-    const input = screen.getByPlaceholderText('Mensagem...');
+    const input = screen.getByPlaceholderText('Type a message…');
     const select = document.getElementById('chatScope') as HTMLSelectElement;
 
     expect(input).toBeInTheDocument();
@@ -65,7 +65,7 @@ describe('ChatPanel Component', () => {
     const user = userEvent.setup();
     render(<ChatPanel />);
 
-    const input = screen.getByPlaceholderText('Mensagem...');
+    const input = screen.getByPlaceholderText('Type a message…');
 
     await user.type(input, 'Hello');
 

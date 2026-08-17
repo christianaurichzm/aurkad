@@ -151,6 +151,15 @@ export function loadClientModule(
     onServerEvent: (channel, handler) => handlers.set(channel, handler),
     sendServerEvent: vi.fn(),
     ui: fakeUi(),
+    // The English passes through, as the real one does for a language with no
+    // entry, so a test asserting on a label reads what ships.
+    i18n: vi.fn(),
+    t: (text: string, params?: Record<string, string | number>) =>
+      params
+        ? text.replace(/\{(\w+)\}/g, (whole, name: string) =>
+            name in params ? String(params[name]) : whole,
+          )
+        : text,
     mount: () => document.createElement('div'),
     chat: vi.fn(),
     log: vi.fn(),

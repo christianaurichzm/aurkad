@@ -41,6 +41,7 @@ import { MapType, RuntimeNpc, TileEditMode } from '../../../shared/types';
 import { getGameState } from '../../core/gameState';
 import { SpritePreview } from '../common/SpritePreview';
 import { colors, radius } from '../../theme';
+import { t, useT, type TranslationKey } from '../../i18n';
 
 const inputStyle: React.CSSProperties = {
   padding: '6px 8px',
@@ -89,24 +90,24 @@ const propModes: TileEditMode[] = [
   'conditionalBlock',
 ];
 const layerModes: TileEditMode[] = ['mask', 'fringe'];
-const modeLabels: Record<TileEditMode, string> = {
-  blocking: 'Block',
-  warping: 'Warp',
-  npc: 'NPC',
-  item: 'Item',
-  shop: 'Shop',
-  bank: 'Bank',
-  avoidNpc: 'Avoid',
-  fringe: 'Fringe',
-  mask: 'Mask',
-  heal: 'Heal',
-  kill: 'Kill',
-  warn: 'Warn',
-  door: 'Door',
-  sound: 'Sound',
-  changeSprite: 'Sprite',
-  script: 'Script',
-  conditionalBlock: 'CondBlk',
+const modeLabels: Record<TileEditMode, TranslationKey> = {
+  blocking: 'tileMode.blocking',
+  warping: 'tileMode.warping',
+  npc: 'tileMode.npc',
+  item: 'tileMode.item',
+  shop: 'tileMode.shop',
+  bank: 'tileMode.bank',
+  avoidNpc: 'tileMode.avoidNpc',
+  fringe: 'tileMode.fringe',
+  mask: 'tileMode.mask',
+  heal: 'tileMode.heal',
+  kill: 'tileMode.kill',
+  warn: 'tileMode.warn',
+  door: 'tileMode.door',
+  sound: 'tileMode.sound',
+  changeSprite: 'tileMode.changeSprite',
+  script: 'tileMode.script',
+  conditionalBlock: 'tileMode.conditionalBlock',
 };
 const layerActiveColor: Partial<Record<TileEditMode, string>> = {
   mask: '#00bcd4',
@@ -118,6 +119,7 @@ const layerActiveColor: Partial<Record<TileEditMode, string>> = {
 const editorSelection = window as unknown as Record<string, string | number>;
 
 const TilesetModeControlsComponent: React.FC = () => {
+  const translate = useT();
   const mapEdited = useUIStore((state) => state.mapEdited);
 
   const [activeMode, setActiveMode] = useState<TileEditMode | null>(null);
@@ -144,7 +146,7 @@ const TilesetModeControlsComponent: React.FC = () => {
         setEditorMusic(music);
       } else {
         setMapType('normal');
-        setMapName('New Map');
+        setMapName(t('tileset.newMap'));
         setMapMusic('');
         setEditorMusic('');
       }
@@ -201,15 +203,15 @@ const TilesetModeControlsComponent: React.FC = () => {
       if (!result?.success) {
         const body = result as unknown as { errors?: string[] };
         await useUIStore.getState().showDialog({
-          title: 'Save blocked',
-          message: body?.errors?.join('\n') ?? 'Validation failed.',
+          title: t('tileset.saveBlocked'),
+          message: body?.errors?.join('\n') ?? t('tileset.validationFailed'),
           kind: 'error',
         });
         return;
       }
       if (result.warnings.length > 0) {
         await useUIStore.getState().showDialog({
-          title: 'Map saved with warnings',
+          title: t('tileset.savedWithWarnings'),
           message: result.warnings.join('\n'),
           kind: 'info',
         });
@@ -217,8 +219,8 @@ const TilesetModeControlsComponent: React.FC = () => {
       await loadMapData();
     } catch {
       await useUIStore.getState().showDialog({
-        title: 'Save failed',
-        message: 'Failed to save map. Please try again.',
+        title: t('tileset.saveFailed'),
+        message: t('tileset.saveFailedMessage'),
         kind: 'error',
       });
     }
@@ -264,12 +266,12 @@ const TilesetModeControlsComponent: React.FC = () => {
           style={{ display: 'flex', flexDirection: 'column', gap: 3, flex: 1 }}
         >
           <label style={labelStyle} htmlFor="mapName">
-            Map name
+            {translate('tileset.mapName')}
           </label>
           <input
             id="mapName"
             type="text"
-            placeholder="Map name"
+            placeholder={translate('tileset.mapName')}
             value={mapName}
             style={inputStyle}
             onChange={(e) => {
@@ -283,7 +285,7 @@ const TilesetModeControlsComponent: React.FC = () => {
           style={{ display: 'flex', flexDirection: 'column', gap: 3, flex: 1 }}
         >
           <label style={labelStyle} htmlFor="mapMusic">
-            Music
+            {translate('tileset.music')}
           </label>
           <input
             id="mapMusic"
@@ -300,11 +302,11 @@ const TilesetModeControlsComponent: React.FC = () => {
           />
         </div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
-          <label style={labelStyle}>Type</label>
+          <label style={labelStyle}>{translate('editor.type')}</label>
           <Select
             options={[
-              { value: 'pvp', label: 'PvP' },
-              { value: 'normal', label: 'Normal' },
+              { value: 'pvp', label: translate('map.typePvp') },
+              { value: 'normal', label: translate('map.typeNormal') },
             ]}
             value={mapType}
             onChange={(value) => {
@@ -318,17 +320,21 @@ const TilesetModeControlsComponent: React.FC = () => {
         <button
           onClick={() => fillMap()}
           style={ghostBtn}
-          title="Fill entire map with selected tile"
+          title={translate('tileset.fillHelp')}
         >
-          Fill
+          {translate('tileset.fill')}
         </button>
-        <button onClick={() => undo()} style={ghostBtn} title="Undo (Ctrl+Z)">
+        <button
+          onClick={() => undo()}
+          style={ghostBtn}
+          title={translate('tileset.undo')}
+        >
           ↩
         </button>
         <button
           onClick={() => redo()}
           style={ghostBtn}
-          title="Redo (Ctrl+Y / Ctrl+Shift+Z)"
+          title={translate('tileset.redo')}
         >
           ↪
         </button>
@@ -349,7 +355,7 @@ const TilesetModeControlsComponent: React.FC = () => {
             flexShrink: 0,
           }}
         >
-          Save
+          {translate('common.save')}
         </button>
       </div>
 
@@ -378,7 +384,7 @@ const TilesetModeControlsComponent: React.FC = () => {
                 transition: 'all 0.12s',
               }}
             >
-              {modeLabels[mode]}
+              {translate(modeLabels[mode])}
             </button>
           );
         })}
@@ -393,7 +399,9 @@ const TilesetModeControlsComponent: React.FC = () => {
           gap: 5,
         }}
       >
-        <span style={{ ...labelStyle, marginBottom: 0 }}>Layers</span>
+        <span style={{ ...labelStyle, marginBottom: 0 }}>
+          {translate('tileset.layers')}
+        </span>
         <div style={{ display: 'flex', gap: 5 }}>
           {layerModes.map((mode) => {
             const isActive = activeMode === mode;
@@ -415,7 +423,7 @@ const TilesetModeControlsComponent: React.FC = () => {
                   transition: 'all 0.12s',
                 }}
               >
-                {modeLabels[mode]}
+                {translate(modeLabels[mode])}
               </button>
             );
           })}
@@ -424,18 +432,18 @@ const TilesetModeControlsComponent: React.FC = () => {
 
       {activeMode === 'warping' && (
         <div style={inputsBox}>
-          <label style={labelStyle}>Map</label>
+          <label style={labelStyle}>{translate('map.map')}</label>
           <AsyncSelect
             loadOptions={loadMaps}
             value={selectedWarpMap}
             onChange={setSelectedWarpMap}
           />
           <label style={labelStyle} htmlFor="xTo">
-            Tile X
+            {translate('tileset.tileX')}
           </label>
           <input type="number" id="xTo" name="xTo" style={inputStyle} />
           <label style={labelStyle} htmlFor="yTo">
-            Tile Y
+            {translate('tileset.tileY')}
           </label>
           <input type="number" id="yTo" name="yTo" style={inputStyle} />
         </div>
@@ -443,7 +451,7 @@ const TilesetModeControlsComponent: React.FC = () => {
 
       {activeMode === 'npc' && (
         <div style={inputsBox}>
-          <label style={labelStyle}>NPC</label>
+          <label style={labelStyle}>{translate('npc.npc')}</label>
           <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
             <div style={{ flex: 1 }}>
               <AsyncSelect
@@ -467,7 +475,7 @@ const TilesetModeControlsComponent: React.FC = () => {
 
       {activeMode === 'item' && (
         <div style={inputsBox}>
-          <label style={labelStyle}>Item</label>
+          <label style={labelStyle}>{translate('item.item')}</label>
           <AsyncSelect
             loadOptions={loadItems}
             value={selectedItem}
@@ -478,7 +486,7 @@ const TilesetModeControlsComponent: React.FC = () => {
 
       {activeMode === 'shop' && (
         <div style={inputsBox}>
-          <label style={labelStyle}>Shop</label>
+          <label style={labelStyle}>{translate('shopEditor.shop')}</label>
           <AsyncSelect
             loadOptions={loadShops}
             value={selectedShop}
@@ -490,7 +498,7 @@ const TilesetModeControlsComponent: React.FC = () => {
       {activeMode === 'door' && (
         <div style={inputsBox}>
           <label style={labelStyle} htmlFor="doorItem">
-            Requires Item ID
+            {translate('tileset.doorItem')}
           </label>
           <input
             type="number"
@@ -499,7 +507,7 @@ const TilesetModeControlsComponent: React.FC = () => {
             defaultValue={0}
           />
           <label style={labelStyle} htmlFor="doorOpenTile">
-            Open Tile Index
+            {translate('tileset.doorOpenTile')}
           </label>
           <input
             type="number"
@@ -513,7 +521,7 @@ const TilesetModeControlsComponent: React.FC = () => {
       {activeMode === 'sound' && (
         <div style={inputsBox}>
           <label style={labelStyle} htmlFor="soundFile">
-            Sound file
+            {translate('tileset.soundFile')}
           </label>
           <input
             type="text"
@@ -527,7 +535,7 @@ const TilesetModeControlsComponent: React.FC = () => {
       {activeMode === 'changeSprite' && (
         <div style={inputsBox}>
           <label style={labelStyle} htmlFor="changeSpriteId">
-            Sprite ID
+            {translate('editor.spriteId')}
           </label>
           <input
             type="number"
@@ -545,7 +553,7 @@ const TilesetModeControlsComponent: React.FC = () => {
           onScriptIdChange={setScriptId}
           params={scriptParams}
           onParamsChange={setScriptParams}
-          hint="Runs when a player steps on the tiles you paint with it"
+          hint={translate('tileset.scriptHint')}
           loadItems={loadItems}
           loadNpcs={loadNpcs}
         />
@@ -554,7 +562,7 @@ const TilesetModeControlsComponent: React.FC = () => {
       {activeMode === 'conditionalBlock' && (
         <div style={inputsBox}>
           <label style={labelStyle} htmlFor="conditionalBlockId">
-            Block ID
+            {translate('tileset.blockId')}
           </label>
           <input
             type="text"

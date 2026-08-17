@@ -12,6 +12,7 @@ import { GMPanel } from './components/GMPanel';
 import { ChatPanel } from './components/ChatPanel';
 import { ActionPanel } from './components/ActionPanel';
 import { useGame } from './context/GameContext';
+import { useT } from './i18n';
 import { AttributeDistributorModal } from './components/AttributeDistributorModal';
 import { GameCanvas } from './components/GameCanvas';
 import { DialogHost } from './components/common/DialogHost';
@@ -19,6 +20,7 @@ import { OnlinePlayersModal } from './components/OnlinePlayersModal';
 import { SettingsModal } from './components/SettingsModal';
 
 function App() {
+  const t = useT();
   const { isLoggedIn } = useGame();
   const [showRegister, setShowRegister] = useState(false);
 
@@ -27,14 +29,14 @@ function App() {
       {isLoggedIn ? (
         <div id="ui">
           <div id="gameShell">
-            <main id="gameMain" aria-label="Game map">
+            <main id="gameMain" aria-label={t('app.gameMap')}>
               <div id="canvasFrame">
                 <GameCanvas />
                 <GameInterface />
                 <QuestTracker />
               </div>
             </main>
-            <aside id="sidePanel" aria-label="Game controls">
+            <aside id="sidePanel" aria-label={t('app.gameControls')}>
               <HudBar />
               <ActionPanel />
               <ChatPanel />

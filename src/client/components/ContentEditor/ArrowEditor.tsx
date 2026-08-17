@@ -11,6 +11,7 @@ import { AsyncSelect } from '../common/Select/AsyncSelect';
 import { SpritePreview } from '../common/SpritePreview';
 import { arrowSheet } from '../../io/assets';
 import { colors, radius } from '../../theme';
+import { useT } from '../../i18n';
 
 interface ArrowEditorProps {
   onDirtyChange: (dirty: boolean) => void;
@@ -39,6 +40,7 @@ export const ArrowEditor: React.FC<ArrowEditorProps> = ({
   onDirtyChange,
   requestDiscard,
 }) => {
+  const t = useT();
   const [selectedId, setSelectedId] = useState('');
   const {
     formState: { isDirty },
@@ -90,7 +92,7 @@ export const ArrowEditor: React.FC<ArrowEditorProps> = ({
           .then(() => true)
           .catch(() => false)
       : !!(await createArrow(payload).catch(() => null));
-    chatResultMsg(!!result, 'Arrow saved!', 'Error saving arrow');
+    chatResultMsg(!!result, t('arrow.saved'), t('arrow.saveError'));
     reset(defaults);
     setSelectedId('');
   };
@@ -100,7 +102,7 @@ export const ArrowEditor: React.FC<ArrowEditorProps> = ({
     const ok = await deleteArrow(Number(selectedId))
       .then(() => true)
       .catch(() => false);
-    chatResultMsg(ok, 'Arrow deleted!', 'Error deleting arrow');
+    chatResultMsg(ok, t('arrow.deleted'), t('arrow.deleteError'));
     reset(defaults);
     setSelectedId('');
   };
@@ -110,7 +112,7 @@ export const ArrowEditor: React.FC<ArrowEditorProps> = ({
   return (
     <form style={container} onSubmit={handleSubmit(handleSave)}>
       <div style={field}>
-        <label style={label}>Arrow</label>
+        <label style={label}>{t('arrow.arrow')}</label>
         <div style={{ display: 'flex', gap: 8 }}>
           <div style={{ flex: 1 }}>
             <AsyncSelect
@@ -128,22 +130,26 @@ export const ArrowEditor: React.FC<ArrowEditorProps> = ({
                 setSelectedId('');
               }}
             >
-              New
+              {t('editor.new')}
             </button>
           )}
         </div>
       </div>
       <div style={field}>
-        <label style={label}>Name</label>
-        <input style={input} {...register('name')} placeholder="Iron Arrow" />
+        <label style={label}>{t('editor.name')}</label>
+        <input
+          style={input}
+          {...register('name')}
+          placeholder={t('arrow.namePlaceholder')}
+        />
       </div>
       <div style={field}>
-        <label style={label}>Description</label>
+        <label style={label}>{t('editor.description')}</label>
         <input style={input} {...register('description')} placeholder="..." />
       </div>
       <div style={{ display: 'flex', gap: 8, alignItems: 'flex-end' }}>
         <div style={field}>
-          <label style={label}>Sprite</label>
+          <label style={label}>{t('editor.sprite')}</label>
           <input
             style={{ ...input, width: 70 }}
             type="number"
@@ -157,7 +163,7 @@ export const ArrowEditor: React.FC<ArrowEditorProps> = ({
           size={48}
         />
         <div style={field}>
-          <label style={label}>Damage</label>
+          <label style={label}>{t('editor.damage')}</label>
           <input
             style={{ ...input, width: 70 }}
             type="number"
@@ -167,7 +173,7 @@ export const ArrowEditor: React.FC<ArrowEditorProps> = ({
       </div>
       <div style={{ display: 'flex', gap: 8 }}>
         <div style={field}>
-          <label style={label}>Range (tiles)</label>
+          <label style={label}>{t('arrow.range')}</label>
           <input
             style={{ ...input, width: 90 }}
             type="number"
@@ -175,7 +181,7 @@ export const ArrowEditor: React.FC<ArrowEditorProps> = ({
           />
         </div>
         <div style={field}>
-          <label style={label}>Speed (tiles/s)</label>
+          <label style={label}>{t('arrow.speed')}</label>
           <input
             style={{ ...input, width: 90 }}
             type="number"
@@ -188,7 +194,7 @@ export const ArrowEditor: React.FC<ArrowEditorProps> = ({
       </div>
       <div style={{ display: 'flex', gap: 8 }}>
         <button type="submit" style={saveBtn} disabled={!name.trim()}>
-          {selectedId ? 'Save' : 'Create'}
+          {selectedId ? t('common.save') : t('editor.create')}
         </button>
         {selectedId && (
           <button
@@ -196,7 +202,7 @@ export const ArrowEditor: React.FC<ArrowEditorProps> = ({
             style={deleteBtn}
             onClick={() => void handleDelete()}
           >
-            Delete
+            {t('common.delete')}
           </button>
         )}
       </div>

@@ -8,12 +8,14 @@ import { CommandConsole } from './moderation/CommandConsole';
 import { chatResultMsg } from './ChatPanel';
 import { Modal } from './common/Modal';
 import { colors, radius } from '../theme';
+import { useT } from '../i18n';
 
 // The single in-game GM panel: per-player moderation (by name or from the
 // list), server and script commands, and self actions, in one place to
 // moderate while watching the game. X or the GM action button opens it
 // for MOD and above.
 export const GMPanel: React.FC = () => {
+  const t = useT();
   const { player: sessionPlayer } = useGame();
   const livePlayer = usePlayerForceUpdate(true);
   const access = livePlayer?.access ?? sessionPlayer?.access ?? Access.USER;
@@ -42,11 +44,11 @@ export const GMPanel: React.FC = () => {
 
   const doSelf = async (fn: () => Promise<unknown>, ok: string) => {
     const res = await fn();
-    chatResultMsg(!!res, ok, 'Failed.');
+    chatResultMsg(!!res, ok, t('gm.failed'));
   };
 
   return (
-    <Modal title="GM panel" onClose={() => setVisible(false)} width={420}>
+    <Modal title={t('gm.title')} onClose={() => setVisible(false)} width={420}>
       <div style={layout}>
         <PlayerModeration
           access={access}
@@ -56,25 +58,25 @@ export const GMPanel: React.FC = () => {
         {status && <div style={statusLine}>{status}</div>}
 
         <hr style={divider} />
-        <h4 style={sectionTitle}>Commands</h4>
+        <h4 style={sectionTitle}>{t('gm.commands')}</h4>
         <CommandConsole height={160} />
 
         <hr style={divider} />
-        <h4 style={sectionTitle}>My self</h4>
+        <h4 style={sectionTitle}>{t('gm.myself')}</h4>
         <div style={row}>
           <input
             style={{ ...input, flex: 1 }}
-            placeholder="Map ID"
+            placeholder={t('gm.mapId')}
             value={mapId}
             onChange={(e) => setMapId(e.target.value)}
           />
           <button
             style={btn}
             onClick={() =>
-              void doSelf(() => modMoveMap(mapId.trim()), 'Moved.')
+              void doSelf(() => modMoveMap(mapId.trim()), t('gm.moved'))
             }
           >
-            Go
+            {t('gm.go')}
           </button>
         </div>
         {access >= Access.ADMIN && (
@@ -93,10 +95,10 @@ export const GMPanel: React.FC = () => {
             <button
               style={btn}
               onClick={() =>
-                void doSelf(() => modSetMyAccess(myAccess), 'Access set.')
+                void doSelf(() => modSetMyAccess(myAccess), t('gm.accessSet'))
               }
             >
-              Set access
+              {t('gm.setAccess')}
             </button>
           </div>
         )}
@@ -104,17 +106,17 @@ export const GMPanel: React.FC = () => {
           <input
             style={{ ...input, flex: 1 }}
             type="number"
-            placeholder="My sprite"
+            placeholder={t('gm.mySprite')}
             value={mySprite}
             onChange={(e) => setMySprite(+e.target.value)}
           />
           <button
             style={btn}
             onClick={() =>
-              void doSelf(() => changeSprite(mySprite), 'Sprite set.')
+              void doSelf(() => changeSprite(mySprite), t('gm.spriteSet'))
             }
           >
-            Set sprite
+            {t('gm.setSprite')}
           </button>
         </div>
       </div>

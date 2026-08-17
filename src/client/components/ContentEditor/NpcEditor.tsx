@@ -14,6 +14,7 @@ import { SpritePreview } from '../common/SpritePreview';
 import { ScriptBehaviorFields } from './ScriptBehaviorFields';
 import type { ScriptParams } from '../../../shared/scriptParams';
 import { colors, radius } from '../../theme';
+import { useT } from '../../i18n';
 
 interface NpcEditorProps {
   npcs: RuntimeNpc[];
@@ -108,6 +109,7 @@ export const NpcEditor: React.FC<NpcEditorProps> = ({
   onDirtyChange,
   requestDiscard,
 }) => {
+  const t = useT();
   const [selectedId, setSelectedId] = useState('');
   const {
     control,
@@ -225,7 +227,7 @@ export const NpcEditor: React.FC<NpcEditorProps> = ({
     const result = selectedId
       ? await updateNpc(selectedId, data).catch(() => null)
       : await createNpc(data).catch(() => null);
-    chatResultMsg(!!result, 'NPC saved!', 'Error saving NPC');
+    chatResultMsg(!!result, t('npc.saved'), t('npc.saveError'));
     // Dangling references never block a save, so this is where their author
     // hears about them.
     for (const warning of result?.warnings ?? []) {
@@ -243,7 +245,7 @@ export const NpcEditor: React.FC<NpcEditorProps> = ({
     const ok = await deleteNpc(selectedId)
       .then(() => true)
       .catch(() => false);
-    chatResultMsg(ok, 'NPC deleted!', 'Error deleting NPC');
+    chatResultMsg(ok, t('npc.deleted'), t('npc.deleteError'));
     refreshData();
     setSelectedId('');
     resetForm(defaultValues);
@@ -252,12 +254,12 @@ export const NpcEditor: React.FC<NpcEditorProps> = ({
   };
 
   const behaviorOptions: { value: NpcBehavior; label: string }[] = [
-    { value: 'neutral', label: 'Neutral' },
-    { value: 'aggressive', label: 'Aggressive' },
-    { value: 'hostile', label: 'Hostile' },
-    { value: 'friendly', label: 'Friendly' },
-    { value: 'shopkeeper', label: 'Shopkeeper' },
-    { value: 'guard', label: 'Guard' },
+    { value: 'neutral', label: t('npc.behaviorNeutral') },
+    { value: 'aggressive', label: t('npc.behaviorAggressive') },
+    { value: 'hostile', label: t('npc.behaviorHostile') },
+    { value: 'friendly', label: t('npc.behaviorFriendly') },
+    { value: 'shopkeeper', label: t('npc.behaviorShopkeeper') },
+    { value: 'guard', label: t('npc.behaviorGuard') },
   ];
 
   const addItem = addItemId ? items.find((i) => i.id === addItemId) : null;
@@ -265,7 +267,7 @@ export const NpcEditor: React.FC<NpcEditorProps> = ({
   return (
     <form style={container} onSubmit={handleSubmit(saveNpc)}>
       <div style={field}>
-        <label style={label}>NPC</label>
+        <label style={label}>{t('npc.npc')}</label>
         <div style={{ display: 'flex', gap: 8 }}>
           <div style={{ flex: 1 }}>
             <AsyncSelect
@@ -276,7 +278,7 @@ export const NpcEditor: React.FC<NpcEditorProps> = ({
           </div>
           {selectedId && (
             <button type="button" style={resetBtn} onClick={() => void reset()}>
-              New
+              {t('editor.new')}
             </button>
           )}
         </div>
@@ -286,7 +288,7 @@ export const NpcEditor: React.FC<NpcEditorProps> = ({
         <div style={leftCol}>
           <SpritePreview spriteId={sprite} />
           <div style={field}>
-            <label style={label}>Sprite ID</label>
+            <label style={label}>{t('editor.spriteId')}</label>
             <input
               style={input}
               type="number"
@@ -297,11 +299,15 @@ export const NpcEditor: React.FC<NpcEditorProps> = ({
 
         <div style={rightCol}>
           <div style={field}>
-            <label style={label}>Name</label>
-            <input style={input} {...register('name')} placeholder="NPC name" />
+            <label style={label}>{t('editor.name')}</label>
+            <input
+              style={input}
+              {...register('name')}
+              placeholder={t('npc.namePlaceholder')}
+            />
           </div>
           <div style={field}>
-            <label style={label}>Behavior</label>
+            <label style={label}>{t('npc.behavior')}</label>
             <Controller
               control={control}
               name="behavior"
@@ -316,7 +322,7 @@ export const NpcEditor: React.FC<NpcEditorProps> = ({
           </div>
           <div style={triRow}>
             <div style={field}>
-              <label style={label}>HP</label>
+              <label style={label}>{t('npc.hp')}</label>
               <input
                 style={input}
                 type="number"
@@ -324,7 +330,7 @@ export const NpcEditor: React.FC<NpcEditorProps> = ({
               />
             </div>
             <div style={field}>
-              <label style={label}>ATK</label>
+              <label style={label}>{t('npc.atk')}</label>
               <input
                 style={input}
                 type="number"
@@ -332,7 +338,7 @@ export const NpcEditor: React.FC<NpcEditorProps> = ({
               />
             </div>
             <div style={field}>
-              <label style={label}>EXP</label>
+              <label style={label}>{t('npc.exp')}</label>
               <input
                 style={input}
                 type="number"
@@ -346,11 +352,11 @@ export const NpcEditor: React.FC<NpcEditorProps> = ({
       {hunts && (
         <div style={dropSection}>
           <label style={{ ...label, marginBottom: 6, display: 'block' }}>
-            AI (tiles)
+            {t('npc.ai')}
           </label>
           <div style={triRow}>
             <div style={field}>
-              <label style={label}>Sight</label>
+              <label style={label}>{t('npc.sight')}</label>
               <input
                 style={input}
                 type="number"
@@ -361,7 +367,7 @@ export const NpcEditor: React.FC<NpcEditorProps> = ({
               />
             </div>
             <div style={field}>
-              <label style={label}>Path depth</label>
+              <label style={label}>{t('npc.pathDepth')}</label>
               <input
                 style={input}
                 type="number"
@@ -372,7 +378,7 @@ export const NpcEditor: React.FC<NpcEditorProps> = ({
               />
             </div>
             <div style={field}>
-              <label style={label}>Leash</label>
+              <label style={label}>{t('npc.leash')}</label>
               <input
                 style={input}
                 type="number"
@@ -384,7 +390,7 @@ export const NpcEditor: React.FC<NpcEditorProps> = ({
             </div>
           </div>
           <div style={{ ...field, marginTop: 8, maxWidth: 180 }}>
-            <label style={label}>Step every (ms)</label>
+            <label style={label}>{t('npc.stepEvery')}</label>
             <input
               style={input}
               type="number"
@@ -394,14 +400,7 @@ export const NpcEditor: React.FC<NpcEditorProps> = ({
               {...register('moveIntervalMs')}
             />
           </div>
-          <p style={dropHint}>
-            Empty uses the default for the behavior. Sight is how far it notices
-            a player on its own - being hit ignores it. Path depth 0 walks
-            straight at you and bumps into walls; higher rounds bigger
-            obstacles. Leash is how far it follows before walking back to its
-            spawn, 0 for no limit. Step every is speed: lower is faster, and 50
-            is one step per tick.
-          </p>
+          <p style={dropHint}>{t('npc.aiHint')}</p>
         </div>
       )}
 
@@ -415,14 +414,14 @@ export const NpcEditor: React.FC<NpcEditorProps> = ({
         onParamsChange={(value) =>
           setValue('scriptParams', value, { shouldDirty: true })
         }
-        hint="Runs when a player talks to this NPC, and when it dies"
+        hint={t('npc.behaviorHint')}
         loadItems={loadItems}
         loadNpcs={loadNpcs}
       />
 
       <div style={dropSection}>
         <label style={{ ...label, marginBottom: 6, display: 'block' }}>
-          Dialog
+          {t('npc.dialog')}
         </label>
         <Controller
           control={control}
@@ -436,15 +435,13 @@ export const NpcEditor: React.FC<NpcEditorProps> = ({
           )}
         />
         <p style={dropHint}>
-          {watch('dialogId')
-            ? 'Talking to this NPC opens the conversation authored in the Dialogs tab.'
-            : 'No dialog: talking to this NPC only fires the behavior above.'}
+          {watch('dialogId') ? t('npc.dialogSet') : t('npc.dialogNone')}
         </p>
       </div>
 
       <div style={dropSection}>
         <label style={{ ...label, marginBottom: 6, display: 'block' }}>
-          Quest
+          {t('npc.quest')}
         </label>
         <Controller
           control={control}
@@ -458,15 +455,13 @@ export const NpcEditor: React.FC<NpcEditorProps> = ({
           )}
         />
         <p style={dropHint}>
-          {watch('questId')
-            ? 'Talking to this NPC starts the quest directly. To let the player accept or refuse, leave this empty and give a dialog choice the action questStart:<id>.'
-            : 'No quest offered on interact.'}
+          {watch('questId') ? t('npc.questSet') : t('npc.questNone')}
         </p>
       </div>
 
       <div style={dropSection}>
         <label style={{ ...label, marginBottom: 6, display: 'block' }}>
-          Loot table
+          {t('npc.lootTable')}
         </label>
         <Controller
           control={control}
@@ -480,15 +475,13 @@ export const NpcEditor: React.FC<NpcEditorProps> = ({
           )}
         />
         <p style={dropHint}>
-          {watch('lootTableId')
-            ? 'Weighted table in use. The simple drops below are ignored.'
-            : 'No table: the simple drops below are used, each rolled on its own.'}
+          {watch('lootTableId') ? t('npc.lootSet') : t('npc.lootNone')}
         </p>
       </div>
 
       <div style={dropSection}>
         <label style={{ ...label, marginBottom: 6, display: 'block' }}>
-          Drops
+          {t('npc.drops')}
         </label>
         {drops.length > 0 && (
           <div style={dropList}>
@@ -498,7 +491,7 @@ export const NpcEditor: React.FC<NpcEditorProps> = ({
                 <div key={i} style={dropListRow}>
                   {it && <ItemIcon spriteId={it.sprite} style={dropIcon} />}
                   <span style={dropName}>
-                    {it?.name ?? `Item #${drop.itemId}`}
+                    {it?.name ?? t('npc.itemNumber', { id: drop.itemId })}
                   </span>
                   <span style={dropStat}>{Math.round(drop.chance * 100)}%</span>
                   <span style={dropStat}>x{drop.quantity ?? 1}</span>
@@ -533,7 +526,7 @@ export const NpcEditor: React.FC<NpcEditorProps> = ({
                 setAddChance(Math.min(100, Math.max(0, Number(e.target.value))))
               }
               placeholder="%"
-              title="Drop chance %"
+              title={t('npc.dropChance')}
             />
           </div>
           <div style={{ width: 60 }}>
@@ -545,8 +538,8 @@ export const NpcEditor: React.FC<NpcEditorProps> = ({
               onChange={(e) =>
                 setAddQty(Math.max(1, Math.floor(Number(e.target.value))))
               }
-              placeholder="Qty"
-              title="Quantity"
+              placeholder={t('npc.qty')}
+              title={t('npc.quantity')}
             />
           </div>
           {addItem && <ItemIcon spriteId={addItem.sprite} style={dropIcon} />}
@@ -556,18 +549,18 @@ export const NpcEditor: React.FC<NpcEditorProps> = ({
             onClick={addDrop}
             disabled={!addItemId}
           >
-            + Add
+            {t('editor.add')}
           </button>
         </div>
       </div>
 
       <div style={actions}>
         <button type="submit" style={saveBtn}>
-          {selectedId ? 'Save NPC' : 'Create NPC'}
+          {selectedId ? t('npc.save') : t('npc.createBtn')}
         </button>
         {selectedId && (
           <button type="button" style={deleteBtn} onClick={removeNpc}>
-            Delete
+            {t('common.delete')}
           </button>
         )}
       </div>

@@ -4,6 +4,7 @@ import type {
   ChatScope,
   MapType,
 } from '../../shared/types';
+import { t } from '../i18n';
 
 interface ConnectionState {
   message: string;
@@ -179,8 +180,8 @@ export const useUIStore = create<UIState>((set) => ({
     title: '',
     message: '',
     kind: 'info',
-    confirmLabel: 'OK',
-    cancelLabel: 'Cancel',
+    confirmLabel: t('common.ok'),
+    cancelLabel: t('common.cancel'),
   },
   showDialog: (options) =>
     new Promise<boolean>((resolve) => {
@@ -190,8 +191,8 @@ export const useUIStore = create<UIState>((set) => ({
           title: options.title,
           message: options.message,
           kind: options.kind ?? 'info',
-          confirmLabel: options.confirmLabel ?? 'OK',
-          cancelLabel: options.cancelLabel ?? 'Cancel',
+          confirmLabel: options.confirmLabel ?? t('common.ok'),
+          cancelLabel: options.cancelLabel ?? t('common.cancel'),
           resolve,
         },
       });
@@ -205,8 +206,8 @@ export const useUIStore = create<UIState>((set) => ({
           title: '',
           message: '',
           kind: 'info',
-          confirmLabel: 'OK',
-          cancelLabel: 'Cancel',
+          confirmLabel: t('common.ok'),
+          cancelLabel: t('common.cancel'),
         },
       };
     }),

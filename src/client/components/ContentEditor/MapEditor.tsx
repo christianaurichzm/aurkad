@@ -6,6 +6,7 @@ import { chatResultMsg } from '../ChatPanel';
 import { updateMap, createMap, resizeMap } from '../../io/network';
 import { colors, radius } from '../../theme';
 import { TILE_SIZE } from '../../../shared/constants';
+import { useT, type TranslationKey } from '../../i18n';
 
 interface MapEditorProps {
   maps: MapStateClient[];
@@ -29,6 +30,13 @@ type MapFormValues = {
 };
 
 const emptyBorder: BorderLinkForm = { mapId: '', tileX: 0, tileY: 0 };
+
+const BORDER_LABEL: Record<string, TranslationKey> = {
+  borderUp: 'map.borderUp',
+  borderDown: 'map.borderDown',
+  borderLeft: 'map.borderLeft',
+  borderRight: 'map.borderRight',
+};
 
 const defaultValues: MapFormValues = {
   name: '',
@@ -70,6 +78,7 @@ export const MapEditor: React.FC<MapEditorProps> = ({
   onDirtyChange,
   requestDiscard,
 }) => {
+  const t = useT();
   const [selectedId, setSelectedId] = useState<string>('');
   const [resizeCols, setResizeCols] = useState(20);
   const [resizeRows, setResizeRows] = useState(14);
@@ -90,8 +99,8 @@ export const MapEditor: React.FC<MapEditorProps> = ({
   }, [isDirty, onDirtyChange]);
 
   const mapTypeOptions: { value: MapType; label: string }[] = [
-    { value: 'normal', label: 'Normal' },
-    { value: 'pvp', label: 'PvP' },
+    { value: 'normal', label: t('map.typeNormal') },
+    { value: 'pvp', label: t('map.typePvp') },
   ];
 
   const handleSelect = async (mapId: string) => {
@@ -145,7 +154,7 @@ export const MapEditor: React.FC<MapEditorProps> = ({
           borderLinks,
         })
       : await createMap({ name, type, cols, rows });
-    chatResultMsg(!!result, 'Map saved!', 'Error saving map');
+    chatResultMsg(!!result, t('map.saved'), t('map.saveError'));
     refreshData();
     setSelectedId('');
     setShowResize(false);
@@ -155,7 +164,7 @@ export const MapEditor: React.FC<MapEditorProps> = ({
   const handleResize = async () => {
     if (!selectedId) return;
     const result = await resizeMap(selectedId, resizeCols, resizeRows);
-    chatResultMsg(!!result?.success, 'Map resized!', 'Error resizing map');
+    chatResultMsg(!!result?.success, t('map.resized'), t('map.resizeError'));
     if (result?.success) {
       setShowResize(false);
       refreshData();
@@ -165,7 +174,7 @@ export const MapEditor: React.FC<MapEditorProps> = ({
   return (
     <form style={container} onSubmit={handleSubmit(handleSave)}>
       <div style={field}>
-        <label style={label}>Map</label>
+        <label style={label}>{t('map.map')}</label>
         <div style={{ display: 'flex', gap: 8 }}>
           <div style={{ flex: 1 }}>
             <AsyncSelect
@@ -176,19 +185,23 @@ export const MapEditor: React.FC<MapEditorProps> = ({
           </div>
           {selectedId && (
             <button type="button" style={resetBtn} onClick={() => void reset()}>
-              New
+              {t('editor.new')}
             </button>
           )}
         </div>
       </div>
 
       <div style={field}>
-        <label style={label}>Map Name</label>
-        <input style={input} {...register('name')} placeholder="Map name" />
+        <label style={label}>{t('map.name')}</label>
+        <input
+          style={input}
+          {...register('name')}
+          placeholder={t('map.namePlaceholder')}
+        />
       </div>
 
       <div style={field}>
-        <label style={label}>Map Type</label>
+        <label style={label}>{t('map.type')}</label>
         <Controller
           control={control}
           name="type"
@@ -205,7 +218,7 @@ export const MapEditor: React.FC<MapEditorProps> = ({
       {selectedId && (
         <>
           <div style={field}>
-            <label style={label}>Music file</label>
+            <label style={label}>{t('map.music')}</label>
             <input
               style={input}
               {...register('music')}
@@ -213,7 +226,7 @@ export const MapEditor: React.FC<MapEditorProps> = ({
             />
           </div>
           <div style={field}>
-            <label style={label}>Border links</label>
+            <label style={label}>{t('map.borderLinks')}</label>
             {(
               ['borderUp', 'borderDown', 'borderLeft', 'borderRight'] as const
             ).map((dir) => (
@@ -227,11 +240,11 @@ export const MapEditor: React.FC<MapEditorProps> = ({
                 }}
               >
                 <span style={{ ...label, width: 36, marginBottom: 0 }}>
-                  {dir.replace('border', '')}
+                  {t(BORDER_LABEL[dir] ?? 'map.borderUp')}
                 </span>
                 <input
                   style={{ ...input, flex: 2 }}
-                  placeholder="mapId"
+                  placeholder={t('map.mapIdPlaceholder')}
                   {...register(`${dir}.mapId`)}
                 />
                 <input
@@ -254,7 +267,7 @@ export const MapEditor: React.FC<MapEditorProps> = ({
 
       {!selectedId && (
         <div style={field}>
-          <label style={label}>Size (cols × rows)</label>
+          <label style={label}>{t('map.size')}</label>
           <div style={{ display: 'flex', gap: 8 }}>
             <input
               style={{ ...input, width: 80 }}
@@ -262,7 +275,7 @@ export const MapEditor: React.FC<MapEditorProps> = ({
               min={1}
               max={200}
               {...register('cols', { valueAsNumber: true })}
-              placeholder="Cols"
+              placeholder={t('map.cols')}
             />
             <input
               style={{ ...input, width: 80 }}
@@ -270,7 +283,7 @@ export const MapEditor: React.FC<MapEditorProps> = ({
               min={1}
               max={200}
               {...register('rows', { valueAsNumber: true })}
-              placeholder="Rows"
+              placeholder={t('map.rows')}
             />
           </div>
         </div>
@@ -285,13 +298,13 @@ export const MapEditor: React.FC<MapEditorProps> = ({
               alignItems: 'center',
             }}
           >
-            <label style={label}>Resize map</label>
+            <label style={label}>{t('map.resize')}</label>
             <button
               type="button"
               style={resetBtn}
               onClick={() => setShowResize((v) => !v)}
             >
-              {showResize ? 'Cancel' : 'Resize'}
+              {showResize ? t('common.cancel') : t('map.resizeBtn')}
             </button>
           </div>
           {showResize && (
@@ -303,7 +316,7 @@ export const MapEditor: React.FC<MapEditorProps> = ({
                 max={200}
                 value={resizeCols}
                 onChange={(e) => setResizeCols(Number(e.target.value))}
-                placeholder="Cols"
+                placeholder={t('map.cols')}
               />
               <input
                 style={{ ...input, width: 80 }}
@@ -312,14 +325,14 @@ export const MapEditor: React.FC<MapEditorProps> = ({
                 max={200}
                 value={resizeRows}
                 onChange={(e) => setResizeRows(Number(e.target.value))}
-                placeholder="Rows"
+                placeholder={t('map.rows')}
               />
               <button
                 type="button"
                 style={saveBtn}
                 onClick={() => void handleResize()}
               >
-                Apply
+                {t('map.apply')}
               </button>
             </div>
           )}
@@ -327,7 +340,7 @@ export const MapEditor: React.FC<MapEditorProps> = ({
       )}
 
       <button type="submit" style={saveBtn} disabled={!name.trim()}>
-        {selectedId ? 'Save Map' : 'Create Map'}
+        {selectedId ? t('map.save') : t('map.createBtn')}
       </button>
     </form>
   );

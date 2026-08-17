@@ -3,6 +3,29 @@
 // incoming offers to accept and a form for a new offer. Clicking another
 // player on the canvas fills in the player name.
 
+// Strings this module draws, keyed by the English itself: text handed to the
+// `ui` helpers is translated for free, the rest goes through engine.t.
+engine.i18n({
+  pt: {
+    Trade: 'Troca',
+    'Player name': 'Nome do jogador',
+    'Give item ID': 'ID do item ofertado',
+    Qty: 'Qtd',
+    'Want item ID (opt)': 'ID do item desejado (opc)',
+    'Send Offer': 'Enviar oferta',
+    Accept: 'Aceitar',
+    Cancel: 'Cancelar',
+    'Incoming offers': 'Ofertas recebidas',
+    'Your offers': 'Suas ofertas',
+    'No active trades.': 'Nenhuma troca ativa.',
+    'Send offer': 'Enviar oferta',
+    '{give} for {want}': '{give} por {want}',
+    '{give} (gift)': '{give} (presente)',
+    'Trade with {player} completed.': 'Troca com {player} concluída.',
+    'Trade complete with {player}!': 'Troca concluída com {player}!',
+  },
+});
+
 const ui = engine.ui;
 const panel = ui.panel({ title: 'Trade' });
 ui.actionButton(
@@ -60,10 +83,12 @@ const sendBtn = ui.button('Send Offer', () => {
 function offerLabel(offer) {
   const giveName = offer.give.name || `#${offer.give.itemId}`;
   const give = `${giveName}×${offer.give.quantity}`;
-  const want = offer.want
-    ? ` for ${offer.want.name || '#' + offer.want.itemId}×${offer.want.quantity}`
-    : ' (gift)';
-  return `${give}${want}`;
+  if (!offer.want) return engine.t('{give} (gift)', { give });
+  const wantName = offer.want.name || `#${offer.want.itemId}`;
+  return engine.t('{give} for {want}', {
+    give,
+    want: `${wantName}×${offer.want.quantity}`,
+  });
 }
 
 function render() {
@@ -73,7 +98,7 @@ function render() {
 
   if (incoming.length) {
     const title = document.createElement('div');
-    title.textContent = 'Incoming offers';
+    title.textContent = engine.t('Incoming offers');
     title.style.cssText = 'font-weight:bold;font-size:12px;margin-bottom:4px;';
     sections.push(title);
 
@@ -102,7 +127,7 @@ function render() {
 
   if (outgoing.length) {
     const title = document.createElement('div');
-    title.textContent = 'Your offers';
+    title.textContent = engine.t('Your offers');
     title.style.cssText =
       'font-weight:bold;font-size:12px;margin-top:8px;margin-bottom:4px;';
     sections.push(title);
@@ -128,7 +153,7 @@ function render() {
 
   if (!incoming.length && !outgoing.length) {
     const empty = document.createElement('div');
-    empty.textContent = 'No active trades.';
+    empty.textContent = engine.t('No active trades.');
     empty.style.cssText = 'color:#888;font-size:12px;padding:4px 0;';
     sections.push(empty);
   }
@@ -137,7 +162,7 @@ function render() {
   sep.style.cssText =
     'border-top:1px solid #333;padding-top:8px;margin-top:8px;';
   const formLabel = document.createElement('div');
-  formLabel.textContent = 'Send offer';
+  formLabel.textContent = engine.t('Send offer');
   formLabel.style.cssText =
     'font-weight:bold;font-size:12px;margin-bottom:4px;';
   sep.append(
@@ -161,9 +186,11 @@ engine.onServerEvent('trade:update', (data) => {
 
 engine.onServerEvent('trade:complete', (offer) => {
   const other = offer.from === myName ? offer.to : offer.from;
-  engine.chat(`Trade with ${other} completed.`);
+  engine.chat(engine.t('Trade with {player} completed.', { player: other }));
   const msg = document.createElement('div');
-  msg.textContent = `Trade complete with ${other}!`;
+  msg.textContent = engine.t('Trade complete with {player}!', {
+    player: other,
+  });
   msg.style.cssText =
     'position:fixed;bottom:80px;left:50%;transform:translateX(-50%);' +
     'background:#27ae60;color:#fff;padding:8px 16px;border-radius:6px;' +

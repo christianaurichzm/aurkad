@@ -4,6 +4,10 @@
 // (typically "Goodbye" / "Cancel"). All key events are captured so the game
 // does not move the player while the dialog is open.
 
+// The one string this module owns; dialog text and choices are content, written
+// by the operator in the language of their game.
+engine.i18n({ pt: { Continue: 'Continuar' } });
+
 var activeCleanup = null;
 
 function closeDialog() {
@@ -19,7 +23,7 @@ engine.onServerEvent('dialog:show', function (payload) {
   var id = payload.id;
   var text = payload.text || '';
   var choices = Array.isArray(payload.choices) ? payload.choices : [];
-  var labels = choices.length > 0 ? choices : ['Continue'];
+  var labels = choices.length > 0 ? choices : [engine.t('Continue')];
 
   // Backdrop
   var overlay = document.createElement('div');

@@ -1,7 +1,16 @@
+import fs from 'node:fs';
+import path from 'node:path';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { en } from './en';
 import { pt } from './pt';
-import { getLanguage, setLanguage, t, LANGUAGES } from './index';
+import {
+  getLanguage,
+  moduleText,
+  registerModuleStrings,
+  setLanguage,
+  t,
+  LANGUAGES,
+} from './index';
 
 beforeEach(() => {
   setLanguage('en');
@@ -65,7 +74,7 @@ describe('t', () => {
     setLanguage('pt');
 
     expect(getLanguage()).toBe('pt');
-    expect(t('common.close')).toBe('Fechar');
+    expect(t('common.cancel')).toBe('Cancelar');
   });
 
   // Half-translated is a normal state mid-translation, and a player should
@@ -79,5 +88,64 @@ describe('t', () => {
     expect(t('common.save')).toBe('Save');
 
     table['common.save'] = original!;
+  });
+});
+
+describe('module strings', () => {
+  beforeEach(() => {
+    registerModuleStrings({
+      pt: {
+        Guild: 'Guilda',
+        'Quests ({count} active)': 'Missões ({count} ativas)',
+      },
+    });
+  });
+
+  it('translates by the English the module already drew', () => {
+    setLanguage('pt');
+
+    expect(moduleText('Guild')).toBe('Guilda');
+  });
+
+  // The key is the fallback, so a module that ships one language still reads.
+  it('returns the English itself when no table answers it', () => {
+    setLanguage('pt');
+
+    expect(moduleText('Leave Guild')).toBe('Leave Guild');
+
+    setLanguage('en');
+
+    expect(moduleText('Guild')).toBe('Guild');
+  });
+
+  it('fills placeholders like the core table does', () => {
+    setLanguage('pt');
+
+    expect(moduleText('Quests ({count} active)', { count: 3 })).toBe(
+      'Missões (3 ativas)',
+    );
+  });
+});
+
+// The other half of the jsx-no-literals rule: that catches a hardcoded
+// sentence, this catches a key nothing renders.
+describe('the table and the screens agree', () => {
+  const source = fs
+    .readdirSync(path.join(process.cwd(), 'src/client'), {
+      recursive: true,
+      encoding: 'utf-8',
+    })
+    .filter((file) => /\.tsx?$/.test(file) && !file.startsWith('i18n/'))
+    .map((file) =>
+      fs.readFileSync(path.join(process.cwd(), 'src/client', file), 'utf-8'),
+    )
+    .join('\n');
+
+  it('renders every key it declares', () => {
+    const unused = Object.keys(en).filter(
+      (key) => !source.includes(`'${key}'`),
+    );
+
+    expect(unused).toEqual([]);
   });
 });

@@ -6,6 +6,7 @@ import { drawItemGeneric } from '../../graphics/render';
 import { buyShopItem, httpError } from '../../io/network';
 import { useUIStore } from '../../stores/uiStore';
 import { colors, radius } from '../../theme';
+import { useT } from '../../i18n';
 
 interface ShopRowProps {
   shopId: string;
@@ -18,6 +19,7 @@ export const ShopRow: React.FC<ShopRowProps> = ({
   product,
   onBought,
 }) => {
+  const t = useT();
   const itemCanvas = useRef<HTMLCanvasElement>(null);
   const coinCanvas = useRef<HTMLCanvasElement>(null);
   const [buying, setBuying] = useState(false);
@@ -113,7 +115,7 @@ export const ShopRow: React.FC<ShopRowProps> = ({
           cursor: 'pointer',
         }}
       >
-        {buying ? '...' : 'Buy'}
+        {buying ? '…' : t('shop.buy')}
       </button>
     </div>
   );

@@ -3,6 +3,24 @@
 // and a form to send an item to another player. The server decides whether
 // a send or a claim goes through.
 
+// Strings this module draws, keyed by the English itself: text handed to the
+// `ui` helpers is translated for free, the rest goes through engine.t.
+engine.i18n({
+  pt: {
+    Mail: 'Correio',
+    'From {player}': 'De {player}',
+    Collect: 'Receber',
+    'Collect all': 'Receber tudo',
+    'Nothing waiting.': 'Nada esperando.',
+    'To (player)': 'Para (jogador)',
+    'Item ID': 'ID do item',
+    Qty: 'Qtd',
+    'Note (optional)': 'Recado (opcional)',
+    Send: 'Enviar',
+    'Send an item': 'Enviar um item',
+  },
+});
+
 const ui = engine.ui;
 const panel = ui.panel({ title: 'Mail' });
 ui.actionButton(
@@ -26,7 +44,7 @@ function letterCard(letter) {
     'display:flex;justify-content:space-between;align-items:center;gap:8px;font-size:13px;';
 
   const who = document.createElement('span');
-  who.textContent = `From ${letter.from}`;
+  who.textContent = engine.t('From {player}', { player: letter.from });
   who.style.cssText = 'font-weight:bold;color:#eee;';
 
   const collect = ui.button('Collect', () => {
@@ -81,7 +99,7 @@ function sendForm() {
   });
 
   const label = document.createElement('div');
-  label.textContent = 'Send an item';
+  label.textContent = engine.t('Send an item');
   label.style.cssText = 'font-size:11px;color:#aaa;margin-bottom:4px;';
 
   const wrap = document.createElement('div');
@@ -100,7 +118,7 @@ function render() {
 
   if (letters.length === 0) {
     const empty = document.createElement('div');
-    empty.textContent = 'Nothing waiting.';
+    empty.textContent = engine.t('Nothing waiting.');
     empty.style.cssText = 'color:#888;font-size:12px;padding:4px 0;';
     list.appendChild(empty);
   } else {

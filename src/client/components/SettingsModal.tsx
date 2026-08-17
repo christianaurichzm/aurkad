@@ -59,7 +59,7 @@ export const SettingsModal: React.FC = () => {
       width={380}
     >
       <div style={layout}>
-        <div style={sectionTitle}>Audio</div>
+        <div style={sectionTitle}>{t('settings.audio')}</div>
         <label style={row}>
           <input
             type="checkbox"

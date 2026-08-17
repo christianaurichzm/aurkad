@@ -33,6 +33,7 @@ import {
 import { Modal } from '../common/Modal';
 import { colors, radius } from '../../theme';
 import { useUIStore } from '../../stores/uiStore';
+import { useT, type TranslationKey } from '../../i18n';
 
 type Tab =
   | 'npcs'
@@ -47,6 +48,7 @@ type Tab =
   | 'arrows';
 
 export const ContentEditor: React.FC = () => {
+  const t = useT();
   const [visible, setVisible] = useState(false);
   const [tab, setTab] = useState<Tab>('npcs');
   const [npcs, setNpcs] = useState<RuntimeNpc[]>([]);
@@ -71,15 +73,15 @@ export const ContentEditor: React.FC = () => {
   const confirmDiscard = useCallback(async () => {
     if (!dirtyRef.current) return true;
     const discard = await useUIStore.getState().showDialog({
-      title: 'Discard changes?',
-      message: 'You have unsaved editor changes. Discard them?',
+      title: t('editor.discardTitle'),
+      message: t('editor.discardMessage'),
       kind: 'confirm',
-      confirmLabel: 'Discard',
-      cancelLabel: 'Keep editing',
+      confirmLabel: t('editor.discard'),
+      cancelLabel: t('editor.keepEditing'),
     });
     if (discard) setContentDirty(false);
     return discard;
-  }, []);
+  }, [t]);
 
   const close = useCallback(async () => {
     if (!(await confirmDiscard())) return;
@@ -186,30 +188,30 @@ export const ContentEditor: React.FC = () => {
     setTab(nextTab);
   };
 
-  const tabs: { id: Tab; label: string }[] = [
-    { id: 'npcs', label: 'NPCs' },
-    { id: 'items', label: 'Items' },
-    { id: 'loot', label: 'Loot' },
-    { id: 'dialogs', label: 'Dialogs' },
-    { id: 'quests', label: 'Quests' },
-    { id: 'recipes', label: 'Recipes' },
-    { id: 'shops', label: 'Shops' },
-    { id: 'maps', label: 'Maps' },
-    { id: 'spells', label: 'Spells' },
-    { id: 'arrows', label: 'Arrows' },
+  const tabs: { id: Tab; label: TranslationKey }[] = [
+    { id: 'npcs', label: 'editor.tabNpcs' },
+    { id: 'items', label: 'editor.tabItems' },
+    { id: 'loot', label: 'editor.tabLoot' },
+    { id: 'dialogs', label: 'editor.tabDialogs' },
+    { id: 'quests', label: 'editor.tabQuests' },
+    { id: 'recipes', label: 'editor.tabRecipes' },
+    { id: 'shops', label: 'editor.tabShops' },
+    { id: 'maps', label: 'editor.tabMaps' },
+    { id: 'spells', label: 'editor.tabSpells' },
+    { id: 'arrows', label: 'editor.tabArrows' },
   ];
 
   return (
-    <Modal title="Content Editor" onClose={close} width={580}>
+    <Modal title={t('editor.contentTitle')} onClose={close} width={580}>
       <div style={layout}>
         <div style={tabBar}>
-          {tabs.map((t) => (
+          {tabs.map((entry) => (
             <button
-              key={t.id}
-              style={{ ...tabBtn, ...(tab === t.id ? tabBtnActive : {}) }}
-              onClick={() => void selectTab(t.id)}
+              key={entry.id}
+              style={{ ...tabBtn, ...(tab === entry.id ? tabBtnActive : {}) }}
+              onClick={() => void selectTab(entry.id)}
             >
-              {t.label}
+              {t(entry.label)}
             </button>
           ))}
         </div>

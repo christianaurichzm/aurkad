@@ -52,7 +52,7 @@ export const OnlinePlayersModal: React.FC = () => {
     >
       <div style={layout}>
         <div style={toolbar}>
-          <div style={countBadge}>{count} online</div>
+          <div style={countBadge}>{t('online.count', { count })}</div>
           <button
             type="button"
             style={refreshButton(loading)}

@@ -8,6 +8,7 @@ import { useUIStore } from '../../stores/uiStore';
 import { enqueueGameStateMessage } from './sync/gameStateSync';
 import { enqueueChatMessage, setChatSocketSender } from './sync/chatSync';
 import { dispatchServerEvent } from './customEvents';
+import { t } from '../../i18n';
 
 const clientWsProtocol = window.location.protocol === 'https:' ? 'wss' : 'ws';
 const clientHost = window.location.host;
@@ -71,12 +72,12 @@ export const initializeWebSocket = (url = currentWsUrl) => {
     return;
   }
 
-  showConnectionStatus('Connecting...', true);
+  showConnectionStatus(t('net.connecting'), true);
 
   socket.onopen = () => {
     console.log('Connected to WebSocket server');
     reconnectAttempts = 0;
-    showConnectionStatus('Connected');
+    showConnectionStatus(t('net.connected'));
     setTimeout(hideConnectionStatus, 2000);
   };
 
@@ -104,10 +105,10 @@ export const initializeWebSocket = (url = currentWsUrl) => {
           void useUIStore
             .getState()
             .showDialog({
-              title: 'Disconnected',
-              message: data.message || 'You have been kicked from the game.',
+              title: t('hud.disconnected'),
+              message: data.message || t('net.kicked'),
               kind: 'error',
-              confirmLabel: 'Reload',
+              confirmLabel: t('net.reload'),
             })
             .finally(() => window.location.reload());
           socket.close();
@@ -144,7 +145,7 @@ export const initializeWebSocket = (url = currentWsUrl) => {
   socket.onclose = () => {
     console.warn('WebSocket closed');
     if (kicked) return;
-    showConnectionStatus('Disconnected. Reconnecting...', true);
+    showConnectionStatus(t('net.reconnecting'), true);
     scheduleReconnect();
   };
 
@@ -165,10 +166,10 @@ export function sendAction(action: WsClientMessage): void {
 }
 
 window.addEventListener('offline', () => {
-  showConnectionStatus('You are offline', true);
+  showConnectionStatus(t('net.offline'), true);
 });
 
 window.addEventListener('online', () => {
-  showConnectionStatus('Back online. Reconnecting...', false);
+  showConnectionStatus(t('net.backOnline'), false);
   scheduleReconnect();
 });

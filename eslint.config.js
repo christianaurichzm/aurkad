@@ -169,7 +169,10 @@ export default tseslint.config(
   // the server too and then switched rules-of-hooks back off per directory.
   {
     files: ['src/client/**/*.{ts,tsx}'],
-    extends: [react.configs.flat.recommended, react.configs.flat['jsx-runtime']],
+    extends: [
+      react.configs.flat.recommended,
+      react.configs.flat['jsx-runtime'],
+    ],
     plugins: { 'react-hooks': reactHooks },
     settings: { react: { version: 'detect' } },
     rules: {
@@ -179,7 +182,47 @@ export default tseslint.config(
       // recommended config, and adopting it changes how the client is written.
       'react-hooks/rules-of-hooks': 'error',
       'react-hooks/exhaustive-deps': 'warn',
+      // Every sentence a player or operator reads goes through src/client/i18n,
+      // or it renders untranslated without anyone noticing.
+      //
+      // Props are not checked, so placeholder, title and aria-label are keyed
+      // by hand. Glyphs and <code> contents read the same in every language.
+      'react/jsx-no-literals': [
+        'error',
+        {
+          noStrings: true,
+          ignoreProps: true,
+          allowedStrings: [
+            '✕',
+            '×',
+            '−',
+            '+',
+            '→',
+            '↩',
+            '↪',
+            '›',
+            '·',
+            '%',
+            '/',
+            ',',
+            '.',
+            '-',
+            '*',
+            'x',
+            '(',
+            ')',
+          ],
+          elementOverrides: { code: { allowElement: true } },
+        },
+      ],
     },
+  },
+
+  {
+    // A test renders text to assert on it; there is nobody to read it in
+    // another language.
+    files: ['src/client/**/*.test.{ts,tsx}'],
+    rules: { 'react/jsx-no-literals': 'off' },
   },
 
   {

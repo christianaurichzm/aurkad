@@ -101,10 +101,12 @@ export const InventoryPanel: React.FC = () => {
   const selectItemByEquip = (sel: Selection) => setSelected(sel);
 
   const labelPrimary = () => {
-    if (!selected) return 'Use';
-    if (selected.item.type === 'consumable') return 'Use';
-    if (!player) return 'Equip';
-    return isEquipped(player, selected.item.id) ? 'Use (Unequip)' : 'Equip';
+    if (!selected) return t('inventory.use');
+    if (selected.item.type === 'consumable') return t('inventory.use');
+    if (!player) return t('inventory.equip');
+    return isEquipped(player, selected.item.id)
+      ? t('inventory.unequip')
+      : t('inventory.equip');
   };
 
   const showTooltip = (item: Item, qty: number, x: number, y: number) =>
@@ -237,7 +239,9 @@ export const InventoryPanel: React.FC = () => {
             <strong>{selected.item.name}</strong>
             <span>{selected.item.description}</span>
             {selected.quantity > 1 && (
-              <span>Quantity: {selected.quantity}</span>
+              <span>
+                {t('inventory.quantity', { count: selected.quantity })}
+              </span>
             )}
           </div>
         )}
@@ -257,7 +261,7 @@ export const InventoryPanel: React.FC = () => {
             disabled={!selected || !!equippedSlot || !!selected?.item.bound}
             onClick={handleDrop}
           >
-            Drop
+            {t('inventory.drop')}
           </button>
         </div>
         {dropTarget && (
@@ -265,7 +269,10 @@ export const InventoryPanel: React.FC = () => {
             <div style={styles.dropPrompt}>
               <strong>{t('inventory.dropQuantity')}</strong>
               <span>
-                {dropTarget.item.name} ({dropTarget.quantity} available)
+                {t('inventory.available', {
+                  item: dropTarget.item.name,
+                  count: dropTarget.quantity,
+                })}
               </span>
               <input
                 type="number"
@@ -282,14 +289,14 @@ export const InventoryPanel: React.FC = () => {
                   style={styles.cancelDropBtn}
                   onClick={() => setDropTarget(null)}
                 >
-                  Cancel
+                  {t('common.cancel')}
                 </button>
                 <button
                   type="button"
                   style={styles.confirmDropBtn}
                   onClick={confirmDropQuantity}
                 >
-                  Drop
+                  {t('inventory.drop')}
                 </button>
               </div>
             </div>
@@ -305,7 +312,9 @@ export const InventoryPanel: React.FC = () => {
           >
             <strong>{tooltip.item.name}</strong>
             <div>{tooltip.item.description}</div>
-            {tooltip.qty > 1 && <div>Quantity: {tooltip.qty}</div>}
+            {tooltip.qty > 1 && (
+              <div>{t('inventory.quantity', { count: tooltip.qty })}</div>
+            )}
           </div>
         )}
       </div>

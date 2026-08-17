@@ -46,6 +46,19 @@ export function setLanguage(next: Language): void {
   listeners.forEach((notify) => notify());
 }
 
+/** Anything holding translated text on screen; returns an unsubscribe. */
+export function onLanguageChange(listener: () => void): () => void {
+  listeners.add(listener);
+  return () => listeners.delete(listener);
+}
+
+function fill(text: string, params?: Record<string, string | number>): string {
+  if (!params) return text;
+  return text.replace(/\{(\w+)\}/g, (whole, name: string) =>
+    name in params ? String(params[name]) : whole,
+  );
+}
+
 /**
  * Looks up a key and fills its `{placeholders}`, falling back to English
  * rather than showing the key.
@@ -54,11 +67,37 @@ export function t(
   key: TranslationKey,
   params?: Record<string, string | number>,
 ): string {
-  const text = TABLES[language][key] || en[key];
-  if (!params) return text;
-  return text.replace(/\{(\w+)\}/g, (whole, name: string) =>
-    name in params ? String(params[name]) : whole,
-  );
+  return fill(TABLES[language][key] || en[key], params);
+}
+
+/**
+ * Strings a module's browser half draws, keyed by the English itself. With
+ * no typed table to catch a misspelled key, the worst case is the English
+ * label. Module tables merge, so two modules share one translation of a word.
+ */
+const moduleTables: Record<Language, Record<string, string>> = {
+  en: {},
+  pt: {},
+};
+
+export function registerModuleStrings(
+  tables: Partial<Record<Language, Record<string, string>>>,
+): void {
+  for (const [code, table] of Object.entries(tables)) {
+    if (code in moduleTables) {
+      Object.assign(moduleTables[code as Language], table);
+    }
+  }
+  // Re-applies tables to text already on screen, so a table declared after
+  // drawing still works.
+  listeners.forEach((notify) => notify());
+}
+
+export function moduleText(
+  text: string,
+  params?: Record<string, string | number>,
+): string {
+  return fill(moduleTables[language][text] || text, params);
 }
 
 /**
@@ -66,14 +105,7 @@ export function t(
  * function per language so dependency arrays notice.
  */
 export function useT(): typeof t {
-  useSyncExternalStore(
-    (notify) => {
-      listeners.add(notify);
-      return () => listeners.delete(notify);
-    },
-    getLanguage,
-    () => 'en',
-  );
+  useSyncExternalStore(onLanguageChange, getLanguage, () => 'en');
   return t;
 }
 

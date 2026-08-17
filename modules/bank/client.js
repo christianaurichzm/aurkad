@@ -3,6 +3,21 @@
 // on a bank tile (the server sends bank:open). There is no action button:
 // the bank is only reached at its place on the map.
 
+// Strings this module draws, keyed by the English itself: text handed to the
+// `ui` helpers is translated for free, the rest goes through engine.t.
+engine.i18n({
+  pt: {
+    Bank: 'Banco',
+    'Slots: {used}/{max}': 'Espaços: {used}/{max}',
+    Empty: 'Vazio',
+    '↓ Withdraw': '↓ Sacar',
+    Qty: 'Qtd',
+    'Item ID': 'ID do item',
+    Deposit: 'Depositar',
+    'Deposit: Item ID, Qty': 'Depositar: ID do item, Qtd',
+  },
+});
+
 const ui = engine.ui;
 const panel = ui.panel({ title: 'Bank' });
 
@@ -15,7 +30,10 @@ let bank = { items: [], maxCapacity: 50 };
 
 function render() {
   const header = document.createElement('div');
-  header.textContent = `Slots: ${bank.items.length}/${bank.maxCapacity}`;
+  header.textContent = engine.t('Slots: {used}/{max}', {
+    used: bank.items.length,
+    max: bank.maxCapacity,
+  });
   header.style.cssText = 'font-size:11px;color:#aaa;margin-bottom:4px;';
 
   const list = document.createElement('div');
@@ -23,7 +41,7 @@ function render() {
 
   if (bank.items.length === 0) {
     const empty = document.createElement('div');
-    empty.textContent = 'Empty';
+    empty.textContent = engine.t('Empty');
     empty.style.cssText = 'color:#888;font-size:12px;padding:4px 0;';
     list.appendChild(empty);
   } else {
@@ -69,7 +87,7 @@ function render() {
   controls.style.cssText = 'border-top:1px solid #333;padding-top:8px;';
   const controlRow = ui.row(itemInput, qtyInput, depositBtn);
   const controlLabel = document.createElement('div');
-  controlLabel.textContent = 'Deposit: Item ID, Qty';
+  controlLabel.textContent = engine.t('Deposit: Item ID, Qty');
   controlLabel.style.cssText = 'font-size:11px;color:#aaa;margin-bottom:4px;';
   controls.append(controlLabel, controlRow);
 

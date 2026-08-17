@@ -11,6 +11,7 @@ import { chatResultMsg } from '../ChatPanel';
 import { AsyncSelect } from '../common/Select/AsyncSelect';
 import { Select } from '../common/Select/Select';
 import { colors, radius } from '../../theme';
+import { useT } from '../../i18n';
 
 interface DialogEditorProps {
   dialogs: Dialog[];
@@ -88,6 +89,7 @@ const NodeChoices: React.FC<{
   register: ReturnType<typeof useForm<DialogFormValues>>['register'];
   nodeOptions: { value: string; label: string }[];
 }> = ({ control, nodeIndex, register, nodeOptions }) => {
+  const t = useT();
   const choices = useFieldArray({
     control,
     name: `nodes.${nodeIndex}.choices` as const,
@@ -96,44 +98,42 @@ const NodeChoices: React.FC<{
   return (
     <div style={choiceBox}>
       <div style={boxHeader}>
-        <span style={label}>Choices</span>
+        <span style={label}>{t('dialog.choices')}</span>
         <button
           type="button"
           style={addBtn}
           onClick={() => choices.append(newChoice())}
         >
-          + Add
+          {t('editor.add')}
         </button>
       </div>
       {choices.fields.length === 0 && (
-        <p style={emptyHint}>
-          No choices: the player gets a single Continue and the conversation
-          ends here.
-        </p>
+        <p style={emptyHint}>{t('dialog.noChoices')}</p>
       )}
       {choices.fields.map((field, i) => (
         <div key={field.id} style={choiceRow}>
           <div style={{ flex: 2, minWidth: 0 }}>
-            <label style={label}>Label</label>
+            <label style={label}>{t('dialog.label')}</label>
             <input
               style={input}
-              placeholder="Yes, I'll help"
+              placeholder={t('dialog.labelPlaceholder')}
               {...register(`nodes.${nodeIndex}.choices.${i}.label` as const)}
             />
           </div>
           <div style={{ flex: 1.4, minWidth: 0 }}>
-            <label
-              style={label}
-              title="Node this choice leads to. Ends the conversation when left as End."
-            >
-              Goes to
+            <label style={label} title={t('dialog.goesToHelp')}>
+              {t('dialog.goesTo')}
             </label>
             <Controller
               control={control}
               name={`nodes.${nodeIndex}.choices.${i}.next` as const}
               render={({ field: next }) => (
                 <Select
-                  options={withCurrent(nodeOptions, next.value)}
+                  options={withCurrent(
+                    nodeOptions,
+                    next.value,
+                    t('dialog.missing', { id: next.value }),
+                  )}
                   value={next.value}
                   onChange={next.onChange}
                 />
@@ -141,30 +141,24 @@ const NodeChoices: React.FC<{
             />
           </div>
           <div style={{ flex: 1.2, minWidth: 0 }}>
-            <label
-              style={label}
-              title="Name of a predicate a script registered with provide('dialogCondition.<name>'). Leave empty to always offer this choice. A choice whose condition says no is not shown at all."
-            >
-              Condition
+            <label style={label} title={t('dialog.conditionHelp')}>
+              {t('loot.condition')}
             </label>
             <input
               style={input}
-              placeholder="none"
+              placeholder={t('loot.conditionNone')}
               {...register(
                 `nodes.${nodeIndex}.choices.${i}.condition` as const,
               )}
             />
           </div>
           <div style={{ flex: 1.2, minWidth: 0 }}>
-            <label
-              style={label}
-              title="Name of a handler a script registered with provide('dialogAction.<name>'), run when this choice is picked. If it is missing or throws, the conversation stops instead of moving on."
-            >
-              Action
+            <label style={label} title={t('dialog.actionHelp')}>
+              {t('dialog.action')}
             </label>
             <input
               style={input}
-              placeholder="none"
+              placeholder={t('loot.conditionNone')}
               {...register(`nodes.${nodeIndex}.choices.${i}.action` as const)}
             />
           </div>
@@ -172,7 +166,7 @@ const NodeChoices: React.FC<{
             type="button"
             style={removeBtn}
             onClick={() => choices.remove(i)}
-            title="Remove"
+            title={t('editor.remove')}
           >
             ✕
           </button>
@@ -189,9 +183,10 @@ const NodeChoices: React.FC<{
 const withCurrent = (
   options: { value: string; label: string }[],
   value: string,
+  missingLabel: string,
 ): { value: string; label: string }[] =>
   value && !options.some((o) => o.value === value)
-    ? [...options, { value, label: `${value} (missing)` }]
+    ? [...options, { value, label: missingLabel }]
     : options;
 
 export const DialogEditor: React.FC<DialogEditorProps> = ({
@@ -201,6 +196,7 @@ export const DialogEditor: React.FC<DialogEditorProps> = ({
   onDirtyChange,
   requestDiscard,
 }) => {
+  const t = useT();
   const [selectedId, setSelectedId] = useState('');
   const {
     control,
@@ -264,7 +260,7 @@ export const DialogEditor: React.FC<DialogEditorProps> = ({
       })),
     };
     const result = await saveDialog(dialog).catch(() => null);
-    chatResultMsg(!!result, 'Dialog saved!', 'Error saving dialog');
+    chatResultMsg(!!result, t('dialog.saved'), t('dialog.saveError'));
     for (const warning of result?.warnings ?? []) {
       chatResultMsg(false, '', warning);
     }
@@ -276,7 +272,7 @@ export const DialogEditor: React.FC<DialogEditorProps> = ({
   const remove = async () => {
     if (!selectedId) return;
     await deleteDialog(selectedId);
-    chatResultMsg(true, 'Dialog deleted!', 'Error deleting dialog');
+    chatResultMsg(true, t('dialog.deleted'), t('dialog.deleteError'));
     refreshData();
     setSelectedId('');
     resetForm(defaultValues);
@@ -285,7 +281,7 @@ export const DialogEditor: React.FC<DialogEditorProps> = ({
   return (
     <form style={container} onSubmit={handleSubmit(save)}>
       <div style={field}>
-        <label style={label}>Dialog</label>
+        <label style={label}>{t('npc.dialog')}</label>
         <div style={{ display: 'flex', gap: 8 }}>
           <div style={{ flex: 1 }}>
             <AsyncSelect
@@ -296,7 +292,7 @@ export const DialogEditor: React.FC<DialogEditorProps> = ({
           </div>
           {selectedId && (
             <button type="button" style={ghostBtn} onClick={() => void reset()}>
-              New
+              {t('editor.new')}
             </button>
           )}
         </div>
@@ -304,30 +300,27 @@ export const DialogEditor: React.FC<DialogEditorProps> = ({
 
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
         <div style={field}>
-          <label style={label}>ID</label>
+          <label style={label}>{t('editor.id')}</label>
           <input
             style={{ ...input, ...(selectedId ? { opacity: 0.5 } : {}) }}
             {...register('id')}
-            placeholder="elder-intro"
+            placeholder={t('dialog.idPlaceholder')}
             readOnly={!!selectedId}
           />
         </div>
         <div style={field}>
-          <label style={label}>Name</label>
+          <label style={label}>{t('editor.name')}</label>
           <input
             style={input}
             {...register('name')}
-            placeholder="Village elder - intro"
+            placeholder={t('dialog.namePlaceholder')}
           />
         </div>
       </div>
 
       <div style={field}>
-        <label
-          style={label}
-          title="Node the conversation opens on. Defaults to the first one."
-        >
-          Starts at
+        <label style={label} title={t('dialog.startsAtHelp')}>
+          {t('dialog.startsAt')}
         </label>
         <Controller
           control={control}
@@ -335,8 +328,9 @@ export const DialogEditor: React.FC<DialogEditorProps> = ({
           render={({ field: start }) => (
             <Select
               options={withCurrent(
-                [{ value: '', label: 'First node' }, ...nodeOptions],
+                [{ value: '', label: t('dialog.firstNode') }, ...nodeOptions],
                 start.value,
+                t('dialog.missing', { id: start.value }),
               )}
               value={start.value}
               onChange={start.onChange}
@@ -347,45 +341,42 @@ export const DialogEditor: React.FC<DialogEditorProps> = ({
 
       <div style={box}>
         <div style={boxHeader}>
-          <span style={label}>Nodes</span>
+          <span style={label}>{t('dialog.nodes')}</span>
           <button
             type="button"
             style={addBtn}
             onClick={() => nodes.append(newNode(nodes.fields.length))}
           >
-            + Add node
+            {t('dialog.addNode')}
           </button>
         </div>
         {nodes.fields.length === 0 && (
-          <p style={emptyHint}>
-            No nodes yet. Add one: its text is what the NPC says, and its
-            choices are what the player can answer.
-          </p>
+          <p style={emptyHint}>{t('dialog.noNodes')}</p>
         )}
         {nodes.fields.map((nodeField, index) => (
           <div key={nodeField.id} style={nodeCard}>
             <div style={{ display: 'flex', gap: 8, alignItems: 'flex-end' }}>
               <div style={{ width: 140, flexShrink: 0 }}>
-                <label style={label}>Node ID</label>
+                <label style={label}>{t('dialog.nodeId')}</label>
                 <input
                   style={input}
                   {...register(`nodes.${index}.id` as const)}
-                  placeholder="greet"
+                  placeholder={t('dialog.nodeIdPlaceholder')}
                 />
               </div>
               <div style={{ flex: 1, minWidth: 0 }}>
-                <label style={label}>Text</label>
+                <label style={label}>{t('dialog.text')}</label>
                 <textarea
                   style={{ ...input, minHeight: 46, resize: 'vertical' }}
                   {...register(`nodes.${index}.text` as const)}
-                  placeholder="Welcome, traveller."
+                  placeholder={t('dialog.textPlaceholder')}
                 />
               </div>
               <button
                 type="button"
                 style={removeBtn}
                 onClick={() => nodes.remove(index)}
-                title="Remove node"
+                title={t('dialog.removeNode')}
               >
                 ✕
               </button>
@@ -402,11 +393,11 @@ export const DialogEditor: React.FC<DialogEditorProps> = ({
 
       <div style={actions}>
         <button type="submit" style={saveBtn}>
-          {selectedId ? 'Save dialog' : 'Create dialog'}
+          {selectedId ? t('dialog.save') : t('dialog.createBtn')}
         </button>
         {selectedId && (
           <button type="button" style={deleteBtn} onClick={() => void remove()}>
-            Delete
+            {t('common.delete')}
           </button>
         )}
       </div>

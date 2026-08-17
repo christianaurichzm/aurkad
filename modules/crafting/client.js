@@ -4,6 +4,17 @@
 // to an npc with the `workbench` behaviour. Like the bank, it has no action
 // button, as a workbench is somewhere you stand.
 
+// Strings this module draws, keyed by the English itself: text handed to the
+// `ui` helpers is translated for free, the rest goes through engine.t.
+engine.i18n({
+  pt: {
+    Crafting: 'Fabricação',
+    'You know no recipes.': 'Você não conhece nenhuma receita.',
+    Craft: 'Fabricar',
+    'Missing {items}': 'Falta {items}',
+  },
+});
+
 const ui = engine.ui;
 const panel = ui.panel({ title: 'Crafting' });
 
@@ -27,7 +38,7 @@ function render() {
 
   if (recipes.length === 0) {
     const empty = document.createElement('div');
-    empty.textContent = 'You know no recipes.';
+    empty.textContent = engine.t('You know no recipes.');
     empty.style.cssText = 'color:#888;font-size:12px;padding:4px 0;';
     list.appendChild(empty);
   }
@@ -60,11 +71,11 @@ function render() {
     craftBtn.disabled = !ready;
     if (!ready) {
       craftBtn.style.cssText += 'cursor:default;';
-      craftBtn.title =
-        'Missing ' +
-        recipe.missing
+      craftBtn.title = engine.t('Missing {items}', {
+        items: recipe.missing
           .map((m) => '#' + m.itemId + ' (' + m.held + '/' + m.quantity + ')')
-          .join(', ');
+          .join(', '),
+      });
     }
 
     row.append(text, craftBtn);

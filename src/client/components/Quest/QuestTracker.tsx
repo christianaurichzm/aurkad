@@ -49,7 +49,9 @@ export const QuestTracker: React.FC = () => {
           <div>{q.name}</div>
           <div style={{ opacity: 0.8 }}>
             {q.description}
-            {q.target > 1 ? ` (${q.progress}/${q.target})` : ''}
+            {q.target > 1
+              ? ` (${t('quest.progress', { current: q.progress, target: q.target })})`
+              : ''}
           </div>
         </div>
       ))}

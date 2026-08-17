@@ -58,6 +58,22 @@ declare const engine: {
   /** Styled UI helpers (panel/button/input/row/column) in the core look. */
   ui: ModuleUi;
   /**
+   * Declare this module's translations. The key is the English string the
+   * module already draws, so a language with no entry for it renders that
+   * English rather than nothing.
+   *
+   * @example engine.i18n({ pt: { Guild: 'Guilda' } });
+   */
+  i18n(tables: Record<string, Record<string, string>>): void;
+  /**
+   * Translate one string, filling `{placeholders}`. Text handed to the `ui`
+   * helpers is translated already; this is for DOM the module builds itself,
+   * and for any sentence carrying a value.
+   *
+   * @example engine.t('Quests ({count} active)', { count: list.length })
+   */
+  t(text: string, params?: Record<string, string | number>): string;
+  /**
    * Register an action shown in the player context menu when another player
    * is clicked on the game canvas. `callback` receives the player's name.
    */

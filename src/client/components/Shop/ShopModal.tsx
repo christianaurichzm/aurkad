@@ -32,7 +32,7 @@ export const ShopModal: React.FC = () => {
   if (!shopId) return null;
 
   return (
-    <Modal title={shop?.name || 'Shop'} width={520} onClose={close}>
+    <Modal title={shop?.name || t('shop.title')} width={520} onClose={close}>
       {loading ? (
         <p>{t('common.loading')}</p>
       ) : !shop ? (

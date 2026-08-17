@@ -3,6 +3,20 @@
 // and a progress bar each, completed ones in a collapsed section. A quest
 // completing shows a toast and logs a chat message.
 
+// Strings this module draws, keyed by the English itself: text handed to the
+// `ui` helpers is translated for free, the rest goes through engine.t.
+engine.i18n({
+  pt: {
+    Quests: 'Missões',
+    'Quests ({count} active)': 'Missões ({count} ativas)',
+    'No quests yet.': 'Nenhuma missão ainda.',
+    '✓ Done': '✓ Feita',
+    'Completed ({count})': 'Concluídas ({count})',
+    'Quest completed: {quest}': 'Missão concluída: {quest}',
+    '✓ Quest complete: {quest}': '✓ Missão concluída: {quest}',
+  },
+});
+
 const ui = engine.ui;
 const panel = ui.panel({ title: 'Quests' });
 ui.actionButton(
@@ -45,7 +59,7 @@ function questCard(q) {
 
   const badge = document.createElement('span');
   badge.style.cssText = `font-size:11px;color:${done ? '#4ade80' : '#aaa'};`;
-  badge.textContent = done ? '✓ Done' : `${q.progress}/${q.target}`;
+  badge.textContent = done ? engine.t('✓ Done') : `${q.progress}/${q.target}`;
 
   header.append(name, badge);
   card.appendChild(header);
@@ -68,14 +82,14 @@ function render() {
 
   if (quests.length === 0) {
     const empty = document.createElement('div');
-    empty.textContent = 'No quests yet.';
+    empty.textContent = engine.t('No quests yet.');
     empty.style.cssText = 'color:#888;font-size:12px;padding:4px 0;';
     panel.setTitle('Quests');
     panel.setBody(empty);
     return;
   }
 
-  panel.setTitle(`Quests (${active.length} active)`);
+  panel.setTitle(engine.t('Quests ({count} active)', { count: active.length }));
   const nodes = [];
 
   for (const q of active) nodes.push(questCard(q));
@@ -84,7 +98,7 @@ function render() {
     const sep = document.createElement('details');
     sep.style.cssText = 'margin-top:6px;font-size:12px;';
     const sum = document.createElement('summary');
-    sum.textContent = `Completed (${done.length})`;
+    sum.textContent = engine.t('Completed ({count})', { count: done.length });
     sum.style.cssText =
       'cursor:pointer;color:#666;user-select:none;padding:2px 0;';
     sep.appendChild(sum);
@@ -96,14 +110,14 @@ function render() {
 }
 
 function showCompletionToast(name) {
-  engine.chat(`Quest completed: ${name}`);
+  engine.chat(engine.t('Quest completed: {quest}', { quest: name }));
   const toast = document.createElement('div');
   toast.style.cssText =
     'position:fixed;bottom:80px;left:50%;transform:translateX(-50%);' +
     'background:#f59e0b;color:#000;padding:8px 18px;border-radius:6px;' +
     'font:bold 13px sans-serif;z-index:9999;pointer-events:none;' +
     'animation:questToastIn .25s ease;';
-  toast.textContent = `✓ Quest complete: ${name}`;
+  toast.textContent = engine.t('✓ Quest complete: {quest}', { quest: name });
 
   if (!document.getElementById('quest-toast-style')) {
     const style = document.createElement('style');

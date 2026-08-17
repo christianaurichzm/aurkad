@@ -3,6 +3,35 @@
 // and officers and the owner get invite, promote, demote, kick and the
 // privacy toggle. guild:invite fires when someone invites this player.
 
+// Strings this module draws, keyed by the English itself: text handed to the
+// `ui` helpers is translated for free, the rest goes through engine.t.
+engine.i18n({
+  pt: {
+    Guild: 'Guilda',
+    'Guild name': 'Nome da guilda',
+    Public: 'Pública',
+    Private: 'Privada',
+    'Create Guild': 'Criar guilda',
+    'Join Public': 'Entrar em pública',
+    '🔒 Private': '🔒 Privada',
+    '🌐 Public': '🌐 Pública',
+    'Invite player name': 'Nome do jogador',
+    Invite: 'Convidar',
+    'Make Public': 'Tornar pública',
+    'Make Private': 'Tornar privada',
+    'Leave Guild': 'Sair da guilda',
+    Accept: 'Aceitar',
+    Decline: 'Recusar',
+    'Invite to Guild': 'Convidar para a guilda',
+    'Guild invite: {guild}': 'Convite de guilda: {guild}',
+    '{player} invited you to "{guild}"':
+      '{player} convidou você para "{guild}"',
+    'You were kicked from guild "{guild}".':
+      'Você foi expulso da guilda "{guild}".',
+    'You were kicked from "{guild}"': 'Você foi expulso de "{guild}"',
+  },
+});
+
 const ui = engine.ui;
 const panel = ui.panel({ title: 'Guild' });
 ui.actionButton('Guild', () => panel.toggle(), 'g');
@@ -32,7 +61,7 @@ function renderNoGuild() {
   ['public', 'private'].forEach((v) => {
     const o = document.createElement('option');
     o.value = v;
-    o.textContent = v.charAt(0).toUpperCase() + v.slice(1);
+    o.textContent = engine.t(v.charAt(0).toUpperCase() + v.slice(1));
     privSel.appendChild(o);
   });
   const createBtn = ui.button('Create Guild', () => {
@@ -50,7 +79,9 @@ function renderNoGuild() {
 
 function renderGuild(g) {
   const badge = document.createElement('span');
-  badge.textContent = g.privacy === 'private' ? '🔒 Private' : '🌐 Public';
+  badge.textContent = engine.t(
+    g.privacy === 'private' ? '🔒 Private' : '🌐 Public',
+  );
   badge.style.cssText = 'font-size:11px;color:#aaa;';
 
   const memberList = document.createElement('div');
@@ -146,9 +177,14 @@ engine.onServerEvent('guild:update', (g) => {
 });
 
 engine.onServerEvent('guild:invite', ({ guildName, from }) => {
-  const notif = ui.panel({ title: `Guild invite: ${guildName}` });
+  const notif = ui.panel({
+    title: engine.t('Guild invite: {guild}', { guild: guildName }),
+  });
   const msg = document.createElement('div');
-  msg.textContent = `${from} invited you to "${guildName}"`;
+  msg.textContent = engine.t('{player} invited you to "{guild}"', {
+    player: from,
+    guild: guildName,
+  });
   msg.style.cssText = 'font-size:13px;margin-bottom:6px;';
   const acceptBtn = ui.button('Accept', () => {
     engine.sendServerEvent('guild:accept', { guildName });
@@ -164,9 +200,11 @@ engine.onServerEvent('guild:invite', ({ guildName, from }) => {
 });
 
 engine.onServerEvent('guild:kicked', ({ from }) => {
-  engine.chat(`You were kicked from guild "${from}".`);
+  engine.chat(
+    engine.t('You were kicked from guild "{guild}".', { guild: from }),
+  );
   const msg = document.createElement('div');
-  msg.textContent = `You were kicked from "${from}"`;
+  msg.textContent = engine.t('You were kicked from "{guild}"', { guild: from });
   msg.style.cssText =
     'position:fixed;bottom:80px;left:50%;transform:translateX(-50%);' +
     'background:#c0392b;color:#fff;padding:8px 16px;border-radius:6px;' +

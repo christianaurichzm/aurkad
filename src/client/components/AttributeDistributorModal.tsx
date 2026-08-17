@@ -3,6 +3,7 @@ import { usePlayerForceUpdate } from '../hooks/usePlayerForceUpdate';
 import { assignPointsPlayer, httpError } from '../io/network';
 import { Modal } from './common/Modal';
 import { colors, radius } from '../theme';
+import { useT } from '../i18n';
 
 type AttributeKey = 'strength' | 'defense' | 'vitality' | 'agility';
 type QueuedAttributes = Record<AttributeKey, number>;
@@ -15,6 +16,7 @@ const emptyQueued: QueuedAttributes = {
 };
 
 export const AttributeDistributorModal: React.FC = () => {
+  const t = useT();
   const [visible, setVisible] = useState(false);
   const [queued, setQueued] = useState<QueuedAttributes>(emptyQueued);
   const [error, setError] = useState('');
@@ -65,43 +67,35 @@ export const AttributeDistributorModal: React.FC = () => {
       await assignPointsPlayer(player.id, queued);
       setQueued({ ...emptyQueued });
     } catch (e) {
-      setError(httpError(e).message || 'Failed to assign points');
+      setError(httpError(e).message || t('attributes.assignFailed'));
     } finally {
       setLoading(false);
     }
   };
 
   const stats = [
-    {
-      key: 'strength' as const,
-      label: 'Strength',
-    },
-    {
-      key: 'defense' as const,
-      label: 'Defense',
-    },
-    {
-      key: 'vitality' as const,
-      label: 'Vitality',
-    },
-    {
-      key: 'agility' as const,
-      label: 'Agility',
-    },
+    { key: 'strength' as const, label: t('attributes.strength') },
+    { key: 'defense' as const, label: t('attributes.defense') },
+    { key: 'vitality' as const, label: t('attributes.vitality') },
+    { key: 'agility' as const, label: t('attributes.agility') },
   ];
 
   return (
-    <Modal title="Attributes" onClose={() => setVisible(false)} width={460}>
+    <Modal
+      title={t('attributes.title')}
+      onClose={() => setVisible(false)}
+      width={460}
+    >
       <div style={layout}>
         <div style={summaryGrid}>
           <div style={summaryCard(player.unspentPoints > 0)}>
-            <span style={summaryLabel}>Available</span>
+            <span style={summaryLabel}>{t('attributes.available')}</span>
             <strong style={summaryValue(player.unspentPoints > 0)}>
               {player.unspentPoints}
             </strong>
           </div>
           <div style={summaryCard(assigned > 0)}>
-            <span style={summaryLabel}>Queued</span>
+            <span style={summaryLabel}>{t('attributes.queued')}</span>
             <strong style={summaryValue(assigned > 0)}>{assigned}</strong>
           </div>
         </div>
@@ -119,7 +113,7 @@ export const AttributeDistributorModal: React.FC = () => {
                     style={{ ...stepBtn, opacity: delta === 0 ? 0.4 : 1 }}
                     onClick={() => adjustAttribute(key, -1)}
                     disabled={delta === 0}
-                    title={`Decrease ${label}`}
+                    title={t('attributes.decrease', { stat: label })}
                   >
                     −
                   </button>
@@ -128,7 +122,7 @@ export const AttributeDistributorModal: React.FC = () => {
                     type="number"
                     min={0}
                     value={delta}
-                    aria-label={`${label} points`}
+                    aria-label={t('attributes.pointsFor', { stat: label })}
                     onChange={(e) => {
                       const v = Math.max(0, parseInt(e.target.value || '0'));
                       setAttribute(key, v);
@@ -138,7 +132,7 @@ export const AttributeDistributorModal: React.FC = () => {
                     style={{ ...stepBtn, opacity: remaining <= 0 ? 0.4 : 1 }}
                     onClick={() => adjustAttribute(key, 1)}
                     disabled={remaining <= 0}
-                    title={`Increase ${label}`}
+                    title={t('attributes.increase', { stat: label })}
                   >
                     +
                   </button>
@@ -151,9 +145,21 @@ export const AttributeDistributorModal: React.FC = () => {
         </div>
 
         <div style={remainingText(remaining)}>
+          {/* Two keys rather than a plural rule: the table has none, and one
+              sentence per case is what a translator can actually answer. */}
           {remaining >= 0
-            ? `${remaining} point${remaining !== 1 ? 's' : ''} remaining`
-            : `${Math.abs(remaining)} point${Math.abs(remaining) !== 1 ? 's' : ''} over budget`}
+            ? t(
+                remaining === 1
+                  ? 'attributes.remainingOne'
+                  : 'attributes.remaining',
+                { count: remaining },
+              )
+            : t(
+                Math.abs(remaining) === 1
+                  ? 'attributes.overBudgetOne'
+                  : 'attributes.overBudget',
+                { count: Math.abs(remaining) },
+              )}
         </div>
 
         {error && <p style={errorStyle}>{error}</p>}
@@ -163,7 +169,7 @@ export const AttributeDistributorModal: React.FC = () => {
           onClick={handleConfirm}
           disabled={loading || assigned === 0 || remaining < 0}
         >
-          {loading ? 'Saving…' : 'Confirm'}
+          {loading ? t('attributes.saving') : t('attributes.confirm')}
         </button>
       </div>
     </Modal>
