@@ -85,6 +85,9 @@
     "daynight": {
       "enabled": false
     },
+    "weather": {
+      "enabled": false
+    },
     "bank": {
       "enabled": true,
       "config": {

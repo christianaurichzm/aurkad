@@ -1,0 +1,8 @@
+{
+  "id": "weather",
+  "name": "Weather",
+  "version": "1.0.0",
+  "client": "client.js",
+  "description": "Rain and snow drawn over the world, on a shared clock or wherever a script points it. Client-only: no server entry.",
+  "enabledByDefault": false
+}

@@ -44,6 +44,7 @@
     "status": { "enabled": true },
     "minimap": { "enabled": false },
     "daynight": { "enabled": false },
+    "weather": { "enabled": false },
     "bank": { "enabled": true, "config": { "maxSlots": 50 } },
     "mail": {
       "enabled": true,
