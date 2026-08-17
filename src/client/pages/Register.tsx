@@ -2,10 +2,12 @@ import { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { httpError, register as registerUser } from '../io/network';
 import { colors, radius, zIndex } from '../theme';
+import { useT } from '../i18n';
 
 type FormValues = { username: string; password: string };
 
 export const Register = ({ onSwitch }: { onSwitch: () => void }) => {
+  const t = useT();
   const [serverError, setServerError] = useState('');
   const [successMsg, setSuccessMsg] = useState('');
 
@@ -25,7 +27,7 @@ export const Register = ({ onSwitch }: { onSwitch: () => void }) => {
     setServerError('');
     try {
       await registerUser(username, password);
-      setSuccessMsg('Account created! Redirecting to login...');
+      setSuccessMsg(t('auth.accountCreated'));
     } catch (err) {
       setServerError(httpError(err).message || 'Registration failed');
     }
@@ -37,7 +39,7 @@ export const Register = ({ onSwitch }: { onSwitch: () => void }) => {
         <div style={styles.field}>
           <input
             type="text"
-            placeholder="Choose a username"
+            placeholder={t('auth.chooseUsername')}
             style={styles.input}
             {...register('username', {
               required: 'Username is required',
@@ -54,7 +56,7 @@ export const Register = ({ onSwitch }: { onSwitch: () => void }) => {
         <div style={styles.field}>
           <input
             type="password"
-            placeholder="Choose a password"
+            placeholder={t('auth.choosePassword')}
             style={styles.input}
             {...register('password', { required: 'Password is required' })}
           />
@@ -63,12 +65,12 @@ export const Register = ({ onSwitch }: { onSwitch: () => void }) => {
           )}
         </div>
         <button type="submit" disabled={isSubmitting} style={styles.button}>
-          {isSubmitting ? 'Registering...' : 'Register'}
+          {isSubmitting ? t('auth.registering') : t('auth.register')}
         </button>
         <p style={styles.switchText}>
-          Already have an account?{' '}
+          {t('auth.hasAccount')}{' '}
           <button type="button" onClick={onSwitch} style={styles.linkButton}>
-            Login
+            {t('auth.login')}
           </button>
         </p>
         {serverError && <div style={styles.error}>{serverError}</div>}

@@ -3,8 +3,10 @@ import { Modal } from '../common/Modal';
 import { ProductDetailed, Shop } from '../../../shared/types';
 import { fetchShop } from '../../io/network';
 import { ShopRow } from './ShopRow';
+import { useT } from '../../i18n';
 
 export const ShopModal: React.FC = () => {
+  const t = useT();
   const [shopId, setShopId] = useState<string | null>(null);
   const [shop, setShop] = useState<Shop<ProductDetailed> | null>(null);
   const [loading, setLoading] = useState(false);
@@ -32,9 +34,9 @@ export const ShopModal: React.FC = () => {
   return (
     <Modal title={shop?.name || 'Shop'} width={520} onClose={close}>
       {loading ? (
-        <p>Loading...</p>
+        <p>{t('common.loading')}</p>
       ) : !shop ? (
-        <p>Shop not found.</p>
+        <p>{t('shop.notFound')}</p>
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
           {shop.products.map((prod) => (

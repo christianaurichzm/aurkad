@@ -2,6 +2,7 @@ import React from 'react';
 import { Item, Player } from '../../../shared/types';
 import { ItemIcon } from './ItemIcon';
 import { useStyles } from './styles';
+import { useT } from '../../i18n';
 
 type Selection = { item: Item; quantity: number };
 
@@ -18,6 +19,7 @@ export const EquipmentPanel: React.FC<{
   onItemHoverMove,
   onItemHoverLeave,
 }) => {
+  const t = useT();
   const styles = useStyles();
 
   const slots: {
@@ -63,37 +65,37 @@ export const EquipmentPanel: React.FC<{
       </div>
       <div style={styles.equipmentStats}>
         <div style={styles.statLine}>
-          <span>Level</span>
+          <span>{t('stats.level')}</span>
           <strong>{player.level}</strong>
         </div>
         <div style={styles.statLine}>
-          <span>Attack</span>
+          <span>{t('stats.attack')}</span>
           <strong>{player.attack}</strong>
         </div>
         <div style={styles.statLine}>
-          <span>Strength</span>
+          <span>{t('stats.strength')}</span>
           <strong>{player.strength}</strong>
         </div>
         <div style={styles.statLine}>
-          <span>Defense</span>
+          <span>{t('stats.defense')}</span>
           <strong>{player.defense}</strong>
         </div>
         <div style={styles.statLine}>
-          <span>Agility</span>
+          <span>{t('stats.agility')}</span>
           <strong>{player.agility}</strong>
         </div>
         <div style={styles.statLine}>
-          <span>Vitality</span>
+          <span>{t('stats.vitality')}</span>
           <strong>{player.vitality}</strong>
         </div>
         <div style={styles.statLine}>
-          <span>Health</span>
+          <span>{t('stats.health')}</span>
           <strong>
             {player.health}/{player.maxHealth}
           </strong>
         </div>
         <div style={styles.statLine}>
-          <span>Speed</span>
+          <span>{t('stats.speed')}</span>
           <strong>{player.speed}</strong>
         </div>
       </div>

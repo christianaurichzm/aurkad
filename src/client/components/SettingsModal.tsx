@@ -2,10 +2,18 @@ import React, { useEffect, useState } from 'react';
 import { AudioSettings, getAudioSettings, setAudioSettings } from '../audio';
 import { colors, radius } from '../theme';
 import { Modal } from './common/Modal';
+import {
+  LANGUAGES,
+  getLanguage,
+  setLanguage,
+  useT,
+  type Language,
+} from '../i18n';
 
 // Client preferences, kept in localStorage by the module owning each one.
 // Server settings are the operator's and are not shown here.
 export const SettingsModal: React.FC = () => {
+  const t = useT();
   const [visible, setVisible] = useState(false);
   const [audio, setAudio] = useState<AudioSettings>(getAudioSettings);
 
@@ -45,7 +53,11 @@ export const SettingsModal: React.FC = () => {
   );
 
   return (
-    <Modal title="Settings" onClose={() => setVisible(false)} width={380}>
+    <Modal
+      title={t('settings.title')}
+      onClose={() => setVisible(false)}
+      width={380}
+    >
       <div style={layout}>
         <div style={sectionTitle}>Audio</div>
         <label style={row}>
@@ -54,10 +66,27 @@ export const SettingsModal: React.FC = () => {
             checked={audio.muted}
             onChange={(e) => update({ muted: e.target.checked })}
           />
-          <span style={rowLabel}>Mute everything</span>
+          <span style={rowLabel}>{t('settings.mute')}</span>
         </label>
-        {slider('Music', 'music')}
-        {slider('Effects', 'effects')}
+        {slider(t('settings.music'), 'music')}
+        {slider(t('settings.effects'), 'effects')}
+
+        <div style={sectionTitle}>{t('settings.language')}</div>
+        <label style={row}>
+          <span style={rowLabel}>{t('settings.language')}</span>
+          <select
+            aria-label={t('settings.language')}
+            value={getLanguage()}
+            onChange={(e) => setLanguage(e.target.value as Language)}
+            style={select}
+          >
+            {Object.entries(LANGUAGES).map(([code, name]) => (
+              <option key={code} value={code}>
+                {name}
+              </option>
+            ))}
+          </select>
+        </label>
       </div>
     </Modal>
   );
@@ -86,6 +115,16 @@ const row: React.CSSProperties = {
   borderRadius: radius.md,
   padding: '10px 12px',
   cursor: 'pointer',
+};
+
+const select: React.CSSProperties = {
+  marginLeft: 'auto',
+  background: colors.surface,
+  color: colors.text,
+  border: `1px solid ${colors.border}`,
+  borderRadius: radius.sm,
+  padding: '4px 8px',
+  fontSize: 14,
 };
 
 const rowLabel: React.CSSProperties = {

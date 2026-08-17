@@ -1,0 +1,103 @@
+import type { en } from './en';
+
+/**
+ * Typed against English, so a new key there breaks this file until it is
+ * translated; that is why the table is code, not JSON.
+ */
+export const pt: Record<keyof typeof en, string> = {
+  'auth.username': 'Usuário',
+  'auth.password': 'Senha',
+  'auth.login': 'Entrar',
+  'auth.register': 'Registrar',
+  'auth.chooseUsername': 'Escolha um usuário',
+  'auth.choosePassword': 'Escolha uma senha',
+  'auth.noAccount': 'Não tem uma conta?',
+  'auth.hasAccount': 'Já tem uma conta?',
+  'auth.accountCreated': 'Conta criada! Redirecionando para o login…',
+  'auth.loggingIn': 'Entrando…',
+  'auth.registering': 'Criando conta…',
+
+  'hud.level': 'Nível {level}',
+  'hud.hp': 'HP',
+  'hud.xp': 'XP {current}/{max}',
+  'hud.attackCooldown': 'Recarga de ataque',
+  'hud.reconnecting': 'Reconectando…',
+  'hud.disconnected': 'Desconectado',
+
+  'actions.title': 'Ações',
+  'actions.inventory': 'Inventário',
+  'actions.attributes': 'Atributos',
+  'actions.onlinePlayers': 'Jogadores online',
+  'actions.settings': 'Configurações',
+
+  'inventory.title': 'Inventário',
+  'inventory.empty': 'Nada aqui ainda.',
+  'inventory.use': 'Usar',
+  'inventory.equip': 'Equipar',
+  'inventory.unequip': 'Desequipar',
+  'inventory.drop': 'Largar',
+  'inventory.dropAmount': 'Quantos?',
+  'inventory.bound': 'Vinculado - não pode ser largado nem trocado',
+  'inventory.capacity': '{used}/{max} espaços',
+  'equipment.title': 'Equipamento',
+  'equipment.empty': 'Nada equipado.',
+
+  'attributes.title': 'Atributos',
+  'attributes.strength': 'Força',
+  'attributes.defense': 'Defesa',
+  'attributes.agility': 'Agilidade',
+  'attributes.vitality': 'Vitalidade',
+  'attributes.unspent': 'Pontos a distribuir: {points}',
+  'attributes.confirm': 'Confirmar',
+
+  'shop.title': 'Loja',
+  'shop.buy': 'Comprar',
+  'shop.price': 'Preço: {price}',
+  'shop.close': 'Fechar',
+  'shop.cannotAfford': 'Dinheiro insuficiente.',
+
+  'online.title': 'Jogadores online',
+  'online.count': '{count} online',
+  'online.empty': 'Ninguém mais por aqui.',
+
+  'chat.placeholder': 'Digite uma mensagem…',
+  'chat.send': 'Enviar',
+  'chat.scopeGlobal': 'Global',
+  'chat.scopeMap': 'Mapa',
+  'chat.scopePlayer': 'Sussurro',
+
+  'settings.title': 'Configurações',
+  'settings.music': 'Música',
+  'settings.effects': 'Efeitos',
+  'settings.mute': 'Silenciar tudo',
+  'settings.language': 'Idioma',
+  'settings.close': 'Fechar',
+
+  'quest.title': 'Missões',
+  'quest.empty': 'Nenhuma missão ainda.',
+  'quest.progress': '{current}/{target}',
+  'quest.complete': 'Concluída',
+
+  'common.cancel': 'Cancelar',
+  'common.confirm': 'Confirmar',
+  'common.close': 'Fechar',
+  'common.save': 'Salvar',
+  'common.delete': 'Excluir',
+  'common.loading': 'Carregando…',
+  'common.error': 'Algo deu errado.',
+
+  'inventory.bagEmpty': 'A bolsa está vazia',
+  'inventory.dropQuantity': 'Quantidade a largar',
+  'inventory.offerInTrade': 'Oferecer na troca',
+  'stats.level': 'Nível',
+  'stats.attack': 'Ataque',
+  'stats.strength': 'Força',
+  'stats.defense': 'Defesa',
+  'stats.agility': 'Agilidade',
+  'stats.vitality': 'Vitalidade',
+  'stats.health': 'Vida',
+  'stats.speed': 'Velocidade',
+  'shop.notFound': 'Loja não encontrada.',
+  'online.loading': 'Carregando jogadores…',
+  'online.none': 'Nenhum jogador online',
+};

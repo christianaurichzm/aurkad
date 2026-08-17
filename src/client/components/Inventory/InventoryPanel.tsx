@@ -9,11 +9,13 @@ import { isEquipped } from '../../utils/isEquipped';
 import { colors } from '../../theme';
 import { useDraggable } from '../../hooks/useDraggable';
 import { useEscapeClose } from '../../hooks/useEscapeClose';
+import { useT } from '../../i18n';
 
 type Selection = { item: Item; quantity: number };
 type InventoryTab = 'bag' | 'equipment';
 
 export const InventoryPanel: React.FC = () => {
+  const t = useT();
   const styles = useStyles();
   const { ref, pos, onPointerDown } = useDraggable(24, 120);
   const [selected, setSelected] = useState<Selection | null>(null);
@@ -129,7 +131,7 @@ export const InventoryPanel: React.FC = () => {
     <div ref={ref} style={{ ...styles.container, left: pos.x, top: pos.y }}>
       <div style={styles.panel}>
         <div style={styles.header} onPointerDown={onPointerDown}>
-          <div style={styles.title}>Inventory</div>
+          <div style={styles.title}>{t('inventory.title')}</div>
           <button
             type="button"
             style={styles.closeBtn}
@@ -197,7 +199,7 @@ export const InventoryPanel: React.FC = () => {
                       <button
                         type="button"
                         style={tradeSelectBtn}
-                        title="Offer in trade"
+                        title={t('inventory.offerInTrade')}
                         onClick={(e) => {
                           e.stopPropagation();
                           window.dispatchEvent(
@@ -218,7 +220,7 @@ export const InventoryPanel: React.FC = () => {
               })}
             </div>
           ) : (
-            <div style={styles.emptyState}>Bag is empty</div>
+            <div style={styles.emptyState}>{t('inventory.bagEmpty')}</div>
           )
         ) : (
           <EquipmentPanel
@@ -261,7 +263,7 @@ export const InventoryPanel: React.FC = () => {
         {dropTarget && (
           <div style={styles.dropPromptBackdrop}>
             <div style={styles.dropPrompt}>
-              <strong>Drop quantity</strong>
+              <strong>{t('inventory.dropQuantity')}</strong>
               <span>
                 {dropTarget.item.name} ({dropTarget.quantity} available)
               </span>

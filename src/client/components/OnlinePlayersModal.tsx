@@ -2,10 +2,12 @@ import React, { useCallback, useEffect, useState } from 'react';
 import { fetchOnlinePlayers } from '../io/network';
 import { colors, radius } from '../theme';
 import { Modal } from './common/Modal';
+import { useT } from '../i18n';
 
 // Read-only "who's online" list for every player. Moderation lives in the GM
 // panel (X), so this stays a plain social list.
 export const OnlinePlayersModal: React.FC = () => {
+  const t = useT();
   const [visible, setVisible] = useState(false);
   const [players, setPlayers] = useState<string[]>([]);
   const [count, setCount] = useState(0);
@@ -43,7 +45,11 @@ export const OnlinePlayersModal: React.FC = () => {
   if (!visible) return null;
 
   return (
-    <Modal title="Online players" onClose={() => setVisible(false)} width={380}>
+    <Modal
+      title={t('online.title')}
+      onClose={() => setVisible(false)}
+      width={380}
+    >
       <div style={layout}>
         <div style={toolbar}>
           <div style={countBadge}>{count} online</div>
@@ -60,7 +66,7 @@ export const OnlinePlayersModal: React.FC = () => {
         {error && <p style={errorStyle}>{error}</p>}
 
         {loading && players.length === 0 ? (
-          <div style={emptyState}>Loading players...</div>
+          <div style={emptyState}>{t('online.loading')}</div>
         ) : players.length > 0 ? (
           <ul style={list}>
             {players.map((name, index) => (
@@ -71,7 +77,7 @@ export const OnlinePlayersModal: React.FC = () => {
             ))}
           </ul>
         ) : (
-          <div style={emptyState}>No players online</div>
+          <div style={emptyState}>{t('online.none')}</div>
         )}
       </div>
     </Modal>

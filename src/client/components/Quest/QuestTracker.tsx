@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { onServerEvent } from '../../io/network/customEvents';
+import { useT } from '../../i18n';
 
 interface Quest {
   id: string;
@@ -13,6 +14,7 @@ interface Quest {
 // Built-in quest tracker: shows active quests from the `quest:update`
 // channel the quest module pushes.
 export const QuestTracker: React.FC = () => {
+  const t = useT();
   const [quests, setQuests] = useState<Quest[]>([]);
 
   useEffect(() => {
@@ -39,7 +41,9 @@ export const QuestTracker: React.FC = () => {
         pointerEvents: 'none',
       }}
     >
-      <div style={{ fontWeight: 'bold', marginBottom: 4 }}>Quests</div>
+      <div style={{ fontWeight: 'bold', marginBottom: 4 }}>
+        {t('quest.title')}
+      </div>
       {active.map((q) => (
         <div key={q.id} style={{ marginBottom: 4 }}>
           <div>{q.name}</div>

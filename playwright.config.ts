@@ -14,6 +14,9 @@ export default defineConfig({
   use: {
     baseURL: 'http://localhost:3000',
     trace: 'retain-on-failure',
+    // Pinned: the client picks its language from navigator.language and the
+    // assertions are in English.
+    locale: 'en-US',
   },
   projects: [
     {

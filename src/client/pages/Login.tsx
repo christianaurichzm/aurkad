@@ -5,10 +5,12 @@ import { setAssetKey } from '../io/assets';
 import { useGame } from '../context/GameContext';
 import { useUIStore } from '../stores/uiStore';
 import { colors, radius, zIndex } from '../theme';
+import { useT } from '../i18n';
 
 type FormValues = { username: string; password: string };
 
 export const Login = ({ onSwitch }: { onSwitch: () => void }) => {
+  const t = useT();
   const { loginSuccess } = useGame();
   const [serverError, setServerError] = useState('');
   const [onlinePlayers, setOnlinePlayers] = useState<number | null>(null);
@@ -54,9 +56,9 @@ export const Login = ({ onSwitch }: { onSwitch: () => void }) => {
         <div style={styles.field}>
           <input
             type="text"
-            placeholder="Username"
+            placeholder={t('auth.username')}
             style={styles.input}
-            {...register('username', { required: 'Username is required' })}
+            {...register('username', { required: t('auth.username') })}
           />
           {errors.username && (
             <span style={styles.fieldError}>{errors.username.message}</span>
@@ -65,26 +67,26 @@ export const Login = ({ onSwitch }: { onSwitch: () => void }) => {
         <div style={styles.field}>
           <input
             type="password"
-            placeholder="Password"
+            placeholder={t('auth.password')}
             style={styles.input}
-            {...register('password', { required: 'Password is required' })}
+            {...register('password', { required: t('auth.password') })}
           />
           {errors.password && (
             <span style={styles.fieldError}>{errors.password.message}</span>
           )}
         </div>
         <button type="submit" disabled={isSubmitting} style={styles.button}>
-          {isSubmitting ? 'Logging in...' : 'Login'}
+          {isSubmitting ? t('auth.loggingIn') : t('auth.login')}
         </button>
         {onlinePlayers !== null && (
           <p style={styles.onlineCount}>
-            {onlinePlayers} player{onlinePlayers !== 1 ? 's' : ''} online
+            {t('online.count', { count: onlinePlayers })}
           </p>
         )}
         <p style={styles.registerText}>
-          Don&apos;t have an account?{' '}
+          {t('auth.noAccount')}{' '}
           <button type="button" onClick={onSwitch} style={styles.linkButton}>
-            Register
+            {t('auth.register')}
           </button>
         </p>
         {serverError && <div style={styles.error}>{serverError}</div>}

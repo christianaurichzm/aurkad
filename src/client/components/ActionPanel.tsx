@@ -13,6 +13,7 @@ import {
   subscribeModuleActions,
 } from '../io/modules/moduleActions';
 import { useUIStore } from '../stores/uiStore';
+import { useT } from '../i18n';
 
 type QuickAction = {
   id: string;
@@ -85,6 +86,7 @@ const quickActions: QuickAction[] = [
 ];
 
 export const ActionPanel: React.FC = () => {
+  const t = useT();
   const [loadingPanel, setLoadingPanel] = useState<string | null>(null);
   const { player: sessionPlayer } = useGame();
   const livePlayer = usePlayerForceUpdate(true);
@@ -133,7 +135,7 @@ export const ActionPanel: React.FC = () => {
 
   return (
     <section id="actionPanel" aria-label="Quick actions">
-      <div className="panel-title">Actions</div>
+      <div className="panel-title">{t('actions.title')}</div>
       <div className="action-grid">
         {visibleActions.map((action) => (
           <button
