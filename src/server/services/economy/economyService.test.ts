@@ -17,7 +17,7 @@ import {
   removeItem,
   totalItem,
 } from './economyService.js';
-import { seedRng, randomInt } from '../../sim/rng.js';
+import fc from 'fast-check';
 import type { InventoryLike } from '../../../shared/types.js';
 
 const container = (
@@ -449,67 +449,183 @@ describe('conservation', () => {
     ).toBe(5);
   });
 
-  // The invariant everything else is built on. Random moves, valid and
-  // invalid, must never change how many of an item exist.
-  it('never creates or destroys items across a long run of random moves', () => {
-    seedRng(7);
+  // The invariants everything else rests on, checked against generated
+  // states that reach what hand-picked ones miss (an empty container, a
+  // stack equal to the request, a capacity of one); a failure shrinks to
+  // the smallest counterexample.
 
-    const boxes = [
-      container(
-        [
-          [1, 10],
-          [2, 4],
-        ],
-        4,
+  const slot = fc.record({
+    item: fc.integer({ min: 1, max: 6 }),
+    quantity: fc.integer({ min: 1, max: 20 }),
+  });
+
+  /** A container that is itself valid: never generated over capacity. */
+  const anyContainer = fc
+    .uniqueArray(slot, { maxLength: 5, selector: (s) => s.item })
+    .chain((items) =>
+      fc.record({
+        items: fc.constant(items),
+        maxCapacity: fc.integer({
+          min: Math.max(1, items.length),
+          max: items.length + 3,
+        }),
+      }),
+    );
+
+  const anyItemId = fc.integer({ min: 1, max: 6 });
+  const anyAmount = fc.integer({ min: -2, max: 25 });
+
+  const usedSlots = (c: InventoryLike) =>
+    c.items.filter((s) => s.quantity > 0).length;
+
+  it('moveItem never creates or destroys an item', () => {
+    fc.assert(
+      fc.property(
+        anyContainer,
+        anyContainer,
+        anyItemId,
+        anyAmount,
+        (from, to, itemId, amount) => {
+          const before = totalItem([from, to], itemId);
+
+          moveItem(from, to, itemId, amount);
+
+          expect(totalItem([from, to], itemId)).toBe(before);
+        },
       ),
-      container([[1, 6]], 3),
-      container([], 2),
-      container([[2, 1]], 1),
-    ];
-
-    const before1 = totalItem(boxes, 1);
-    const before2 = totalItem(boxes, 2);
-
-    for (let i = 0; i < 3000; i++) {
-      const from = boxes[randomInt(boxes.length)]!;
-      const to = boxes[randomInt(boxes.length)]!;
-      const itemId = 1 + randomInt(3);
-      // Includes amounts nobody holds and destinations with no room, so the
-      // failure paths are exercised as hard as the happy one.
-      const amount = 1 + randomInt(8);
-
-      moveItem(from, to, itemId, amount);
-
-      expect(totalItem(boxes, 1)).toBe(before1);
-      expect(totalItem(boxes, 2)).toBe(before2);
-    }
+    );
   });
 
-  it('never leaves a container over capacity', () => {
-    seedRng(11);
+  it('moveItem leaves both sides untouched when it fails', () => {
+    fc.assert(
+      fc.property(
+        anyContainer,
+        anyContainer,
+        anyItemId,
+        anyAmount,
+        (from, to, itemId, amount) => {
+          const fromBefore = structuredClone(from);
+          const toBefore = structuredClone(to);
 
-    const boxes = [container([[1, 20]], 3), container([], 1), container([], 2)];
+          const result = moveItem(from, to, itemId, amount);
 
-    for (let i = 0; i < 2000; i++) {
-      const from = boxes[randomInt(boxes.length)]!;
-      const to = boxes[randomInt(boxes.length)]!;
-      moveItem(from, to, 1 + randomInt(5), 1 + randomInt(4));
-
-      for (const box of boxes) {
-        const used = box.items.filter((s) => s.quantity > 0).length;
-        expect(used).toBeLessThanOrEqual(box.maxCapacity);
-      }
-    }
+          fc.pre(!result.ok);
+          expect(from).toEqual(fromBefore);
+          expect(to).toEqual(toBefore);
+        },
+      ),
+    );
   });
 
-  it('never leaves a negative stack', () => {
-    seedRng(3);
-    const c = container([[1, 5]]);
+  it('moveItem moves exactly what it says when it succeeds', () => {
+    fc.assert(
+      fc.property(
+        anyContainer,
+        anyContainer,
+        anyItemId,
+        anyAmount,
+        (from, to, itemId, amount) => {
+          const fromBefore = countItem(from, itemId);
+          const toBefore = countItem(to, itemId);
 
-    for (let i = 0; i < 500; i++) {
-      removeItem(c, 1, 1 + randomInt(10));
-      addItem(c, 1, 1 + randomInt(3));
-      for (const slot of c.items) expect(slot.quantity).toBeGreaterThan(0);
-    }
+          const result = moveItem(from, to, itemId, amount);
+
+          fc.pre(result.ok);
+          expect(countItem(from, itemId)).toBe(fromBefore - amount);
+          expect(countItem(to, itemId)).toBe(toBefore + amount);
+        },
+      ),
+    );
+  });
+
+  it('no operation leaves a container over capacity or holding a dead stack', () => {
+    fc.assert(
+      fc.property(
+        anyContainer,
+        anyContainer,
+        fc.array(
+          fc.tuple(
+            fc.constantFrom('move', 'add', 'remove'),
+            anyItemId,
+            anyAmount,
+          ),
+          { maxLength: 30 },
+        ),
+        (from, to, ops) => {
+          for (const [op, itemId, amount] of ops) {
+            if (op === 'move') moveItem(from, to, itemId, amount);
+            else if (op === 'add') addItem(to, itemId, amount);
+            else removeItem(from, itemId, amount);
+          }
+
+          for (const box of [from, to]) {
+            expect(usedSlots(box)).toBeLessThanOrEqual(box.maxCapacity);
+            for (const s of box.items) expect(s.quantity).toBeGreaterThan(0);
+          }
+        },
+      ),
+    );
+  });
+
+  // The loss this function exists to prevent: inputs consumed and no output.
+  it('exchangeItems changes nothing at all when it fails', () => {
+    fc.assert(
+      fc.property(
+        anyContainer,
+        fc.array(fc.record({ itemId: anyItemId, quantity: anyAmount }), {
+          minLength: 1,
+          maxLength: 4,
+        }),
+        fc.record({ itemId: anyItemId, quantity: anyAmount }),
+        (box, inputs, output) => {
+          const before = structuredClone(box);
+
+          const result = exchangeItems(box, inputs, output);
+
+          fc.pre(!result.ok);
+          expect(box).toEqual(before);
+        },
+      ),
+    );
+  });
+
+  it('exchangeItems consumes every input exactly once, repeats included', () => {
+    fc.assert(
+      fc.property(
+        anyContainer,
+        fc.array(
+          fc.record({
+            itemId: anyItemId,
+            quantity: fc.integer({ min: 1, max: 10 }),
+          }),
+          { minLength: 1, maxLength: 4 },
+        ),
+        fc.record({
+          itemId: anyItemId,
+          quantity: fc.integer({ min: 1, max: 5 }),
+        }),
+        (box, inputs, output) => {
+          const before = new Map<number, number>();
+          for (const id of [1, 2, 3, 4, 5, 6])
+            before.set(id, countItem(box, id));
+
+          const result = exchangeItems(box, inputs, output);
+
+          fc.pre(result.ok);
+          // Two rows of the same id are one debt of their sum, which the
+          // per-item tally in exchangeItems accounts for.
+          const owed = new Map<number, number>();
+          for (const i of inputs) {
+            owed.set(i.itemId, (owed.get(i.itemId) ?? 0) + i.quantity);
+          }
+          for (const id of [1, 2, 3, 4, 5, 6]) {
+            const produced = id === output.itemId ? output.quantity : 0;
+            expect(countItem(box, id)).toBe(
+              before.get(id)! - (owed.get(id) ?? 0) + produced,
+            );
+          }
+        },
+      ),
+    );
   });
 });
