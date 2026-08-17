@@ -4,6 +4,58 @@
 // members are online. A record with members as string[] is migrated the
 // first time it is read.
 
+i18n({
+  pt: {
+    'Provide a guild name.': 'Informe um nome de guilda.',
+    'Leave your current guild first.': 'Saia da sua guilda atual primeiro.',
+    'That guild name is taken.': 'Esse nome de guilda já existe.',
+    'Guild "{name}" created ({privacy}).':
+      'Guilda "{name}" criada ({privacy}).',
+    'You are not in a guild.': 'Você não está em uma guilda.',
+    'Only officers and the owner can invite.':
+      'Só oficiais e o dono podem convidar.',
+    'Player not found or not online.':
+      'Jogador não encontrado ou fora do jogo.',
+    'That player is already in a guild.': 'Esse jogador já está em uma guilda.',
+    'Your guild is full.': 'Sua guilda está cheia.',
+    'Invited {player} to {guild}.': '{player} foi convidado para {guild}.',
+    'No such guild.': 'Guilda inexistente.',
+    'That guild is invite-only. Ask a member to invite you.':
+      'Essa guilda é só por convite. Peça a um membro para convidar você.',
+    'That guild is full.': 'Essa guilda está cheia.',
+    'Joined "{name}".': 'Você entrou em "{name}".',
+    'No pending invite from that guild.':
+      'Nenhum convite pendente dessa guilda.',
+    'Only the owner can promote members.': 'Só o dono pode promover membros.',
+    'That player is not in your guild.': 'Esse jogador não está na sua guilda.',
+    'Cannot promote the owner.': 'Não dá para promover o dono.',
+    '{player} is already a moderator.': '{player} já é moderador.',
+    '{player} promoted to moderator.': '{player} promovido a moderador.',
+    'Only the owner can demote members.': 'Só o dono pode rebaixar membros.',
+    'Cannot demote the owner.': 'Não dá para rebaixar o dono.',
+    '{player} is already a member.': '{player} já é membro.',
+    '{player} demoted to member.': '{player} rebaixado a membro.',
+    'Only officers and the owner can kick.':
+      'Só oficiais e o dono podem expulsar.',
+    'You cannot kick yourself.': 'Você não pode se expulsar.',
+    'Cannot kick the owner.': 'Não dá para expulsar o dono.',
+    'Only the owner can kick officers.': 'Só o dono pode expulsar oficiais.',
+    '{player} was kicked.': '{player} foi expulso.',
+    'Only the owner can change guild privacy.':
+      'Só o dono pode mudar a privacidade da guilda.',
+    'Guild is now {privacy}.': 'A guilda agora é {privacy}.',
+    'You left "{name}" (guild disbanded).':
+      'Você saiu de "{name}" (guilda dissolvida).',
+    'You left "{name}".': 'Você saiu de "{name}".',
+    'Guild commands must be used in-game.':
+      'Os comandos de guilda só funcionam dentro do jogo.',
+    '[{privacy}] {name} ({size}/{max}): {members}':
+      '[{privacy}] {name} ({size}/{max}): {members}',
+    'Usage: /guild create|join|invite|accept|leave|promote|demote|kick|privacy|info [arg]':
+      'Uso: /guild create|join|invite|accept|leave|promote|demote|kick|privacy|info [arg]',
+  },
+});
+
 const maxMembers = Number((config && config.maxMembers) || 50);
 const xpBonus = Math.max(0, Number((config && config.xpBonus) || 0));
 const xpBonusMinMembers = Math.max(
@@ -74,7 +126,10 @@ function createGuild(player, name, privacy) {
   setPlayerData(player, 'guild', name);
   setNameTag(player, name);
   sendEvent(player, 'guild:update', { ...g, self: player.name });
-  return `Guild "${name}" created (${p}).`;
+  return t(player, 'Guild "{name}" created ({privacy}).', {
+    name,
+    privacy: p,
+  });
 }
 
 function inviteToGuild(player, targetName) {
@@ -92,7 +147,10 @@ function inviteToGuild(player, targetName) {
     saveGuild(g);
   }
   sendEvent(target, 'guild:invite', { guildName: gn, from: player.name });
-  return `Invited ${target.name} to ${gn}.`;
+  return t(player, 'Invited {player} to {guild}.', {
+    player: target.name,
+    guild: gn,
+  });
 }
 
 function joinGuild(player, name) {
@@ -108,7 +166,7 @@ function joinGuild(player, name) {
   setPlayerData(player, 'guild', name);
   setNameTag(player, name);
   pushGuild(name);
-  return `Joined "${name}".`;
+  return t(player, 'Joined "{name}".', { name });
 }
 
 function acceptInvite(player, guildName) {
@@ -125,7 +183,7 @@ function acceptInvite(player, guildName) {
   setPlayerData(player, 'guild', name);
   setNameTag(player, name);
   pushGuild(name);
-  return `Joined "${name}".`;
+  return t(player, 'Joined "{name}".', { name });
 }
 
 function promote(player, targetName) {
@@ -137,11 +195,13 @@ function promote(player, targetName) {
   if (!member) return 'That player is not in your guild.';
   if (member.role === 'owner') return 'Cannot promote the owner.';
   if (member.role === 'moderator')
-    return `${targetName} is already a moderator.`;
+    return t(player, '{player} is already a moderator.', {
+      player: targetName,
+    });
   member.role = 'moderator';
   saveGuild(g);
   pushGuild(gn);
-  return `${targetName} promoted to moderator.`;
+  return t(player, '{player} promoted to moderator.', { player: targetName });
 }
 
 function demote(player, targetName) {
@@ -152,11 +212,12 @@ function demote(player, targetName) {
   const member = g.members.find((m) => m.name === targetName);
   if (!member) return 'That player is not in your guild.';
   if (member.role === 'owner') return 'Cannot demote the owner.';
-  if (member.role === 'member') return `${targetName} is already a member.`;
+  if (member.role === 'member')
+    return t(player, '{player} is already a member.', { player: targetName });
   member.role = 'member';
   saveGuild(g);
   pushGuild(gn);
-  return `${targetName} demoted to member.`;
+  return t(player, '{player} demoted to member.', { player: targetName });
 }
 
 function kick(player, targetName) {
@@ -181,7 +242,7 @@ function kick(player, targetName) {
     sendEvent(kicked, 'guild:update', null);
     sendEvent(kicked, 'guild:kicked', { from: gn });
   }
-  return `${targetName} was kicked.`;
+  return t(player, '{player} was kicked.', { player: targetName });
 }
 
 function setPrivacy(player, privacy) {
@@ -194,7 +255,7 @@ function setPrivacy(player, privacy) {
   g.privacy = p;
   saveGuild(g);
   pushGuild(gn);
-  return `Guild is now ${p}.`;
+  return t(player, 'Guild is now {privacy}.', { privacy: p });
 }
 
 function leaveGuild(player) {
@@ -209,7 +270,7 @@ function leaveGuild(player) {
   sendEvent(player, 'guild:update', null);
   if (g.members.length === 0) {
     store.delete('guild', gn);
-    return `You left "${gn}" (guild disbanded).`;
+    return t(player, 'You left "{name}" (guild disbanded).', { name: gn });
   }
   if (wasOwner) {
     const nextOwner =
@@ -219,7 +280,7 @@ function leaveGuild(player) {
   }
   saveGuild(g);
   pushGuild(gn);
-  return `You left "${gn}".`;
+  return t(player, 'You left "{name}".', { name: gn });
 }
 
 // ---------- commands ---------------------------------------------------------
@@ -247,7 +308,13 @@ command(
       if (!g) return reply('You are not in a guild.');
       const list = g.members.map((m) => `${m.name}(${m.role[0]})`).join(', ');
       return reply(
-        `[${g.privacy}] ${g.name} (${g.members.length}/${maxMembers}): ${list}`,
+        t(player, '[{privacy}] {name} ({size}/{max}): {members}', {
+          privacy: g.privacy,
+          name: g.name,
+          size: g.members.length,
+          max: maxMembers,
+          members: list,
+        }),
       );
     }
     reply(

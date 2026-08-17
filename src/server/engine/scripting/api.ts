@@ -34,6 +34,7 @@ import {
   broadcastCustomEvent,
 } from '../../services/comms/customEventService.js';
 import { registerCommand } from '../commands.js';
+import { registerStrings, translate } from '../i18n.js';
 import { provideApi, useApi } from '../modules/registry.js';
 import {
   setCosmetic,
@@ -661,16 +662,52 @@ export function buildApi(
     },
 
     // Messaging
+    /**
+     * A private line to one player, in the language their client asked for.
+     * Translated here, like a command reply, so a script writes the English it
+     * means and an untranslated line ships as that English.
+     */
     sendMessage: (player: PlayerServer, message: string): void => {
       emitGameEvent({
         type: 'chatPlayer',
         username: player.name,
-        payload: { type: 'chat', scope: 'player', message },
+        payload: {
+          type: 'chat',
+          scope: 'player',
+          message: translate(player, message),
+        },
       });
     },
+    /**
+     * One line to everyone. Not translated: it is one event for every viewer,
+     * so a game loops `sendMessage` per player to say it in each language.
+     */
     broadcastMessage: (message: string): void => {
       handleChatAction({ type: 'chat', scope: 'global', message });
     },
+
+    // Translation
+    /**
+     * Declare this script's translations, keyed by language and then by the
+     * English string it already writes.
+     *
+     *     i18n({ pt: { 'Pet dismissed.': 'Bicho dispensado.' } });
+     */
+    i18n: (tables: Record<string, Record<string, string>>): void =>
+      registerStrings(tables),
+    /**
+     * One sentence in a player's language, filling `{placeholders}`.
+     * `sendMessage` and a command reply translate on their own, so this is for
+     * sentences that carry a value, which a template literal would bake into a
+     * string no table can key.
+     *
+     *     reply(t(player, 'Trades: {count}', { count: offers.length }));
+     */
+    t: (
+      player: PlayerServer | undefined,
+      text: string,
+      params?: Record<string, string | number>,
+    ): string => translate(player, String(text), params),
 
     // Custom network events (server -> client); pair with on('customAction')
     // for client -> server. `channel` and `payload` are game-defined.

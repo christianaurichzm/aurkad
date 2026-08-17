@@ -874,8 +874,30 @@ declare function teleportPlayer(
 /** Send a private message to one player. */
 declare function sendMessage(player: PlayerServer, message: string): void;
 
-/** Send a message to all online players. */
+/** Send a message to all online players, untranslated. */
 declare function broadcastMessage(message: string): void;
+
+/**
+ * Declare this script's translations, keyed by language and then by the English
+ * string it already writes.
+ *
+ *     i18n({ pt: { 'Pet dismissed.': 'Bicho dispensado.' } });
+ */
+declare function i18n(tables: Record<string, Record<string, string>>): void;
+
+/**
+ * One sentence in a player's language, filling `{placeholders}`.
+ *
+ * `sendMessage` and a command reply translate on their own; this is for the
+ * sentences that carry a value.
+ *
+ *     reply(t(player, 'Trades: {count}', { count: offers.length }));
+ */
+declare function t(
+  player: PlayerServer | undefined,
+  text: string,
+  params?: Record<string, string | number>,
+): string;
 
 /**
  * Sends a custom event to one player's client code. The channel and

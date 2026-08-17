@@ -8,6 +8,16 @@ import { isMuted } from '../world/serverState.js';
 import { playersWsMap } from '../../net/connections.js';
 import { WebSocket } from 'ws';
 import { getPlayerByName } from '../player/playerService.js';
+import { registerStrings, translate } from '../../engine/i18n.js';
+
+// The only line this service says on its own; the rest of what passes through
+// is what a player or an operator wrote.
+registerStrings({
+  pt: {
+    'You are muted and cannot send messages.':
+      'Você está silenciado e não pode enviar mensagens.',
+  },
+});
 
 export type ChatLogEntry = {
   ts: number;
@@ -41,7 +51,10 @@ function sendMutedNotice(username: string) {
     const notice: ChatMessagePayload = {
       type: 'chat',
       scope: 'player',
-      message: 'You are muted and cannot send messages.',
+      message: translate(
+        getPlayerByName(username),
+        'You are muted and cannot send messages.',
+      ),
     };
     ws.send(JSON.stringify(notice));
   }

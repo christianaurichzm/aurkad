@@ -28,6 +28,43 @@ function positiveInt(value, fallback) {
   return Number.isFinite(n) && n > 0 ? n : fallback;
 }
 
+i18n({
+  pt: {
+    'That is not a valid quantity.': 'Essa quantidade não é válida.',
+    'That item does not exist.': 'Esse item não existe.',
+    'No player by that name.': 'Nenhum jogador com esse nome.',
+    'That player has too much mail waiting.':
+      'Esse jogador tem correio demais esperando.',
+    'That note is too long.': 'Esse recado é longo demais.',
+    'You do not have that item quantity.': 'Você não tem essa quantidade.',
+    'Could not send that; nothing was taken. Try again.':
+      'Não deu para enviar; nada foi retirado. Tente de novo.',
+    'Could not send that.': 'Não deu para enviar.',
+    'Usage: /mail send <player> <itemId> [qty] [message]':
+      'Uso: /mail send <jogador> <idDoItem> [qtd] [recado]',
+    'You cannot send mail to yourself.':
+      'Você não pode enviar correio para si mesmo.',
+    'That item is bound and cannot be mailed.':
+      'Esse item é vinculado e não pode ser enviado.',
+    'Postage costs {cost}.': 'A postagem custa {cost}.',
+    'You have mail from {player}.': 'Você tem correio de {player}.',
+    'Sent {quantity}x {item} to {player}.':
+      'Enviado {quantity}x {item} para {player}.',
+    'Nothing waiting for you.': 'Nada esperando por você.',
+    'Your inventory is full.': 'Seu inventário está cheio.',
+    'Collected {taken} item(s).': 'Recebido {taken} item(ns).',
+    'Collected {taken} item(s). {left} left waiting.':
+      'Recebido {taken} item(ns). {left} ainda esperando.',
+    'Mail commands must be used in-game.':
+      'Os comandos de correio só funcionam dentro do jogo.',
+    'Your mailbox is empty.': 'Sua caixa de correio está vazia.',
+    'Usage: /mail send <player> <itemId> [qty] [message] | /mail list | /mail claim':
+      'Uso: /mail send <jogador> <idDoItem> [qtd] [recado] | /mail list | /mail claim',
+    'You have {waiting} item(s) waiting in the mail. Open Mail to collect.':
+      'Você tem {waiting} item(ns) esperando no correio. Abra o Correio para receber.',
+  },
+});
+
 const FAILURE_TEXT = {
   'invalid-amount': 'That is not a valid quantity.',
   'unknown-item': 'That item does not exist.',
@@ -89,10 +126,10 @@ async function send(player, toName, itemIdValue, quantityValue, message) {
 
   if (costPerLetter > 0) {
     if (!hasItem(player, currencyItemId, costPerLetter)) {
-      return `Postage costs ${costPerLetter}.`;
+      return t(player, 'Postage costs {cost}.', { cost: costPerLetter });
     }
     if (!removeItem(player, currencyItemId, costPerLetter)) {
-      return `Postage costs ${costPerLetter}.`;
+      return t(player, 'Postage costs {cost}.', { cost: costPerLetter });
     }
   }
 
@@ -106,10 +143,17 @@ async function send(player, toName, itemIdValue, quantityValue, message) {
   if (queued.ok) {
     const recipient = getPlayer(to);
     if (recipient) {
-      sendMessage(recipient, `You have mail from ${player.name}.`);
+      sendMessage(
+        recipient,
+        t(recipient, 'You have mail from {player}.', { player: player.name }),
+      );
       void push(recipient);
     }
-    return `Sent ${quantity}x ${info.name} to ${to}.`;
+    return t(player, 'Sent {quantity}x {item} to {player}.', {
+      quantity,
+      item: info.name,
+      player: to,
+    });
   }
 
   if (costPerLetter > 0) {
@@ -130,7 +174,12 @@ async function claim(player, ids) {
   void push(player);
 
   if (taken === 0) return 'Your inventory is full.';
-  return `Collected ${taken} item(s).${left > 0 ? ` ${left} left waiting.` : ''}`;
+  return left > 0
+    ? t(player, 'Collected {taken} item(s). {left} left waiting.', {
+        taken,
+        left,
+      })
+    : t(player, 'Collected {taken} item(s).', { taken });
 }
 
 command(
@@ -196,7 +245,11 @@ on('playerJoin', ({ player }) => {
     if (waiting > 0) {
       sendMessage(
         player,
-        `You have ${waiting} item(s) waiting in the mail. Open Mail to collect.`,
+        t(
+          player,
+          'You have {waiting} item(s) waiting in the mail. Open Mail to collect.',
+          { waiting },
+        ),
       );
     }
   });

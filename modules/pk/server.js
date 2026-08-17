@@ -27,6 +27,15 @@ function unflag(p) {
   setPlayerData(p, 'pkUntil', undefined);
 }
 
+i18n({
+  pt: {
+    'In-game only.': 'Só dentro do jogo.',
+    'You are flagged as a PK ({kills} kills).':
+      'Você está marcado como PK ({kills} mortes).',
+    'Not flagged. Kills: {kills}.': 'Sem marca. Mortes: {kills}.',
+  },
+});
+
 on('playerDeath', ({ player, killer }) => {
   if (!killer || killer.kind !== 'player' || killer.name === player.name)
     return;
@@ -54,11 +63,11 @@ command(
   { description: 'Show your player-killer status' },
   ({ player, reply }) => {
     if (!player) return reply('In-game only.');
-    const kills = getPlayerData(player, 'pkCount') || 0;
+    const kills = Number(getPlayerData(player, 'pkCount')) || 0;
     reply(
       isPk(player)
-        ? `You are flagged as a PK (${kills} kills).`
-        : `Not flagged. Kills: ${kills}.`,
+        ? t(player, 'You are flagged as a PK ({kills} kills).', { kills })
+        : t(player, 'Not flagged. Kills: {kills}.', { kills }),
     );
   },
 );

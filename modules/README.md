@@ -67,6 +67,32 @@ own `config`. Anything it registers is unregistered automatically on shutdown.
 Modules load at boot, before game scripts. Unlike scripts they are not
 hot-reloaded; restart to apply changes.
 
+### Translations (server side)
+
+Same rule as the browser half: the key is the English the module already
+writes, so a language with no entry for it answers in that English.
+
+```js
+i18n({ pt: { 'Pet dismissed.': 'Bicho dispensado.' } });
+
+reply('Pet dismissed.'); // translated at the funnel
+sendMessage(player, 'Pet dismissed.'); // same
+reply(t(player, 'Trades: {count}', { count })); // a sentence with a value
+```
+
+A command reply and `sendMessage` translate on their own, for the player they
+are answering: a handler written in plain English needs no change to be
+translatable. `t` is for the sentences that carry a value, which a template
+literal would otherwise weld into a string no table can key.
+
+`broadcastMessage` is **not** translated: it is one event fanned out to every
+viewer, so there is no single language to write it in. A game that wants a
+broadcast in each player's language loops with `sendMessage` instead.
+
+The language is a session fact, sent by the browser on connect and on every
+switch, and the same account can be read in two languages on two machines.
+A command run from the REPL has no player behind it and reads English.
+
 ## Sharing an API between modules
 
 A module publishes an API with `provide(name, api)`; other modules and scripts
@@ -94,12 +120,15 @@ with no import system:
 
 ```js
 // modules/guild/client.js
-const panel = engine.mount();               // a DOM element this module owns
-engine.onServerEvent('guild:update', (g) => { panel.innerHTML = render(g); });
-engine.sendServerEvent('guild:request');    // talk back to the server entry
+const panel = engine.mount(); // a DOM element this module owns
+engine.onServerEvent('guild:update', (g) => {
+  panel.innerHTML = render(g);
+});
+engine.sendServerEvent('guild:request'); // talk back to the server entry
 ```
 
 `engine`:
+
 - `mount()` → an `HTMLElement` to render into (vanilla DOM, or your own bundle).
 - `onServerEvent(channel, handler)` / `sendServerEvent(channel, payload)` - the
   same custom-event channels the server entry uses (`sendEvent` / `customAction`).
@@ -124,9 +153,9 @@ one language still reads.
 ```js
 engine.i18n({ pt: { Guild: 'Guilda', 'Leave Guild': 'Sair da guilda' } });
 
-ui.panel({ title: 'Guild' });         // translated by the toolkit
-ui.button('Leave Guild', leave);      // same
-engine.t('{player} left', { player }) // DOM you build yourself, and any value
+ui.panel({ title: 'Guild' }); // translated by the toolkit
+ui.button('Leave Guild', leave); // same
+engine.t('{player} left', { player }); // DOM you build yourself, and any value
 ```
 
 Text handed to the `ui` helpers follows a language switch on its own. A string

@@ -10,6 +10,23 @@
 //   crafting.craft(player, 'steel-sword');
 //   crafting.define({ id: 'x', name: 'X', inputs: [...], output: {...} });
 
+i18n({
+  pt: {
+    'No such recipe.': 'Receita inexistente.',
+    'You have not learned that recipe.':
+      'Você ainda não aprendeu essa receita.',
+    'Your bag is too full to hold that.':
+      'Sua bolsa está cheia demais para isso.',
+    'You are missing materials.': 'Faltam materiais.',
+    'You crafted {item}.': 'Você fabricou {item}.',
+    'Crafted.': 'Fabricado.',
+    'Crafting must be used in-game.':
+      'A fabricação só funciona dentro do jogo.',
+    'You know no recipes.': 'Você não conhece nenhuma receita.',
+    'Recipes: {list}': 'Receitas: {list}',
+  },
+});
+
 const defs = new Map();
 
 /**
@@ -91,10 +108,11 @@ function craft(player, recipeId) {
   const name = getItem(recipe.output.itemId);
   sendMessage(
     player,
-    'You crafted ' +
-      (recipe.output.quantity > 1 ? recipe.output.quantity + 'x ' : '') +
-      ((name && name.name) || recipe.name) +
-      '.',
+    t(player, 'You crafted {item}.', {
+      item:
+        (recipe.output.quantity > 1 ? recipe.output.quantity + 'x ' : '') +
+        ((name && name.name) || recipe.name),
+    }),
   );
   push(player);
   return 'Crafted.';
@@ -129,7 +147,9 @@ command(
       const list = available(player);
       if (list.length === 0) return reply('You know no recipes.');
       return reply(
-        'Recipes: ' + list.map((r) => r.id + ' (' + r.name + ')').join(', '),
+        t(player, 'Recipes: {list}', {
+          list: list.map((r) => r.id + ' (' + r.name + ')').join(', '),
+        }),
       );
     }
     reply(craft(player, args[0]));

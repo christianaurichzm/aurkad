@@ -8,7 +8,7 @@ import { useUIStore } from '../../stores/uiStore';
 import { enqueueGameStateMessage } from './sync/gameStateSync';
 import { enqueueChatMessage, setChatSocketSender } from './sync/chatSync';
 import { dispatchServerEvent } from './customEvents';
-import { t } from '../../i18n';
+import { getLanguage, onLanguageChange, t } from '../../i18n';
 
 const clientWsProtocol = window.location.protocol === 'https:' ? 'wss' : 'ws';
 const clientHost = window.location.host;
@@ -79,6 +79,9 @@ export const initializeWebSocket = (url = currentWsUrl) => {
     reconnectAttempts = 0;
     showConnectionStatus(t('net.connected'));
     setTimeout(hideConnectionStatus, 2000);
+    // On every open: the server keeps this on the session, so a reconnect or a
+    // cross-map warp to another instance would answer in English until told.
+    sendAction({ type: 'language', language: getLanguage() });
   };
 
   socket.onmessage = (event: MessageEvent<string>) => {
@@ -164,6 +167,12 @@ export function sendAction(action: WsClientMessage): void {
     console.warn('WebSocket not open. Action skipped:', action.type);
   }
 }
+
+// A switch mid-session: the screens re-render on their own, and this is what
+// keeps the next command reply from arriving in the language just left behind.
+onLanguageChange(() => {
+  sendAction({ type: 'language', language: getLanguage() });
+});
 
 window.addEventListener('offline', () => {
   showConnectionStatus(t('net.offline'), true);

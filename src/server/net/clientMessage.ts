@@ -37,11 +37,20 @@ const CustomMessageSchema = z.object({
   payload: z.unknown().optional(),
 });
 
+// A language tag, not a language: the set of them is whatever the modules
+// loaded here decided to ship, so the value is bounded and then looked up.
+// One nobody has a table for reads as English, as a missing sentence does.
+const LanguageMessageSchema = z.object({
+  type: z.literal('language'),
+  language: z.string().min(2).max(8),
+});
+
 export const ClientMessageSchema = z.discriminatedUnion('type', [
   KeyboardMessageSchema,
   ItemMessageSchema,
   ChatMessageSchema,
   CustomMessageSchema,
+  LanguageMessageSchema,
 ]);
 
 export type ClientMessage = z.infer<typeof ClientMessageSchema>;

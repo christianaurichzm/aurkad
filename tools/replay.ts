@@ -119,6 +119,8 @@ export function describeAction(action: RecordedAction): string {
     }
     case 'chat':
       return `chat/${action.scope} ${JSON.stringify(action.message)}`;
+    case 'language':
+      return `language ${action.language}`;
     case 'custom': {
       const payload =
         action.payload === undefined

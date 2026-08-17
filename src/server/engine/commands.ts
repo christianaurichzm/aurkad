@@ -1,4 +1,5 @@
 import { emitGameEvent } from './eventBus.js';
+import { registerStrings, translate } from './i18n.js';
 import { logger } from '../logger.js';
 import { recordAdminAction } from '../services/auditService.js';
 import { Access } from '../../shared/types.js';
@@ -82,6 +83,17 @@ interface CommandDef {
   canRun?: (player: PlayerServer) => boolean;
   handler: (ctx: CommandContext) => CommandResult;
 }
+
+// The engine's own answers, in the same table the modules write into: a player
+// who mistypes a command should not read English between two Portuguese lines.
+registerStrings({
+  pt: {
+    'Command error.': 'Erro no comando.',
+    'Unknown command: /{name}': 'Comando desconhecido: /{name}',
+    "You don't have permission to use /{name}.":
+      'Você não tem permissão para usar /{name}.',
+  },
+});
 
 const commands = new Map<string, CommandDef>();
 
@@ -168,7 +180,7 @@ function runHandler(
   auditCommand(cmd, ctx, actor);
   const failed = (e: unknown) => {
     logger.error(`[command] "${cmd.name}" threw`, { err: e });
-    ctx.reply('Command error.');
+    ctx.reply(translate(ctx.player, 'Command error.'));
   };
   try {
     return Promise.resolve(cmd.handler(ctx)).catch(failed);
@@ -189,23 +201,33 @@ export function handleChatCommand(
   const name = parts[0]?.toLowerCase() ?? '';
   if (!name) return false; // a lone "/" is ordinary chat
 
+  // Every chat reply crosses here, which is why the translation is here and
+  // not in each command: a handler returns the English it was written with,
+  // and the player reads it in the language their client asked for. A sentence
+  // nobody translated is the English, unchanged.
   const reply = (text: string) =>
     emitGameEvent({
       type: 'chatPlayer',
       username: player.name,
-      payload: { type: 'chat', scope: 'player', message: text },
+      payload: {
+        type: 'chat',
+        scope: 'player',
+        message: translate(player, text),
+      },
     });
 
   const cmd = commands.get(name);
   if (!cmd) {
-    reply(`Unknown command: /${name}`);
+    reply(translate(player, 'Unknown command: /{name}', { name }));
     return true;
   }
   if (
     (player.access ?? 0) < cmd.access ||
     (cmd.canRun && !cmd.canRun(player))
   ) {
-    reply(`You don't have permission to use /${name}.`);
+    reply(
+      translate(player, "You don't have permission to use /{name}.", { name }),
+    );
     return true;
   }
   void runHandler(cmd, { player, args: parts.slice(1), reply, source: 'chat' });

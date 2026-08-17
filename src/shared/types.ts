@@ -290,6 +290,10 @@ export interface PlayerServer extends PersistentPlayer, CharacterRuntime {
   nameColor?: string;
   // Optional tag drawn above the name (e.g. a guild name). Runtime-only.
   nameTag?: string;
+  // The language this session reads, sent by its client. Runtime-only and
+  // not persisted: the browser remembers the choice, and one account on two
+  // machines can be read in two languages.
+  language?: string;
   // Runtime-only: per-source contributions to cosmetic fields, resolved by
   // highest priority into nameColor/nameTag, so VIP, guild and PK flag can
   // set the same cosmetic without clobbering each other.

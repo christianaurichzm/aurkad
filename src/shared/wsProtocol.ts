@@ -45,11 +45,20 @@ export interface WsClientCustomMessage {
   payload?: unknown;
 }
 
+// The language this client reads, so a command reply and a script notice come
+// back in it. Sent on connect and on every switch; the server keeps it on the
+// session, never on the account.
+export interface WsClientLanguageMessage {
+  type: 'language';
+  language: string;
+}
+
 export type WsClientMessage =
   | WsClientKeyboardMessage
   | WsClientItemMessage
   | WsClientChatMessage
-  | WsClientCustomMessage;
+  | WsClientCustomMessage
+  | WsClientLanguageMessage;
 
 // Client-side shape of the dynamic world: what the client assembles and
 // renders from the wire format (see WorldUpdatePayload).

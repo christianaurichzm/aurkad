@@ -12,7 +12,10 @@ import { ClientMessageSchema } from './clientMessage.js';
 import { config } from '../config.js';
 import type { ExtendedRequest } from '../http/session.js';
 import { handleChatAction } from '../services/comms/chatService.js';
-import { disconnectPlayer } from '../services/player/playerService.js';
+import {
+  disconnectPlayer,
+  getPlayerByName,
+} from '../services/player/playerService.js';
 import { handleKeyAction } from '../services/world/movementService.js';
 import { getRuntimeState } from '../services/world/gameData.js';
 import { handleItemAction } from '../services/economy/inventoryService.js';
@@ -192,6 +195,12 @@ function dispatchClientAction(action: ClientAction): void {
     handleChatAction(action);
   } else if (action.type === 'custom') {
     handleCustomAction(action);
+  } else if (action.type === 'language') {
+    // Through the queue like every other client message, so it lands between
+    // ticks rather than under one: a command answering halfway through a frame
+    // must not read one language for its first line and another for its next.
+    const player = getPlayerByName(action.username);
+    if (player) player.language = action.language;
   }
 }
 

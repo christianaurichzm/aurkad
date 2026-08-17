@@ -3,6 +3,37 @@
 // untouched; this checks capacity, then moves the items through the core
 // give and remove APIs.
 
+i18n({
+  pt: {
+    'Player not found.': 'Jogador não encontrado.',
+    'You cannot trade with yourself.': 'Você não pode trocar consigo mesmo.',
+    'You must be in the same map to trade.':
+      'Vocês precisam estar no mesmo mapa para trocar.',
+    'You do not have that item quantity.': 'Você não tem essa quantidade.',
+    'That item is bound and cannot be traded.':
+      'Esse item é vinculado e não pode ser trocado.',
+    'Invalid requested item.': 'Item pedido inválido.',
+    'The requested item is bound and cannot be traded.':
+      'O item pedido é vinculado e não pode ser trocado.',
+    "{player}'s inventory is full.": 'O inventário de {player} está cheio.',
+    'Trade offered to {player}.': 'Troca oferecida a {player}.',
+    'No trade offer from that player.': 'Nenhuma oferta desse jogador.',
+    'Trade partner is offline.': 'O outro jogador está fora do jogo.',
+    'Offer is no longer valid.': 'A oferta não vale mais.',
+    'You do not have the requested item quantity.':
+      'Você não tem a quantidade pedida.',
+    'Your inventory is full.': 'Seu inventário está cheio.',
+    'Trade completed.': 'Troca concluída.',
+    'Trade cancelled.': 'Troca cancelada.',
+    'No trade to cancel.': 'Nenhuma troca para cancelar.',
+    'Trade commands must be used in-game.':
+      'Os comandos de troca só funcionam dentro do jogo.',
+    'Trades: {count}': 'Trocas: {count}',
+    'Usage: /trade offer <player> <item> <qty> [wantItem] [wantQty] | accept|cancel <player>':
+      'Uso: /trade offer <jogador> <item> <qtd> [itemDesejado] [qtdDesejada] | accept|cancel <jogador>',
+  },
+});
+
 const offers = new Map(); // "from->to" -> offer
 
 const keyOf = (from, to) => `${from}->${to}`;
@@ -98,7 +129,9 @@ function offerTrade(
   if (want && wantInfo && wantInfo.bound)
     return 'The requested item is bound and cannot be traded.';
   if (!wouldFit(target, give, want))
-    return `${target.name}'s inventory is full.`;
+    return t(player, "{player}'s inventory is full.", {
+      player: target.name,
+    });
 
   const offer = {
     from: player.name,
@@ -110,7 +143,7 @@ function offerTrade(
   offers.set(keyOf(offer.from, offer.to), offer);
   pushOffer(offer);
   sendEvent(target, 'trade:offer', offer);
-  return `Trade offered to ${target.name}.`;
+  return t(player, 'Trade offered to {player}.', { player: target.name });
 }
 
 function acceptTrade(player, fromName) {
@@ -141,7 +174,7 @@ function acceptTrade(player, fromName) {
     return 'You do not have the requested item quantity.';
   if (!wouldFit(to, offer.give, offer.want)) return 'Your inventory is full.';
   if (!wouldFit(from, offer.want, offer.give))
-    return `${from.name}'s inventory is full.`;
+    return t(player, "{player}'s inventory is full.", { player: from.name });
 
   // Each leg is atomic on its own. The checks above are what make the pair
   // safe: both sides are known to have the goods and the room before the first
@@ -212,7 +245,10 @@ command(
       );
     if (sub === 'accept') return reply(acceptTrade(player, args[1]));
     if (sub === 'cancel') return reply(cancelTrade(player, args[1]));
-    if (sub === 'list') return reply(`Trades: ${offersFor(player).length}`);
+    if (sub === 'list')
+      return reply(
+        t(player, 'Trades: {count}', { count: offersFor(player).length }),
+      );
     reply(
       'Usage: /trade offer <player> <item> <qty> [wantItem] [wantQty] | accept|cancel <player>',
     );

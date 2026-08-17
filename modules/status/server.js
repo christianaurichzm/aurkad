@@ -2,6 +2,20 @@
 // Status module: timed buffs and debuffs in player data that change damage
 // dealt or taken, or heal or hurt on a tick.
 
+i18n({
+  pt: {
+    'Player not found.': 'Jogador não encontrado.',
+    'Status applied.': 'Status aplicado.',
+    'Unknown status.': 'Status desconhecido.',
+    'Status cleared.': 'Status removido.',
+    'Status not found.': 'Status não encontrado.',
+    'Statuses: {list}': 'Status: {list}',
+    none: 'nenhum',
+    'Usage: /status apply|clear|list <player> [effect]':
+      'Uso: /status apply|clear|list <jogador> [efeito]',
+  },
+});
+
 const dataKey = 'statusEffects';
 let currentTick = 0;
 
@@ -124,7 +138,7 @@ command(
     access: Access.MOD,
     description: 'Status: /status apply|clear|list <player> [effect]',
   },
-  ({ args, reply }) => {
+  ({ player, args, reply }) => {
     const sub = String(args[0] || '').toLowerCase();
     const target = getPlayer(args[1] || '');
     if (!target) return reply('Player not found.');
@@ -138,11 +152,12 @@ command(
       );
     if (sub === 'list')
       return reply(
-        `Statuses: ${
-          list(target)
-            .map((s) => s.id)
-            .join(', ') || 'none'
-        }`,
+        t(player, 'Statuses: {list}', {
+          list:
+            list(target)
+              .map((s) => s.id)
+              .join(', ') || t(player, 'none'),
+        }),
       );
     reply('Usage: /status apply|clear|list <player> [effect]');
   },

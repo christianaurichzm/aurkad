@@ -128,6 +128,24 @@ describe('gameplay modules', () => {
     ]);
   });
 
+  // End to end for the module half of the translation: the table ships inside
+  // the module, the sandbox hands it `i18n` and `t`, and the reply funnel is
+  // what turns a handler's English into the language the session asked for.
+  it('answers a module command in the language the session asked for', () => {
+    const sim = createFixture(0);
+    const alice = sim.addPlayer({ name: 'Alice' });
+    alice.language = 'pt';
+    drainGameEvents();
+
+    handleChatCommand(alice, '/bank list');
+
+    expect(drainGameEvents()[0]).toEqual(
+      expect.objectContaining({
+        payload: expect.objectContaining({ message: 'Banco: vazio' }),
+      }),
+    );
+  });
+
   it('bank migrates a legacy KV bank into the player document on first use', () => {
     const sim = createFixture(0);
     const alice = sim.addPlayer({

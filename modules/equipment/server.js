@@ -2,6 +2,15 @@
 // Equipment module: set bonuses on top of core equipment effects, applied
 // on equip and unequip when the required pieces are worn.
 
+i18n({
+  pt: {
+    'Set commands must be used in-game.':
+      'Os comandos de conjunto só funcionam dentro do jogo.',
+    'No active equipment sets.': 'Nenhum conjunto ativo.',
+    'Active sets: {sets}': 'Conjuntos ativos: {sets}',
+  },
+});
+
 const dataKey = 'equipmentSetBonuses';
 const sets = new Map();
 
@@ -107,7 +116,11 @@ command(
     if (!player) return reply('Set commands must be used in-game.');
     const active = reconcile(player);
     if (!active.length) return reply('No active equipment sets.');
-    reply(`Active sets: ${active.map((set) => set.name).join(', ')}`);
+    reply(
+      t(player, 'Active sets: {sets}', {
+        sets: active.map((set) => set.name).join(', '),
+      }),
+    );
   },
 );
 

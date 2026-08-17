@@ -3,6 +3,27 @@
 // inventory, so one write covers both sides of a move. A bank still in the
 // shared KV store is moved over on first access.
 
+// Translations keyed by the English text. reply and sendMessage translate
+// on their own; a sentence carrying a value goes through t().
+i18n({
+  pt: {
+    'You do not have that item quantity.': 'Você não tem essa quantidade.',
+    'That item is bound and cannot be banked.':
+      'Esse item é vinculado e não pode ir para o banco.',
+    'Deposited.': 'Depositado.',
+    'Your bank is full.': 'Seu banco está cheio.',
+    'That item is not in your bank.': 'Esse item não está no seu banco.',
+    'Withdrew.': 'Sacado.',
+    'Your inventory is full.': 'Seu inventário está cheio.',
+    'Bank commands must be used in-game.':
+      'Os comandos de banco só funcionam dentro do jogo.',
+    'Bank: {summary}': 'Banco: {summary}',
+    empty: 'vazio',
+    'Usage: /bank deposit|withdraw <item> [qty] or /bank list':
+      'Uso: /bank deposit|withdraw <item> [qtd] ou /bank list',
+  },
+});
+
 const maxSlots = Math.max(
   1,
   Math.floor(Number((config && config.maxSlots) || 50)),
@@ -112,8 +133,8 @@ command(
       const summary =
         bank.items
           .map((entry) => `${entry.item}x${entry.quantity}`)
-          .join(', ') || 'empty';
-      return reply(`Bank: ${summary}`);
+          .join(', ') || t(player, 'empty');
+      return reply(t(player, 'Bank: {summary}', { summary }));
     }
     reply('Usage: /bank deposit|withdraw <item> [qty] or /bank list');
   },

@@ -12,6 +12,13 @@
 // load first through getQuests() and advance by the hook their objective
 // type names, so a script defining the same id wins.
 
+i18n({
+  pt: {
+    'Your bag is full - the reward was mailed to you.':
+      'Sua bolsa está cheia - a recompensa foi enviada pelo correio.',
+  },
+});
+
 const defs = new Map();
 
 const bagOf = (player) => getPlayerData(player, 'quests') || {};

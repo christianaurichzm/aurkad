@@ -2,6 +2,29 @@
 // Party module: runtime groups for an online session, not persisted, with
 // nearby kill XP split through beforeXpGain.
 
+i18n({
+  pt: {
+    'Player not found.': 'Jogador não encontrado.',
+    'You cannot invite yourself.': 'Você não pode se convidar.',
+    'That player is already in a party.': 'Esse jogador já está em um grupo.',
+    'Only the party leader can invite.': 'Só o líder do grupo pode convidar.',
+    'Your party is full.': 'Seu grupo está cheio.',
+    'Invited {player}.': '{player} foi convidado.',
+    'No pending party invite.': 'Nenhum convite de grupo pendente.',
+    'Leave your current party first.': 'Saia do seu grupo atual primeiro.',
+    'That party is full.': 'Esse grupo está cheio.',
+    "Joined {leader}'s party.": 'Você entrou no grupo de {leader}.',
+    'You are not in a party.': 'Você não está em um grupo.',
+    'Left party.': 'Você saiu do grupo.',
+    'Party commands must be used in-game.':
+      'Os comandos de grupo só funcionam dentro do jogo.',
+    'Party ready.': 'Grupo pronto.',
+    "{leader}'s party: {members}": 'Grupo de {leader}: {members}',
+    'Usage: /party create|invite|accept|leave|list [player]':
+      'Uso: /party create|invite|accept|leave|list [jogador]',
+  },
+});
+
 const maxMembers = Math.max(2, Number((config && config.maxMembers) || 5));
 const shareRadius = Math.max(0, Number((config && config.shareRadius) || 320));
 const xpShareBonus = Math.max(0, Number((config && config.xpShareBonus) || 0));
@@ -60,7 +83,7 @@ function invite(player, targetName) {
     leader: party.leader,
   });
   pushParty(party);
-  return `Invited ${target.name}.`;
+  return t(player, 'Invited {player}.', { player: target.name });
 }
 
 function accept(player, leaderName) {
@@ -75,7 +98,7 @@ function accept(player, leaderName) {
   memberToParty.set(player.name, party.leader);
   invites.delete(player.name);
   pushParty(party);
-  return `Joined ${party.leader}'s party.`;
+  return t(player, "Joined {leader}'s party.", { leader: party.leader });
 }
 
 function leave(player) {
@@ -145,7 +168,12 @@ command(
     if (sub === 'list') {
       const party = partyOf(player);
       if (!party) return reply('You are not in a party.');
-      return reply(`${party.leader}'s party: ${party.members.join(', ')}`);
+      return reply(
+        t(player, "{leader}'s party: {members}", {
+          leader: party.leader,
+          members: party.members.join(', '),
+        }),
+      );
     }
     reply('Usage: /party create|invite|accept|leave|list [player]');
   },

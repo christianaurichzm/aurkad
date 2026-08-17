@@ -62,6 +62,8 @@ const scriptGlobals = [
   'teleportPlayer',
   'sendMessage',
   'broadcastMessage',
+  'i18n',
+  't',
   'sendEvent',
   'sendMapEvent',
   'broadcastEvent',

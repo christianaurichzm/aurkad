@@ -171,6 +171,31 @@ describe('ClientMessageSchema', () => {
     });
   });
 
+  describe('language', () => {
+    it('accepts a language tag', () => {
+      const result = ClientMessageSchema.safeParse({
+        type: 'language',
+        language: 'pt',
+      });
+      expect(result.success).toBe(true);
+    });
+
+    // Bounded, not enumerated: which languages exist is whatever the modules
+    // loaded here shipped a table for, and one nobody has reads as English.
+    it('rejects a language that is not a tag', () => {
+      expect(
+        ClientMessageSchema.safeParse({ type: 'language', language: 'p' })
+          .success,
+      ).toBe(false);
+      expect(
+        ClientMessageSchema.safeParse({
+          type: 'language',
+          language: 'x'.repeat(9),
+        }).success,
+      ).toBe(false);
+    });
+  });
+
   it('rejects an unknown message type', () => {
     const result = ClientMessageSchema.safeParse({ type: 'unknown' });
     expect(result.success).toBe(false);
