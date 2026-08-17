@@ -15,6 +15,12 @@ import {
   updateWebSocket,
   resetInterpolation,
 } from './gameStateSync';
+import { playSound } from '../../../audio';
+
+vi.mock('../../../audio', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('../../../audio')>()),
+  playSound: vi.fn(),
+}));
 
 const LOCAL_ID = 'me';
 let now = 1000;
@@ -40,6 +46,7 @@ function enqueueFull(position: Position) {
 }
 
 beforeEach(() => {
+  vi.mocked(playSound).mockClear();
   now = 1000;
   vi.spyOn(performance, 'now').mockImplementation(() => now);
   clearMovementQueues();
@@ -136,5 +143,55 @@ describe('local player movement pipeline', () => {
       x: 1.5 * TILE_SIZE,
       y: 0,
     });
+  });
+});
+
+// `action` is in every visible entity's per-tick snapshot, so a swing next to
+// you needs no event of its own.
+describe('attack sounds from other entities', () => {
+  const enqueueOther = (action: CharacterAction, position: Position) =>
+    enqueueGameStateMessage({
+      v: 1,
+      type: 'worldUpdate',
+      payload: {
+        entities: {
+          bob: {
+            id: 'bob',
+            kind: 'player',
+            position,
+            direction: Direction.Right,
+            action,
+          },
+        },
+        leave: [],
+        self: hotPlayer({ x: 0, y: 0 }),
+      },
+    } as never);
+
+  it('plays one placed sound on the edge into Attack, not every tick', () => {
+    enqueueOther(CharacterAction.Idle, { x: 128, y: 0 });
+    updateWebSocket();
+
+    enqueueOther(CharacterAction.Attack, { x: 128, y: 0 });
+    updateWebSocket();
+
+    expect(playSound).toHaveBeenCalledExactlyOnceWith('attack.mp3', {
+      x: 128,
+      y: 0,
+    });
+
+    // still attacking on the next update: the same swing, not a second one
+    enqueueOther(CharacterAction.Attack, { x: 128, y: 0 });
+    updateWebSocket();
+
+    expect(playSound).toHaveBeenCalledTimes(1);
+  });
+
+  // Someone who walks into view mid-swing did not just swing at you.
+  it('stays quiet for an entity seen for the first time', () => {
+    enqueueOther(CharacterAction.Attack, { x: 128, y: 0 });
+    updateWebSocket();
+
+    expect(playSound).not.toHaveBeenCalled();
   });
 });

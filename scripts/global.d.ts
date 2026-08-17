@@ -900,9 +900,18 @@ declare function t(
 ): string;
 
 /**
- * Sends a custom event to one player's client code. The channel and
- * payload are yours.
+ * Play a sound for one player or a whole map on the `sound:play` channel:
+ * `{ file }` plays flat, `{ file, x, y }` fades with distance and goes
+ * silent past about twelve tiles. Files live in `public/audio`.
+ *
+ *     sendEvent(player, 'sound:play', { file: 'chest.mp3' });
+ *     sendMapEvent(npc.mapId, 'sound:play', {
+ *       file: 'roar.mp3',
+ *       x: npc.position.x,
+ *       y: npc.position.y,
+ *     });
  */
+/** Send a custom event, your channel and payload, to one player's client. */
 declare function sendEvent(
   player: PlayerServer,
   channel: string,

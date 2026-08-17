@@ -30,7 +30,12 @@ export function createAudioRouter() {
 
     fs.readFile(filePath, (err, data) => {
       if (err) {
-        logger.error('Audio read failed', { file: filePath, err });
+        // A game that names a sound it never shipped is the ordinary case, and
+        // at one line per swing per player it would bury the log it shares with
+        // real failures. Anything that is not "no such file" still is one:
+        // permissions on the asset directory are the operator's to see.
+        const level = err.code === 'ENOENT' ? logger.warn : logger.error;
+        level('Audio read failed', { file: filePath, err });
         return res.status(404).send('Audio not found');
       }
 

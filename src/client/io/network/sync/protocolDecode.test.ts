@@ -21,6 +21,7 @@ vi.mock('../../../audio', () => ({
   playMusic: vi.fn(),
   stopMusic: vi.fn(),
   playSound: vi.fn(),
+  setAudioListener: vi.fn(),
 }));
 
 /** Feeds one step's frames through the real decode path, like the socket. */

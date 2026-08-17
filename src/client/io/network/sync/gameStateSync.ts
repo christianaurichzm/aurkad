@@ -15,11 +15,16 @@ import {
 } from '../../../core/gameState';
 import { onServerPositionUpdate } from '../../../graphics/movementAnimation';
 import { useUIStore } from '../../../stores/uiStore';
-import { playMusic, stopMusic, playSound } from '../../../audio';
+import {
+  playMusic,
+  stopMusic,
+  playSound,
+  setAudioListener,
+} from '../../../audio';
 import { onServerEvent } from '../customEvents';
 import { spawnAttackEffect } from '../../../graphics/attackEffect';
 import { spawnSpellEffect } from '../../../graphics/spellEffect';
-import { Direction } from '../../../../shared/types';
+import { CharacterAction, Direction } from '../../../../shared/types';
 
 type GameStateMessage =
   | WsServerMapMetaMessage
@@ -29,9 +34,18 @@ type GameStateMessage =
 
 const gameStateQueue: Array<GameStateMessage> = [];
 
+// `x`/`y` are optional and place the sound: a tile trigger fires under the
+// player and sends none, while a script placing a sound on an npc, a door or
+// a chest sends its position.
 onServerEvent('sound:play', (payload) => {
-  const p = payload as { file?: string };
-  if (p.file) playSound(p.file);
+  const p = payload as { file?: string; x?: number; y?: number };
+  if (!p.file) return;
+  playSound(
+    p.file,
+    typeof p.x === 'number' && typeof p.y === 'number'
+      ? { x: p.x, y: p.y }
+      : undefined,
+  );
 });
 
 onServerEvent('attack:hit', (payload) => {
@@ -40,43 +54,67 @@ onServerEvent('attack:hit', (payload) => {
   playSound('attack.mp3');
 });
 
-onServerEvent('projectile:fire', () => {
-  playSound('arrow.mp3');
+onServerEvent('projectile:fire', (payload) => {
+  const p = payload as { fromX?: number; fromY?: number };
+  playSound(
+    'arrow.mp3',
+    typeof p?.fromX === 'number' && typeof p.fromY === 'number'
+      ? { x: p.fromX, y: p.fromY }
+      : undefined,
+  );
 });
 
 onServerEvent('spell:visual', (payload) => {
   const p = payload as { x: number; y: number; sprite: number };
   spawnSpellEffect(p.x, p.y, p.sprite ?? 0);
-  playSound('magiceffect.mp3');
+  playSound('magiceffect.mp3', { x: p.x, y: p.y });
 });
 
 export function enqueueGameStateMessage(message: GameStateMessage) {
   gameStateQueue.push(message);
 }
 
-const lastPlayerPositions = new Map<string, Position>();
-const lastNpcPositions = new Map<string, Position>();
+/** What an entity looked like on the last update this client applied. */
+type LastSeen = { position: Position; action?: CharacterAction };
+
+const lastPlayerState = new Map<string, LastSeen>();
+const lastNpcState = new Map<string, LastSeen>();
 let lastLocalPosition: Position | null = null;
 
 export function resetInterpolation() {
-  lastPlayerPositions.clear();
-  lastNpcPositions.clear();
+  lastPlayerState.clear();
+  lastNpcState.clear();
   lastLocalPosition = null;
 }
 
-function trackInterpolation(
-  entities: Record<string, { position: Position }>,
-  store: Map<string, Position>,
+function trackEntities(
+  entities: Record<string, LastSeen>,
+  store: Map<string, LastSeen>,
 ): void {
   for (const [id, entity] of Object.entries(entities)) {
     const prev = store.get(id);
     if (
       prev &&
-      (prev.x !== entity.position.x || prev.y !== entity.position.y)
+      (prev.position.x !== entity.position.x ||
+        prev.position.y !== entity.position.y)
     ) {
-      onServerPositionUpdate(id, prev, entity.position);
+      onServerPositionUpdate(id, prev.position, entity.position);
     }
-    store.set(id, { ...entity.position });
+    // The swing you hear from someone else. `action` is already in the
+    // per-tick snapshot, so the edge into Attack costs no event, while
+    // `attack:hit` goes to the attacker alone. An entity seen for the first
+    // time has no previous state and stays silent.
+    if (
+      prev &&
+      prev.action !== entity.action &&
+      entity.action === CharacterAction.Attack
+    ) {
+      playSound('attack.mp3', entity.position);
+    }
+    store.set(id, {
+      position: { ...entity.position },
+      action: entity.action,
+    });
   }
 
   for (const id of store.keys()) {
@@ -85,13 +123,16 @@ function trackInterpolation(
 }
 
 function interpolateEntities(map: MapStateClient): void {
-  trackInterpolation(map.players, lastPlayerPositions);
-  trackInterpolation(map.npcs, lastNpcPositions);
+  trackEntities(map.players, lastPlayerState);
+  trackEntities(map.npcs, lastNpcState);
 }
 
 // The local player is not in map.players, so interpolate it from the server
 // position changes the same way (smooth slide to the authoritative position).
 function interpolateLocalPlayer(player: { id: string; position: Position }) {
+  // The ears go where the local player is: every placed sound is measured from
+  // here, and this is the one place that already knows it every update.
+  setAudioListener(player.position);
   const prev = lastLocalPosition;
   if (prev && (prev.x !== player.position.x || prev.y !== player.position.y)) {
     onServerPositionUpdate(player.id, prev, player.position);
