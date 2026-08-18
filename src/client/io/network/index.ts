@@ -9,7 +9,15 @@ export { updateChat, sendChatMessage } from './sync/chatSync';
 export { httpClient, httpError, API_URL, REST_PROTO } from './http/httpClient';
 
 // Authentication
-export { login, register, silentAction } from './http/authClient';
+export {
+  changePassword,
+  confirmPasswordReset,
+  fetchAuthCapabilities,
+  login,
+  register,
+  requestPasswordReset,
+  silentAction,
+} from './http/authClient';
 
 // Editors
 export {

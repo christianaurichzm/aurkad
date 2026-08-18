@@ -18,11 +18,22 @@ import { GameCanvas } from './components/GameCanvas';
 import { DialogHost } from './components/common/DialogHost';
 import { OnlinePlayersModal } from './components/OnlinePlayersModal';
 import { SettingsModal } from './components/SettingsModal';
+import { PasswordReset } from './pages/PasswordReset';
 
 function App() {
   const t = useT();
   const { isLoggedIn } = useGame();
   const [showRegister, setShowRegister] = useState(false);
+  // A reset link arrives as `/?reset=<token>`, read once on mount and dropped
+  // from the address bar when the screen closes.
+  const [resetToken, setResetToken] = useState(() =>
+    new URLSearchParams(window.location.search).get('reset'),
+  );
+
+  const closeReset = () => {
+    setResetToken(null);
+    window.history.replaceState(null, '', window.location.pathname);
+  };
 
   return (
     <>
@@ -52,6 +63,8 @@ function App() {
           <ContentEditor />
           <div id="module-ui" />
         </div>
+      ) : resetToken ? (
+        <PasswordReset token={resetToken} onDone={closeReset} />
       ) : showRegister ? (
         <Register onSwitch={() => setShowRegister(false)} />
       ) : (

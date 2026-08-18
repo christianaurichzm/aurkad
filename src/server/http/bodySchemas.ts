@@ -6,7 +6,10 @@ import {
   type ModifiablePlayerAttribute,
   type EffectType,
 } from '../../shared/types.js';
-import { EQUIPMENT_SLOTS } from '../../shared/constants.js';
+import {
+  EQUIPMENT_SLOTS,
+  PASSWORD_MIN_LENGTH,
+} from '../../shared/constants.js';
 import { SCRIPT_PARAM_LIMITS } from '../../shared/scriptParams.js';
 
 const PositionSchema = z.object({ x: z.number(), y: z.number() });
@@ -140,6 +143,25 @@ export const LoginBodySchema = z.object({
 export const RegisterBodySchema = z.object({
   username: z.string().min(1).max(24),
   password: z.string().min(1),
+});
+
+// A new password, wherever it is being set. Registration keeps its own rule on
+// purpose: raising the bar for existing deployments is a policy decision, not
+// something a reset flow should smuggle in.
+const NewPassword = z.string().min(PASSWORD_MIN_LENGTH).max(200);
+
+export const ChangePasswordBodySchema = z.object({
+  currentPassword: z.string().min(1),
+  newPassword: NewPassword,
+});
+
+export const ResetRequestBodySchema = z.object({
+  username: z.string().min(1).max(24),
+});
+
+export const ResetConfirmBodySchema = z.object({
+  token: z.string().min(1).max(200),
+  newPassword: NewPassword,
 });
 
 // Mod

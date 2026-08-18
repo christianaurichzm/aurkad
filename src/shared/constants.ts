@@ -18,3 +18,8 @@ export const EQUIPMENT_SLOTS = [
   'gloves',
   'boots',
 ] as const;
+
+// Shortest password the server will store when one is being set or reset. Here
+// rather than in either half because both need the same number: the schema
+// that refuses it, and the screen that says so before the round trip.
+export const PASSWORD_MIN_LENGTH = 8;

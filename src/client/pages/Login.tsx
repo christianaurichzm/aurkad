@@ -1,6 +1,11 @@
 import { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
-import { httpError, login } from '../io/network';
+import {
+  fetchAuthCapabilities,
+  httpError,
+  login,
+  requestPasswordReset,
+} from '../io/network';
 import { setAssetKey } from '../io/assets';
 import { useGame } from '../context/GameContext';
 import { useUIStore } from '../stores/uiStore';
@@ -14,12 +19,23 @@ export const Login = ({ onSwitch }: { onSwitch: () => void }) => {
   const { loginSuccess } = useGame();
   const [serverError, setServerError] = useState('');
   const [onlinePlayers, setOnlinePlayers] = useState<number | null>(null);
+  // Offered only when a link can arrive: with no mail transport the server
+  // says no, and the message would only go to a log the player cannot read.
+  const [canReset, setCanReset] = useState(false);
+  const [resetName, setResetName] = useState('');
+  const [resetSent, setResetSent] = useState(false);
 
   const {
     register,
     handleSubmit,
     formState: { errors, isSubmitting },
   } = useForm<FormValues>();
+
+  useEffect(() => {
+    fetchAuthCapabilities()
+      .then((c) => setCanReset(c?.passwordReset === true))
+      .catch(() => {});
+  }, []);
 
   useEffect(() => {
     fetch('/healthz')
@@ -82,6 +98,37 @@ export const Login = ({ onSwitch }: { onSwitch: () => void }) => {
           <p style={styles.onlineCount}>
             {t('online.count', { count: onlinePlayers })}
           </p>
+        )}
+        {canReset && (
+          <div style={styles.reset}>
+            {resetSent ? (
+              <p style={styles.onlineCount}>{t('auth.resetSent')}</p>
+            ) : (
+              <>
+                <input
+                  type="text"
+                  placeholder={t('auth.username')}
+                  aria-label={t('auth.forgot')}
+                  value={resetName}
+                  onChange={(e) => setResetName(e.target.value)}
+                  style={styles.input}
+                />
+                <button
+                  type="button"
+                  style={styles.linkButton}
+                  onClick={() => {
+                    // The answer is the same for a name that exists and one
+                    // that does not, so there is nothing to wait for or branch
+                    // on here either.
+                    void requestPasswordReset(resetName).catch(() => {});
+                    setResetSent(true);
+                  }}
+                >
+                  {t('auth.sendResetLink')}
+                </button>
+              </>
+            )}
+          </div>
         )}
         <p style={styles.registerText}>
           {t('auth.noAccount')}{' '}
@@ -157,6 +204,14 @@ const styles: Record<string, React.CSSProperties> = {
     cursor: 'pointer',
     textDecoration: 'underline',
     fontSize: 'inherit',
+  },
+  reset: {
+    marginTop: '18px',
+    paddingTop: '14px',
+    borderTop: `1px solid ${colors.border}`,
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '8px',
   },
   onlineCount: {
     marginTop: '16px',

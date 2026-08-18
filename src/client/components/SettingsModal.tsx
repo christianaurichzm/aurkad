@@ -1,5 +1,7 @@
 import React, { useEffect, useState } from 'react';
+import { PASSWORD_MIN_LENGTH } from '../../shared/constants';
 import { AudioSettings, getAudioSettings, setAudioSettings } from '../audio';
+import { changePassword, httpError } from '../io/network';
 import { colors, radius } from '../theme';
 import { Modal } from './common/Modal';
 import {
@@ -16,10 +18,16 @@ export const SettingsModal: React.FC = () => {
   const t = useT();
   const [visible, setVisible] = useState(false);
   const [audio, setAudio] = useState<AudioSettings>(getAudioSettings);
+  const [current, setCurrent] = useState('');
+  const [next, setNext] = useState('');
+  const [passwordNote, setPasswordNote] = useState('');
+  const [passwordError, setPasswordError] = useState(false);
+  const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     const onToggle = () => setVisible((v) => !v);
     window.addEventListener('toggleSettings', onToggle);
+
     return () => window.removeEventListener('toggleSettings', onToggle);
   }, []);
 
@@ -28,6 +36,28 @@ export const SettingsModal: React.FC = () => {
   const update = (patch: Partial<AudioSettings>) => {
     setAudioSettings(patch);
     setAudio(getAudioSettings());
+  };
+
+  const submitPassword = async () => {
+    if (next.length < PASSWORD_MIN_LENGTH) {
+      setPasswordError(true);
+      return setPasswordNote(
+        t('auth.passwordTooShort', { min: PASSWORD_MIN_LENGTH }),
+      );
+    }
+    setSaving(true);
+    try {
+      await changePassword(current, next);
+      setPasswordError(false);
+      setPasswordNote(t('auth.passwordChanged'));
+      setCurrent('');
+      setNext('');
+    } catch (e) {
+      setPasswordError(true);
+      setPasswordNote(httpError(e).message || t('common.error'));
+    } finally {
+      setSaving(false);
+    }
   };
 
   const slider = (
@@ -87,6 +117,35 @@ export const SettingsModal: React.FC = () => {
             ))}
           </select>
         </label>
+
+        <div style={sectionTitle}>{t('settings.password')}</div>
+        <input
+          type="password"
+          autoComplete="current-password"
+          placeholder={t('auth.currentPassword')}
+          value={current}
+          onChange={(e) => setCurrent(e.target.value)}
+          style={input}
+        />
+        <input
+          type="password"
+          autoComplete="new-password"
+          placeholder={t('auth.newPassword')}
+          value={next}
+          onChange={(e) => setNext(e.target.value)}
+          style={input}
+        />
+        <button
+          type="button"
+          disabled={saving || !current || !next}
+          onClick={() => void submitPassword()}
+          style={button}
+        >
+          {t('auth.changePassword')}
+        </button>
+        {passwordNote && (
+          <span style={passwordError ? noteError : note}>{passwordNote}</span>
+        )}
       </div>
     </Modal>
   );
@@ -105,6 +164,31 @@ const sectionTitle: React.CSSProperties = {
   textTransform: 'uppercase',
   letterSpacing: 0.5,
 };
+
+const input: React.CSSProperties = {
+  padding: '9px 11px',
+  border: `1px solid ${colors.border}`,
+  borderRadius: radius.md,
+  background: colors.surface,
+  fontSize: 14,
+  boxSizing: 'border-box',
+  width: '100%',
+};
+
+const button: React.CSSProperties = {
+  padding: '9px 12px',
+  border: 'none',
+  borderRadius: radius.md,
+  background: colors.primary,
+  color: '#fff',
+  fontWeight: 600,
+  fontSize: 14,
+  cursor: 'pointer',
+};
+
+const note: React.CSSProperties = { fontSize: 13, color: colors.textMuted };
+
+const noteError: React.CSSProperties = { fontSize: 13, color: colors.danger };
 
 const row: React.CSSProperties = {
   display: 'flex',

@@ -195,6 +195,19 @@ export const config = {
       max: 10_000_000,
     }),
   },
+  mail: {
+    // Where mail goes. `log` writes it to the server log, so a game with no
+    // mail account can still reset a password by hand, and `none` drops it.
+    transport: process.env.MAIL_TRANSPORT === 'none' ? 'none' : 'log',
+    // What a link in a message points at. Only the operator knows the address
+    // players type, so a wrong guess here produces a link nobody can open;
+    // the fallback is the local one, which is right in development and
+    // obviously wrong anywhere else.
+    publicBaseUrl: (
+      process.env.PUBLIC_BASE_URL ||
+      `http://localhost:${parseIntEnv('PORT', 8080, { min: 1, max: 65535 })}`
+    ).replace(/\/+$/, ''),
+  },
   economy: {
     // How often every item in the world is counted, and how long counts are
     // kept. The job walks every player document, so it runs rarely: whether a

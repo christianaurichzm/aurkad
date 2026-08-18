@@ -20,6 +20,40 @@ export const register = async (username: string, password: string) => {
   });
 };
 
+export const changePassword = async (
+  currentPassword: string,
+  newPassword: string,
+) => {
+  return await httpClient<{ success: boolean }>('/password', {
+    method: 'POST',
+    body: { currentPassword, newPassword },
+  });
+};
+
+export const requestPasswordReset = async (username: string) => {
+  return await httpClient<{ success: boolean }>('/password/reset', {
+    method: 'POST',
+    body: { username },
+  });
+};
+
+export const confirmPasswordReset = async (
+  token: string,
+  newPassword: string,
+) => {
+  return await httpClient<{ success: boolean }>('/password/reset/confirm', {
+    method: 'POST',
+    body: { token, newPassword },
+  });
+};
+
+/** What this deployment can offer before anyone has logged in. */
+export const fetchAuthCapabilities = async () => {
+  return await httpClient<{ passwordReset: boolean }>('/auth/capabilities', {
+    method: 'GET',
+  });
+};
+
 export async function silentAction<T>(promise: Promise<T>): Promise<T | null> {
   try {
     return await promise;

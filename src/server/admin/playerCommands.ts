@@ -22,6 +22,10 @@ import { teleportPlayer } from '../services/world/movementService.js';
 import { getAllPlayers } from '../sim/world.js';
 import { isMuted, serverState } from '../services/world/serverState.js';
 import {
+  createResetToken,
+  resetLink,
+} from '../services/player/passwordService.js';
+import {
   deletePlayer,
   disconnectPlayer,
   getPlayerByName,
@@ -588,6 +592,33 @@ export function registerPlayerCommands(): void {
           ? 'permanent'
           : `until ${new Date(expiry).toLocaleString()}`;
       reply(style.warn(`${username} is muted (${until}).`));
+    },
+  );
+
+  // A way back in for a player who cannot log in, with no password seen by
+  // the operator: the same single-use link the reset endpoint mails, handed
+  // over here. The link is not logged, since the token is a bearer secret;
+  // the audit trail records the command and its target.
+  registerCommand(
+    'resetlink',
+    {
+      access: Access.ADMIN,
+      description: 'One-time password reset link: resetlink <username>',
+    },
+    async ({ args, reply, style }) => {
+      const username = args[0];
+      if (!username) return reply('Usage: resetlink <username>');
+
+      const minted = await createResetToken(username);
+      if (!minted) return reply(style.warn(`No account named ${username}.`));
+
+      reply(style.ok(`Reset link for ${minted.username}:`));
+      reply(resetLink(minted.token));
+      reply(
+        style.muted(
+          `Single use, and it stops working at ${minted.expiresAt.toLocaleString()}.`,
+        ),
+      );
     },
   );
 

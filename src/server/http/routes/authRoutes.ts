@@ -5,8 +5,11 @@ import type { ExtendedRequest } from '../session.js';
 import { Access } from '../../../shared/types.js';
 import {
   parseBody,
+  ChangePasswordBodySchema,
   LoginBodySchema,
   RegisterBodySchema,
+  ResetConfirmBodySchema,
+  ResetRequestBodySchema,
 } from '../bodySchemas.js';
 import { logger } from '../../logger.js';
 import { getPlayerById, registerPlayer } from '../../sim/world.js';
@@ -25,6 +28,16 @@ import { playersWsMap } from '../../net/connections.js';
 import { WebSocket } from 'ws';
 import { createRouter } from '../../app.js';
 import { createAuthLimiter } from '../middleware/rateLimit.js';
+import {
+  changePassword,
+  consumeResetToken,
+  createResetToken,
+  resetLink,
+} from '../../services/player/passwordService.js';
+import {
+  mailReachesPlayers,
+  sendMail,
+} from '../../services/comms/mailService.js';
 
 export function createAuthRouter() {
   const router = createRouter();
@@ -157,6 +170,79 @@ export function createAuthRouter() {
           .status(500)
           .json({ message: 'Registration failed, please try again' });
       }
+    },
+  );
+
+  // What the login screen may offer. Asked before anyone is logged in, so it
+  // says nothing about who exists, only what this deployment can do.
+  router.get('/auth/capabilities', (_req: ExtendedRequest, res: Response) => {
+    res.json({ passwordReset: mailReachesPlayers() });
+  });
+
+  // Changing a password you know. The session says who, so there is no username
+  // in the body to disagree with it.
+  router.post('/password', async (req: ExtendedRequest, res: Response) => {
+    const username = req.session.username;
+    if (!username) return res.status(401).json({ message: 'Not logged in' });
+
+    const body = parseBody(ChangePasswordBodySchema, req.body, res);
+    if (!body) return;
+
+    const result = await changePassword(
+      username,
+      body.currentPassword,
+      body.newPassword,
+    );
+    if (result === 'wrong-password') {
+      return res.status(403).json({ message: 'Current password is wrong' });
+    }
+    if (result === 'no-account') {
+      return res.status(404).json({ message: 'No such account' });
+    }
+    res.json({ success: true });
+  });
+
+  // Asking for a link. The answer never varies: a different reply for a name
+  // that exists turns this into a way to enumerate accounts, and the rate limit
+  // in front of it is the login one because the cost of abuse is the same.
+  router.post(
+    '/password/reset',
+    authLimiter,
+    async (req: ExtendedRequest, res: Response) => {
+      const body = parseBody(ResetRequestBodySchema, req.body, res);
+      if (!body) return;
+
+      const minted = await createResetToken(body.username);
+      if (minted) {
+        await sendMail({
+          to: minted.username,
+          subject: 'Reset your password',
+          text:
+            `Open this link to choose a new password:\n\n` +
+            `${resetLink(minted.token)}\n\n` +
+            `It stops working at ${minted.expiresAt.toISOString()}, and once used.`,
+        });
+      }
+      res.json({ success: true });
+    },
+  );
+
+  // Spending it. Wrong or expired reads the same either way: which of the two
+  // it was is only useful to somebody guessing.
+  router.post(
+    '/password/reset/confirm',
+    authLimiter,
+    async (req: ExtendedRequest, res: Response) => {
+      const body = parseBody(ResetConfirmBodySchema, req.body, res);
+      if (!body) return;
+
+      const result = await consumeResetToken(body.token, body.newPassword);
+      if (result === 'invalid-token') {
+        return res
+          .status(400)
+          .json({ message: 'That link is no longer valid' });
+      }
+      res.json({ success: true });
     },
   );
 

@@ -16,6 +16,20 @@ export const en = {
   'auth.accountCreated': 'Account created! Redirecting to login…',
   'auth.loggingIn': 'Logging in…',
   'auth.registering': 'Creating account…',
+  'auth.forgot': 'Forgot your password?',
+  'auth.sendResetLink': 'Send a reset link',
+  'auth.resetSent': 'If that account exists, a reset link is on its way.',
+  'auth.resetTitle': 'Choose a new password',
+  'auth.resetDone': 'Your password is set. You can log in now.',
+  'auth.resetFailed': 'That link is no longer valid. Ask for a new one.',
+  'auth.backToLogin': 'Back to login',
+  'auth.currentPassword': 'Current password',
+  'auth.newPassword': 'New password',
+  'auth.repeatPassword': 'Repeat the new password',
+  'auth.passwordMismatch': 'The two passwords do not match.',
+  'auth.passwordTooShort': 'At least {min} characters.',
+  'auth.passwordChanged': 'Password changed.',
+  'auth.changePassword': 'Change password',
 
   // HUD
   'hud.level': 'Level {level}',
@@ -74,6 +88,7 @@ export const en = {
   'settings.effects': 'Effects',
   'settings.mute': 'Mute everything',
   'settings.language': 'Language',
+  'settings.password': 'Password',
 
   // Quests
   'quest.title': 'Quests',
@@ -84,6 +99,7 @@ export const en = {
   'common.save': 'Save',
   'common.delete': 'Delete',
   'common.loading': 'Loading…',
+  'common.error': 'Something went wrong.',
 
   // Inventory, stats and other player screens
   'inventory.bagEmpty': 'Bag is empty',

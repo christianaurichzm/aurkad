@@ -16,6 +16,21 @@ export const pt: Record<keyof typeof en, string> = {
   'auth.accountCreated': 'Conta criada! Redirecionando para o login…',
   'auth.loggingIn': 'Entrando…',
   'auth.registering': 'Criando conta…',
+  'auth.forgot': 'Esqueceu a senha?',
+  'auth.sendResetLink': 'Enviar link de redefinição',
+  'auth.resetSent':
+    'Se essa conta existir, um link de redefinição está a caminho.',
+  'auth.resetTitle': 'Escolha uma nova senha',
+  'auth.resetDone': 'Sua senha está definida. Já pode entrar.',
+  'auth.resetFailed': 'Esse link não vale mais. Peça um novo.',
+  'auth.backToLogin': 'Voltar para o login',
+  'auth.currentPassword': 'Senha atual',
+  'auth.newPassword': 'Nova senha',
+  'auth.repeatPassword': 'Repita a nova senha',
+  'auth.passwordMismatch': 'As duas senhas não são iguais.',
+  'auth.passwordTooShort': 'Pelo menos {min} caracteres.',
+  'auth.passwordChanged': 'Senha alterada.',
+  'auth.changePassword': 'Alterar senha',
 
   'hud.level': 'Nível {level}',
   'hud.hp': 'HP',
@@ -66,6 +81,7 @@ export const pt: Record<keyof typeof en, string> = {
   'settings.effects': 'Efeitos',
   'settings.mute': 'Silenciar tudo',
   'settings.language': 'Idioma',
+  'settings.password': 'Senha',
 
   'quest.title': 'Missões',
   'quest.progress': '{current}/{target}',
@@ -74,6 +90,7 @@ export const pt: Record<keyof typeof en, string> = {
   'common.save': 'Salvar',
   'common.delete': 'Excluir',
   'common.loading': 'Carregando…',
+  'common.error': 'Algo deu errado.',
 
   'inventory.bagEmpty': 'A bolsa está vazia',
   'inventory.dropQuantity': 'Quantidade a largar',
