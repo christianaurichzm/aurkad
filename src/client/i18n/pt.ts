@@ -94,6 +94,9 @@ export const pt: Record<keyof typeof en, string> = {
   'common.delete': 'Excluir',
   'common.loading': 'Carregando…',
   'common.error': 'Algo deu errado.',
+  'common.serverError':
+    'Algo deu errado do nosso lado. Tente de novo em instantes.',
+  'common.errorRef': 'referência {id}',
 
   'inventory.bagEmpty': 'A bolsa está vazia',
   'inventory.dropQuantity': 'Quantidade a largar',

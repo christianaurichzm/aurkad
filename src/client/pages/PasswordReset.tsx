@@ -1,6 +1,10 @@
 import { useState } from 'react';
 import { PASSWORD_MIN_LENGTH } from '../../shared/constants';
-import { confirmPasswordReset, httpError } from '../io/network';
+import {
+  confirmPasswordReset,
+  friendlyHttpError,
+  httpError,
+} from '../io/network';
 import { colors, radius, zIndex } from '../theme';
 import { useT } from '../i18n';
 
@@ -36,7 +40,14 @@ export const PasswordReset = ({
       await confirmPasswordReset(token, password);
       setDone(true);
     } catch (e) {
-      setError(httpError(e).message || t('auth.resetFailed'));
+      // The one refusal this screen can phrase better than the server: it
+      // knows the link is spent or expired, and it can say so in the language
+      // the player is reading. Anything else is worded by friendlyHttpError.
+      setError(
+        httpError(e).status === 400
+          ? t('auth.resetFailed')
+          : friendlyHttpError(e),
+      );
     } finally {
       setBusy(false);
     }

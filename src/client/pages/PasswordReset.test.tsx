@@ -5,9 +5,20 @@ import { PasswordReset } from './PasswordReset';
 
 const mocks = vi.hoisted(() => ({ confirmPasswordReset: vi.fn() }));
 
+// A faithful stand-in for the real rule: the server's own sentence for a 4xx,
+// a written one for anything from 500 up.
 vi.mock('../io/network', () => ({
   confirmPasswordReset: mocks.confirmPasswordReset,
-  httpError: (e: unknown) => (e as { message?: string }) ?? {},
+  httpError: (e: unknown) => (e ?? {}) as { status?: number },
+  friendlyHttpError: (e: unknown) => {
+    const { status, message } = (e ?? {}) as {
+      status?: number;
+      message?: string;
+    };
+    return status !== undefined && status < 500 && message
+      ? message
+      : 'Something went wrong on our side. Try again in a moment.';
+  },
 }));
 
 const fill = async (password: string, repeat: string) => {
@@ -60,6 +71,7 @@ describe('the screen a reset link opens', () => {
 
   it('shows what the server said when the link is spent', async () => {
     mocks.confirmPasswordReset.mockRejectedValue({
+      status: 400,
       message: 'That link is no longer valid',
     });
     render(<PasswordReset token="old" onDone={vi.fn()} />);
@@ -67,5 +79,22 @@ describe('the screen a reset link opens', () => {
     await fill('long-enough-password', 'long-enough-password');
 
     expect(screen.getByText(/no longer valid/i)).toBeInTheDocument();
+  });
+
+  // "Internal server error" is the server talking to its operator. A player
+  // reads a sentence and, when there is one, the id that finds the stack.
+  it('does not print a server internal when the server breaks', async () => {
+    mocks.confirmPasswordReset.mockRejectedValue({
+      status: 500,
+      message: 'Internal server error',
+    });
+    render(<PasswordReset token="tok-123" onDone={vi.fn()} />);
+
+    await fill('long-enough-password', 'long-enough-password');
+
+    expect(
+      screen.queryByText(/internal server error/i),
+    ).not.toBeInTheDocument();
+    expect(screen.getByText(/went wrong on our side/i)).toBeInTheDocument();
   });
 });

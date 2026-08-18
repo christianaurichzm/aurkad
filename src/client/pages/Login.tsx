@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import {
   fetchAuthCapabilities,
-  httpError,
+  friendlyHttpError,
   login,
   requestPasswordReset,
 } from '../io/network';
@@ -86,7 +86,7 @@ export const Login = ({ onSwitch }: { onSwitch: () => void }) => {
         setServerError('Unexpected response from server');
       }
     } catch (err) {
-      setServerError(httpError(err).message || 'Login failed');
+      setServerError(friendlyHttpError(err));
     }
   };
 

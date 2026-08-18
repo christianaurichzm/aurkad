@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
-import { httpError, register as registerUser } from '../io/network';
+import { friendlyHttpError, register as registerUser } from '../io/network';
 import { colors, radius, zIndex } from '../theme';
 import { useT } from '../i18n';
 
@@ -29,7 +29,7 @@ export const Register = ({ onSwitch }: { onSwitch: () => void }) => {
       await registerUser(username, password);
       setSuccessMsg(t('auth.accountCreated'));
     } catch (err) {
-      setServerError(httpError(err).message || 'Registration failed');
+      setServerError(friendlyHttpError(err));
     }
   };
 

@@ -24,8 +24,8 @@ const signIn = async (user: string, password: string, remember: boolean) => {
   // Empty means "leave what is already there", which is the remembered name.
   if (user) await it.type(screen.getByPlaceholderText('Username'), user);
   await it.type(screen.getByPlaceholderText('Password'), password);
-  const box = screen.getByRole('checkbox');
-  if ((box as HTMLInputElement).checked !== remember) await it.click(box);
+  const box = screen.getByRole<HTMLInputElement>('checkbox');
+  if (box.checked !== remember) await it.click(box);
   await it.click(screen.getByRole('button', { name: 'Login' }));
 };
 
@@ -39,7 +39,7 @@ describe('remember me', () => {
   it('is off for a first visit, and asks the server for nothing extra', async () => {
     render(<Login onSwitch={vi.fn()} />);
 
-    expect(screen.getByRole('checkbox').checked).toBe(false);
+    expect(screen.getByRole<HTMLInputElement>('checkbox').checked).toBe(false);
 
     await signIn('Alice', 'correcthorse', false);
 
@@ -63,8 +63,10 @@ describe('remember me', () => {
 
     render(<Login onSwitch={vi.fn()} />);
 
-    expect(screen.getByPlaceholderText('Username').value).toBe('Alice');
-    expect(screen.getByRole('checkbox').checked).toBe(true);
+    expect(
+      screen.getByPlaceholderText<HTMLInputElement>('Username').value,
+    ).toBe('Alice');
+    expect(screen.getByRole<HTMLInputElement>('checkbox').checked).toBe(true);
   });
 
   it('forgets the name when the box is cleared', async () => {

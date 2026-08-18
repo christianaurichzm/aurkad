@@ -103,6 +103,9 @@ export const en = {
   'common.delete': 'Delete',
   'common.loading': 'Loading…',
   'common.error': 'Something went wrong.',
+  'common.serverError':
+    'Something went wrong on our side. Try again in a moment.',
+  'common.errorRef': 'reference {id}',
 
   // Inventory, stats and other player screens
   'inventory.bagEmpty': 'Bag is empty',
