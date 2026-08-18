@@ -16,6 +16,7 @@ export const en = {
   'auth.accountCreated': 'Account created! Redirecting to login…',
   'auth.loggingIn': 'Logging in…',
   'auth.registering': 'Creating account…',
+  'auth.remember': 'Remember me on this device',
   'auth.forgot': 'Forgot your password?',
   'auth.sendResetLink': 'Send a reset link',
   'auth.resetSent': 'If that account exists, a reset link is on its way.',

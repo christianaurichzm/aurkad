@@ -16,6 +16,7 @@ export const pt: Record<keyof typeof en, string> = {
   'auth.accountCreated': 'Conta criada! Redirecionando para o login…',
   'auth.loggingIn': 'Entrando…',
   'auth.registering': 'Criando conta…',
+  'auth.remember': 'Lembrar de mim neste aparelho',
   'auth.forgot': 'Esqueceu a senha?',
   'auth.sendResetLink': 'Enviar link de redefinição',
   'auth.resetSent':

@@ -39,6 +39,7 @@ export const Register = ({ onSwitch }: { onSwitch: () => void }) => {
         <div style={styles.field}>
           <input
             type="text"
+            autoComplete="username"
             placeholder={t('auth.chooseUsername')}
             style={styles.input}
             {...register('username', {
@@ -56,6 +57,7 @@ export const Register = ({ onSwitch }: { onSwitch: () => void }) => {
         <div style={styles.field}>
           <input
             type="password"
+            autoComplete="new-password"
             placeholder={t('auth.choosePassword')}
             style={styles.input}
             {...register('password', { required: 'Password is required' })}

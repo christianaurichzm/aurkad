@@ -39,6 +39,9 @@ import {
   sendMail,
 } from '../../services/comms/mailService.js';
 
+/** Matches the session store's TTL in http/session.ts. */
+const REMEMBERED_SESSION_MS = 7 * 24 * 60 * 60 * 1000;
+
 export function createAuthRouter() {
   const router = createRouter();
   const authLimiter = createAuthLimiter();
@@ -75,6 +78,14 @@ export function createAuthRouter() {
         });
       } else if (ban) {
         await unbanPlayer(username);
+      }
+
+      // Only now, with the password checked and the ban cleared: a cookie that
+      // outlives the browser is worth having only for a session that exists.
+      // The week matches the store's own TTL, so the row and the cookie expire
+      // together instead of one outliving the other.
+      if (body.remember) {
+        req.session.cookie.maxAge = REMEMBERED_SESSION_MS;
       }
 
       const { password: _pw, ...runtimePlayer } = playerDoc;

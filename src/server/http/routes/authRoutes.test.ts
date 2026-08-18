@@ -142,6 +142,42 @@ describe('POST /login', () => {
     expect(getPlayerByName('Alice')).toBeDefined();
   });
 
+  // Default: the cookie dies with the browser. Closing the client should not
+  // leave the next person at that machine holding the character.
+  it('leaves the session cookie to the browser unless asked otherwise', async () => {
+    await createPlayer('Ann', await hashPw('correcthorse'));
+
+    const res = await request(app)
+      .post('/login')
+      .send({ username: 'Ann', password: 'correcthorse' });
+
+    const cookie = String(res.headers['set-cookie']);
+    expect(cookie).not.toMatch(/Expires=|Max-Age=/i);
+  });
+
+  it('keeps the session across a browser restart when remember is asked for', async () => {
+    await createPlayer('Bea', await hashPw('correcthorse'));
+
+    const res = await request(app)
+      .post('/login')
+      .send({ username: 'Bea', password: 'correcthorse', remember: true });
+
+    expect(res.status).toBe(200);
+    expect(String(res.headers['set-cookie'])).toMatch(/Expires=|Max-Age=/i);
+  });
+
+  // The flag is not a way in: it is read after the password, not instead of it.
+  it('ignores remember on a failed login', async () => {
+    await createPlayer('Cleo', await hashPw('correcthorse'));
+
+    const res = await request(app)
+      .post('/login')
+      .send({ username: 'Cleo', password: 'wrong', remember: true });
+
+    expect(res.status).toBe(401);
+    expect(res.headers['set-cookie']).toBeUndefined();
+  });
+
   it('rejects a banned player with 403', async () => {
     await createPlayer('Banned', await hashPw('pw'));
     await banPlayer('Banned', 'spamming', undefined);

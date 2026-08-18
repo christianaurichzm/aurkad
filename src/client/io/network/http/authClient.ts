@@ -1,7 +1,11 @@
 import type { Player, MapMetaClient } from '../../../../shared/types';
 import { httpClient, httpError } from './httpClient';
 
-export const login = async (username: string, password: string) => {
+export const login = async (
+  username: string,
+  password: string,
+  remember = false,
+) => {
   return await httpClient<{
     player: Player;
     map: MapMetaClient;
@@ -9,7 +13,7 @@ export const login = async (username: string, password: string) => {
     motd?: string;
   }>('/login', {
     method: 'POST',
-    body: { username, password },
+    body: { username, password, remember },
   });
 };
 

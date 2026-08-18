@@ -14,6 +14,21 @@ import { useT } from '../i18n';
 
 type FormValues = { username: string; password: string };
 
+/**
+ * The account name of whoever ticked "remember me" here. Only the name: this
+ * page runs the server owner's module code, which can read localStorage, so
+ * the password is left to the browser's password manager (autoComplete).
+ */
+const REMEMBERED_USER_KEY = 'engine.rememberedUser';
+
+const readRememberedUser = (): string => {
+  try {
+    return localStorage.getItem(REMEMBERED_USER_KEY) ?? '';
+  } catch {
+    return '';
+  }
+};
+
 export const Login = ({ onSwitch }: { onSwitch: () => void }) => {
   const t = useT();
   const { loginSuccess } = useGame();
@@ -25,11 +40,14 @@ export const Login = ({ onSwitch }: { onSwitch: () => void }) => {
   const [resetName, setResetName] = useState('');
   const [resetSent, setResetSent] = useState(false);
 
+  const remembered = readRememberedUser();
+  const [remember, setRemember] = useState(remembered !== '');
+
   const {
     register,
     handleSubmit,
     formState: { errors, isSubmitting },
-  } = useForm<FormValues>();
+  } = useForm<FormValues>({ defaultValues: { username: remembered } });
 
   useEffect(() => {
     fetchAuthCapabilities()
@@ -47,7 +65,13 @@ export const Login = ({ onSwitch }: { onSwitch: () => void }) => {
   const onSubmit = async ({ username, password }: FormValues) => {
     setServerError('');
     try {
-      const data = await login(username, password);
+      const data = await login(username, password, remember);
+      try {
+        if (remember) localStorage.setItem(REMEMBERED_USER_KEY, username);
+        else localStorage.removeItem(REMEMBERED_USER_KEY);
+      } catch {
+        // Storage disabled: the box still applies to this login's session.
+      }
       if (data?.player && data?.map && data?.assetKey) {
         setAssetKey(data.assetKey);
         loginSuccess(data);
@@ -72,6 +96,7 @@ export const Login = ({ onSwitch }: { onSwitch: () => void }) => {
         <div style={styles.field}>
           <input
             type="text"
+            autoComplete="username"
             placeholder={t('auth.username')}
             style={styles.input}
             {...register('username', { required: t('auth.username') })}
@@ -83,6 +108,7 @@ export const Login = ({ onSwitch }: { onSwitch: () => void }) => {
         <div style={styles.field}>
           <input
             type="password"
+            autoComplete="current-password"
             placeholder={t('auth.password')}
             style={styles.input}
             {...register('password', { required: t('auth.password') })}
@@ -91,6 +117,14 @@ export const Login = ({ onSwitch }: { onSwitch: () => void }) => {
             <span style={styles.fieldError}>{errors.password.message}</span>
           )}
         </div>
+        <label style={styles.remember}>
+          <input
+            type="checkbox"
+            checked={remember}
+            onChange={(e) => setRemember(e.target.checked)}
+          />
+          {t('auth.remember')}
+        </label>
         <button type="submit" disabled={isSubmitting} style={styles.button}>
           {isSubmitting ? t('auth.loggingIn') : t('auth.login')}
         </button>
@@ -180,6 +214,16 @@ const styles: Record<string, React.CSSProperties> = {
     marginTop: '4px',
     color: colors.danger,
     fontSize: '0.8rem',
+  },
+  remember: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '8px',
+    marginBottom: '16px',
+    fontSize: '0.85rem',
+    color: colors.textMuted,
+    cursor: 'pointer',
+    textAlign: 'left',
   },
   button: {
     width: '100%',

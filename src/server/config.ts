@@ -83,6 +83,17 @@ if (nodeEnv === 'production' && !process.env.SESSION_SECRET) {
   );
 }
 
+// The session cookie is the whole login, and without Secure a browser also
+// sends it over plain http. Opt-in by variable rather than from NODE_ENV,
+// since only the operator knows whether a TLS proxy is in front.
+if (nodeEnv === 'production' && process.env.USE_SECURE_COOKIES !== 'true') {
+  throw new Error(
+    '[config] USE_SECURE_COOKIES must be "true" in production, so the session ' +
+      'cookie is only ever sent over HTTPS. Serving without TLS is not a ' +
+      'supported deployment.',
+  );
+}
+
 if (nodeEnv === 'production' && !process.env.CORS_ALLOWED_ORIGINS) {
   throw new Error(
     '[config] CORS_ALLOWED_ORIGINS must be set in production. ' +

@@ -138,6 +138,10 @@ const EffectSchema = z.object({
 export const LoginBodySchema = z.object({
   username: z.string().min(1),
   password: z.string().min(1),
+  // "Remember me" on the login screen. Absent means the cookie dies with the
+  // browser, which is the right default for a game: closing the client should
+  // not leave the next person at that machine holding the character.
+  remember: z.boolean().optional(),
 });
 
 export const RegisterBodySchema = z.object({
