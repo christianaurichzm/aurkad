@@ -51,7 +51,7 @@ export const Login = ({ onSwitch }: { onSwitch: () => void }) => {
 
   useEffect(() => {
     fetchAuthCapabilities()
-      .then((c) => setCanReset(c?.passwordReset === true))
+      .then((c) => setCanReset(c?.mail === true))
       .catch(() => {});
   }, []);
 
@@ -139,6 +139,10 @@ export const Login = ({ onSwitch }: { onSwitch: () => void }) => {
               <p style={styles.onlineCount}>{t('auth.resetSent')}</p>
             ) : (
               <>
+                {/* The question the second username box is answering. It was
+                    an aria-label alone, which reads as an unexplained field to
+                    everyone who can see the screen. */}
+                <p style={styles.resetTitle}>{t('auth.forgot')}</p>
                 <input
                   type="text"
                   placeholder={t('auth.username')}
@@ -259,6 +263,11 @@ const styles: Record<string, React.CSSProperties> = {
   },
   onlineCount: {
     marginTop: '16px',
+    fontSize: '0.85rem',
+    color: colors.textMuted,
+  },
+  resetTitle: {
+    marginBottom: '8px',
     fontSize: '0.85rem',
     color: colors.textMuted,
   },

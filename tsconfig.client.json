@@ -5,6 +5,11 @@
     "noEmit": true,
     "types": ["vite/client"]
   },
-  "include": ["src/client/**/*", "src/test/**/*", "vite.config.ts"],
+  "include": [
+    "src/client/**/*",
+    "src/test/**/*",
+    "vite.config.ts",
+    "vite.config.test.ts"
+  ],
   "exclude": ["node_modules", "dist"]
 }

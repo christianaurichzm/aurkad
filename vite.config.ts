@@ -17,9 +17,13 @@ export default defineConfig({
       // Public
       "/healthz": { target: "http://localhost:8080", changeOrigin: true },
 
-      // Auth
+      // Auth. Each key is a prefix, so "/password" also carries the reset
+      // endpoints under it.
       "/login": { target: "http://localhost:8080", changeOrigin: true },
       "/register": { target: "http://localhost:8080", changeOrigin: true },
+      "/auth": { target: "http://localhost:8080", changeOrigin: true },
+      "/password": { target: "http://localhost:8080", changeOrigin: true },
+      "/email": { target: "http://localhost:8080", changeOrigin: true },
 
       // Content. This list is an allowlist, not a prefix match: an endpoint the
       // client calls but nobody adds here is served Vite's index.html in dev
@@ -33,6 +37,9 @@ export default defineConfig({
       "/spells": { target: "http://localhost:8080", changeOrigin: true },
       "/arrows": { target: "http://localhost:8080", changeOrigin: true },
       "/behaviors": { target: "http://localhost:8080", changeOrigin: true },
+      "/dialogs": { target: "http://localhost:8080", changeOrigin: true },
+      "/quests": { target: "http://localhost:8080", changeOrigin: true },
+      "/recipes": { target: "http://localhost:8080", changeOrigin: true },
 
       // Editors
       "/saveMap": { target: "http://localhost:8080", changeOrigin: true },
@@ -53,6 +60,10 @@ export default defineConfig({
 
       // Assets
       "/assets": { target: "http://localhost:8080", changeOrigin: true },
+      "/audio": { target: "http://localhost:8080", changeOrigin: true },
+
+      // Client error reports
+      "/client-error": { target: "http://localhost:8080", changeOrigin: true },
 
       // WebSocket
       "/ws": { target: "ws://localhost:8080", ws: true, changeOrigin: true },
