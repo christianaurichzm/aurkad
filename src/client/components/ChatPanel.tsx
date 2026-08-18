@@ -47,7 +47,11 @@ export const ChatPanel: React.FC = () => {
 
   return (
     <div id="chatContainer">
+      <div className="panel-title">{t('chat.title')}</div>
       <div id="chatBox" className="chat-box" ref={chatBoxRef}>
+        {messages.length === 0 && (
+          <p className="chat-empty">{t('chat.empty')}</p>
+        )}
         {messages.map((msg, index) => (
           <div key={index} className={getChatMessageClassName(msg)}>
             {formatChatMessage(msg)}

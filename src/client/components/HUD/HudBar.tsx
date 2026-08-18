@@ -1,11 +1,19 @@
 import { useEffect, useState } from 'react';
 import { useUIStore } from '../../stores/uiStore';
+import { useGame } from '../../context/GameContext';
+import { usePlayerForceUpdate } from '../../hooks/usePlayerForceUpdate';
+import { SpritePreview } from '../common/SpritePreview';
 import { getHealthBarInfo } from '../../graphics/hud';
 import { PLAYER_ATTACK_COOLDOWN_MS } from '../../../shared/constants';
 import { useT } from '../../i18n';
 
 export const HudBar = () => {
   const t = useT();
+  // The live player's name and sprite when there is one, so a GM change
+  // shows here; the session's otherwise.
+  const { player: sessionPlayer } = useGame();
+  const livePlayer = usePlayerForceUpdate(true);
+  const identity = livePlayer ?? sessionPlayer;
   const { current, max, level = 1 } = useUIStore((state) => state.playerHealth);
   const xp = useUIStore((state) => state.playerXp);
   const attackCooldownUntil = useUIStore((s) => s.attackCooldownUntil);
@@ -32,8 +40,18 @@ export const HudBar = () => {
 
   return (
     <div id="hud">
+      <div id="hud-identity">
+        <SpritePreview
+          spriteId={identity?.sprite ?? 0}
+          size={38}
+          style={{ background: 'rgba(0,0,0,0.25)' }}
+        />
+        <div id="hud-who">
+          <span id="hud-name">{identity?.name}</span>
+          <span id="hud-level">{t('hud.level', { level })}</span>
+        </div>
+      </div>
       <div id="hud-row">
-        <span id="hud-level">{t('hud.level', { level })}</span>
         <span id="hud-hp-label">{t('hud.hp')}</span>
         <div id="health-bar-container">
           <div

@@ -85,7 +85,10 @@ export const Modal: React.FC<ModalProps> = ({
   return (
     <>
       <div style={styles.overlay} />
-      <div ref={ref} style={styles.container}>
+      {/* Marked so anything that needs to know whether a panel is open has one
+          answer to ask for - the settings shortcut uses it to stay out of the
+          way of a panel that is already listening for Escape. */}
+      <div ref={ref} style={styles.container} data-modal>
         <div style={styles.titlebar} onPointerDown={onPointerDown}>
           <h2 style={styles.title}>{title}</h2>
           <button

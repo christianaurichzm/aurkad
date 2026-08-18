@@ -28,7 +28,28 @@ export const SettingsModal: React.FC = () => {
     const onToggle = () => setVisible((v) => !v);
     window.addEventListener('toggleSettings', onToggle);
 
-    return () => window.removeEventListener('toggleSettings', onToggle);
+    // Escape opens settings, which is where a player looks for it. It only
+    // does so when nothing else is open: every panel is a Modal, every Modal
+    // closes itself on Escape, and this checks for one before claiming the
+    // key. Typing in chat is not a shortcut either.
+    const onEscape = (event: KeyboardEvent) => {
+      if (event.key !== 'Escape') return;
+      const active = document.activeElement;
+      if (
+        active &&
+        (active.tagName === 'INPUT' || active.tagName === 'TEXTAREA')
+      )
+        return;
+      if (document.querySelector('[data-modal]')) return;
+      event.preventDefault();
+      setVisible(true);
+    };
+    window.addEventListener('keydown', onEscape);
+
+    return () => {
+      window.removeEventListener('toggleSettings', onToggle);
+      window.removeEventListener('keydown', onEscape);
+    };
   }, []);
 
   if (!visible) return null;

@@ -75,6 +75,8 @@ export const pt: Record<keyof typeof en, string> = {
   'chat.placeholder': 'Digite uma mensagem…',
   'chat.scopeGlobal': 'Global',
   'chat.scopeMap': 'Mapa',
+  'chat.title': 'Chat',
+  'chat.empty': 'Ninguém disse nada ainda.',
 
   'settings.title': 'Configurações',
   'settings.music': 'Música',

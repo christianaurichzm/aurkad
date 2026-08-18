@@ -81,6 +81,8 @@ export const en = {
   'chat.placeholder': 'Type a message…',
   'chat.scopeGlobal': 'Global',
   'chat.scopeMap': 'Map',
+  'chat.title': 'Chat',
+  'chat.empty': 'Nothing said here yet.',
 
   // Settings
   'settings.title': 'Settings',

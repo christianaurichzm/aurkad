@@ -55,6 +55,10 @@ const quickActions: QuickAction[] = [
   {
     id: 'settings',
     label: 'actions.settings',
+    // Not a member of the shared Key enum like the others: Escape never
+    // reaches the server, so it is handled where it is used (SettingsModal)
+    // and only advertised here.
+    keyLabel: 'Esc',
     eventName: 'toggleSettings',
     minAccess: Access.USER,
     className: 'action-button-primary',

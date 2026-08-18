@@ -15,12 +15,16 @@ describe('ChatPanel Component', () => {
     });
   });
 
-  it('should render empty chat box initially', () => {
+  // An empty log says so instead of showing a blank panel.
+  it('says the log is empty instead of rendering nothing', () => {
     render(<ChatPanel />);
 
     const chatBox = document.getElementById('chatBox');
     expect(chatBox).toBeInTheDocument();
-    expect(chatBox?.children.length).toBe(0);
+    expect(chatBox?.querySelectorAll('.chat-empty')).toHaveLength(1);
+    expect(
+      chatBox?.querySelectorAll('.chat-global, .chat-map, .chat-player'),
+    ).toHaveLength(0);
   });
 
   it('should render input and scope selector', () => {

@@ -1,7 +1,17 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import { HudBar } from './HudBar';
 import { useUIStore } from '../../stores/uiStore';
+
+// The card names the player, which is session state rather than store state;
+// the bars below it are what these cases are about.
+vi.mock('../../context/GameContext', () => ({
+  useGame: () => ({ player: { name: 'Alice', sprite: 3 } }),
+}));
+
+vi.mock('../../hooks/usePlayerForceUpdate', () => ({
+  usePlayerForceUpdate: () => null,
+}));
 
 describe('HudBar Component', () => {
   beforeEach(() => {
