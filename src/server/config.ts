@@ -101,6 +101,27 @@ if (nodeEnv === 'production' && !process.env.CORS_ALLOWED_ORIGINS) {
   );
 }
 
+// Mail: a transport that cannot send is worse than the log one, because the
+// login screen offers "forgot password" on the strength of `smtp` being set
+// and every request after that dies quietly inside a promise. Both values are
+// the operator's and neither has a sane default, so the boot asks for them.
+const mailTransport =
+  process.env.MAIL_TRANSPORT === 'smtp'
+    ? 'smtp'
+    : process.env.MAIL_TRANSPORT === 'none'
+      ? 'none'
+      : 'log';
+
+if (
+  mailTransport === 'smtp' &&
+  (!process.env.SMTP_URL || !process.env.MAIL_FROM)
+) {
+  throw new Error(
+    '[config] MAIL_TRANSPORT=smtp needs SMTP_URL (e.g. smtps://user:pass@smtp.example.com) ' +
+      'and MAIL_FROM (the address players will see it from).',
+  );
+}
+
 // A short token is worse than none: it reads as protection while being
 // guessable, and this endpoint is a capacity map of the server. Fail at boot
 // rather than serve it.
@@ -207,9 +228,18 @@ export const config = {
     }),
   },
   mail: {
-    // Where mail goes. `log` writes it to the server log, so a game with no
-    // mail account can still reset a password by hand, and `none` drops it.
-    transport: process.env.MAIL_TRANSPORT === 'none' ? 'none' : 'log',
+    // Where mail goes. `smtp` hands it to the relay in SMTP_URL. `log` writes
+    // it to the server log, so a game with no mail account can still reset a
+    // password by hand, and `none` drops it.
+    transport: mailTransport,
+    // One URL rather than host/port/user/pass/secure, because every relay
+    // documents itself in that form and five values are five ways to get one
+    // wrong. Implicit TLS on port 465 is smtps://user:pass@smtp.example.com,
+    // STARTTLS on 587 is smtp://user:pass@smtp.example.com:587.
+    smtpUrl: process.env.SMTP_URL?.trim() || '',
+    // Relays refuse a sender they have not authorised, so this is the
+    // operator's own address rather than anything the engine can invent.
+    from: process.env.MAIL_FROM?.trim() || '',
     // What a link in a message points at. Only the operator knows the address
     // players type, so a wrong guess here produces a link nobody can open;
     // the fallback is the local one, which is right in development and

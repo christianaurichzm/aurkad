@@ -163,6 +163,14 @@ export const ResetRequestBodySchema = z.object({
   username: z.string().min(1).max(24),
 });
 
+// Setting the address a reset link goes to. The current password is asked
+// for as when changing one: a session left open on a shared machine must
+// not be enough to send somebody's account recovery to a new inbox.
+export const SetEmailBodySchema = z.object({
+  currentPassword: z.string().min(1),
+  email: z.email().max(200),
+});
+
 export const ResetConfirmBodySchema = z.object({
   token: z.string().min(1).max(200),
   newPassword: NewPassword,

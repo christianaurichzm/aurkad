@@ -51,9 +51,30 @@ export const confirmPasswordReset = async (
   });
 };
 
-/** What this deployment can offer before anyone has logged in. */
+/** The address a reset link would go to, or null while there is none. */
+export const fetchEmail = async () => {
+  return await httpClient<{ email: string | null }>('/email', {
+    method: 'GET',
+  });
+};
+
+/**
+ * Points the account at an address, stored only once the emailed link comes
+ * back, so `sent` is all the screen can report.
+ */
+export const setEmail = async (currentPassword: string, email: string) => {
+  return await httpClient<{ success: boolean; sent: boolean }>('/email', {
+    method: 'POST',
+    body: { currentPassword, email },
+  });
+};
+
+/**
+ * What this deployment offers before anyone logs in. No `mail` transport
+ * means no reset link on the login screen and no address field in settings.
+ */
 export const fetchAuthCapabilities = async () => {
-  return await httpClient<{ passwordReset: boolean }>('/auth/capabilities', {
+  return await httpClient<{ mail: boolean }>('/auth/capabilities', {
     method: 'GET',
   });
 };

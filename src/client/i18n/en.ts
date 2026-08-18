@@ -31,6 +31,12 @@ export const en = {
   'auth.passwordTooShort': 'At least {min} characters.',
   'auth.passwordChanged': 'Password changed.',
   'auth.changePassword': 'Change password',
+  'auth.emailAddress': 'Email address',
+  'auth.emailNone': 'No address yet, so a reset link has nowhere to go.',
+  'auth.emailCurrent': 'Reset links go to {email}.',
+  'auth.saveEmail': 'Save address',
+  'auth.emailSent': 'Open the link we just sent: the address counts from then.',
+  'auth.emailNotSent': 'The message could not be sent. Try again in a moment.',
 
   // HUD
   'hud.level': 'Level {level}',
@@ -92,6 +98,7 @@ export const en = {
   'settings.mute': 'Mute everything',
   'settings.language': 'Language',
   'settings.password': 'Password',
+  'settings.email': 'Email',
 
   // Quests
   'quest.title': 'Quests',

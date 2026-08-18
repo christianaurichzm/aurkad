@@ -19,9 +19,11 @@ export {
   changePassword,
   confirmPasswordReset,
   fetchAuthCapabilities,
+  fetchEmail,
   login,
   register,
   requestPasswordReset,
+  setEmail,
   silentAction,
 } from './http/authClient';
 

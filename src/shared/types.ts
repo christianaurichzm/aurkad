@@ -307,6 +307,12 @@ export interface PlayerServer extends PersistentPlayer, CharacterRuntime {
 
 export interface PlayerRecord extends PlayerServer {
   password: string;
+  /**
+   * Where a reset link is sent, once the address has answered one. On the
+   * record and not on `PlayerServer`, like the password next to it, so the
+   * write-behind loop that `$set`s the runtime player cannot wipe it.
+   */
+  email?: string;
 }
 
 export interface PlayerPublic {

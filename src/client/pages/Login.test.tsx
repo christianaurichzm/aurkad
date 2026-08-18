@@ -9,7 +9,7 @@ vi.mock('../io/network', () => ({
   login: mocks.login,
   httpError: (e: unknown) => (e as { message?: string }) ?? {},
   // No mail transport here, so the reset form stays hidden, as by default.
-  fetchAuthCapabilities: () => Promise.resolve({ passwordReset: false }),
+  fetchAuthCapabilities: () => Promise.resolve({ mail: false }),
   requestPasswordReset: vi.fn(),
 }));
 

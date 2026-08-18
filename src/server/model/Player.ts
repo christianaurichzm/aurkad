@@ -60,6 +60,9 @@ const PlayerSchema = new mongoose.Schema({
   access: { type: Number, enum: [0, 1, 2] },
   data: { type: mongoose.Schema.Types.Mixed, default: {} },
   password: { type: String, required: true },
+  // Set only by the account routes, after a link sent to it came back: an
+  // address nobody answered is a reset link addressed to a typo.
+  email: { type: String, lowercase: true, trim: true },
 });
 
 export default mongoose.model('Player', PlayerSchema);

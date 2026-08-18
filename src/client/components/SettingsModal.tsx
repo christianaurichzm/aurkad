@@ -1,7 +1,13 @@
 import React, { useEffect, useState } from 'react';
 import { PASSWORD_MIN_LENGTH } from '../../shared/constants';
 import { AudioSettings, getAudioSettings, setAudioSettings } from '../audio';
-import { changePassword, httpError } from '../io/network';
+import {
+  changePassword,
+  fetchAuthCapabilities,
+  fetchEmail,
+  httpError,
+  setEmail,
+} from '../io/network';
 import { colors, radius } from '../theme';
 import { Modal } from './common/Modal';
 import {
@@ -23,6 +29,27 @@ export const SettingsModal: React.FC = () => {
   const [passwordNote, setPasswordNote] = useState('');
   const [passwordError, setPasswordError] = useState(false);
   const [saving, setSaving] = useState(false);
+  // The address section shows only when the server can send mail.
+  const [canMail, setCanMail] = useState(false);
+  const [email, setEmailValue] = useState('');
+  const [emailPassword, setEmailPassword] = useState('');
+  const [emailNote, setEmailNote] = useState('');
+  const [emailError, setEmailError] = useState(false);
+  const [currentEmail, setCurrentEmail] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!visible) return;
+    fetchAuthCapabilities()
+      .then((c) => setCanMail(c?.mail === true))
+      .catch(() => {});
+  }, [visible]);
+
+  useEffect(() => {
+    if (!visible || !canMail) return;
+    fetchEmail()
+      .then((r) => setCurrentEmail(r?.email ?? null))
+      .catch(() => {});
+  }, [visible, canMail]);
 
   useEffect(() => {
     const onToggle = () => setVisible((v) => !v);
@@ -76,6 +103,21 @@ export const SettingsModal: React.FC = () => {
     } catch (e) {
       setPasswordError(true);
       setPasswordNote(httpError(e).message || t('common.error'));
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const submitEmail = async () => {
+    setSaving(true);
+    try {
+      const result = await setEmail(emailPassword, email);
+      setEmailError(!result?.sent);
+      setEmailNote(result?.sent ? t('auth.emailSent') : t('auth.emailNotSent'));
+      setEmailPassword('');
+    } catch (e) {
+      setEmailError(true);
+      setEmailNote(httpError(e).message || t('common.error'));
     } finally {
       setSaving(false);
     }
@@ -138,6 +180,44 @@ export const SettingsModal: React.FC = () => {
             ))}
           </select>
         </label>
+
+        {canMail && (
+          <>
+            <div style={sectionTitle}>{t('settings.email')}</div>
+            <span style={note}>
+              {currentEmail
+                ? t('auth.emailCurrent', { email: currentEmail })
+                : t('auth.emailNone')}
+            </span>
+            <input
+              type="email"
+              autoComplete="email"
+              placeholder={t('auth.emailAddress')}
+              value={email}
+              onChange={(e) => setEmailValue(e.target.value)}
+              style={input}
+            />
+            <input
+              type="password"
+              autoComplete="current-password"
+              placeholder={t('auth.currentPassword')}
+              value={emailPassword}
+              onChange={(e) => setEmailPassword(e.target.value)}
+              style={input}
+            />
+            <button
+              type="button"
+              disabled={saving || !email || !emailPassword}
+              onClick={() => void submitEmail()}
+              style={button}
+            >
+              {t('auth.saveEmail')}
+            </button>
+            {emailNote && (
+              <span style={emailError ? noteError : note}>{emailNote}</span>
+            )}
+          </>
+        )}
 
         <div style={sectionTitle}>{t('settings.password')}</div>
         <input

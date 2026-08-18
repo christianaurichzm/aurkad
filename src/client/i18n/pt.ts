@@ -32,6 +32,15 @@ export const pt: Record<keyof typeof en, string> = {
   'auth.passwordTooShort': 'Pelo menos {min} caracteres.',
   'auth.passwordChanged': 'Senha alterada.',
   'auth.changePassword': 'Alterar senha',
+  'auth.emailAddress': 'Endereço de e-mail',
+  'auth.emailNone':
+    'Sem endereço, então o link de redefinição não tem para onde ir.',
+  'auth.emailCurrent': 'Os links de redefinição vão para {email}.',
+  'auth.saveEmail': 'Salvar endereço',
+  'auth.emailSent':
+    'Abra o link que acabamos de enviar: o endereço vale a partir dali.',
+  'auth.emailNotSent':
+    'Não foi possível enviar a mensagem. Tente de novo daqui a pouco.',
 
   'hud.level': 'Nível {level}',
   'hud.hp': 'HP',
@@ -85,6 +94,7 @@ export const pt: Record<keyof typeof en, string> = {
   'settings.mute': 'Silenciar tudo',
   'settings.language': 'Idioma',
   'settings.password': 'Senha',
+  'settings.email': 'E-mail',
 
   'quest.title': 'Missões',
   'quest.progress': '{current}/{target}',

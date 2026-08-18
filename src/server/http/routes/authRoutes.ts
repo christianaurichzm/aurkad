@@ -10,6 +10,7 @@ import {
   RegisterBodySchema,
   ResetConfirmBodySchema,
   ResetRequestBodySchema,
+  SetEmailBodySchema,
 } from '../bodySchemas.js';
 import { logger } from '../../logger.js';
 import { getPlayerById, registerPlayer } from '../../sim/world.js';
@@ -30,8 +31,11 @@ import { createRouter } from '../../app.js';
 import { createAuthLimiter } from '../middleware/rateLimit.js';
 import {
   changePassword,
+  confirmEmailToken,
   consumeResetToken,
+  createEmailToken,
   createResetToken,
+  emailConfirmLink,
   resetLink,
 } from '../../services/player/passwordService.js';
 import {
@@ -184,10 +188,69 @@ export function createAuthRouter() {
     },
   );
 
-  // What the login screen may offer. Asked before anyone is logged in, so it
-  // says nothing about who exists, only what this deployment can do.
+  // What the screens may offer. Asked before login, so it says nothing about
+  // who exists, only what this deployment can do. One fact, mail reaching a
+  // player, gates both offering a reset link and asking for an address.
   router.get('/auth/capabilities', (_req: ExtendedRequest, res: Response) => {
-    res.json({ passwordReset: mailReachesPlayers() });
+    res.json({ mail: mailReachesPlayers() });
+  });
+
+  // The address on the account, for the screen that sets it. Null covers both
+  // "never set" and "set but never confirmed": until a link comes back there is
+  // no address, and saying otherwise would promise delivery to a typo.
+  router.get('/email', async (req: ExtendedRequest, res: Response) => {
+    const username = req.session.username;
+    if (!username) return res.status(401).json({ message: 'Not logged in' });
+
+    const record = await getPlayerByNameFromDb(username);
+    res.json({ email: record?.email ?? null });
+  });
+
+  // Pointing the account at an address. Rate limited with the login bucket
+  // because it sends mail on request, and a mailbox somebody else owns is the
+  // thing being written to.
+  router.post(
+    '/email',
+    authLimiter,
+    async (req: ExtendedRequest, res: Response) => {
+      const username = req.session.username;
+      if (!username) return res.status(401).json({ message: 'Not logged in' });
+
+      const body = parseBody(SetEmailBodySchema, req.body, res);
+      if (!body) return;
+
+      const record = await getPlayerByNameFromDb(username);
+      if (!record) return res.status(404).json({ message: 'No such account' });
+      if (!(await bcrypt.compare(body.currentPassword, record.password))) {
+        return res.status(403).json({ message: 'Current password is wrong' });
+      }
+
+      const { token } = await createEmailToken(record.name, body.email);
+      const sent = await sendMail({
+        to: body.email,
+        subject: 'Confirm your address',
+        text:
+          `Open this link to use this address for ${record.name}:\n\n` +
+          `${emailConfirmLink(token)}\n\n` +
+          `It stops working in 30 minutes, and once used.`,
+      });
+      // The address is not stored yet, so a failed send leaves only a token
+      // nobody can spend, and the screen says to try again.
+      res.json({ success: true, sent });
+    },
+  );
+
+  // Spending an address link. A GET because it is what a mail client opens,
+  // and the token is the whole proof; the reply is read in a browser tab that
+  // the player then closes, so it is a sentence rather than a screen.
+  router.get('/email/confirm', async (req: ExtendedRequest, res: Response) => {
+    const token = typeof req.query.token === 'string' ? req.query.token : '';
+    const result = token ? await confirmEmailToken(token) : 'invalid-token';
+    res.type('text/plain');
+    if (result === 'invalid-token') {
+      return res.status(400).send('That link is no longer valid.');
+    }
+    res.send('Address confirmed. You can close this tab.');
   });
 
   // Changing a password you know. The session says who, so there is no username
@@ -224,9 +287,12 @@ export function createAuthRouter() {
       if (!body) return;
 
       const minted = await createResetToken(body.username);
-      if (minted) {
+      // No address means no way to deliver it. The token is minted either way
+      // so this path costs the same for an account that has one and one that
+      // does not, and the operator's `resetlink` still reaches anybody.
+      if (minted?.email) {
         await sendMail({
-          to: minted.username,
+          to: minted.email,
           subject: 'Reset your password',
           text:
             `Open this link to choose a new password:\n\n` +

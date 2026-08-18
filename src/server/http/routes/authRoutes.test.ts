@@ -1,4 +1,12 @@
-import { describe, it, expect, beforeAll, afterAll, beforeEach } from 'vitest';
+import {
+  describe,
+  it,
+  expect,
+  beforeAll,
+  afterAll,
+  beforeEach,
+  vi,
+} from 'vitest';
 import express from 'express';
 import session from 'express-session';
 import request from 'supertest';
@@ -18,6 +26,17 @@ import { runtimeState } from '../../sim/state.js';
 import { createFixture, makeTiles } from '../../sim/simFixture.js';
 import { gameConfig } from '../../gameConfig.js';
 import { Access } from '../../../shared/types.js';
+
+// A deployment that can send mail, and a record of what it sent: the address
+// routes exist to put a link in somebody's inbox, so the assertion is the mail.
+const sent: { to: string; text: string }[] = [];
+vi.mock('../../services/comms/mailService.js', () => ({
+  mailReachesPlayers: () => true,
+  sendMail: (mail: { to: string; subject: string; text: string }) => {
+    sent.push({ to: mail.to, text: mail.text });
+    return Promise.resolve(true);
+  },
+}));
 
 let mongod: MongoMemoryServer;
 let app: express.Express;
@@ -276,5 +295,91 @@ describe('POST /logout', () => {
     // disconnectPlayer runs fire-and-forget after the session is destroyed
     await new Promise((resolve) => setTimeout(resolve, 100));
     expect(getPlayerByName('Alice')).toBeUndefined();
+  });
+});
+
+describe('the address a reset link goes to', () => {
+  const loggedIn = async () => {
+    await createPlayer('Alice', await hashPw('correcthorse'));
+    const agent = request.agent(app);
+    await agent
+      .post('/login')
+      .send({ username: 'Alice', password: 'correcthorse' });
+    return agent;
+  };
+
+  beforeEach(() => {
+    sent.length = 0;
+  });
+
+  it('is not settable from an open session alone', async () => {
+    const agent = await loggedIn();
+
+    const res = await agent
+      .post('/email')
+      .send({ currentPassword: 'guessing', email: 'thief@example.com' });
+
+    expect(res.status).toBe(403);
+    expect(sent).toHaveLength(0);
+  });
+
+  it('needs a session at all', async () => {
+    await createPlayer('Alice', await hashPw('correcthorse'));
+
+    const res = await request(app)
+      .post('/email')
+      .send({ currentPassword: 'correcthorse', email: 'alice@example.com' });
+
+    expect(res.status).toBe(401);
+  });
+
+  it('counts from the moment the mailed link is opened', async () => {
+    const agent = await loggedIn();
+
+    const set = await agent
+      .post('/email')
+      .send({ currentPassword: 'correcthorse', email: 'alice@example.com' });
+    expect(set.status).toBe(200);
+    expect(sent[0]?.to).toBe('alice@example.com');
+    // Not stored yet: the screen is told the mail went, not that it worked.
+    expect((await agent.get('/email')).body.email).toBeNull();
+
+    const link = /token=([^\s]+)/.exec(sent[0]!.text)?.[1] ?? '';
+    const confirm = await request(app).get(`/email/confirm?token=${link}`);
+    expect(confirm.status).toBe(200);
+
+    expect((await agent.get('/email')).body.email).toBe('alice@example.com');
+  });
+
+  it('is where the reset link is then sent', async () => {
+    const agent = await loggedIn();
+    await agent
+      .post('/email')
+      .send({ currentPassword: 'correcthorse', email: 'alice@example.com' });
+    const token = /token=([^\s]+)/.exec(sent[0]!.text)?.[1] ?? '';
+    await request(app).get(`/email/confirm?token=${token}`);
+    sent.length = 0;
+
+    const res = await request(app)
+      .post('/password/reset')
+      .send({ username: 'Alice' });
+
+    expect(res.status).toBe(200);
+    expect(sent[0]?.to).toBe('alice@example.com');
+    expect(sent[0]?.text).toContain('?reset=');
+  });
+
+  // Same answer for an account with an address and one without, so the reply
+  // never says which accounts can be mailed.
+  it('says nothing about an account with no address', async () => {
+    await createPlayer('Bob', await hashPw('correcthorse'));
+
+    const res = await request(app)
+      .post('/password/reset')
+      .send({ username: 'Bob' });
+
+    expect(res.status).toBe(200);
+    expect(res.body.success).toBe(true);
+    expect(sent).toHaveLength(0);
   });
 });

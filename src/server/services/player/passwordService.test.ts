@@ -7,7 +7,9 @@ import PasswordResetModel from '../../model/PasswordReset.js';
 import { createPlayer, getPlayerByNameFromDb } from './playerService.js';
 import {
   changePassword,
+  confirmEmailToken,
   consumeResetToken,
+  createEmailToken,
   createResetToken,
   RESET_TOKEN_TTL_MS,
 } from './passwordService.js';
@@ -126,5 +128,70 @@ describe('reset tokens', () => {
     expect(await consumeResetToken(second!.token, 'x-password')).toBe(
       'invalid-token',
     );
+  });
+});
+
+describe('address tokens', () => {
+  const address = async () => (await getPlayerByNameFromDb('Alice'))?.email;
+
+  // Stored on the way back, not on the way out: an address written before it
+  // answers is a typo that sends the next reset link to a stranger.
+  it('writes the address only once the link comes back', async () => {
+    const minted = await createEmailToken('Alice', 'alice@example.com');
+    expect(await address()).toBeUndefined();
+
+    expect(await confirmEmailToken(minted.token)).toBe('ok');
+    expect(await address()).toBe('alice@example.com');
+  });
+
+  it('spends once', async () => {
+    const minted = await createEmailToken('Alice', 'alice@example.com');
+    await confirmEmailToken(minted.token);
+
+    expect(await confirmEmailToken(minted.token)).toBe('invalid-token');
+  });
+
+  it('refuses one that is out of date even while its row survives', async () => {
+    const minted = await createEmailToken('Alice', 'alice@example.com');
+    await PasswordResetModel.updateOne(
+      { username: 'Alice' },
+      { expiresAt: new Date(Date.now() - RESET_TOKEN_TTL_MS) },
+    ).exec();
+
+    expect(await confirmEmailToken(minted.token)).toBe('invalid-token');
+    expect(await address()).toBeUndefined();
+  });
+
+  // Two kinds of link live in one collection, and neither is the other kind of
+  // permission: a link mailed to confirm an address must not set a password.
+  it('is not a password reset, and a password reset is not one', async () => {
+    const forAddress = await createEmailToken('Alice', 'alice@example.com');
+    const forPassword = await createResetToken('Alice');
+
+    expect(await consumeResetToken(forAddress.token, 'new-password')).toBe(
+      'invalid-token',
+    );
+    expect(await canLogInWith('old-password')).toBe(true);
+
+    expect(await confirmEmailToken(forPassword!.token)).toBe('invalid-token');
+    expect(await address()).toBeUndefined();
+  });
+
+  // Somebody who had the account long enough to point it at their own inbox
+  // keeps that link unless the password change clears it too.
+  it('dies with a password change, like a reset link', async () => {
+    const minted = await createEmailToken('Alice', 'attacker@example.com');
+
+    await changePassword('Alice', 'old-password', 'new-password');
+
+    expect(await confirmEmailToken(minted.token)).toBe('invalid-token');
+    expect(await address()).toBeUndefined();
+  });
+
+  it('is where a reset link is addressed', async () => {
+    const minted = await createEmailToken('Alice', 'alice@example.com');
+    await confirmEmailToken(minted.token);
+
+    expect((await createResetToken('Alice'))?.email).toBe('alice@example.com');
   });
 });
