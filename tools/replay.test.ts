@@ -1,13 +1,18 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi, afterEach } from 'vitest';
 import {
   describeAction,
   formatTime,
   normalize,
+  printLog,
+  printSummary,
   renderTimeline,
   resolveAt,
   selectEvents,
 } from './replay.js';
-import type { ReplayEvent } from '../src/server/sim/replayRecorder.js';
+import type {
+  ReplayEvent,
+  ReplayFile,
+} from '../src/server/sim/replayRecorder.js';
 import { Key } from '../src/shared/types.js';
 
 const STARTED = '2026-08-08T20:00:00.000Z';
@@ -209,5 +214,112 @@ describe('resolveAt', () => {
 describe('formatTime', () => {
   it('says it does not know rather than printing the epoch', () => {
     expect(formatTime(0)).toBe('--:--:--.---');
+  });
+});
+
+// The report is what an incident actually reads, so it is asserted on the
+// lines it prints rather than on a return value it does not have.
+const captured = () => {
+  const lines: string[] = [];
+  vi.spyOn(console, 'log').mockImplementation((...args: unknown[]) => {
+    lines.push(args.join(' '));
+  });
+  return lines;
+};
+
+const file = (over: Partial<ReplayFile> = {}): ReplayFile => ({
+  version: 2,
+  seed: 7,
+  startedAt: STARTED,
+  dropped: 0,
+  events: [],
+  ...over,
+});
+
+afterEach(() => {
+  vi.restoreAllMocks();
+});
+
+describe('printSummary', () => {
+  it('reports the window, the counts and who acted', () => {
+    const events = [
+      key(0, 'ana', 'press'),
+      key(4, 'ana', 'release'),
+      key(6, 'bo', 'press'),
+    ];
+    const lines = captured();
+
+    printSummary('r.json', file({ events, label: 'incident' }), events, 2);
+
+    const text = lines.join('\n');
+    expect(text).toContain('label    : incident');
+    expect(text).toContain('seed     : 7');
+    expect(text).toContain('duration : 7 ticks');
+    expect(text).toContain('actions  : 3');
+    expect(text).toContain('keyboard (3)');
+    expect(text).toContain('ana (2), bo (1)');
+    expect(text).not.toContain('dropped');
+  });
+
+  it('says the file is older than its first line when the ring dropped', () => {
+    const lines = captured();
+
+    printSummary('r.json', file({ dropped: 12 }), [], 2);
+
+    const text = lines.join('\n');
+    expect(text).toContain('dropped  : 12 older actions');
+    expect(text).toContain('players  : none');
+    expect(text).toContain('duration : 0 ticks');
+  });
+
+  it('names the version it read when the file was written by an older one', () => {
+    const lines = captured();
+
+    printSummary('r.json', file(), [], 1);
+
+    expect(lines.join('\n')).toContain('version  : 1 (read as 2)');
+  });
+
+  it('marks the action count as filtered when it is a subset', () => {
+    const events = [key(0, 'ana', 'press'), key(1, 'bo', 'press')];
+    const lines = captured();
+
+    printSummary('r.json', file({ events }), [events[0]!], 2);
+
+    expect(lines.join('\n')).toContain('actions  : 1 of 2 (filtered)');
+  });
+});
+
+describe('printLog', () => {
+  it('prints one line per action of the asked type', () => {
+    const lines = captured();
+
+    printLog([key(3, 'ana', 'press')], new Set(['keyboard'] as const), 200);
+
+    expect(lines.join('\n')).toContain('Log  (1):');
+    expect(lines.join('\n')).toContain('t=     3');
+    expect(lines.join('\n')).toContain('ana');
+  });
+
+  it('keeps the tail, because a complaint is filed after the fact', () => {
+    const events = Array.from({ length: 5 }, (_, i) =>
+      key(i, `p${i}`, 'press'),
+    );
+    const lines = captured();
+
+    printLog(events, new Set(['keyboard'] as const), 2);
+
+    const text = lines.join('\n');
+    expect(text).toContain('Log  (last 2 of 5):');
+    expect(text).toContain('p4');
+    expect(text).not.toContain('p0');
+  });
+
+  it('says the window is empty instead of printing an empty header', () => {
+    const lines = captured();
+
+    printLog([key(0, 'ana', 'press')], new Set(['chat'] as const), 200);
+
+    expect(lines.join('\n')).toContain('No chat actions in this window.');
   });
 });

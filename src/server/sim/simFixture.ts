@@ -103,7 +103,8 @@ export function createFixture(seed = 0) {
       ...overrides,
     };
     registerPlayer(player);
-    map.players[player.id] = player;
+    // Register on the player's own map, not map1.
+    (runtimeState.maps[player.mapId] ?? map).players[player.id] = player;
     return player;
   }
 

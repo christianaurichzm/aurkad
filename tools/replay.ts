@@ -250,7 +250,7 @@ export function renderTimeline(events: ReplayEvent[]): string[] {
   ];
 }
 
-function printSummary(
+export function printSummary(
   file: string,
   data: ReplayFile,
   shown: ReplayEvent[],
@@ -317,7 +317,7 @@ function printSummary(
   }
 }
 
-function printLog(
+export function printLog(
   events: ReplayEvent[],
   types: Set<RecordedType>,
   limit: number,
