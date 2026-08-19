@@ -48,6 +48,7 @@
     "social": { "enabled": true },
     "achievements": { "enabled": true },
     "leaderboard": { "enabled": true },
+    "auction": { "enabled": true },
     "minimap": { "enabled": false },
     "daynight": { "enabled": false },
     "weather": { "enabled": false },
