@@ -45,6 +45,8 @@
     "trade": { "enabled": true },
     "equipment": { "enabled": true },
     "status": { "enabled": true },
+    "social": { "enabled": true },
+    "achievements": { "enabled": true },
     "minimap": { "enabled": false },
     "daynight": { "enabled": false },
     "weather": { "enabled": false },

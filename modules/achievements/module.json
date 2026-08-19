@@ -1,0 +1,33 @@
+{
+  "id": "achievements",
+  "name": "Achievements",
+  "version": "1.0.0",
+  "server": "server.js",
+  "client": "client.js",
+  "description": "Named milestones counted off the hooks the engine already emits. Definitions come from game.json; a game replaces the sample three with its own.",
+  "config": {
+    "achievements": [
+      {
+        "id": "first_blood",
+        "name": "First Blood",
+        "description": "Defeat your first enemy.",
+        "kill": "*",
+        "count": 1
+      },
+      {
+        "id": "slayer",
+        "name": "Slayer",
+        "description": "Defeat 50 enemies.",
+        "kill": "*",
+        "count": 50
+      },
+      {
+        "id": "apprentice",
+        "name": "Apprentice",
+        "description": "Reach level 10.",
+        "level": 10
+      }
+    ]
+  },
+  "enabledByDefault": false
+}

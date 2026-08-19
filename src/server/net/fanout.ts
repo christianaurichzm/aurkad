@@ -3,6 +3,7 @@ import { ChatMessagePayload } from '../../shared/types.js';
 import { getMap } from '../services/world/gameData.js';
 import { drainGameEvents } from '../engine/eventBus.js';
 import { getPlayerByName } from '../services/player/playerService.js';
+import { hearsFrom } from '../services/world/serverState.js';
 import { playersWsMap } from './connections.js';
 
 // Chat and custom-event fan-out to connected clients. Kept separate from the
@@ -12,8 +13,8 @@ import { playersWsMap } from './connections.js';
 export function broadcastChat(message: ChatMessagePayload) {
   const data = JSON.stringify(message);
 
-  playersWsMap.forEach((ws) => {
-    if (ws.readyState === WebSocket.OPEN) {
+  playersWsMap.forEach((ws, name) => {
+    if (ws.readyState === WebSocket.OPEN && hearsFrom(name, message.username)) {
       ws.send(data);
     }
   });
@@ -28,7 +29,10 @@ export function broadcastMapChat(
 
   Object.values(map?.players ?? {}).forEach((p) => {
     const ws = playersWsMap.get(p.name);
-    if (ws?.readyState === WebSocket.OPEN) {
+    if (
+      ws?.readyState === WebSocket.OPEN &&
+      hearsFrom(p.name, message.username)
+    ) {
       ws.send(JSON.stringify(message));
     }
   });
@@ -40,7 +44,10 @@ export function broadcastToMap(mapId: string, message: ChatMessagePayload) {
 
   Object.values(map.players).forEach((player) => {
     const ws = playersWsMap.get(player.name);
-    if (ws?.readyState === WebSocket.OPEN) {
+    if (
+      ws?.readyState === WebSocket.OPEN &&
+      hearsFrom(player.name, message.username)
+    ) {
       ws.send(JSON.stringify(message));
     }
   });
@@ -70,7 +77,10 @@ export function flushGameEvents() {
         break;
       case 'chatPlayer': {
         const ws = playersWsMap.get(event.username);
-        if (ws?.readyState === WebSocket.OPEN) {
+        if (
+          ws?.readyState === WebSocket.OPEN &&
+          hearsFrom(event.username, event.payload.username)
+        ) {
           ws.send(JSON.stringify(event.payload));
         }
         break;

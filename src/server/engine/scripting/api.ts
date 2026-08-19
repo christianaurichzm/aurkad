@@ -15,6 +15,7 @@ import {
 } from '../../services/liveOpsService.js';
 import { getMap, updatePlayer } from '../../services/world/gameData.js';
 import { handleChatAction } from '../../services/comms/chatService.js';
+import { setIgnored } from '../../services/world/serverState.js';
 import { updatePlayerMap } from '../../services/world/mapService.js';
 import {
   checkDataWrite,
@@ -684,6 +685,21 @@ export function buildApi(
      */
     broadcastMessage: (message: string): void => {
       handleChatAction({ type: 'chat', scope: 'global', message });
+    },
+    /**
+     * The senders whose chat this player will not be shown, replacing whatever
+     * was set before. Runtime only, and the caller owns the list: state it on
+     * join from wherever it is stored, and clear it on leave.
+     *
+     *     setChatIgnored(player, ['Troll', 'Spammer']);
+     */
+    setChatIgnored: (player: PlayerServer, names: string[]): void => {
+      setIgnored(
+        player.name,
+        (Array.isArray(names) ? names : [])
+          .filter((n) => typeof n === 'string' && n.length > 0)
+          .slice(0, 200),
+      );
     },
 
     // Translation

@@ -101,40 +101,89 @@ export type FakeEngine = {
   [key: string]: unknown;
 };
 
+/** A panel the module built, with the DOM it actually put in it. */
+export type FakePanel = {
+  body: HTMLElement;
+  title: string;
+  open: boolean;
+};
+
 export type LoadedClientModule = {
   /** Overlays the module registered, with the layer each asked for. */
   overlays: { fn: OverlayFn; order: number }[];
   /** Handlers the module attached with onServerEvent, by channel. */
   handlers: Map<string, (payload: unknown) => void>;
+  /** Panels the module built, in the order it built them. */
+  panels: FakePanel[];
+  /** The element `engine.mount()` hands out, attached to the document. */
+  container: HTMLElement;
+  /** Action buttons it put in the player's panel, by label. */
+  actions: Map<string, HTMLButtonElement>;
   engine: FakeEngine;
 };
 
-/** Minimal ui helper stand-ins, so a module that builds a panel loads. */
-function fakeUi() {
+/**
+ * Stand-ins for the ui helpers. `setBody` really replaces children, the way the
+ * shipped one does (moduleClient.ts), because a module that builds DOM is only
+ * testable if the DOM it built is somewhere a test can query.
+ */
+function fakeUi(panels: FakePanel[], actions: Map<string, HTMLButtonElement>) {
   const el = () => document.createElement('div');
+  const wire = (b: HTMLButtonElement, onClick?: () => void) => {
+    if (onClick) b.addEventListener('click', onClick);
+    return b;
+  };
+  const button = (label: string, onClick?: () => void) => {
+    const b = document.createElement('button');
+    b.textContent = label;
+    return wire(b, onClick);
+  };
+  const flex = (direction: string, ...children: Node[]) => {
+    const box = el();
+    box.style.flexDirection = direction;
+    box.append(...children);
+    return box;
+  };
+
   return {
-    panel: () => ({
-      el: el(),
-      body: el(),
-      setTitle: vi.fn(),
-      setBody: vi.fn(),
-      show: vi.fn(),
-      hide: vi.fn(),
-      toggle: vi.fn(),
-      isOpen: () => false,
-      remove: vi.fn(),
-    }),
-    button: (label: string) => {
-      const b = document.createElement('button');
-      b.textContent = label;
-      return b;
+    panel: (options?: { title?: string }) => {
+      const record: FakePanel = {
+        body: el(),
+        title: options?.title ?? '',
+        open: false,
+      };
+      panels.push(record);
+      return {
+        el: el(),
+        body: record.body,
+        setTitle: (text: string) => {
+          record.title = text;
+        },
+        setBody: (...nodes: Node[]) => record.body.replaceChildren(...nodes),
+        show: () => {
+          record.open = true;
+        },
+        hide: () => {
+          record.open = false;
+        },
+        toggle: () => {
+          record.open = !record.open;
+        },
+        isOpen: () => record.open,
+        remove: vi.fn(),
+      };
     },
-    input: () => document.createElement('input'),
-    row: el,
-    column: el,
-    actionButton: (label: string) => {
-      const b = document.createElement('button');
-      b.textContent = label;
+    button,
+    input: (placeholder?: string) => {
+      const i = document.createElement('input');
+      if (placeholder) i.placeholder = placeholder;
+      return i;
+    },
+    row: (...c: Node[]) => flex('row', ...c),
+    column: (...c: Node[]) => flex('column', ...c),
+    actionButton: (label: string, onClick: () => void) => {
+      const b = button(label, onClick);
+      actions.set(label, b);
       return b;
     },
   };
@@ -146,6 +195,13 @@ export function loadClientModule(
 ): LoadedClientModule {
   const overlays: LoadedClientModule['overlays'] = [];
   const handlers = new Map<string, (payload: unknown) => void>();
+  const panels: FakePanel[] = [];
+  const actions = new Map<string, HTMLButtonElement>();
+  // One container per module, attached and stable across calls, like the
+  // real mount(); a fresh detached div per call would swallow anything a
+  // module appends to it.
+  const container = document.createElement('div');
+  document.body.append(container);
 
   const engine: FakeEngine = {
     registerOverlay: (fn, order = 0) => {
@@ -162,7 +218,7 @@ export function loadClientModule(
     getCamera: () => ({ x: 0, y: 0 }),
     onServerEvent: (channel, handler) => handlers.set(channel, handler),
     sendServerEvent: vi.fn(),
-    ui: fakeUi(),
+    ui: fakeUi(panels, actions),
     // The English passes through, as the real one does for a language with no
     // entry, so a test asserting on a label reads what ships.
     i18n: vi.fn(),
@@ -172,7 +228,7 @@ export function loadClientModule(
             name in params ? String(params[name]) : whole,
           )
         : text,
-    mount: () => document.createElement('div'),
+    mount: () => container,
     chat: vi.fn(),
     log: vi.fn(),
     warn: vi.fn(),
@@ -191,5 +247,5 @@ export function loadClientModule(
   // eslint-disable-next-line @typescript-eslint/no-implied-eval, @typescript-eslint/no-unsafe-call
   new Function('engine', code)(engine);
 
-  return { overlays, handlers, engine };
+  return { overlays, handlers, panels, actions, container, engine };
 }

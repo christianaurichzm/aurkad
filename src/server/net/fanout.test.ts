@@ -3,6 +3,7 @@ import type WebSocket from 'ws';
 import type { ChatMessagePayload } from '../../shared/types.js';
 import { emitGameEvent } from '../engine/eventBus.js';
 import { createFixture } from '../sim/simFixture.js';
+import { setIgnored } from '../services/world/serverState.js';
 import { playersWsMap } from './connections.js';
 import {
   broadcastChat,
@@ -37,6 +38,8 @@ let fx: ReturnType<typeof createFixture>;
 beforeEach(() => {
   fx = createFixture();
   playersWsMap.clear();
+  for (const name of ['a', 'b', 'here', 'elsewhere', 'online', 'other'])
+    setIgnored(name, []);
   flushGameEvents(); // leave no event from a previous test in the queue
 });
 
@@ -157,5 +160,70 @@ describe('flushGameEvents', () => {
     flushGameEvents();
 
     expect(here.sent).toHaveLength(1);
+  });
+});
+
+// Chat is the one thing fanned out per recipient rather than per socket: the
+// ignore list is the listener's, so the filter cannot live at the sender.
+describe('an ignored sender', () => {
+  const said = (from: string): ChatMessagePayload => ({
+    ...chat('spam'),
+    username: from,
+  });
+
+  it('is dropped from a global line but still reaches everyone else', () => {
+    const listener = connect('a');
+    const bystander = connect('b');
+    setIgnored('a', ['loud']);
+
+    broadcastChat(said('loud'));
+
+    expect(listener.sent).toEqual([]);
+    expect(bystander.sent).toHaveLength(1);
+  });
+
+  it('is dropped from map chat too, not only global', () => {
+    fx.addPlayer({ name: 'here' });
+    const listener = connect('here');
+    fx.addPlayer({ name: 'loud' });
+    setIgnored('here', ['loud']);
+
+    broadcastMapChat('loud', said('loud'));
+    broadcastToMap(fx.map.id, said('loud'));
+
+    expect(listener.sent).toEqual([]);
+  });
+
+  it('is dropped from a direct line routed through the event queue', () => {
+    fx.addPlayer({ name: 'here' });
+    const listener = connect('here');
+    setIgnored('here', ['loud']);
+
+    emitGameEvent({
+      type: 'chatPlayer',
+      username: 'here',
+      payload: said('loud'),
+    });
+    flushGameEvents();
+
+    expect(listener.sent).toEqual([]);
+  });
+
+  it('does not silence the server, which speaks with no username', () => {
+    const listener = connect('a');
+    setIgnored('a', ['loud']);
+
+    broadcastChat(chat('the world ends at noon'));
+
+    expect(listener.sent).toHaveLength(1);
+  });
+
+  it('cannot silence the listener to themselves', () => {
+    const listener = connect('a');
+    setIgnored('a', ['a']);
+
+    broadcastChat(said('a'));
+
+    expect(listener.sent).toHaveLength(1);
   });
 });

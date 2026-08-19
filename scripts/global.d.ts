@@ -878,6 +878,14 @@ declare function sendMessage(player: PlayerServer, message: string): void;
 declare function broadcastMessage(message: string): void;
 
 /**
+ * The senders whose chat this player is not shown, replacing the previous
+ * list. Runtime only: set it on join and clear it on leave.
+ *
+ *     setChatIgnored(player, ['Troll', 'Spammer']);
+ */
+declare function setChatIgnored(player: PlayerServer, names: string[]): void;
+
+/**
  * Declare this script's translations, keyed by language and then by the English
  * string it already writes.
  *
