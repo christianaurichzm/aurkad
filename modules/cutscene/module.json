@@ -1,0 +1,8 @@
+{
+  "id": "cutscene",
+  "name": "Cutscene",
+  "version": "1.0.0",
+  "client": "client.js",
+  "description": "Letterboxed captions a script plays at one player, with the keyboard held while they run. Driven on the `cutscene` channel; answers on `cutscene:done`. Client-only: no server entry.",
+  "enabledByDefault": false
+}

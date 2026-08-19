@@ -1,0 +1,8 @@
+{
+  "id": "lighting",
+  "name": "Lighting",
+  "version": "1.0.0",
+  "client": "client.js",
+  "description": "Darkness over the world with holes where the lights are, so a torch is worth carrying and a cave is worth a lantern. Driven by a script on the `lighting` channel. Client-only: no server entry.",
+  "enabledByDefault": false
+}

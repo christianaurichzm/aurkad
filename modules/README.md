@@ -42,8 +42,9 @@ beforeDamage), and **bank** (per-player item storage). All are opt-in via
 - `dependencies`: module ids that must load first.
 
 **One of `server` and `client` is required, not both.** A module that only
-draws - the `minimap`, the `daynight` tint, the `weather` - declares `client`
-alone and never enters the sandbox. Note that `config` reaches the **server** entry only, so a
+draws (the `minimap`, the `daynight` tint, the `weather`, the `lighting`
+darkness, the `cutscene` frame) declares `client` alone and never enters the
+sandbox. Note that `config` reaches the **server** entry only, so a
 client-only module keeps its settings as constants in its own file.
 
 ## Toggling & config (`game.json`)
