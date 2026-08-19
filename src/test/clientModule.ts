@@ -40,6 +40,12 @@ const RECORDED = [
   'arc',
   'moveTo',
   'lineTo',
+  'closePath',
+  'roundRect',
+  'rect',
+  'clip',
+  'ellipse',
+  'quadraticCurveTo',
 ] as const;
 
 export function recordingContext(width = 800, height = 600): RecordingContext {
@@ -56,6 +62,12 @@ export function recordingContext(width = 800, height = 600): RecordingContext {
     textBaseline: 'alphabetic',
     globalAlpha: 1,
     imageSmoothingEnabled: true,
+    globalCompositeOperation: 'source-over',
+    // Not recorded: it has to answer, and 6px per character is close enough
+    // for the layout maths that reads it back.
+    measureText: (text: string) => ({ width: text.length * 6 }),
+    createLinearGradient: () => ({ addColorStop: () => {} }),
+    createRadialGradient: () => ({ addColorStop: () => {} }),
   };
 
   for (const fn of RECORDED) {
