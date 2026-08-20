@@ -5,12 +5,16 @@
 // fired without awaiting is a floating promise, and an unhandled rejection
 // ends the process; failures come back as `{ ok: false, error }`.
 //
-// It refuses this machine and its network. Scripts are the owner's code, so
-// this guards against a URL from a less trusted place, like a webhook typed
-// into a content field and pointed at the metadata service or Mongo.
+// It refuses this machine and its network, and connects to the address it
+// checked. Scripts are the owner's code, so this guards against a URL from
+// a less trusted place, like a webhook typed into a content field and
+// pointed at the metadata service or Mongo. node:http rather than fetch,
+// which resolves the name again: the socket is handed the approved address.
 
 import { lookup } from 'node:dns/promises';
-import { isIP } from 'node:net';
+import { request as httpTransport } from 'node:http';
+import { request as httpsTransport } from 'node:https';
+import { isIP, type LookupFunction } from 'node:net';
 import { logger } from '../../logger.js';
 
 const DEFAULT_TIMEOUT_MS = 5_000;
@@ -116,55 +120,125 @@ function isPrivateAddress(ip: string): boolean {
   return false;
 }
 
-/** Rejected destinations, or null when the URL is allowed. */
-async function refuse(target: URL): Promise<string | null> {
+/** Where the request may go: one approved address, or the reason it may not. */
+type Destination = { address: string } | { refusal: string };
+
+async function approve(target: URL): Promise<Destination> {
   if (target.protocol !== 'http:' && target.protocol !== 'https:') {
-    return `unsupported protocol ${target.protocol}`;
+    return { refusal: `unsupported protocol ${target.protocol}` };
   }
 
   // Bracketed IPv6 hosts arrive as [::1].
   const host = target.hostname.replace(/^\[|\]$/g, '');
 
   if (isIP(host)) {
-    return isPrivateAddress(host) ? `blocked address ${host}` : null;
+    return isPrivateAddress(host)
+      ? { refusal: `blocked address ${host}` }
+      : { address: host };
   }
 
   let resolved: string;
   try {
     resolved = (await lookup(host)).address;
   } catch {
-    return `cannot resolve ${host}`;
+    return { refusal: `cannot resolve ${host}` };
   }
 
-  // Resolve-then-fetch leaves a TOCTOU window: fetch resolves again, and a
-  // hostile DNS server can answer differently the second time. Closing it
-  // takes an undici dispatcher with this lookup pinned, worth writing once
-  // these URLs stop being the operator's own.
   return isPrivateAddress(resolved)
-    ? `blocked address ${resolved} for ${host}`
-    : null;
+    ? { refusal: `blocked address ${resolved} for ${host}` }
+    : { address: resolved };
 }
 
-/** Reads at most MAX_BODY_BYTES: an endless response cannot fill the heap. */
-async function readCapped(response: Response): Promise<string> {
-  const reader = response.body?.getReader();
-  if (!reader) return '';
+/**
+ * The lookup the socket gets: the address `approve` cleared, whatever DNS
+ * says now, so a resolver that answers 93.x on the check and 127.0.0.1 on
+ * the connection is never asked twice. Both call shapes are answered: Node
+ * asks for every address when racing families (the default since 20), and
+ * for one otherwise.
+ */
+function pinTo(address: string): LookupFunction {
+  const family = isIP(address);
+  return (_hostname, options, callback) => {
+    if (options.all) callback(null, [{ address, family }]);
+    else callback(null, address, family);
+  };
+}
 
-  const chunks: Uint8Array[] = [];
-  let total = 0;
-  for (;;) {
-    const { done, value } = await reader.read();
-    if (done) break;
-    if (!value) continue;
-    chunks.push(value);
-    total += value.byteLength;
-    if (total >= MAX_BODY_BYTES) {
-      await reader.cancel();
-      break;
-    }
+/**
+ * One request, to an address already approved. Rejects on a transport
+ * failure, which `httpRequest` turns into a result. Reads at most
+ * MAX_BODY_BYTES, counted on the wire, so the request asks for no
+ * compression: 256KB of gzip is not 256KB of memory. Exported for the tests,
+ * the only way to reach a real socket on this machine.
+ */
+export function send(
+  target: URL,
+  address: string,
+  options: HttpRequestOptions & { body?: string },
+): Promise<HttpResponse> {
+  const transport =
+    target.protocol === 'https:' ? httpsTransport : httpTransport;
+
+  const headers: Record<string, string> = { ...options.headers };
+  const body = options.body;
+  if (body !== undefined) {
+    headers['content-length'] = String(Buffer.byteLength(body));
   }
+  // The result is a string, so a compressed body would be unreadable, and
+  // the byte cap can only measure an uncompressed one.
+  headers['accept-encoding'] = 'identity';
 
-  return Buffer.concat(chunks).subarray(0, MAX_BODY_BYTES).toString('utf8');
+  const timeoutMs = Math.min(
+    Math.max(Number(options.timeoutMs) || DEFAULT_TIMEOUT_MS, 1),
+    MAX_TIMEOUT_MS,
+  );
+
+  return new Promise<HttpResponse>((resolve, reject) => {
+    // Redirects are not followed (node:http does not on its own): one to
+    // 127.0.0.1 would walk past the check, and webhooks do not redirect, so
+    // the 3xx comes back as a result.
+    const req = transport(
+      target,
+      {
+        method: options.method ?? (body === undefined ? 'GET' : 'POST'),
+        headers,
+        lookup: pinTo(address),
+        signal: AbortSignal.timeout(timeoutMs),
+      },
+      (res) => {
+        // Uint8Array rather than Buffer: that is what Buffer.concat takes, and
+        // @types/node does not treat the two as interchangeable.
+        const chunks: Uint8Array[] = [];
+        let total = 0;
+        const status = res.statusCode ?? 0;
+        const finish = () =>
+          resolve({
+            ok: status >= 200 && status < 300,
+            status,
+            body: Buffer.concat(chunks)
+              .subarray(0, MAX_BODY_BYTES)
+              .toString('utf8'),
+          });
+
+        res.on('data', (chunk: Uint8Array) => {
+          chunks.push(chunk);
+          total += chunk.byteLength;
+          if (total >= MAX_BODY_BYTES) {
+            // Resolves with what arrived; the destroy below makes the stream
+            // emit after the promise has settled, where it is ignored.
+            res.destroy();
+            finish();
+          }
+        });
+        res.on('end', finish);
+        res.on('error', reject);
+      },
+    );
+
+    req.on('error', reject);
+    if (body !== undefined) req.write(body);
+    req.end();
+  });
 }
 
 export async function httpRequest(
@@ -187,8 +261,8 @@ export async function httpRequest(
     return failed('invalid url');
   }
 
-  const refusal = await refuse(target);
-  if (refusal) return failed(refusal);
+  const destination = await approve(target);
+  if ('refusal' in destination) return failed(destination.refusal);
 
   const headers: Record<string, string> = { ...options.headers };
   let body = options.body;
@@ -201,29 +275,12 @@ export async function httpRequest(
     headers['content-type'] = 'application/json';
   }
 
-  const timeoutMs = Math.min(
-    Math.max(Number(options.timeoutMs) || DEFAULT_TIMEOUT_MS, 1),
-    MAX_TIMEOUT_MS,
-  );
-
   try {
-    const response = await fetch(target, {
-      method: options.method ?? (body === undefined ? 'GET' : 'POST'),
+    return await send(target, destination.address, {
+      ...options,
       headers,
       body,
-      signal: AbortSignal.timeout(timeoutMs),
-      // Not followed: a redirect to 127.0.0.1 walks straight past the check
-      // above, and following one safely means re-checking every hop. Webhooks
-      // do not redirect, so the 3xx comes back as a result and the caller
-      // fixes the URL.
-      redirect: 'manual',
     });
-
-    return {
-      ok: response.ok,
-      status: response.status,
-      body: await readCapped(response),
-    };
   } catch (err) {
     return failed(err instanceof Error ? err.message : String(err));
   }
