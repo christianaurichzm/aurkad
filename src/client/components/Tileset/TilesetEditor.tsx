@@ -93,6 +93,7 @@ export const TilesetEditor: React.FC = () => {
           background: colors.surfaceMuted,
           cursor: 'move',
           userSelect: 'none',
+          touchAction: 'none',
           flexShrink: 0,
         }}
       >

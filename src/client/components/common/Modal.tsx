@@ -54,6 +54,10 @@ export const Modal: React.FC<ModalProps> = ({
       borderBottom: `1px solid ${colors.border}`,
       cursor: 'move',
       userSelect: 'none' as const,
+      // Without this the browser takes the gesture for a scroll and
+      // cancels the pointer mid-drag, and a finger drags the page rather
+      // than the panel.
+      touchAction: 'none' as const,
     },
     title: {
       fontSize: 18,

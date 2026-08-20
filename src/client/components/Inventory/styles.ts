@@ -47,6 +47,7 @@ export const useStyles = () => ({
     gap: 10,
     cursor: 'move',
     userSelect: 'none' as const,
+    touchAction: 'none' as const,
   },
   title: {
     fontSize: 17,

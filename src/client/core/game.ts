@@ -5,6 +5,7 @@ import { spawnFloatingText } from '../graphics/floatingText';
 import { getAnimatedPos } from '../graphics/entityRendering';
 import { TILE_SIZE } from '../../shared/constants';
 import { flushInputBuffer } from '../io/keyboard';
+import { pollGamepad } from '../io/gamepad';
 
 let prevLevel = 0;
 
@@ -39,6 +40,7 @@ export const gameLoop = () => {
   }
 
   flushInputBuffer();
+  pollGamepad();
 
   try {
     render();

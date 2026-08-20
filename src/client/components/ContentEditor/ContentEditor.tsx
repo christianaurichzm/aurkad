@@ -326,6 +326,9 @@ const layout: React.CSSProperties = {
 
 const tabBar: React.CSSProperties = {
   display: 'flex',
+  // Ten tabs at ~100px each is 1000px of row: on a phone that pushed the modal
+  // wider than the screen instead of using the second line it had free.
+  flexWrap: 'wrap',
   gap: 2,
   borderBottom: `1px solid ${colors.border}`,
   marginBottom: 20,

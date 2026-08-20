@@ -549,6 +549,16 @@ export const pt: Record<keyof typeof en, string> = {
   'app.gameMap': 'Mapa do jogo',
   'app.gameControls': 'Controles do jogo',
 
+  'touch.controls': 'Controles de toque',
+  'touch.up': 'Mover para cima',
+  'touch.down': 'Mover para baixo',
+  'touch.left': 'Mover para a esquerda',
+  'touch.right': 'Mover para a direita',
+  'touch.attack': 'Atacar',
+  'touch.interact': 'Interagir',
+  'touch.pickUp': 'Pegar',
+  'touch.run': 'Correr',
+
   'attributes.available': 'Disponíveis',
   'attributes.queued': 'Na fila',
   'attributes.decrease': 'Diminuir {stat}',

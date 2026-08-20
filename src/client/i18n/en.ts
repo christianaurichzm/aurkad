@@ -552,6 +552,17 @@ export const en = {
   'app.gameMap': 'Game map',
   'app.gameControls': 'Game controls',
 
+  // On-screen pad labels, for screen readers; the glyphs say nothing to them.
+  'touch.controls': 'Touch controls',
+  'touch.up': 'Move up',
+  'touch.down': 'Move down',
+  'touch.left': 'Move left',
+  'touch.right': 'Move right',
+  'touch.attack': 'Attack',
+  'touch.interact': 'Interact',
+  'touch.pickUp': 'Pick up',
+  'touch.run': 'Run',
+
   'attributes.available': 'Available',
   'attributes.queued': 'Queued',
   'attributes.decrease': 'Decrease {stat}',

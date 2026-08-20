@@ -208,15 +208,19 @@ function makeUi(container: HTMLElement) {
   const panel = (opts: { title?: string } = {}) => {
     const el = document.createElement('div');
     el.style.cssText =
-      `position:fixed;top:90px;left:calc(50% - 120px);min-width:220px;display:none;` +
+      `position:fixed;top:90px;left:calc(50% - 120px);min-width:220px;` +
+      `max-width:calc(100vw - 16px);max-height:calc(100dvh - 16px);` +
       `background:${colors.surface};color:${colors.text};border:1px solid ${colors.border};` +
       `border-radius:${radius.md}px;box-shadow:${shadow.panel};font:13px sans-serif;` +
-      `overflow:hidden;z-index:${zIndex.floatingPanel};`;
+      `display:none;flex-direction:column;overflow:hidden;z-index:${zIndex.floatingPanel};`;
 
     const header = document.createElement('div');
     header.style.cssText =
       `display:flex;align-items:center;justify-content:space-between;gap:12px;` +
       `padding:6px 10px;font-weight:bold;cursor:move;user-select:none;` +
+      // The pointer has to belong to the drag, or the browser scrolls the page
+      // with it and cancels the gesture, and a finger cannot move the panel.
+      `touch-action:none;flex-shrink:0;` +
       `border-bottom:1px solid ${colors.border};background:${colors.surfaceMuted};`;
     const titleEl = document.createElement('span');
     setText(titleEl, opts.title ?? '');
@@ -228,20 +232,38 @@ function makeUi(container: HTMLElement) {
 
     const body = document.createElement('div');
     body.style.cssText =
-      'padding:10px 12px;display:flex;flex-direction:column;gap:6px;';
+      'padding:10px 12px;display:flex;flex-direction:column;gap:6px;' +
+      // A list of mail or auctions is as long as it is; the panel scrolls it
+      // rather than growing past the bottom of a phone.
+      'overflow:auto;min-height:0;';
     el.append(header, body);
     container.append(el);
 
-    const show = () => (el.style.display = 'block');
+    const show = () => (el.style.display = 'flex');
     const hide = () => (el.style.display = 'none');
     const isOpen = () => el.style.display !== 'none';
     closeEl.onclick = hide;
 
-    // Drag by the header.
+    // Drag by the header with pointer events, since a finger sends no mouse
+    // events until the tap ends. Clamped to the viewport like the React
+    // panels, so a panel dragged off the edge can come back.
     let dragging = false;
     let offX = 0;
     let offY = 0;
-    header.addEventListener('mousedown', (e) => {
+    const moveTo = (clientX: number, clientY: number) => {
+      const { width, height } = el.getBoundingClientRect();
+      const x = Math.min(
+        Math.max(8, clientX - offX),
+        Math.max(8, window.innerWidth - width - 8),
+      );
+      const y = Math.min(
+        Math.max(8, clientY - offY),
+        Math.max(8, window.innerHeight - height - 8),
+      );
+      el.style.left = `${x}px`;
+      el.style.top = `${y}px`;
+    };
+    header.addEventListener('pointerdown', (e) => {
       if (e.target === closeEl) return;
       const r = el.getBoundingClientRect();
       dragging = true;
@@ -249,14 +271,15 @@ function makeUi(container: HTMLElement) {
       offY = e.clientY - r.top;
       el.style.left = `${r.left}px`;
       el.style.top = `${r.top}px`;
+      header.setPointerCapture(e.pointerId);
       e.preventDefault();
     });
-    window.addEventListener('mousemove', (e) => {
-      if (!dragging) return;
-      el.style.left = `${e.clientX - offX}px`;
-      el.style.top = `${e.clientY - offY}px`;
+    window.addEventListener('pointermove', (e) => {
+      if (dragging) moveTo(e.clientX, e.clientY);
     });
-    window.addEventListener('mouseup', () => (dragging = false));
+    const stopDragging = () => (dragging = false);
+    window.addEventListener('pointerup', stopDragging);
+    window.addEventListener('pointercancel', stopDragging);
 
     return {
       el,

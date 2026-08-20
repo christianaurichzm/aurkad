@@ -110,6 +110,10 @@ body {
 
 #canvasFrame {
   position: relative;
+  /* Named so the thumb pad inside can size itself against the world it covers
+     rather than against the window, which is a different number on a phone in
+     landscape than the world it letterboxes into. */
+  container: gameframe / size;
   /* Fills its column. The old ceiling was the canvas's own 1280x896 backing
      store, which left 256px of dead board either side of a 1080p screen to
      avoid scaling up - but the same canvas is already scaled *down* on any
@@ -201,8 +205,11 @@ body {
   top: 0;
   left: 0;
   z-index: var(--z-editor);
-  width: 512px;
-  height: min(100vh, 1200px);
+  /* 512 is the tileset's own width, not a layout choice - on a phone it hung
+     half off the screen, and a tileset that is scrolled inside its box beats
+     one that is scrolled by dragging the whole editor around. */
+  width: min(512px, calc(100vw - 16px));
+  height: min(100dvh, 1200px);
   background: rgba(255, 255, 255, 0.95);
   border: 2px solid #ccc;
   padding: 10px;
@@ -747,6 +754,97 @@ body {
   pointer-events: none;
 }
 
+/* The keyboard a phone does not have, drawn over the bottom of the frame.
+   Hidden unless the primary pointer is a finger: a mouse already has the
+   arrow keys, and a pad sitting over the world would only cover it.
+   Every button is a hold, like the key it stands for. */
+#touchControls {
+  display: none;
+}
+
+@media (pointer: coarse) {
+  #touchControls {
+    /* Two declarations on purpose: the second wins wherever container queries
+       exist, and a browser without them keeps the first rather than losing the
+       variable and collapsing the buttons to nothing. */
+    --touch-button: 44px;
+    /* A share of the world it sits on, so it takes the same bite out of the
+       view upright and sideways. The floor is roughly the smallest target a
+       thumb hits without looking. */
+    --touch-button: clamp(38px, 11cqh, 46px);
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    padding: 8px;
+    z-index: var(--z-hud);
+    /* Only the buttons take the touch; the gap between them is still world. */
+    pointer-events: none;
+  }
+
+  .touch-dpad {
+    display: grid;
+    grid-template-columns: repeat(3, var(--touch-button));
+    grid-template-rows: repeat(3, var(--touch-button));
+    gap: 4px;
+  }
+
+  .touch-up {
+    grid-area: 1 / 2;
+  }
+  .touch-left {
+    grid-area: 2 / 1;
+  }
+  .touch-right {
+    grid-area: 2 / 3;
+  }
+  .touch-down {
+    grid-area: 3 / 2;
+  }
+
+  .touch-actions {
+    display: grid;
+    grid-template-columns: repeat(2, var(--touch-button));
+    gap: 8px;
+  }
+
+  .touch-button {
+    pointer-events: auto;
+    /* A thumb holding a direction must not scroll the page, pull to refresh
+       or zoom on the second tap. */
+    touch-action: none;
+    -webkit-user-select: none;
+    user-select: none;
+    -webkit-touch-callout: none;
+    width: var(--touch-button);
+    height: var(--touch-button);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    font-size: 18px;
+    line-height: 1;
+    color: var(--color-panel-text);
+    background: rgba(32, 36, 43, 0.5);
+    border: 1px solid var(--edge-strong);
+    border-radius: 12px;
+    box-shadow: var(--shadow-control);
+    cursor: pointer;
+  }
+
+  .touch-button:active {
+    background: rgba(46, 204, 64, 0.4);
+  }
+
+  .touch-attack {
+    background: rgba(46, 204, 64, 0.28);
+    border-color: rgba(46, 204, 64, 0.5);
+  }
+}
+
 @media (max-width: 1100px) {
   #gameShell {
     grid-template-columns: 1fr;
@@ -796,8 +894,11 @@ body {
     grid-template-rows: auto auto;
   }
 
+  /* No floor under the frame: its height follows the 1280x896 aspect at the
+     width the phone gives it, and a taller box only added a band of black
+     between the world and the panel under it. */
   #gameMain {
-    min-height: 55vh;
+    min-height: 0;
   }
 
   #canvasFrame {
@@ -824,5 +925,53 @@ body {
   }
   .inventory {
     display: none;
+  }
+}
+
+/* A phone held sideways: the way a touch player actually holds it, and the
+   stacked layout above leaves the world a letterbox strip with the pad hanging
+   off the bottom of it. Back to the two-column split, which is what a short
+   wide viewport wants - the world takes the full height, the panel becomes a
+   narrow column that scrolls. Keyed on height rather than a device, because
+   what breaks the stack is vertical room. */
+@media (orientation: landscape) and (max-height: 560px) {
+  body {
+    overflow: hidden;
+    height: 100vh;
+    /* The dynamic unit, because this is the one layout that fills the screen
+       on a phone: 100vh there is the viewport with the address bar hidden, so
+       the panel would sit under it until the player scrolled. */
+    height: 100dvh;
+  }
+
+  #ui {
+    overflow: hidden;
+    height: 100%;
+    min-height: 0;
+  }
+
+  #gameShell {
+    height: 100%;
+    min-height: 0;
+    padding: 8px;
+    gap: 8px;
+    grid-template-columns: minmax(0, 1fr) clamp(190px, 30vw, 300px);
+    grid-template-rows: minmax(0, 1fr);
+  }
+
+  #gameMain {
+    min-height: 0;
+  }
+
+  #canvasFrame {
+    width: min(100%, calc(142.857vh - 32px));
+    max-height: none;
+  }
+
+  #sidePanel {
+    display: flex;
+    padding: 10px;
+    gap: 8px;
+    overflow-y: auto;
   }
 }

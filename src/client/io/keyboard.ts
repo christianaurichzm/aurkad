@@ -62,18 +62,40 @@ function isLocalPlayerMoving(): boolean {
   return getAnimatedState(player.id, player.position).moving;
 }
 
-export function flushInputBuffer(): void {
-  if (!bufferedPress || isLocalPlayerMoving()) return;
-  const key = bufferedPress;
-  bufferedPress = null;
+const sendPress = (key: Key) => {
   const seq = ++inputSeq;
   sendAction({ type: 'keyboard', keyboardAction: { key, type: 'press' }, seq });
   if (key === Key.Control) {
     useUIStore.getState().setAttackCooldown(PLAYER_ATTACK_COOLDOWN_MS);
   }
+};
+
+export function flushInputBuffer(): void {
+  if (!bufferedPress || isLocalPlayerMoving()) return;
+  const key = bufferedPress;
+  bufferedPress = null;
+  sendPress(key);
 }
 
-const releaseKey = (key: Key) => {
+// The one way in for every input device: the keyboard below, the on-screen
+// pad and the gamepad. Hold semantics live here (the server keeps moving
+// while a direction key is down), so a device only has to say pressed or
+// released and inherits the dedupe, the slide buffer and the cooldown paint.
+export const pressKey = async (key: Key): Promise<void> => {
+  if (keyRecord[key] !== Protocol.WS) {
+    await handleKeyPress(key);
+    return;
+  }
+  if (heldKeys.has(key)) return;
+  heldKeys.add(key);
+  if (BUFFERABLE_KEYS.has(key) && isLocalPlayerMoving()) {
+    bufferedPress = key;
+    return;
+  }
+  sendPress(key);
+};
+
+export const releaseKey = (key: Key) => {
   if (!heldKeys.has(key)) return;
   heldKeys.delete(key);
   if (bufferedPress === key) {
@@ -99,25 +121,7 @@ const onKeyDown = async (e: KeyboardEvent) => {
   if (e.repeat) return;
   if (!isValidKey(e.key)) return;
 
-  if (keyRecord[e.key] === Protocol.WS) {
-    if (heldKeys.has(e.key)) return;
-    heldKeys.add(e.key);
-    if (BUFFERABLE_KEYS.has(e.key) && isLocalPlayerMoving()) {
-      bufferedPress = e.key;
-      return;
-    }
-    const seq = ++inputSeq;
-    sendAction({
-      type: 'keyboard',
-      keyboardAction: { key: e.key, type: 'press' },
-      seq,
-    });
-    if (e.key === Key.Control) {
-      useUIStore.getState().setAttackCooldown(PLAYER_ATTACK_COOLDOWN_MS);
-    }
-  } else {
-    await handleKeyPress(e.key);
-  }
+  await pressKey(e.key);
 };
 
 export const handleInput = () => {

@@ -1,11 +1,29 @@
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 
 const isInteractiveTarget = (target: EventTarget | null) =>
   target instanceof Element &&
   !!target.closest('button, input, select, textarea, a');
 
+const MARGIN = 8;
+
+// Keeps a panel where a finger can reach it: not dragged past an edge, and
+// not opened at a desktop offset off a phone screen.
+const clampToViewport = (
+  x: number,
+  y: number,
+  el: HTMLElement,
+): { x: number; y: number } => {
+  const { width, height } = el.getBoundingClientRect();
+  const maxX = Math.max(MARGIN, window.innerWidth - width - MARGIN);
+  const maxY = Math.max(MARGIN, window.innerHeight - height - MARGIN);
+  return {
+    x: Math.min(Math.max(MARGIN, x), maxX),
+    y: Math.min(Math.max(MARGIN, y), maxY),
+  };
+};
+
 export const useDraggable = (initialX = 0, initialY = 0) => {
-  const ref = useRef<HTMLDivElement>(null);
+  const node = useRef<HTMLDivElement | null>(null);
   const [pos, setPos] = useState({ x: initialX, y: initialY });
   const dragRef = useRef({
     dragging: false,
@@ -14,37 +32,45 @@ export const useDraggable = (initialX = 0, initialY = 0) => {
     pointerId: null as number | null,
   });
 
-  const onMouseDown = (e: React.MouseEvent) => {
-    if (!ref.current || isInteractiveTarget(e.target)) return;
-    e.preventDefault();
-    const rect = ref.current.getBoundingClientRect();
+  // A callback ref, since these panels render null while closed and the
+  // element appears when it opens, which is when its size can be checked.
+  const ref = useCallback((el: HTMLDivElement | null) => {
+    node.current = el;
+    if (el) setPos((current) => clampToViewport(current.x, current.y, el));
+  }, []);
+
+  const startDrag = (
+    clientX: number,
+    clientY: number,
+    target: EventTarget | null,
+    pointerId: number | null,
+  ) => {
+    if (!node.current || isInteractiveTarget(target)) return false;
+    const rect = node.current.getBoundingClientRect();
     dragRef.current = {
       dragging: true,
-      offsetX: e.clientX - rect.left,
-      offsetY: e.clientY - rect.top,
-      pointerId: null,
+      offsetX: clientX - rect.left,
+      offsetY: clientY - rect.top,
+      pointerId,
     };
+    return true;
+  };
+
+  const onMouseDown = (e: React.MouseEvent) => {
+    if (startDrag(e.clientX, e.clientY, e.target, null)) e.preventDefault();
   };
 
   const onPointerDown = (e: React.PointerEvent) => {
-    if (!ref.current || isInteractiveTarget(e.target)) return;
+    if (!startDrag(e.clientX, e.clientY, e.target, e.pointerId)) return;
     e.preventDefault();
-    const rect = ref.current.getBoundingClientRect();
-    dragRef.current = {
-      dragging: true,
-      offsetX: e.clientX - rect.left,
-      offsetY: e.clientY - rect.top,
-      pointerId: e.pointerId,
-    };
     e.currentTarget.setPointerCapture(e.pointerId);
   };
 
   useEffect(() => {
     const moveTo = (clientX: number, clientY: number) => {
-      setPos({
-        x: clientX - dragRef.current.offsetX,
-        y: clientY - dragRef.current.offsetY,
-      });
+      const x = clientX - dragRef.current.offsetX;
+      const y = clientY - dragRef.current.offsetY;
+      setPos(node.current ? clampToViewport(x, y, node.current) : { x, y });
     };
     const stopDragging = () => {
       dragRef.current.dragging = false;
@@ -68,17 +94,26 @@ export const useDraggable = (initialX = 0, initialY = 0) => {
       moveTo(e.clientX, e.clientY);
     };
 
+    // Rotating the phone changes which positions exist at all.
+    const onResize = () => {
+      if (!node.current) return;
+      const el = node.current;
+      setPos((current) => clampToViewport(current.x, current.y, el));
+    };
+
     window.addEventListener('pointermove', onPointerMove);
     window.addEventListener('pointerup', stopDragging);
     window.addEventListener('pointercancel', stopDragging);
     window.addEventListener('mousemove', onMouseMove);
     window.addEventListener('mouseup', stopDragging);
+    window.addEventListener('resize', onResize);
     return () => {
       window.removeEventListener('pointermove', onPointerMove);
       window.removeEventListener('pointerup', stopDragging);
       window.removeEventListener('pointercancel', stopDragging);
       window.removeEventListener('mousemove', onMouseMove);
       window.removeEventListener('mouseup', stopDragging);
+      window.removeEventListener('resize', onResize);
     };
   }, []);
 

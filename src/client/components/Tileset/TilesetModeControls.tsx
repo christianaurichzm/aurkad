@@ -261,9 +261,23 @@ const TilesetModeControlsComponent: React.FC = () => {
         minWidth: 260,
       }}
     >
-      <div style={{ display: 'flex', gap: 8, alignItems: 'flex-end' }}>
+      {/* Wraps because seven controls in one row on a phone left the two text
+          fields three characters wide. */}
+      <div
+        style={{
+          display: 'flex',
+          flexWrap: 'wrap',
+          gap: 8,
+          alignItems: 'flex-end',
+        }}
+      >
         <div
-          style={{ display: 'flex', flexDirection: 'column', gap: 3, flex: 1 }}
+          style={{
+            display: 'flex',
+            flexDirection: 'column',
+            gap: 3,
+            flex: '1 1 120px',
+          }}
         >
           <label style={labelStyle} htmlFor="mapName">
             {translate('tileset.mapName')}
@@ -282,7 +296,12 @@ const TilesetModeControlsComponent: React.FC = () => {
           />
         </div>
         <div
-          style={{ display: 'flex', flexDirection: 'column', gap: 3, flex: 1 }}
+          style={{
+            display: 'flex',
+            flexDirection: 'column',
+            gap: 3,
+            flex: '1 1 120px',
+          }}
         >
           <label style={labelStyle} htmlFor="mapMusic">
             {translate('tileset.music')}

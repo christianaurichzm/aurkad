@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { ContentEditor } from './components/ContentEditor/ContentEditor';
 import { GameInterface } from './components/GameInterface';
 import { HudBar } from './components/HUD/HudBar';
+import { TouchControls } from './components/HUD/TouchControls';
 import { InventoryPanel } from './components/Inventory/InventoryPanel';
 import { Login } from './pages/Login';
 import { Register } from './pages/Register';
@@ -45,6 +46,7 @@ function App() {
                 <GameCanvas />
                 <GameInterface />
                 <QuestTracker />
+                <TouchControls />
               </div>
             </main>
             <aside id="sidePanel" aria-label={t('app.gameControls')}>
