@@ -74,8 +74,7 @@ export type DeliveryFailure =
   | 'not-committed';
 
 export type QueueResult =
-  | { ok: true; id: string }
-  | { ok: false; reason: DeliveryFailure };
+  { ok: true; id: string } | { ok: false; reason: DeliveryFailure };
 
 export type ClaimOutcome =
   | { id: string; ok: true }

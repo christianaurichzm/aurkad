@@ -17,9 +17,7 @@
 import { config } from '../config.js';
 
 export type DataLimitFailure =
-  | 'not-serializable'
-  | 'value-too-large'
-  | 'too-many-keys';
+  'not-serializable' | 'value-too-large' | 'too-many-keys';
 
 export type DataLimitResult =
   | { ok: true; bytes: number }

@@ -12,14 +12,10 @@
 import type { InventoryLike } from '../../../shared/types.js';
 
 export type EconomyFailure =
-  | 'invalid-amount'
-  | 'not-enough'
-  | 'no-space'
-  | 'same-container';
+  'invalid-amount' | 'not-enough' | 'no-space' | 'same-container';
 
 export type EconomyResult =
-  | { ok: true }
-  | { ok: false; reason: EconomyFailure };
+  { ok: true } | { ok: false; reason: EconomyFailure };
 
 const OK: EconomyResult = { ok: true };
 const fail = (reason: EconomyFailure): EconomyResult => ({ ok: false, reason });

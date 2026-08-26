@@ -73,9 +73,7 @@ export interface Effect {
 export type BanEntry = { until?: number; reason?: string };
 
 export type ItemType =
-  | (typeof EQUIPMENT_SLOTS)[number]
-  | 'consumable'
-  | 'money';
+  (typeof EQUIPMENT_SLOTS)[number] | 'consumable' | 'money';
 
 export interface Arrow {
   id: number;
@@ -203,12 +201,7 @@ export interface CharacterRuntime extends Transform, Movement {
 }
 
 export type NpcBehavior =
-  | 'aggressive'
-  | 'hostile'
-  | 'neutral'
-  | 'friendly'
-  | 'shopkeeper'
-  | 'guard';
+  'aggressive' | 'hostile' | 'neutral' | 'friendly' | 'shopkeeper' | 'guard';
 
 export interface PersistentNpc extends CharacterBase {
   behavior: NpcBehavior;
@@ -272,9 +265,7 @@ export interface RuntimeNpc extends PersistentNpc, CharacterRuntime {
 }
 
 export interface PersistentPlayer
-  extends CharacterBase,
-    Progression,
-    InventoryHolder {
+  extends CharacterBase, Progression, InventoryHolder {
   access: Access;
   // Free-form per-player data for game scripts (a vip flag, quest progress).
   // Server-side only, never serialized to clients.

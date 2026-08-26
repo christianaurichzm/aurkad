@@ -22,11 +22,7 @@ import type { InventoryLike, PlayerServer } from '../../../shared/types.js';
 
 /** Where a total came from, so a spike points somewhere. */
 export type ItemLocation =
-  | 'inventory'
-  | 'equipped'
-  | 'playerData'
-  | 'delivery'
-  | 'ground';
+  'inventory' | 'equipped' | 'playerData' | 'delivery' | 'ground';
 
 export interface ItemTally {
   itemId: number;

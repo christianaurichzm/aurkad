@@ -180,8 +180,7 @@ describe('what the client is sent', () => {
     const update = drainGameEvents().find(
       (e) => e.type === 'customPlayer' && e.channel === 'leaderboard:update',
     ) as
-      | { payload: { board: string; boards: string[]; rows: Row[] } }
-      | undefined;
+      { payload: { board: string; boards: string[]; rows: Row[] } } | undefined;
     expect(update?.payload.board).toBe('level');
     expect(update?.payload.boards).toEqual(['level']);
     expect(update?.payload.rows).toEqual([

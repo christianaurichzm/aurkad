@@ -82,11 +82,9 @@ interface LootTableRef {
   id?: string;
   name?: string;
   guaranteed?:
-    | Array<{ itemId: number; condition?: string | undefined }>
-    | undefined;
+    Array<{ itemId: number; condition?: string | undefined }> | undefined;
   entries?:
-    | Array<{ itemId: number; condition?: string | undefined }>
-    | undefined;
+    Array<{ itemId: number; condition?: string | undefined }> | undefined;
 }
 interface ShopRef {
   id?: string;

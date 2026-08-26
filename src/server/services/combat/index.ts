@@ -178,7 +178,7 @@ function applyLootConditions(
     npc,
     ...(killer ? { killer } : {}),
     contribution: killer
-      ? contributors.find((c) => c.playerId === killer.id)?.damage ?? 0
+      ? (contributors.find((c) => c.playerId === killer.id)?.damage ?? 0)
       : 0,
     totalDamage,
     contributors,

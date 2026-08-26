@@ -21,9 +21,8 @@ vi.mock('../../model/Quest.js', () => ({
   },
 }));
 
-const { createOrUpdateQuest, clearQuestCache } = await import(
-  '../../services/content/questService.js'
-);
+const { createOrUpdateQuest, clearQuestCache } =
+  await import('../../services/content/questService.js');
 
 interface QuestState {
   progress: number;

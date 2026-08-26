@@ -5,13 +5,7 @@
 // every occurrence; this is a small deduplicated view for the editor.
 
 export type ScriptErrorSource =
-  | 'load'
-  | 'hook'
-  | 'schedule'
-  | 'timer'
-  | 'behavior'
-  | 'coroutine'
-  | 'budget';
+  'load' | 'hook' | 'schedule' | 'timer' | 'behavior' | 'coroutine' | 'budget';
 
 export interface ScriptError {
   script: string;
@@ -80,9 +74,7 @@ function isSameFile(candidate: string, script: string): boolean {
  */
 function describe(err: unknown): { message: string; stack?: string } {
   const candidate = err as
-    | { name?: unknown; message?: unknown; stack?: unknown }
-    | null
-    | undefined;
+    { name?: unknown; message?: unknown; stack?: unknown } | null | undefined;
 
   const name = typeof candidate?.name === 'string' ? candidate.name : undefined;
   const message =

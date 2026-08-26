@@ -1,11 +1,7 @@
 import type { ChatScope, KeyboardAction } from '../../shared/types.js';
 
 export type ClientActionType =
-  | 'keyboard'
-  | 'item'
-  | 'chat'
-  | 'custom'
-  | 'language';
+  'keyboard' | 'item' | 'chat' | 'custom' | 'language';
 
 export interface ClientActionBase {
   username: string;

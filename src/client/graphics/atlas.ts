@@ -6,11 +6,7 @@ export interface AtlasEntry {
 }
 
 export type EntityAtlasKey =
-  | 'sprites'
-  | 'items'
-  | 'spells'
-  | 'arrows'
-  | 'attackEffect';
+  'sprites' | 'items' | 'spells' | 'arrows' | 'attackEffect';
 
 export let entityAtlas: HTMLCanvasElement | null = null;
 export const entityAtlasOffsets: Partial<Record<EntityAtlasKey, AtlasEntry>> =

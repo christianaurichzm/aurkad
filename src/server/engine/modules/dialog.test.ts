@@ -21,9 +21,8 @@ vi.mock('../../model/Dialog.js', () => ({
   },
 }));
 
-const { createOrUpdateDialog, clearDialogCache } = await import(
-  '../../services/content/dialogService.js'
-);
+const { createOrUpdateDialog, clearDialogCache } =
+  await import('../../services/content/dialogService.js');
 
 interface DialogApi {
   show: (

@@ -22,9 +22,8 @@ vi.mock('../../model/Recipe.js', () => ({
   },
 }));
 
-const { createOrUpdateRecipe, clearRecipeCache } = await import(
-  '../../services/content/recipeService.js'
-);
+const { createOrUpdateRecipe, clearRecipeCache } =
+  await import('../../services/content/recipeService.js');
 
 interface CraftingApi {
   list: () => Recipe[];
