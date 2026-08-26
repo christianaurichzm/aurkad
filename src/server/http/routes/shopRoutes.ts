@@ -45,9 +45,9 @@ export function createShopRouter() {
     },
   );
 
-  router.get('/shop/:shopId', async (req: Request, res: Response) => {
+  router.get('/shop/:shopId', async (req, res) => {
     try {
-      const shopId = req.params['shopId']!;
+      const shopId = req.params['shopId'];
       const shop = await getShopById(shopId);
 
       if (!shop) {
@@ -111,7 +111,7 @@ export function createShopRouter() {
   });
 
   router.put('/shops/:id', checkAccess(Access.ADMIN), async (req, res) => {
-    const id = req.params['id']!;
+    const id = req.params['id'];
     const body = parseBody(CreateShopBodySchema, req.body, res);
     if (!body) return;
     try {
@@ -127,7 +127,7 @@ export function createShopRouter() {
   });
 
   router.delete('/shops/:id', checkAccess(Access.ADMIN), async (req, res) => {
-    const id = req.params['id']!;
+    const id = req.params['id'];
     try {
       await deleteShop(id);
       res.status(204).send();

@@ -146,7 +146,7 @@ export function createContentRouter() {
   router.put('/npcs/:id', checkAccess(Access.ADMIN), async (req, res) => {
     const body = parseBody(CreateNpcBodySchema, req.body, res);
     if (!body) return;
-    const id = req.params['id']!;
+    const id = req.params['id'];
     // Editing an existing npc is the common path, so the create route's checks
     // run here too, or a renamed behaviour param would be reported only for
     // npcs created after the rename.
@@ -168,7 +168,7 @@ export function createContentRouter() {
   });
 
   router.delete('/npcs/:id', checkAccess(Access.ADMIN), async (req, res) => {
-    const id = req.params['id']!;
+    const id = req.params['id'];
     await deleteNpcEverywhere(id);
     res.status(204).send();
   });

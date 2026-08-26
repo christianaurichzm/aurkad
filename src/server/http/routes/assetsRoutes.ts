@@ -1,9 +1,7 @@
 import fs from 'fs';
 import path from 'path';
-import { type Response } from 'express';
 import { imageMap } from '../../../shared/mappings.js';
 import { logger } from '../../logger.js';
-import type { ExtendedRequest } from '../session.js';
 import { createRouter } from '../../app.js';
 
 const ASSETS_DIR = process.env.ASSETS_PATH
@@ -13,12 +11,12 @@ const ASSETS_DIR = process.env.ASSETS_PATH
 export function createAssetsRouter() {
   const router = createRouter();
 
-  router.get('/assets/:name.bin', (req: ExtendedRequest, res: Response) => {
+  router.get('/assets/:name.bin', (req, res) => {
     if (!req.session.username) {
       return res.status(401).json({ error: 'Unauthorized' });
     }
 
-    const name = req.params['name']!;
+    const name = req.params['name'];
     const imageId = imageMap[name];
     if (!imageId) return res.status(404).send('Image not found');
 

@@ -1,4 +1,3 @@
-import { type Request, type Response } from 'express';
 import {
   getClientModules,
   readModuleClientFile,
@@ -10,11 +9,11 @@ import { createRouter } from '../../app.js';
 export function createModulesRouter() {
   const router = createRouter();
 
-  router.get('/modules', (_req: Request, res: Response) => {
+  router.get('/modules', (_req, res) => {
     res.json(getClientModules());
   });
 
-  router.get('/modules/:id/client', (req: Request, res: Response) => {
+  router.get('/modules/:id/client', (req, res) => {
     const code = readModuleClientFile(req.params.id ?? '');
     if (code === null) return res.status(404).send('Module client not found');
     res.setHeader('Content-Type', 'application/javascript');

@@ -1,6 +1,4 @@
-import { type Request, type Response } from 'express';
 import { WebSocket } from 'ws';
-import type { ExtendedRequest } from '../session.js';
 import { Access } from '../../../shared/types.js';
 import { parseBody, AssignPointsBodySchema } from '../bodySchemas.js';
 import checkAccess from '../middleware/checkAccess.js';
@@ -16,26 +14,22 @@ import { createRouter } from '../../app.js';
 export function createPlayerRouter() {
   const router = createRouter();
 
-  router.get(
-    '/players/online',
-    checkAccess(Access.USER),
-    (_: Request, res: Response) => {
-      const players = Array.from(playersWsMap.entries())
-        .filter(([, ws]) => ws.readyState === WebSocket.OPEN)
-        .map(([username]) => username)
-        .sort((a, b) => a.localeCompare(b));
+  router.get('/players/online', checkAccess(Access.USER), (_, res) => {
+    const players = Array.from(playersWsMap.entries())
+      .filter(([, ws]) => ws.readyState === WebSocket.OPEN)
+      .map(([username]) => username)
+      .sort((a, b) => a.localeCompare(b));
 
-      res.status(200).json({
-        players,
-        count: players.length,
-      });
-    },
-  );
+    res.status(200).json({
+      players,
+      count: players.length,
+    });
+  });
 
   router.post(
     '/players/:id/assignPoints',
     checkAccess(Access.USER),
-    async (req: ExtendedRequest, res: Response) => {
+    async (req, res) => {
       const body = parseBody(AssignPointsBodySchema, req.body, res);
       if (!body) return;
       const { vitality, attack, strength, defense, agility } = body;
@@ -45,7 +39,7 @@ export function createPlayerRouter() {
         return res.status(400).json({ error: 'No points assigned' });
       }
 
-      const player = await getPlayerById(req.params['id']!);
+      const player = await getPlayerById(req.params['id']);
       if (!player) {
         return res.status(404).json({ error: 'Player not found' });
       }

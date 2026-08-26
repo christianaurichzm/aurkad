@@ -127,7 +127,8 @@ if (config.scripting.editorEnabled) {
 // The SPA fallback stays down here, under the limiter: anything reaching it is
 // neither a file nor a route, so it is the one static answer worth counting.
 if (config.nodeEnv === 'production') {
-  app.get('*', (_, res) => {
+  // path-to-regexp v8 rejects an unnamed wildcard when the route registers.
+  app.get('/*splat', (_, res) => {
     res.sendFile(path.join(clientDist, 'index.html'));
   });
 }

@@ -28,8 +28,8 @@ describe('createRouter', () => {
 
     const res = await request(app).get('/boom');
 
-    // Without the wrapper Express 4 never responds to this request at all, and
-    // Node exits on the unhandled rejection.
+    // Express forwards this itself; losing it would mean a hung request and a
+    // process killed by the unhandled rejection.
     expect(res.status).toBe(500);
     expect(res.body).toEqual({ error: 'Internal server error' });
   });

@@ -16,7 +16,7 @@ const MUTATING = new Set(['POST', 'PUT', 'PATCH', 'DELETE']);
 const RECORDED_ELSEWHERE = new Set(['/admin/console']);
 
 /** Path without the query string, which can carry a session id or a token. */
-const pathOf = (req: Request): string => `${req.baseUrl}${req.path}`;
+const pathOf = (req: Request<unknown>): string => `${req.baseUrl}${req.path}`;
 
 /**
  * Who the request is aimed at.
@@ -25,13 +25,15 @@ const pathOf = (req: Request): string => `${req.baseUrl}${req.path}`;
  * answer "what was done to this player" without knowing each route's body
  * shape. A route that names nobody (most content edits) simply has no target.
  */
-function targetOf(req: Request): string | undefined {
+function targetOf(req: Request<unknown>): string | undefined {
   const body = (req.body ?? {}) as Record<string, unknown>;
   for (const key of ['username', 'player', 'name', 'to', 'mapId']) {
     const value = body[key];
     if (typeof value === 'string' && value) return value;
   }
-  const param = req.params['id'] ?? req.params['name'] ?? req.params['mapId'];
+  // Shape-blind like the body above: this gate fronts every route.
+  const params = req.params as Record<string, unknown>;
+  const param = params['id'] ?? params['name'] ?? params['mapId'];
   return typeof param === 'string' && param ? param : undefined;
 }
 
@@ -42,7 +44,9 @@ function targetOf(req: Request): string | undefined {
  * since an account probing above its level is what the log is for.
  */
 const checkAccess = (requiredAccess: Access) => {
-  return (req: Request, res: Response, next: NextFunction) => {
+  // Generic in the params: a middleware that pins them makes Express infer
+  // the whole chain's params from here instead of from each route's path.
+  return <P>(req: Request<P>, res: Response, next: NextFunction) => {
     const username = req.session.username;
     const accessLevel = req.session.accessLevel;
     const audited =

@@ -1,7 +1,5 @@
 import fs from 'fs';
 import path from 'path';
-import { type Response } from 'express';
-import type { ExtendedRequest } from '../session.js';
 import { logger } from '../../logger.js';
 import { createRouter } from '../../app.js';
 
@@ -14,12 +12,12 @@ const ALLOWED_EXTENSIONS = new Set(['.mp3', '.ogg', '.wav']);
 export function createAudioRouter() {
   const router = createRouter();
 
-  router.get('/audio/:filename', (req: ExtendedRequest, res: Response) => {
+  router.get('/audio/:filename', (req, res) => {
     if (!req.session.username) {
       return res.status(401).json({ error: 'Unauthorized' });
     }
 
-    const filename = req.params['filename']!;
+    const filename = req.params['filename'];
     const ext = path.extname(filename).toLowerCase();
     if (!ALLOWED_EXTENSIONS.has(ext)) {
       return res.status(400).send('Invalid file type');

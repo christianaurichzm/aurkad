@@ -33,35 +33,31 @@ import { createRouter } from '../../app.js';
 export function createMapRouter() {
   const router = createRouter();
 
-  router.post(
-    '/saveMap',
-    checkAccess(Access.ADMIN),
-    async (req: Request, res: Response) => {
-      const body = parseBody(SaveMapBodySchema, req.body, res);
-      if (!body) return;
-      const { mapId, tiles, name, type, music } = body;
-      try {
-        const validation = await validateMapTiles(tiles);
-        if (validation.errors.length > 0) {
-          return res.status(422).json({ errors: validation.errors });
-        }
-        // A `script` tile naming a behaviour nothing registered would save clean
-        // and do nothing in game, so the editor is told at save time.
-        const scriptRefs = validateScriptReferences(
-          { maps: [{ id: mapId, name, tiles }] },
-          registeredBehaviors(),
-        );
-        await mapSave(mapId, tiles, name, type, music);
-        res.status(200).json({
-          success: true,
-          warnings: [...validation.warnings, ...scriptRefs.warnings],
-        });
-      } catch (e) {
-        logger.error('mapSave failed', { err: e });
-        res.status(500).send('Failed to save map');
+  router.post('/saveMap', checkAccess(Access.ADMIN), async (req, res) => {
+    const body = parseBody(SaveMapBodySchema, req.body, res);
+    if (!body) return;
+    const { mapId, tiles, name, type, music } = body;
+    try {
+      const validation = await validateMapTiles(tiles);
+      if (validation.errors.length > 0) {
+        return res.status(422).json({ errors: validation.errors });
       }
-    },
-  );
+      // A `script` tile naming a behaviour nothing registered would save clean
+      // and do nothing in game, so the editor is told at save time.
+      const scriptRefs = validateScriptReferences(
+        { maps: [{ id: mapId, name, tiles }] },
+        registeredBehaviors(),
+      );
+      await mapSave(mapId, tiles, name, type, music);
+      res.status(200).json({
+        success: true,
+        warnings: [...validation.warnings, ...scriptRefs.warnings],
+      });
+    } catch (e) {
+      logger.error('mapSave failed', { err: e });
+      res.status(500).send('Failed to save map');
+    }
+  });
 
   router.get(
     '/maps',
@@ -76,9 +72,9 @@ export function createMapRouter() {
     },
   );
 
-  router.get('/maps/:mapId', async (req: Request, res: Response) => {
+  router.get('/maps/:mapId', async (req, res) => {
     try {
-      const mapId = req.params['mapId']!;
+      const mapId = req.params['mapId'];
       const map = await getMapById(mapId);
 
       if (!map) {
@@ -128,7 +124,7 @@ export function createMapRouter() {
   router.put('/maps/:id', checkAccess(Access.ADMIN), async (req, res) => {
     const body = parseBody(UpdateMapBodySchema, req.body, res);
     if (!body) return;
-    const id = req.params['id']!;
+    const id = req.params['id'];
     const { name, type, music, borderLinks } = body;
 
     try {
@@ -153,7 +149,7 @@ export function createMapRouter() {
     async (req, res) => {
       const body = parseBody(ResizeMapBodySchema, req.body, res);
       if (!body) return;
-      const id = req.params['id']!;
+      const id = req.params['id'];
       const { cols, rows } = body;
       try {
         const map = await getMapById(id);
