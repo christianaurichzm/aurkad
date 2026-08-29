@@ -28,6 +28,17 @@ export const getMapPixelSize = (): { w: number; h: number } => ({
   h: cachedMapH,
 });
 
+/**
+ * Tiles of the last few maps left, by map and revision, so walking back
+ * through a door needs no wait. The server re-streams what is missing.
+ */
+const VISITED_LIMIT = 3;
+const visited = new Map<string, Tile[][]>();
+
+/** True while the map under the player is still arriving. */
+let mapPending = false;
+let chunksSinceMapChange = 0;
+
 let composedCache: MapStateClient | null = null;
 let composedFromStatic: MapStaticClient | null = null;
 let composedFromDynamicMap: MapDynamicClient | null = null;
@@ -73,6 +84,25 @@ function createEmptyGrid(cols: number, rows: number): Tile[][] {
   );
 }
 
+const visitedKey = (id: string, revision: number | null | undefined): string =>
+  `${id}:${revision}`;
+
+function remember(map: MapStaticClient, revision: number | null): void {
+  const key = visitedKey(map.id, revision);
+  visited.delete(key);
+  visited.set(key, map.tiles);
+  if (visited.size > VISITED_LIMIT) {
+    const oldest = visited.keys().next().value;
+    if (oldest !== undefined) visited.delete(oldest);
+  }
+}
+
+/**
+ * Whether what is under the player is still on its way. The renderer covers
+ * the world meanwhile, so a border crossing is not a grey void.
+ */
+export const isMapPending = (): boolean => mapPending;
+
 export const setMapMeta = (meta: MapMetaClient) => {
   cachedMapW = meta.cols * TILE_SIZE;
   cachedMapH = meta.rows * TILE_SIZE;
@@ -86,14 +116,21 @@ export const setMapMeta = (meta: MapMetaClient) => {
     };
     return;
   }
+  if (staticMap) remember(staticMap, staticMapRevision);
+
+  const known = visited.get(visitedKey(meta.id, meta.revision));
   staticMap = {
     id: meta.id,
     name: meta.name,
     type: meta.type,
     pvp: meta.pvp,
-    tiles: createEmptyGrid(meta.cols, meta.rows),
+    tiles: known ?? createEmptyGrid(meta.cols, meta.rows),
   };
   staticMapRevision = meta.revision;
+  // A map we still have needs no cover: it is on screen in the same frame the
+  // player arrives, which is the whole point of keeping it.
+  mapPending = !known;
+  chunksSinceMapChange = 0;
 };
 
 export const applyMapChunk = (chunk: MapChunkPayload) => {
@@ -117,7 +154,23 @@ export const applyMapChunk = (chunk: MapChunkPayload) => {
     newTiles[mapRow] = newRow;
   }
   staticMap = { ...staticMap, tiles: newTiles };
+
+  chunksSinceMapChange++;
+  // The cover waits for the chunk under the player, not the tile, since a
+  // tile may be empty. The chunk count lifts it as a fallback.
+  if (mapPending && (isPlayersChunk(chunk) || chunksSinceMapChange >= 4)) {
+    mapPending = false;
+  }
 };
+
+function isPlayersChunk(chunk: MapChunkPayload): boolean {
+  const position = dynamic?.player.position;
+  if (!position) return true;
+  return (
+    Math.floor(position.x / TILE_SIZE / CHUNK_SIZE) === chunk.chunkX &&
+    Math.floor(position.y / TILE_SIZE / CHUNK_SIZE) === chunk.chunkY
+  );
+}
 
 export const removeEntities = (playerIds: string[], npcIds: string[]) => {
   if (!dynamic) return;

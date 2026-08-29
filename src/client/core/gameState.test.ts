@@ -1,7 +1,9 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import {
+  applyMapChunk,
   applyWorldUpdate,
   getGameState,
+  isMapPending,
   setMapMeta,
   setStaticMap,
 } from './gameState';
@@ -107,5 +109,68 @@ describe('applyWorldUpdate', () => {
     );
     applyWorldUpdate(update({ droppedItems: [] }));
     expect(getGameState()!.droppedItems).toEqual([]);
+  });
+});
+
+// A map arrives as metadata first and tiles later, a chunk at a time, so
+// the renderer covers it until the player's chunk lands.
+const meta = (id: string, revision = 1) =>
+  ({
+    id,
+    name: id,
+    type: 'normal',
+    cols: 32,
+    rows: 32,
+    revision,
+  }) as never;
+
+const chunk = (
+  mapId: string,
+  chunkX: number,
+  chunkY: number,
+  revision = 1,
+) => ({
+  mapId,
+  revision,
+  chunkX,
+  chunkY,
+  tiles: [[{ tileIndex: 5, blocked: false }]],
+});
+
+describe('a map that is still arriving', () => {
+  it('waits for the chunk the player is standing in', () => {
+    setMapMeta(meta('A'));
+    expect(isMapPending()).toBe(true);
+
+    // A corner of the map, nowhere near the player at (0,0).
+    applyMapChunk(chunk('A', 1, 1));
+    expect(isMapPending()).toBe(true);
+
+    applyMapChunk(chunk('A', 0, 0));
+    expect(isMapPending()).toBe(false);
+  });
+
+  it('is not pending at all for a map still in hand', () => {
+    setMapMeta(meta('A'));
+    applyMapChunk(chunk('A', 0, 0));
+    setMapMeta(meta('B'));
+    expect(isMapPending()).toBe(true);
+
+    // Back through the same door: the tiles are on screen in the frame the
+    // player arrives, so there is nothing to cover.
+    setMapMeta(meta('A'));
+
+    expect(isMapPending()).toBe(false);
+    expect(getGameState()?.tiles[0]?.[0]?.tileIndex).toBe(5);
+  });
+
+  it('keeps three maps, not the whole tour', () => {
+    setMapMeta(meta('A'));
+    applyMapChunk(chunk('A', 0, 0));
+    for (const id of ['B', 'C', 'D', 'E']) setMapMeta(meta(id));
+
+    setMapMeta(meta('A'));
+
+    expect(isMapPending()).toBe(true);
   });
 });

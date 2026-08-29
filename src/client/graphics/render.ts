@@ -5,7 +5,8 @@ export { onServerPositionUpdate } from './movementAnimation';
 export { renderPlayers } from './entityRendering';
 
 import { Tile } from '../../shared/types';
-import { getGameState, getPlayer } from '../core/gameState';
+import { GAME_HEIGHT, GAME_WIDTH } from '../../shared/constants';
+import { getGameState, getPlayer, isMapPending } from '../core/gameState';
 import { updatePlayerHealthBar } from './hud';
 import {
   foregroundCanvas,
@@ -46,6 +47,34 @@ let fringeOffscreen: OffscreenCanvas | null = null;
 let lastFringeTiles: Tile[][] | null = null;
 let lastFringeCamX = -1;
 let lastFringeCamY = -1;
+
+// How long the cover takes to lift once the ground is there. Long enough to
+// read as a transition, short enough that nobody waits for it.
+const MAP_FADE_MS = 180;
+let mapCover = 0;
+let coverAt = 0;
+
+/**
+ * A black cover over the world while the map under the player arrives, so
+ * a border crossing is not characters floating on the background. Drawn
+ * last on the fringe, the top layer.
+ */
+function drawMapCover(): void {
+  const now = performance.now();
+  const elapsed = coverAt ? now - coverAt : 0;
+  coverAt = now;
+
+  if (isMapPending()) mapCover = 1;
+  else if (mapCover > 0)
+    mapCover = Math.max(0, mapCover - elapsed / MAP_FADE_MS);
+
+  if (mapCover <= 0 || !fringeCtx) return;
+  fringeCtx.save();
+  fringeCtx.globalAlpha = mapCover;
+  fringeCtx.fillStyle = '#000';
+  fringeCtx.fillRect(0, 0, GAME_WIDTH, GAME_HEIGHT);
+  fringeCtx.restore();
+}
 
 export const render = () => {
   const map = getGameState();
@@ -185,4 +214,7 @@ export const render = () => {
     renderFloatingTexts(fringeCtx);
     fringeCtx.restore();
   }
+
+  // Outside the block, since frames with no map are the ones to cover.
+  drawMapCover();
 };
