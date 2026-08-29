@@ -169,15 +169,19 @@ const rawMapIds = parseCsvEnv('MAP_IDS');
 const mapIds = rawMapIds?.length ? rawMapIds : undefined;
 
 // Multi-instance mode boots: the presence lease (persistence/presence.ts)
-// keeps two instances from overwriting one account.
+// keeps two instances from overwriting one account, and the instance bus
+// (persistence/instanceBus.ts) carries what an operator says.
 //
-// The talking is still per-process: global chat, broadcast, motd and the
-// online list reach only the instance that handled them. Nothing is lost,
-// so it is said once at boot instead of refusing to start.
+// Still per-process: operator commands that need the live character (pm,
+// heal, kill, tp, warp; kick and mute do cross), and the modules' own
+// state, so a party or a trade only forms between players on one instance.
+// Both degrade in the open, the command saying the player is not here, so
+// it is said once at boot instead of refusing to start.
 if (process.env.WS_PUBLIC_URL && mapIds) {
   console.warn(
-    '[config] Multi-instance mode: accounts are leased to one instance at a time, but global ' +
-      'chat, broadcast/motd and the online list still only reach the instance that handled them.',
+    '[config] Multi-instance mode: accounts, operator announcements and moderation cross ' +
+      'instances; commands that need a live character (pm, heal, kill, tp, warp) and module ' +
+      'state (party, guild, trade) still only reach the instance the player is on.',
   );
 }
 

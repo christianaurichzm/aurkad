@@ -49,7 +49,7 @@ describe('config multi-instance mode', () => {
 
     expect(config.instance.mapIds).toEqual(['1', '2']);
     expect(warn).toHaveBeenCalledWith(
-      expect.stringMatching(/global chat, broadcast\/motd and the online list/),
+      expect.stringMatching(/commands that need a live character/),
     );
     warn.mockRestore();
   });
