@@ -452,7 +452,12 @@ const calculateSelectionBounds = () => {
   return { startX, startY, width, height };
 };
 
-const drawTileOnCanvas = (col: number, row: number, tileIndex: number) => {
+const drawTileOnCanvas = (
+  col: number,
+  row: number,
+  tileIndex: number,
+  clear = true,
+) => {
   const cam = getCamera();
   const sx = col * TILE_SIZE - cam.x;
   const sy = row * TILE_SIZE - cam.y;
@@ -466,7 +471,9 @@ const drawTileOnCanvas = (col: number, row: number, tileIndex: number) => {
   const tilesPerRow = tileset.width / TILE_SIZE;
   const tileX = (tileIndex % tilesPerRow) * TILE_SIZE;
   const tileY = Math.floor(tileIndex / tilesPerRow) * TILE_SIZE;
-  foregroundCtx.clearRect(sx, sy, TILE_SIZE, TILE_SIZE);
+  // One tile placed by hand lands on top of the tile that was there, so its
+  // pixels have to go first. A full pass has already cleared the canvas.
+  if (clear) foregroundCtx.clearRect(sx, sy, TILE_SIZE, TILE_SIZE);
   foregroundCtx.drawImage(
     tileset,
     tileX,
@@ -546,8 +553,7 @@ const removeEventListeners = () => {
   document.removeEventListener('keydown', handleKeyDown);
 };
 
-export const renderMap = (tiles: Tile[][]) => {
-  if (tiles) updateEditorMap(tiles, editorMusic);
+const drawTiles = (tiles: Tile[][]) => {
   foregroundCtx.clearRect(
     0,
     0,
@@ -571,10 +577,36 @@ export const renderMap = (tiles: Tile[][]) => {
     for (let colIndex = startCol; colIndex <= endCol; colIndex++) {
       const tile = row[colIndex];
       if (tile && tile.tileIndex !== -1) {
-        drawTileOnCanvas(colIndex, rowIndex, tile.tileIndex);
+        drawTileOnCanvas(colIndex, rowIndex, tile.tileIndex, false);
       }
     }
   }
+};
+
+/**
+ * The map as the game draws it: the tiles, and nothing the editor needs.
+ * It runs on every frame the camera crosses a whole pixel, so it must not
+ * copy the map or walk it, which is most of renderMap below: the markers
+ * alone are a pass over every tile with a dozen predicates each, painting
+ * onto a grid context that exists only while the editor is open.
+ */
+export const renderGameMap = (tiles: Tile[][]) => {
+  // The editor opens on whatever the game was showing, so the working copy
+  // is still taken here, once per map rather than per frame: a moved camera
+  // is not a new map, and the copy is two deep clones of all of it.
+  if (tiles !== lastSyncedTiles) {
+    updateEditorMap(tiles, editorMusic);
+    lastSyncedTiles = tiles;
+  }
+  drawTiles(tiles);
+};
+
+export const renderMap = (tiles: Tile[][]) => {
+  if (tiles) updateEditorMap(tiles, editorMusic);
+  // The working copy belongs to the editor from here on; dropping the memo
+  // lets the game's next frame seed it again from the server's tiles.
+  lastSyncedTiles = null;
+  drawTiles(tiles);
   clearAndDrawGrid();
   drawMarkers(tiles);
   drawHoverCell();
@@ -817,6 +849,8 @@ export const toggleTilesetEditor = (shouldShow: boolean) => {
 
   renderMap(map);
 };
+
+let lastSyncedTiles: Tile[][] | null = null;
 
 const updateEditorMap = (tiles: Tile[][], music?: string) => {
   map = tiles.map((row) => row.map((tile) => ({ ...tile })));

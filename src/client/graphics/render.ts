@@ -19,7 +19,7 @@ import {
   fringeCtx,
 } from './canvas';
 import {
-  renderMap,
+  renderGameMap,
   renderMapMask,
   renderMapFringe,
   getEditorTiles,
@@ -81,7 +81,7 @@ export const render = () => {
           foregroundCanvas.width,
           foregroundCanvas.height,
         );
-        renderMap(map.tiles);
+        renderGameMap(map.tiles);
         lastDrawnTiles = map.tiles;
         lastCamX = camXi;
         lastCamY = camYi;
