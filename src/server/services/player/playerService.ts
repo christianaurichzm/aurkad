@@ -45,6 +45,7 @@ import {
   endPlayerCommit,
 } from '../../persistence/dirtyPlayers.js';
 import { releasePresence } from '../../persistence/presence.js';
+import { publishToInstances } from '../../persistence/instanceBus.js';
 import {
   supportsTransactions,
   withTransaction,
@@ -584,6 +585,18 @@ export const changeSprite = (spriteId: number, username: string) => {
 export async function kickPlayer(
   username: string,
   reason = 'You were kicked from the server.',
+): Promise<boolean> {
+  // The socket may belong to another instance, since a ban is about an
+  // account and not who holds it. The local half still runs, because they
+  // might be here.
+  publishToInstances('kick', { username, reason });
+  return kickLocally(username, reason);
+}
+
+/** The half that touches only this process; a kick from the bus lands here. */
+export async function kickLocally(
+  username: string,
+  reason: string,
 ): Promise<boolean> {
   const ws = playersWsMap.get(username);
   if (ws && ws.readyState === ws.OPEN) {

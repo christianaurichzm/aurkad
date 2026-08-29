@@ -9,6 +9,7 @@ import { playersWsMap } from '../../net/connections.js';
 import { WebSocket } from 'ws';
 import { getPlayerByName } from '../player/playerService.js';
 import { registerStrings, translate } from '../../engine/i18n.js';
+import { publishToInstances } from '../../persistence/instanceBus.js';
 
 // The only line this service says on its own; the rest of what passes through
 // is what a player or an operator wrote.
@@ -110,6 +111,9 @@ export function handleChatAction(action: ClientChatAction | ServerChatAction) {
 
   if (payload.scope === 'global') {
     emitGameEvent({ type: 'chatGlobal', payload });
+    // Global is the only scope that leaves this process: a map lives on one
+    // instance, so map chat already reaches everyone who could hear it.
+    publishToInstances('chat', payload);
   } else if (payload.scope === 'map') {
     if (isClientChatAction(action)) {
       emitGameEvent({
@@ -123,4 +127,28 @@ export function handleChatAction(action: ClientChatAction | ServerChatAction) {
       logger.warn('Map server message missing mapId');
     }
   }
+}
+
+/**
+ * A global line from another instance, arriving. The mute, the `/command`
+ * and the sender's `chatMessage` hook already ran where it was typed; this
+ * is this instance's copy of the room: its chat log, its players, and the
+ * scripts watching from this side.
+ */
+export function receiveGlobalLine(payload: ChatMessagePayload): void {
+  chatLog.push({
+    ts: Date.now(),
+    username: payload.username,
+    scope: 'global',
+    message: payload.message,
+  });
+  if (chatLog.length > CHAT_LOG_LIMIT) chatLog.shift();
+
+  logger.info('chat', {
+    scope: 'global',
+    username: payload.username,
+    message: payload.message,
+  });
+
+  emitGameEvent({ type: 'chatGlobal', payload });
 }

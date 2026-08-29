@@ -101,6 +101,21 @@ export async function renewPresence(): Promise<void> {
   }
 }
 
+/**
+ * Everybody logged in anywhere, from the leases themselves. This process's
+ * socket map only answers "who is on this instance". A lease is taken at
+ * login and freed at logout, the source the login itself consults.
+ * Undefined when presence is off, as the socket map is then the answer.
+ */
+export async function listOnlineEverywhere(): Promise<string[] | undefined> {
+  if (!owner) return undefined;
+
+  const docs = await PlayerModel.find({ 'lease.until': { $gt: Date.now() } })
+    .select('name')
+    .lean<{ name: string }[]>();
+  return docs.map((doc) => doc.name);
+}
+
 export async function releasePresence(id: string): Promise<void> {
   const lease = held.get(id);
   if (!lease) return;

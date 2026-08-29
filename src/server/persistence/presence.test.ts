@@ -34,6 +34,7 @@ vi.mock('../config.js', async (importOriginal) => {
 const PlayerModel = (await import('../model/Player.js')).default;
 const {
   acquirePresence,
+  listOnlineEverywhere,
   presenceFence,
   releaseAllPresence,
   releasePresence,
@@ -131,6 +132,22 @@ describe('taking an account', () => {
     await renewPresence();
 
     expect((await leaseOf('p5'))?.until).toBeGreaterThan(Date.now());
+  });
+});
+
+describe('who is online, across the fleet', () => {
+  it("reads the leases rather than this process's sockets", async () => {
+    await givePlayer('o1');
+    await givePlayer('o2');
+    await givePlayer('o3');
+    await acquirePresence('o1', 'o1');
+    // Logged in on the other instance, which from here is exactly a lease it
+    // holds; this process's socket map would not show it.
+    await heldByOther('o2', Date.now() + 60_000);
+    // Was online, is not: an expired lease is not a player.
+    await heldByOther('o3', Date.now() - 1);
+
+    expect((await listOnlineEverywhere())?.sort()).toEqual(['o1', 'o2']);
   });
 });
 

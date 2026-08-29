@@ -21,6 +21,19 @@ import app, { handleRouteError } from './app.js';
 import { config } from './config.js';
 import { startTracing, stopTracing } from './tracing.js';
 import { releaseAllPresence, renewPresence } from './persistence/presence.js';
+import {
+  onInstanceEvent,
+  startInstanceBus,
+} from './persistence/instanceBus.js';
+import { receiveGlobalLine } from './services/comms/chatService.js';
+import { kickLocally } from './services/player/playerService.js';
+import {
+  applyFlagFromInstance,
+  forgetFlagFromInstance,
+  type LiveOpsFlag,
+} from './services/liveOpsService.js';
+import { serverState, type ServerMode } from './services/world/serverState.js';
+import type { ChatMessagePayload } from '../shared/types.js';
 import { flushAnalytics, startAnalytics } from './services/analyticsService.js';
 import { createSessionMiddleware } from './http/session.js';
 import { createHttpLimiter } from './http/middleware/rateLimit.js';
@@ -145,7 +158,46 @@ let stopSnapshots: (() => void) | undefined;
 let stopCensus: (() => void) | undefined;
 let stopAnalytics: (() => void) | undefined;
 let stopKv: (() => Promise<void>) | undefined;
+let stopBus: (() => void) | undefined;
 let heartbeatTimer: ReturnType<typeof setInterval> | undefined;
+
+/**
+ * The half of an operator's action that runs on the instances that did not
+ * receive the command: the same local effect, never the publish, or two
+ * instances would hand a line back and forth forever. Map chat, movement
+ * and combat are absent, since a map lives on one instance.
+ */
+function registerInstanceEvents(): void {
+  onInstanceEvent<ChatMessagePayload>('chat', receiveGlobalLine);
+
+  onInstanceEvent<{ text: string }>('motd', ({ text }) => {
+    serverState.motd = text;
+  });
+
+  onInstanceEvent<{ mode: ServerMode }>('mode', ({ mode }) => {
+    serverState.mode = mode;
+  });
+
+  onInstanceEvent<{ username: string; expiry: number | null }>(
+    'mute',
+    ({ username, expiry }) => {
+      if (expiry === null) serverState.mutes.delete(username);
+      else serverState.mutes.set(username, expiry);
+    },
+  );
+
+  onInstanceEvent<{ username: string; reason: string }>(
+    'kick',
+    ({ username, reason }) => {
+      void kickLocally(username, reason);
+    },
+  );
+
+  onInstanceEvent<LiveOpsFlag>('flagSet', applyFlagFromInstance);
+  onInstanceEvent<{ name: string }>('flagCleared', ({ name }) =>
+    forgetFlagFromInstance(name),
+  );
+}
 
 async function startServer() {
   try {
@@ -189,6 +241,8 @@ async function startServer() {
     writeContentDts();
     registerServerCommands();
     registerPlayerCommands();
+    registerInstanceEvents();
+    stopBus = startInstanceBus();
     startLiveOps();
     startTracing();
     loadModules();
@@ -237,6 +291,7 @@ async function shutdown(signal: string) {
   stopSnapshots?.();
   stopCensus?.();
   stopAnalytics?.();
+  stopBus?.();
   clearInterval(heartbeatTimer);
   if (config.instance.wsPublicUrl) {
     await deregisterInstance(config.instance.wsPublicUrl).catch(

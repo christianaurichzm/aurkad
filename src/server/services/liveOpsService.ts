@@ -12,6 +12,7 @@ import mongoose from 'mongoose';
 import LiveOpsFlagModel from '../model/LiveOpsFlag.js';
 import { emit, on } from '../engine/hooks.js';
 import { scheduleEvery } from '../sim/scheduler.js';
+import { publishToInstances } from '../persistence/instanceBus.js';
 import { msToTicks } from '../sim/clock.js';
 import { logger } from '../logger.js';
 
@@ -213,7 +214,25 @@ export async function setFlag(
   // time the command answers.
   const active = applies(flag);
   if (active !== announced.has(name)) announce(flag, active);
+  publishToInstances('flagSet', flag);
   return flag;
+}
+
+/**
+ * A flag an operator set on another instance, taking effect here. The row
+ * is already written; this side lacks the cache every read goes through
+ * and the edge its own scripts wait on.
+ */
+export function applyFlagFromInstance(flag: LiveOpsFlag): void {
+  flags.set(flag.name, flag);
+  const active = applies(flag);
+  if (active !== announced.has(flag.name)) announce(flag, active);
+}
+
+export function forgetFlagFromInstance(name: string): void {
+  const flag = flags.get(name);
+  flags.delete(name);
+  if (flag && announced.has(name)) announce(flag, false);
 }
 
 /** Returns false when there was nothing to clear. */
@@ -231,6 +250,7 @@ export async function clearFlag(name: string): Promise<boolean> {
   }
   if (!flag) return false;
   logger.info('[liveops] flag cleared', { name });
+  publishToInstances('flagCleared', { name });
   // Only a flag that was running has an end to announce; one cancelled before
   // its start time never happened as far as a script is concerned.
   if (announced.has(name)) announce(flag, false);

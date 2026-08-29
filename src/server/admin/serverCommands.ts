@@ -3,6 +3,7 @@ import { isSuspicious, runCensus } from '../services/economy/economyCensus.js';
 import { Access } from '../../shared/types.js';
 import { serverState, type ServerMode } from '../services/world/serverState.js';
 import { getChatLog, handleChatAction } from '../services/comms/chatService.js';
+import { publishToInstances } from '../persistence/instanceBus.js';
 import { getRuntimeState } from '../services/world/gameData.js';
 import { getMetrics } from '../metrics.js';
 import { config } from '../config.js';
@@ -302,9 +303,11 @@ export function registerServerCommands(): void {
       }
       if (args[0] === 'clear') {
         serverState.motd = '';
+        publishToInstances('motd', { text: '' });
         return reply(style.ok('MOTD cleared.'));
       }
       serverState.motd = args.join(' ').trim();
+      publishToInstances('motd', { text: serverState.motd });
       reply(style.ok(`MOTD set: ${serverState.motd}`));
     },
   );
@@ -326,6 +329,10 @@ export function registerServerCommands(): void {
         return reply('Usage: mode [normal|maintenance|gm_only]');
       }
       serverState.mode = mode;
+      // The mode decides who may log in, and a login can arrive at any
+      // instance: a maintenance half the fleet has not heard of is no
+      // maintenance at all.
+      publishToInstances('mode', { mode });
       reply(style.ok(`Server mode set to: ${mode}`));
       // Players find out from the game, not from the log: the modes that
       // restrict logins are the ones somebody is about to run into.

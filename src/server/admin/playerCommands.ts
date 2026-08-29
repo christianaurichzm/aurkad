@@ -30,6 +30,7 @@ import {
   twoFactorStatus,
 } from '../services/player/twoFactorService.js';
 import { activityOf, forgetPlayer } from '../services/analyticsService.js';
+import { publishToInstances } from '../persistence/instanceBus.js';
 import {
   deletePlayer,
   disconnectPlayer,
@@ -563,6 +564,9 @@ export function registerPlayerCommands(): void {
       // Zero is the stored form of "no expiry", not a duration of none.
       const expiry = minutes !== null ? Date.now() + minutes * 60_000 : 0;
       serverState.mutes.set(username, expiry);
+      // The mute is checked where the line is typed, which is wherever the
+      // player is connected, not where the command was typed.
+      publishToInstances('mute', { username, expiry });
       reply(
         style.ok(
           `Muted ${username} ${minutes !== null ? `for ${minutes}min` : 'permanently'}.`,
@@ -578,6 +582,7 @@ export function registerPlayerCommands(): void {
       const username = args[0];
       if (!username) return reply('Usage: unmute <username>');
       serverState.mutes.delete(username);
+      publishToInstances('mute', { username, expiry: null });
       reply(style.ok(`Unmuted ${username}.`));
     },
   );

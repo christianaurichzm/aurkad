@@ -5,6 +5,7 @@ import checkAccess from '../middleware/checkAccess.js';
 import { updatePlayer } from '../../services/world/gameData.js';
 import { getPlayerById } from '../../services/player/playerService.js';
 import { playersWsMap } from '../../net/connections.js';
+import { listOnlineEverywhere } from '../../persistence/presence.js';
 import { gameConfig } from '../../gameConfig.js';
 import { createRouter } from '../../app.js';
 
@@ -14,11 +15,15 @@ import { createRouter } from '../../app.js';
 export function createPlayerRouter() {
   const router = createRouter();
 
-  router.get('/players/online', checkAccess(Access.USER), (_, res) => {
-    const players = Array.from(playersWsMap.entries())
-      .filter(([, ws]) => ws.readyState === WebSocket.OPEN)
-      .map(([username]) => username)
-      .sort((a, b) => a.localeCompare(b));
+  router.get('/players/online', checkAccess(Access.USER), async (_, res) => {
+    // Across the fleet when there is one: a player who cannot see half the
+    // server in this list cannot tell that half exists.
+    const players = (
+      (await listOnlineEverywhere()) ??
+      Array.from(playersWsMap.entries())
+        .filter(([, ws]) => ws.readyState === WebSocket.OPEN)
+        .map(([username]) => username)
+    ).sort((a, b) => a.localeCompare(b));
 
     res.status(200).json({
       players,
