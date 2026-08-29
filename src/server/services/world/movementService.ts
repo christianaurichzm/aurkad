@@ -85,26 +85,33 @@ function redirectPlayer(
   });
 
   const ws = playersWsMap.get(player.name);
-  if (ws && ws.readyState === ws.OPEN) {
-    ws.send(
-      JSON.stringify({
-        type: 'redirect',
-        url: wsUrl,
-        traceparent: formatTraceparent(span.context),
-      }),
-    );
-    ws.close();
-  } else {
-    // No socket to tell: the player is gone and the arrival will never happen,
-    // which is worth seeing as a failed hand-off rather than a missing half.
-    span.fail('no open socket to redirect');
-  }
-  span.end();
   playersWsMap.delete(player.name);
   pressedKeysMap.delete(player.name);
-  disconnectPlayer(player.name).catch((e) =>
-    logger.error('[redirect] cleanup failed', { err: e }),
-  );
+
+  // The client is told where to go only once this side has finished: the
+  // instance it lands on builds the player from the document, so the last
+  // write must be in it and the lease gone. Told first, the arrival can win
+  // the race and read a character seconds stale, and the flush here would
+  // then overwrite whatever it did there.
+  disconnectPlayer(player.name)
+    .catch((e) => logger.error('[redirect] cleanup failed', { err: e }))
+    .finally(() => {
+      if (ws && ws.readyState === ws.OPEN) {
+        ws.send(
+          JSON.stringify({
+            type: 'redirect',
+            url: wsUrl,
+            traceparent: formatTraceparent(span.context),
+          }),
+        );
+        ws.close();
+      } else {
+        // No socket to tell: the player is gone and will never arrive, which is
+        // worth seeing as a failed hand-off rather than half of one.
+        span.fail('no open socket to redirect');
+      }
+      span.end();
+    });
 }
 
 /**

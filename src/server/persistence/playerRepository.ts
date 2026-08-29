@@ -1,5 +1,6 @@
 import type { ClientSession } from 'mongoose';
 import PlayerModel from '../model/Player.js';
+import { presenceFence } from './presence.js';
 import { PlayerRecord, PlayerServer } from '../../shared/types.js';
 import { gameConfig } from '../gameConfig.js';
 
@@ -8,8 +9,15 @@ import { gameConfig } from '../gameConfig.js';
 // docs can be missing fields; fill them here so the rest of the app always sees
 // a complete record.
 export function normalizePlayerRecord(record: PlayerRecord): PlayerRecord {
+  // The lease is dropped here, not at each caller: it is about which process
+  // may write the document, never about the character, and a runtime copy
+  // would be written back by the snapshot loop, reviving a released lease on
+  // a document nobody owns.
+  const { lease: _lease, ...rest } = record as PlayerRecord & {
+    lease?: unknown;
+  };
   return {
-    ...record,
+    ...rest,
     strength: record.strength ?? gameConfig.player.startingStrength,
     defense: record.defense ?? gameConfig.player.startingDefense,
     agility: record.agility ?? gameConfig.player.startingAgility,
@@ -38,14 +46,21 @@ export const playerRepository = {
     return docs.map(normalizePlayerRecord);
   },
 
-  // With `session`, an economic commit writes both sides of a trade as one
-  // pair (see persistence/transactions.ts); without it they are independent.
-  async save(player: PlayerServer, session?: ClientSession): Promise<void> {
-    await PlayerModel.findOneAndUpdate(
-      { id: player.id },
+  // `session` is how an economic commit writes both sides of a trade as one
+  // document write pair; without it the two writes are independent (see
+  // persistence/transactions.ts).
+  //
+  // Returns whether the document was actually written: with the presence fence
+  // in the filter, a write from an instance that no longer owns the account
+  // matches nothing, and a silent no-op there is the same lost progress the
+  // lease exists to prevent (see persistence/presence.ts).
+  async save(player: PlayerServer, session?: ClientSession): Promise<boolean> {
+    const written = await PlayerModel.findOneAndUpdate(
+      { id: player.id, ...presenceFence(player.id) },
       { $set: player },
       { upsert: false, ...(session ? { session } : {}) },
     );
+    return written !== null;
   },
 
   async insert(record: PlayerRecord): Promise<void> {

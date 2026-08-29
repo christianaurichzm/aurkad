@@ -44,6 +44,7 @@ import {
   clearPlayerDirty,
   endPlayerCommit,
 } from '../../persistence/dirtyPlayers.js';
+import { releasePresence } from '../../persistence/presence.js';
 import {
   supportsTransactions,
   withTransaction,
@@ -60,8 +61,8 @@ export async function getPlayerById(id: string): Promise<PlayerRecord | null> {
 export async function createOrUpdatePlayer(
   player: PlayerServer,
   session?: ClientSession,
-): Promise<void> {
-  await playerRepository.save(player, session);
+): Promise<boolean> {
+  return playerRepository.save(player, session);
 }
 
 export async function deletePlayer(id: string): Promise<void> {
@@ -135,7 +136,7 @@ export const persistPlayerSessionState = async (
   player: PlayerServer,
   session?: ClientSession,
 ) => {
-  await createOrUpdatePlayer(
+  const written = await createOrUpdatePlayer(
     {
       ...player,
       position: player.position,
@@ -146,7 +147,24 @@ export const persistPlayerSessionState = async (
     },
     session,
   );
+  // Explicitly false, not merely falsy: this ends with the player's socket
+  // closed, and that is not a thing to do on a return value nobody promised.
+  if (written === false) presenceLost(player);
 };
+
+/**
+ * The write was refused because another instance owns this account. Their
+ * character is written by somebody else, so nothing this process changes
+ * can be saved. Dropping the socket is the honest end: the fence refuses
+ * the writes either way, and the alternative is an hour of play that
+ * saves nothing at all.
+ */
+function presenceLost(player: PlayerServer): void {
+  logger.error('[presence] write refused: the account is owned elsewhere', {
+    player: player.name,
+  });
+  playersWsMap.get(player.name)?.close();
+}
 
 /**
  * Final write of every connected player during shutdown.
@@ -590,6 +608,10 @@ export const disconnectPlayer = async (username?: string) => {
   }
 
   await persistPlayerSessionState(player);
+  // After the last write of this session, never before it: the lease is what
+  // makes that write land, and the instance the player moves to reads the
+  // document as soon as it takes over.
+  await releasePresence(player.id);
   clearPlayerDirty(player.id);
   clearAttackCooldown(player.id);
   if (getRegisteredPlayer(player.id)) {

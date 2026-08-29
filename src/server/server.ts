@@ -20,6 +20,7 @@ import mongoose from 'mongoose';
 import app, { handleRouteError } from './app.js';
 import { config } from './config.js';
 import { startTracing, stopTracing } from './tracing.js';
+import { releaseAllPresence, renewPresence } from './persistence/presence.js';
 import { flushAnalytics, startAnalytics } from './services/analyticsService.js';
 import { createSessionMiddleware } from './http/session.js';
 import { createHttpLimiter } from './http/middleware/rateLimit.js';
@@ -154,17 +155,26 @@ async function startServer() {
     await loadInitialData();
 
     const { wsPublicUrl, mapIds, heartbeatMs } = config.instance;
-    if (wsPublicUrl && mapIds) {
-      await registerInstance(wsPublicUrl, mapIds);
-      await refreshRegistry();
+    // The address is this process's identity, which a lease is held with, so
+    // the beat runs whenever there is one, even owning every map. Sharding adds
+    // the registry to it.
+    if (wsPublicUrl) {
+      if (mapIds) {
+        await registerInstance(wsPublicUrl, mapIds);
+        await refreshRegistry();
+      }
       // A missed beat must not be fatal: the registry entry has a TTL, so the
-      // instance only looks stale until the next beat lands. Letting the
-      // rejection escape the timer would kill the process instead.
+      // instance only looks stale until the next beat lands, and a lease is
+      // written for three beats. Letting the rejection escape the timer would
+      // kill the process instead.
       heartbeatTimer = setInterval(() => {
         void (async () => {
           try {
-            await registerInstance(wsPublicUrl, mapIds);
-            await refreshRegistry();
+            if (mapIds) {
+              await registerInstance(wsPublicUrl, mapIds);
+              await refreshRegistry();
+            }
+            await renewPresence();
           } catch (err) {
             logger.error('[instance] Heartbeat failed', { err });
           }
@@ -257,6 +267,13 @@ async function shutdown(signal: string) {
   } else {
     logger.info('[Shutdown] Player states persisted', { saved });
   }
+
+  // After the last write of every player above, and before the connection
+  // closes: an account still leased by a process that is gone waits out the
+  // expiry before it can log in anywhere, for nothing.
+  await releaseAllPresence().catch((err) =>
+    logger.error('[presence] releasing leases on shutdown failed', { err }),
+  );
 
   await stopKv?.();
   // Late, and awaited: the spans from above describe the shutdown, and a

@@ -2,13 +2,9 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 
 // config.ts evaluates its guards at module load, so each case re-imports it
 // with a fresh module registry and a restored env.
-const ENV_KEYS = [
-  'WS_PUBLIC_URL',
-  'MAP_IDS',
-  'ALLOW_UNSAFE_MULTI_INSTANCE',
-] as const;
+const ENV_KEYS = ['WS_PUBLIC_URL', 'MAP_IDS'] as const;
 
-describe('config multi-instance guard', () => {
+describe('config multi-instance mode', () => {
   let saved: Record<string, string | undefined>;
 
   beforeEach(() => {
@@ -41,34 +37,21 @@ describe('config multi-instance guard', () => {
     await expect(import('./config.js')).resolves.toBeDefined();
   });
 
-  it('refuses to boot when both are set, since presence is per-process', async () => {
+  // The lease keeps two instances from losing an account's progress; what
+  // is left is the talking, which degrades rather than corrupts, so it is
+  // said, not refused.
+  it('boots when both are set, and names what does not cross instances', async () => {
     process.env.WS_PUBLIC_URL = 'ws://localhost:8080';
     process.env.MAP_IDS = '1,2';
-    await expect(import('./config.js')).rejects.toThrow(
-      /Multi-instance mode .* is disabled/,
-    );
-  });
-
-  it('boots when the operator opts in explicitly, and warns every boot', async () => {
-    process.env.WS_PUBLIC_URL = 'ws://localhost:8080';
-    process.env.MAP_IDS = '1,2';
-    process.env.ALLOW_UNSAFE_MULTI_INSTANCE = 'true';
     const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+
     const { config } = await import('./config.js');
+
     expect(config.instance.mapIds).toEqual(['1', '2']);
     expect(warn).toHaveBeenCalledWith(
-      expect.stringContaining('ALLOW_UNSAFE_MULTI_INSTANCE=true'),
+      expect.stringMatching(/global chat, broadcast\/motd and the online list/),
     );
     warn.mockRestore();
-  });
-
-  it('only accepts the exact opt-in value', async () => {
-    process.env.WS_PUBLIC_URL = 'ws://localhost:8080';
-    process.env.MAP_IDS = '1,2';
-    process.env.ALLOW_UNSAFE_MULTI_INSTANCE = '1';
-    await expect(import('./config.js')).rejects.toThrow(
-      /Multi-instance mode .* is disabled/,
-    );
   });
 
   it('ignores an empty MAP_IDS, which parses to undefined', async () => {

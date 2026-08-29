@@ -168,25 +168,16 @@ const tracingEndpoint = parseTracingEndpoint();
 const rawMapIds = parseCsvEnv('MAP_IDS');
 const mapIds = rawMapIds?.length ? rawMapIds : undefined;
 
-// Sharding is wired end to end (registry, heartbeat, cross-map redirect),
-// but login presence is per-process: authRoutes checks the local
-// playersWsMap, so one account can log in on two instances whose saves
-// clobber each other. So that mode refuses to boot rather than silently
-// losing player data.
+// Multi-instance mode boots: the presence lease (persistence/presence.ts)
+// keeps two instances from overwriting one account.
+//
+// The talking is still per-process: global chat, broadcast, motd and the
+// online list reach only the instance that handled them. Nothing is lost,
+// so it is said once at boot instead of refusing to start.
 if (process.env.WS_PUBLIC_URL && mapIds) {
-  if (process.env.ALLOW_UNSAFE_MULTI_INSTANCE !== 'true') {
-    throw new Error(
-      '[config] Multi-instance mode (WS_PUBLIC_URL + MAP_IDS) is disabled: login presence ' +
-        'is per-process, so the same account can log in on two instances at once and lose ' +
-        'progress when their saves overwrite each other. Run a single instance (unset one of ' +
-        'the two), or set ALLOW_UNSAFE_MULTI_INSTANCE=true to accept the risk.',
-    );
-  }
-  // The opt-in is set once and outlives whoever set it, so it says so on every
-  // boot: the risk it accepts is silent data loss, which has no other symptom.
   console.warn(
-    '[config] ALLOW_UNSAFE_MULTI_INSTANCE=true: login presence is per-process, so the same ' +
-      'account logging in on two instances loses progress when the saves overwrite each other.',
+    '[config] Multi-instance mode: accounts are leased to one instance at a time, but global ' +
+      'chat, broadcast/motd and the online list still only reach the instance that handled them.',
   );
 }
 

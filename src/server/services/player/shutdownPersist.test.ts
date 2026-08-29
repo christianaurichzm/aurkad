@@ -23,7 +23,9 @@ function mkPlayers(n: number): PlayerServer[] {
 
 beforeEach(() => {
   save.mockReset();
-  save.mockResolvedValue(undefined);
+  // What the repository answers when the write landed: false is a write the
+  // presence fence refused, and it is not what this file is about.
+  save.mockResolvedValue(true);
 });
 
 describe('persistPlayersOnShutdown', () => {
@@ -38,7 +40,7 @@ describe('persistPlayersOnShutdown', () => {
     save.mockImplementation((p: { name: string }) =>
       p.name === 'Player2'
         ? Promise.reject(new Error('write conflict'))
-        : Promise.resolve(),
+        : Promise.resolve(true),
     );
 
     const result = await persistPlayersOnShutdown(mkPlayers(5));
@@ -68,6 +70,7 @@ describe('persistPlayersOnShutdown', () => {
       peak = Math.max(peak, inFlight);
       await new Promise((r) => setTimeout(r, 1));
       inFlight--;
+      return true;
     });
 
     await persistPlayersOnShutdown(mkPlayers(50), 4);
@@ -84,6 +87,7 @@ describe('persistPlayersOnShutdown', () => {
       peak = Math.max(peak, inFlight);
       await new Promise((r) => setTimeout(r, 1));
       inFlight--;
+      return true;
     });
 
     await persistPlayersOnShutdown(mkPlayers(2), 32);
@@ -98,7 +102,9 @@ describe('persistPlayersOnShutdown', () => {
   });
 
   it('runs in parallel, not one round trip after another', async () => {
-    save.mockImplementation(() => new Promise((r) => setTimeout(r, 20)));
+    save.mockImplementation(
+      () => new Promise((r) => setTimeout(() => r(true), 20)),
+    );
 
     const started = Date.now();
     await persistPlayersOnShutdown(mkPlayers(16), 16);

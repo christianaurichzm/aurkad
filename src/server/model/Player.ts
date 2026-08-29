@@ -63,6 +63,15 @@ const PlayerSchema = new mongoose.Schema({
   // Set only by the account routes, after a link sent to it came back: an
   // address nobody answered is a reset link addressed to a typo.
   email: { type: String, lowercase: true, trim: true },
+  // Which instance may write this document, and until when. Written and read
+  // only by persistence/presence.ts, and stripped on the way out by
+  // normalizePlayerRecord: a lease that reached runtime state would be
+  // written back by the snapshot loop, bringing a released lease back to life.
+  lease: {
+    owner: String,
+    token: String,
+    until: Number,
+  },
 });
 
 export default mongoose.model('Player', PlayerSchema);

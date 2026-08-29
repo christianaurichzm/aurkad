@@ -31,6 +31,21 @@ import {
   totpCode,
 } from '../../services/player/twoFactorService.js';
 
+// The other instance, which only exists as an answer here: whether a lease can
+// be taken is decided in Mongo and tested in persistence/presence.test.ts, and
+// what this file owns is what the route does with the answer.
+type PresenceAnswer = { ok: true } | { ok: false; owner: string };
+const presence = vi.hoisted((): { answer: PresenceAnswer } => ({
+  answer: { ok: true },
+}));
+vi.mock('../../persistence/presence.js', () => ({
+  acquirePresence: () => Promise.resolve(presence.answer),
+  releasePresence: () => Promise.resolve(),
+  releaseAllPresence: () => Promise.resolve(),
+  renewPresence: () => Promise.resolve(),
+  presenceFence: () => ({}),
+}));
+
 // A deployment that can send mail, and a record of what it sent: the address
 // routes exist to put a link in somebody's inbox, so the assertion is the mail.
 const sent: { to: string; text: string }[] = [];
@@ -149,6 +164,24 @@ describe('POST /login', () => {
     const res = await request(app).post('/login').send({ username: 'x' });
 
     expect(res.status).toBe(400);
+  });
+
+  it('rejects a login for an account another instance is holding', async () => {
+    await createPlayer('Alice', await hashPw('correcthorse'));
+    presence.answer = { ok: false, owner: 'ws://beta:8080' };
+
+    const res = await request(app)
+      .post('/login')
+      .send({ username: 'Alice', password: 'correcthorse' });
+
+    presence.answer = { ok: true };
+    expect(res.status).toBe(409);
+    // The same sentence as a second window on this instance: which process
+    // holds the account is not the player's business, and naming it would
+    // publish the topology to anybody with a login form.
+    expect(res.body.message).toMatch(/already logged in/);
+    // Nothing about the world happened: the session was never written.
+    expect(getPlayerByName('Alice')).toBeUndefined();
   });
 
   it('logs in with valid credentials, sets the session and places the player on the start map', async () => {

@@ -43,6 +43,10 @@ import {
   sendMail,
 } from '../../services/comms/mailService.js';
 import { checkSecondFactor } from '../../services/player/twoFactorService.js';
+import {
+  acquirePresence,
+  releasePresence,
+} from '../../persistence/presence.js';
 
 /** Matches the session store's TTL in http/session.ts. */
 const REMEMBERED_SESSION_MS = 7 * 24 * 60 * 60 * 1000;
@@ -128,6 +132,20 @@ export function createAuthRouter() {
         });
       }
 
+      // The socket above is this process only; the lease asks every
+      // instance. Whoever holds it may write this character, so a second
+      // session elsewhere would lose its progress to the first one's flush.
+      const presence = await acquirePresence(player.id, username);
+      if (!presence.ok) {
+        logger.warn('[presence] login refused, account held elsewhere', {
+          player: username,
+          owner: presence.owner,
+        });
+        return res.status(409).json({
+          message: 'This account is already logged in from another session.',
+        });
+      }
+
       req.session.username = username;
       req.session.accessLevel = player.access ?? Access.USER;
       req.session.assetKey = crypto.randomBytes(32).toString('hex');
@@ -143,6 +161,9 @@ export function createAuthRouter() {
       req.session.save((err) => {
         if (err) {
           logger.error('Session save failed', { err });
+          // The lease was taken for a session that does not exist: held, it
+          // would keep this account out of every instance until it expired.
+          void releasePresence(player.id);
           return res.status(500).json({ message: 'Failed to save session' });
         }
         res.status(200).json({
