@@ -38,14 +38,23 @@ export function calcCamera(
   } else {
     ({ w: mapW, h: mapH } = getMapPixelSize());
   }
+  // Whole pixels: the player position this follows is interpolated, so the
+  // camera it produces was fractional, and every tile drawn under it landed
+  // between two pixels of the buffer. Rounded here rather than at each blit
+  // because this is where the fraction enters the drawing, and the clamps are
+  // both whole pixels already.
   return {
-    x: Math.max(
-      0,
-      Math.min(playerX + TILE_SIZE / 2 - GAME_WIDTH / 2, mapW - GAME_WIDTH),
+    x: Math.round(
+      Math.max(
+        0,
+        Math.min(playerX + TILE_SIZE / 2 - GAME_WIDTH / 2, mapW - GAME_WIDTH),
+      ),
     ),
-    y: Math.max(
-      0,
-      Math.min(playerY + TILE_SIZE / 2 - GAME_HEIGHT / 2, mapH - GAME_HEIGHT),
+    y: Math.round(
+      Math.max(
+        0,
+        Math.min(playerY + TILE_SIZE / 2 - GAME_HEIGHT / 2, mapH - GAME_HEIGHT),
+      ),
     ),
   };
 }

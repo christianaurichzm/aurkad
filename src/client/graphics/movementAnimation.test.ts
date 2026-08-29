@@ -55,6 +55,22 @@ describe('movement interpolation', () => {
     expect(pos('e2', { x: TILE_SIZE, y: 0 })).toEqual({ x: TILE_SIZE, y: 0 });
   });
 
+  it('lands the slide on whole pixels, never between two', () => {
+    onServerPositionUpdate(
+      'e9',
+      { x: 0, y: 0 },
+      { x: TILE_SIZE, y: TILE_SIZE },
+    );
+
+    // A third of the way through a 64px step is 21.33px, and a sprite blitted
+    // there is resampled across two pixels of the buffer for the whole slide.
+    now = 1000 + D / 3;
+    const mid = pos('e9', { x: TILE_SIZE, y: TILE_SIZE });
+
+    expect(Number.isInteger(mid.x)).toBe(true);
+    expect(Number.isInteger(mid.y)).toBe(true);
+  });
+
   it('reports moving while a slide is in flight and idle once settled', () => {
     onServerPositionUpdate('e6', { x: 0, y: 0 }, { x: TILE_SIZE, y: 0 });
 

@@ -132,9 +132,11 @@ export function getAnimatedState(
   const t = step.eased ? raw * raw * (3 - 2 * raw) : raw;
 
   return {
+    // Whole pixels, so the sprite stays on its own grid and does not shimmer;
+    // a step moves about four pixels a frame, so rounding does not show.
     position: {
-      x: step.from.x + (step.to.x - step.from.x) * t,
-      y: step.from.y + (step.to.y - step.from.y) * t,
+      x: Math.round(step.from.x + (step.to.x - step.from.x) * t),
+      y: Math.round(step.from.y + (step.to.y - step.from.y) * t),
     },
     moving: true,
     slideT: t,

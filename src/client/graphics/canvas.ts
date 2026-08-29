@@ -36,4 +36,12 @@ export const initGameCanvas = () => {
   playerCtx = playerCanvas.getContext('2d')!;
   itemCtx = itemCanvas.getContext('2d')!;
   fringeCtx = fringeCanvas.getContext('2d')!;
+
+  // Nearest neighbour on every layer. The art is pixel art and the browser
+  // resamples bilinearly by default, so a tile or sprite between two pixels
+  // comes out soft. The camera and the slide snap to whole pixels
+  // (camera.ts, movementAnimation.ts); this stops the resampling itself.
+  for (const ctx of [foregroundCtx, maskCtx, playerCtx, itemCtx, fringeCtx]) {
+    ctx.imageSmoothingEnabled = false;
+  }
 };
