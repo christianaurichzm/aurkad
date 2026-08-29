@@ -1,7 +1,35 @@
-import { describe, it, expect, afterEach, beforeAll, afterAll } from 'vitest';
+import {
+  describe,
+  it,
+  expect,
+  afterEach,
+  beforeAll,
+  afterAll,
+  vi,
+} from 'vitest';
 import { createServer, type IncomingMessage, type Server } from 'node:http';
 import type { AddressInfo } from 'node:net';
 import { httpRequest, send } from './httpOut.js';
+
+/**
+ * `rebind.test` must not resolve, and the real resolver may take a DNS
+ * timeout to say so, failing the test for the network's reasons. Every other
+ * name here is an address literal or `localhost` from the hosts file, so the
+ * real lookup still answers those.
+ */
+vi.mock('node:dns/promises', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('node:dns/promises')>();
+  return {
+    ...actual,
+    lookup: (host: string, ...rest: unknown[]) =>
+      host === 'rebind.test'
+        ? Promise.reject(new Error('getaddrinfo ENOTFOUND rebind.test'))
+        : (actual.lookup as (...args: unknown[]) => Promise<unknown>)(
+            host,
+            ...rest,
+          ),
+  };
+});
 
 /**
  * A real server on the loopback. The address check refuses this machine, so
