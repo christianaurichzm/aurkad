@@ -19,6 +19,7 @@ import express from 'express';
 import mongoose from 'mongoose';
 import app, { handleRouteError } from './app.js';
 import { config } from './config.js';
+import { startTracing, stopTracing } from './tracing.js';
 import { createSessionMiddleware } from './http/session.js';
 import { createHttpLimiter } from './http/middleware/rateLimit.js';
 import { createAuthRouter } from './http/routes/authRoutes.js';
@@ -177,6 +178,7 @@ async function startServer() {
     registerServerCommands();
     registerPlayerCommands();
     startLiveOps();
+    startTracing();
     loadModules();
     await loadScripts();
     // Only now can content that names a script behaviour be checked: before
@@ -250,6 +252,10 @@ async function shutdown(signal: string) {
   }
 
   await stopKv?.();
+  // Late, and awaited: the spans from everything above are the ones that
+  // describe the shutdown, and a batch still in the buffer at exit is the part
+  // of the incident nobody gets to read.
+  await stopTracing();
 
   try {
     await mongoose.disconnect();

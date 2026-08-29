@@ -126,3 +126,74 @@ describe('TRUST_PROXY', () => {
     );
   });
 });
+
+describe('OTEL_EXPORTER_OTLP_ENDPOINT', () => {
+  const KEYS = ['OTEL_EXPORTER_OTLP_ENDPOINT', 'OTEL_TRACES_SAMPLE_PERCENT'];
+  let saved: Record<string, string | undefined>;
+
+  beforeEach(() => {
+    saved = {};
+    for (const key of KEYS) {
+      saved[key] = process.env[key];
+      delete process.env[key];
+    }
+    vi.resetModules();
+  });
+
+  afterEach(() => {
+    for (const key of KEYS) {
+      if (saved[key] === undefined) delete process.env[key];
+      else process.env[key] = saved[key];
+    }
+  });
+
+  const load = async () => (await import('./config.js')).config.tracing;
+
+  it('is off, and sampling is whole, with nothing set', async () => {
+    const tracing = await load();
+
+    expect(tracing.endpoint).toBeUndefined();
+    expect(tracing.samplePercent).toBe(100);
+  });
+
+  // The OTLP convention is a base address plus the signal's own path; a
+  // collector's docs give one form or the other, and both have to work.
+  it('appends the traces path to a base address, once', async () => {
+    process.env.OTEL_EXPORTER_OTLP_ENDPOINT = 'http://collector:4318';
+    expect((await load()).endpoint).toBe('http://collector:4318/v1/traces');
+
+    vi.resetModules();
+    process.env.OTEL_EXPORTER_OTLP_ENDPOINT = 'http://collector:4318/v1/traces';
+    expect((await load()).endpoint).toBe('http://collector:4318/v1/traces');
+
+    vi.resetModules();
+    process.env.OTEL_EXPORTER_OTLP_ENDPOINT = 'http://collector:4318/otlp/';
+    expect((await load()).endpoint).toBe(
+      'http://collector:4318/otlp/v1/traces',
+    );
+  });
+
+  it('refuses to boot on something that is not a usable URL', async () => {
+    process.env.OTEL_EXPORTER_OTLP_ENDPOINT = 'collector 4318';
+    await expect(import('./config.js')).rejects.toThrow(/must be a URL/);
+
+    // A host:port with no scheme parses as a scheme, which is the mistake
+    // worth naming precisely: it is refused for what it actually is.
+    vi.resetModules();
+    process.env.OTEL_EXPORTER_OTLP_ENDPOINT = 'collector:4318';
+    await expect(import('./config.js')).rejects.toThrow(/http or https/);
+
+    vi.resetModules();
+    process.env.OTEL_EXPORTER_OTLP_ENDPOINT = 'grpc://collector:4317';
+    await expect(import('./config.js')).rejects.toThrow(/http or https/);
+  });
+
+  it('clamps the sampler to a percentage', async () => {
+    process.env.OTEL_TRACES_SAMPLE_PERCENT = '250';
+    expect((await load()).samplePercent).toBe(100);
+
+    vi.resetModules();
+    process.env.OTEL_TRACES_SAMPLE_PERCENT = '-5';
+    expect((await load()).samplePercent).toBe(0);
+  });
+});

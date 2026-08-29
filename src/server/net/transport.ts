@@ -23,6 +23,7 @@ import { handleCustomAction } from '../services/comms/customEventService.js';
 import { npcMoveTicks, updateNpcs } from '../services/npc/index.js';
 import { gameConfig } from '../gameConfig.js';
 import { playersWsMap } from './connections.js';
+import { parseTraceparent, startSpan } from '../tracing.js';
 import { recordAction, recordSession } from '../sim/replayRecorder.js';
 import { getTick } from '../sim/clock.js';
 import { reqCtx } from '../context.js';
@@ -272,7 +273,11 @@ export const startWebSocketServer = (
   }, config.ws.heartbeatIntervalMs);
 
   server.on('upgrade', (request, socket, head) => {
-    if (request.url !== '/ws') {
+    // Parsed rather than compared: the warp hand-off puts the trace it started
+    // on the query string, because a browser cannot set a header on a
+    // WebSocket. The path is still the only thing that decides the upgrade.
+    const url = new URL(request.url ?? '', 'http://localhost');
+    if (url.pathname !== '/ws') {
       socket.destroy();
       return;
     }
@@ -282,6 +287,21 @@ export const startWebSocketServer = (
     sessionMiddleware(request as ExtendedRequest, {} as Response, () => {
       if ((request as ExtendedRequest).session.username) {
         wss.handleUpgrade(request, socket, head, (ws) => {
+          // The far end of a redirect continues the trace the other instance
+          // opened, the one place two processes meet. An ordinary connection
+          // carries none and gets no span.
+          const handoff = parseTraceparent(
+            url.searchParams.get('traceparent') ?? undefined,
+          );
+          if (handoff) {
+            startSpan('warp.arrive', {
+              parent: handoff,
+              kind: 'server',
+              attributes: {
+                'player.name': (request as ExtendedRequest).session.username,
+              },
+            }).end();
+          }
           wss.emit('connection', ws, request);
         });
       } else {

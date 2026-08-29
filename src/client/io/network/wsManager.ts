@@ -116,11 +116,18 @@ export const initializeWebSocket = (url = currentWsUrl) => {
             .finally(() => window.location.reload());
           socket.close();
           break;
-        case 'redirect':
+        case 'redirect': {
           kicked = true;
           socket.close();
-          setTimeout(() => initializeWebSocket(data.url), 200);
+          // The other instance's trace rides on the query string, as a browser
+          // cannot set WebSocket headers; without it the arrival there looks
+          // unrelated to this warp.
+          const next = data.traceparent
+            ? `${data.url}${data.url.includes('?') ? '&' : '?'}traceparent=${encodeURIComponent(data.traceparent)}`
+            : data.url;
+          setTimeout(() => initializeWebSocket(next), 200);
           break;
+        }
         case 'openShop':
           if (data.shopId) {
             window.dispatchEvent(

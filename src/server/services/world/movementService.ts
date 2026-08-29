@@ -36,6 +36,7 @@ import {
 import { handleChatAction } from '../comms/chatService.js';
 import { logger } from '../../logger.js';
 import { lookupInstanceUrl } from '../../persistence/instanceRegistry.js';
+import { formatTraceparent, startSpan } from '../../tracing.js';
 import { playersWsMap } from '../../net/connections.js';
 
 // A player moving through the world: held-key intent each tick, warp, door,
@@ -69,11 +70,36 @@ function redirectPlayer(
   player.mapId = toMapId;
   player.position = toPosition;
   resetMovement(player);
+
+  // The one hop in this engine that crosses a process boundary. A root span,
+  // not a child: nothing that reaches here came from an HTTP request, and the
+  // trace id travels with the redirect so the arrival on the other instance
+  // lands inside this trace instead of starting a second, unrelated one.
+  const span = startSpan('warp.handoff', {
+    kind: 'client',
+    attributes: {
+      'player.name': player.name,
+      'map.to': toMapId,
+      'server.address': wsUrl,
+    },
+  });
+
   const ws = playersWsMap.get(player.name);
   if (ws && ws.readyState === ws.OPEN) {
-    ws.send(JSON.stringify({ type: 'redirect', url: wsUrl }));
+    ws.send(
+      JSON.stringify({
+        type: 'redirect',
+        url: wsUrl,
+        traceparent: formatTraceparent(span.context),
+      }),
+    );
     ws.close();
+  } else {
+    // No socket to tell: the player is gone and the arrival will never happen,
+    // which is worth seeing as a failed hand-off rather than a missing half.
+    span.fail('no open socket to redirect');
   }
+  span.end();
   playersWsMap.delete(player.name);
   pressedKeysMap.delete(player.name);
   disconnectPlayer(player.name).catch((e) =>

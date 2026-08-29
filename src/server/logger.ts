@@ -32,6 +32,12 @@ function log(level: Level, msg: string, ctx?: LogCtx): void {
   const enriched: LogCtx = {
     ...(stored?.requestId && { requestId: stored.requestId }),
     ...(stored?.username && { username: stored.username }),
+    // Named as the collectors expect, so a log line and the span it belongs to
+    // join up without a rename in the pipeline.
+    ...(stored?.trace && {
+      trace_id: stored.trace.traceId,
+      span_id: stored.trace.spanId,
+    }),
     ...ctx,
   };
   const hasCtx = Object.keys(enriched).length > 0;

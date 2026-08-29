@@ -1,15 +1,36 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+import { createServer, type Server as HttpServer } from 'node:http';
+import type { AddressInfo } from 'node:net';
+import WebSocket from 'ws';
 import { ServerActionType } from '../engine/actions.js';
 import { gameConfig } from '../gameConfig.js';
 import { advanceTick } from '../sim/clock.js';
 import { createFixture, tile } from '../sim/simFixture.js';
 import { rebuildQuadtree } from '../spatial/spatialManager.js';
+// Only the tracing half is pinned; everything else stays the real config, so
+// the limits and payload sizes the other tests lean on are untouched.
+const { tracing } = vi.hoisted(() => ({
+  tracing: {
+    endpoint: 'http://127.0.0.1:1/v1/traces',
+    serviceName: 'test-engine',
+    samplePercent: 100,
+  },
+}));
+
+vi.mock('../config.js', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('../config.js')>();
+  return { config: { ...actual.config, tracing } };
+});
+
 import {
   enqueueServerAction,
   getActionQueueSize,
   processActions,
   rateLimiterEntryCount,
+  startWebSocketServer,
+  stopWebSocketServer,
 } from './transport.js';
+import { pendingSpansForTest, resetTracingForTest } from '../tracing.js';
 
 // The queue is a module singleton, so every test drains it before asserting.
 let fx: ReturnType<typeof createFixture>;
@@ -93,5 +114,67 @@ describe('UpdateNpcPositions', () => {
     processActions();
 
     expect(npc.position).toEqual(before);
+  });
+});
+
+/**
+ * The far end of a cross-instance warp, the one place two processes touch.
+ * It is a socket, so the trace arrives on the query string (a browser cannot
+ * set WebSocket headers), and this test proves the two halves join up.
+ */
+describe('the warp arrival', () => {
+  let http: HttpServer;
+  let port = 0;
+
+  const asSession = (req: unknown, _res: unknown, next: () => void) => {
+    (req as { session: { username: string } }).session = { username: 'Boss' };
+    next();
+  };
+
+  const connect = (query: string) =>
+    new Promise<void>((resolve, reject) => {
+      const ws = new WebSocket(`ws://127.0.0.1:${port}/ws${query}`);
+      ws.on('open', () => {
+        ws.close();
+        // The span is recorded during the upgrade, before this fires.
+        resolve();
+      });
+      ws.on('error', reject);
+    });
+
+  beforeEach(async () => {
+    resetTracingForTest();
+    http = createServer();
+    await new Promise<void>((resolve) => http.listen(0, resolve));
+    port = (http.address() as AddressInfo).port;
+    startWebSocketServer(http, asSession as never);
+  });
+
+  afterEach(async () => {
+    await stopWebSocketServer();
+    await new Promise<void>((resolve) => http.close(() => resolve()));
+  });
+
+  it('continues the trace the redirecting instance started', async () => {
+    const traceId = 'c'.repeat(32);
+    const spanId = 'd'.repeat(16);
+
+    await connect(`?traceparent=00-${traceId}-${spanId}-01`);
+
+    expect(pendingSpansForTest()).toEqual([
+      { name: 'warp.arrive', traceId, parentSpanId: spanId },
+    ]);
+  });
+
+  it('records nothing for an ordinary connection', async () => {
+    await connect('');
+
+    expect(pendingSpansForTest()).toEqual([]);
+  });
+
+  it('ignores a traceparent that is not one, rather than starting a trace', async () => {
+    await connect('?traceparent=nonsense');
+
+    expect(pendingSpansForTest()).toEqual([]);
   });
 });

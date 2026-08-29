@@ -49,6 +49,18 @@ export const httpError = (e: unknown): Partial<HttpError> =>
 const buildUrl = (endpoint: string): string =>
   API_URL && REST_PROTO ? `${REST_PROTO}://${API_URL}${endpoint}` : endpoint;
 
+const hex = (bytes: number): string =>
+  Array.from(crypto.getRandomValues(new Uint8Array(bytes)), (b) =>
+    b.toString(16).padStart(2, '0'),
+  ).join('');
+
+/**
+ * A W3C `traceparent` for one request. The trace starts in the browser, or
+ * the server could never tell a slow network from a slow handler. `01` is
+ * the sampled flag; the server's sampler makes the call.
+ */
+const traceparent = (): string => `00-${hex(16)}-${hex(8)}-01`;
+
 export const httpClient = async <T>(
   endpoint: string,
   { method, headers, body }: HttpRequestOptions,
@@ -57,6 +69,7 @@ export const httpClient = async <T>(
     method,
     headers: {
       'Content-Type': 'application/json',
+      traceparent: traceparent(),
       ...headers,
     },
     body: body ? JSON.stringify(body) : undefined,

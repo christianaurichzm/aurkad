@@ -283,6 +283,24 @@ export function buildMetricsSamples(): Sample[] {
         labels: { script: h.script, handler: h.handler },
       },
     ]),
+    {
+      name: 'engine_trace_spans_pending',
+      help: 'Finished spans waiting for the next export flush.',
+      type: 'gauge' as const,
+      value: m.tracing.pending,
+    },
+    {
+      name: 'engine_trace_spans_dropped_total',
+      help: 'Spans discarded because the export buffer was full.',
+      type: 'counter' as const,
+      value: m.tracing.dropped,
+    },
+    {
+      name: 'engine_trace_exports_failed',
+      help: 'Consecutive failed span exports; 0 means the last one landed.',
+      type: 'gauge' as const,
+      value: m.tracing.failedExports,
+    },
     ...m.scripts.shares.map((s) => ({
       name: 'engine_script_wallclock_percent',
       help: 'Share of wall-clock time a script took in the last complete measurement window.',

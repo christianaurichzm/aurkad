@@ -9,6 +9,7 @@ import {
   handlerCosts,
   scriptTimeShares,
 } from './engine/scripting/handlerBudget.js';
+import { tracingStats } from './tracing.js';
 
 export interface TickMetrics {
   tickMs: number;
@@ -138,6 +139,10 @@ export function getMetrics() {
       handlers: handlerCosts(),
       shares: scriptTimeShares(),
     },
+    // A span that never reached the collector is invisible by definition: the
+    // trace it belonged to simply has a hole where this process should be, and
+    // that reads as "nothing happened here" rather than as a lost export.
+    tracing: tracingStats(),
     // Every one of these is keyed by a player or an entity that eventually goes
     // away. Published together because "does it leak" is answered by comparing
     // them with the online count, and "which one leaks" needs them separate.

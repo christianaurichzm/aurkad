@@ -16,6 +16,7 @@ import { request as httpTransport } from 'node:http';
 import { request as httpsTransport } from 'node:https';
 import { isIP, type LookupFunction } from 'node:net';
 import { logger } from '../../logger.js';
+import { currentTrace, startSpan, traceHeaders } from '../../tracing.js';
 
 const DEFAULT_TIMEOUT_MS = 5_000;
 const MAX_TIMEOUT_MS = 30_000;
@@ -246,11 +247,22 @@ export async function httpRequest(
   rawUrl: string,
   options: HttpRequestOptions = {},
 ): Promise<HttpResponse> {
+  // Named after the script rather than the URL, and carrying the host and not
+  // the path: a webhook address IS its secret (a Discord one is a token in the
+  // path), and a trace is read by everyone who can read the collector.
+  const span = startSpan(`script.http ${scriptName}`, {
+    parent: currentTrace(),
+    kind: 'client',
+    attributes: { 'script.name': scriptName },
+  });
+
   const failed = (error: string): HttpResponse => {
     logger.warn(`[script:${scriptName}] http request failed`, {
       url: rawUrl,
       error,
     });
+    span.fail(error);
+    span.end();
     return { ok: false, status: 0, body: '', error };
   };
 
@@ -260,11 +272,20 @@ export async function httpRequest(
   } catch {
     return failed('invalid url');
   }
+  span.setAttributes({
+    'server.address': target.hostname,
+    'http.request.method': options.method ?? (options.json ? 'POST' : 'GET'),
+  });
 
   const destination = await approve(target);
   if ('refusal' in destination) return failed(destination.refusal);
 
-  const headers: Record<string, string> = { ...options.headers };
+  const headers: Record<string, string> = {
+    // The receiving service joins this trace if it is instrumented; a Discord
+    // webhook simply ignores the header.
+    ...traceHeaders(span.context),
+    ...options.headers,
+  };
   let body = options.body;
   if (options.json !== undefined) {
     try {
@@ -276,11 +297,15 @@ export async function httpRequest(
   }
 
   try {
-    return await send(target, destination.address, {
+    const response = await send(target, destination.address, {
       ...options,
       headers,
       body,
     });
+    span.setAttributes({ 'http.response.status_code': response.status });
+    if (!response.ok) span.fail(`status ${response.status}`);
+    span.end();
+    return response;
   } catch (err) {
     return failed(err instanceof Error ? err.message : String(err));
   }

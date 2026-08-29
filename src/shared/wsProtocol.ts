@@ -134,6 +134,13 @@ export interface WsServerCustomMessage {
 export interface WsServerRedirectMessage {
   type: 'redirect';
   url: string;
+  /**
+   * The trace the hand-off belongs to, in W3C `traceparent` form. The client
+   * puts it on the query string of its next socket, the only way the
+   * receiving instance can tell the connection ends a warp begun elsewhere.
+   * Optional and additive, as a client ignoring it reconnects the same.
+   */
+  traceparent?: string;
 }
 
 export type WsServerMessage =

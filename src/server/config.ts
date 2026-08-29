@@ -132,6 +132,37 @@ if (metricsToken !== undefined && metricsToken.length < 16) {
   );
 }
 
+/**
+ * Where finished spans are posted, or nothing. A base address
+ * (`http://collector:4318`) gets the signal's path appended, and a full URL
+ * from a vendor's docs works too. A value that is not a URL fails the boot,
+ * or telemetry would go nowhere unnoticed.
+ */
+function parseTracingEndpoint(): string | undefined {
+  const raw = process.env.OTEL_EXPORTER_OTLP_ENDPOINT?.trim();
+  if (!raw) return undefined;
+
+  let url: URL;
+  try {
+    url = new URL(raw);
+  } catch {
+    throw new Error(
+      '[config] OTEL_EXPORTER_OTLP_ENDPOINT must be a URL, e.g. http://localhost:4318',
+    );
+  }
+  if (url.protocol !== 'http:' && url.protocol !== 'https:') {
+    throw new Error(
+      `[config] OTEL_EXPORTER_OTLP_ENDPOINT must be http or https, not ${url.protocol}`,
+    );
+  }
+  const path = url.pathname.replace(/\/+$/, '');
+  return path.endsWith('/v1/traces')
+    ? url.toString()
+    : `${url.origin}${path}/v1/traces`;
+}
+
+const tracingEndpoint = parseTracingEndpoint();
+
 // An all-blank MAP_IDS parses to [], which would read as sharding. It means
 // "own all maps", like unset, so both become undefined here.
 const rawMapIds = parseCsvEnv('MAP_IDS');
@@ -207,6 +238,20 @@ export const config = {
     // Bearer token for /metrics, since a scraper cannot hold an operator
     // session. Unset, only an admin session reads it.
     token: metricsToken,
+  },
+  tracing: {
+    // Off unless a collector is named. With it unset the ids are still minted
+    // and still reach every log line; what stops is the export.
+    endpoint: tracingEndpoint,
+    // What the traces are labelled as. Two instances of one game share it and
+    // separate themselves by `service.instance.id` (their WS_PUBLIC_URL).
+    serviceName: process.env.OTEL_SERVICE_NAME?.trim() || 'engine',
+    // Per cent of new traces recorded, an integer clamped like the rest here,
+    // where a truncated 0.25 would record nothing.
+    samplePercent: parseIntEnv('OTEL_TRACES_SAMPLE_PERCENT', 100, {
+      min: 0,
+      max: 100,
+    }),
   },
   scriptData: {
     // Bounds on the data scripts persist (player.data and the KV store).
@@ -404,6 +449,10 @@ export const config = {
         return cb(new Error('Not allowed by CORS'));
       },
       credentials: true,
+      // Without this a browser on another origin cannot read either header,
+      // which is where both correlation ids live: the eight characters a
+      // player reports, and the trace the request became on this side.
+      exposedHeaders: ['X-Request-Id', 'traceparent'],
     } satisfies CorsOptions,
   },
 } as const;
