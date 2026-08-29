@@ -66,6 +66,7 @@ export const updateMapById = async (
     pvp: mapState.pvp,
     tiles: mapState.tiles,
     music: mapState.music,
+    instanced: mapState.instanced,
     borderLinks: mapState.borderLinks,
   });
   return mapState;

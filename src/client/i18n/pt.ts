@@ -271,6 +271,9 @@ export const pt: Record<keyof typeof en, string> = {
   'map.type': 'Tipo de mapa',
   'map.typeNormal': 'Normal',
   'map.typePvp': 'PvP',
+  'map.instanced': 'Instanciado (masmorra)',
+  'map.instancedHint':
+    'Cada jogador ou grupo entra na propria copia. Ninguem joga neste mapa em si.',
   'map.music': 'Arquivo de música',
   'map.borderLinks': 'Ligações de borda',
   'map.borderUp': 'Cima',

@@ -81,6 +81,10 @@ const MapSchema = new mongoose.Schema({
   name: { type: String, required: true },
   type: { type: String, required: true, enum: ['pvp', 'normal'] },
   pvp: { type: String, enum: ['safe', 'normal', 'no-penalty'] },
+  // A dungeon: entered as a copy per player or party. Here rather than in
+  // game.json because it is a fact about this place, and whoever draws the map
+  // is who decides it.
+  instanced: { type: Boolean },
   tiles: [[TileSchema]],
   droppedItems: [DroppedItemSchema],
   music: String,

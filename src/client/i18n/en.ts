@@ -274,6 +274,9 @@ export const en = {
   'map.type': 'Map Type',
   'map.typeNormal': 'Normal',
   'map.typePvp': 'PvP',
+  'map.instanced': 'Instanced (dungeon)',
+  'map.instancedHint':
+    'Each player or party gets their own copy. Nobody plays on this map itself.',
   'map.music': 'Music file',
   'map.borderLinks': 'Border links',
   'map.borderUp': 'Up',

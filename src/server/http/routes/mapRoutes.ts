@@ -125,7 +125,7 @@ export function createMapRouter() {
     const body = parseBody(UpdateMapBodySchema, req.body, res);
     if (!body) return;
     const id = req.params['id'];
-    const { name, type, music, borderLinks } = body;
+    const { name, type, music, instanced, borderLinks } = body;
 
     try {
       await createOrUpdateMap({
@@ -133,6 +133,7 @@ export function createMapRouter() {
         ...(name && { name }),
         ...(type && { type }),
         ...(music !== undefined && { music }),
+        ...(instanced !== undefined && { instanced }),
         ...(borderLinks !== undefined && { borderLinks }),
       });
 

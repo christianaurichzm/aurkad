@@ -23,6 +23,7 @@ type MapFormValues = {
   cols: number;
   rows: number;
   music: string;
+  instanced: boolean;
   borderUp: BorderLinkForm;
   borderDown: BorderLinkForm;
   borderLeft: BorderLinkForm;
@@ -44,6 +45,7 @@ const defaultValues: MapFormValues = {
   cols: 20,
   rows: 14,
   music: '',
+  instanced: false,
   borderUp: emptyBorder,
   borderDown: emptyBorder,
   borderLeft: emptyBorder,
@@ -65,6 +67,7 @@ const mapToFormValues = (map: MapStateClient): MapFormValues => ({
   cols: map.tiles?.[0]?.length ?? 20,
   rows: map.tiles?.length ?? 14,
   music: map.music ?? '',
+  instanced: map.instanced ?? false,
   borderUp: warpToForm(map.borderLinks?.up),
   borderDown: warpToForm(map.borderLinks?.down),
   borderLeft: warpToForm(map.borderLinks?.left),
@@ -135,6 +138,7 @@ export const MapEditor: React.FC<MapEditorProps> = ({
     cols,
     rows,
     music,
+    instanced,
     borderUp,
     borderDown,
     borderLeft,
@@ -151,6 +155,7 @@ export const MapEditor: React.FC<MapEditorProps> = ({
           name,
           type,
           music: music || undefined,
+          instanced,
           borderLinks,
         })
       : await createMap({ name, type, cols, rows });
@@ -225,6 +230,11 @@ export const MapEditor: React.FC<MapEditorProps> = ({
               placeholder="music.mp3"
             />
           </div>
+          <label style={checkboxField}>
+            <input type="checkbox" {...register('instanced')} />
+            {t('map.instanced')}
+          </label>
+          <span style={hint}>{t('map.instancedHint')}</span>
           <div style={field}>
             <label style={label}>{t('map.borderLinks')}</label>
             {(
@@ -387,6 +397,21 @@ const saveBtn: React.CSSProperties = {
   fontWeight: 600,
   fontSize: 14,
   width: '100%',
+};
+
+const checkboxField: React.CSSProperties = {
+  display: 'flex',
+  alignItems: 'center',
+  gap: 8,
+  fontSize: 13,
+  color: colors.text,
+  cursor: 'pointer',
+};
+
+const hint: React.CSSProperties = {
+  fontSize: 11,
+  color: colors.textMuted,
+  marginTop: -4,
 };
 
 const resetBtn: React.CSSProperties = {

@@ -9,11 +9,7 @@ vi.mock('../../gameConfig.js', async (importOriginal) => {
     ...actual,
     gameConfig: {
       ...actual.gameConfig,
-      world: {
-        ...actual.gameConfig.world,
-        instancedMaps: ['dungeon'],
-        instanceGraceMs: 2_000,
-      },
+      world: { ...actual.gameConfig.world, instanceGraceMs: 2_000 },
     },
   };
 });
@@ -35,7 +31,7 @@ const unsubscribes: (() => void)[] = [];
 
 /** A dungeon with one goblin standing in it, and a warp on map1 leading in. */
 function buildDungeon(): void {
-  const dungeon = sim.addMap({ id: 'dungeon' });
+  const dungeon = sim.addMap({ id: 'dungeon', instanced: true });
   const goblin: RuntimeNpc = {
     id: 'goblin:5:5',
     name: 'Goblin',

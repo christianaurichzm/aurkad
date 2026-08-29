@@ -301,6 +301,7 @@ export const UpdateMapBodySchema = z.object({
   type: MapTypeSchema.optional(),
   pvp: PvpMoraleSchema.optional(),
   music: z.string().optional(),
+  instanced: z.boolean().optional(),
   borderLinks: BorderLinksSchema,
 });
 

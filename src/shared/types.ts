@@ -432,6 +432,12 @@ export interface MapStateBase {
   npcs: Record<string, RuntimeNpc>;
   music?: string;
   borderLinks?: BorderLinks;
+  /**
+   * Entered as a private copy per player or party, rather than as a place
+   * where everybody meets. Nobody ever stands on the map itself: it is the
+   * blueprint the copies are made from (see services/world/instanceService).
+   */
+  instanced?: boolean;
 }
 
 export interface MapStateServer extends MapStateBase {

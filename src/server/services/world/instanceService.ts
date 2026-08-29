@@ -73,8 +73,14 @@ function blueprintFor(
   return fresh;
 }
 
+/**
+ * Whether this map is entered as a copy. The flag is on the map document,
+ * so every door gets the same answer; a map both public and private would
+ * be a meeting place and a blueprint at once. False for a map this process
+ * lacks, so the caller falls back to its cross-instance redirect.
+ */
 export function isInstancedMap(mapId: string): boolean {
-  return gameConfig.world.instancedMaps.includes(mapId);
+  return getMap(mapId)?.instanced === true;
 }
 
 export function isInstanceKey(mapId?: string): boolean {
@@ -247,21 +253,8 @@ export function sweepInstances(): void {
 
 /** Called at boot, once the maps are loaded and before anyone can walk in. */
 export function startInstances(): void {
-  for (const templateId of gameConfig.world.instancedMaps) {
-    const template = getMap(templateId);
-    if (!template) {
-      logger.warn('[instance] instanced map is not loaded here', {
-        templateId,
-      });
-      continue;
-    }
-    blueprints.set(
-      templateId,
-      Object.values(template.npcs).map((npc) => ({
-        ...npc,
-        position: { ...npc.position },
-      })),
-    );
+  for (const template of Object.values(runtimeState.maps)) {
+    if (template.instanced) blueprintFor(template.id, template);
   }
 
   scheduleEvery(msToTicks(1_000), sweepInstances, 'instances');
