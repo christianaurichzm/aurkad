@@ -29,6 +29,7 @@ import {
   disableTwoFactor,
   twoFactorStatus,
 } from '../services/player/twoFactorService.js';
+import { activityOf, forgetPlayer } from '../services/analyticsService.js';
 import {
   deletePlayer,
   disconnectPlayer,
@@ -645,17 +646,20 @@ export function registerPlayerCommands(): void {
       // The hash is the one field that is about the account rather than the
       // person, and handing it out helps an attacker and nobody else.
       const { password: _password, ...personal } = record;
-      const [mail, ban, twoFactor] = await Promise.all([
+      const [mail, ban, twoFactor, activity] = await Promise.all([
         listDeliveries(username),
         getBan(username),
         // Whether there is a second factor, never its secret, for the same
         // reason the hash is dropped.
         twoFactorStatus(username),
+        // Which days they played, which is the other thing stored about a
+        // person rather than about their character.
+        activityOf(username),
       ]);
 
       reply(
         JSON.stringify(
-          { player: personal, mail, ban: ban ?? null, twoFactor },
+          { player: personal, mail, ban: ban ?? null, twoFactor, activity },
           null,
           2,
         ),
@@ -738,6 +742,10 @@ export function registerPlayerCommands(): void {
       // keyed by name too, and a row left behind would demand a code from
       // whoever registers that name next, from a secret nobody holds.
       await disableTwoFactor(username);
+      // The activity history is anonymised rather than erased: those rows are
+      // what yesterday's player count was made of, and deleting them would
+      // move a number somebody has already read. See analyticsService.
+      const days = await forgetPlayer(username);
       await deletePlayer(record.id);
 
       // The ban stays: it is keyed by name and is all that stops the account
@@ -747,6 +755,7 @@ export function registerPlayerCommands(): void {
       reply(
         style.ok(
           `Erased ${username}: account and ${mail.length} queued mail.` +
+            (days ? ` ${days} days of activity anonymised.` : '') +
             (banned ? ' The ban on that name was kept.' : ''),
         ),
       );

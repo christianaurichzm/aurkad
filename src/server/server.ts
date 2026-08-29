@@ -20,6 +20,7 @@ import mongoose from 'mongoose';
 import app, { handleRouteError } from './app.js';
 import { config } from './config.js';
 import { startTracing, stopTracing } from './tracing.js';
+import { flushAnalytics, startAnalytics } from './services/analyticsService.js';
 import { createSessionMiddleware } from './http/session.js';
 import { createHttpLimiter } from './http/middleware/rateLimit.js';
 import { createAuthRouter } from './http/routes/authRoutes.js';
@@ -141,6 +142,7 @@ const server = createServer(app);
 let stopGameLoops: (() => void) | undefined;
 let stopSnapshots: (() => void) | undefined;
 let stopCensus: (() => void) | undefined;
+let stopAnalytics: (() => void) | undefined;
 let stopKv: (() => Promise<void>) | undefined;
 let heartbeatTimer: ReturnType<typeof setInterval> | undefined;
 
@@ -188,6 +190,10 @@ async function startServer() {
     stopGameLoops = startGameLoops();
     stopSnapshots = startPlayerSnapshotLoop();
     stopCensus = startCensusJob();
+    // After the modules and scripts are loaded, like every other subscriber:
+    // the hooks it listens on are the ones the login path emits, and a login
+    // cannot happen before the server is listening a few lines below.
+    stopAnalytics = startAnalytics();
     if (process.env.REPLAY_RECORD === 'true') {
       startRecording();
       logger.info('[Replay] Session recording started');
@@ -220,6 +226,7 @@ async function shutdown(signal: string) {
   stopGameLoops?.();
   stopSnapshots?.();
   stopCensus?.();
+  stopAnalytics?.();
   clearInterval(heartbeatTimer);
   if (config.instance.wsPublicUrl) {
     await deregisterInstance(config.instance.wsPublicUrl).catch(
@@ -252,10 +259,10 @@ async function shutdown(signal: string) {
   }
 
   await stopKv?.();
-  // Late, and awaited: the spans from everything above are the ones that
-  // describe the shutdown, and a batch still in the buffer at exit is the part
-  // of the incident nobody gets to read.
-  await stopTracing();
+  // Late, and awaited: the spans from above describe the shutdown, and a
+  // batch left in the buffer is the part of the incident nobody reads. The
+  // analytics writes are fire-and-forget, so this is where they land.
+  await Promise.all([stopTracing(), flushAnalytics()]);
 
   try {
     await mongoose.disconnect();

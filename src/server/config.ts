@@ -294,6 +294,20 @@ export const config = {
       `http://localhost:${parseIntEnv('PORT', 8080, { min: 1, max: 65535 })}`
     ).replace(/\/+$/, ''),
   },
+  analytics: {
+    // Whether player activity is recorded. On by default, or "did the update
+    // kill retention" has no answer; off is valid too, as this is the one store
+    // about people. Turn it off before `npm run loadtest`, or the bots count
+    // as daily players.
+    enabled: process.env.ANALYTICS_ENABLED !== 'false',
+    // How long the per-day rows live. Long by default: retention is read in
+    // cohorts, so the useful window is a year of them plus the tail of the last
+    // one. It is the reporting window too.
+    retentionDays: parseIntEnv('ANALYTICS_RETENTION_DAYS', 400, {
+      min: 30,
+      max: 3650,
+    }),
+  },
   economy: {
     // How often every item in the world is counted, and how long counts are
     // kept. The job walks every player document, so it runs rarely: whether a

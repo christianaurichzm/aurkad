@@ -23,6 +23,15 @@ import {
 } from '../sim/replayRecorder.js';
 import { existsSync, rmSync } from 'fs';
 
+// The reports read the database; this file pins the command around them:
+// which numbers reach the operator, and how they are laid out.
+const analytics = vi.hoisted(() => ({
+  dailyActivity: vi.fn(),
+  retention: vi.fn(),
+  funnel: vi.fn(),
+}));
+vi.mock('../services/analyticsService.js', () => analytics);
+
 // Awaited: a handler that reads the database replies after its first await,
 // and the web console serialises the collected replies into one response.
 const run = async (
@@ -386,5 +395,102 @@ describe('replay', () => {
     const { out } = await run('replay start', Access.MOD);
     expect(out[0]).toMatch(/permission/i);
     expect(isRecording()).toBe(false);
+  });
+});
+
+describe('analytics', () => {
+  const enabled = (on: boolean) => {
+    // `config` is typed as deeply readonly; the flag behind it is an ordinary
+    // property, and this is the one place a test needs to move it.
+    (config.analytics as { enabled: boolean }).enabled = on;
+  };
+
+  beforeEach(() => {
+    registerServerCommands();
+    enabled(true);
+    analytics.dailyActivity.mockReset();
+    analytics.retention.mockReset();
+    analytics.funnel.mockReset();
+  });
+
+  afterEach(() => enabled(true));
+
+  it('lays the days out newest last, and names the busiest', async () => {
+    analytics.dailyActivity.mockResolvedValue([
+      {
+        day: '2026-08-24',
+        players: 12,
+        newPlayers: 3,
+        sessions: 20,
+        minutes: 400,
+      },
+      {
+        day: '2026-08-25',
+        players: 9,
+        newPlayers: 1,
+        sessions: 14,
+        minutes: 260,
+      },
+    ]);
+
+    const { out } = await run('analytics 2');
+
+    expect(analytics.dailyActivity).toHaveBeenCalledWith(2);
+    expect(out.join('\n')).toMatch(/2026-08-24\s+12\s+3\s+20\s+400/);
+    expect(out.join('\n')).toMatch(/busiest: 2026-08-24 with 12 players/);
+  });
+
+  it('says nothing happened rather than printing an empty table', async () => {
+    analytics.dailyActivity.mockResolvedValue([]);
+
+    const { out } = await run('analytics');
+
+    expect(analytics.dailyActivity).toHaveBeenCalledWith(14);
+    expect(out.join('\n')).toMatch(/Nobody has played/);
+  });
+
+  it('shows retention as a count and a share of the cohort', async () => {
+    analytics.retention.mockResolvedValue([
+      { cohort: '2026-08-18', players: 10, returned: { 1: 5, 7: 2, 30: 0 } },
+    ]);
+
+    const { out } = await run('analytics retention 7');
+
+    expect(analytics.retention).toHaveBeenCalledWith(7);
+    const line = out.find((row) => row.includes('2026-08-18'))!;
+    // The count and the share side by side: the share compares two cohorts,
+    // the count says whether the share means anything.
+    expect(line).toMatch(/10/);
+    expect(line).toMatch(/5 \(50%\)/);
+    expect(line).toMatch(/2 \(20%\)/);
+  });
+
+  it('reads each funnel step against the step above it', async () => {
+    analytics.funnel.mockResolvedValue({
+      from: '2026-07-27',
+      to: '2026-08-25',
+      registered: 100,
+      played: 80,
+      returned: 20,
+      level: 5,
+      reachedLevel: 10,
+    });
+
+    const { out } = await run('analytics funnel 30 5');
+
+    expect(analytics.funnel).toHaveBeenCalledWith(30, 5);
+    const text = out.join('\n');
+    expect(text).toMatch(/played at least once\s+80\s+80% of the step above/);
+    expect(text).toMatch(/came back another day\s+20\s+25% of the step above/);
+    expect(text).toMatch(/reached level 5\s+10\s+10% of the step above/);
+  });
+
+  it('says it is off instead of reporting zeroes', async () => {
+    enabled(false);
+
+    const { out } = await run('analytics');
+
+    expect(out.join('\n')).toMatch(/Analytics is off/);
+    expect(analytics.dailyActivity).not.toHaveBeenCalled();
   });
 });

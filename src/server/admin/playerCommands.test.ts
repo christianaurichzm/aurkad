@@ -31,6 +31,14 @@ vi.mock('../services/player/twoFactorService.js', () => ({
   disableTwoFactor: (...args: unknown[]) => disableTwoFactor(...args),
   twoFactorStatus: () => Promise.resolve({ enabled: false, recoveryLeft: 0 }),
 }));
+// Same for the activity history: the commands have to reach it, and what it
+// answers is its own file's business.
+const forgetPlayer = vi.fn().mockResolvedValue(2);
+vi.mock('../services/analyticsService.js', () => ({
+  forgetPlayer: (...args: unknown[]) => forgetPlayer(...args),
+  activityOf: () =>
+    Promise.resolve([{ day: '2026-08-24', sessions: 1, minutes: 12 }]),
+}));
 const stored = new Map<string, Record<string, unknown>>();
 const deletePlayer = vi.fn();
 const disconnectPlayer = vi.fn();
@@ -257,15 +265,19 @@ describe('account export and erasure', () => {
       player: Record<string, unknown>;
       mail: unknown[];
       twoFactor: unknown;
+      activity: unknown[];
     };
 
     expect(parsed.player).toMatchObject({ name: 'Alice', level: 4 });
     expect(parsed.player.data).toEqual({ vip: true });
     expect(parsed.player.password).toBeUndefined();
     expect(parsed.mail).toHaveLength(1);
-    // That there is a second factor, never its secret: the same reason the
-    // hash is dropped.
+    // The two things stored about the person rather than the character: that
+    // there is a second factor (never its secret), and which days they played.
     expect(parsed.twoFactor).toEqual({ enabled: false, recoveryLeft: 0 });
+    expect(parsed.activity).toEqual([
+      { day: '2026-08-24', sessions: 1, minutes: 12 },
+    ]);
   });
 
   it('says so plainly when there is no such account', async () => {
@@ -294,6 +306,10 @@ describe('account export and erasure', () => {
     expect(deletePlayer).toHaveBeenCalledWith('p-1');
     expect(cancelDelivery).toHaveBeenCalledTimes(2);
     expect(out).toMatch(/Erased Alice/);
+    // The activity is anonymised, not deleted: those rows are what the day's
+    // player count was made of. The reply says how many days it touched.
+    expect(forgetPlayer).toHaveBeenCalledWith('Alice');
+    expect(out).toMatch(/2 days of activity anonymised/);
   });
 
   it('disconnects a live session first, or the snapshot writes it back', async () => {

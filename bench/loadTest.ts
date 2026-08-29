@@ -9,16 +9,15 @@
 // population take as much world as it needs; without it, density follows
 // the bot count.
 //
-//   npm run loadtest -- --bots=1000 --per-screen=9 --admin-user=... --admin-pass=...
-//
 // Soak, memory over time:
 //
 //   npm run loadtest -- --bots=150 --behavior=reconnect --duration=3600 \
 //     --sample-every=30 --csv=soak.csv --admin-user=root --admin-pass=secret
 //
 // Bots on the server's machine compete with it, so treat those numbers as a
-// floor. Every bot comes from one address, so raise AUTH_RATE_LIMIT_MAX
-// and HTTP_RATE_LIMIT_MAX on the server first.
+// floor. Every bot comes from one address, so raise AUTH_RATE_LIMIT_MAX and
+// HTTP_RATE_LIMIT_MAX first, and set ANALYTICS_ENABLED=false so the run does
+// not land in the activity history.
 
 import { LoadBot } from './load/bot.js';
 import {

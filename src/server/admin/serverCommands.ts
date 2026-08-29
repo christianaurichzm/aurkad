@@ -5,6 +5,12 @@ import { serverState, type ServerMode } from '../services/world/serverState.js';
 import { getChatLog, handleChatAction } from '../services/comms/chatService.js';
 import { getRuntimeState } from '../services/world/gameData.js';
 import { getMetrics } from '../metrics.js';
+import { config } from '../config.js';
+import {
+  dailyActivity,
+  funnel,
+  retention,
+} from '../services/analyticsService.js';
 import {
   listReplays,
   recordingStatus,
@@ -35,6 +41,22 @@ function parseFlagValue(raw: string): FlagValue {
   const asNumber = Number(raw);
   return raw !== '' && Number.isFinite(asNumber) ? asNumber : raw;
 }
+
+/**
+ * One line of an analytics table, header included, so a column added to one
+ * is added to both.
+ */
+const COLUMNS = [12, 9, 12, 12, 12];
+
+const row = (values: string[]): string =>
+  '  ' +
+  values
+    .map((value, i) =>
+      i === 0
+        ? value.padEnd(COLUMNS[i] ?? 12)
+        : value.padStart(COLUMNS[i] ?? 12),
+    )
+    .join('');
 
 /** Operators read "3h20m", not an epoch. Rounds up: 0m would read as over. */
 function formatDuration(ms: number): string {
@@ -448,9 +470,115 @@ export function registerServerCommands(): void {
     },
   );
 
-  // The operator surface for reconciliation: it runs from the dashboard
-  // console and from in-game chat, and lands in the audit trail like any other
-  // admin command, so "who checked the economy and when" is answerable too.
+  /**
+   * The three questions a patch raises, as subcommands of one command: how
+   * many are here, did the new ones stay, where do people fall out. They read
+   * the same rows, and an operator who remembers one name finds the others.
+   */
+  registerCommand(
+    'analytics',
+    {
+      access: Access.ADMIN,
+      description:
+        'Player activity: analytics [days] | analytics retention [cohorts] | analytics funnel [days] [level]',
+    },
+    async ({ args, reply, style }) => {
+      if (!config.analytics.enabled) {
+        return reply(
+          style.warn(
+            'Analytics is off (ANALYTICS_ENABLED=false); nothing is being recorded.',
+          ),
+        );
+      }
+
+      const mode =
+        args[0] === 'retention' || args[0] === 'funnel' ? args[0] : 'days';
+      const asNumber = (raw: string | undefined, fallback: number) => {
+        const value = raw ? parseInt(raw, 10) : NaN;
+        return Number.isFinite(value) && value > 0 ? value : fallback;
+      };
+
+      if (mode === 'retention') {
+        const rows = await retention(asNumber(args[1], 14));
+        if (rows.length === 0) return reply(style.warn('No cohorts yet.'));
+
+        reply(
+          `${style.title('Retention')} ${style.muted('(of the players who arrived that day, how many came back)')}`,
+        );
+        reply(style.muted(row(['cohort', 'arrived', 'd1', 'd7', 'd30'])));
+        for (const cohort of rows) {
+          // Count and share together: the share is what compares two cohorts,
+          // and the count is what says whether the share means anything.
+          const share = (mark: number) => {
+            const n = cohort.returned[mark] ?? 0;
+            return cohort.players === 0
+              ? '-'
+              : `${n} (${Math.round((n / cohort.players) * 100)}%)`;
+          };
+          reply(
+            row([
+              cohort.cohort,
+              String(cohort.players),
+              ...[1, 7, 30].map(share),
+            ]),
+          );
+        }
+        return;
+      }
+
+      if (mode === 'funnel') {
+        const days = asNumber(args[1], 30);
+        const level = asNumber(args[2], 5);
+        const f = await funnel(days, level);
+        // Each step against the one above it: the drop between two steps is
+        // the number worth acting on, and a share of the top hides which drop.
+        const step = (label: string, value: number, previous: number) =>
+          reply(
+            `  ${label.padEnd(24)}${String(value).padStart(8)}` +
+              (previous > 0
+                ? style.muted(
+                    `  ${Math.round((value / previous) * 100)}% of the step above`,
+                  )
+                : ''),
+          );
+
+        reply(
+          `${style.title('Funnel')} ${style.muted(`accounts made ${f.from} to ${f.to}`)}`,
+        );
+        step('registered', f.registered, 0);
+        step('played at least once', f.played, f.registered);
+        step('came back another day', f.returned, f.played);
+        step(`reached level ${f.level}`, f.reachedLevel, f.registered);
+        return;
+      }
+
+      const rows = await dailyActivity(asNumber(args[0], 14));
+      if (rows.length === 0) {
+        return reply(style.warn('Nobody has played in that window.'));
+      }
+
+      reply(style.title('Daily active players'));
+      reply(style.muted(row(['day', 'players', 'new', 'sessions', 'minutes'])));
+      for (const day of rows) {
+        reply(
+          row([
+            day.day,
+            String(day.players),
+            String(day.newPlayers),
+            String(day.sessions),
+            String(day.minutes),
+          ]),
+        );
+      }
+      const busiest = rows.reduce((a, b) => (b.players > a.players ? b : a));
+      reply(
+        style.muted(
+          `  busiest: ${busiest.day} with ${busiest.players} players`,
+        ),
+      );
+    },
+  );
+
   registerCommand(
     'economy',
     {
