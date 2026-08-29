@@ -5,7 +5,7 @@
  * mean what they say rather than pinning a sequence any rng change breaks.
  */
 import { describe, it, expect, beforeEach } from 'vitest';
-import { rollLootTable, rollItemDrops } from './lootService.js';
+import { rollLootTable } from './lootService.js';
 import { seedRng } from '../../sim/rng.js';
 import type { LootTable } from '../../../shared/types.js';
 
@@ -305,55 +305,5 @@ describe('degenerate tables', () => {
         .map((d) => d.itemId)
         .sort(),
     ).toEqual([1, 99]);
-  });
-});
-
-describe('rollItemDrops (legacy per-item list)', () => {
-  it('drops an entry configured at 100%', () => {
-    // The old code read this 1 as "1 percent" and dropped it ~1% of the time.
-    const drops = Array.from({ length: 200 }, () =>
-      rollItemDrops([{ itemId: 1, chance: 1 }]),
-    );
-    expect(drops.every((d) => d.length === 1)).toBe(true);
-  });
-
-  it('drops an entry configured at 50% about half the time', () => {
-    let hits = 0;
-    for (let i = 0; i < 4000; i++) {
-      if (rollItemDrops([{ itemId: 1, chance: 0.5 }]).length > 0) hits++;
-    }
-    expect(hits / 4000).toBeGreaterThan(0.45);
-    expect(hits / 4000).toBeLessThan(0.55);
-  });
-
-  it('never drops an entry at 0', () => {
-    for (let i = 0; i < 200; i++) {
-      expect(rollItemDrops([{ itemId: 1, chance: 0 }])).toEqual([]);
-    }
-  });
-
-  it('rolls each entry independently', () => {
-    const result = rollItemDrops([
-      { itemId: 1, chance: 1 },
-      { itemId: 2, chance: 0 },
-      { itemId: 3, chance: 1, quantity: 4 },
-    ]);
-    expect(result).toEqual([
-      { itemId: 1, quantity: 1 },
-      { itemId: 3, quantity: 4 },
-    ]);
-  });
-
-  it('stacks two entries for the same item rather than letting them compete', () => {
-    expect(
-      rollItemDrops([
-        { itemId: 1, chance: 1, quantity: 2 },
-        { itemId: 1, chance: 1, quantity: 3 },
-      ]),
-    ).toEqual([{ itemId: 1, quantity: 5 }]);
-  });
-
-  it('handles an empty list', () => {
-    expect(rollItemDrops([])).toEqual([]);
   });
 });

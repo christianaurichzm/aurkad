@@ -20,6 +20,7 @@ import {
 } from '../services/economy/shopService.js';
 import {
   createOrUpdateLootTable,
+  dropsToLootTable,
   listLootTables,
 } from '../services/economy/lootTableService.js';
 import {
@@ -104,6 +105,9 @@ const NpcSchema = z.object({
   attackRange: z.number().int().positive().default(48),
   behavior: NpcBehaviorSchema,
   experienceValue: z.number().int().nonnegative().optional(),
+  // Still accepted, never written: a pack exported before loot tables carries
+  // this, and the import turns it into a table of the npc's own (see the
+  // upsert below). Exporting produces `lootTableId` and nothing else.
   itemsToDrop: z
     .array(
       z.object({
@@ -306,7 +310,15 @@ const SPECS = {
   npcs: {
     file: 'npcs.json',
     schema: NpcSchema,
-    upsert: (e) => createOrUpdateNpc(e),
+    upsert: async (entry) => {
+      const { itemsToDrop, ...npc } = entry;
+      if (itemsToDrop?.length && !npc.lootTableId) {
+        const table = dropsToLootTable(npc.id, npc.name, itemsToDrop);
+        await createOrUpdateLootTable(table);
+        npc.lootTableId = table.id;
+      }
+      await createOrUpdateNpc(npc);
+    },
     list: listNpcs,
   } as FileSpec<typeof NpcSchema>,
   shops: {

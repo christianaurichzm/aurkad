@@ -253,11 +253,7 @@ export const pt: Record<keyof typeof en, string> = {
     'Tabela ponderada em uso. Os drops simples abaixo são ignorados.',
   'npc.lootNone':
     'Sem tabela: os drops simples abaixo são usados, cada um sorteado por conta própria.',
-  'npc.drops': 'Drops',
-  'npc.itemNumber': 'Item #{id}',
-  'npc.dropChance': 'Chance de drop %',
   'npc.qty': 'Qtd',
-  'npc.quantity': 'Quantidade',
   'npc.save': 'Salvar NPC',
   'npc.createBtn': 'Criar NPC',
   'npc.saved': 'NPC salvo!',

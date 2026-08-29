@@ -1,5 +1,10 @@
 import mongoose from 'mongoose';
 import { logger } from '../logger.js';
+import type { NpcItemDrop } from '../../shared/types.js';
+import {
+  createOrUpdateLootTable,
+  dropsToLootTable,
+} from './economy/lootTableService.js';
 
 const CounterSchema = new mongoose.Schema({
   _id: { type: String, required: true },
@@ -24,7 +29,7 @@ const Meta = mongoose.model('Meta', MetaSchema);
  * same commit as a change that makes an existing document wrong, wherever
  * that document lives.
  */
-export const DB_SCHEMA_VERSION = 1;
+export const DB_SCHEMA_VERSION = 2;
 
 /**
  * Boot gate for the store, run before anything reads or writes game data.
@@ -57,6 +62,11 @@ export async function checkDatabaseSchemaVersion(): Promise<void> {
     logger.info('[DB] Stamping schema version', { version: DB_SCHEMA_VERSION });
   }
 
+  // v2: an npc's own drop list becomes a loot table, so there is one way to
+  // say what a kill leaves behind instead of two with a precedence rule.
+  // dropsToLootTable loses nothing, and on a fresh database this does nothing.
+  if (!stored || stored.value < 2) await moveNpcDropsIntoLootTables();
+
   // Unconditional write of a constant, so every instance of a sharded
   // deployment can run this at its own boot without coordinating.
   await Meta.findByIdAndUpdate(
@@ -64,6 +74,52 @@ export async function checkDatabaseSchemaVersion(): Promise<void> {
     { $set: { value: DB_SCHEMA_VERSION } },
     { upsert: true },
   );
+}
+
+/**
+ * Turns every npc's `itemsToDrop` into a loot table of its own.
+ *
+ * Read through the raw collection rather than the model, because the field is
+ * gone from the schema by the time this runs and mongoose would hand back
+ * documents without the thing being migrated.
+ *
+ * An npc that already points at a table keeps it: the table always won at kill
+ * time, so following the list here would change what it drops.
+ */
+async function moveNpcDropsIntoLootTables(): Promise<void> {
+  const npcs = mongoose.connection.collection('npcs');
+  const legacy = await npcs
+    .find<{
+      id: string;
+      name?: string;
+      lootTableId?: string;
+      itemsToDrop?: NpcItemDrop[];
+    }>({ itemsToDrop: { $exists: true, $ne: [] } })
+    .toArray();
+  if (legacy.length === 0) return;
+
+  let converted = 0;
+  for (const npc of legacy) {
+    if (!npc.lootTableId && npc.itemsToDrop?.length) {
+      const table = dropsToLootTable(
+        npc.id,
+        npc.name ?? npc.id,
+        npc.itemsToDrop,
+      );
+      await createOrUpdateLootTable(table);
+      await npcs.updateOne(
+        { id: npc.id },
+        { $set: { lootTableId: table.id }, $unset: { itemsToDrop: '' } },
+      );
+      converted++;
+    } else {
+      await npcs.updateOne({ id: npc.id }, { $unset: { itemsToDrop: '' } });
+    }
+  }
+  logger.info('[DB] Moved npc drop lists into loot tables', {
+    npcs: legacy.length,
+    tablesCreated: converted,
+  });
 }
 
 export async function getNextItemId(): Promise<number> {

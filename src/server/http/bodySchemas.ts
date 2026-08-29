@@ -101,12 +101,6 @@ export const TileSchema = z.object({
   conditionalBlock: z.string().optional(),
 });
 
-const NpcItemDropSchema = z.object({
-  itemId: z.number().int().nonnegative(),
-  chance: z.number().min(0).max(1),
-  quantity: z.number().int().positive().optional(),
-});
-
 const MODIFIABLE_ATTRS = [
   'health',
   'maxHealth',
@@ -254,7 +248,6 @@ export const CreateNpcBodySchema = z.object({
   attack: z.number().int().nonnegative(),
   behavior: NpcBehaviorSchema,
   experienceValue: z.number().int().nonnegative().optional(),
-  itemsToDrop: z.array(NpcItemDropSchema).optional(),
   lootTableId: z.string().optional(),
   dialogId: z.string().optional(),
   // Declared here or the field never reaches mongoose: z.object strips what it

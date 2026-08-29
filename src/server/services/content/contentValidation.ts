@@ -31,7 +31,6 @@ interface ItemRef {
 interface NpcRef {
   id?: string;
   name?: string;
-  itemsToDrop?: Array<{ itemId: number }> | undefined;
   lootTableId?: string | undefined;
   dialogId?: string | undefined;
   questId?: string | undefined;
@@ -336,8 +335,8 @@ export function validateContentReferences(
   checkDuplicateIds('quest', graph.quests, errors);
   checkDuplicateIds('recipe', graph.recipes, errors);
 
-  // An npc pointing at a table that does not exist rolls its legacy
-  // itemsToDrop instead, so the loot silently changes rather than failing.
+  // An npc pointing at a table that does not exist drops nothing at all, and
+  // a kill that quietly stopped paying is worth a warning.
   if (graph.lootTables) {
     const tableIds = new Set(graph.lootTables.map((t) => t.id));
     for (const npc of graph.npcs ?? []) {
@@ -487,16 +486,6 @@ export function validateContentReferences(
   // reporting every reference as dangling would be worse than staying quiet.
   if (!graph.items) return { errors, warnings };
   const itemIds = new Set(graph.items.map((i) => i.id));
-
-  for (const npc of graph.npcs ?? []) {
-    for (const drop of npc.itemsToDrop ?? []) {
-      if (!itemIds.has(drop.itemId)) {
-        warnings.push(
-          `NPC ${label(npc.id, npc.name)} drops unknown item ${drop.itemId}.`,
-        );
-      }
-    }
-  }
 
   for (const shop of graph.shops ?? []) {
     for (const product of shop.products ?? []) {

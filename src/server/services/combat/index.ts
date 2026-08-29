@@ -24,7 +24,7 @@ import {
 } from './damage.js';
 import { handleChatAction } from '../comms/chatService.js';
 import { getItemById } from '../economy/inventoryService.js';
-import { rollItemDrops, rollLootTable } from '../economy/lootService.js';
+import { rollLootTable } from '../economy/lootService.js';
 import { getLootTable } from '../economy/lootTableService.js';
 import { respawnNpc } from '../npc/index.js';
 import { markNpcAggro } from '../npc/aiBrain.js';
@@ -219,13 +219,7 @@ function applyLootConditions(
   };
 }
 
-/**
- * Turns an NPC's death into the items that hit the ground.
- *
- * A table wins over `itemsToDrop` when both are set: the table is the
- * deliberate, editable thing, and silently merging the two would make the
- * result impossible to reason about.
- */
+/** Turns an NPC's death into the items that hit the ground. */
 function rollNpcLoot(
   npc: RuntimeNpc,
   killer: PlayerServer | undefined,
@@ -241,7 +235,7 @@ function rollNpcLoot(
 
   const rolled = table
     ? rollLootTable(applyLootConditions(table, npc, killer, contributors))
-    : rollItemDrops(npc.itemsToDrop ?? []);
+    : [];
 
   const dropped: DroppedItem[] = [];
   for (const drop of rolled) {

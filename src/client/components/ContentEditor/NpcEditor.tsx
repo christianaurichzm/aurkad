@@ -1,15 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { Controller, useForm } from 'react-hook-form';
-import {
-  RuntimeNpc,
-  NpcBehavior,
-  Item,
-  NpcItemDrop,
-} from '../../../shared/types';
+import { RuntimeNpc, NpcBehavior } from '../../../shared/types';
 import { updateNpc, createNpc, deleteNpc } from '../../io/network';
 import { chatResultMsg } from '../ChatPanel';
 import { AsyncSelect } from '../common/Select/AsyncSelect';
-import { ItemIcon } from '../Inventory/ItemIcon';
 import { SpritePreview } from '../common/SpritePreview';
 import { ScriptBehaviorFields } from './ScriptBehaviorFields';
 import type { ScriptParams } from '../../../shared/scriptParams';
@@ -18,7 +12,6 @@ import { useT } from '../../i18n';
 
 interface NpcEditorProps {
   npcs: RuntimeNpc[];
-  items: Item[];
   loadNpcs: () => Promise<any>;
   loadItems: () => Promise<any>;
   loadLootTables: () => Promise<{ value: string; label: string }[]>;
@@ -91,15 +84,8 @@ const npcToFormValues = (npc: RuntimeNpc): NpcFormValues => ({
   moveIntervalMs: npc.moveIntervalMs?.toString() ?? '',
 });
 
-const npcToDrops = (npc: RuntimeNpc): NpcItemDrop[] =>
-  (npc.itemsToDrop ?? []).map((d) => ({ ...d }));
-
-const dropsEqual = (a: NpcItemDrop[], b: NpcItemDrop[]): boolean =>
-  JSON.stringify(a) === JSON.stringify(b);
-
 export const NpcEditor: React.FC<NpcEditorProps> = ({
   npcs,
-  items,
   loadNpcs,
   loadItems,
   loadLootTables,
@@ -127,27 +113,14 @@ export const NpcEditor: React.FC<NpcEditorProps> = ({
   // The chase fields only matter for behaviours that chase.
   const hunts = behavior === 'aggressive' || behavior === 'hostile';
 
-  const [drops, setDrops] = useState<NpcItemDrop[]>([]);
-  const [dropsBaseline, setDropsBaseline] = useState<NpcItemDrop[]>([]);
-  const [addItemId, setAddItemId] = useState<number>(0);
-  const [addChance, setAddChance] = useState<number>(100);
-  const [addQty, setAddQty] = useState<number>(1);
-
-  const dropsDirty = !dropsEqual(drops, dropsBaseline);
-
   useEffect(() => {
-    onDirtyChange(isDirty || dropsDirty);
-  }, [isDirty, dropsDirty, onDirtyChange]);
+    onDirtyChange(isDirty);
+  }, [isDirty, onDirtyChange]);
 
   const reset = async () => {
     if (!(await requestDiscard())) return;
     setSelectedId('');
     resetForm(defaultValues);
-    setDrops([]);
-    setDropsBaseline([]);
-    setAddItemId(0);
-    setAddChance(100);
-    setAddQty(1);
   };
 
   const selectNpc = async (id: string) => {
@@ -156,32 +129,7 @@ export const NpcEditor: React.FC<NpcEditorProps> = ({
     const npc = npcs.find((n) => n.id === id);
     if (npc) {
       resetForm(npcToFormValues(npc));
-      const initial = npcToDrops(npc);
-      setDrops(initial);
-      setDropsBaseline(initial);
     }
-    setAddItemId(0);
-    setAddChance(100);
-    setAddQty(1);
-  };
-
-  const addDrop = () => {
-    if (!addItemId) return;
-    setDrops((prev) => [
-      ...prev,
-      {
-        itemId: addItemId,
-        chance: Math.min(1, Math.max(0, addChance / 100)),
-        quantity: Math.max(1, Math.floor(addQty)),
-      },
-    ]);
-    setAddItemId(0);
-    setAddChance(100);
-    setAddQty(1);
-  };
-
-  const removeDrop = (index: number) => {
-    setDrops((prev) => prev.filter((_, i) => i !== index));
   };
 
   const saveNpc = async ({
@@ -208,7 +156,6 @@ export const NpcEditor: React.FC<NpcEditorProps> = ({
       attack,
       behavior,
       experienceValue: exp,
-      itemsToDrop: drops,
       // Empty means no behavior, rather than "" naming one nobody registers.
       scriptId: scriptId.trim() || undefined,
       // Params without a behavior to read them are dead weight in the document.
@@ -236,8 +183,6 @@ export const NpcEditor: React.FC<NpcEditorProps> = ({
     refreshData();
     setSelectedId('');
     resetForm(defaultValues);
-    setDrops([]);
-    setDropsBaseline([]);
   };
 
   const removeNpc = async () => {
@@ -249,8 +194,6 @@ export const NpcEditor: React.FC<NpcEditorProps> = ({
     refreshData();
     setSelectedId('');
     resetForm(defaultValues);
-    setDrops([]);
-    setDropsBaseline([]);
   };
 
   const behaviorOptions: { value: NpcBehavior; label: string }[] = [
@@ -261,8 +204,6 @@ export const NpcEditor: React.FC<NpcEditorProps> = ({
     { value: 'shopkeeper', label: t('npc.behaviorShopkeeper') },
     { value: 'guard', label: t('npc.behaviorGuard') },
   ];
-
-  const addItem = addItemId ? items.find((i) => i.id === addItemId) : null;
 
   return (
     <form style={container} onSubmit={handleSubmit(saveNpc)}>
@@ -479,81 +420,6 @@ export const NpcEditor: React.FC<NpcEditorProps> = ({
         </p>
       </div>
 
-      <div style={dropSection}>
-        <label style={{ ...label, marginBottom: 6, display: 'block' }}>
-          {t('npc.drops')}
-        </label>
-        {drops.length > 0 && (
-          <div style={dropList}>
-            {drops.map((drop, i) => {
-              const it = items.find((item) => item.id === drop.itemId);
-              return (
-                <div key={i} style={dropListRow}>
-                  {it && <ItemIcon spriteId={it.sprite} style={dropIcon} />}
-                  <span style={dropName}>
-                    {it?.name ?? t('npc.itemNumber', { id: drop.itemId })}
-                  </span>
-                  <span style={dropStat}>{Math.round(drop.chance * 100)}%</span>
-                  <span style={dropStat}>x{drop.quantity ?? 1}</span>
-                  <button
-                    type="button"
-                    style={removeBtn}
-                    onClick={() => removeDrop(i)}
-                  >
-                    ✕
-                  </button>
-                </div>
-              );
-            })}
-          </div>
-        )}
-        <div style={dropAddRow}>
-          <div style={{ flex: 1 }}>
-            <AsyncSelect<number>
-              loadOptions={loadItems}
-              value={addItemId}
-              onChange={setAddItemId}
-            />
-          </div>
-          <div style={{ width: 70 }}>
-            <input
-              style={input}
-              type="number"
-              min={0}
-              max={100}
-              value={addChance}
-              onChange={(e) =>
-                setAddChance(Math.min(100, Math.max(0, Number(e.target.value))))
-              }
-              placeholder="%"
-              title={t('npc.dropChance')}
-            />
-          </div>
-          <div style={{ width: 60 }}>
-            <input
-              style={input}
-              type="number"
-              min={1}
-              value={addQty}
-              onChange={(e) =>
-                setAddQty(Math.max(1, Math.floor(Number(e.target.value))))
-              }
-              placeholder={t('npc.qty')}
-              title={t('npc.quantity')}
-            />
-          </div>
-          {addItem && <ItemIcon spriteId={addItem.sprite} style={dropIcon} />}
-          <button
-            type="button"
-            style={addBtn}
-            onClick={addDrop}
-            disabled={!addItemId}
-          >
-            {t('editor.add')}
-          </button>
-        </div>
-      </div>
-
       <div style={actions}>
         <button type="submit" style={saveBtn}>
           {selectedId ? t('npc.save') : t('npc.createBtn')}
@@ -610,48 +476,6 @@ const dropHint: React.CSSProperties = {
   fontSize: 12,
   color: colors.textMuted,
   margin: '6px 0 0',
-};
-
-const dropList: React.CSSProperties = {
-  display: 'flex',
-  flexDirection: 'column',
-  gap: 6,
-  marginBottom: 8,
-};
-
-const dropListRow: React.CSSProperties = {
-  display: 'flex',
-  alignItems: 'center',
-  gap: 8,
-};
-
-const dropAddRow: React.CSSProperties = {
-  display: 'flex',
-  alignItems: 'center',
-  gap: 8,
-};
-
-const dropName: React.CSSProperties = {
-  flex: 1,
-  fontSize: 13,
-  overflow: 'hidden',
-  textOverflow: 'ellipsis',
-  whiteSpace: 'nowrap',
-};
-
-const dropStat: React.CSSProperties = {
-  fontSize: 12,
-  color: colors.textMuted,
-  minWidth: 36,
-  textAlign: 'right',
-};
-
-const dropIcon: React.CSSProperties = {
-  width: 28,
-  height: 28,
-  border: `1px solid ${colors.border}`,
-  borderRadius: radius.sm,
-  flexShrink: 0,
 };
 
 const field: React.CSSProperties = {
@@ -714,28 +538,4 @@ const resetBtn: React.CSSProperties = {
   fontWeight: 600,
   fontSize: 13,
   whiteSpace: 'nowrap',
-};
-
-const removeBtn: React.CSSProperties = {
-  background: 'transparent',
-  color: colors.textMuted,
-  border: 'none',
-  cursor: 'pointer',
-  fontSize: 13,
-  padding: '2px 4px',
-  lineHeight: 1,
-  flexShrink: 0,
-};
-
-const addBtn: React.CSSProperties = {
-  background: colors.surfaceMuted,
-  color: colors.text,
-  border: `1px solid ${colors.border}`,
-  padding: '7px 10px',
-  borderRadius: radius.md,
-  cursor: 'pointer',
-  fontWeight: 600,
-  fontSize: 13,
-  whiteSpace: 'nowrap',
-  flexShrink: 0,
 };

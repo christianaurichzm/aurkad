@@ -11,7 +11,6 @@ import type {
   LootEntry,
   LootQuantity,
   LootTable,
-  NpcItemDrop,
 } from '../../../shared/types.js';
 
 export interface LootDrop {
@@ -100,24 +99,6 @@ export function rollLootTable(table: LootTable): LootDrop[] {
       const entry = drawWeighted(entries, emptyWeight);
       if (entry) accumulate(drops, entry);
     }
-  }
-
-  return [...drops].map(([itemId, quantity]) => ({ itemId, quantity }));
-}
-
-/**
- * Rolls the legacy per-item list.
- *
- * Kept as its own entry point rather than converted into a table, so the old
- * shape keeps its old semantics exactly: every entry is an independent coin
- * flip, and two entries for one item stack rather than compete.
- */
-export function rollItemDrops(itemsToDrop: NpcItemDrop[]): LootDrop[] {
-  const drops = new Map<number, number>();
-
-  for (const drop of itemsToDrop) {
-    if (!rollChance(drop.chance)) continue;
-    accumulate(drops, { itemId: drop.itemId, quantity: drop.quantity });
   }
 
   return [...drops].map(([itemId, quantity]) => ({ itemId, quantity }));

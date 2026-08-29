@@ -98,7 +98,6 @@ describe('loot table on death', () => {
       health: 5,
       maxHealth: 5,
       lootTableId: 'table',
-      itemsToDrop: [{ itemId: 1, chance: 1 }],
     });
 
     resolveDamage(npc, 99, { attacker: player, map: sim.map });
@@ -106,7 +105,9 @@ describe('loot table on death', () => {
     expect(sim.map.droppedItems.map((d) => d.itemId)).toEqual([2]);
   });
 
-  it('falls back to the legacy list and warns when the table is gone', () => {
+  // A deleted table leaves the npc paying nothing, quiet enough to go
+  // unnoticed for a week, so it is logged.
+  it('drops nothing and warns when the table is gone', () => {
     const { sim, player } = setupWorld();
     const warn = vi.spyOn(logger, 'warn').mockImplementation(() => {});
     const npc = sim.addNpc({
@@ -115,32 +116,13 @@ describe('loot table on death', () => {
       health: 5,
       maxHealth: 5,
       lootTableId: 'deleted-table',
-      itemsToDrop: [{ itemId: 1, chance: 1 }],
     });
 
     resolveDamage(npc, 99, { attacker: player, map: sim.map });
 
-    expect(sim.map.droppedItems.map((d) => d.itemId)).toEqual([1]);
+    expect(sim.map.droppedItems).toEqual([]);
     expect(warn).toHaveBeenCalled();
     warn.mockRestore();
-  });
-});
-
-describe('legacy itemsToDrop', () => {
-  // The case the chance fix is for: without it this lands ~1% of the time.
-  it('drops an entry configured at 100%', () => {
-    const { sim, player } = setupWorld();
-    const npc = sim.addNpc({
-      id: 'g1',
-      position: tile(3, 2),
-      health: 5,
-      maxHealth: 5,
-      itemsToDrop: [{ itemId: 1, chance: 1 }],
-    });
-
-    resolveDamage(npc, 99, { attacker: player, map: sim.map });
-
-    expect(sim.map.droppedItems).toHaveLength(1);
   });
 
   it('drops nothing when the npc has no loot at all', () => {

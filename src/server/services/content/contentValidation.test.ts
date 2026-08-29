@@ -13,48 +13,6 @@ import {
 const items = [{ id: 1 }, { id: 2 }];
 
 describe('validateContentReferences', () => {
-  describe('npc drops', () => {
-    it('accepts drops that resolve to real items', () => {
-      const result = validateContentReferences({
-        items,
-        npcs: [{ id: 'goblin', itemsToDrop: [{ itemId: 1 }, { itemId: 2 }] }],
-      });
-      expect(result.warnings).toEqual([]);
-      expect(result.errors).toEqual([]);
-    });
-
-    it('warns on a drop pointing at a missing item', () => {
-      const result = validateContentReferences({
-        items,
-        npcs: [{ id: 'goblin', name: 'Goblin', itemsToDrop: [{ itemId: 42 }] }],
-      });
-      expect(result.warnings).toHaveLength(1);
-      expect(result.warnings[0]).toContain('goblin');
-      expect(result.warnings[0]).toContain('42');
-      // Dangling refs never block the save.
-      expect(result.errors).toEqual([]);
-    });
-
-    it('reports every broken drop, not just the first', () => {
-      const result = validateContentReferences({
-        items,
-        npcs: [
-          { id: 'a', itemsToDrop: [{ itemId: 91 }, { itemId: 92 }] },
-          { id: 'b', itemsToDrop: [{ itemId: 93 }] },
-        ],
-      });
-      expect(result.warnings).toHaveLength(3);
-    });
-
-    it('ignores an npc with no drops', () => {
-      const result = validateContentReferences({
-        items,
-        npcs: [{ id: 'peaceful' }],
-      });
-      expect(result.warnings).toEqual([]);
-    });
-  });
-
   describe('shop products', () => {
     it('warns on a product pointing at a missing item', () => {
       const result = validateContentReferences({
@@ -115,7 +73,7 @@ describe('validateContentReferences', () => {
   describe('partial graphs', () => {
     it('stays quiet when the item list is absent, instead of crying wolf', () => {
       const result = validateContentReferences({
-        npcs: [{ id: 'goblin', itemsToDrop: [{ itemId: 42 }] }],
+        maps: [{ id: '1', droppedItems: [{ itemId: 42 }] }],
       });
       expect(result.warnings).toEqual([]);
     });
@@ -136,7 +94,8 @@ describe('validateContentReferences', () => {
   it('labels an unsaved document by name so the message is still useful', () => {
     const result = validateContentReferences({
       items,
-      npcs: [{ name: 'Draft Goblin', itemsToDrop: [{ itemId: 99 }] }],
+      lootTables: [],
+      npcs: [{ name: 'Draft Goblin', lootTableId: 'nope' }],
     });
     expect(result.warnings[0]).toContain('Draft Goblin');
   });

@@ -221,7 +221,6 @@ export const ContentEditor: React.FC = () => {
               npcs={npcs}
               loadNpcs={loadNpcs}
               refreshData={refreshData}
-              items={items}
               loadItems={loadItems}
               loadLootTables={loadLootTables}
               loadDialogs={loadDialogs}

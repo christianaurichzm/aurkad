@@ -2,9 +2,32 @@
 // the same reason `items` is a module-level Map in world/gameData.ts.
 
 import LootTableModel from '../../model/LootTable.js';
-import type { LootTable } from '../../../shared/types.js';
+import type { LootTable, NpcItemDrop } from '../../../shared/types.js';
 
 const tables = new Map<string, LootTable>();
+
+/**
+ * The table an npc's own drop list becomes, exactly: `guaranteed` entries
+ * each roll an independent chance and stack when repeated, as the list
+ * does. The weighted `entries` stay empty, as a conversion should not
+ * invent a rarity nobody authored.
+ */
+export function dropsToLootTable(
+  npcId: string,
+  npcName: string,
+  drops: NpcItemDrop[],
+): LootTable {
+  return {
+    id: `npc-${npcId}-drops`,
+    name: `${npcName} drops`,
+    guaranteed: drops.map((drop) => ({
+      itemId: drop.itemId,
+      chance: drop.chance,
+      ...(drop.quantity !== undefined ? { quantity: drop.quantity } : {}),
+    })),
+    entries: [],
+  };
+}
 
 export function getLootTable(id: string): LootTable | undefined {
   return tables.get(id);

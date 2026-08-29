@@ -162,6 +162,60 @@ describe('database schema version', () => {
     expect(await readVersion()).toMatchObject({ value: DB_SCHEMA_VERSION });
   });
 
+  // v2: the migration that came with the gate's first incompatible change.
+  it('moves an npc drop list into a loot table of its own', async () => {
+    await mongoose.connection.collection('npcs').insertOne({
+      id: 'goblin',
+      name: 'Goblin',
+      itemsToDrop: [
+        { itemId: 1, chance: 0.5, quantity: 2 },
+        { itemId: 2, chance: 1 },
+      ],
+    });
+
+    await checkDatabaseSchemaVersion();
+
+    const npc = await mongoose.connection
+      .collection('npcs')
+      .findOne<{ lootTableId?: string; itemsToDrop?: unknown }>({
+        id: 'goblin',
+      });
+    expect(npc?.lootTableId).toBe('npc-goblin-drops');
+    expect(npc?.itemsToDrop).toBeUndefined();
+
+    // Guaranteed entries, the shape with an independent chance each, which is
+    // what the list did. Nothing turns into a weighted draw.
+    const table = await mongoose.connection
+      .collection('loottables')
+      .findOne<{ guaranteed: unknown[]; entries: unknown[] }>({
+        id: 'npc-goblin-drops',
+      });
+    expect(table?.guaranteed).toEqual([
+      { itemId: 1, chance: 0.5, quantity: 2 },
+      { itemId: 2, chance: 1 },
+    ]);
+    expect(table?.entries).toEqual([]);
+  });
+
+  it('leaves an npc that already had a table pointing at it', async () => {
+    await mongoose.connection.collection('npcs').insertOne({
+      id: 'orc',
+      name: 'Orc',
+      lootTableId: 'boss-loot',
+      itemsToDrop: [{ itemId: 9, chance: 1 }],
+    });
+
+    await checkDatabaseSchemaVersion();
+
+    // The table always won at kill time, so following the list here would
+    // change what the npc drops.
+    const npc = await mongoose.connection
+      .collection('npcs')
+      .findOne<{ lootTableId?: string; itemsToDrop?: unknown }>({ id: 'orc' });
+    expect(npc?.lootTableId).toBe('boss-loot');
+    expect(npc?.itemsToDrop).toBeUndefined();
+  });
+
   it('refuses to boot on a store written by a newer build', async () => {
     await mongoose.connection.collection('metas').insertOne({
       _id: 'schemaVersion' as never,

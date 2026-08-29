@@ -275,19 +275,6 @@ describe('CreateNpcBodySchema', () => {
       }).success,
     ).toBe(false);
   });
-  it('validates itemsToDrop drop chance range', () => {
-    const valid = {
-      name: 'X',
-      sprite: 0,
-      maxHealth: 1,
-      attack: 0,
-      behavior: 'neutral',
-      itemsToDrop: [{ itemId: 1, chance: 0.5 }],
-    };
-    expect(CreateNpcBodySchema.safeParse(valid).success).toBe(true);
-    const invalid = { ...valid, itemsToDrop: [{ itemId: 1, chance: 1.5 }] };
-    expect(CreateNpcBodySchema.safeParse(invalid).success).toBe(false);
-  });
 });
 
 describe('CreateItemBodySchema', () => {

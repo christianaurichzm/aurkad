@@ -256,11 +256,7 @@ export const en = {
   'npc.lootSet': 'Weighted table in use. The simple drops below are ignored.',
   'npc.lootNone':
     'No table: the simple drops below are used, each rolled on its own.',
-  'npc.drops': 'Drops',
-  'npc.itemNumber': 'Item #{id}',
-  'npc.dropChance': 'Drop chance %',
   'npc.qty': 'Qty',
-  'npc.quantity': 'Quantity',
   'npc.save': 'Save NPC',
   'npc.createBtn': 'Create NPC',
   'npc.saved': 'NPC saved!',

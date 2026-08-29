@@ -1,14 +1,5 @@
 import mongoose from 'mongoose';
 
-const NpcItemDropSchema = new mongoose.Schema(
-  {
-    itemId: { type: Number, required: true },
-    chance: { type: Number, required: true, min: 0, max: 1 },
-    quantity: { type: Number, min: 1, default: 1 },
-  },
-  { _id: false },
-);
-
 const NpcSchema = new mongoose.Schema(
   {
     id: { type: String, required: true, unique: true },
@@ -32,7 +23,6 @@ const NpcSchema = new mongoose.Schema(
       ],
     },
     experienceValue: { type: Number, min: 0 },
-    itemsToDrop: [NpcItemDropSchema],
     lootTableId: { type: String },
     // Conversation the dialog module opens on interact. Declared here or
     // mongoose drops it on write: the editor would save, the document would

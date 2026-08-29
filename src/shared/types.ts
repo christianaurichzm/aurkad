@@ -206,11 +206,7 @@ export type NpcBehavior =
 export interface PersistentNpc extends CharacterBase {
   behavior: NpcBehavior;
   experienceValue?: number;
-  itemsToDrop?: NpcItemDrop[];
-  /**
-   * Weighted loot table to roll on death. Takes precedence over
-   * `itemsToDrop`, which stays supported as the simple per-item form.
-   */
+  /** Weighted loot table to roll on death; without one, nothing drops. */
   lootTableId?: LootTable['id'];
   /**
    * Authored conversation to open when a player talks to this npc. The dialog
@@ -508,6 +504,11 @@ export interface OnlinePlayersResponse {
   count: number;
 }
 
+/**
+ * The drop list an npc carries in databases and content packs from before
+ * loot tables. It is read once, turned into a table of its own and never
+ * written again (see `dropsToLootTable` and the v2 step in dbService).
+ */
 export interface NpcItemDrop {
   itemId: Item['id'];
   /** 0..1. NOT the 0-100 that the scripting API's randomChance() takes. */

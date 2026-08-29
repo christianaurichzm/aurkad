@@ -1,12 +1,38 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { Direction, Key } from '../../shared/types.js';
 import { TILE_SIZE } from '../../shared/constants.js';
 import { createFixture } from './simFixture.js';
+import {
+  clearLootTableCache,
+  createOrUpdateLootTable,
+} from '../services/economy/lootTableService.js';
+
+// Loot tables are documents; these tests only need them in the cache.
+vi.mock('../model/LootTable.js', () => ({
+  default: {
+    findOneAndUpdate: vi.fn().mockResolvedValue(undefined),
+    deleteOne: vi.fn().mockResolvedValue(undefined),
+    find: vi.fn(() => ({ lean: () => ({ exec: () => Promise.resolve([]) }) })),
+  },
+}));
 
 let sim: ReturnType<typeof createFixture>;
 
-beforeEach(() => {
+beforeEach(async () => {
   sim = createFixture(42);
+  clearLootTableCache();
+  await createOrUpdateLootTable({
+    id: 'always-a-coin',
+    name: 'Always a coin',
+    guaranteed: [{ itemId: 1, chance: 1 }],
+    entries: [],
+  });
+  await createOrUpdateLootTable({
+    id: 'five-coins',
+    name: 'Five coins',
+    guaranteed: [{ itemId: 1, chance: 1, quantity: 5 }],
+    entries: [],
+  });
 });
 
 // Movement
@@ -138,7 +164,7 @@ describe('combat', () => {
       position: { x: 3 * TILE_SIZE, y: 4 * TILE_SIZE },
       health: 1,
       maxHealth: 30,
-      itemsToDrop: [{ itemId: 1, chance: 100 }],
+      lootTableId: 'always-a-coin',
     });
     const killPos = { ...npc.position };
 
@@ -175,7 +201,7 @@ describe('combat', () => {
       position: { x: 3 * TILE_SIZE, y: 4 * TILE_SIZE },
       health: 1,
       maxHealth: 30,
-      itemsToDrop: [{ itemId: 1, chance: 100, quantity: 5 }],
+      lootTableId: 'five-coins',
     });
     const killPos = { ...npc.position };
 
