@@ -70,17 +70,19 @@ export function startInstanceBus(): () => void {
   let lastId: mongoose.Types.ObjectId | undefined;
   let running = false;
 
-  const poll = async (): Promise<void> => {
-    // The first poll only takes the position: a booting instance must not
-    // replay an hour of chat at the players who are already here.
-    if (!lastId) {
-      const newest = await InstanceEventModel.findOne()
-        .sort({ _id: -1 })
-        .select('_id')
-        .lean<{ _id: mongoose.Types.ObjectId }>();
+  // Where the stream is, asked for at once rather than on the first poll: an
+  // instance is deaf until it knows, and a booting instance must not replay an
+  // hour of chat at the players who are already here either.
+  const positioned = InstanceEventModel.findOne()
+    .sort({ _id: -1 })
+    .select('_id')
+    .lean<{ _id: mongoose.Types.ObjectId } | null>()
+    .then((newest) => {
       lastId = newest?._id ?? new mongoose.Types.ObjectId();
-      return;
-    }
+    });
+
+  const poll = async (): Promise<void> => {
+    await positioned;
 
     const events = await InstanceEventModel.find({ _id: { $gt: lastId } })
       .sort({ _id: 1 })
