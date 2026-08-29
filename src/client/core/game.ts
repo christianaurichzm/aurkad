@@ -6,10 +6,13 @@ import { getAnimatedPos } from '../graphics/entityRendering';
 import { TILE_SIZE } from '../../shared/constants';
 import { flushInputBuffer } from '../io/keyboard';
 import { pollGamepad } from '../io/gamepad';
+import { frameProfileEnabled, recordFrame } from './frameProfile';
 
 let prevLevel = 0;
+let lastFrameAt = 0;
 
 export const gameLoop = () => {
+  const frameAt = frameProfileEnabled ? performance.now() : 0;
   try {
     updateWebSocket();
     updateChat();
@@ -42,10 +45,17 @@ export const gameLoop = () => {
   flushInputBuffer();
   pollGamepad();
 
+  const renderAt = frameProfileEnabled ? performance.now() : 0;
   try {
     render();
   } catch (err) {
     console.error('[gameLoop] render error:', err);
+  }
+  if (frameProfileEnabled) {
+    const now = performance.now();
+    // The first frame has no gap to measure against, only a render.
+    if (lastFrameAt) recordFrame(frameAt - lastFrameAt, now - renderAt);
+    lastFrameAt = frameAt;
   }
   requestAnimationFrame(gameLoop);
 };
