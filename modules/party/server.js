@@ -202,6 +202,13 @@ on('beforeXpGain', (ctx) => {
   }
 });
 
+// A party enters a dungeon together: answering the leader's name gives
+// every member the same copy.
+on('instanceOwner', (ctx) => {
+  const party = partyOf(ctx.player);
+  if (party) ctx.owner = `party:${party.leader}`;
+});
+
 on('playerLeave', ({ player }) => {
   leave(player);
   for (const [target, leader] of invites.entries()) {

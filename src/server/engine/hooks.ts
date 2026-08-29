@@ -62,6 +62,13 @@ export type HookMap = {
     value: boolean | number | string;
     active: boolean;
   };
+  /**
+   * Which copy of an instanced map a player is about to walk into. `owner`
+   * arrives as the player's own name, a solo run, and anything that groups
+   * players (a party, a raid, a queue) replaces it with the group's name.
+   * Everybody who answers the same string walks into the same copy.
+   */
+  instanceOwner: { player: PlayerServer; mapId: string; owner: string };
   tick: { tick: number };
 };
 

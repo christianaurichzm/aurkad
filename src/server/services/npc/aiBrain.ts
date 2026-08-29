@@ -51,6 +51,19 @@ export function resetNpcAi(npc: RuntimeNpc) {
   npcAiState.delete(key);
 }
 
+/**
+ * Drops the ai of everything on one map, for a map that stops existing.
+ *
+ * The key is `mapId:npcId`, so a closed instance leaves one entry per npc it
+ * had, and nothing would ever come looking for them again.
+ */
+export function forgetNpcAiForMap(mapId: string) {
+  const prefix = `${mapId}:`;
+  for (const key of npcAiState.keys()) {
+    if (key.startsWith(prefix)) npcAiState.delete(key);
+  }
+}
+
 export function clearAllNpcAiState() {
   npcAiState.clear();
 }

@@ -53,6 +53,14 @@ const WorldSchema = z
         row: z.number().int().min(0).default(6),
       })
       .prefault({}),
+    // Maps entered as a private copy per player or party (dungeons). The map
+    // itself is ordinary content; being instanced is a rule about who meets
+    // whom in it, which is why it is decided here and not drawn in the editor.
+    instancedMaps: z.array(z.string().min(1)).default([]),
+    // How long an empty copy is kept before it is closed. It is the window a
+    // dropped connection has to walk back into the same run rather than a
+    // fresh one, which is why it is not zero.
+    instanceGraceMs: z.number().int().min(0).default(60_000),
   })
   .prefault({});
 

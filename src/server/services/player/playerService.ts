@@ -46,6 +46,7 @@ import {
 } from '../../persistence/dirtyPlayers.js';
 import { releasePresence } from '../../persistence/presence.js';
 import { publishToInstances } from '../../persistence/instanceBus.js';
+import { persistedLocation } from '../world/instanceService.js';
 import {
   supportsTransactions,
   withTransaction,
@@ -140,10 +141,11 @@ export const persistPlayerSessionState = async (
   const written = await createOrUpdatePlayer(
     {
       ...player,
-      position: player.position,
+      // Not necessarily where they are standing: inside a dungeon the copy's
+      // key means nothing once it closes, so what is written is the doorway.
+      ...persistedLocation(player),
       direction: player.direction,
       action: player.action,
-      mapId: player.mapId,
       health: player.health,
     },
     session,

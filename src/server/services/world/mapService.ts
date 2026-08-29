@@ -26,6 +26,12 @@ export async function getMapById(id: string): Promise<MapStateServer | null> {
 export async function createOrUpdateMap(
   map: Partial<MapStateServer>,
 ): Promise<string> {
+  // A dungeon copy is runtime only; saving one would write a map document
+  // whose id nobody can reach, or overwrite the template with whatever one
+  // run did to it.
+  if (map.id?.includes('#')) {
+    throw new Error(`[map] ${map.id} is an instance and cannot be saved`);
+  }
   if (!map.id) {
     map.id = (await getNextMapId()).toString();
   }

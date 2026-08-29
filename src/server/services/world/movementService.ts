@@ -36,6 +36,12 @@ import {
 import { handleChatAction } from '../comms/chatService.js';
 import { logger } from '../../logger.js';
 import { lookupInstanceUrl } from '../../persistence/instanceRegistry.js';
+import {
+  enterInstance,
+  forgetEntrance,
+  isInstanceKey,
+  isInstancedMap,
+} from './instanceService.js';
 import { formatTraceparent, startSpan } from '../../tracing.js';
 import { playersWsMap } from '../../net/connections.js';
 
@@ -134,6 +140,9 @@ export function teleportPlayer(
   player.position = findPlacement(player, toMapId, toPosition);
   resetMovement(player);
   updatePlayerMap(player.id, player, previousMapId);
+  // Out of the dungeon and back into the world: the way in is only worth
+  // remembering while they are inside it.
+  if (!isInstanceKey(toMapId)) forgetEntrance(player.id);
 }
 
 /** Warp, plus the one arrival teleportPlayer cannot do: another instance. */
@@ -142,6 +151,17 @@ function tryWarpToMap(
   toMapId: string,
   toPosition: Position,
 ): boolean {
+  // A warp to an instanced map is a warp to somebody's copy of it. Which copy
+  // is the instance service's answer; if it has none, the map is not on this
+  // process and the redirect below is the right one after all.
+  if (isInstancedMap(toMapId)) {
+    const key = enterInstance(player, toMapId);
+    if (key) {
+      teleportPlayer(player, key, toPosition);
+      return false;
+    }
+  }
+
   if (!getMap(toMapId)) {
     const url = lookupInstanceUrl(toMapId);
     if (url) {

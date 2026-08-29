@@ -238,6 +238,11 @@ interface HookPayloads {
     value: boolean | number | string;
     active: boolean;
   };
+  /**
+   * Which copy of an instanced map this player is about to enter. `owner`
+   * arrives as their own name; players answering the same string share a copy.
+   */
+  instanceOwner: { player: PlayerServer; mapId: string; owner: string };
   /** Fires every game tick (~20/sec). Throttle with `if (tick % n === 0)`. */
   tick: { tick: number };
 }

@@ -17,7 +17,13 @@ const { persistPlayersOnShutdown } = await import('./playerService.js');
 function mkPlayers(n: number): PlayerServer[] {
   return Array.from(
     { length: n },
-    (_, i) => ({ id: `p${i}`, name: `Player${i}` }) as PlayerServer,
+    (_, i) =>
+      ({
+        id: `p${i}`,
+        name: `Player${i}`,
+        mapId: '1',
+        position: { x: 0, y: 0 },
+      }) as PlayerServer,
   );
 }
 
