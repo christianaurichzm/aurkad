@@ -37,6 +37,8 @@ export const en = {
   'auth.saveEmail': 'Save address',
   'auth.emailSent': 'Open the link we just sent: the address counts from then.',
   'auth.emailNotSent': 'The message could not be sent. Try again in a moment.',
+  'auth.totpCode': 'Authentication code',
+  'auth.totpHint': 'Open your authenticator app, or type a recovery code.',
 
   // HUD
   'hud.level': 'Level {level}',
@@ -546,6 +548,25 @@ export const en = {
   'admin.loginFailed': 'Login failed',
   'admin.signIn': 'Sign in',
   'admin.signingIn': 'Signing in…',
+
+  'twofa.title': 'Two-factor authentication',
+  'twofa.off': 'Off. A stolen password is enough to reach this panel.',
+  'twofa.on': 'On. {count} recovery codes left.',
+  'twofa.lowRecovery':
+    'Few recovery codes left. Turn it off and set it up again for a new sheet.',
+  'twofa.setUp': 'Set up',
+  'twofa.turnOff': 'Turn off',
+  'twofa.cancel': 'Cancel',
+  'twofa.confirm': 'Confirm',
+  'twofa.passwordHint': 'Confirm your current password to continue.',
+  'twofa.keyHint': 'Add this key to your authenticator app:',
+  'twofa.linkHint': 'Or open this setup link on the device that has the app:',
+  'twofa.codeHint': 'Then type the six digits it shows.',
+  'twofa.saveCodes':
+    'Two-factor is on. These recovery codes are shown once - save them now, somewhere that is not the phone running the app.',
+  'twofa.done': 'Done',
+  'twofa.lockedOut':
+    'Lost the phone and the codes? Another admin runs: twofactor <name> off',
 
   'hud.atk': 'ATK',
 

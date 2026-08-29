@@ -42,6 +42,7 @@ import {
   mailReachesPlayers,
   sendMail,
 } from '../../services/comms/mailService.js';
+import { checkSecondFactor } from '../../services/player/twoFactorService.js';
 
 /** Matches the session store's TTL in http/session.ts. */
 const REMEMBERED_SESSION_MS = 7 * 24 * 60 * 60 * 1000;
@@ -73,6 +74,20 @@ export function createAuthRouter() {
         return res
           .status(401)
           .json({ message: 'Invalid username or password' });
+      }
+
+      // Before anything about the world: the same password opens a game
+      // session with the access level every in-game operator command reads,
+      // and a factor guarding one door and not the other guards nothing.
+      const second = await checkSecondFactor(username, body.totpToken);
+      if (second !== 'ok') {
+        return res.status(401).json({
+          twoFactorRequired: true,
+          message:
+            second === 'required'
+              ? 'This account needs its authentication code.'
+              : 'That code is wrong or already used.',
+        });
       }
 
       const ban = await getBan(username);

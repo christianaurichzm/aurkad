@@ -20,6 +20,12 @@ export interface HttpError {
    * lead straight to the stack.
    */
   requestId?: string;
+  /**
+   * Set when the password was right and the server wants the second factor.
+   * The screen shows the code field on this, as nothing before the attempt
+   * says the account is enrolled.
+   */
+  twoFactorRequired?: boolean;
 }
 
 /**
@@ -66,7 +72,11 @@ export const httpClient = async <T>(
   if (!response.ok) {
     const body =
       typeof data === 'object' && data !== null
-        ? (data as { message?: string; error?: string })
+        ? (data as {
+            message?: string;
+            error?: string;
+            twoFactorRequired?: boolean;
+          })
         : null;
     const message =
       body?.message ||
@@ -77,6 +87,7 @@ export const httpClient = async <T>(
       status: response.status,
       message,
       requestId: response.headers.get('X-Request-Id') ?? undefined,
+      ...(body?.twoFactorRequired ? { twoFactorRequired: true } : {}),
     };
     throw failure;
   }

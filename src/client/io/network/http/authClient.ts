@@ -5,6 +5,7 @@ export const login = async (
   username: string,
   password: string,
   remember = false,
+  totpToken?: string,
 ) => {
   return await httpClient<{
     player: Player;
@@ -13,7 +14,7 @@ export const login = async (
     motd?: string;
   }>('/login', {
     method: 'POST',
-    body: { username, password, remember },
+    body: { username, password, remember, ...(totpToken ? { totpToken } : {}) },
   });
 };
 

@@ -26,6 +26,10 @@ import { runtimeState } from '../../sim/state.js';
 import { createFixture, makeTiles } from '../../sim/simFixture.js';
 import { gameConfig } from '../../gameConfig.js';
 import { Access } from '../../../shared/types.js';
+import {
+  enableTwoFactor,
+  totpCode,
+} from '../../services/player/twoFactorService.js';
 
 // A deployment that can send mail, and a record of what it sent: the address
 // routes exist to put a link in somebody's inbox, so the assertion is the mail.
@@ -381,5 +385,62 @@ describe('the address a reset link goes to', () => {
     expect(res.status).toBe(200);
     expect(res.body.success).toBe(true);
     expect(sent).toHaveLength(0);
+  });
+});
+
+describe('POST /login with a second factor', () => {
+  // Enrolling spends the code it was confirmed with, so the login uses the
+  // next step, inside the drift window and not yet burned.
+  async function enrolled(name: string, password: string) {
+    await createPlayer(name, await hashPw(password));
+    const secret = 'GEZDGNBVGY3TQOJQGEZDGNBVGY3TQOJQ';
+    await enableTwoFactor(name, secret, totpCode(secret));
+    return () => totpCode(secret, Date.now() + 30_000);
+  }
+
+  it('refuses a password-only login and says what is missing', async () => {
+    await enrolled('Guarded', 'pw');
+
+    const res = await request(app)
+      .post('/login')
+      .send({ username: 'Guarded', password: 'pw' });
+
+    expect(res.status).toBe(401);
+    expect(res.body.twoFactorRequired).toBe(true);
+    // Nothing about the world happened: no session, no player in the map.
+    expect(getPlayerByName('Guarded')).toBeUndefined();
+  });
+
+  it('refuses a wrong code', async () => {
+    await enrolled('Guarded', 'pw');
+
+    const res = await request(app)
+      .post('/login')
+      .send({ username: 'Guarded', password: 'pw', totpToken: '000000' });
+
+    expect(res.status).toBe(401);
+    expect(res.body.twoFactorRequired).toBe(true);
+  });
+
+  it('lets the right code through, and into the world', async () => {
+    const code = await enrolled('Guarded', 'pw');
+
+    const res = await request(app)
+      .post('/login')
+      .send({ username: 'Guarded', password: 'pw', totpToken: code() });
+
+    expect(res.status).toBe(200);
+    expect(res.body.player.name).toBe('Guarded');
+    expect(getPlayerByName('Guarded')).toBeDefined();
+  });
+
+  it('leaves an account with no enrollment alone', async () => {
+    await createPlayer('Plain', await hashPw('pw'));
+
+    const res = await request(app)
+      .post('/login')
+      .send({ username: 'Plain', password: 'pw' });
+
+    expect(res.status).toBe(200);
   });
 });

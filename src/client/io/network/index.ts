@@ -94,7 +94,12 @@ export {
   adminLogin,
   adminSession,
   adminLogout,
+  beginTwoFactor,
+  confirmTwoFactor,
+  fetchTwoFactor,
+  removeTwoFactor,
   type AdminSession,
+  type TwoFactorStatus,
 } from './http/adminAuthClient';
 
 // Administrative audit trail

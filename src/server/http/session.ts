@@ -9,6 +9,12 @@ declare module 'express-session' {
     username: PlayerServer['name'];
     accessLevel: Access;
     assetKey: string;
+    /**
+     * A second-factor secret that has been shown but not yet proven. Kept
+     * here, not in the database, so an abandoned enrollment leaves nothing: it
+     * becomes real in the TwoFactor collection or dies with this session.
+     */
+    pendingTotpSecret: string;
   }
 }
 

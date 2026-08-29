@@ -3,12 +3,14 @@ import {
   adminLogin,
   adminSession,
   adminLogout,
+  httpError,
   type AdminSession,
 } from '../io/network';
 import { Access } from '../../shared/types';
 import { PlayerModeration } from '../components/moderation/PlayerModeration';
 import { CommandConsole } from '../components/moderation/CommandConsole';
 import { AuditLog } from '../components/moderation/AuditLog';
+import { TwoFactorPanel } from '../components/moderation/TwoFactorPanel';
 import { colors, radius } from '../theme';
 import { useT } from '../i18n';
 
@@ -79,6 +81,10 @@ export const AdminApp: React.FC = () => {
           <h2 style={panelTitle}>{t('admin.console')}</h2>
           <CommandConsole height={260} />
         </section>
+        <section style={panel}>
+          <h2 style={panelTitle}>{t('twofa.title')}</h2>
+          <TwoFactorPanel />
+        </section>
         {session.scriptEditorEnabled && (
           <section style={{ ...panel, ...wideSection }}>
             <h2 style={panelTitle}>{t('admin.scripts')}</h2>
@@ -106,6 +112,10 @@ const AdminLogin: React.FC<{ onLogin: (s: AdminSession) => void }> = ({
   const t = useT();
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
+  const [totpToken, setTotpToken] = useState('');
+  // Only after the server asks: whether an account is enrolled is not
+  // something a login screen may be told before the password is right.
+  const [needsCode, setNeedsCode] = useState(false);
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
 
@@ -114,8 +124,9 @@ const AdminLogin: React.FC<{ onLogin: (s: AdminSession) => void }> = ({
     setBusy(true);
     setError('');
     try {
-      onLogin(await adminLogin(username, password));
+      onLogin(await adminLogin(username, password, totpToken.trim()));
     } catch (e: unknown) {
+      if (httpError(e).twoFactorRequired) setNeedsCode(true);
       setError((e as { message?: string })?.message || t('admin.loginFailed'));
     } finally {
       setBusy(false);
@@ -147,6 +158,21 @@ const AdminLogin: React.FC<{ onLogin: (s: AdminSession) => void }> = ({
           value={password}
           onChange={(e) => setPassword(e.target.value)}
         />
+        {needsCode && (
+          <>
+            <input
+              style={loginInput}
+              type="text"
+              inputMode="numeric"
+              autoComplete="one-time-code"
+              autoFocus
+              placeholder={t('auth.totpCode')}
+              value={totpToken}
+              onChange={(e) => setTotpToken(e.target.value)}
+            />
+            <p style={loginSub}>{t('auth.totpHint')}</p>
+          </>
+        )}
         {error && <div style={loginError}>{error}</div>}
         <button style={loginBtn} type="submit" disabled={busy}>
           {busy ? t('admin.signingIn') : t('admin.signIn')}

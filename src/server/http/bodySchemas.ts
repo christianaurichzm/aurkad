@@ -135,6 +135,11 @@ const EffectSchema = z.object({
 });
 
 // Auth
+// A second factor: an authenticator's six digits or a printed recovery
+// code. Named `totpToken`, not `code`, so the audit trail's redaction of
+// `token` catches it; `code` is what a script body calls its source.
+const TotpToken = z.string().min(6).max(32);
+
 export const LoginBodySchema = z.object({
   username: z.string().min(1),
   password: z.string().min(1),
@@ -142,6 +147,28 @@ export const LoginBodySchema = z.object({
   // browser, which is the right default for a game: closing the client should
   // not leave the next person at that machine holding the character.
   remember: z.boolean().optional(),
+  // Absent on the first attempt: the screen has no way to know an account is
+  // enrolled until it asks, and saying so before the password is checked
+  // answers "does this account exist" for free.
+  totpToken: TotpToken.optional(),
+});
+
+// Enrolling a second factor. The current password is asked for the same reason
+// changing one asks: an open session on a shared machine must not be enough to
+// bind somebody else's account to a phone.
+export const TwoFactorSetupBodySchema = z.object({
+  currentPassword: z.string().min(1),
+});
+
+export const TwoFactorEnableBodySchema = z.object({
+  totpToken: TotpToken,
+});
+
+// Turning it off asks for both halves, because either one alone is exactly the
+// case the factor exists for: a stolen password, or a session left open.
+export const TwoFactorDisableBodySchema = z.object({
+  currentPassword: z.string().min(1),
+  totpToken: TotpToken,
 });
 
 export const RegisterBodySchema = z.object({

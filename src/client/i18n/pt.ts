@@ -41,6 +41,9 @@ export const pt: Record<keyof typeof en, string> = {
     'Abra o link que acabamos de enviar: o endereço vale a partir dali.',
   'auth.emailNotSent':
     'Não foi possível enviar a mensagem. Tente de novo daqui a pouco.',
+  'auth.totpCode': 'Código de autenticação',
+  'auth.totpHint':
+    'Abra seu aplicativo autenticador, ou digite um código de recuperação.',
 
   'hud.level': 'Nível {level}',
   'hud.hp': 'HP',
@@ -543,6 +546,26 @@ export const pt: Record<keyof typeof en, string> = {
   'admin.loginFailed': 'Falha ao entrar',
   'admin.signIn': 'Entrar',
   'admin.signingIn': 'Entrando…',
+
+  'twofa.title': 'Autenticação em duas etapas',
+  'twofa.off': 'Desligada. Uma senha roubada basta para chegar neste painel.',
+  'twofa.on': 'Ligada. {count} códigos de recuperação restantes.',
+  'twofa.lowRecovery':
+    'Restam poucos códigos de recuperação. Desligue e configure de novo para gerar outros.',
+  'twofa.setUp': 'Configurar',
+  'twofa.turnOff': 'Desligar',
+  'twofa.cancel': 'Cancelar',
+  'twofa.confirm': 'Confirmar',
+  'twofa.passwordHint': 'Confirme sua senha atual para continuar.',
+  'twofa.keyHint': 'Adicione esta chave ao seu aplicativo autenticador:',
+  'twofa.linkHint':
+    'Ou abra este link de configuração no aparelho que tem o aplicativo:',
+  'twofa.codeHint': 'Depois digite os seis dígitos que ele mostrar.',
+  'twofa.saveCodes':
+    'Duas etapas ligada. Estes códigos de recuperação aparecem uma única vez - guarde agora, e fora do telefone que roda o aplicativo.',
+  'twofa.done': 'Pronto',
+  'twofa.lockedOut':
+    'Perdeu o telefone e os códigos? Outro admin roda: twofactor <nome> off',
 
   'hud.atk': 'ATQ',
 

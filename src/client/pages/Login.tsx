@@ -3,6 +3,7 @@ import { useForm } from 'react-hook-form';
 import {
   fetchAuthCapabilities,
   friendlyHttpError,
+  httpError,
   login,
   requestPasswordReset,
 } from '../io/network';
@@ -12,7 +13,11 @@ import { useUIStore } from '../stores/uiStore';
 import { colors, radius, zIndex } from '../theme';
 import { useT } from '../i18n';
 
-type FormValues = { username: string; password: string };
+type FormValues = {
+  username: string;
+  password: string;
+  totpToken: string;
+};
 
 /**
  * The account name of whoever ticked "remember me" here. Only the name: this
@@ -42,12 +47,18 @@ export const Login = ({ onSwitch }: { onSwitch: () => void }) => {
 
   const remembered = readRememberedUser();
   const [remember, setRemember] = useState(remembered !== '');
+  // Shown only after the server asks for it. Nothing here can know an account
+  // is enrolled before the password has been checked, and a field that is
+  // always on screen would be a hint to whoever is guessing names.
+  const [needsCode, setNeedsCode] = useState(false);
 
   const {
     register,
     handleSubmit,
     formState: { errors, isSubmitting },
-  } = useForm<FormValues>({ defaultValues: { username: remembered } });
+  } = useForm<FormValues>({
+    defaultValues: { username: remembered, totpToken: '' },
+  });
 
   useEffect(() => {
     fetchAuthCapabilities()
@@ -62,10 +73,15 @@ export const Login = ({ onSwitch }: { onSwitch: () => void }) => {
       .catch(() => {});
   }, []);
 
-  const onSubmit = async ({ username, password }: FormValues) => {
+  const onSubmit = async ({ username, password, totpToken }: FormValues) => {
     setServerError('');
     try {
-      const data = await login(username, password, remember);
+      const data = await login(
+        username,
+        password,
+        remember,
+        totpToken.trim() || undefined,
+      );
       try {
         if (remember) localStorage.setItem(REMEMBERED_USER_KEY, username);
         else localStorage.removeItem(REMEMBERED_USER_KEY);
@@ -86,6 +102,7 @@ export const Login = ({ onSwitch }: { onSwitch: () => void }) => {
         setServerError('Unexpected response from server');
       }
     } catch (err) {
+      if (httpError(err).twoFactorRequired) setNeedsCode(true);
       setServerError(friendlyHttpError(err));
     }
   };
@@ -117,6 +134,20 @@ export const Login = ({ onSwitch }: { onSwitch: () => void }) => {
             <span style={styles.fieldError}>{errors.password.message}</span>
           )}
         </div>
+        {needsCode && (
+          <div style={styles.field}>
+            <input
+              type="text"
+              inputMode="numeric"
+              autoComplete="one-time-code"
+              autoFocus
+              placeholder={t('auth.totpCode')}
+              style={styles.input}
+              {...register('totpToken')}
+            />
+            <span style={styles.hint}>{t('auth.totpHint')}</span>
+          </div>
+        )}
         <label style={styles.remember}>
           <input
             type="checkbox"
@@ -217,6 +248,12 @@ const styles: Record<string, React.CSSProperties> = {
     display: 'block',
     marginTop: '4px',
     color: colors.danger,
+    fontSize: '0.8rem',
+  },
+  hint: {
+    display: 'block',
+    marginTop: '4px',
+    color: colors.textMuted,
     fontSize: '0.8rem',
   },
   remember: {

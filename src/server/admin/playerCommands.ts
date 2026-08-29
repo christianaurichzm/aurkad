@@ -26,6 +26,10 @@ import {
   resetLink,
 } from '../services/player/passwordService.js';
 import {
+  disableTwoFactor,
+  twoFactorStatus,
+} from '../services/player/twoFactorService.js';
+import {
   deletePlayer,
   disconnectPlayer,
   getPlayerByName,
@@ -641,13 +645,58 @@ export function registerPlayerCommands(): void {
       // The hash is the one field that is about the account rather than the
       // person, and handing it out helps an attacker and nobody else.
       const { password: _password, ...personal } = record;
-      const [mail, ban] = await Promise.all([
+      const [mail, ban, twoFactor] = await Promise.all([
         listDeliveries(username),
         getBan(username),
+        // Whether there is a second factor, never its secret, for the same
+        // reason the hash is dropped.
+        twoFactorStatus(username),
       ]);
 
       reply(
-        JSON.stringify({ player: personal, mail, ban: ban ?? null }, null, 2),
+        JSON.stringify(
+          { player: personal, mail, ban: ban ?? null, twoFactor },
+          null,
+          2,
+        ),
+      );
+    },
+  );
+
+  /**
+   * The way back in when the phone and the printed codes are both gone. Off
+   * only: enrolling means holding the secret, and a secret that passed through
+   * an operator is not a second factor. The owner enrolls again from the panel.
+   */
+  registerCommand(
+    'twofactor',
+    {
+      access: Access.ADMIN,
+      description: 'Second factor of an account: twofactor <username> [off]',
+    },
+    async ({ args, reply, style }) => {
+      const username = args[0];
+      if (!username) return reply('Usage: twofactor <username> [off]');
+
+      const record = await getPlayerByNameFromDb(username);
+      if (!record) return reply(style.warn(`No account named ${username}.`));
+
+      if (args[1] === 'off') {
+        const removed = await disableTwoFactor(username);
+        return reply(
+          removed
+            ? style.ok(
+                `Second factor removed from ${username}. They can enroll again from the panel.`,
+              )
+            : style.warn(`${username} had no second factor.`),
+        );
+      }
+
+      const status = await twoFactorStatus(username);
+      reply(
+        status.enabled
+          ? `${style.player(username)}: second factor ${style.value('on')}, ${style.value(String(status.recoveryLeft))} recovery codes left. Remove with: twofactor ${username} off`
+          : `${style.player(username)}: second factor ${style.value('off')}.`,
       );
     },
   );
@@ -685,6 +734,10 @@ export function registerPlayerCommands(): void {
 
       const mail = await listDeliveries(username);
       for (const entry of mail) await cancelDelivery(entry.id);
+      // The second factor goes with the account, unlike the ban below: it is
+      // keyed by name too, and a row left behind would demand a code from
+      // whoever registers that name next, from a secret nobody holds.
+      await disableTwoFactor(username);
       await deletePlayer(record.id);
 
       // The ban stays: it is keyed by name and is all that stops the account

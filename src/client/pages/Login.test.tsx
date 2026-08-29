@@ -8,6 +8,7 @@ const mocks = vi.hoisted(() => ({ login: vi.fn(), loginSuccess: vi.fn() }));
 vi.mock('../io/network', () => ({
   login: mocks.login,
   httpError: (e: unknown) => (e as { message?: string }) ?? {},
+  friendlyHttpError: (e: { message?: string }) => e?.message ?? 'failed',
   // No mail transport here, so the reset form stays hidden, as by default.
   fetchAuthCapabilities: () => Promise.resolve({ mail: false }),
   requestPasswordReset: vi.fn(),
@@ -43,7 +44,12 @@ describe('remember me', () => {
 
     await signIn('Alice', 'correcthorse', false);
 
-    expect(mocks.login).toHaveBeenCalledWith('Alice', 'correcthorse', false);
+    expect(mocks.login).toHaveBeenCalledWith(
+      'Alice',
+      'correcthorse',
+      false,
+      undefined,
+    );
     expect(localStorage.getItem('engine.rememberedUser')).toBeNull();
   });
 
@@ -54,7 +60,12 @@ describe('remember me', () => {
 
     await signIn('Alice', 'correcthorse', true);
 
-    expect(mocks.login).toHaveBeenCalledWith('Alice', 'correcthorse', true);
+    expect(mocks.login).toHaveBeenCalledWith(
+      'Alice',
+      'correcthorse',
+      true,
+      undefined,
+    );
     expect(localStorage.getItem('engine.rememberedUser')).toBe('Alice');
   });
 
@@ -76,5 +87,33 @@ describe('remember me', () => {
     await signIn('', 'correcthorse', false);
 
     expect(localStorage.getItem('engine.rememberedUser')).toBeNull();
+  });
+});
+
+describe('the second factor', () => {
+  it('shows the code field only once the server asks, then sends it', async () => {
+    mocks.login.mockRejectedValueOnce({
+      status: 401,
+      message: 'This account needs its authentication code.',
+      twoFactorRequired: true,
+    });
+    render(<Login onSwitch={vi.fn()} />);
+
+    expect(screen.queryByPlaceholderText('Authentication code')).toBeNull();
+
+    await signIn('Alice', 'correcthorse', false);
+
+    const field = await screen.findByPlaceholderText('Authentication code');
+    mocks.login.mockResolvedValueOnce(null);
+    const user = userEvent.setup();
+    await user.type(field, '123456');
+    await user.click(screen.getByRole('button', { name: 'Login' }));
+
+    expect(mocks.login).toHaveBeenLastCalledWith(
+      'Alice',
+      'correcthorse',
+      false,
+      '123456',
+    );
   });
 });

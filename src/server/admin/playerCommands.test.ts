@@ -25,6 +25,12 @@ vi.mock('../services/content/banService.js', () => ({
   unbanPlayer: () => Promise.resolve(),
   getBan: () => Promise.resolve(null),
 }));
+// The second factor is its own collection; the commands only have to reach it.
+const disableTwoFactor = vi.fn().mockResolvedValue(true);
+vi.mock('../services/player/twoFactorService.js', () => ({
+  disableTwoFactor: (...args: unknown[]) => disableTwoFactor(...args),
+  twoFactorStatus: () => Promise.resolve({ enabled: false, recoveryLeft: 0 }),
+}));
 const stored = new Map<string, Record<string, unknown>>();
 const deletePlayer = vi.fn();
 const disconnectPlayer = vi.fn();
@@ -250,12 +256,16 @@ describe('account export and erasure', () => {
     const parsed = JSON.parse(out) as {
       player: Record<string, unknown>;
       mail: unknown[];
+      twoFactor: unknown;
     };
 
     expect(parsed.player).toMatchObject({ name: 'Alice', level: 4 });
     expect(parsed.player.data).toEqual({ vip: true });
     expect(parsed.player.password).toBeUndefined();
     expect(parsed.mail).toHaveLength(1);
+    // That there is a second factor, never its secret: the same reason the
+    // hash is dropped.
+    expect(parsed.twoFactor).toEqual({ enabled: false, recoveryLeft: 0 });
   });
 
   it('says so plainly when there is no such account', async () => {
@@ -302,5 +312,42 @@ describe('account export and erasure', () => {
     await run('accountdelete Alice confirm');
 
     expect(recordAdminAction).toHaveBeenCalled();
+  });
+});
+
+describe('the second factor from the console', () => {
+  beforeEach(() => {
+    stored.set('Alice', { id: 'p-1', name: 'Alice' });
+    disableTwoFactor.mockClear();
+  });
+
+  it('says what the account has', async () => {
+    const { out } = await run('twofactor Alice');
+
+    expect(out).toMatch(/second factor/i);
+    expect(disableTwoFactor).not.toHaveBeenCalled();
+  });
+
+  it('removes it when asked, which is the way back from a lost phone', async () => {
+    const { out } = await run('twofactor Alice off');
+
+    expect(disableTwoFactor).toHaveBeenCalledWith('Alice');
+    expect(out).toMatch(/removed from Alice/);
+  });
+
+  it('will not act on an account that does not exist', async () => {
+    const { out } = await run('twofactor Ghost off');
+
+    expect(disableTwoFactor).not.toHaveBeenCalled();
+    expect(out).toMatch(/No account named Ghost/);
+  });
+
+  // There is no "on": enrolling means holding the secret, and a secret that
+  // passed through an operator is not a second factor any more.
+  it('has no way to turn it on for somebody else', async () => {
+    const { out } = await run('twofactor Alice on');
+
+    expect(disableTwoFactor).not.toHaveBeenCalled();
+    expect(out).toMatch(/second factor/i);
   });
 });
