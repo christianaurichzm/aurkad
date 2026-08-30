@@ -172,16 +172,15 @@ const mapIds = rawMapIds?.length ? rawMapIds : undefined;
 // keeps two instances from overwriting one account, and the instance bus
 // (persistence/instanceBus.ts) carries what an operator says.
 //
-// Still per-process: tp and warp, which name a player and a map that may
-// be on other instances, and the modules' own state, so a party or a trade
-// only forms between players on one instance. Both degrade in the open,
-// the command saying the player is not here, so it is said once at boot
+// Still per-process: the modules' own state, so a party or a trade only
+// forms between players on one instance. That degrades in the open, the
+// command saying the player is not here, so it is said once at boot
 // instead of refusing to start.
 if (process.env.WS_PUBLIC_URL && mapIds) {
   console.warn(
     '[config] Multi-instance mode: accounts, operator announcements, moderation and the ' +
-      'commands that act on one character (pm, heal, kill) cross instances; tp, warp and ' +
-      'module state (party, guild, trade) still only reach the instance the player is on.',
+      'commands that act on one character (pm, heal, kill, tp) cross instances; module ' +
+      'state (party, guild, trade) still only reaches the instance the player is on.',
   );
 }
 

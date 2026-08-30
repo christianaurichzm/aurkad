@@ -51,7 +51,7 @@ describe('config multi-instance mode', () => {
     // The name of the test is the assertion: what is named has to be what is
     // still missing, so the warning cannot outlive the gap it describes.
     expect(warn).toHaveBeenCalledWith(
-      expect.stringMatching(/tp, warp and module state/),
+      expect.stringMatching(/module state \(party, guild, trade\)/),
     );
     warn.mockRestore();
   });

@@ -41,7 +41,7 @@ vi.mock('../services/analyticsService.js', () => ({
 }));
 const stored = new Map<string, Record<string, unknown>>();
 const deletePlayer = vi.fn();
-const disconnectPlayer = vi.fn();
+const disconnectPlayer = vi.fn().mockResolvedValue(undefined);
 vi.mock('../services/player/playerService.js', async () => {
   const world = await import('../sim/world.js');
   return {
@@ -57,6 +57,23 @@ vi.mock('../services/player/playerService.js', async () => {
     },
   };
 });
+// The two answers a second process would give: who holds an account, and
+// which instance serves a map. Both are reads against Mongo in production and
+// both are what makes a destination "not here" rather than "not there".
+const leaseHolderOf = vi.fn<(name: string) => Promise<string | null>>();
+vi.mock('../persistence/presence.js', () => ({
+  leaseHolderOf: (name: string) => leaseHolderOf(name),
+}));
+const publishToInstances = vi.fn();
+vi.mock('../persistence/instanceBus.js', () => ({
+  publishToInstances: (type: string, payload: unknown) =>
+    publishToInstances(type, payload),
+}));
+const lookupInstanceUrl = vi.fn<(mapId: string) => string | undefined>();
+vi.mock('../persistence/instanceRegistry.js', () => ({
+  lookupInstanceUrl: (mapId: string) => lookupInstanceUrl(mapId),
+}));
+
 const cancelDelivery = vi.fn();
 const mail: { id: string }[] = [];
 vi.mock('../services/economy/deliveryService.js', () => ({
@@ -83,6 +100,9 @@ beforeEach(() => {
   deletePlayer.mockClear();
   disconnectPlayer.mockClear();
   cancelDelivery.mockClear();
+  leaseHolderOf.mockReset().mockResolvedValue(null);
+  publishToInstances.mockClear();
+  lookupInstanceUrl.mockReset().mockReturnValue(undefined);
   stored.clear();
   mail.length = 0;
 });
@@ -209,6 +229,97 @@ describe('teleporting', () => {
 
     expect((await run('tp Alice nowhere 1 1')).out).toContain('Map not found');
     expect(alice.position).toEqual(before);
+  });
+
+  /**
+   * tp across instances: the operator, the player and the destination can each
+   * be on a different process. The command goes to whoever holds the account,
+   * and the player then goes to whoever owns the map.
+   */
+  describe('across instances', () => {
+    it('hands the player to the instance that owns the map', async () => {
+      const sim = createFixture(0);
+      const alice = sim.addPlayer({ name: 'Alice' });
+      settle();
+      lookupInstanceUrl.mockReturnValue('ws://two:8080');
+
+      const { out } = await run('tp Alice faraway 3 4');
+
+      expect(out).toContain('Sent Alice');
+      expect(alice.mapId).toBe('faraway');
+      // Redirected, not teleported into a map this process does not have.
+      expect(disconnectPlayer).toHaveBeenCalledWith('Alice');
+    });
+
+    it('follows a subject held elsewhere instead of refusing', async () => {
+      createFixture(0);
+      leaseHolderOf.mockResolvedValue('ws://two:8080');
+
+      const { out } = await run('tp Alice map1 5 7');
+
+      expect(publishToInstances).toHaveBeenCalledWith('playerCommand', {
+        command: 'tp',
+        args: ['Alice', 'map1', '5', '7'],
+        actor: 'console',
+        source: 'repl',
+      });
+      expect(out).toContain('another instance');
+    });
+
+    it('goes to where a player held elsewhere last was', async () => {
+      const sim = createFixture(0);
+      const alice = sim.addPlayer({ name: 'Alice' });
+      settle();
+      leaseHolderOf.mockResolvedValue('ws://two:8080');
+      lookupInstanceUrl.mockReturnValue('ws://two:8080');
+      stored.set('Bob', {
+        name: 'Bob',
+        mapId: 'faraway',
+        position: { x: 3 * TILE_SIZE, y: 4 * TILE_SIZE },
+      });
+
+      const { out } = await run('tp Alice Bob');
+
+      // "last seen", since the document is only as fresh as the last
+      // write-behind flush, and the answer says so.
+      expect(out).toContain('last seen on map faraway tile (3,4)');
+      expect(alice.mapId).toBe('faraway');
+    });
+
+    it('refuses a name that is merely offline, document or not', async () => {
+      const sim = createFixture(0);
+      const alice = sim.addPlayer({ name: 'Alice' });
+      const before = { ...alice.position };
+      settle();
+      stored.set('Ghost', {
+        name: 'Ghost',
+        mapId: 'faraway',
+        position: { x: 0, y: 0 },
+      });
+
+      const { out } = await run('tp Alice Ghost');
+
+      expect(out).toContain('Target player not online: Ghost');
+      expect(alice.position).toEqual(before);
+    });
+
+    it('refuses a map whose instance is gone instead of pretending', async () => {
+      const sim = createFixture(0);
+      const alice = sim.addPlayer({ name: 'Alice' });
+      settle();
+      // The lease outlives the registry entry of a process that died.
+      leaseHolderOf.mockResolvedValue('ws://two:8080');
+      stored.set('Bob', {
+        name: 'Bob',
+        mapId: 'faraway',
+        position: { x: 0, y: 0 },
+      });
+
+      const { out } = await run('tp Alice Bob');
+
+      expect(out).toContain('no instance is serving');
+      expect(alice.mapId).toBe('map1');
+    });
   });
 
   it('tpall moves everyone to one destination', async () => {

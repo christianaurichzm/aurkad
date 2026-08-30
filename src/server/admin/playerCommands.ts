@@ -18,7 +18,7 @@ import {
 } from '../services/content/banService.js';
 import { broadcast, playersWsMap } from '../net/index.js';
 import { getMap, updatePlayer } from '../services/world/gameData.js';
-import { teleportPlayer } from '../services/world/movementService.js';
+import { warpToMap } from '../services/world/movementService.js';
 import { getAllPlayers } from '../sim/world.js';
 import { isMuted, serverState } from '../services/world/serverState.js';
 import {
@@ -31,6 +31,8 @@ import {
 } from '../services/player/twoFactorService.js';
 import { activityOf, forgetPlayer } from '../services/analyticsService.js';
 import { publishToInstances } from '../persistence/instanceBus.js';
+import { leaseHolderOf } from '../persistence/presence.js';
+import { lookupInstanceUrl } from '../persistence/instanceRegistry.js';
 import {
   deletePlayer,
   disconnectPlayer,
@@ -125,26 +127,63 @@ type TeleportDestination =
   | { ok: true; mapId: string; position: Position; label: string }
   | { ok: false; error: string };
 
-/** `<targetUser>` or `<mapId> <tileX> <tileY>`, the two ways tp is written. */
-function resolveDestination(args: string[]): TeleportDestination {
+/** Local, or another instance's under sharding. */
+const mapIsServed = (mapId: string): boolean =>
+  !!getMap(mapId) || !!lookupInstanceUrl(mapId);
+
+/**
+ * `<targetUser>` or `<mapId> <tileX> <tileY>`. Under sharding either can be
+ * on another process; the destination is still a map id and a tile, and the
+ * redirect in `warpToMap` carries the player across.
+ */
+async function resolveDestination(
+  args: string[],
+): Promise<TeleportDestination> {
   if (args.length === 1) {
-    const target = args[0] ? getPlayerByName(args[0]) : undefined;
-    if (!target) {
-      return { ok: false, error: `Target player not online: ${args[0]}` };
+    const name = args[0] ?? '';
+    const target = getPlayerByName(name);
+    if (target) {
+      const t = tile(target.position);
+      return {
+        ok: true,
+        mapId: target.mapId,
+        position: { ...target.position },
+        label: `${target.name} on map ${target.mapId} tile (${t.x},${t.y})`,
+      };
     }
 
-    const t = tile(target.position);
-    return {
-      ok: true,
-      mapId: target.mapId,
-      position: { ...target.position },
-      label: `${target.name} on map ${target.mapId} tile (${t.x},${t.y})`,
-    };
+    // Held elsewhere: the document has their spot as of the last write-behind
+    // flush, which may be a map they have since left, and the label says so.
+    // The lease is asked first, so an offline name still reads as offline.
+    const record = (await leaseHolderOf(name))
+      ? await getPlayerByNameFromDb(name)
+      : null;
+    if (record?.mapId && record.position) {
+      // The lease outlives the registry entry of an instance that died, and
+      // sending somebody to a map no process is serving would move nobody
+      // while reading as done.
+      if (!mapIsServed(record.mapId)) {
+        return {
+          ok: false,
+          error: `${record.name} is on map ${record.mapId}, which no instance is serving.`,
+        };
+      }
+
+      const t = tile(record.position);
+      return {
+        ok: true,
+        mapId: record.mapId,
+        position: { ...record.position },
+        label: `${record.name}, last seen on map ${record.mapId} tile (${t.x},${t.y})`,
+      };
+    }
+
+    return { ok: false, error: `Target player not online: ${name}` };
   }
 
   if (args.length === 3) {
     const [mapId, xArg, yArg] = args;
-    if (!mapId || !getMap(mapId)) {
+    if (!mapId || !mapIsServed(mapId)) {
       return { ok: false, error: `Map not found: ${mapId ?? '<missing>'}` };
     }
 
@@ -363,7 +402,7 @@ export function registerPlayerCommands(): void {
     );
   }
 
-  const teleport = ({ args, reply, style }: CommandContext) => {
+  const teleport = async ({ args, reply, style }: CommandContext) => {
     const username = args[0];
     if (!username || args.length < 2) {
       reply('Usage: tp <username> <targetUser>');
@@ -373,10 +412,17 @@ export function registerPlayerCommands(): void {
     const player = requireOnline(username, { reply, style });
     if (!player) return;
 
-    const destination = resolveDestination(args.slice(1));
+    const destination = await resolveDestination(args.slice(1));
     if (!destination.ok) return reply(destination.error);
 
-    teleportPlayer(player, destination.mapId, destination.position);
+    if (warpToMap(player, destination.mapId, destination.position)) {
+      // Handed to the map's owner: the socket here is closing, and the client
+      // reconnects there and is built from the document.
+      return reply(
+        style.ok(`Sent ${player.name} to ${destination.label}, on its owner.`),
+      );
+    }
+
     saveAndBroadcast([player]);
     sendPrivateMessage(
       player.name,
@@ -384,24 +430,20 @@ export function registerPlayerCommands(): void {
     );
     reply(style.ok(`Teleported ${player.name} to ${destination.label}.`));
   };
-  registerCommand(
-    'tp',
-    {
-      access: Access.ADMIN,
-      description:
-        'Teleport a player: tp <name> <targetName> | <mapId> <x> <y>',
-    },
-    teleport,
-  );
-  registerCommand(
-    'teleport',
-    {
-      access: Access.ADMIN,
-      description:
-        'Teleport a player: tp <name> <targetName> | <mapId> <x> <y>',
-    },
-    teleport,
-  );
+  for (const name of ['tp', 'teleport']) {
+    registerCommand(
+      name,
+      {
+        access: Access.ADMIN,
+        description:
+          'Teleport a player: tp <name> <targetName> | <mapId> <x> <y>',
+        // The subject has to be a live character, so under sharding this runs
+        // where the account is held. The redirect handles any third instance.
+        forwardable: true,
+      },
+      teleport,
+    );
+  }
 
   registerCommand(
     'tpall',
@@ -409,23 +451,26 @@ export function registerPlayerCommands(): void {
       access: Access.ADMIN,
       description: 'Teleport everyone: tpall <targetName> | <mapId> <x> <y>',
     },
-    ({ args, reply, style }) => {
+    async ({ args, reply, style }) => {
       if (args.length < 1) {
         reply('Usage: tpall <targetUser>');
         return reply('   or: tpall <mapId> <tileX> <tileY>');
       }
 
-      const destination = resolveDestination(args);
+      const destination = await resolveDestination(args);
       if (!destination.ok) return reply(destination.error);
 
       const players = onlinePlayers();
       if (players.length === 0) return reply(style.warn('No players online.'));
 
-      for (const player of players) {
-        teleportPlayer(player, destination.mapId, destination.position);
-      }
+      // Everyone here, which under sharding is not everyone: the command acts
+      // on the players this process has, and a destination it does not own
+      // sends them across one by one.
+      const stayed = players.filter(
+        (player) => !warpToMap(player, destination.mapId, destination.position),
+      );
 
-      saveAndBroadcast(players);
+      saveAndBroadcast(stayed);
       reply(
         style.ok(
           `Teleported ${players.length} player(s) to ${destination.label}.`,

@@ -127,8 +127,9 @@ function redirectPlayer(
  * land, not who got there first, so an operator never lands in a wall or
  * on top of the player they were looking for.
  *
- * The map has to be loaded here; a destination on another instance is the
- * warp path's, because only a player who walked into it can be redirected.
+ * The map has to be loaded here; a destination on another instance belongs
+ * to `warpToMap`, which every caller that might name one (a warp tile, an
+ * operator's tp) goes through.
  */
 export function teleportPlayer(
   player: PlayerServer,
@@ -145,8 +146,13 @@ export function teleportPlayer(
   if (!isInstanceKey(toMapId)) forgetEntrance(player.id);
 }
 
-/** Warp, plus the one arrival teleportPlayer cannot do: another instance. */
-function tryWarpToMap(
+/**
+ * Warp, plus the one arrival teleportPlayer cannot do: another instance.
+ *
+ * True when the player left this process, so a caller that wanted to tell them
+ * something, or to write them, knows there is nobody here to tell.
+ */
+export function warpToMap(
   player: PlayerServer,
   toMapId: string,
   toPosition: Position,
@@ -164,11 +170,13 @@ function tryWarpToMap(
 
   if (!getMap(toMapId)) {
     const url = lookupInstanceUrl(toMapId);
-    if (url) {
-      redirectPlayer(player, toMapId, toPosition, url);
-    } else {
+    if (!url) {
+      // Nowhere to send them, so they are still here: a map no live instance
+      // claims is a broken warp, not a hand-off.
       logger.warn('[warp] no instance found for map', { toMapId });
+      return false;
     }
+    redirectPlayer(player, toMapId, toPosition, url);
     return true;
   }
   teleportPlayer(player, toMapId, toPosition);
@@ -225,7 +233,7 @@ const runTileTriggers = (
 const handleWarpAndShops = (player: PlayerServer): void => {
   const warp = hasWarp(player);
   if (warp) {
-    tryWarpToMap(player, warp.to, warp.position);
+    warpToMap(player, warp.to, warp.position);
     return;
   }
 
@@ -387,7 +395,7 @@ export const processMovementIntent = () => {
       } else if (!tile && map?.borderLinks) {
         const borderWarp = map.borderLinks[DIRECTION_BORDER[activeMoveDir]];
         if (borderWarp) {
-          tryWarpToMap(player, borderWarp.to, borderWarp.position);
+          warpToMap(player, borderWarp.to, borderWarp.position);
         } else {
           player.action = CharacterAction.Idle;
         }
