@@ -1,0 +1,67 @@
+name: release
+
+# A release is `npm version <patch|minor|major> && git push --follow-tags`:
+# the tag is the single input here, so the image tag, the release name and the
+# changelog range cannot drift from package.json.
+on:
+  push:
+    tags: ['v*']
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      packages: write
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      REPOSITORY: ${{ github.repository }}
+      ACTOR: ${{ github.actor }}
+    steps:
+      # Full history: the changelog is the commit range since the previous tag.
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      # GHCR rejects an uppercase path, and the owner segment is spelled the way
+      # GitHub spells the account.
+      - name: image and push
+        run: |
+          IMAGE="ghcr.io/$(echo "$REPOSITORY" | tr '[:upper:]' '[:lower:]')"
+          echo "$GH_TOKEN" | docker login ghcr.io -u "$ACTOR" --password-stdin
+          docker build -t "$IMAGE:${GITHUB_REF_NAME#v}" -t "$IMAGE:latest" .
+          docker push --all-tags "$IMAGE"
+
+      # Conventional-commit subjects are already the changelog; the release page
+      # is where it lives, so there is no CHANGELOG.md to keep in sync.
+      - name: release
+        run: |
+          prev=$(git describe --tags --abbrev=0 "$GITHUB_REF_NAME^" 2>/dev/null || true)
+          git log --no-merges --pretty='- %s' ${prev:+"$prev.."}"$GITHUB_REF_NAME" > notes.md
+          gh release create "$GITHUB_REF_NAME" --title "$GITHUB_REF_NAME" --notes-file notes.md
+
+  # Pages has to be set to "GitHub Actions" as its source once, in the
+  # repository settings, or this job has nothing to deploy to and fails.
+  docs:
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    environment: github-pages
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+
+      - run: npm ci
+
+      - run: npm run docs:api
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: docs/api
+
+      - uses: actions/deploy-pages@v4
