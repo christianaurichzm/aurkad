@@ -52,6 +52,7 @@ import { createConsoleRouter } from './http/routes/consoleRoutes.js';
 import { createAdminAuthRouter } from './http/routes/adminAuthRoutes.js';
 import { createScriptsRouter } from './http/routes/scriptsRoutes.js';
 import { registerServerCommands } from './admin/serverCommands.js';
+import { runForwardedCommand } from './engine/commands.js';
 import { registerPlayerCommands } from './admin/playerCommands.js';
 import { createHealthRouter } from './http/routes/healthRoutes.js';
 import { createMetricsRouter } from './http/routes/metricsRoutes.js';
@@ -194,6 +195,10 @@ function registerInstanceEvents(): void {
     },
   );
 
+  onInstanceEvent<Parameters<typeof runForwardedCommand>[0]>(
+    'playerCommand',
+    runForwardedCommand,
+  );
   onInstanceEvent<LiveOpsFlag>('flagSet', applyFlagFromInstance);
   onInstanceEvent<{ name: string }>('flagCleared', ({ name }) =>
     forgetFlagFromInstance(name),

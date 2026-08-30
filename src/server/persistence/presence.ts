@@ -116,6 +116,25 @@ export async function listOnlineEverywhere(): Promise<string[] | undefined> {
   return docs.map((doc) => doc.name);
 }
 
+/**
+ * Which other instance holds this player's account, or null when presence
+ * is off, nobody holds the name or this process does. Matched exactly, like
+ * `getPlayerByName`, so the two lookups agree on which name is which.
+ */
+export async function leaseHolderOf(name: string): Promise<string | null> {
+  if (!owner) return null;
+
+  const doc = await PlayerModel.findOne({
+    name,
+    'lease.until': { $gt: Date.now() },
+  })
+    .select('lease.owner')
+    .lean<{ lease?: { owner?: string } }>();
+
+  const holder = doc?.lease?.owner;
+  return holder && holder !== owner ? holder : null;
+}
+
 export async function releasePresence(id: string): Promise<void> {
   const lease = held.get(id);
   if (!lease) return;

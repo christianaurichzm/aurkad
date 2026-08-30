@@ -5,15 +5,28 @@ import {
   handleReplCommand,
   listCommands,
   clearCommands,
+  runForwardedCommand,
 } from './commands.js';
 import { drainGameEvents } from './eventBus.js';
 import { createFixture } from '../sim/simFixture.js';
 import { Access } from '../../shared/types.js';
 import { logger } from '../logger.js';
 
+const leaseHolderOf = vi.fn<(name: string) => Promise<string | null>>();
+const publishToInstances = vi.fn();
+vi.mock('../persistence/presence.js', () => ({
+  leaseHolderOf: (name: string) => leaseHolderOf(name),
+}));
+vi.mock('../persistence/instanceBus.js', () => ({
+  publishToInstances: (type: string, payload: unknown) =>
+    publishToInstances(type, payload),
+}));
+
 beforeEach(() => {
   clearCommands();
   drainGameEvents();
+  leaseHolderOf.mockReset().mockResolvedValue(null);
+  publishToInstances.mockReset();
 });
 
 function lastReplyTo(): string | undefined {
@@ -181,5 +194,88 @@ describe('error isolation', () => {
       handleReplCommand('boom', [], (s) => out.push(s)),
     ).resolves.toBe(true);
     expect(out).toEqual(['Command error.']);
+  });
+});
+
+describe('a command whose subject is on another instance', () => {
+  /** A forwardable command that records whether it actually ran. */
+  function heal() {
+    const ran = vi.fn();
+    registerCommand('heal', { forwardable: true }, ran);
+    return ran;
+  }
+
+  /** What the terminal prints, which is what the operator reads. */
+  const out = vi.fn<(message: string) => void>();
+  beforeEach(() => out.mockReset());
+
+  it('runs here when the character is here', async () => {
+    const sim = createFixture(0);
+    sim.addPlayer({ name: 'Alice' });
+    const ran = heal();
+
+    await handleReplCommand('heal', ['Alice'], out);
+
+    expect(ran).toHaveBeenCalled();
+    expect(publishToInstances).not.toHaveBeenCalled();
+  });
+
+  it('sends it to the instance holding the account', async () => {
+    createFixture(0);
+    const ran = heal();
+    leaseHolderOf.mockResolvedValue('ws://two:8080');
+
+    await handleReplCommand('heal', ['Alice', 'full'], out);
+
+    expect(ran).not.toHaveBeenCalled();
+    expect(publishToInstances).toHaveBeenCalledWith('playerCommand', {
+      command: 'heal',
+      args: ['Alice', 'full'],
+      actor: 'console',
+      source: 'repl',
+    });
+    expect(out).toHaveBeenCalledWith(
+      'Alice is on another instance; heal sent there.',
+    );
+  });
+
+  it('lets the handler refuse when nobody holds the account', async () => {
+    createFixture(0);
+    const ran = heal();
+
+    await handleReplCommand('heal', ['Ghost'], out);
+
+    expect(ran).toHaveBeenCalled();
+    expect(publishToInstances).not.toHaveBeenCalled();
+  });
+
+  it('leaves a command that acts on the name alone where it is', async () => {
+    createFixture(0);
+    const ran = vi.fn();
+    registerCommand('kick', {}, ran);
+    leaseHolderOf.mockResolvedValue('ws://two:8080');
+
+    await handleReplCommand('kick', ['Alice'], out);
+
+    expect(ran).toHaveBeenCalled();
+    expect(publishToInstances).not.toHaveBeenCalled();
+  });
+
+  it('does not send on a command that already crossed the bus', async () => {
+    // Two instances that each believe the other has the player would publish
+    // to each other forever; the second hop is where that has to stop.
+    createFixture(0);
+    const ran = heal();
+    leaseHolderOf.mockResolvedValue('ws://one:8080');
+
+    runForwardedCommand({
+      command: 'heal',
+      args: ['Alice'],
+      actor: 'Root',
+      source: 'chat',
+    });
+    await vi.waitFor(() => expect(ran).toHaveBeenCalled());
+
+    expect(publishToInstances).not.toHaveBeenCalled();
   });
 });

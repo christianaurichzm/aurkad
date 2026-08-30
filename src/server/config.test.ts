@@ -48,8 +48,10 @@ describe('config multi-instance mode', () => {
     const { config } = await import('./config.js');
 
     expect(config.instance.mapIds).toEqual(['1', '2']);
+    // The name of the test is the assertion: what is named has to be what is
+    // still missing, so the warning cannot outlive the gap it describes.
     expect(warn).toHaveBeenCalledWith(
-      expect.stringMatching(/commands that need a live character/),
+      expect.stringMatching(/tp, warp and module state/),
     );
     warn.mockRestore();
   });

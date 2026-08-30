@@ -2,6 +2,9 @@ import { emitGameEvent } from './eventBus.js';
 import { registerStrings, translate } from './i18n.js';
 import { logger } from '../logger.js';
 import { recordAdminAction } from '../services/auditService.js';
+import { getPlayerByName } from '../sim/world.js';
+import { leaseHolderOf } from '../persistence/presence.js';
+import { publishToInstances } from '../persistence/instanceBus.js';
 import { Access } from '../../shared/types.js';
 import type { PlayerServer } from '../../shared/types.js';
 
@@ -74,6 +77,13 @@ export interface CommandOptions {
   // state that is not an access tier, e.g. a VIP flag:
   // canRun: (p) => getPlayerData(p, 'vip') === true.
   canRun?: (player: PlayerServer) => boolean;
+  /**
+   * The command acts on a live character named by its first argument, so under
+   * sharding it has to reach the process that owns the account. See
+   * `forwardToOwner`. A command that only reads, or that answers about a name
+   * rather than a character (kick, mute, ban), does not want this.
+   */
+  forwardable?: boolean;
 }
 
 interface CommandDef {
@@ -81,6 +91,7 @@ interface CommandDef {
   access: Access;
   description: string;
   canRun?: (player: PlayerServer) => boolean;
+  forwardable: boolean;
   handler: (ctx: CommandContext) => CommandResult;
 }
 
@@ -116,6 +127,7 @@ export function registerCommand(
     access: options.access ?? Access.USER,
     description: options.description ?? '',
     canRun: options.canRun,
+    forwardable: options.forwardable ?? false,
     handler,
   });
   return () => {
@@ -165,12 +177,46 @@ function auditCommand(
   });
 }
 
+/**
+ * Runs a command whose subject is logged in on another instance. Sharding
+ * splits the fleet by map, so the character may be in another process's
+ * memory. Whoever holds the account lease can write the character, so the
+ * command is republished for that instance's dispatcher. Access was checked
+ * at the origin: the receiver has no session, and the bus is internal.
+ */
+async function forwardToOwner(
+  cmd: CommandDef,
+  ctx: CommandContext,
+  actor: string,
+  target: string,
+): Promise<void> {
+  const holder = await leaseHolderOf(target);
+  if (!holder) {
+    // Offline everywhere, or a single process: the handler's own refusal is
+    // the true answer, and it is the one the operator should read.
+    await cmd.handler(ctx);
+    return;
+  }
+
+  publishToInstances('playerCommand', {
+    command: cmd.name,
+    args: ctx.args,
+    actor,
+    source: ctx.source,
+  });
+  ctx.reply(`${target} is on another instance; ${cmd.name} sent there.`);
+}
+
 function runHandler(
   cmd: CommandDef,
   incoming: IncomingCommand,
   // Chat carries the player; the web console knows its session; the terminal
   // has no account behind it, which is itself worth recording as such.
   actor = incoming.player?.name ?? 'console',
+  // False for a command that already crossed the bus. Leases read moments
+  // apart can name a third instance while a player warps, and one hop has an
+  // end where a chase does not.
+  mayForward = true,
 ): CommandResult {
   const ctx: CommandContext = {
     ...incoming,
@@ -182,12 +228,40 @@ function runHandler(
     logger.error(`[command] "${cmd.name}" threw`, { err: e });
     ctx.reply(translate(ctx.player, 'Command error.'));
   };
+
+  const target = ctx.args[0];
+  if (mayForward && cmd.forwardable && target && !getPlayerByName(target)) {
+    return forwardToOwner(cmd, ctx, actor, target).catch(failed);
+  }
+
   try {
     return Promise.resolve(cmd.handler(ctx)).catch(failed);
   } catch (e) {
     failed(e);
     return undefined;
   }
+}
+
+/**
+ * The other end of `forwardToOwner`. Replies go nowhere, as the operator
+ * already read that it was sent; a character that logged out meanwhile is
+ * refused into that same void.
+ */
+export function runForwardedCommand(payload: {
+  command: string;
+  args: string[];
+  actor: string;
+  source: CommandContext['source'];
+}): void {
+  const cmd = commands.get(payload.command);
+  if (!cmd) return;
+
+  void runHandler(
+    cmd,
+    { args: payload.args, reply: () => {}, source: payload.source },
+    payload.actor,
+    false,
+  );
 }
 
 // Chat entry point. Returns true if the message was a command attempt, so the

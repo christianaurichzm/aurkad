@@ -274,7 +274,11 @@ export function registerPlayerCommands(): void {
 
   registerCommand(
     'kill',
-    { access: Access.ADMIN, description: 'Kill and respawn a player' },
+    {
+      access: Access.ADMIN,
+      description: 'Kill and respawn a player',
+      forwardable: true,
+    },
     ({ args, reply, style }) => {
       const player = requireOnline(args[0], { reply, style });
       if (!player) return;
@@ -303,6 +307,7 @@ export function registerPlayerCommands(): void {
     {
       access: Access.ADMIN,
       description: 'Heal a player: heal <name> [amount|full]',
+      forwardable: true,
     },
     ({ args, reply, style }) => {
       const player = requireOnline(args[0], { reply, style });
@@ -352,6 +357,7 @@ export function registerPlayerCommands(): void {
       {
         access: Access.MOD,
         description: 'Private message visible only to one player',
+        forwardable: true,
       },
       privateMessage,
     );
