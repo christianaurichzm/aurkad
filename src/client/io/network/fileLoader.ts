@@ -3,7 +3,7 @@ export async function loadImageFromBin(
   keyHex: string,
 ): Promise<ImageBitmap> {
   const res = await fetch(url);
-  if (!res.ok) throw new Error(`Failed to fetch asset: ${res.status}`);
+  if (!res.ok) throw new Error(`Failed to fetch ${url}: ${res.status}`);
 
   const buffer = await res.arrayBuffer();
   const data = new Uint8Array(buffer);

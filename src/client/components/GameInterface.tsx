@@ -73,7 +73,11 @@ export const GameInterface = () => {
       useUIStore.getState().setCurrentMap(initialMap);
       handleInput();
       initDebugOverlay();
-      await initializeAssets();
+      // A missing sprite sheet must not keep the socket from opening; only the
+      // drawing is lost, and the frame loop reports it.
+      await initializeAssets().catch((err: unknown) =>
+        console.error('[assets] not loaded; the world will not draw', err),
+      );
       initializeWebSocket();
       void loadClientModules();
       requestAnimationFrame(gameLoop);
