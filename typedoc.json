@@ -1,0 +1,7 @@
+{
+  "$schema": "https://typedoc.org/schema.json",
+  "entryPoints": ["scripts/global.d.ts", "modules/clientEngine.d.ts"],
+  "tsconfig": "modules/tsconfig.json",
+  "out": "docs/api",
+  "name": "Aurkad scripting API"
+}

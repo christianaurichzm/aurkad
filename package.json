@@ -24,6 +24,7 @@
     "content:export": "node --loader ts-node/esm src/server/content/cli.ts export",
     "content:import": "node --loader ts-node/esm src/server/content/cli.ts import",
     "seed": "node --loader ts-node/esm src/server/model/seed.ts",
+    "docs:api": "typedoc",
     "bench": "cross-env TS_NODE_PROJECT=bench/tsconfig.json node --loader ts-node/esm bench/benchNetcode.ts",
     "loadtest": "cross-env TS_NODE_PROJECT=bench/tsconfig.json node --loader ts-node/esm bench/loadTest.ts",
     "replay": "cross-env TS_NODE_PROJECT=tools/tsconfig.json node --loader ts-node/esm tools/replay.ts",
@@ -99,6 +100,7 @@
     "prettier": "^3.9.6",
     "supertest": "^7.2.2",
     "ts-node": "^10.4.0",
+    "typedoc": "^0.28.20",
     "typescript": "^5.9.3",
     "typescript-eslint": "^8.68.0",
     "vite": "^6.3.5",
@@ -106,7 +108,9 @@
     "vitest": "^4.1.11"
   },
   "overrides": {
-    "brace-expansion": "^2.0.1"
+    "minimatch@3": {
+      "brace-expansion": "^2.0.1"
+    }
   },
   "engines": {
     "node": ">=20.0.0"

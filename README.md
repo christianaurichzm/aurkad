@@ -48,7 +48,8 @@ npm run dev            # server (8080) + client dev server with HMR
   the engine runs on defaults.
 - **`scripts/`** - server-side game logic in JavaScript (or TypeScript). Files
   are loaded at boot and hot-reloaded on save. See `scripts/example.js` and the
-  typed API in `scripts/global.d.ts`. Example:
+  typed API in `scripts/global.d.ts` - `npm run docs:api` renders it, and the
+  client-side module API, as a browsable reference. Example:
 
   ```js
   on('playerLevelUp', ({ player, level }) => {

@@ -162,3 +162,6 @@ scripts/content.generated.d.ts
 # Session recordings (`replay save`, REPLAY_RECORD). They hold what players did
 # and said, so they are player data on the operator's disk, never a commit.
 /replays/
+
+# Generated API reference (npm run docs:api)
+docs/api
