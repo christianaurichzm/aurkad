@@ -248,7 +248,7 @@ function otlpBody(spans: FinishedSpan[]): string {
         },
         scopeSpans: [
           {
-            scope: { name: 'engine' },
+            scope: { name: 'aurkad' },
             spans: spans.map((span) => ({
               traceId: span.traceId,
               spanId: span.spanId,

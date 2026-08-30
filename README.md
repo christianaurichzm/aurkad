@@ -1,4 +1,4 @@
-# engine
+# Aurkad
 
 A server-authoritative 2D MMO engine. Node.js + WebSocket + MongoDB on the
 server, React + Canvas on the client. You run your own server, build your own
@@ -131,3 +131,16 @@ npm test               # watch mode
 npm run test:run       # single run
 npm run typecheck      # tsc, no emit
 ```
+
+## License
+
+Apache License 2.0. See [LICENSE](LICENSE) and [NOTICE](NOTICE).
+
+Your game is yours: maps, sprites, quests, dialogs, content packs, scripts in
+`scripts/` and modules in `modules/` carry no obligation from this license. You
+can keep them closed and sell them.
+
+The name and logo are not covered by the code license. See [TRADEMARK.md](TRADEMARK.md).
+
+Commercial support, integration, custom modules and performance audits are
+available from the author.

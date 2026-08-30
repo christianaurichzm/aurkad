@@ -240,7 +240,7 @@ export const config = {
     endpoint: tracingEndpoint,
     // What the traces are labelled as. Two instances of one game share it and
     // separate themselves by `service.instance.id` (their WS_PUBLIC_URL).
-    serviceName: process.env.OTEL_SERVICE_NAME?.trim() || 'engine',
+    serviceName: process.env.OTEL_SERVICE_NAME?.trim() || 'aurkad',
     // Per cent of new traces recorded, an integer clamped like the rest here,
     // where a truncated 0.25 would record nothing.
     samplePercent: parseIntEnv('OTEL_TRACES_SAMPLE_PERCENT', 100, {
