@@ -69,7 +69,18 @@ async function setAccess(username: string, access: Access) {
 beforeAll(async () => {
   mongod = await startMemoryMongo();
   await mongoose.connect(mongod.getUri());
+}, 30_000);
 
+afterAll(async () => {
+  await mongoose.disconnect();
+  await mongod.stop();
+});
+
+// A fresh app per test: the auth limiter counts per instance, so a router
+// shared by the whole file leaves each test only the budget the ones before
+// it did not spend, and the file as a whole has to fit in
+// AUTH_RATE_LIMIT_MAX (20 by default).
+beforeEach(async () => {
   app = express();
   app.use(express.json());
   app.use(
@@ -81,14 +92,7 @@ beforeAll(async () => {
     }),
   );
   app.use(createAuthRouter());
-}, 30_000);
 
-afterAll(async () => {
-  await mongoose.disconnect();
-  await mongod.stop();
-});
-
-beforeEach(async () => {
   const cols = mongoose.connection.collections;
   await Promise.all(Object.values(cols).map((c) => c.deleteMany({})));
 
