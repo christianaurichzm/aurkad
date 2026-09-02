@@ -4,6 +4,7 @@ import {
   MOVEMENT_DURATION,
   RUN_MOVEMENT_DURATION,
 } from '../../../shared/constants.js';
+import { tileAt } from '../../../shared/mapGeometry.js';
 import { getTick, msToTicks } from '../../sim/clock.js';
 import {
   Key,
@@ -239,9 +240,7 @@ const handleWarpAndShops = (player: PlayerServer): void => {
 
   const map = getMap(player.mapId);
   if (map) {
-    const tileX = Math.round(player.position.x / TILE_SIZE);
-    const tileY = Math.round(player.position.y / TILE_SIZE);
-    const tile = map.tiles?.[tileY]?.[tileX];
+    const tile = tileAt(map.tiles, player.position);
     if (!tile) return;
 
     emit('tileEnter', { player, tile, map });

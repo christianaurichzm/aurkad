@@ -8,6 +8,19 @@ export const mapPixelWidth = (tiles: Tile[][]): number =>
 export const mapPixelHeight = (tiles: Tile[][]): number =>
   mapTileHeight(tiles) * TILE_SIZE;
 
+/**
+ * The tile a pixel position stands on, or undefined off the map. A player
+ * mid-slide sits between two tiles, so the index is rounded, not floored:
+ * the tile you stand on is the one you are nearest to.
+ */
+export const tileAt = (
+  tiles: Tile[][],
+  position: { x: number; y: number },
+): Tile | undefined =>
+  tiles[Math.round(position.y / TILE_SIZE)]?.[
+    Math.round(position.x / TILE_SIZE)
+  ];
+
 export interface Viewport {
   left: number;
   top: number;
