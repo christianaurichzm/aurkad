@@ -298,16 +298,6 @@ export const UpdateMapBodySchema = z.object({
   borderLinks: BorderLinksSchema,
 });
 
-export const CreateSpellBodySchema = z.object({
-  name: z.string().min(1),
-  description: z.string().default(''),
-  sprite: z.number().int().nonnegative(),
-  mpCost: z.number().int().nonnegative().default(0),
-  damage: z.number().int().nonnegative().default(0),
-  cooldownMs: z.number().int().nonnegative().default(0),
-  visualTarget: z.enum(['self', 'targets']).default('self'),
-});
-
 export const ResizeMapBodySchema = z.object({
   cols: z.number().int().min(1).max(200),
   rows: z.number().int().min(1).max(200),

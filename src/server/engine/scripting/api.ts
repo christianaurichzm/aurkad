@@ -372,18 +372,30 @@ export function buildApi(
     ): void => {
       const run = async () => {
         for (const spell of spellList) {
-          await createOrUpdateSpell({
-            name: spell.name,
-            description: spell.description ?? '',
-            sprite: Number(spell.sprite),
-            mpCost: Number(spell.mpCost),
-            damage: Number(spell.damage),
-            cooldownMs: Number(spell.cooldownMs),
-            visualTarget:
-              spell.visualTarget ?? (spell.damage > 0 ? 'targets' : 'self'),
-          });
+          // Per spell, because these arrive as a batch (a module seeding its
+          // built-ins sends the whole list): one entry the service refuses
+          // must not take the spells after it down with it.
+          try {
+            await createOrUpdateSpell({
+              name: spell.name,
+              description: spell.description ?? '',
+              sprite: Number(spell.sprite),
+              mpCost: Number(spell.mpCost),
+              damage: Number(spell.damage),
+              cooldownMs: Number(spell.cooldownMs),
+              visualTarget:
+                spell.visualTarget ?? (spell.damage > 0 ? 'targets' : 'self'),
+            });
+          } catch (e) {
+            logger.warn(`[script:${scriptName}] createSpells skipped a spell`, {
+              name: spell?.name,
+              err: e,
+            });
+          }
         }
       };
+      // Nothing awaits this, so a rejection escaping here would be an
+      // unhandledRejection, which ends the process.
       void run().catch((e) =>
         logger.error(`[script:${scriptName}] createSpells failed`, { err: e }),
       );

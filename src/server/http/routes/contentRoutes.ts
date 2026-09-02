@@ -13,7 +13,6 @@ import {
   CreateDialogBodySchema,
   CreateQuestBodySchema,
   CreateRecipeBodySchema,
-  CreateSpellBodySchema,
   CreateArrowBodySchema,
 } from '../bodySchemas.js';
 import checkAccess from '../middleware/checkAccess.js';
@@ -65,6 +64,7 @@ import {
 import {
   listSpells,
   createOrUpdateSpell,
+  SpellSchema,
   deleteSpell,
 } from '../../services/content/spellService.js';
 import {
@@ -379,7 +379,7 @@ export function createContentRouter() {
   });
 
   router.post('/spells', checkAccess(Access.ADMIN), async (req, res) => {
-    const body = parseBody(CreateSpellBodySchema, req.body, res);
+    const body = parseBody(SpellSchema, req.body, res);
     if (!body) return;
     try {
       const spell = await createOrUpdateSpell(body);
@@ -392,7 +392,7 @@ export function createContentRouter() {
   router.put('/spells/:id', checkAccess(Access.ADMIN), async (req, res) => {
     const id = Number(req.params.id);
     if (Number.isNaN(id)) return res.status(400).json({ error: 'Invalid id.' });
-    const body = parseBody(CreateSpellBodySchema, req.body, res);
+    const body = parseBody(SpellSchema, req.body, res);
     if (!body) return;
     try {
       await createOrUpdateSpell({ ...body, id });

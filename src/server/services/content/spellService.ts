@@ -1,5 +1,24 @@
+import { z } from 'zod';
 import SpellModel from '../../model/Spell.js';
 import type { Spell } from '../../../shared/types.js';
+
+/**
+ * What a spell has to be to reach the database. In the service because the
+ * scripting API writes spells too, and a rule beside one caller is one the
+ * other walks past. Every content write is an upsert, which skips the
+ * model's validators, so the model's `min: 0` never runs on this path.
+ */
+export const SpellSchema = z.object({
+  name: z.string().min(1),
+  description: z.string().default(''),
+  sprite: z.number().int().nonnegative(),
+  mpCost: z.number().int().nonnegative().default(0),
+  damage: z.number().int().nonnegative().default(0),
+  cooldownMs: z.number().int().nonnegative().default(0),
+  visualTarget: z.enum(['self', 'targets']).default('self'),
+});
+
+export type SpellInput = z.input<typeof SpellSchema>;
 
 const spells = new Map<number, Spell>();
 
@@ -18,22 +37,34 @@ export async function getSpellById(id: number): Promise<Spell | null> {
 }
 
 export async function createOrUpdateSpell(
-  spell: Omit<Spell, 'id'> & { id?: number },
+  spell: SpellInput & { id?: number },
 ): Promise<Spell> {
-  if (spell.id === undefined) {
+  const parsed = SpellSchema.safeParse(spell);
+  if (!parsed.success) {
+    // Flattened into the message so a caller with no form, the script API
+    // that logs it, still says which field and why.
+    const why = parsed.error.issues
+      .map((i) => `${i.path.join('.') || 'spell'}: ${i.message}`)
+      .join(', ');
+    throw new Error(`Invalid spell: ${why}`);
+  }
+
+  let id = spell.id;
+  if (id === undefined) {
     const max = await SpellModel.findOne()
       .sort({ id: -1 })
       .lean<Spell>()
       .exec();
-    spell.id = (max?.id ?? 0) + 1;
+    id = (max?.id ?? 0) + 1;
   }
-  const result = await SpellModel.findOneAndUpdate({ id: spell.id }, spell, {
-    upsert: true,
-    new: true,
-  })
+  const result = await SpellModel.findOneAndUpdate(
+    { id },
+    { ...parsed.data, id },
+    { upsert: true, new: true },
+  )
     .lean<Spell>()
     .exec();
-  spells.set(spell.id, result);
+  spells.set(id, result);
   return result;
 }
 
