@@ -282,7 +282,7 @@ async function startServer() {
 void startServer();
 
 let isShuttingDown = false;
-async function shutdown(signal: string) {
+async function shutdown(signal: string, exitCode = 0) {
   if (isShuttingDown) return;
   isShuttingDown = true;
 
@@ -349,9 +349,27 @@ async function shutdown(signal: string) {
     logger.error('[Shutdown] mongoose.disconnect failed', { err: e });
   }
 
-  logger.info('[Shutdown] Server exiting cleanly');
-  process.exit(0);
+  logger.info('[Shutdown] Server exiting', { exitCode });
+  process.exit(exitCode);
 }
+
+/**
+ * The two ways this process dies without being asked to. Node prints and
+ * exits, with players still in memory: they are written behind, so up to
+ * PLAYER_SNAPSHOT_INTERVAL_MS of progress lives nowhere else. The signal
+ * shutdown flushes them, bounded by its force-exit timer. Best effort, as
+ * the state that threw may be the one being written, and the exit code is
+ * non-zero either way so an orchestrator restarts.
+ */
+function crash(kind: string, err: unknown) {
+  logger.error(`[crash] ${kind}`, { err });
+  shutdown(kind, 1).catch(() => process.exit(1));
+}
+
+process.on('uncaughtException', (err) => crash('uncaughtException', err));
+process.on('unhandledRejection', (reason) =>
+  crash('unhandledRejection', reason),
+);
 
 process.on('SIGINT', () => {
   shutdown('SIGINT').catch((e) =>
