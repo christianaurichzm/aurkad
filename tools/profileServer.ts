@@ -336,14 +336,17 @@ function reportFrame(profile: CpuProfile, needle: string): void {
     const share = ((ticks / matched) * 100).toFixed(1).padStart(5);
     // positionTicks lines are 1-based; findEntry wants 0-based.
     const entry = mapper?.findEntry(line - 1, 0);
+    // A generated line that maps to nothing comes back as `{}`, so the field
+    // being there is the whole test.
+    const mapping = entry && 'originalSource' in entry ? entry : undefined;
     let where = `${shortUrl(url)}:${line}`;
     let text = '';
-    if (entry?.originalSource && entry.originalLine !== undefined) {
-      const original = entry.originalSource.replace(/^file:\/\//, '');
-      where = `${shortUrl(entry.originalSource)}:${entry.originalLine + 1}`;
+    if (mapping) {
+      const original = mapping.originalSource.replace(/^file:\/\//, '');
+      where = `${shortUrl(mapping.originalSource)}:${mapping.originalLine + 1}`;
       try {
         sourceLines ??= readFileSync(original, 'utf8').split('\n');
-        text = (sourceLines[entry.originalLine] ?? '').trim().slice(0, 72);
+        text = (sourceLines[mapping.originalLine] ?? '').trim().slice(0, 72);
       } catch {
         // Source moved since the build; the location alone still locates it.
       }
