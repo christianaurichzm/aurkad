@@ -243,9 +243,20 @@ export function buildApi(
     },
 
     // Spawn/despawn runtime NPCs (pets, summons, bosses). Returns the NPC so
-    // you can drive it from on('tick') (e.g. move it toward its owner).
-    spawnNpc: (opts: SpawnNpcOptions): RuntimeNpc | undefined =>
-      spawnNpc({ ...opts, mapId: String(opts.mapId) }),
+    // you can drive it from on('tick') (e.g. move it toward its owner). The
+    // reason is logged in services/npc/spawn.ts; this adds which script asked,
+    // since a hook handler runs outside the request context.
+    spawnNpc: (opts: SpawnNpcOptions): RuntimeNpc | undefined => {
+      const npc = spawnNpc({ ...opts, mapId: String(opts.mapId) });
+      if (!npc) {
+        logger.warn(`[script:${scriptName}] spawnNpc refused`, {
+          mapId: opts.mapId,
+          col: opts.col,
+          row: opts.row,
+        });
+      }
+      return npc;
+    },
     despawnNpc: (npc: { id: string }): void => despawnNpc(npc),
 
     // Move an NPC one tile toward (x, y) the way the engine moves NPCs: sets

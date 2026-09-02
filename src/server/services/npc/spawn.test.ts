@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { spawnNpc, despawnNpc } from './spawn.js';
 import { createFixture, tile } from '../../sim/simFixture.js';
+import { hasCollision } from '../world/physicsService.js';
 import { TILE_SIZE } from '../../../shared/constants.js';
 
 describe('spawnNpc', () => {
@@ -32,6 +33,67 @@ describe('spawnNpc', () => {
   it('returns undefined for an unknown map', () => {
     createFixture(0);
     expect(spawnNpc({ mapId: 'nope', col: 0, row: 0 })).toBeUndefined();
+  });
+
+  // What a script sends is not a form, so every field is checked, not only
+  // the map id. Scripts are the owner's own code, so this is no boundary
+  // against an attacker; it turns a mistake into an error instead of an npc
+  // that cannot be killed or seen.
+  it('refuses a tile that is not a number', () => {
+    const sim = createFixture(0);
+
+    expect(spawnNpc({ mapId: sim.mapId, col: NaN, row: 3 })).toBeUndefined();
+    expect(Object.keys(sim.map.npcs)).toHaveLength(0);
+  });
+
+  it('refuses a tile off the map', () => {
+    const sim = createFixture(0);
+
+    expect(spawnNpc({ mapId: sim.mapId, col: -1, row: 3 })).toBeUndefined();
+    expect(spawnNpc({ mapId: sim.mapId, col: 99999, row: 3 })).toBeUndefined();
+    expect(Object.keys(sim.map.npcs)).toHaveLength(0);
+  });
+
+  // The one that is not merely wrong-looking: `NaN <= 0` is false, so an npc
+  // with NaN health reads as alive in every check the engine makes.
+  it('refuses health that is not a positive number', () => {
+    const sim = createFixture(0);
+
+    expect(
+      spawnNpc({ mapId: sim.mapId, col: 5, row: 5, maxHealth: NaN }),
+    ).toBeUndefined();
+    expect(
+      spawnNpc({ mapId: sim.mapId, col: 5, row: 5, maxHealth: 0 }),
+    ).toBeUndefined();
+    expect(
+      spawnNpc({ mapId: sim.mapId, col: 5, row: 5, maxHealth: -10 }),
+    ).toBeUndefined();
+  });
+
+  it('never lands inside a wall', () => {
+    const sim = createFixture(0);
+    sim.map.tiles[3]![3]!.blocked = true;
+
+    const npc = spawnNpc({ mapId: sim.mapId, col: 3, row: 3 })!;
+
+    expect(npc.position).not.toEqual(tile(3, 3));
+    expect(hasCollision(npc)).toBe(false);
+  });
+
+  it('falls back to defaults for numbers it cannot use', () => {
+    const sim = createFixture(0);
+    const npc = spawnNpc({
+      mapId: sim.mapId,
+      col: 5,
+      row: 5,
+      sprite: NaN,
+      attack: -3,
+      attackRange: NaN,
+    })!;
+
+    expect(npc.sprite).toBe(0);
+    expect(npc.attack).toBe(0);
+    expect(npc.attackRange).toBe(TILE_SIZE);
   });
 
   it('gives each spawn a unique id', () => {
