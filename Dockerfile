@@ -24,4 +24,6 @@ COPY --from=builder /app/dist ./dist
 # (see docker-compose.yml) so creators edit them without rebuilding the image.
 USER node
 EXPOSE 8080
-CMD ["node", "dist/server/server.js"]
+# --enable-source-maps: the build ships .js.map files, so without it every
+# stack in production points at compiled JavaScript nobody wrote.
+CMD ["node", "--enable-source-maps", "dist/server/server.js"]

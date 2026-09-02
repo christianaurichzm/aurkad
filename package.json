@@ -14,7 +14,7 @@
     "build:client": "cross-env NODE_ENV=production vite build",
     "build:server": "cross-env NODE_ENV=production tsc -p tsconfig.server.build.json",
     "build": "npm run build:client && npm run build:server",
-    "start": "cross-env NODE_ENV=production node dist/server/server.js",
+    "start": "cross-env NODE_ENV=production node --enable-source-maps dist/server/server.js",
     "db:up": "docker compose up -d mongo",
     "db:down": "docker compose down",
     "db:reset": "docker compose down -v && docker compose up -d mongo",
