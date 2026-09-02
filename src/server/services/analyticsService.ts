@@ -1,4 +1,4 @@
-import crypto from 'crypto';
+import crypto from 'node:crypto';
 import mongoose from 'mongoose';
 import PlayerDayModel from '../model/PlayerDay.js';
 import PlayerModel from '../model/Player.js';

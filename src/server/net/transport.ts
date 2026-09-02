@@ -1,6 +1,6 @@
 import { RequestHandler, Response } from 'express';
 import WebSocket, { WebSocketServer } from 'ws';
-import { Server } from 'http';
+import { Server } from 'node:http';
 import { logger } from '../logger.js';
 import {
   ActionQueueItem,

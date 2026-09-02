@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeAll, afterAll, vi } from 'vitest';
-import net from 'net';
+import net from 'node:net';
 
 // The relay's address is known once the fake server below has a port, and
 // the transport reads it on the first send, which comes after.

@@ -1,5 +1,5 @@
-import { writeFileSync, mkdirSync } from 'fs';
-import path from 'path';
+import { writeFileSync, mkdirSync } from 'node:fs';
+import path from 'node:path';
 import { items, runtimeState } from '../../services/world/gameData.js';
 import { getAllSpells } from '../../services/content/spellService.js';
 import { getAllArrows } from '../../services/content/arrowService.js';

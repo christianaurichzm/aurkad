@@ -17,7 +17,7 @@ import { seedRng } from './rng.js';
 import { resetClock, advanceTick } from './clock.js';
 import { Key } from '../../shared/types.js';
 import type { ClientAction } from '../engine/actions.js';
-import { existsSync, rmSync } from 'fs';
+import { existsSync, rmSync } from 'node:fs';
 
 const TMP_DIR = '/tmp/replay-test';
 

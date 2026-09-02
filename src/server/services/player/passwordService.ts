@@ -1,4 +1,4 @@
-import crypto from 'crypto';
+import crypto from 'node:crypto';
 import bcrypt from 'bcrypt';
 import { config } from '../../config.js';
 import PasswordResetModel from '../../model/PasswordReset.js';

@@ -1,5 +1,5 @@
-import { readFileSync } from 'fs';
-import { pathToFileURL } from 'url';
+import { readFileSync } from 'node:fs';
+import { pathToFileURL } from 'node:url';
 import type { ClientKeyboardAction } from '../src/server/engine/actions.js';
 import type {
   RecordedAction,

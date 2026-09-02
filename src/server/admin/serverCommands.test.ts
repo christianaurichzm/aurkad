@@ -21,7 +21,7 @@ import {
   recordAction,
   resetRecorder,
 } from '../sim/replayRecorder.js';
-import { existsSync, rmSync } from 'fs';
+import { existsSync, rmSync } from 'node:fs';
 
 // The reports read the database; this file pins the command around them:
 // which numbers reach the operator, and how they are laid out.

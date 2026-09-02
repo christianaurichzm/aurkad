@@ -10,11 +10,11 @@ if (major < REQUIRED_MAJOR_VERSION) {
   process.exit(1);
 }
 
-import { fileURLToPath } from 'url';
-import { dirname } from 'path';
-import path from 'path';
+import { fileURLToPath } from 'node:url';
+import { dirname } from 'node:path';
+import path from 'node:path';
 
-import { createServer } from 'http';
+import { createServer } from 'node:http';
 import express from 'express';
 import mongoose from 'mongoose';
 import app, { handleRouteError } from './app.js';

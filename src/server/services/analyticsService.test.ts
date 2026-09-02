@@ -7,7 +7,7 @@ import {
   beforeEach,
   vi,
 } from 'vitest';
-import crypto from 'crypto';
+import crypto from 'node:crypto';
 import mongoose from 'mongoose';
 import type { MongoMemoryServer } from 'mongodb-memory-server';
 import { startMemoryMongo } from '../../test/mongo.js';

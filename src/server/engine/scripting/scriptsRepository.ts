@@ -1,5 +1,5 @@
-import fs from 'fs';
-import path from 'path';
+import fs from 'node:fs';
+import path from 'node:path';
 import { SCRIPTS_DIR, isScriptFile } from './loader.js';
 
 // fs layer behind the Monaco script editor. The server runs what is written

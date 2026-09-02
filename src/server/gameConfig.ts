@@ -1,5 +1,5 @@
-import { readFileSync } from 'fs';
-import path from 'path';
+import { readFileSync } from 'node:fs';
+import path from 'node:path';
 import { z } from 'zod';
 import { TILE_SIZE, DEFAULT_PLAYER_SPEED } from '../shared/constants.js';
 import type { Position } from '../shared/types.js';

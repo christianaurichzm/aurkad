@@ -1,4 +1,4 @@
-import crypto from 'crypto';
+import crypto from 'node:crypto';
 import { config } from './config.js';
 import { reqCtx } from './context.js';
 import { logger } from './logger.js';

@@ -1,14 +1,14 @@
-import fs from 'fs';
-import path from 'path';
+import fs from 'node:fs';
+import path from 'node:path';
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 
 // mkdtemp runs inside the factory, not as a hoisted outer const: vi.mock
 // factories run before any top-level binding here is initialized, so only
 // what the factory imports dynamically is safe to use.
 vi.mock('./loader.js', async () => {
-  const fs = await import('fs');
-  const path = await import('path');
-  const os = await import('os');
+  const fs = await import('node:fs');
+  const path = await import('node:path');
+  const os = await import('node:os');
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'scripts-repo-test-'));
   return {
     SCRIPTS_DIR: dir,

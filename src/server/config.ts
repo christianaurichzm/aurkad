@@ -1,5 +1,5 @@
-import crypto from 'crypto';
-import { createRequire } from 'module';
+import crypto from 'node:crypto';
+import { createRequire } from 'node:module';
 import type { CorsOptions } from 'cors';
 import { TICK_RATE } from '../shared/constants.js';
 

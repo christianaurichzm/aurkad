@@ -1,4 +1,4 @@
-import crypto from 'crypto';
+import crypto from 'node:crypto';
 import bcrypt from 'bcrypt';
 import { type Response } from 'express';
 import type { ExtendedRequest } from '../session.js';

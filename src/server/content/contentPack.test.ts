@@ -2,9 +2,9 @@
  * Content pack round-trip through a real (in-memory) MongoDB.
  * Verifies import validation/upsert, import ordering, and export snapshot.
  */
-import fs from 'fs';
-import os from 'os';
-import path from 'path';
+import fs from 'node:fs';
+import os from 'node:os';
+import path from 'node:path';
 import {
   beforeAll,
   afterAll,

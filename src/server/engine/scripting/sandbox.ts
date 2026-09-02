@@ -1,4 +1,4 @@
-import vm from 'vm';
+import vm from 'node:vm';
 import { logger } from '../../logger.js';
 import { buildApi } from './api.js';
 import { getContentConstants } from './contentConstants.js';

@@ -1,5 +1,5 @@
-import { writeFileSync, mkdirSync, readdirSync, statSync } from 'fs';
-import { join } from 'path';
+import { writeFileSync, mkdirSync, readdirSync, statSync } from 'node:fs';
+import { join } from 'node:path';
 import type { ClientAction } from '../engine/actions.js';
 import { config } from '../config.js';
 import { getTick } from './clock.js';

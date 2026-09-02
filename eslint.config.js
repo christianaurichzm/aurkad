@@ -4,6 +4,16 @@ import react from 'eslint-plugin-react';
 import reactHooks from 'eslint-plugin-react-hooks';
 import prettier from 'eslint-plugin-prettier/recommended';
 import globals from 'globals';
+import { builtinModules } from 'node:module';
+
+// Node builtins are imported as `node:fs`, never `fs`: the prefix cannot be
+// shadowed by a package and marks a platform import.
+const nodePrefixOnly = {
+  paths: builtinModules.map((name) => ({
+    name,
+    message: `Import it as 'node:${name}'.`,
+  })),
+};
 
 // Globals the sandbox hands to game scripts and modules. A new script
 // global also goes in engine/scripting/api.ts, scripts/global.d.ts and,
@@ -130,6 +140,7 @@ export default tseslint.config(
       globals: { ...globals.browser, ...globals.node },
     },
     rules: {
+      'no-restricted-imports': ['error', nodePrefixOnly],
       // `any` written out marks a wire, sandbox or JSON seam; the unsafe uses
       // of it still warn, which is where mistakes show.
       '@typescript-eslint/no-explicit-any': 'off',

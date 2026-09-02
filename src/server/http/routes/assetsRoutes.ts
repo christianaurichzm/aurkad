@@ -1,5 +1,5 @@
-import fs from 'fs';
-import path from 'path';
+import fs from 'node:fs';
+import path from 'node:path';
 import { imageMap } from '../../../shared/mappings.js';
 import { logger } from '../../logger.js';
 import { createRouter } from '../../app.js';

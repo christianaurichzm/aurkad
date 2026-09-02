@@ -6,9 +6,9 @@
  * changed a value seeing nothing happen in game, with nowhere to look. Also
  * pins the merge behaviour that makes partial files safe to write.
  */
-import fs from 'fs';
-import os from 'os';
-import path from 'path';
+import fs from 'node:fs';
+import os from 'node:os';
+import path from 'node:path';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { loadGameConfig } from './gameConfig.js';
 

@@ -16,7 +16,7 @@
 // asynchronous transfer that `game.json` must not switch off. The mailbox
 // on top (who may send, the message, the expiry) is the module.
 
-import crypto from 'crypto';
+import crypto from 'node:crypto';
 import DeliveryModel from '../../model/Delivery.js';
 import { addItem, removeItem } from './economyService.js';
 import {
