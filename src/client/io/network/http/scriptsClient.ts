@@ -32,7 +32,8 @@ export interface ScriptError {
   message: string;
   line?: number;
   column?: number;
-  source: 'load' | 'hook' | 'schedule' | 'timer';
+  // The server's ScriptErrorSource. Only ever displayed, so it is a label.
+  source: string;
   context?: string;
   stack?: string;
   at: number;

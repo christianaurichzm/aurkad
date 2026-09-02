@@ -2,34 +2,28 @@ import fs from 'fs';
 import path from 'path';
 import { logger } from '../../logger.js';
 import { runInSandbox, type ScriptHandle } from './sandbox.js';
-import { clearScriptErrors, recordScriptError } from './scriptErrors.js';
+import {
+  clearScriptErrors,
+  recordScriptDiagnostic,
+  recordScriptError,
+} from './scriptErrors.js';
 import { clearHandlerBudget } from './handlerBudget.js';
 
 export const SCRIPTS_DIR = path.join(process.cwd(), 'scripts');
 const handles = new Map<string, ScriptHandle>();
 let watcher: fs.FSWatcher | null = null;
 
-type TsTranspile = (code: string, filename: string) => string;
-let tsTranspile: TsTranspile | null = null;
+let ts: typeof import('typescript') | null = null;
 
-async function initTsSupport(): Promise<void> {
+export async function initTsSupport(): Promise<void> {
   try {
-    const ts = (await import('typescript')).default;
-    tsTranspile = (code: string, filename: string): string => {
-      const result = ts.transpileModule(code, {
-        compilerOptions: {
-          module: ts.ModuleKind.None,
-          target: ts.ScriptTarget.ES2022,
-          strict: false,
-        },
-        fileName: filename,
-      });
-      return result.outputText;
-    };
-    logger.info('[scripting] TypeScript transpilation available');
+    ts = (await import('typescript')).default;
+    logger.info(
+      '[scripting] TypeScript available - .ts scripts, type checking',
+    );
   } catch {
     logger.info(
-      '[scripting] TypeScript package not found - .ts scripts will be skipped',
+      '[scripting] TypeScript package not found - .ts scripts and the type check are off',
     );
   }
 }
@@ -37,15 +31,88 @@ async function initTsSupport(): Promise<void> {
 function prepareCode(filePath: string): string | null {
   const raw = fs.readFileSync(filePath, 'utf-8');
   if (filePath.endsWith('.ts')) {
-    if (!tsTranspile) {
+    if (!ts) {
       logger.warn(
         `[scripting] Skipping ${path.basename(filePath)}: TypeScript not available`,
       );
       return null;
     }
-    return tsTranspile(raw, path.basename(filePath));
+    return ts.transpileModule(raw, {
+      compilerOptions: {
+        module: ts.ModuleKind.None,
+        target: ts.ScriptTarget.ES2022,
+        strict: false,
+      },
+      fileName: path.basename(filePath),
+    }).outputText;
   }
   return raw;
+}
+
+/**
+ * Type errors in the loaded scripts, put where their author will see them.
+ * Uncompiled, `giveItm(...)` is fine JavaScript until its branch runs in
+ * front of players; tsc reads the same `global.d.ts` the editor uses.
+ *
+ * Reported, never blocking: checkJs also flags code that works, and a game
+ * that ran yesterday has to boot today. `vm.Script` already refuses syntax.
+ * One program per file, since each script has its own context and may
+ * repeat a top-level `const`; the programs are chained so the lib and the
+ * declarations are parsed once.
+ *
+ * Load only, not hot reload: ~200 ms for the first file and ~60 ms per file
+ * after, on the tick's thread. The browser editor shows the same as you type.
+ */
+export function checkScriptTypes(files: string[]): void {
+  const tsc = ts;
+  if (!tsc || files.length === 0) return;
+
+  const config = tsc.readConfigFile(
+    path.join(SCRIPTS_DIR, 'tsconfig.json'),
+    (f) => tsc.sys.readFile(f),
+  );
+  // Read rather than restated so this and `npm run typecheck:scripts` cannot
+  // drift, with the three the check is meaningless without forced on in case
+  // the file is not there at all.
+  const { options } = tsc.parseJsonConfigFileContent(
+    config.config ?? {},
+    tsc.sys,
+    SCRIPTS_DIR,
+  );
+  const compilerOptions = {
+    ...options,
+    allowJs: true,
+    checkJs: true,
+    noEmit: true,
+  };
+
+  const declarations = ['global.d.ts', 'content.generated.d.ts']
+    .map((f) => path.join(SCRIPTS_DIR, f))
+    .filter((f) => fs.existsSync(f));
+
+  let program: import('typescript').Program | undefined;
+  for (const file of files) {
+    program = tsc.createProgram(
+      [...declarations, file],
+      compilerOptions,
+      undefined,
+      program,
+    );
+    const source = program.getSourceFile(file);
+    if (!source) continue;
+
+    const name = path.basename(file);
+    for (const d of tsc.getPreEmitDiagnostics(program, source)) {
+      if (d.file !== source || d.start === undefined) continue;
+      const { line, character } = tsc.getLineAndCharacterOfPosition(
+        source,
+        d.start,
+      );
+      const message = tsc.flattenDiagnosticMessageText(d.messageText, ' ');
+      recordScriptDiagnostic(name, message, line + 1, character + 1);
+      logger.warn(`[scripting] ${name}:${line + 1} ${message}`);
+    }
+  }
 }
 
 function loadFile(filePath: string): void {
@@ -103,6 +170,8 @@ export async function loadScripts(): Promise<void> {
     for (const file of files) {
       loadFile(path.join(SCRIPTS_DIR, file));
     }
+    // After the loads: each one clears what the previous version reported.
+    checkScriptTypes(files.map((f) => path.join(SCRIPTS_DIR, f)));
   }
 
   // Hot reload: non-persistent watcher so it doesn't block process shutdown

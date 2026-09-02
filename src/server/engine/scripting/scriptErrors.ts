@@ -5,7 +5,14 @@
 // every occurrence; this is a small deduplicated view for the editor.
 
 export type ScriptErrorSource =
-  'load' | 'hook' | 'schedule' | 'timer' | 'behavior' | 'coroutine' | 'budget';
+  | 'load'
+  | 'typecheck'
+  | 'hook'
+  | 'schedule'
+  | 'timer'
+  | 'behavior'
+  | 'coroutine'
+  | 'budget';
 
 export interface ScriptError {
   script: string;
@@ -86,16 +93,9 @@ function describe(err: unknown): { message: string; stack?: string } {
   return { message: name ? `${name}: ${message}` : message, stack };
 }
 
-export function recordScriptError(
-  script: string,
-  err: unknown,
-  source: ScriptErrorSource,
-  context?: string,
-): void {
-  const { message, stack } = describe(err);
-  const position = locateInScript(stack, script);
-
-  const key = `${script}|${source}|${context ?? ''}|${message}|${position?.line ?? ''}`;
+function store(entry: Omit<ScriptError, 'at' | 'count'>): void {
+  const { script, message, line, source, context } = entry;
+  const key = `${script}|${source}|${context ?? ''}|${message}|${line ?? ''}`;
   const existing = errors.get(key);
   if (existing) {
     existing.count++;
@@ -111,7 +111,18 @@ export function recordScriptError(
     if (oldest !== undefined) errors.delete(oldest);
   }
 
-  errors.set(key, {
+  errors.set(key, { ...entry, at: Date.now(), count: 1 });
+}
+
+export function recordScriptError(
+  script: string,
+  err: unknown,
+  source: ScriptErrorSource,
+  context?: string,
+): void {
+  const { message, stack } = describe(err);
+  const position = locateInScript(stack, script);
+  store({
     script,
     message,
     line: position?.line,
@@ -119,9 +130,20 @@ export function recordScriptError(
     source,
     context,
     stack,
-    at: Date.now(),
-    count: 1,
   });
+}
+
+/**
+ * A type error, which is the one kind that arrives with its position already
+ * known: nothing ran, so there is no stack to read it out of.
+ */
+export function recordScriptDiagnostic(
+  script: string,
+  message: string,
+  line: number,
+  column: number,
+): void {
+  store({ script, message, line, column, source: 'typecheck' });
 }
 
 /** Newest first, optionally narrowed to one file. */
