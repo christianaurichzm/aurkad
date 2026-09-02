@@ -31,9 +31,16 @@ export function createAssetsRouter() {
         return res.status(404).send('Asset not found');
       }
 
+      // Written into a buffer, not through Buffer.prototype.map, which is
+      // Uint8Array's and calls a closure per byte, on the thread the 20 Hz
+      // loop runs on; a login asks for every sheet. allocUnsafe is safe
+      // because every byte below is written.
       const keyBytes = Buffer.from(assetKey, 'hex');
       const keyLen = keyBytes.length;
-      const out = data.map((byte, i) => byte ^ (keyBytes[i % keyLen] ?? 0));
+      const out = Buffer.allocUnsafe(data.length);
+      for (let i = 0; i < data.length; i++) {
+        out[i] = data[i]! ^ keyBytes[i % keyLen]!;
+      }
 
       res.setHeader('Content-Type', 'application/octet-stream');
       res.setHeader('Cache-Control', 'no-store');
