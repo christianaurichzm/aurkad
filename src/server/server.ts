@@ -1,7 +1,10 @@
+// The version this engine supports, kept equal to `engines.node` in
+// package.json. A message, not a shield: ESM evaluates every import below
+// first, so an older Node may fail earlier, and this then names the cause.
 const currentNodeVersion = process.versions.node;
 const major = currentNodeVersion.split('.').map(Number)[0] ?? 0;
 
-const REQUIRED_MAJOR_VERSION = 18;
+const REQUIRED_MAJOR_VERSION = 20;
 
 if (major < REQUIRED_MAJOR_VERSION) {
   console.error(
@@ -11,7 +14,6 @@ if (major < REQUIRED_MAJOR_VERSION) {
 }
 
 import { fileURLToPath } from 'node:url';
-import { dirname } from 'node:path';
 import path from 'node:path';
 
 import { createServer } from 'node:http';
@@ -92,7 +94,7 @@ import {
 } from './persistence/instanceRegistry.js';
 
 const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
+const __dirname = path.dirname(__filename);
 
 const port = config.port;
 
