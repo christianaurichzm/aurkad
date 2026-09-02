@@ -313,6 +313,11 @@ async function shutdown(signal: string, exitCode = 0) {
 
   const httpClose = new Promise<void>((resolve) => {
     server.close(() => resolve());
+    // `close` stops new connections and waits for open ones, and an idle
+    // keep-alive socket in a browser is open, so the wait would run to the
+    // force-exit timer before players are written. A request in flight still
+    // gets to finish.
+    server.closeIdleConnections();
   });
 
   await stopWebSocketServer();
@@ -352,7 +357,27 @@ async function shutdown(signal: string, exitCode = 0) {
   }
 
   logger.info('[Shutdown] Server exiting', { exitCode });
+  await drainOutput();
   process.exit(exitCode);
+}
+
+/**
+ * Lets what was just logged reach the pipe before the process exits.
+ * `process.exit` does not flush: to a terminal the streams are synchronous,
+ * but to a pipe (`docker logs`, a journal) the last writes are queued and
+ * dropped, and they are the lines that say why the process is going away.
+ */
+function drainOutput(): Promise<unknown> {
+  return Promise.all(
+    [process.stdout, process.stderr].map(
+      (stream) =>
+        new Promise((resolve) => {
+          // Queued behind everything already written, so its callback is the
+          // signal that the rest went out.
+          stream.write('', resolve);
+        }),
+    ),
+  );
 }
 
 /**
