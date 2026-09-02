@@ -1,4 +1,3 @@
-import fs from 'node:fs';
 import path from 'node:path';
 import { logger } from '../../logger.js';
 import { createRouter } from '../../app.js';
@@ -23,29 +22,25 @@ export function createAudioRouter() {
       return res.status(400).send('Invalid file type');
     }
 
-    const safeName = path.basename(filename);
-    const filePath = path.join(ASSETS_DIR, safeName);
+    res.setHeader('Cache-Control', 'private, max-age=3600');
 
-    fs.readFile(filePath, (err, data) => {
-      if (err) {
-        // A game that names a sound it never shipped is the ordinary case, and
-        // at one line per swing per player it would bury the log it shares with
-        // real failures. Anything that is not "no such file" still is one:
-        // permissions on the asset directory are the operator's to see.
-        const level = err.code === 'ENOENT' ? logger.warn : logger.error;
-        level('Audio read failed', { file: filePath, err });
-        return res.status(404).send('Audio not found');
-      }
+    // Streamed, not read into memory: a track is megabytes, and a Range header
+    // lets a player seek instead of refetching. The type comes from the
+    // extension, and `root` keeps a name inside the asset directory, the same
+    // rule as basename above.
+    res.sendFile(path.basename(filename), { root: ASSETS_DIR }, (err) => {
+      if (!err) return;
 
-      const mimeTypes: Record<string, string> = {
-        '.mp3': 'audio/mpeg',
-        '.ogg': 'audio/ogg',
-        '.wav': 'audio/wav',
-      };
+      // A game that names a sound it never shipped is the ordinary case, and
+      // at one line per swing per player it would bury the log it shares with
+      // real failures. Anything that is not "no such file" still is one:
+      // permissions on the asset directory are the operator's to see.
+      const code = (err as NodeJS.ErrnoException).code;
+      const level = code === 'ENOENT' ? logger.warn : logger.error;
+      level('Audio read failed', { file: filename, err });
 
-      res.setHeader('Content-Type', mimeTypes[ext] ?? 'audio/mpeg');
-      res.setHeader('Cache-Control', 'private, max-age=3600');
-      res.send(data);
+      // Nothing to answer with once the body started going out.
+      if (!res.headersSent) res.status(404).send('Audio not found');
     });
   });
 
