@@ -1,6 +1,7 @@
 import { shopRepository } from '../../persistence/shopRepository.js';
 import { PlayerServer, ProductRaw, Shop } from '../../../shared/types.js';
-import { updatePlayer } from '../world/gameData.js';
+import { tileAt } from '../../../shared/mapGeometry.js';
+import { getMap, updatePlayer } from '../world/gameData.js';
 import { persistPlayersNow } from '../player/playerService.js';
 import { addItem, canFit, hasItem, removeItem } from './economyService.js';
 
@@ -18,6 +19,21 @@ export async function deleteShop(id: string): Promise<void> {
 
 export async function listShops(): Promise<Shop[]> {
   return shopRepository.list();
+}
+
+/**
+ * Whether this player is standing on the tile that opens this shop. A shop
+ * id reaches every passer-by with the map chunk, so an id in a request body
+ * proves nothing; without this one account could buy from every vendor in
+ * the game without walking to any.
+ *
+ * Derived from the tile, the same rule that opened the shop
+ * (`handleWarpAndShops`), so the two cannot drift and walking away closes
+ * it with no per-player state to expire.
+ */
+export function shopOpenFor(player: PlayerServer, shopId: string): boolean {
+  const map = getMap(player.mapId);
+  return !!map && tileAt(map.tiles, player.position)?.shop === shopId;
 }
 
 export const buyShopItem = async (

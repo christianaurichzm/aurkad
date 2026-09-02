@@ -1,6 +1,6 @@
 import { type Request, type Response } from 'express';
 import type { ExtendedRequest } from '../session.js';
-import { Access } from '../../../shared/types.js';
+import { Access, type PlayerServer } from '../../../shared/types.js';
 import { logger } from '../../logger.js';
 import {
   parseBody,
@@ -15,6 +15,7 @@ import {
   listShops,
   createOrUpdateShop,
   deleteShop,
+  shopOpenFor,
 } from '../../services/economy/shopService.js';
 import {
   getItemById,
@@ -25,6 +26,32 @@ import {
   getPlayerByName,
 } from '../../services/player/playerService.js';
 import { createRouter } from '../../app.js';
+
+/**
+ * The player behind this session, if they are standing at `shopId`.
+ *
+ * Answers the response itself so the two routes cannot disagree about what a
+ * caller who is not there is told. 403 rather than 404 both times: the shop
+ * exists, and pretending otherwise would make "wrong place" and "no such shop"
+ * indistinguishable to an operator reading the log.
+ */
+function atShop(
+  username: string | undefined,
+  shopId: string,
+  res: Response,
+): PlayerServer | undefined {
+  if (!username) {
+    res.status(401).json({ error: 'Not logged in' });
+    return undefined;
+  }
+
+  const player = getPlayerByName(username);
+  if (!player || !shopOpenFor(player, shopId)) {
+    res.status(403).json({ error: 'You are not at this shop.' });
+    return undefined;
+  }
+  return player;
+}
 
 // Both sides of a shop: the admin editing one and the player buying from
 // it, one domain (`shopService`) with one rule: what the editor puts on a
@@ -45,9 +72,13 @@ export function createShopRouter() {
     },
   );
 
+  // Gated like the buy below, or the shelf and prices of every vendor would
+  // be readable by anyone who guessed an id, without logging in.
   router.get('/shop/:shopId', async (req, res) => {
     try {
       const shopId = req.params['shopId'];
+      if (!atShop(req.session.username, shopId, res)) return;
+
       const shop = await getShopById(shopId);
 
       if (!shop) {
@@ -140,16 +171,17 @@ export function createShopRouter() {
     const body = parseBody(BuyShopItemBodySchema, req.body, res);
     if (!body) return;
     const { shopId, itemId } = body;
-    const username = (req as ExtendedRequest).session.username;
 
-    if (!username) {
-      return res.status(401).json({ error: 'Not logged in' });
-    }
+    const player = atShop(
+      (req as ExtendedRequest).session.username,
+      shopId,
+      res,
+    );
+    if (!player) return;
 
-    const player = getPlayerByName(username);
+    // Reachable through a tile naming a shop that content deleted since.
     const shop = await getShopById(shopId);
-
-    if (!player || !shop) {
+    if (!shop) {
       return res.status(404).json({ error: 'Shop or player not found' });
     }
 

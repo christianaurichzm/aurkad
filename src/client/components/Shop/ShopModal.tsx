@@ -1,7 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { Modal } from '../common/Modal';
 import { ProductDetailed, Shop } from '../../../shared/types';
+import { tileAt } from '../../../shared/mapGeometry';
 import { fetchShop } from '../../io/network';
+import { getGameState } from '../../core/gameState';
+import { usePlayerForceUpdate } from '../../hooks/usePlayerForceUpdate';
 import { ShopRow } from './ShopRow';
 import { useT } from '../../i18n';
 
@@ -26,6 +29,18 @@ export const ShopModal: React.FC = () => {
     window.addEventListener('open-shop', handler);
     return () => window.removeEventListener('open-shop', handler);
   }, []);
+
+  // The server sells only to a player standing on the shop's tile, so a modal
+  // left open after walking away is a panel whose every button answers 403.
+  // Same tile rule as the server's, read off the map this client already has.
+  const player = usePlayerForceUpdate(shopId !== null);
+  useEffect(() => {
+    if (!shopId || !player) return;
+    const tiles = getGameState()?.tiles;
+    if (tiles && tileAt(tiles, player.position)?.shop !== shopId) {
+      setShopId(null);
+    }
+  }, [player, shopId]);
 
   const close = () => setShopId(null);
 
