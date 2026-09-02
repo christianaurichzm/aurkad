@@ -72,7 +72,10 @@ export function createMapRouter() {
     },
   );
 
-  router.get('/maps/:mapId', async (req, res) => {
+  // Admin like every route here that touches a map document. The game gets
+  // maps over the socket (mapMeta and chunks), so the map editor is the only
+  // caller, and an open route would hand any tile, warp or border link out.
+  router.get('/maps/:mapId', checkAccess(Access.ADMIN), async (req, res) => {
     try {
       const mapId = req.params['mapId'];
       const map = await getMapById(mapId);
