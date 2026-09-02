@@ -570,16 +570,17 @@ command(
 //   yield waitFor(event, filter?)  pause until a hook fires → its payload
 //   Cancelled on reload like the above; `finally` runs, so release things there.
 //
-// RANDOM (deterministic: always prefer these over Math.random)
+// RANDOM (deterministic: Math.random is wired to the same sequence)
 //   random()                       → [0, 1)
 //   randomInt(maxExclusive)        → integer
 //   randomChance(percent)          → boolean, percent is 0-100
 //   randomPick(array)              → element | undefined
 //
 //   Why ticks and why this random: the sim runs on a seeded, tick-driven loop,
-//   so replays reproduce a session exactly. Wall-clock timers (setTimeout) and
-//   Math.random escape that - the recorder never sees them and a replay drifts.
-//   setTimeout/setInterval still work but are deprecated and log a warning.
+//   so replays reproduce a session exactly. Wall-clock timers escape that:
+//   the recorder never sees them and a replay drifts. setTimeout/setInterval
+//   still work but are deprecated and log a warning. Math.random does not
+//   escape: inside a script it IS random(), so the reflex costs nothing.
 //
 // INVENTORY / ECONOMY (all report what happened; check the result)
 //   giveItem(player, itemId, qty?)   → boolean  false = full bag or unknown item

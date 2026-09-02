@@ -52,6 +52,12 @@ export function runInSandbox(
     console: { log: api.log, warn: api.warn, error: api.error },
   });
 
+  // `Math.random` would leave the seeded sequence unseen by the recorder, so
+  // replay would drift. It points at the engine's own generator, so the
+  // reflex authors bring is correct here; patched inside the context, so
+  // scripts keep their realm's Math rather than a host object.
+  vm.runInContext('Math.random = random;', ctx);
+
   const cleanup = (): void => {
     unsubs.forEach((fn) => fn());
     timers.forEach((id) => clearInterval(id));

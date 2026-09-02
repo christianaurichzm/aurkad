@@ -4,6 +4,7 @@ import { clearAll, emit, on } from '../hooks.js';
 import { createFixture, tile } from '../../sim/simFixture.js';
 import { Direction, Key } from '../../../shared/types.js';
 import { msToTicks } from '../../sim/clock.js';
+import { seedRng, nextRandom } from '../../sim/rng.js';
 import { config } from '../../config.js';
 import { gameConfig, respawnPosition } from '../../gameConfig.js';
 import {
@@ -89,6 +90,29 @@ describe('vm context - host objects ARE escapable (known trust boundary)', () =>
 
     emit('playerJoin', { player });
     expect(player.health).toBe(100); // escape succeeded - trusted model only
+
+    handle.cleanup();
+  });
+});
+
+describe('vm context - Math.random is the seeded sequence', () => {
+  it('rolls what the engine would have rolled from the same seed', () => {
+    createFixture(0);
+    seedRng(42);
+    const expected = [nextRandom(), nextRandom()];
+
+    seedRng(42);
+    const handle = runInSandbox(
+      `
+      store.set('rng', 'rolls', [Math.random(), Math.random()]);
+      store.set('rng', 'intrinsic', Math.floor(2.7));
+    `,
+      'math-random.js',
+    );
+
+    expect(kvGet('rng', 'rolls')).toEqual(expected);
+    // The rest of Math is the realm's own, untouched by the patch.
+    expect(kvGet('rng', 'intrinsic')).toBe(2);
 
     handle.cleanup();
   });

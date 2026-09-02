@@ -1200,9 +1200,8 @@ declare function waitFor<E extends HookEvent>(
 ): CoroutineInstruction;
 
 /**
- * Deterministic random in [0, 1). Always prefer this over `Math.random`: the
- * simulation is seeded, and replay only reproduces if every roll that affects
- * the world comes from this sequence.
+ * Deterministic random in [0, 1), the simulation's seeded sequence. Inside
+ * a script `Math.random` resolves to it too, so replays reproduce both.
  */
 declare function random(): number;
 
