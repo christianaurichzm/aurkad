@@ -152,6 +152,50 @@ describe('inter-module API', () => {
     ); // consumer skipped
   });
 
+  it('skips a module whose dependency threw on the way up', async () => {
+    writeModule(
+      'provider',
+      {},
+      `throw new Error('boom'); // provide() below never runs
+       provide('greeter', { hello: () => 'hi' });`,
+    );
+    writeModule(
+      'consumer',
+      { dependencies: ['provider'] },
+      `command('greet', {}, ({ reply }) => reply('loaded'));`,
+    );
+
+    loadModules();
+
+    expect(isProvided('greeter')).toBe(false);
+    const out: string[] = [];
+    expect(await handleReplCommand('greet', [], (s) => out.push(s))).toBe(
+      false,
+    );
+  });
+
+  it('does not serve the client half of a module whose server entry threw', () => {
+    const dir = path.join(tmpDir, 'halfdead');
+    fs.mkdirSync(dir, { recursive: true });
+    fs.writeFileSync(
+      path.join(dir, 'module.json'),
+      JSON.stringify({
+        id: 'halfdead',
+        name: 'halfdead',
+        version: '1.0.0',
+        server: 'server.js',
+        client: 'client.js',
+      }),
+    );
+    fs.writeFileSync(path.join(dir, 'server.js'), `throw new Error('boom');`);
+    fs.writeFileSync(path.join(dir, 'client.js'), `engine.mount();`);
+
+    loadModules();
+
+    expect(getClientModules()).toEqual([]);
+    expect(readModuleClientFile('halfdead')).toBeNull();
+  });
+
   it('unload withdraws a module provided API', () => {
     writeModule('provider', {}, `provide('greeter', { hello: () => 'hi' });`);
     loadModules();

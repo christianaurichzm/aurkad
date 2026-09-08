@@ -119,10 +119,18 @@ export function loadModules(): void {
         continue;
       }
       const config = resolveModuleConfig(manifest, gameConfig.modules);
-      handles.set(
-        manifest.id,
-        runInSandbox(code, `module:${manifest.id}`, { config }),
-      );
+      const handle = runInSandbox(code, `module:${manifest.id}`, { config });
+      // A module that threw on its way up registered part of itself and
+      // provided nothing. Marked loaded anyway, it would let every dependent
+      // run against an API that is not there, and the first symptom would
+      // surface in the dependent rather than here.
+      if (!handle.ok) {
+        logger.error(
+          `[modules] ${manifest.id}: skipped - initialization failed`,
+        );
+        continue;
+      }
+      handles.set(manifest.id, handle);
     } else if (!manifest.client) {
       logger.error(
         `[modules] ${manifest.id}: has neither a server nor a client entry`,

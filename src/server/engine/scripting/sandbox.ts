@@ -23,6 +23,12 @@ type TimerId = ReturnType<typeof setInterval>;
 
 export interface ScriptHandle {
   cleanup: () => void;
+  /**
+   * Whether the top-level evaluation finished. A script that threw on the way
+   * up registered only what came before the throw, and the module loader,
+   * resolving dependents, has to tell that from a script that ran.
+   */
+  ok: boolean;
 }
 
 const INIT_TIMEOUT_MS = 5_000;
@@ -81,8 +87,8 @@ export function runInSandbox(
     }
     recordScriptError(filename, e, 'load');
     cleanup();
-    return { cleanup: () => {} };
+    return { cleanup: () => {}, ok: false };
   }
 
-  return { cleanup };
+  return { cleanup, ok: true };
 }
