@@ -9,7 +9,10 @@ import {
   TwoFactorEnableBodySchema,
   TwoFactorSetupBodySchema,
 } from '../bodySchemas.js';
-import { getPlayerByNameFromDb } from '../../services/player/playerService.js';
+import {
+  authEpochOf,
+  getPlayerByNameFromDb,
+} from '../../services/player/playerService.js';
 import checkAccess from '../middleware/checkAccess.js';
 import { listAuditLog } from '../../services/auditService.js';
 import {
@@ -84,6 +87,7 @@ export function createAdminAuthRouter() {
 
       req.session.username = username;
       req.session.accessLevel = access;
+      req.session.authEpoch = (await authEpochOf(username)) ?? 0;
       req.session.save((err) => {
         if (err) {
           logger.error('admin session save failed', { err });

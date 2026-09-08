@@ -67,6 +67,16 @@ export async function createOrUpdatePlayer(
   return playerRepository.save(player, session);
 }
 
+/** The generation a session must carry, or null when the account is gone. */
+export async function authEpochOf(name: string): Promise<number | null> {
+  return playerRepository.authEpochOf(name);
+}
+
+/** Ends every session minted before now; returns the generation to match. */
+export async function endSessionsFor(name: string): Promise<number> {
+  return playerRepository.bumpAuthEpoch(name);
+}
+
 export async function deletePlayer(id: string): Promise<void> {
   await playerRepository.deleteById(id);
 }

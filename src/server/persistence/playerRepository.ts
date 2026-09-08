@@ -9,11 +9,15 @@ import { gameConfig } from '../gameConfig.js';
 // docs can be missing fields; fill them here so the rest of the app always sees
 // a complete record.
 export function normalizePlayerRecord(record: PlayerRecord): PlayerRecord {
-  // The lease is dropped here, not at each caller: it is about which process
-  // may write the document, never about the character, and a runtime copy
-  // would be written back by the snapshot loop, reviving a released lease on
-  // a document nobody owns.
-  const { lease: _lease, ...rest } = record as PlayerRecord & {
+  // The lease and the auth generation are dropped here, not at each caller:
+  // neither is about the character, and a runtime copy would be written back
+  // by the snapshot loop, reviving a released lease or reverting a bumped
+  // generation. Both are read through their own queries.
+  const {
+    lease: _lease,
+    authEpoch: _authEpoch,
+    ...rest
+  } = record as PlayerRecord & {
     lease?: unknown;
   };
   return {
@@ -39,6 +43,31 @@ export const playerRepository = {
   async findByName(name: string): Promise<PlayerRecord | null> {
     const doc = await PlayerModel.findOne({ name }).lean<PlayerRecord>().exec();
     return doc ? normalizePlayerRecord(doc) : null;
+  },
+
+  /**
+   * The generation a session must match, or null when there is no such
+   * account, whose sessions are dropped.
+   */
+  async authEpochOf(name: string): Promise<number | null> {
+    const doc = await PlayerModel.findOne({ name })
+      .select({ authEpoch: 1 })
+      .lean<{ authEpoch?: number }>()
+      .exec();
+    return doc ? (doc.authEpoch ?? 0) : null;
+  },
+
+  /** Ends every session minted before now; returns the generation to match. */
+  async bumpAuthEpoch(name: string): Promise<number> {
+    const doc = await PlayerModel.findOneAndUpdate(
+      { name },
+      { $inc: { authEpoch: 1 } },
+      { new: true },
+    )
+      .select({ authEpoch: 1 })
+      .lean<{ authEpoch?: number }>()
+      .exec();
+    return doc?.authEpoch ?? 0;
   },
 
   async list(): Promise<PlayerRecord[]> {

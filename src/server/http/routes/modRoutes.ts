@@ -24,6 +24,7 @@ import {
   changeSprite,
   handlePlayerUpdates,
   kickPlayer,
+  endSessionsFor,
 } from '../../services/player/playerService.js';
 import { createRouter } from '../../app.js';
 
@@ -179,7 +180,7 @@ export function createModRouter() {
   router.post(
     '/mod/setAccess',
     checkAccess(Access.ADMIN),
-    (req: Request, res: Response) => {
+    async (req: Request, res: Response) => {
       const body = parseBody(SetAccessBodySchema, req.body, res);
       if (!body) return;
       const { playerName, accessLevel } = body;
@@ -188,6 +189,10 @@ export function createModRouter() {
 
       target.access = accessLevel;
       handlePlayerUpdates(target);
+      // The level the target's sessions carry was copied in at their login, so
+      // the demotion has not reached them: without this, the account this route
+      // just took ADMIN from can call this route and take it back.
+      await endSessionsFor(playerName);
       broadcast();
 
       res.status(200).send('Access updated');
@@ -214,7 +219,7 @@ export function createModRouter() {
   router.post(
     '/mod/setMyAccess',
     checkAccess(Access.ADMIN),
-    (req: ExtendedRequest, res: Response) => {
+    async (req: ExtendedRequest, res: Response) => {
       const body = parseBody(SetMyAccessBodySchema, req.body, res);
       if (!body) return;
       const { accessLevel } = body;
@@ -223,6 +228,10 @@ export function createModRouter() {
 
       me.access = accessLevel;
       handlePlayerUpdates(me);
+      // The operator's other sessions carry the old level and are not the one
+      // in hand, so they end like any other; this one is re-stamped rather than
+      // ended, which is what makes this route self-service.
+      req.session.authEpoch = await endSessionsFor(me.name);
       req.session.accessLevel = accessLevel;
       req.session.save(() => {});
       broadcast();

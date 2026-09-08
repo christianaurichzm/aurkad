@@ -60,6 +60,10 @@ const PlayerSchema = new mongoose.Schema({
   access: { type: Number, enum: [0, 1, 2] },
   data: { type: mongoose.Schema.Types.Mixed, default: {} },
   password: { type: String, required: true },
+  // See PlayerRecord.authEpoch. Read by the session middleware through its own
+  // projected query and stripped by normalizePlayerRecord, so it never reaches
+  // runtime state and the snapshot loop cannot write a stale copy back.
+  authEpoch: { type: Number, default: 0 },
   // Set only by the account routes, after a link sent to it came back: an
   // address nobody answered is a reset link addressed to a typo.
   email: { type: String, lowercase: true, trim: true },

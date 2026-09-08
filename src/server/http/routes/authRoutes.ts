@@ -16,6 +16,7 @@ import { logger } from '../../logger.js';
 import { getPlayerById, registerPlayer } from '../../sim/world.js';
 import { addPlayerOnMap } from '../../services/world/mapService.js';
 import {
+  authEpochOf,
   createPlayer,
   disconnectPlayer,
   enrichPlayer,
@@ -149,6 +150,7 @@ export function createAuthRouter() {
       req.session.username = username;
       req.session.accessLevel = player.access ?? Access.USER;
       req.session.assetKey = crypto.randomBytes(32).toString('hex');
+      req.session.authEpoch = (await authEpochOf(username)) ?? 0;
 
       if (!getPlayerById(player.id)) {
         registerPlayer(runtimePlayer);

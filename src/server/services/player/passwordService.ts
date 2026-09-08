@@ -54,7 +54,13 @@ async function liveToken(token: string) {
 
 async function writePassword(username: string, password: string) {
   const hash = await bcrypt.hash(password, SALT_ROUNDS);
-  await PlayerModel.updateOne({ name: username }, { password: hash }).exec();
+  // One write, because a changed password with the earlier sessions still
+  // alive is what an interruption must not leave behind: whoever is being
+  // locked out is exactly who those sessions belong to.
+  await PlayerModel.updateOne(
+    { name: username },
+    { $set: { password: hash }, $inc: { authEpoch: 1 } },
+  ).exec();
   // Every link minted before this moment is a way back into an account whose
   // owner just moved it, so all of them die with the change, including the
   // one being spent.

@@ -295,6 +295,19 @@ export interface PlayerServer extends PersistentPlayer, CharacterRuntime {
 export interface PlayerRecord extends PlayerServer {
   password: string;
   /**
+   * The account generation a session must match to still be honoured.
+   * Access level and password are copied into a session when it is minted,
+   * so without a generation to compare, a session outlives its facts: a
+   * demoted operator keeps ADMIN, and a reset leaves whoever held the
+   * previous password logged in. Bumping this ends those sessions.
+   *
+   * On the record, not `PlayerServer`, like the password and email: the
+   * write-behind loop `$set`s the runtime player over the document every 30
+   * seconds, and a field it does not carry is one it cannot wipe. Absent
+   * means generation 0.
+   */
+  authEpoch?: number;
+  /**
    * Where a reset link is sent, once the address has answered one. On the
    * record and not on `PlayerServer`, like the password next to it, so the
    * write-behind loop that `$set`s the runtime player cannot wipe it.
