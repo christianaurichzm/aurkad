@@ -410,6 +410,19 @@ export interface Tile {
   conditionalBlock?: string;
 }
 
+/**
+ * A tile as the game client sees it: what to draw, and nothing else. The
+ * rest of a `Tile` is the server's copy of the rules (step scripts and
+ * their arguments, where a warp goes, what a door wants, which NPC spawns
+ * there); a client told any of it reads the puzzle off the wire. The
+ * editor asks for the real thing over its own gated route.
+ */
+export interface TilePublic {
+  tileIndex: number;
+  maskIndex?: number;
+  fringeIndex?: number;
+}
+
 export interface DroppedItem {
   itemId: Item['id'];
   position: Position;
@@ -463,7 +476,7 @@ export interface MapStaticClient {
   name: string;
   type: MapType;
   pvp?: PvpMorale;
-  tiles: Tile[][];
+  tiles: TilePublic[][];
 }
 
 export interface MapMetaClient {
@@ -493,7 +506,7 @@ export interface MapChunkPayload {
   revision: number;
   chunkX: number;
   chunkY: number;
-  tiles: Tile[][];
+  tiles: TilePublic[][];
 }
 
 export interface MapDynamicClient {

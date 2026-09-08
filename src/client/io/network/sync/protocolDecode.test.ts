@@ -63,7 +63,7 @@ describe('decoding the golden session', () => {
     // 2x2 map: the single chunk has to land in the grid mapMeta allocated.
     expect(map!.tiles).toHaveLength(2);
     expect(map!.tiles[0]).toHaveLength(2);
-    expect(map!.tiles[0][0]).toEqual({ tileIndex: 0, blocked: false });
+    expect(map!.tiles[0][0]).toEqual({ tileIndex: 0 });
   });
 
   it('inserts entities arriving in full, routed by kind', () => {

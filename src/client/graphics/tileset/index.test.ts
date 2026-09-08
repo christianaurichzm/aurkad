@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { Tile } from '../../../shared/types';
-import { getEditorTiles, renderGameMap, renderMap } from './index';
+import { getEditorTiles, renderGameMap, setEditorTiles } from './index';
 
 const mocks = vi.hoisted(() => {
   const calls: { fn: string; args: unknown[] }[] = [];
@@ -62,36 +62,47 @@ describe('the map the game draws', () => {
     expect(counts()).toEqual({ clears: 1, draws: 2 });
   });
 
-  it('copies the map for the editor once, not once per frame', () => {
-    const tiles = mapOf(2);
+  it('leaves the editor copy alone', () => {
+    // The editor loads its own copy over the admin route: the game's tiles
+    // are `TilePublic`, stripped of every trigger, warp and door, and an
+    // editor seeded from them would save a map with the rules erased.
+    setEditorTiles(mapOf(9));
+    const loaded = getEditorTiles();
 
-    renderGameMap(tiles);
-    const first = getEditorTiles();
-    renderGameMap(tiles);
+    renderGameMap(mapOf(1));
 
-    expect(getEditorTiles()).toBe(first);
+    expect(getEditorTiles()).toBe(loaded);
+    expect(getEditorTiles()[0]?.[0]?.tileIndex).toBe(9);
+  });
+});
+
+describe('the map the editor holds', () => {
+  beforeEach(() => {
+    mocks.calls.length = 0;
   });
 
-  it('copies again when the server sends a different map', () => {
-    renderGameMap(mapOf(3));
-    const first = getEditorTiles();
-    renderGameMap(mapOf(4));
+  it('keeps what the admin route sent, rules and all', () => {
+    setEditorTiles([
+      [
+        {
+          tileIndex: 2,
+          triggers: [{ action: 'script', scriptId: 'reward' }],
+          warp: { to: 'cave', position: { x: 0, y: 0 } },
+        },
+      ],
+    ]);
 
-    expect(getEditorTiles()).not.toBe(first);
-    expect(getEditorTiles()[0]?.[0]?.tileIndex).toBe(4);
+    const tile = getEditorTiles()[0]?.[0];
+    expect(tile?.triggers?.[0]).toMatchObject({ scriptId: 'reward' });
+    expect(tile?.warp?.to).toBe('cave');
   });
 
-  it('re-seeds the working copy after the editor has held it', () => {
-    const tiles = mapOf(5);
-    renderGameMap(tiles);
+  it('takes a copy, so editing does not write through to the fetched map', () => {
+    const fetched = mapOf(6);
+    setEditorTiles(fetched);
 
-    // What the editor drew is its own copy, and the game's next frame starts
-    // from the server's tiles again, which is how closing the editor drops
-    // what was never saved.
-    renderMap(getEditorTiles());
-    const edited = getEditorTiles();
-    renderGameMap(tiles);
+    getEditorTiles()[0][0].tileIndex = 7;
 
-    expect(getEditorTiles()).not.toBe(edited);
+    expect(fetched[0]?.[0]?.tileIndex).toBe(6);
   });
 });

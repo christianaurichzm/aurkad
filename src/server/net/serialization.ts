@@ -5,6 +5,8 @@ import type {
   PlayerPublic,
   PlayerServer,
   RuntimeNpc,
+  Tile,
+  TilePublic,
 } from '../../shared/types.js';
 import { mapTileWidth, mapTileHeight } from '../../shared/mapGeometry.js';
 import { CHUNK_SIZE } from '../../shared/constants.js';
@@ -48,6 +50,17 @@ export function toMapMeta(map: MapStateServer): MapMetaClient {
   };
 }
 
+// Named rather than inlined so the list of what a player may know about a tile
+// is one thing to read. A field added to `Tile` does not join it by default,
+// which is the point: the last one that did was a script trigger.
+function toTilePublic(tile: Tile): TilePublic {
+  return {
+    tileIndex: tile.tileIndex,
+    maskIndex: tile.maskIndex,
+    fringeIndex: tile.fringeIndex,
+  };
+}
+
 export function toMapChunk(
   map: MapStateServer,
   chunkX: number,
@@ -57,7 +70,7 @@ export function toMapChunk(
   const colStart = chunkX * CHUNK_SIZE;
   const tiles = map.tiles
     .slice(rowStart, rowStart + CHUNK_SIZE)
-    .map((row) => row.slice(colStart, colStart + CHUNK_SIZE));
+    .map((row) => row.slice(colStart, colStart + CHUNK_SIZE).map(toTilePublic));
   return {
     mapId: map.id,
     revision: map.tilesRevision ?? 0,

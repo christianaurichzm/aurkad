@@ -22,6 +22,7 @@ import {
   setPendingScriptTrigger,
   toggleConditionalBlock,
   setEditorMusic,
+  setEditorTiles,
   undo,
   redo,
 } from '../../graphics/tileset';
@@ -121,6 +122,7 @@ const editorSelection = window as unknown as Record<string, string | number>;
 const TilesetModeControlsComponent: React.FC = () => {
   const translate = useT();
   const mapEdited = useUIStore((state) => state.mapEdited);
+  const currentMapId = useUIStore((state) => state.currentMap?.id);
 
   const [activeMode, setActiveMode] = useState<TileEditMode | null>(null);
   const [selectedNpc, setSelectedNpc] = useState<string | number>('');
@@ -144,6 +146,7 @@ const TilesetModeControlsComponent: React.FC = () => {
         const music = map.music ?? '';
         setMapMusic(music);
         setEditorMusic(music);
+        setEditorTiles(map.tiles, music);
       } else {
         setMapType('normal');
         setMapName(t('tileset.newMap'));
@@ -153,9 +156,11 @@ const TilesetModeControlsComponent: React.FC = () => {
     }
   }, []);
 
+  // Re-fetched when the player walks into another map, so the editor
+  // follows the game.
   useEffect(() => {
     void loadMapData();
-  }, [loadMapData]);
+  }, [loadMapData, currentMapId]);
 
   useEffect(() => {
     editorSelection.selectedNpc = selectedNpc;

@@ -9,7 +9,13 @@ import {
   removeEvent,
 } from '../../utils/domHelpers';
 import { TILE_SIZE } from '../../../shared/constants';
-import { MapType, Tile, TileAction, TileEditMode } from '../../../shared/types';
+import {
+  MapType,
+  Tile,
+  TileAction,
+  TileEditMode,
+  TilePublic,
+} from '../../../shared/types';
 import type { ScriptParams } from '../../../shared/scriptParams';
 import { tileset, tilesetAlpha } from '../../io/assets';
 import { saveMap, type SaveMapResponse, fetchNpcs } from '../../io/network';
@@ -553,7 +559,7 @@ const removeEventListeners = () => {
   document.removeEventListener('keydown', handleKeyDown);
 };
 
-const drawTiles = (tiles: Tile[][]) => {
+const drawTiles = (tiles: TilePublic[][]) => {
   foregroundCtx.clearRect(
     0,
     0,
@@ -590,22 +596,12 @@ const drawTiles = (tiles: Tile[][]) => {
  * alone are a pass over every tile with a dozen predicates each, painting
  * onto a grid context that exists only while the editor is open.
  */
-export const renderGameMap = (tiles: Tile[][]) => {
-  // The editor opens on whatever the game was showing, so the working copy
-  // is still taken here, once per map rather than per frame: a moved camera
-  // is not a new map, and the copy is two deep clones of all of it.
-  if (tiles !== lastSyncedTiles) {
-    updateEditorMap(tiles, editorMusic);
-    lastSyncedTiles = tiles;
-  }
+export const renderGameMap = (tiles: TilePublic[][]) => {
   drawTiles(tiles);
 };
 
 export const renderMap = (tiles: Tile[][]) => {
   if (tiles) updateEditorMap(tiles, editorMusic);
-  // The working copy belongs to the editor from here on; dropping the memo
-  // lets the game's next frame seed it again from the server's tiles.
-  lastSyncedTiles = null;
   drawTiles(tiles);
   clearAndDrawGrid();
   drawMarkers(tiles);
@@ -850,7 +846,13 @@ export const toggleTilesetEditor = (shouldShow: boolean) => {
   renderMap(map);
 };
 
-let lastSyncedTiles: Tile[][] | null = null;
+/**
+ * Loads the map the editor edits. These are the server's tiles from the
+ * admin route, since the game's copy is stripped of triggers, warps and
+ * doors (see `TilePublic`).
+ */
+export const setEditorTiles = (tiles: Tile[][], music?: string) =>
+  updateEditorMap(tiles, music);
 
 const updateEditorMap = (tiles: Tile[][], music?: string) => {
   map = tiles.map((row) => row.map((tile) => ({ ...tile })));
@@ -861,7 +863,7 @@ const updateEditorMap = (tiles: Tile[][], music?: string) => {
 };
 
 export const renderMapMask = (
-  tiles: Tile[][],
+  tiles: TilePublic[][],
   ctx: CanvasRenderingContext2D | OffscreenCanvasRenderingContext2D = maskCtx,
 ) => {
   if (!ctx || !tiles) return;
@@ -902,7 +904,7 @@ export const renderMapMask = (
 };
 
 export const renderMapFringe = (
-  tiles: Tile[][],
+  tiles: TilePublic[][],
   ctx: CanvasRenderingContext2D | OffscreenCanvasRenderingContext2D = fringeCtx,
 ) => {
   if (!ctx || !tiles) return;

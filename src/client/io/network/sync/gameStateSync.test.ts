@@ -55,7 +55,7 @@ beforeEach(() => {
     id: '1',
     name: 'M',
     type: 'normal',
-    tiles: [[{ tileIndex: 0, blocked: false }]],
+    tiles: [[{ tileIndex: 0 }]],
   });
   setPlayerStats({
     id: LOCAL_ID,

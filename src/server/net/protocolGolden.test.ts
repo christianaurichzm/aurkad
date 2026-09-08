@@ -105,7 +105,7 @@ describe('protocol version', () => {
     // The client force-reloads on mismatch. Changing this without the payloads
     // strands nothing; changing the payloads alone lets a stale tab misread
     // them, which is what this guards.
-    expect(PROTOCOL_VERSION).toBe(1);
+    expect(PROTOCOL_VERSION).toBe(2);
   });
 
   it('stamps every game-state frame', () => {

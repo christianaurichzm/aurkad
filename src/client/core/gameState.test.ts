@@ -35,14 +35,14 @@ beforeEach(() => {
     id: '1',
     name: 'M',
     type: 'normal',
-    tiles: [[{ tileIndex: 0, blocked: false }]],
+    tiles: [[{ tileIndex: 0 }]],
   });
   setMapMeta({ id: '1', name: 'M', type: 'normal', cols: 1, rows: 1 } as never);
   setStaticMap({
     id: '1',
     name: 'M',
     type: 'normal',
-    tiles: [[{ tileIndex: 0, blocked: false }]],
+    tiles: [[{ tileIndex: 0 }]],
   });
   applyWorldUpdate(update({}));
 });
