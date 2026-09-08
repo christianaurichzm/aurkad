@@ -354,7 +354,19 @@ export const startWebSocketServer = (
         enqueueAction({ username, ...result.data });
       });
 
+      // A socket that has already been replaced is not a departure. The
+      // replacement above closes the old one, and that close lands a turn
+      // later, with the new socket in the map: keyed by username alone, the
+      // cleanup below would unregister the player who just reconnected and
+      // drop the socket that took over. An entry that is gone rather than
+      // different (kick, warp) is still this socket's own departure.
+      const isCurrent = (): boolean => {
+        const current = playersWsMap.get(username);
+        return !current || current === ws;
+      };
+
       ws.on('close', () => {
+        if (!isCurrent()) return;
         recordSession(username, 'leave');
         if (!shuttingDown) {
           disconnectPlayer(username).catch((e) => {
@@ -367,6 +379,7 @@ export const startWebSocketServer = (
 
       ws.on('error', (err) => {
         logger.error('[ws] connection error', { username, err });
+        if (!isCurrent()) return;
         playersWsMap.delete(username);
         messageRate.delete(username);
       });

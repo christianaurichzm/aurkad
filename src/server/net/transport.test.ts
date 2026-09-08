@@ -22,6 +22,7 @@ vi.mock('../config.js', async (importOriginal) => {
   return { config: { ...actual.config, tracing } };
 });
 
+import { playersWsMap } from './connections.js';
 import {
   enqueueServerAction,
   getActionQueueSize,
@@ -176,5 +177,73 @@ describe('the warp arrival', () => {
     await connect('?traceparent=nonsense');
 
     expect(pendingSpansForTest()).toEqual([]);
+  });
+});
+
+/**
+ * The reconnect, which is the ordinary way a session continues: the client
+ * dials again on its own after a blip, without logging in, so for a moment
+ * the server holds both sockets under one name.
+ */
+describe('a replaced connection', () => {
+  let http: HttpServer;
+  let port = 0;
+
+  const asSession = (req: unknown, _res: unknown, next: () => void) => {
+    (req as { session: { username: string } }).session = { username: 'Boss' };
+    next();
+  };
+
+  const dialled: WebSocket[] = [];
+
+  const open = () =>
+    new Promise<WebSocket>((resolve, reject) => {
+      const ws = new WebSocket(`ws://127.0.0.1:${port}/ws`);
+      dialled.push(ws);
+      ws.on('open', () => resolve(ws));
+      ws.on('error', reject);
+    });
+
+  const closed = (ws: WebSocket) =>
+    new Promise<void>((resolve) => ws.on('close', () => resolve()));
+
+  const settle = () => new Promise((r) => setTimeout(r, 250));
+
+  beforeEach(async () => {
+    playersWsMap.clear();
+    http = createServer();
+    await new Promise<void>((resolve) => http.listen(0, resolve));
+    port = (http.address() as AddressInfo).port;
+    startWebSocketServer(http, asSession as never);
+  });
+
+  afterEach(async () => {
+    for (const ws of dialled.splice(0)) ws.terminate();
+    await stopWebSocketServer();
+    await new Promise<void>((resolve) => http.close(() => resolve()));
+    playersWsMap.clear();
+  });
+
+  it('keeps the socket that took over when the old one finishes closing', async () => {
+    const first = await open();
+    const second = await open(); // the server closes `first` on this handshake
+
+    await closed(first);
+    await settle(); // the old socket's close handler runs on the server here
+
+    const held = playersWsMap.get('Boss');
+    expect(held).toBeDefined();
+    expect(held?.readyState).toBe(WebSocket.OPEN);
+    expect(second.readyState).toBe(WebSocket.OPEN);
+  });
+
+  it('forgets the socket on an ordinary departure', async () => {
+    const only = await open();
+
+    only.close();
+    await closed(only);
+    await settle();
+
+    expect(playersWsMap.has('Boss')).toBe(false);
   });
 });
