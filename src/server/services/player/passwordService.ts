@@ -40,16 +40,23 @@ async function mintToken(username: string, email?: string) {
 }
 
 /**
- * The row a token names, or nothing if it is spent, unknown or out of date.
+ * The row a token names, spent in the same breath, or nothing if it was
+ * already spent, is unknown, out of date, or is the other kind of link.
  *
- * The date is checked here rather than left to the TTL sweeper, which runs on
- * its own schedule and can be a minute behind.
+ * Finding and removing are one write because they are one decision: two
+ * requests that read the same row before either deletes it both hold a live
+ * token, and a token that exists once has then been spent twice.
+ *
+ * The date is a condition of that write rather than a check afterwards, for
+ * the same reason and because the TTL sweeper runs on Mongo's own schedule and
+ * can be a minute behind.
  */
-async function liveToken(token: string) {
-  const row = await PasswordResetModel.findOne({
+async function spendToken(token: string, withAddress: boolean) {
+  return PasswordResetModel.findOneAndDelete({
     tokenHash: hashToken(token),
+    expiresAt: { $gt: new Date() },
+    email: { $exists: withAddress },
   }).exec();
-  return row && row.expiresAt.getTime() > Date.now() ? row : null;
 }
 
 async function writePassword(username: string, password: string) {
@@ -114,21 +121,19 @@ export async function createEmailToken(
 }
 
 /**
- * Spends an address token, which is the moment the address becomes real.
- *
- * A reset token cannot be spent here and an address token cannot set a
- * password: both are checked by the presence of the address on the row, so one
- * kind of link is never the other kind of permission.
+ * Spends an address token, which is when the address becomes real. Each
+ * kind of token is spent only as itself, since whether it carries an
+ * address is part of the match: an address token never sets a password,
+ * and refusing one kind never consumes the other.
  */
 export async function confirmEmailToken(token: string): Promise<ResetResult> {
-  const row = await liveToken(token);
+  const row = await spendToken(token, true);
   if (!row?.email) return 'invalid-token';
 
   await PlayerModel.updateOne(
     { name: row.username },
     { email: row.email },
   ).exec();
-  await PasswordResetModel.deleteOne({ _id: row._id }).exec();
   return 'ok';
 }
 
@@ -137,8 +142,8 @@ export async function consumeResetToken(
   token: string,
   newPassword: string,
 ): Promise<ResetResult> {
-  const row = await liveToken(token);
-  if (!row || row.email) return 'invalid-token';
+  const row = await spendToken(token, false);
+  if (!row) return 'invalid-token';
 
   await writePassword(row.username, newPassword);
   return 'ok';

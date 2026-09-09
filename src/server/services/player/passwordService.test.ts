@@ -93,6 +93,22 @@ describe('reset tokens', () => {
     expect(await canLogInWith('first-password')).toBe(true);
   });
 
+  // Sequentially the second attempt finds the row gone. Both of these find it
+  // there, which is what a link that leaked and is being raced looks like: the
+  // loser must not get to choose the password the account keeps.
+  it('spends once even when spent twice at the same time', async () => {
+    const minted = await createResetToken('Alice');
+
+    const results = await Promise.all([
+      consumeResetToken(minted!.token, 'first-password'),
+      consumeResetToken(minted!.token, 'second-password'),
+    ]);
+
+    expect(results.filter((r) => r === 'ok')).toHaveLength(1);
+    const winner = results[0] === 'ok' ? 'first-password' : 'second-password';
+    expect(await canLogInWith(winner)).toBe(true);
+  });
+
   // The sweeper runs on Mongo's schedule, so the read path cannot treat a row
   // that still exists as a token that still works.
   it('refuses one that is out of date even while its row survives', async () => {

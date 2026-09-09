@@ -247,11 +247,15 @@ export async function checkSecondFactor(
 
   const step = verifyTotp(row.secret, token, Date.now(), row.lastStep ?? 0);
   if (step !== null) {
-    await TwoFactorModel.updateOne(
-      { username },
+    // The step the read accepted is also the condition the write is made
+    // under, and only the login that moves it is let in. Deciding on the read
+    // alone would let a code pass as many times as it is offered at once,
+    // which is the shoulder-surfing the step exists to stop, minus the wait.
+    const spent = await TwoFactorModel.updateOne(
+      { username, lastStep: { $lt: step } },
       { $set: { lastStep: step } },
     ).exec();
-    return 'ok';
+    return spent.modifiedCount > 0 ? 'ok' : 'wrong';
   }
 
   if (/^\d{6}$/.test(token.replace(/\s/g, ''))) return 'wrong';
@@ -261,11 +265,13 @@ export async function checkSecondFactor(
     if (await bcrypt.compare(offered, hash)) {
       // Spent, not merely counted: the printed sheet is a list of one-use
       // passwords, and a used one left behind is a password with no expiry.
-      await TwoFactorModel.updateOne(
-        { username },
+      // The code is a condition of the write and not only its subject, because
+      // `$pull` of something already pulled reports the same quiet success.
+      const spent = await TwoFactorModel.updateOne(
+        { username, recovery: hash },
         { $pull: { recovery: hash } },
       ).exec();
-      return 'ok';
+      return spent.modifiedCount > 0 ? 'ok' : 'wrong';
     }
   }
   return 'wrong';

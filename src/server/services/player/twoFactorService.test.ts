@@ -177,6 +177,22 @@ describe('the enrolled account', () => {
     expect(await checkSecondFactor('Boss', code)).toBe('wrong');
   });
 
+  // Sequentially the second read already sees the step the first one moved.
+  // Both of these read the account before either writes it, which is what a
+  // stolen code offered twice at once looks like.
+  it('will not take the same code twice at the same time', async () => {
+    const { secret } = await enroll('Boss');
+    later();
+    const code = totpCode(secret);
+
+    const results = await Promise.all([
+      checkSecondFactor('Boss', code),
+      checkSecondFactor('Boss', code),
+    ]);
+
+    expect(results.filter((r) => r === 'ok')).toHaveLength(1);
+  });
+
   it('will not take the code that enrolled the account', async () => {
     const { secret } = await enroll('Boss');
 
@@ -191,6 +207,19 @@ describe('the enrolled account', () => {
     expect(await checkSecondFactor('Boss', first)).toBe('wrong');
     expect((await twoFactorStatus('Boss')).recoveryLeft).toBe(9);
     expect(await checkSecondFactor('Boss', second.toLowerCase())).toBe('ok');
+  });
+
+  it('spends a recovery code once even offered twice at the same time', async () => {
+    const { recoveryCodes } = await enroll('Boss');
+    const [first] = recoveryCodes as [string];
+
+    const results = await Promise.all([
+      checkSecondFactor('Boss', first),
+      checkSecondFactor('Boss', first),
+    ]);
+
+    expect(results.filter((r) => r === 'ok')).toHaveLength(1);
+    expect((await twoFactorStatus('Boss')).recoveryLeft).toBe(9);
   });
 
   it('forgets the secret when it is turned off', async () => {
