@@ -88,11 +88,9 @@ export const initializeWebSocket = (url = currentWsUrl) => {
     try {
       const data = JSON.parse(event.data) as WsServerMessage;
 
-      // A versioned message whose version we do not speak means the server was
-      // deployed with a new wire format while this tab stayed open. Applying it
-      // would corrupt local state silently (audit F-7), so resync by reloading.
-      // Read off the raw shape: only the game-state messages carry `v`, and a
-      // mismatch is exactly the case where the declared union may be wrong.
+      // A version we do not speak means a deploy changed the wire format while
+      // this tab stayed open; applying it would corrupt local state, so reload.
+      // Read off the raw shape: on a mismatch the declared types may be wrong.
       const version = (data as { v?: unknown }).v;
       if (typeof version === 'number' && version !== PROTOCOL_VERSION) {
         handleProtocolMismatch(version);

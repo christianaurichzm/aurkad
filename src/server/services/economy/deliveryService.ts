@@ -221,8 +221,8 @@ export async function sendDelivery(
   try {
     await DeliveryModel.create(row);
   } catch (err) {
-    // The window this ADR-0024 note is about: the debit is already durable, so
-    // the item is gone until the refund below is itself persisted.
+    // The window a replica set closes and a standalone one cannot: the debit
+    // is already durable, so the item is gone until the refund below is saved.
     logger.error('[delivery] row not created after debit; refunding sender', {
       player: from.name,
       err,

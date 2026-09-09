@@ -177,10 +177,9 @@ describe('replica set', () => {
     expect(await heldBy('Bob')).toBe(0);
   });
 
-  // The other way a committed pair comes apart, and the residual ADR-0035
-  // declared: write-behind writes each dirty player on its own, so a sweep
-  // landing while the trade is committing could write one of the two and, on a
-  // crash right there, leave exactly the torn trade the transaction prevents.
+  // The other way a committed pair comes apart: write-behind writes each
+  // dirty player alone, so a sweep during the commit could write one of the
+  // two, and a crash there would tear the trade.
   it('holds the write-behind sweep off a pair being committed', async () => {
     const [from, to] = await tradingPair();
     moveItem(from.inventory, to.inventory, SWORD, 1);
@@ -226,8 +225,8 @@ describe('replica set', () => {
     expect((await playerRepository.findByName('Alice'))!.health).toBe(42);
   });
 
-  // The other pair of documents an economy write spans: the sender's inventory
-  // and the queued row (ADR-0024 left this window open, naming this item).
+  // The other pair of documents an economy write spans: the sender's
+  // inventory and the queued row.
   it('debits the sender and queues the row together, or does neither', async () => {
     const alice = await createPlayer('Alice', 'hash');
     await createPlayer('Bob', 'hash');

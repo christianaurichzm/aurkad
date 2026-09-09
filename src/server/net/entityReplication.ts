@@ -1,6 +1,6 @@
 // Per-entity replication cache.
 //
-// The point of this module (audit F-20 / ADR-0017): an entity's public state is
+// The point of this module: an entity's public state is
 // IDENTICAL for every viewer, so it must be built, diffed and serialized ONCE
 // per tick and the resulting fragment reused by everyone who can see it. The
 // previous design rebuilt and re-diffed it once per viewer, which is O(N^2)

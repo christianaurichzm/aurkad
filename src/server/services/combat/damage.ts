@@ -10,18 +10,11 @@ export function clampDamage(value: number): number {
 
 /**
  * Who damaged an entity and by how much, keyed by target id then player id.
- *
- * Kept because the last hit is a bad proxy for who earned the kill: whoever
- * fought a boss for a minute and whoever tapped it as it fell are
- * indistinguishable to `attacker` alone. The engine only *measures* this -
- * deciding what it is worth is policy, and policy lives in a hook (ADR-0012),
- * which is why the numbers travel out on `npcDeath` instead of being spent
- * here. The party module already splits experience its own way on
- * `beforeXpGain`; core doing a second, different split would fight it.
- *
- * Entries are removed on death, respawn and despawn. A map keyed by entity id
- * that only ever grows is the shape of leak the cache_entries gauges exist to
- * catch, so this one is published alongside them.
+ * The last hit is a poor proxy for who earned a kill, so the engine
+ * measures this and leaves its worth to policy, sent out on `npcDeath`; the
+ * party module splits experience its own way on `beforeXpGain`. Entries go
+ * on death, respawn and despawn, and the size is published with the
+ * cache_entries gauges, which catch a map keyed by id that only grows.
  */
 const contributions = new Map<string, Map<string, number>>();
 

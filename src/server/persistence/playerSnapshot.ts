@@ -16,7 +16,7 @@ export async function persistDirtyPlayers(): Promise<void> {
   for (const id of drainDirtyPlayerIds()) {
     // Checked before the world lookup: a player inside an economic commit stays
     // pending whatever else is true of them, because writing them here is the
-    // independent write that commit exists to avoid (ADR-0035).
+    // independent write that commit exists to avoid.
     if (isPlayerCommitting(id)) {
       markPlayerDirty(id);
       continue;

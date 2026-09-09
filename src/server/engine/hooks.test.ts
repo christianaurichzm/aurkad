@@ -236,7 +236,7 @@ describe('beforeDamage hook', () => {
   });
 });
 
-// The seam a game replacing melee combat needs (ADR-0012): the core still owns
+// The seam a game replacing melee combat needs: the core still owns
 // damage, the module owns what a press does.
 describe('playerAttack hook', () => {
   function aliceAttacksBob() {
