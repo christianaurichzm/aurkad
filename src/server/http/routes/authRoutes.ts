@@ -13,17 +13,15 @@ import {
   SetEmailBodySchema,
 } from '../bodySchemas.js';
 import { logger } from '../../logger.js';
-import { getPlayerById, registerPlayer } from '../../sim/world.js';
-import { addPlayerOnMap } from '../../services/world/mapService.js';
 import {
   authEpochOf,
   createPlayer,
   disconnectPlayer,
   enrichPlayer,
+  enterWorld,
   getPlayerByNameFromDb,
+  refuseEntry,
 } from '../../services/player/playerService.js';
-import { getBan, unbanPlayer } from '../../services/content/banService.js';
-import { emit } from '../../engine/hooks.js';
 import { toMapMeta } from '../../net/serialization.js';
 import { serverState } from '../../services/world/serverState.js';
 import { playersWsMap } from '../../net/connections.js';
@@ -95,13 +93,9 @@ export function createAuthRouter() {
         });
       }
 
-      const ban = await getBan(username);
-      if (ban && (!ban.until || Date.now() < ban.until)) {
-        return res.status(403).json({
-          message: `You are banned from this game.${ban.reason ? ` Reason: ${ban.reason}` : ''}${ban.until ? ` Until: ${new Date(ban.until).toLocaleString()}` : ''}`,
-        });
-      } else if (ban) {
-        await unbanPlayer(username);
+      const refused = await refuseEntry(playerDoc);
+      if (refused) {
+        return res.status(refused.status).json({ message: refused.message });
       }
 
       // Only now, with the password checked and the ban cleared: a cookie that
@@ -114,17 +108,6 @@ export function createAuthRouter() {
 
       const { password: _pw, ...runtimePlayer } = playerDoc;
       const player = enrichPlayer(runtimePlayer);
-
-      if (serverState.mode === 'maintenance' && player.access < Access.ADMIN) {
-        return res.status(503).json({
-          message: 'Server is under maintenance. Please try again later.',
-        });
-      }
-      if (serverState.mode === 'gm_only' && player.access < Access.MOD) {
-        return res
-          .status(503)
-          .json({ message: 'Server is currently restricted to GMs only.' });
-      }
 
       const existingWs = playersWsMap.get(username);
       if (existingWs?.readyState === WebSocket.OPEN) {
@@ -152,12 +135,7 @@ export function createAuthRouter() {
       req.session.assetKey = crypto.randomBytes(32).toString('hex');
       req.session.authEpoch = (await authEpochOf(username)) ?? 0;
 
-      if (!getPlayerById(player.id)) {
-        registerPlayer(runtimePlayer);
-      }
-
-      const map = addPlayerOnMap(player.id);
-      emit('playerJoin', { player: runtimePlayer });
+      const map = enterWorld(runtimePlayer);
 
       const mapMeta = map ? toMapMeta(map) : null;
       req.session.save((err) => {

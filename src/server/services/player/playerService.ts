@@ -28,6 +28,7 @@ import {
   // (a database read), only to check disconnectPlayer is not racing a
   // second disconnect for the same player.
   getPlayerById as getRegisteredPlayer,
+  registerPlayer,
   unregisterPlayer,
 } from '../../sim/world.js';
 import { emit } from '../../engine/hooks.js';
@@ -44,7 +45,12 @@ import {
   clearPlayerDirty,
   endPlayerCommit,
 } from '../../persistence/dirtyPlayers.js';
-import { releasePresence } from '../../persistence/presence.js';
+import {
+  acquirePresence,
+  releasePresence,
+} from '../../persistence/presence.js';
+import { getBan, unbanPlayer } from '../content/banService.js';
+import { serverState } from '../world/serverState.js';
 import { publishToInstances } from '../../persistence/instanceBus.js';
 import { persistedLocation } from '../world/instanceService.js';
 import {
@@ -651,3 +657,76 @@ export const disconnectPlayer = async (username?: string) => {
     clearDamageContributions(player.id);
   }
 };
+
+/**
+ * Why this account may not enter the world at this moment, or null. Asked
+ * at login and again when a socket comes back without one: a ban does not
+ * end the session it was typed against, so a gate only the login form
+ * crosses is one a redialling client walks past.
+ */
+export async function refuseEntry(
+  record: PlayerRecord,
+): Promise<{ status: 403 | 503; message: string } | null> {
+  const ban = await getBan(record.name);
+  if (ban && (!ban.until || Date.now() < ban.until)) {
+    return {
+      status: 403,
+      message: `You are banned from this game.${ban.reason ? ` Reason: ${ban.reason}` : ''}${ban.until ? ` Until: ${new Date(ban.until).toLocaleString()}` : ''}`,
+    };
+  } else if (ban) {
+    await unbanPlayer(record.name);
+  }
+
+  if (serverState.mode === 'maintenance' && record.access < Access.ADMIN) {
+    return {
+      status: 503,
+      message: 'Server is under maintenance. Please try again later.',
+    };
+  }
+  if (serverState.mode === 'gm_only' && record.access < Access.MOD) {
+    return {
+      status: 503,
+      message: 'Server is currently restricted to GMs only.',
+    };
+  }
+  return null;
+}
+
+/** Puts a character loaded from its document into the world, on its map. */
+export function enterWorld(player: PlayerServer) {
+  if (!getRegisteredPlayer(player.id)) registerPlayer(player);
+  const map = addPlayerOnMap(player.id);
+  emit('playerJoin', { player });
+  return map;
+}
+
+/**
+ * Brings back a player whose session outlived their socket. The client
+ * redials on its own after a blip, and a warp to another instance is the
+ * same dial to another address; neither logs in again, and by then the
+ * close has taken the character out of the world. The session proves who
+ * they are (its generation is checked on the way in), so what is left of
+ * the login is what follows the password: the same refusals, the lease,
+ * then the world.
+ *
+ * Null once the player is in, or already was, the ordinary case of a
+ * socket opened right after a login. Otherwise, why not.
+ */
+export async function resumePlayer(username: string): Promise<string | null> {
+  if (getPlayerByName(username)) return null;
+
+  const record = await getPlayerByNameFromDb(username);
+  if (!record) return 'This account no longer exists.';
+
+  const refused = await refuseEntry(record);
+  if (refused) return refused.message;
+
+  const presence = await acquirePresence(record.id, username);
+  if (!presence.ok) {
+    return 'This account is already logged in from another session.';
+  }
+
+  const { password: _pw, ...player } = record;
+  enterWorld(player);
+  return null;
+}

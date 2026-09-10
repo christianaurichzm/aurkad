@@ -8,6 +8,7 @@ import type {
 import {
   applyMapChunk,
   applyWorldUpdate,
+  expectWholeWorld,
   getPlayer,
   getGameState,
   setMapMeta,
@@ -72,6 +73,16 @@ onServerEvent('spell:visual', (payload) => {
 
 export function enqueueGameStateMessage(message: GameStateMessage) {
   gameStateQueue.push(message);
+}
+
+/**
+ * A new socket is open. Updates still queued from the old one were meant for
+ * a viewer the server has forgotten, and the next world update holds
+ * everything in view.
+ */
+export function startOverOnNewSocket(): void {
+  gameStateQueue.length = 0;
+  expectWholeWorld();
 }
 
 /** What an entity looked like on the last update this client applied. */

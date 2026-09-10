@@ -15,6 +15,7 @@ import { handleChatAction } from '../services/comms/chatService.js';
 import {
   disconnectPlayer,
   getPlayerByName,
+  resumePlayer,
 } from '../services/player/playerService.js';
 import { handleKeyAction } from '../services/world/movementService.js';
 import { getRuntimeState } from '../services/world/gameData.js';
@@ -23,6 +24,7 @@ import { handleCustomAction } from '../services/comms/customEventService.js';
 import { npcMoveTicks, updateNpcs } from '../services/npc/index.js';
 import { gameConfig } from '../gameConfig.js';
 import { playersWsMap } from './connections.js';
+import { resetPlayerNetState } from './snapshot.js';
 import { parseTraceparent, startSpan } from '../tracing.js';
 import { recordAction, recordSession } from '../sim/replayRecorder.js';
 import { getTick } from '../sim/clock.js';
@@ -235,6 +237,28 @@ export function processActions() {
   }
 }
 
+/**
+ * One queue per name for what a socket's arrival and departure do. Both
+ * are async (a departure writes the character and frees the lease, an
+ * arrival reads the document and takes it) and both concern one player. Out
+ * of order, a reconnect could watch a late departure unregister it, or a
+ * late arrival put back a character with no socket. In order, each sees the
+ * world the one before it left.
+ */
+const lanes = new Map<string, Promise<void>>();
+
+function inLane(username: string, work: () => Promise<void>): void {
+  const next = (lanes.get(username) ?? Promise.resolve())
+    .then(work)
+    .catch((err: unknown) => {
+      logger.error('[ws] session work failed', { username, err });
+    })
+    .finally(() => {
+      if (lanes.get(username) === next) lanes.delete(username);
+    });
+  lanes.set(username, next);
+}
+
 export const startWebSocketServer = (
   server: Server,
   sessionMiddleware: RequestHandler,
@@ -325,9 +349,32 @@ export const startWebSocketServer = (
       }
 
       playersWsMap.set(username, ws);
+      // Whatever the socket it replaces was sent, this one has seen nothing:
+      // the client starts its world over on a new socket, so the first frame
+      // here has to carry everything in view rather than a delta against a
+      // history that went down with the old one.
+      resetPlayerNetState(username);
       // The socket edges are recorded too (recordSession): actions alone
       // cannot tell "stopped playing" from "kept walking".
       recordSession(username, 'join');
+
+      // Held until the character is in the world. The first thing a client
+      // says on open is its language, and read before there is a player to
+      // set it on, every reply of the session would come back in English.
+      ws.pause();
+      inLane(username, async () => {
+        try {
+          const refused = await resumePlayer(username);
+          if (refused && ws.readyState === WebSocket.OPEN) {
+            ws.send(JSON.stringify({ type: 'kick', message: refused }));
+            ws.close();
+          }
+        } finally {
+          // After a close too: a paused socket never reads the other end's
+          // half of the closing handshake.
+          ws.resume();
+        }
+      });
 
       ws.on('message', (message, isBinary) => {
         if (isBinary) return;
@@ -368,11 +415,7 @@ export const startWebSocketServer = (
       ws.on('close', () => {
         if (!isCurrent()) return;
         recordSession(username, 'leave');
-        if (!shuttingDown) {
-          disconnectPlayer(username).catch((e) => {
-            logger.error('disconnectPlayer failed', { err: e });
-          });
-        }
+        if (!shuttingDown) inLane(username, () => disconnectPlayer(username));
         playersWsMap.delete(username);
         messageRate.delete(username);
       });

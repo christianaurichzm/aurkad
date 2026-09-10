@@ -1,4 +1,13 @@
-import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+import {
+  describe,
+  it,
+  expect,
+  beforeAll,
+  afterAll,
+  beforeEach,
+  afterEach,
+  vi,
+} from 'vitest';
 import { createServer, type Server as HttpServer } from 'node:http';
 import type { AddressInfo } from 'node:net';
 import WebSocket from 'ws';
@@ -32,13 +41,35 @@ import {
   stopWebSocketServer,
 } from './transport.js';
 import { pendingSpansForTest, resetTracingForTest } from '../tracing.js';
+import mongoose from 'mongoose';
+import type { MongoMemoryServer } from 'mongodb-memory-server';
+import { startMemoryMongo } from '../../test/mongo.js';
+import { createPlayer } from '../services/player/playerService.js';
+import { banPlayer } from '../services/content/banService.js';
+import { getPlayerByName } from '../sim/world.js';
+import { runtimeState } from '../sim/state.js';
+
+// An opening socket reads its player's document, so the database is real.
+let mongod: MongoMemoryServer;
+
+beforeAll(async () => {
+  mongod = await startMemoryMongo();
+  await mongoose.connect(mongod.getUri());
+}, 30_000);
+
+afterAll(async () => {
+  await mongoose.disconnect();
+  await mongod.stop();
+});
 
 // The queue is a module singleton, so every test drains it before asserting.
 let fx: ReturnType<typeof createFixture>;
 
-beforeEach(() => {
+beforeEach(async () => {
   fx = createFixture();
   processActions();
+  const cols = mongoose.connection.collections;
+  await Promise.all(Object.values(cols).map((c) => c.deleteMany({})));
 });
 
 describe('processActions', () => {
@@ -210,6 +241,7 @@ describe('a replaced connection', () => {
   const settle = () => new Promise((r) => setTimeout(r, 250));
 
   beforeEach(async () => {
+    await createPlayer('Boss', 'hash');
     playersWsMap.clear();
     http = createServer();
     await new Promise<void>((resolve) => http.listen(0, resolve));
@@ -245,5 +277,111 @@ describe('a replaced connection', () => {
     await settle();
 
     expect(playersWsMap.has('Boss')).toBe(false);
+  });
+});
+
+/**
+ * The other half of the reconnect: the close landed and took the character
+ * out of the world before the client dialled again. A warp to another
+ * instance arrives the same way, with a session and a socket but no login.
+ */
+describe('a socket that comes back without a login', () => {
+  let http: HttpServer;
+  let port = 0;
+  const startMapId = gameConfig.world.startMapId;
+
+  const asSession = (req: unknown, _res: unknown, next: () => void) => {
+    (req as { session: { username: string } }).session = { username: 'Boss' };
+    next();
+  };
+
+  const dialled: WebSocket[] = [];
+
+  const open = () =>
+    new Promise<WebSocket>((resolve, reject) => {
+      const ws = new WebSocket(`ws://127.0.0.1:${port}/ws`);
+      dialled.push(ws);
+      ws.on('open', () => resolve(ws));
+      ws.on('error', reject);
+    });
+
+  const closed = (ws: WebSocket) =>
+    new Promise<void>((resolve) => ws.on('close', () => resolve()));
+
+  const settle = () => new Promise((r) => setTimeout(r, 250));
+
+  beforeEach(async () => {
+    runtimeState.maps[startMapId] = {
+      id: startMapId,
+      name: 'Start',
+      type: 'normal',
+      tiles: [],
+      droppedItems: [],
+      npcs: {},
+      players: {},
+    };
+    await createPlayer('Boss', 'hash');
+    playersWsMap.clear();
+    http = createServer();
+    await new Promise<void>((resolve) => http.listen(0, resolve));
+    port = (http.address() as AddressInfo).port;
+    startWebSocketServer(http, asSession as never);
+  });
+
+  afterEach(async () => {
+    for (const ws of dialled.splice(0)) ws.terminate();
+    await stopWebSocketServer();
+    await new Promise<void>((resolve) => http.close(() => resolve()));
+    playersWsMap.clear();
+  });
+
+  it('puts the character back on its map', async () => {
+    await open();
+    await settle();
+
+    const boss = getPlayerByName('Boss');
+    expect(boss).toBeDefined();
+    expect(runtimeState.maps[startMapId]?.players[boss!.id]).toBe(boss);
+  });
+
+  it('turns a banned account away rather than letting the socket back in', async () => {
+    await banPlayer('Boss', 'botting');
+    const ws = await open();
+    const said = await new Promise<{ type: string; message: string }>(
+      (resolve) =>
+        ws.once('message', (data) =>
+          resolve(
+            JSON.parse((data as Buffer).toString()) as {
+              type: string;
+              message: string;
+            },
+          ),
+        ),
+    );
+    await closed(ws);
+
+    expect(said.type).toBe('kick');
+    expect(said.message).toMatch(/banned/);
+    expect(getPlayerByName('Boss')).toBeUndefined();
+  });
+
+  it('leaves nobody behind when the socket drops while the character loads', async () => {
+    const ws = await open();
+    ws.terminate();
+    await settle();
+
+    expect(getPlayerByName('Boss')).toBeUndefined();
+  });
+
+  it('keeps the character when the redial lands right behind the close', async () => {
+    const first = await open();
+    await settle();
+
+    first.close();
+    await closed(first);
+    await open(); // the close's write may still be in flight here
+    await settle();
+
+    expect(getPlayerByName('Boss')).toBeDefined();
   });
 });

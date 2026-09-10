@@ -2,6 +2,7 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import {
   applyMapChunk,
   applyWorldUpdate,
+  expectWholeWorld,
   getGameState,
   isMapPending,
   setMapMeta,
@@ -78,6 +79,20 @@ describe('applyWorldUpdate', () => {
     applyWorldUpdate(update({ leave: ['p2'] }));
 
     expect(getGameState()!.players['p2']).toBeUndefined();
+  });
+
+  it('starts over on the first update from a new socket, then merges again', () => {
+    const carol = { ...otherPlayer, id: 'p3', name: 'Carol' };
+    applyWorldUpdate(update({ entities: { p2: otherPlayer as never } }));
+
+    // Bob left while the socket was down; nobody will ever send his leave.
+    expectWholeWorld();
+    applyWorldUpdate(update({ entities: { p3: carol as never } }));
+    expect(getGameState()!.players['p2']).toBeUndefined();
+    expect(getGameState()!.players['p3']?.name).toBe('Carol');
+
+    applyWorldUpdate(update({ entities: { p3: { health: 1 } as never } }));
+    expect(getGameState()!.players['p3']?.name).toBe('Carol');
   });
 
   it('produces a fresh map reference so the composed cache invalidates', () => {

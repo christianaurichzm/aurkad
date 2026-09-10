@@ -196,6 +196,16 @@ export const setFullGameState = (payload: FullGameStatePayload) => {
   dynamic = payload;
 };
 
+let startOver = false;
+
+/**
+ * The next world update is everything in view, not a change to it: a new
+ * socket gets every entity as entering and no `leave` for who went away.
+ */
+export const expectWholeWorld = () => {
+  startOver = true;
+};
+
 // `null` on the wire means the field was cleared, since JSON cannot carry
 // undefined; the key is deleted.
 function mergeEntity(
@@ -217,12 +227,12 @@ function mergeEntity(
  * caches by object identity.
  */
 export const applyWorldUpdate = (payload: WorldUpdatePayload) => {
-  const players: Record<string, PlayerPublic> = dynamic
-    ? { ...dynamic.map.players }
+  const base = startOver ? null : dynamic;
+  startOver = false;
+  const players: Record<string, PlayerPublic> = base
+    ? { ...base.map.players }
     : {};
-  const npcs: Record<string, RuntimeNpc> = dynamic
-    ? { ...dynamic.map.npcs }
-    : {};
+  const npcs: Record<string, RuntimeNpc> = base ? { ...base.map.npcs } : {};
 
   for (const [id, patch] of Object.entries(payload.entities ?? {})) {
     if (players[id]) {
@@ -250,7 +260,7 @@ export const applyWorldUpdate = (payload: WorldUpdatePayload) => {
   dynamic = {
     map: {
       id: dynamic?.map.id ?? '',
-      droppedItems: payload.droppedItems ?? dynamic?.map.droppedItems ?? [],
+      droppedItems: payload.droppedItems ?? base?.map.droppedItems ?? [],
       players,
       npcs,
     },

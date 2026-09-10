@@ -5,7 +5,10 @@ import {
 } from '../../../shared/wsProtocol';
 import { hideConnectionStatus, showConnectionStatus } from '../../graphics/hud';
 import { useUIStore } from '../../stores/uiStore';
-import { enqueueGameStateMessage } from './sync/gameStateSync';
+import {
+  enqueueGameStateMessage,
+  startOverOnNewSocket,
+} from './sync/gameStateSync';
 import { enqueueChatMessage, setChatSocketSender } from './sync/chatSync';
 import { dispatchServerEvent } from './customEvents';
 import { getLanguage, onLanguageChange, t } from '../../i18n';
@@ -77,6 +80,7 @@ export const initializeWebSocket = (url = currentWsUrl) => {
   socket.onopen = () => {
     console.log('Connected to WebSocket server');
     reconnectAttempts = 0;
+    startOverOnNewSocket();
     showConnectionStatus(t('net.connected'));
     setTimeout(hideConnectionStatus, 2000);
     // On every open: the server keeps this on the session, so a reconnect or a
