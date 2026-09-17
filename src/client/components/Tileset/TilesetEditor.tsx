@@ -128,7 +128,14 @@ export const TilesetEditor: React.FC = () => {
       <div style={{ overflow: 'auto', flex: 1, minHeight: 0 }}>
         <canvas
           id="tilesetCanvas"
-          style={{ display: 'block', width: '100%' }}
+          style={{
+            display: 'block',
+            width: '100%',
+            // The sheet is drawn color-keyed, so a checker under it is what
+            // tells a transparent tile apart from a white one.
+            background:
+              'repeating-conic-gradient(#c9c9c9 0% 25%, #eeeeee 0% 50%) 0 0 / 16px 16px',
+          }}
         />
       </div>
     </div>

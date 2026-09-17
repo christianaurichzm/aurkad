@@ -77,6 +77,14 @@ describe('the map the game draws', () => {
     expect(counts()).toEqual({ clears: 1, draws: 2 });
   });
 
+  it('leaves the ground alone when there is no map to draw', () => {
+    // The editor's copy is empty until the admin route answers, and clearing
+    // for it would blank the world until the camera moves.
+    renderGameMap([]);
+
+    expect(counts()).toEqual({ clears: 0, draws: 0 });
+  });
+
   it('leaves the editor copy alone', () => {
     // The editor loads its own copy over the admin route: the game's tiles
     // are `TilePublic`, stripped of every trigger, warp and door, and an

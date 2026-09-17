@@ -75,7 +75,7 @@ export const initTilesetEditor = () => {
   tilesetCanvas.width = tileset.width;
   tilesetCanvas.height = tileset.height;
   tilesetCtx = tilesetCanvas.getContext('2d')!;
-  tilesetCtx.drawImage(tileset, 0, 0);
+  tilesetCtx.drawImage(tilesetAlpha, 0, 0);
   setupEventListeners();
   initializeGrid();
   void loadEditorNpcNames();
@@ -399,7 +399,7 @@ const endSelecting = () => {
 
 const highlightSelectedTile = () => {
   tilesetCtx.clearRect(0, 0, tilesetCanvas.width, tilesetCanvas.height);
-  tilesetCtx.drawImage(tileset, 0, 0);
+  tilesetCtx.drawImage(tilesetAlpha, 0, 0);
   tilesetCtx.strokeStyle = 'red';
   tilesetCtx.lineWidth = 2;
   const startX = Math.min(selectedTile.startX, selectedTile.endX) * TILE_SIZE;
@@ -579,6 +579,9 @@ const visibleRange = <T>(tiles: T[][], width: number, height: number) => {
 };
 
 const drawTiles = (tiles: TilePublic[][]) => {
+  // The editor's copy is empty until fetched, and the loop repaints only on
+  // camera or map change, so clearing here would leave the world blank.
+  if (!tiles.length) return;
   foregroundCtx.clearRect(
     0,
     0,
@@ -861,7 +864,7 @@ export const toggleTilesetEditor = (shouldShow: boolean) => {
       initTilesetEditor();
     } else {
       tilesetCtx.clearRect(0, 0, tileset.width, tileset.height);
-      tilesetCtx.drawImage(tileset, 0, 0);
+      tilesetCtx.drawImage(tilesetAlpha, 0, 0);
       setupEventListeners();
       initializeGrid();
     }
