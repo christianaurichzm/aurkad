@@ -72,7 +72,10 @@ vi.mock('./floatingText', () => ({ renderFloatingTexts: vi.fn() }));
 vi.mock('./projectiles', () => ({ renderProjectiles: vi.fn() }));
 vi.mock('./attackEffect', () => ({ renderAttackEffects: vi.fn() }));
 vi.mock('./spellEffect', () => ({ renderSpellEffects: vi.fn() }));
-vi.mock('./overlayRegistry', () => ({ runOverlays: vi.fn() }));
+vi.mock('./overlayRegistry', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('./overlayRegistry')>()),
+  runOverlays: vi.fn(),
+}));
 vi.mock('./spriteCoordinates', () => ({ getSpriteCoordinates: vi.fn() }));
 vi.mock('./itemDrawing', () => ({
   renderItemIcon: vi.fn(),

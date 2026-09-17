@@ -39,6 +39,20 @@ describe('overlay order', () => {
     expect(order).toEqual(['first', 'second', 'third']);
   });
 
+  // The hud draws on the canvas above the fringe, so the two layers run in
+  // separate passes and each pass must take only its own.
+  it('runs one layer at a time when asked for one', () => {
+    const order: string[] = [];
+    add(() => order.push('world'));
+    add(() => order.push('hud'), OverlayLayer.hud);
+
+    runOverlays(ctx, cam, OverlayLayer.hud);
+    expect(order).toEqual(['hud']);
+
+    runOverlays(ctx, cam, OverlayLayer.world);
+    expect(order).toEqual(['hud', 'world']);
+  });
+
   it('defaults to the world layer', () => {
     const order: string[] = [];
     add(() => order.push('default'));

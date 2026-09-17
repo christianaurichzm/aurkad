@@ -1,6 +1,7 @@
 import {
   MOVEMENT_DURATION,
   RUN_MOVEMENT_DURATION,
+  TILE_SIZE,
 } from '../../shared/constants';
 import {
   CharacterAction,
@@ -43,6 +44,17 @@ export function onServerPositionUpdate(
   to: Position,
 ) {
   if (from.x === to.x && from.y === to.y) return;
+
+  // A walk is one tile; anything longer is a placement (warp, respawn, a
+  // moderator's move), drawn where it lands rather than slid there.
+  if (
+    Math.abs(to.x - from.x) > TILE_SIZE ||
+    Math.abs(to.y - from.y) > TILE_SIZE
+  ) {
+    movementQueues.delete(playerId);
+    lastSettle.delete(playerId);
+    return;
+  }
 
   const queue = movementQueues.get(playerId) || [];
   const lastStep = queue.at(-1);

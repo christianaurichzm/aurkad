@@ -2,6 +2,7 @@ import { act, fireEvent, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { getAudioSettings, setAudioSettings } from '../audio';
+import { useEscapeClose } from '../hooks/useEscapeClose';
 import { SettingsModal } from './SettingsModal';
 
 const open = () => {
@@ -43,5 +44,25 @@ describe('SettingsModal', () => {
 
     expect(getAudioSettings().muted).toBe(true);
     expect(screen.getByLabelText('Music')).toBeDisabled();
+  });
+
+  it('stays closed on the Escape that closes another panel', async () => {
+    const Panel = ({ onClose }: { onClose: () => void }) => {
+      useEscapeClose(true, onClose);
+      return <div>Panel</div>;
+    };
+
+    let closed = false;
+    render(
+      <>
+        <SettingsModal />
+        <Panel onClose={() => (closed = true)} />
+      </>,
+    );
+
+    await userEvent.keyboard('{Escape}');
+
+    expect(closed).toBe(true);
+    expect(screen.queryByText('Settings')).not.toBeInTheDocument();
   });
 });

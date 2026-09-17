@@ -40,6 +40,34 @@ describe('movement interpolation', () => {
     });
   });
 
+  it('snaps instead of sliding when the jump is longer than a tile', () => {
+    // A warp tile: the sprite belongs at the destination, not walking there.
+    onServerPositionUpdate(
+      'warped',
+      { x: 0, y: 0 },
+      { x: TILE_SIZE * 8, y: 0 },
+    );
+
+    const state = getAnimatedState('warped', { x: TILE_SIZE * 8, y: 0 });
+    expect(state.position).toEqual({ x: TILE_SIZE * 8, y: 0 });
+    expect(state.moving).toBe(false);
+  });
+
+  it('drops a queued step when a teleport lands mid-slide', () => {
+    onServerPositionUpdate('warped2', { x: 0, y: 0 }, { x: TILE_SIZE, y: 0 });
+    now = 1000 + D / 2;
+    onServerPositionUpdate(
+      'warped2',
+      { x: TILE_SIZE, y: 0 },
+      { x: 0, y: TILE_SIZE * 5 },
+    );
+
+    expect(pos('warped2', { x: 0, y: TILE_SIZE * 5 })).toEqual({
+      x: 0,
+      y: TILE_SIZE * 5,
+    });
+  });
+
   it('slides linearly from the old to the new server position', () => {
     onServerPositionUpdate('e2', { x: 0, y: 0 }, { x: TILE_SIZE, y: 0 });
 

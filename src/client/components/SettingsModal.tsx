@@ -10,6 +10,7 @@ import {
 } from '../io/network';
 import { colors, radius } from '../theme';
 import { Modal } from './common/Modal';
+import { escapeClaimed } from '../hooks/useEscapeClose';
 import {
   LANGUAGES,
   getLanguage,
@@ -55,10 +56,8 @@ export const SettingsModal: React.FC = () => {
     const onToggle = () => setVisible((v) => !v);
     window.addEventListener('toggleSettings', onToggle);
 
-    // Escape opens settings, which is where a player looks for it. It only
-    // does so when nothing else is open: every panel is a Modal, every Modal
-    // closes itself on Escape, and this checks for one before claiming the
-    // key. Typing in chat is not a shortcut either.
+    // Escape opens settings when nothing else claims it through
+    // useEscapeClose, and never while typing.
     const onEscape = (event: KeyboardEvent) => {
       if (event.key !== 'Escape') return;
       const active = document.activeElement;
@@ -67,7 +66,7 @@ export const SettingsModal: React.FC = () => {
         (active.tagName === 'INPUT' || active.tagName === 'TEXTAREA')
       )
         return;
-      if (document.querySelector('[data-modal]')) return;
+      if (escapeClaimed()) return;
       event.preventDefault();
       setVisible(true);
     };

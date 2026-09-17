@@ -15,6 +15,9 @@ export const OverlayLayer = {
 
 type Entry = { fn: OverlayFn; order: number };
 
+const layerOf = (order: number) =>
+  order >= OverlayLayer.hud ? OverlayLayer.hud : OverlayLayer.world;
+
 const entries: Entry[] = [];
 
 export function registerOverlay(
@@ -31,8 +34,18 @@ export function registerOverlay(
   };
 }
 
-export function runOverlays(ctx: CanvasRenderingContext2D, cam: Camera): void {
+/**
+ * With no `layer`, every overlay. With one, only that layer: `world` and `hud`
+ * draw on different canvases, because the fringe (tree tops, roofs) paints over
+ * the one the entities live on and a HUD must survive walking under a tree.
+ */
+export function runOverlays(
+  ctx: CanvasRenderingContext2D,
+  cam: Camera,
+  layer?: number,
+): void {
   for (const entry of entries) {
+    if (layer !== undefined && layerOf(entry.order) !== layer) continue;
     try {
       entry.fn(ctx, cam);
     } catch (e) {

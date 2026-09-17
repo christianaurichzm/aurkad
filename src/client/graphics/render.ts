@@ -37,7 +37,7 @@ import { renderAttackEffects } from './attackEffect';
 import { renderSpellEffects } from './spellEffect';
 import { useUIStore } from '../stores/uiStore';
 import { calcCamera, setCamera } from './camera';
-import { runOverlays } from './overlayRegistry';
+import { OverlayLayer, runOverlays } from './overlayRegistry';
 
 let lastDrawnTiles: Tile[][] | null = null;
 let lastCamX = 0;
@@ -193,7 +193,7 @@ export const render = () => {
     renderProjectiles(playerCtx);
     renderAttackEffects(playerCtx);
     renderSpellEffects(playerCtx);
-    runOverlays(playerCtx, cam);
+    runOverlays(playerCtx, cam, OverlayLayer.world);
     playerCtx.restore();
 
     if (currentPlayer) {
@@ -213,6 +213,9 @@ export const render = () => {
     fringeCtx.save();
     fringeCtx.translate(-cam.x, -cam.y);
     renderFloatingTexts(fringeCtx);
+    // Same world translate the world layer gets, so an overlay undoing it with
+    // translate(cam.x, cam.y) lands in screen space either way.
+    runOverlays(fringeCtx, cam, OverlayLayer.hud);
     fringeCtx.restore();
   }
 

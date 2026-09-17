@@ -1,6 +1,13 @@
 import { useEffect, useRef } from 'react';
 import { useUIStore } from '../stores/uiStore';
 
+// Anything listening here owns Escape while it is open. The settings shortcut
+// asks this before claiming the key, so it opens on an empty screen and not on
+// the Escape that just closed a panel.
+let claims = 0;
+
+export const escapeClaimed = () => claims > 0;
+
 export const useEscapeClose = (
   active: boolean,
   onClose: () => void | Promise<void>,
@@ -21,7 +28,11 @@ export const useEscapeClose = (
       void onCloseRef.current();
     };
 
+    claims += 1;
     window.addEventListener('keydown', onKeyDown);
-    return () => window.removeEventListener('keydown', onKeyDown);
+    return () => {
+      claims -= 1;
+      window.removeEventListener('keydown', onKeyDown);
+    };
   }, [active]);
 };

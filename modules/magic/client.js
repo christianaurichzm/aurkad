@@ -90,10 +90,10 @@ const SLOT = 46;
 const GAP = 6;
 const BOTTOM = 12;
 const HOTBAR_COLORS = {
-  slot: 'rgba(12,16,24,0.78)',
+  slot: 'rgba(12,16,24,0.35)',
   slotReady: 'rgba(56,189,248,0.9)',
   slotBlocked: 'rgba(120,130,150,0.45)',
-  shutter: 'rgba(4,8,16,0.62)',
+  shutter: 'rgba(4,8,16,0.45)',
   text: '#e5edff',
   dim: 'rgba(229,237,255,0.45)',
   cost: '#7dd3fc',
