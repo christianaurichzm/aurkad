@@ -31,7 +31,8 @@ export function spawnAttackEffect(x: number, y: number, dir: Direction): void {
 
 export function renderAttackEffects(ctx: CanvasRenderingContext2D): void {
   if (!entityAtlas || active.length === 0) return;
-  const off = entityAtlasOffsets.attackEffect!;
+  const off = entityAtlasOffsets.attackEffect;
+  if (!off) return;
   const now = performance.now();
   const totalDuration = FRAME_COUNT * FRAME_DURATION;
 

@@ -72,10 +72,10 @@ export function renderProjectiles(ctx: CanvasRenderingContext2D): void {
     const offset = DIR_TO_SPRITE_OFFSET[pr.direction] ?? 0;
     const actualSprite = pr.sprite + offset;
 
+    const off = entityAtlasOffsets.arrows;
     ctx.save();
     ctx.translate(x, y);
-    if (entityAtlas) {
-      const off = entityAtlasOffsets.arrows!;
+    if (entityAtlas && off) {
       const half = ARROW_TILE / 2;
       const tilesPerRow = Math.max(1, Math.floor(off.width / ARROW_TILE));
       const sx = (actualSprite % tilesPerRow) * ARROW_TILE;

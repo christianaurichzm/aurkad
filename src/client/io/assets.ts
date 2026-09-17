@@ -74,23 +74,29 @@ const initAttackEffectSheet = async () => {
   attackEffectSheet = makeColorKeyCanvas(bmp);
 };
 
-export const initializeAssets = () => {
+export const initializeAssets = async () => {
   if (!_assetKey) throw new Error('Asset key not set - call setAssetKey first');
-  return Promise.all([
+  // allSettled, so the atlas is built from whatever arrived. With all, one
+  // sheet missing from the install would leave no atlas, and every player and
+  // NPC would draw as just a name and a health bar.
+  const results = await Promise.allSettled([
     initTileset(),
     initSpriteSheet(),
     initItems(),
     initSpellSheet(),
     initArrowSheet(),
     initAttackEffectSheet(),
-  ]).then(([loadedTileset, loadedSpriteSheet]) => {
-    buildEntityAtlas({
-      sprites: spriteSheet,
-      items,
-      spells: spellSheet,
-      arrows: arrowSheet,
-      attackEffect: attackEffectSheet,
-    });
-    return { tileset: loadedTileset, spriteSheet: loadedSpriteSheet };
+  ]);
+  for (const result of results) {
+    if (result.status === 'rejected')
+      console.error('[assets] sheet not loaded', result.reason);
+  }
+  buildEntityAtlas({
+    sprites: spriteSheet,
+    items,
+    spells: spellSheet,
+    arrows: arrowSheet,
+    attackEffect: attackEffectSheet,
   });
+  return { tileset, spriteSheet };
 };

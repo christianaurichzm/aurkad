@@ -1,7 +1,11 @@
 export const SPRITE_WIDTH = 64;
 export const SPRITE_HEIGHT = 64;
 export const TILE_SIZE = 64;
-export const ITEM_SIZE = 48;
+// Cell size of items.png, and so the size an icon is drawn at. No stored
+// coordinate is measured in it (a sprite id is a grid index), so it follows
+// the art pack. It has to divide the sheet width exactly, or every icon
+// after the first row is sliced from the wrong place.
+export const ITEM_SIZE = 64;
 export const DEFAULT_PLAYER_SPEED = 1;
 // 2ms below server cadence (250ms) so each slide drains before the next tick.
 export const MOVEMENT_DURATION = 248;

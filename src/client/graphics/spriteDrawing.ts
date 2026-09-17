@@ -14,7 +14,8 @@ export function drawSpriteGeneric(
   destH: number,
 ) {
   if (!entityAtlas) return;
-  const off = entityAtlasOffsets.sprites!;
+  const off = entityAtlasOffsets.sprites;
+  if (!off) return;
   const { x, y } = getCharacterSpriteCoordinates(
     characterIndex,
     column,

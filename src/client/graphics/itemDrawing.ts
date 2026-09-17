@@ -10,7 +10,8 @@ export const renderItemIcon = (
   applyOffset: boolean = true,
 ) => {
   if (!entityAtlas) return;
-  const off = entityAtlasOffsets.items!;
+  const off = entityAtlasOffsets.items;
+  if (!off) return;
   const { x: spriteX, y: spriteY } = getSpriteCoordinates(spriteId, off.width);
   const offsetX = applyOffset ? (TILE_SIZE - ITEM_SIZE) / 2 : 0;
   const offsetY = applyOffset ? (TILE_SIZE - ITEM_SIZE) / 2 : 0;
@@ -37,7 +38,8 @@ export function drawItemGeneric(
   destH: number,
 ) {
   if (!entityAtlas) return;
-  const off = entityAtlasOffsets.items!;
+  const off = entityAtlasOffsets.items;
+  if (!off) return;
   const { x: spriteX, y: spriteY } = getSpriteCoordinates(spriteId, off.width);
 
   ctx.drawImage(

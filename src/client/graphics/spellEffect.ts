@@ -35,7 +35,8 @@ export function spawnSpellEffect(x: number, y: number, sprite: number): void {
 
 export function renderSpellEffects(ctx: CanvasRenderingContext2D): void {
   if (!entityAtlas || pool.activeCount() === 0) return;
-  const off = entityAtlasOffsets.spells!;
+  const off = entityAtlasOffsets.spells;
+  if (!off) return;
   const now = performance.now();
   const tilesPerRow = Math.max(1, Math.floor(off.width / TILE));
 
