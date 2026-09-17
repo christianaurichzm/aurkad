@@ -1,6 +1,14 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { Tile } from '../../../shared/types';
-import { getEditorTiles, renderGameMap, setEditorTiles } from './index';
+import {
+  fillMap,
+  getEditorTiles,
+  initTilesetEditor,
+  renderEditorLayer,
+  renderGameMap,
+  resetToOriginalMap,
+  setEditorTiles,
+} from './index';
 
 const mocks = vi.hoisted(() => {
   const calls: { fn: string; args: unknown[] }[] = [];
@@ -11,10 +19,17 @@ const mocks = vi.hoisted(() => {
     };
   return {
     calls,
+    cam: { x: 0, y: 0 },
     canvas: { width: 128, height: 64 },
     ctx: {
       clearRect: record('clearRect'),
       drawImage: record('drawImage'),
+      fillRect: record('fillRect'),
+      fillText: record('fillText'),
+      beginPath: record('beginPath'),
+      moveTo: record('moveTo'),
+      lineTo: record('lineTo'),
+      stroke: record('stroke'),
     } as unknown as CanvasRenderingContext2D,
   };
 });
@@ -31,7 +46,7 @@ vi.mock('../../io/assets', () => ({
   tilesetAlpha: { width: 256, height: 256 },
 }));
 
-vi.mock('../camera', () => ({ getCamera: () => ({ x: 0, y: 0 }) }));
+vi.mock('../camera', () => ({ getCamera: () => mocks.cam }));
 
 vi.mock('../../io/network', () => ({
   saveMap: vi.fn(),
@@ -104,5 +119,63 @@ describe('the map the editor holds', () => {
     getEditorTiles()[0][0].tileIndex = 7;
 
     expect(fetched[0]?.[0]?.tileIndex).toBe(6);
+  });
+});
+
+describe('the layer the editor draws over the map', () => {
+  beforeEach(() => {
+    mocks.calls.length = 0;
+    mocks.cam.x = 0;
+    mocks.cam.y = 0;
+    document.body.innerHTML =
+      '<canvas id="tilesetCanvas"></canvas><canvas id="gridCanvas"></canvas>';
+    vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockReturnValue(
+      mocks.ctx,
+    );
+    initTilesetEditor();
+  });
+
+  const markerAt = () =>
+    mocks.calls.find((c) => c.fn === 'fillText' && c.args[0] === 'B')?.args[1];
+
+  it('moves a marker with the camera instead of with the screen', () => {
+    const tiles = mapOf(1);
+    tiles[0][1].blocked = true;
+    setEditorTiles(tiles);
+    mocks.calls.length = 0;
+
+    renderEditorLayer();
+    expect(markerAt()).toBe(1 * 64 + 20);
+
+    mocks.calls.length = 0;
+    mocks.cam.x = 64;
+    renderEditorLayer();
+
+    expect(markerAt()).toBe(1 * 64 - 64 + 20);
+  });
+
+  it('keeps the fetched map as the one a discard restores', () => {
+    setEditorTiles(mapOf(1));
+
+    fillMap();
+
+    resetToOriginalMap();
+    expect(getEditorTiles()[0]?.[0]?.tileIndex).toBe(1);
+  });
+
+  it('walks the viewport, not the map', () => {
+    const tiles = mapOf(1);
+    tiles.forEach((row) => row.forEach((tile) => (tile.blocked = true)));
+    setEditorTiles(tiles);
+    mocks.calls.length = 0;
+
+    renderEditorLayer();
+
+    // A 128x64 viewport over a 4x4 map: the pass reaches three columns and two
+    // rows (one past each edge), and the draw culls the ones off-canvas.
+    const markers = mocks.calls.filter(
+      (c) => c.fn === 'fillText' && c.args[0] === 'B',
+    );
+    expect(markers).toHaveLength(2);
   });
 });

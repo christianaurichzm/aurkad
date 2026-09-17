@@ -21,6 +21,7 @@ import {
 } from './canvas';
 import {
   renderGameMap,
+  renderEditorLayer,
   renderMapMask,
   renderMapFringe,
   getEditorTiles,
@@ -94,25 +95,25 @@ export const render = () => {
     playerCtx.clearRect(0, 0, foregroundCanvas.width, foregroundCanvas.height);
     itemCtx.clearRect(0, 0, itemCanvas.width, itemCanvas.height);
 
-    if (!mapEdited) {
-      const tilesDirty =
-        map.tiles !== lastDrawnTiles ||
-        cam.x !== lastCamX ||
-        cam.y !== lastCamY;
-      if (tilesDirty) {
-        foregroundCtx.clearRect(
-          0,
-          0,
-          foregroundCanvas.width,
-          foregroundCanvas.height,
-        );
-        renderGameMap(map.tiles);
-        lastDrawnTiles = map.tiles;
-        lastCamX = cam.x;
-        lastCamY = cam.y;
-      }
-    } else {
-      lastDrawnTiles = null;
+    // The ground and the editor's overlay are drawn in camera space, so both
+    // go stale when the camera moves. Unsaved edits live only in the editor's
+    // copy of the map, which is the one drawn while it holds them, and holding
+    // them keeps the pass dirty, as painting a tile changes no game state.
+    const editorTiles = mapEdited ? getEditorTiles() : null;
+    const tilesDirty =
+      map.tiles !== lastDrawnTiles || cam.x !== lastCamX || cam.y !== lastCamY;
+    if (tilesDirty) {
+      foregroundCtx.clearRect(
+        0,
+        0,
+        foregroundCanvas.width,
+        foregroundCanvas.height,
+      );
+      renderGameMap(editorTiles ?? map.tiles);
+      renderEditorLayer();
+      lastDrawnTiles = editorTiles ? null : map.tiles;
+      lastCamX = cam.x;
+      lastCamY = cam.y;
     }
 
     // Mask and fringe caches, rerendered only when tiles or camera change.

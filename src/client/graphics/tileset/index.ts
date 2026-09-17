@@ -54,7 +54,7 @@ export const undo = () => {
   redoStack.push(map.map((row) => row.map((tile) => ({ ...tile }))));
   map = undoStack.pop()!;
   setMapEdited(true);
-  renderMap(map);
+  renderMap();
 };
 
 export const redo = () => {
@@ -62,7 +62,7 @@ export const redo = () => {
   undoStack.push(map.map((row) => row.map((tile) => ({ ...tile }))));
   map = redoStack.pop()!;
   setMapEdited(true);
-  renderMap(map);
+  renderMap();
 };
 
 export const initTilesetEditor = () => {
@@ -91,6 +91,7 @@ let mapHeight = 14;
 let originalMap: Tile[][] = [];
 let map: Tile[][] = [];
 let hoveredCell: { row: number; col: number } | null = null;
+let hoverAt: { x: number; y: number } | null = null;
 
 // NPC id -> name, so spawn tiles can show which NPC they place (not just "N").
 let npcNameById: Record<string, string> = {};
@@ -103,11 +104,7 @@ export const loadEditorNpcNames = async () => {
   } catch {
     return; // names are a nicety; the "N" marker still shows without them
   }
-  if (gridCtx && map.length) {
-    clearAndDrawGrid();
-    drawMarkers(map);
-    drawHoverCell();
-  }
+  if (map.length) renderEditorLayer();
 };
 
 // The script trigger's settings, pushed here by the mode controls. Params
@@ -158,14 +155,21 @@ function toggleTrigger(
 }
 
 const handleHover = (event: MouseEvent) => {
-  const { x, y } = getMousePosition(event, foregroundCanvas);
+  hoverAt = getMousePosition(event, foregroundCanvas);
+  if (updateHoveredCell()) renderMap();
+};
+
+// Which tile the cursor is over depends on the camera as much as on the cursor:
+// a step with the mouse parked slides a different tile under it.
+const updateHoveredCell = (): boolean => {
+  if (!hoverAt) return false;
   const cam = getCamera();
-  const col = Math.floor((x + cam.x) / TILE_SIZE);
-  const row = Math.floor((y + cam.y) / TILE_SIZE);
-  if (!hoveredCell || hoveredCell.row !== row || hoveredCell.col !== col) {
-    hoveredCell = { row, col };
-    renderMap(map);
-  }
+  const col = Math.floor((hoverAt.x + cam.x) / TILE_SIZE);
+  const row = Math.floor((hoverAt.y + cam.y) / TILE_SIZE);
+  if (hoveredCell && hoveredCell.row === row && hoveredCell.col === col)
+    return false;
+  hoveredCell = { row, col };
+  return true;
 };
 
 const modes: Record<TileEditMode, ModeConfig> = {
@@ -173,7 +177,7 @@ const modes: Record<TileEditMode, ModeConfig> = {
     place: (row: number, col: number) => {
       map[row][col].blocked = !map[row][col].blocked;
       setMapEdited(true);
-      renderMap(map);
+      renderMap();
     },
   },
   warping: {
@@ -191,7 +195,7 @@ const modes: Record<TileEditMode, ModeConfig> = {
           };
         }
         setMapEdited(true);
-        renderMap(map);
+        renderMap();
       }
     },
   },
@@ -205,7 +209,7 @@ const modes: Record<TileEditMode, ModeConfig> = {
           map[row][col].npcSpawn = npc;
         }
         setMapEdited(true);
-        renderMap(map);
+        renderMap();
       }
     },
   },
@@ -219,7 +223,7 @@ const modes: Record<TileEditMode, ModeConfig> = {
           map[row][col].item = safeParseInt(item);
         }
         setMapEdited(true);
-        renderMap(map);
+        renderMap();
       }
     },
   },
@@ -233,7 +237,7 @@ const modes: Record<TileEditMode, ModeConfig> = {
           map[row][col].shop = shop;
         }
         setMapEdited(true);
-        renderMap(map);
+        renderMap();
       }
     },
   },
@@ -241,14 +245,14 @@ const modes: Record<TileEditMode, ModeConfig> = {
     place: (row: number, col: number) => {
       map[row][col].bank = !map[row][col].bank;
       setMapEdited(true);
-      renderMap(map);
+      renderMap();
     },
   },
   avoidNpc: {
     place: (row: number, col: number) => {
       map[row][col].avoidNpc = !map[row][col].avoidNpc;
       setMapEdited(true);
-      renderMap(map);
+      renderMap();
     },
   },
   fringe: {
@@ -259,7 +263,7 @@ const modes: Record<TileEditMode, ModeConfig> = {
       map[row][col].fringeIndex =
         map[row][col].fringeIndex === idx ? undefined : idx;
       setMapEdited(true);
-      renderMap(map);
+      renderMap();
     },
   },
   mask: {
@@ -270,28 +274,28 @@ const modes: Record<TileEditMode, ModeConfig> = {
       map[row][col].maskIndex =
         map[row][col].maskIndex === idx ? undefined : idx;
       setMapEdited(true);
-      renderMap(map);
+      renderMap();
     },
   },
   heal: {
     place: (row: number, col: number) => {
       toggleTrigger(map[row][col], 'heal');
       setMapEdited(true);
-      renderMap(map);
+      renderMap();
     },
   },
   kill: {
     place: (row: number, col: number) => {
       toggleTrigger(map[row][col], 'kill');
       setMapEdited(true);
-      renderMap(map);
+      renderMap();
     },
   },
   warn: {
     place: (row: number, col: number) => {
       toggleTrigger(map[row][col], 'message', '⚠️ Entering a dangerous area!');
       setMapEdited(true);
-      renderMap(map);
+      renderMap();
     },
   },
   door: {
@@ -307,7 +311,7 @@ const modes: Record<TileEditMode, ModeConfig> = {
         map[row][col].blocked = true;
       }
       setMapEdited(true);
-      renderMap(map);
+      renderMap();
     },
   },
   sound: {
@@ -316,7 +320,7 @@ const modes: Record<TileEditMode, ModeConfig> = {
       if (!file) return;
       toggleTrigger(map[row][col], 'sound', file);
       setMapEdited(true);
-      renderMap(map);
+      renderMap();
     },
   },
   changeSprite: {
@@ -325,7 +329,7 @@ const modes: Record<TileEditMode, ModeConfig> = {
       if (isNaN(spriteId)) return;
       toggleTrigger(map[row][col], 'changeSprite', undefined, spriteId);
       setMapEdited(true);
-      renderMap(map);
+      renderMap();
     },
   },
   script: {
@@ -334,7 +338,7 @@ const modes: Record<TileEditMode, ModeConfig> = {
       if (!scriptId) return;
       toggleTrigger(map[row][col], 'script', scriptId, undefined, params);
       setMapEdited(true);
-      renderMap(map);
+      renderMap();
     },
   },
   conditionalBlock: {
@@ -349,7 +353,7 @@ const modes: Record<TileEditMode, ModeConfig> = {
         map[row][col].blocked = true;
       }
       setMapEdited(true);
-      renderMap(map);
+      renderMap();
     },
   },
 };
@@ -505,7 +509,7 @@ export const fillMap = () => {
     }
   }
   setMapEdited(true);
-  renderMap(map);
+  renderMap();
 };
 
 export const toggleBlocking = () => toggleMode('blocking');
@@ -559,6 +563,21 @@ const removeEventListeners = () => {
   document.removeEventListener('keydown', handleKeyDown);
 };
 
+// The rows and columns the camera can see, so a pass costs the viewport
+// rather than the whole map.
+const visibleRange = <T>(tiles: T[][], width: number, height: number) => {
+  const cam = getCamera();
+  return {
+    startCol: Math.max(0, Math.floor(cam.x / TILE_SIZE)),
+    endCol: Math.min(
+      (tiles[0]?.length ?? 0) - 1,
+      Math.ceil((cam.x + width) / TILE_SIZE),
+    ),
+    startRow: Math.max(0, Math.floor(cam.y / TILE_SIZE)),
+    endRow: Math.min(tiles.length - 1, Math.ceil((cam.y + height) / TILE_SIZE)),
+  };
+};
+
 const drawTiles = (tiles: TilePublic[][]) => {
   foregroundCtx.clearRect(
     0,
@@ -566,16 +585,10 @@ const drawTiles = (tiles: TilePublic[][]) => {
     foregroundCanvas.width,
     foregroundCanvas.height,
   );
-  const cam = getCamera();
-  const startCol = Math.max(0, Math.floor(cam.x / TILE_SIZE));
-  const endCol = Math.min(
-    (tiles[0]?.length ?? 0) - 1,
-    Math.ceil((cam.x + foregroundCanvas.width) / TILE_SIZE),
-  );
-  const startRow = Math.max(0, Math.floor(cam.y / TILE_SIZE));
-  const endRow = Math.min(
-    tiles.length - 1,
-    Math.ceil((cam.y + foregroundCanvas.height) / TILE_SIZE),
+  const { startCol, endCol, startRow, endRow } = visibleRange(
+    tiles,
+    foregroundCanvas.width,
+    foregroundCanvas.height,
   );
   for (let rowIndex = startRow; rowIndex <= endRow; rowIndex++) {
     const row = tiles[rowIndex];
@@ -592,19 +605,29 @@ const drawTiles = (tiles: TilePublic[][]) => {
 /**
  * The map as the game draws it: the tiles, and nothing the editor needs.
  * It runs on every frame the camera crosses a whole pixel, so it must not
- * copy the map or walk it, which is most of renderMap below: the markers
- * alone are a pass over every tile with a dozen predicates each, painting
- * onto a grid context that exists only while the editor is open.
+ * copy the map, which renderMap below does and why the editor cannot call
+ * that per frame.
  */
 export const renderGameMap = (tiles: TilePublic[][]) => {
   drawTiles(tiles);
 };
 
-export const renderMap = (tiles: Tile[][]) => {
-  if (tiles) updateEditorMap(tiles, editorMusic);
-  drawTiles(tiles);
+// Paints what the editor holds. Only `setEditorTiles` seeds that copy and
+// takes the original a discard restores.
+const renderMap = () => {
+  drawTiles(map);
+  renderEditorLayer();
+};
+
+/**
+ * Repaints the editor's layer: grid, markers, hover cell. It is drawn in
+ * camera space, so the game loop calls this whenever it redraws the ground.
+ */
+export const renderEditorLayer = () => {
+  if (!tilesetEditorInitialized) return;
+  updateHoveredCell();
   clearAndDrawGrid();
-  drawMarkers(tiles);
+  drawMarkers(map);
   drawHoverCell();
 };
 
@@ -660,8 +683,18 @@ const clearAndDrawGrid = () => {
 };
 
 const drawMarkers = (tiles: Tile[][]) => {
-  tiles.forEach((row, rowIndex) => {
-    row.forEach((tile, colIndex) => {
+  if (!gridCtx) return;
+  const { startCol, endCol, startRow, endRow } = visibleRange(
+    tiles,
+    gridCanvas.width,
+    gridCanvas.height,
+  );
+  for (let rowIndex = startRow; rowIndex <= endRow; rowIndex++) {
+    const row = tiles[rowIndex];
+    if (!row) continue;
+    for (let colIndex = startCol; colIndex <= endCol; colIndex++) {
+      const tile = row[colIndex];
+      if (!tile) continue;
       if (tile.blocked) drawMarker(colIndex, rowIndex, 'B', 'red');
       if (tile.warp) drawMarker(colIndex, rowIndex, 'W', 'blue');
       if (tile.npcSpawn) {
@@ -694,8 +727,8 @@ const drawMarkers = (tiles: Tile[][]) => {
         drawMarker(colIndex, rowIndex, 'J', '#607d8b');
       if (tile.door) drawMarker(colIndex, rowIndex, 'D', '#ff8f00');
       if (tile.conditionalBlock) drawMarker(colIndex, rowIndex, '?', '#78909c');
-    });
-  });
+    }
+  }
 };
 const drawMarker = (col: number, row: number, text: string, color: string) => {
   if (!gridCtx) return;
@@ -843,7 +876,7 @@ export const toggleTilesetEditor = (shouldShow: boolean) => {
     redoStack = [];
   }
 
-  renderMap(map);
+  renderMap();
 };
 
 /**
@@ -851,8 +884,10 @@ export const toggleTilesetEditor = (shouldShow: boolean) => {
  * admin route, since the game's copy is stripped of triggers, warps and
  * doors (see `TilePublic`).
  */
-export const setEditorTiles = (tiles: Tile[][], music?: string) =>
+export const setEditorTiles = (tiles: Tile[][], music?: string) => {
   updateEditorMap(tiles, music);
+  renderEditorLayer();
+};
 
 const updateEditorMap = (tiles: Tile[][], music?: string) => {
   map = tiles.map((row) => row.map((tile) => ({ ...tile })));
