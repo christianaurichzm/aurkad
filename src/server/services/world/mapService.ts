@@ -132,6 +132,11 @@ export const insertItems = (
   partialMap.droppedItems = droppedItems;
 };
 
+const tileSized = (value: number | undefined) =>
+  Number.isFinite(value) && (value as number) > 0
+    ? (value as number)
+    : TILE_SIZE;
+
 export const insertNpcs = async (
   partialMap: Partial<MapStateServer>,
   mapId: string,
@@ -155,6 +160,14 @@ export const insertNpcs = async (
         } else {
           npcCache.set(npcId, {
             ...base,
+            // The stored document is whatever wrote it (a content
+            // pack, a hand-edited collection), and a box narrower
+            // than a tile makes the health bar miss the sprite and
+            // puts the tile next door out of melee reach. spawnNpc
+            // normalises the same way.
+            width: tileSized(base.width),
+            height: tileSized(base.height),
+            attackRange: tileSized(base.attackRange),
             health: base.maxHealth,
             position: { x: 0, y: 0 },
             mapId,

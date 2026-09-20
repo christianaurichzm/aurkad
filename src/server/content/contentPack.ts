@@ -7,7 +7,12 @@ import {
   ScriptParamsSchema,
   TileSchema,
 } from '../http/bodySchemas.js';
-import { EQUIPMENT_SLOTS } from '../../shared/constants.js';
+import {
+  EQUIPMENT_SLOTS,
+  SPRITE_HEIGHT,
+  SPRITE_WIDTH,
+  TILE_SIZE,
+} from '../../shared/constants.js';
 import {
   createOrUpdateItem,
   listItems,
@@ -98,11 +103,14 @@ const NpcSchema = z.object({
   id: z.string().min(1),
   name: z.string().min(1),
   sprite: z.number().int().nonnegative(),
-  width: z.number().int().positive().default(48),
-  height: z.number().int().positive().default(48),
+  // One tile, like every other way an npc enters the world (seed,
+  // spawnNpc); smaller, the health bar is narrower than the sprite and a
+  // melee npc cannot reach the next tile.
+  width: z.number().int().positive().default(SPRITE_WIDTH),
+  height: z.number().int().positive().default(SPRITE_HEIGHT),
   maxHealth: z.number().int().positive(),
   attack: z.number().int().nonnegative(),
-  attackRange: z.number().int().positive().default(48),
+  attackRange: z.number().int().positive().default(TILE_SIZE),
   behavior: NpcBehaviorSchema,
   experienceValue: z.number().int().nonnegative().optional(),
   // Still accepted, never written: a pack exported before loot tables carries

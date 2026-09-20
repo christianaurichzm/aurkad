@@ -16,6 +16,7 @@ import {
   vi,
 } from 'vitest';
 import { logger } from '../logger.js';
+import { TILE_SIZE } from '../../shared/constants.js';
 import mongoose from 'mongoose';
 import type { MongoMemoryServer } from 'mongodb-memory-server';
 import { startMemoryMongo } from '../../test/mongo.js';
@@ -111,6 +112,29 @@ describe('importContentPack', () => {
     expect(npcs.map((n) => n.id)).toEqual(['goblin']);
     expect(shops.map((s) => s.id)).toEqual(['general']);
     expect(maps.map((m) => m.id)).toEqual(['overworld']);
+  });
+
+  // A pack written by hand (as the demos are) names behaviour, not geometry.
+  // Less than a tile misplaces the health bar and leaves a melee npc unable
+  // to reach the next tile.
+  it('gives an npc with no geometry a full tile of it', async () => {
+    write('npcs.json', [
+      {
+        id: 'lia',
+        name: 'Lia',
+        sprite: 4,
+        maxHealth: 200,
+        attack: 0,
+        behavior: 'friendly',
+      },
+    ]);
+
+    await importContentPack();
+
+    const [npc] = await listNpcs();
+    expect(npc?.width).toBe(TILE_SIZE);
+    expect(npc?.height).toBe(TILE_SIZE);
+    expect(npc?.attackRange).toBe(TILE_SIZE);
   });
 
   it('persists tile triggers through the map import', async () => {
