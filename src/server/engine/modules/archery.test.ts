@@ -2,7 +2,8 @@
 // Damage is applied only when the projectile physically reaches an entity
 // (checked each server tick), so tests advance ticks with sim.step().
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import { loadModules, unloadAllModules } from './moduleLoader.js';
+import { unloadAllModules } from './moduleLoader.js';
+import { loadModulesForTest } from '../../../test/modules.js';
 import { clearProvides } from './registry.js';
 import { clearCommands } from '../commands.js';
 import { clearAll } from '../hooks.js';
@@ -59,7 +60,7 @@ beforeEach(() => {
   clearCommands();
   clearProvides();
   drainGameEvents();
-  loadModules();
+  loadModulesForTest('archery');
 });
 
 afterEach(() => {

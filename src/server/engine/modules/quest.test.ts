@@ -3,7 +3,8 @@
 // fires across the module boundary.
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { runInSandbox } from '../scripting/sandbox.js';
-import { loadModules, unloadAllModules } from './moduleLoader.js';
+import { unloadAllModules } from './moduleLoader.js';
+import { loadModulesForTest } from '../../../test/modules.js';
 import { useApi, clearProvides } from './registry.js';
 import { clearCommands } from '../commands.js';
 import { clearAll, emit } from '../hooks.js';
@@ -47,7 +48,7 @@ beforeEach(() => {
   clearProvides();
   clearQuestCache();
   drainGameEvents();
-  loadModules(); // real modules/ (quest enabled in game.json)
+  loadModulesForTest('quest');
 });
 
 afterEach(() => {
@@ -159,7 +160,7 @@ describe('quest module with authored quests', () => {
     clearAll();
     clearProvides();
     for (const quest of quests) await createOrUpdateQuest(quest);
-    loadModules();
+    loadModulesForTest('quest');
     return useApi<QuestApi>('quest')!;
   }
 

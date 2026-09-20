@@ -1,7 +1,8 @@
 // Exercises the real pet module: /pet summons a follower that walks toward its
 // owner and fights nearby enemies, crediting the owner.
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import { loadModules, unloadAllModules } from './moduleLoader.js';
+import { unloadAllModules } from './moduleLoader.js';
+import { loadModulesForTest } from '../../../test/modules.js';
 import { clearProvides } from './registry.js';
 import { handleChatCommand, clearCommands } from '../commands.js';
 import { clearAll, emit } from '../hooks.js';
@@ -19,7 +20,7 @@ beforeEach(() => {
   clearCommands();
   clearProvides();
   drainGameEvents();
-  loadModules(); // real modules/ (pet enabled in game.json)
+  loadModulesForTest('pet');
 });
 
 afterEach(() => {

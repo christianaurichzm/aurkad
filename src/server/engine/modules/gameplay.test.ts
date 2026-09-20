@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import { loadModules, unloadAllModules } from './moduleLoader.js';
+import { unloadAllModules } from './moduleLoader.js';
+import { loadModulesForTest } from '../../../test/modules.js';
 import { useApi, clearProvides } from './registry.js';
 import { handleChatCommand, clearCommands } from '../commands.js';
 import { clearAll } from '../hooks.js';
@@ -43,7 +44,7 @@ beforeEach(() => {
   clearProvides();
   clearKvStoreMemory();
   drainGameEvents();
-  loadModules();
+  loadModulesForTest('party', 'equipment', 'status', 'bank');
 });
 
 afterEach(() => {

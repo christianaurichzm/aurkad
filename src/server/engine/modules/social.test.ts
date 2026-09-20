@@ -2,7 +2,8 @@
 // list is policy the module owns but the core enforces, and the two survive a
 // logout in player.data while the runtime copy does not.
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import { loadModules, unloadAllModules } from './moduleLoader.js';
+import { unloadAllModules } from './moduleLoader.js';
+import { loadModulesForTest } from '../../../test/modules.js';
 import { clearProvides, useApi } from './registry.js';
 import { clearCommands } from '../commands.js';
 import { clearAll, emit } from '../hooks.js';
@@ -19,7 +20,7 @@ beforeEach(() => {
   drainGameEvents();
   serverState.ignores.clear();
   sim = createFixture(0);
-  loadModules();
+  loadModulesForTest('social');
 });
 
 afterEach(() => {

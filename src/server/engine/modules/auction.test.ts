@@ -3,7 +3,8 @@
 // where the two do not meet: a listing never mints an item, and a reserved
 // listing is never sold twice.
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { loadModules, unloadAllModules } from './moduleLoader.js';
+import { unloadAllModules } from './moduleLoader.js';
+import { loadModulesForTest } from '../../../test/modules.js';
 import { clearProvides, useApi } from './registry.js';
 import { clearCommands } from '../commands.js';
 import { clearAll, emit } from '../hooks.js';
@@ -37,7 +38,7 @@ beforeEach(() => {
   sim = createFixture(0);
   sim.addItem({ id: COIN, name: 'Gold', type: 'misc' } as never);
   sim.addItem({ id: SWORD, name: 'Sword', type: 'weapon' } as never);
-  loadModules();
+  loadModulesForTest('auction');
 });
 
 afterEach(() => {

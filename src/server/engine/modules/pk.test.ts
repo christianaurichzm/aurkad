@@ -2,7 +2,8 @@
 // flags the killer with a red name, which overrides VIP gold through the
 // cosmetic resolver's priority.
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import { loadModules, unloadAllModules } from './moduleLoader.js';
+import { unloadAllModules } from './moduleLoader.js';
+import { loadModulesForTest } from '../../../test/modules.js';
 import { clearProvides } from './registry.js';
 import { clearCommands } from '../commands.js';
 import { clearAll, emit } from '../hooks.js';
@@ -15,7 +16,7 @@ beforeEach(() => {
   clearCommands();
   clearProvides();
   drainGameEvents();
-  loadModules(); // real modules/ (pk enabled in game.json)
+  loadModulesForTest('pk');
 });
 
 afterEach(() => {

@@ -1,7 +1,8 @@
 // Exercises the real shipped guild module (modules/guild) end to end, so the
 // proof module can't silently rot.
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import { loadModules, unloadAllModules } from './moduleLoader.js';
+import { unloadAllModules } from './moduleLoader.js';
+import { loadModulesForTest } from '../../../test/modules.js';
 import { handleChatCommand, clearCommands } from '../commands.js';
 import { useApi, clearProvides } from './registry.js';
 import { kvGet, clearKvStoreMemory } from '../../persistence/kvStore.js';
@@ -28,7 +29,7 @@ beforeEach(() => {
   clearProvides();
   clearKvStoreMemory();
   drainGameEvents();
-  loadModules(); // real modules/ (guild enabled in game.json)
+  loadModulesForTest('guild');
 });
 
 afterEach(() => {

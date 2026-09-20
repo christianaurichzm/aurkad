@@ -2,7 +2,8 @@
 // via the spell:cast custom action applies effects through dealDamage and
 // healPlayer and spends mana, bounded by cooldowns.
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import { loadModules, unloadAllModules } from './moduleLoader.js';
+import { unloadAllModules } from './moduleLoader.js';
+import { loadModulesForTest } from '../../../test/modules.js';
 import { useApi, clearProvides } from './registry.js';
 import { clearCommands } from '../commands.js';
 import { clearAll } from '../hooks.js';
@@ -29,7 +30,7 @@ beforeEach(() => {
   clearCommands();
   clearProvides();
   drainGameEvents();
-  loadModules(); // real modules/ (magic enabled in game.json)
+  loadModulesForTest('magic');
 });
 
 afterEach(() => {

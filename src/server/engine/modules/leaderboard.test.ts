@@ -1,7 +1,8 @@
 // Exercises the real leaderboard module: a board is a written-down top-N in the
 // shared store, swept from who is online rather than queried from the database.
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import { loadModules, unloadAllModules } from './moduleLoader.js';
+import { unloadAllModules } from './moduleLoader.js';
+import { loadModulesForTest } from '../../../test/modules.js';
 import { clearProvides, useApi } from './registry.js';
 import { clearCommands } from '../commands.js';
 import { clearAll, emit } from '../hooks.js';
@@ -18,7 +19,7 @@ beforeEach(() => {
   drainGameEvents();
   for (const key of kvKeys('leaderboard')) kvDelete('leaderboard', key);
   sim = createFixture(0);
-  loadModules();
+  loadModulesForTest('leaderboard');
 });
 
 afterEach(() => {

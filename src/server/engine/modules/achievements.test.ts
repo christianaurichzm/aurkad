@@ -2,7 +2,8 @@
 // already emits, shares one counter between rules that ask the same question,
 // and never awards the same id twice.
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import { loadModules, unloadAllModules } from './moduleLoader.js';
+import { unloadAllModules } from './moduleLoader.js';
+import { loadModulesForTest } from '../../../test/modules.js';
 import { clearProvides, useApi } from './registry.js';
 import { clearCommands } from '../commands.js';
 import { clearAll, emit } from '../hooks.js';
@@ -17,7 +18,7 @@ beforeEach(() => {
   clearProvides();
   drainGameEvents();
   sim = createFixture(0);
-  loadModules();
+  loadModulesForTest('achievements');
 });
 
 afterEach(() => {

@@ -4,7 +4,8 @@
 // well as in the economy funnel underneath.
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { runInSandbox } from '../scripting/sandbox.js';
-import { loadModules, unloadAllModules } from './moduleLoader.js';
+import { unloadAllModules } from './moduleLoader.js';
+import { loadModulesForTest } from '../../../test/modules.js';
 import { useApi, clearProvides } from './registry.js';
 import { clearCommands } from '../commands.js';
 import { clearAll } from '../hooks.js';
@@ -57,7 +58,7 @@ async function bootWith(...recipes: Recipe[]): Promise<CraftingApi> {
   clearProvides();
   clearRecipeCache();
   for (const recipe of recipes) await createOrUpdateRecipe(recipe);
-  loadModules(); // real modules/ (crafting enabled in game.json)
+  loadModulesForTest('crafting');
   return useApi<CraftingApi>('crafting')!;
 }
 

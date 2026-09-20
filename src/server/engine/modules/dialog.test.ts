@@ -2,7 +2,8 @@
 // consumer uses use('dialog').show, and the client's choice (simulated via a
 // dialog:choose custom action) routes back to the caller's callback.
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { loadModules, unloadAllModules } from './moduleLoader.js';
+import { unloadAllModules } from './moduleLoader.js';
+import { loadModulesForTest } from '../../../test/modules.js';
 import { useApi, provideApi, clearProvides } from './registry.js';
 import { clearCommands } from '../commands.js';
 import { clearAll, emit } from '../hooks.js';
@@ -65,7 +66,7 @@ beforeEach(() => {
   clearProvides();
   clearDialogCache();
   drainGameEvents();
-  loadModules(); // real modules/ (dialog enabled in game.json)
+  loadModulesForTest('dialog');
 });
 
 afterEach(() => {
