@@ -1,5 +1,15 @@
 import { describe, it, expect } from 'vitest';
-import { getHealthBarInfo, getPlayerHudText } from './hud';
+import { recordingContext } from '../../test/clientModule';
+import { RuntimeNpc } from '../../shared/types';
+import {
+  getHealthBarInfo,
+  getPlayerHudText,
+  renderHUD,
+  renderNpcLabel,
+} from './hud';
+import { Access } from '../../shared/types';
+
+const fontSize = (font: string) => Number(/(\d+)px/.exec(font)?.[1] ?? 0);
 
 describe('getPlayerHudText', () => {
   it('renders level in parentheses without the level label', () => {
@@ -116,5 +126,73 @@ describe('getHealthBarInfo', () => {
 
     expect(result.percentage).toBeCloseTo(0.666, 3);
     expect(result.text).toBe('67%');
+  });
+});
+
+describe('renderNpcLabel', () => {
+  const npc = (name: string) =>
+    ({
+      name,
+      behavior: 'friendly',
+      position: { x: 0, y: 64 },
+    }) as unknown as RuntimeNpc;
+
+  it('draws the name large enough and outlined to read over a tileset', () => {
+    const rec = recordingContext();
+
+    renderNpcLabel(npc('Lia'), false, rec.ctx);
+
+    expect(rec.of('strokeText')[0]?.args[0]).toBe('Lia');
+    expect(rec.of('fillText')[0]?.args[0]).toBe('Lia');
+    expect(fontSize(rec.ctx.font)).toBeGreaterThanOrEqual(13);
+  });
+
+  // The health bar border is stroked on the same context right after the label,
+  // so a widened outline that is not put back thickens every bar on screen.
+  it('leaves lineWidth back at 1 for the health bar drawn next', () => {
+    const rec = recordingContext();
+
+    renderNpcLabel(npc('Ivo'), true, rec.ctx);
+
+    expect(rec.ctx.lineWidth).toBe(1);
+  });
+
+  it('draws nothing for an unnamed npc', () => {
+    const rec = recordingContext();
+
+    renderNpcLabel(npc(''), false, rec.ctx);
+
+    expect(rec.calls).toEqual([]);
+  });
+});
+
+// A dark name gets a light halo, which must be off again before the next
+// sprite is drawn.
+describe('renderHUD', () => {
+  const player = (access: Access) =>
+    ({
+      name: 'Nyx',
+      level: 3,
+      access,
+      position: { x: 0, y: 64 },
+    }) as never;
+
+  it('haloes a dark name instead of outlining it', () => {
+    const rec = recordingContext();
+
+    renderHUD(player(Access.ADMIN), rec.ctx);
+
+    expect(rec.of('strokeText')).toHaveLength(0);
+    expect(rec.of('fillText').length).toBeGreaterThan(1);
+    expect(rec.ctx.shadowBlur).toBe(0);
+  });
+
+  it('keeps the outline for a name that reads over black', () => {
+    const rec = recordingContext();
+
+    renderHUD(player(Access.USER), rec.ctx);
+
+    expect(rec.of('strokeText')[0]?.args[0]).toBe('Nyx (3)');
+    expect(rec.ctx.lineWidth).toBe(1);
   });
 });

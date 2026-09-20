@@ -61,7 +61,8 @@ vi.mock('../stores/uiStore', () => ({
 }));
 
 vi.mock('./entityRendering', () => ({
-  renderEntitiesSorted: vi.fn(),
+  renderEntitiesSorted: vi.fn(() => []),
+  renderEntityHuds: vi.fn(),
   renderDroppedItems: vi.fn(),
   renderPlayers: vi.fn(),
   animate: (player: unknown) => player,

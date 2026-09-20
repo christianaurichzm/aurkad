@@ -28,6 +28,7 @@ import {
 } from './tileset';
 import {
   renderEntitiesSorted,
+  renderEntityHuds,
   renderDroppedItems,
   animate,
 } from './entityRendering';
@@ -189,7 +190,7 @@ export const render = () => {
     const playersWithSelf = currentPlayer
       ? { ...map.players, [currentPlayer.id]: currentPlayer }
       : map.players;
-    renderEntitiesSorted(playersWithSelf, map.npcs);
+    const hudEntries = renderEntitiesSorted(playersWithSelf, map.npcs);
     renderProjectiles(playerCtx);
     renderAttackEffects(playerCtx);
     renderSpellEffects(playerCtx);
@@ -212,6 +213,7 @@ export const render = () => {
     }
     fringeCtx.save();
     fringeCtx.translate(-cam.x, -cam.y);
+    renderEntityHuds(hudEntries, fringeCtx);
     renderFloatingTexts(fringeCtx);
     // Same world translate the world layer gets, so an overlay undoing it with
     // translate(cam.x, cam.y) lands in screen space either way.

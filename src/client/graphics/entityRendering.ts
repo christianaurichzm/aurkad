@@ -70,23 +70,23 @@ const renderEntity = (entity: SpriteEntity) => {
   );
 };
 
-// Renders all players and NPCs sorted by Y so entities further down the screen
-// (visually in front) always draw on top of entities above them. Two-pass:
-// sprites first (sorted), HUDs second (always on top regardless of depth).
+type PlayerEntry = { kind: 'player'; y: number; entity: PlayerPublic };
+type NpcEntry = {
+  kind: 'npc';
+  y: number;
+  entity: RuntimeNpc;
+  hasHealthBar: boolean;
+};
+export type EntityHudEntry = PlayerEntry | NpcEntry;
+
+// Draws players and npcs sorted by y, so lower ones draw in front. Labels
+// come back in draw order for renderEntityHuds on the fringe layer, so no
+// roof or treetop buries a name.
 export function renderEntitiesSorted(
   players: PlayersMap,
   npcs: RuntimeNpcsMap,
-): void {
-  type PlayerEntry = { kind: 'player'; y: number; entity: PlayerPublic };
-  type NpcEntry = {
-    kind: 'npc';
-    y: number;
-    entity: RuntimeNpc;
-    hasHealthBar: boolean;
-  };
-  type Entry = PlayerEntry | NpcEntry;
-
-  const buf: Entry[] = [];
+): EntityHudEntry[] {
+  const buf: EntityHudEntry[] = [];
 
   for (const player of Object.values(players)) {
     const s = animate(player);
@@ -107,12 +107,20 @@ export function renderEntitiesSorted(
 
   for (const e of buf) renderEntity(e.entity);
 
-  for (const e of buf) {
+  return buf;
+}
+
+// Names, tags, bubbles and NPC health bars, always on top regardless of depth.
+export function renderEntityHuds(
+  entries: EntityHudEntry[],
+  ctx: CanvasRenderingContext2D,
+): void {
+  for (const e of entries) {
     if (e.kind === 'player') {
-      renderHUD(e.entity);
+      renderHUD(e.entity, ctx);
     } else {
-      if (e.hasHealthBar) renderHealthBar(e.entity);
-      renderNpcLabel(e.entity, e.hasHealthBar);
+      if (e.hasHealthBar) renderHealthBar(e.entity, ctx);
+      renderNpcLabel(e.entity, e.hasHealthBar, ctx);
     }
   }
 }

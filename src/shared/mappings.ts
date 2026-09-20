@@ -14,10 +14,13 @@ export const playerActionToActionColumnRecord: Record<CharacterAction, number> =
     [CharacterAction.Run]: 2,
   };
 
+// Hex rather than css names so the hud can weigh the colour: a dark name is
+// drawn with a halo instead of the outline a light one gets, and a browser is
+// the only thing that turns `blue` into a number.
 export const playerNameColorRecord: Record<Access, string> = {
-  [Access.USER]: 'yellow',
-  [Access.MOD]: 'blue',
-  [Access.ADMIN]: 'black',
+  [Access.USER]: '#ffff00',
+  [Access.MOD]: '#0000ff',
+  [Access.ADMIN]: '#000000',
 };
 
 // Name color drawn above each NPC, so players can tell at a glance what an NPC
