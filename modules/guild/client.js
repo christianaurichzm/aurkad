@@ -56,8 +56,8 @@ function renderNoGuild() {
   const nameIn = ui.input('Guild name');
   const privSel = document.createElement('select');
   privSel.style.cssText =
-    'width:100%;padding:6px 8px;border:1px solid #444;border-radius:4px;' +
-    'font:13px sans-serif;background:#1a1a1a;color:#eee;box-sizing:border-box;';
+    'width:100%;padding:6px 8px;border:1px solid var(--color-border);border-radius:4px;' +
+    'font:13px sans-serif;background:var(--color-surface-muted);color:var(--color-text);box-sizing:border-box;';
   ['public', 'private'].forEach((v) => {
     const o = document.createElement('option');
     o.value = v;
@@ -82,7 +82,7 @@ function renderGuild(g) {
   badge.textContent = engine.t(
     g.privacy === 'private' ? '🔒 Private' : '🌐 Public',
   );
-  badge.style.cssText = 'font-size:11px;color:#aaa;';
+  badge.style.cssText = 'font-size:11px;color:var(--color-text-muted);';
 
   const memberList = document.createElement('div');
   memberList.style.cssText = 'margin:6px 0;max-height:180px;overflow-y:auto;';
@@ -91,7 +91,7 @@ function renderGuild(g) {
     const row = document.createElement('div');
     row.style.cssText =
       'display:flex;align-items:center;justify-content:space-between;' +
-      'padding:2px 0;border-bottom:1px solid #2a2a2a;font-size:13px;';
+      'padding:2px 0;border-bottom:1px solid var(--color-surface-muted);font-size:13px;';
     const nameEl = document.createElement('span');
     nameEl.textContent = `${ROLE_ICON[m.role] || '•'} ${m.name}`;
     if (m.name === myName) nameEl.style.fontWeight = 'bold';
@@ -117,9 +117,10 @@ function renderGuild(g) {
         engine.sendServerEvent('guild:kick', { target: m.name });
       });
       kickBtn.style.cssText +=
-        'padding:2px 5px;font-size:11px;background:#c0392b;';
+        'padding:2px 5px;font-size:11px;background:var(--color-danger);';
       kickBtn.onmouseenter = () => (kickBtn.style.background = '#e74c3c');
-      kickBtn.onmouseleave = () => (kickBtn.style.background = '#c0392b');
+      kickBtn.onmouseleave = () =>
+        (kickBtn.style.background = 'var(--color-danger)');
       btnRow.appendChild(kickBtn);
       row.appendChild(btnRow);
     }
@@ -156,9 +157,10 @@ function renderGuild(g) {
   const leaveBtn = ui.button('Leave Guild', () =>
     engine.sendServerEvent('guild:leave'),
   );
-  leaveBtn.style.cssText += 'background:#555;width:100%;';
+  leaveBtn.style.cssText += 'background:var(--color-border);width:100%;';
   leaveBtn.onmouseenter = () => (leaveBtn.style.background = '#777');
-  leaveBtn.onmouseleave = () => (leaveBtn.style.background = '#555');
+  leaveBtn.onmouseleave = () =>
+    (leaveBtn.style.background = 'var(--color-border)');
   controls.push(leaveBtn);
 
   panel.setTitle(`${g.name} (${g.members.length})`);
@@ -191,9 +193,10 @@ engine.onServerEvent('guild:invite', ({ guildName, from }) => {
     notif.remove();
   });
   const declineBtn = ui.button('Decline', () => notif.remove());
-  declineBtn.style.background = '#555';
+  declineBtn.style.background = 'var(--color-border)';
   declineBtn.onmouseenter = () => (declineBtn.style.background = '#777');
-  declineBtn.onmouseleave = () => (declineBtn.style.background = '#555');
+  declineBtn.onmouseleave = () =>
+    (declineBtn.style.background = 'var(--color-border)');
   notif.setBody(msg, ui.row(acceptBtn, declineBtn));
   notif.show();
   setTimeout(() => notif.remove(), 60_000);
@@ -207,7 +210,7 @@ engine.onServerEvent('guild:kicked', ({ from }) => {
   msg.textContent = engine.t('You were kicked from "{guild}"', { guild: from });
   msg.style.cssText =
     'position:fixed;bottom:80px;left:50%;transform:translateX(-50%);' +
-    'background:#c0392b;color:#fff;padding:8px 16px;border-radius:6px;' +
+    'background:var(--color-danger);color:#fff;padding:8px 16px;border-radius:6px;' +
     'font:bold 13px sans-serif;z-index:9999;pointer-events:none;';
   document.body.appendChild(msg);
   setTimeout(() => msg.remove(), 4000);

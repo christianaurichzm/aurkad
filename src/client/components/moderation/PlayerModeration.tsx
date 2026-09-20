@@ -378,8 +378,8 @@ const banBox: React.CSSProperties = {
   display: 'flex',
   flexDirection: 'column',
   gap: 6,
-  background: '#fff5f5',
-  border: `1px solid #f5c6c6`,
+  background: colors.dangerMuted,
+  border: `1px solid ${colors.danger}`,
   borderRadius: radius.sm,
   padding: 10,
 };

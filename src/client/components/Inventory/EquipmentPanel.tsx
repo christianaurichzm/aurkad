@@ -27,11 +27,11 @@ export const EquipmentPanel: React.FC<{
     area: string;
     label: string;
   }[] = [
-    { key: 'helmet', area: 'helmet', label: 'Helmet' },
-    { key: 'chestplate', area: 'chestplate', label: 'Chest' },
-    { key: 'weapon', area: 'weapon', label: 'Weapon' },
-    { key: 'gloves', area: 'gloves', label: 'Gloves' },
-    { key: 'boots', area: 'boots', label: 'Boots' },
+    { key: 'helmet', area: 'helmet', label: t('item.typeHelmet') },
+    { key: 'chestplate', area: 'chestplate', label: t('item.typeChestplate') },
+    { key: 'weapon', area: 'weapon', label: t('item.typeWeapon') },
+    { key: 'gloves', area: 'gloves', label: t('item.typeGloves') },
+    { key: 'boots', area: 'boots', label: t('item.typeBoots') },
   ];
 
   return (

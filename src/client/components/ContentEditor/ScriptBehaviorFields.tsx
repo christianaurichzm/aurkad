@@ -303,6 +303,6 @@ const note: React.CSSProperties = {
 
 const warning: React.CSSProperties = {
   fontSize: 12,
-  color: colors.danger,
+  color: colors.dangerText,
   margin: 0,
 };

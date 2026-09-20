@@ -1,3 +1,4 @@
+import { useDialogFocus } from '../../hooks/useDialogFocus';
 import React, { useEffect } from 'react';
 import { colors, radius, shadow, zIndex } from '../../theme';
 import { useUIStore } from '../../stores/uiStore';
@@ -5,6 +6,8 @@ import { useUIStore } from '../../stores/uiStore';
 export const DialogHost: React.FC = () => {
   const dialog = useUIStore((state) => state.dialog);
   const closeDialog = useUIStore((state) => state.closeDialog);
+
+  useDialogFocus('ui-dialog', dialog.visible);
 
   useEffect(() => {
     if (!dialog.visible) return;
@@ -32,6 +35,8 @@ export const DialogHost: React.FC = () => {
   return (
     <div style={styles.overlay}>
       <section
+        id="ui-dialog"
+        tabIndex={-1}
         aria-modal="true"
         role="dialog"
         aria-labelledby="ui-dialog-title"

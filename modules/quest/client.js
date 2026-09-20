@@ -35,9 +35,9 @@ function progressBar(progress, target) {
   const pct = target > 0 ? Math.round((progress / target) * 100) : 100;
   const wrap = document.createElement('div');
   wrap.style.cssText =
-    'width:100%;height:6px;background:#2a2a2a;border-radius:3px;overflow:hidden;margin-top:3px;';
+    'width:100%;height:6px;background:var(--color-surface-muted);border-radius:3px;overflow:hidden;margin-top:3px;';
   const fill = document.createElement('div');
-  fill.style.cssText = `height:100%;width:${pct}%;background:#f59e0b;border-radius:3px;transition:width .3s;`;
+  fill.style.cssText = `height:100%;width:${pct}%;background:var(--color-warning);border-radius:3px;transition:width .3s;`;
   wrap.appendChild(fill);
   return wrap;
 }
@@ -46,8 +46,8 @@ function questCard(q) {
   const card = document.createElement('div');
   const done = q.status === 'completed';
   card.style.cssText =
-    `padding:6px 8px;border-radius:4px;border:1px solid ${done ? '#2a4a2a' : '#333'};` +
-    `background:${done ? '#0f2a0f' : '#1a1a1a'};margin-bottom:4px;`;
+    `padding:6px 8px;border-radius:4px;border:1px solid ${done ? '#2a4a2a' : 'var(--color-border)'};` +
+    `background:${done ? 'var(--color-selected)' : 'var(--color-surface-muted)'};margin-bottom:4px;`;
 
   const header = document.createElement('div');
   header.style.cssText =
@@ -55,10 +55,10 @@ function questCard(q) {
 
   const name = document.createElement('span');
   name.textContent = q.name;
-  name.style.cssText = `font-weight:bold;color:${done ? '#4ade80' : '#eee'};`;
+  name.style.cssText = `font-weight:bold;color:${done ? 'var(--color-success)' : 'var(--color-text)'};`;
 
   const badge = document.createElement('span');
-  badge.style.cssText = `font-size:11px;color:${done ? '#4ade80' : '#aaa'};`;
+  badge.style.cssText = `font-size:11px;color:${done ? 'var(--color-success)' : 'var(--color-text-muted)'};`;
   badge.textContent = done ? engine.t('✓ Done') : `${q.progress}/${q.target}`;
 
   header.append(name, badge);
@@ -67,7 +67,8 @@ function questCard(q) {
   if (q.description) {
     const desc = document.createElement('div');
     desc.textContent = q.description;
-    desc.style.cssText = 'font-size:11px;color:#888;margin-top:2px;';
+    desc.style.cssText =
+      'font-size:11px;color:var(--color-text-muted);margin-top:2px;';
     card.appendChild(desc);
   }
 
@@ -83,7 +84,8 @@ function render() {
   if (quests.length === 0) {
     const empty = document.createElement('div');
     empty.textContent = engine.t('No quests yet.');
-    empty.style.cssText = 'color:#888;font-size:12px;padding:4px 0;';
+    empty.style.cssText =
+      'color:var(--color-text-muted);font-size:12px;padding:4px 0;';
     panel.setTitle('Quests');
     panel.setBody(empty);
     return;
@@ -100,7 +102,7 @@ function render() {
     const sum = document.createElement('summary');
     sum.textContent = engine.t('Completed ({count})', { count: done.length });
     sum.style.cssText =
-      'cursor:pointer;color:#666;user-select:none;padding:2px 0;';
+      'cursor:pointer;color:var(--color-text-muted);user-select:none;padding:2px 0;';
     sep.appendChild(sum);
     for (const q of done) sep.appendChild(questCard(q));
     nodes.push(sep);
@@ -114,7 +116,7 @@ function showCompletionToast(name) {
   const toast = document.createElement('div');
   toast.style.cssText =
     'position:fixed;bottom:80px;left:50%;transform:translateX(-50%);' +
-    'background:#f59e0b;color:#000;padding:8px 18px;border-radius:6px;' +
+    'background:var(--color-warning);color:#000;padding:8px 18px;border-radius:6px;' +
     'font:bold 13px sans-serif;z-index:9999;pointer-events:none;' +
     'animation:questToastIn .25s ease;';
   toast.textContent = engine.t('✓ Quest complete: {quest}', { quest: name });

@@ -1,3 +1,4 @@
+import { AuthLayout } from '../components/common/AuthLayout';
 import { useState } from 'react';
 import { PASSWORD_MIN_LENGTH } from '../../shared/constants';
 import {
@@ -5,7 +6,7 @@ import {
   friendlyHttpError,
   httpError,
 } from '../io/network';
-import { colors, radius, zIndex } from '../theme';
+import { colors, radius } from '../theme';
 import { useT } from '../i18n';
 
 /**
@@ -54,10 +55,12 @@ export const PasswordReset = ({
   };
 
   return (
-    <div style={styles.container}>
-      <form style={styles.form} onSubmit={(e) => void submit(e)}>
-        <h1 style={styles.title}>{t('auth.resetTitle')}</h1>
-
+    <AuthLayout title={t('auth.resetTitle')}>
+      <form
+        className="auth-form"
+        style={styles.form}
+        onSubmit={(e) => void submit(e)}
+      >
         {done ? (
           <>
             <p style={styles.done}>{t('auth.resetDone')}</p>
@@ -70,6 +73,7 @@ export const PasswordReset = ({
             <input
               type="password"
               autoFocus
+              aria-label={t('auth.newPassword')}
               placeholder={t('auth.newPassword')}
               value={password}
               onChange={(e) => setPassword(e.target.value)}
@@ -77,6 +81,7 @@ export const PasswordReset = ({
             />
             <input
               type="password"
+              aria-label={t('auth.repeatPassword')}
               placeholder={t('auth.repeatPassword')}
               value={repeat}
               onChange={(e) => setRepeat(e.target.value)}
@@ -91,37 +96,18 @@ export const PasswordReset = ({
           </>
         )}
 
-        {error && <div style={styles.error}>{error}</div>}
+        {error && (
+          <div role="alert" style={styles.error}>
+            {error}
+          </div>
+        )}
       </form>
-    </div>
+    </AuthLayout>
   );
 };
 
 const styles: Record<string, React.CSSProperties> = {
-  container: {
-    position: 'absolute',
-    inset: 0,
-    backgroundColor: '#f0f0f0',
-    zIndex: zIndex.auth,
-    display: 'flex',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  form: {
-    background: colors.surface,
-    padding: '40px 30px',
-    borderRadius: radius.lg,
-    boxShadow: '0 4px 15px rgba(0, 0, 0, 0.1)',
-    width: '320px',
-    textAlign: 'center',
-    display: 'flex',
-    flexDirection: 'column',
-    gap: '14px',
-  },
-  title: {
-    margin: 0,
-    fontSize: '1.15rem',
-  },
+  form: { display: 'flex', flexDirection: 'column', gap: 14 },
   input: {
     width: '100%',
     padding: '12px',
@@ -155,7 +141,7 @@ const styles: Record<string, React.CSSProperties> = {
     color: colors.textMuted,
   },
   error: {
-    color: colors.danger,
+    color: colors.dangerText,
     fontSize: '0.9rem',
   },
 };

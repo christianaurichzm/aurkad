@@ -4,6 +4,35 @@ import { describe, expect, it, vi } from 'vitest';
 import { Modal } from './Modal';
 
 describe('Modal', () => {
+  it('names the dialog, contains keyboard focus and restores the opener', async () => {
+    const user = userEvent.setup();
+    const opener = document.createElement('button');
+    document.body.append(opener);
+    opener.focus();
+    const { unmount } = render(
+      <Modal title="Settings" onClose={vi.fn()}>
+        <button>Inside</button>
+        <button disabled>Unavailable</button>
+      </Modal>,
+    );
+    const dialog = screen.getByRole('dialog', { name: 'Settings' });
+    expect(dialog).toHaveFocus();
+    // Layout is supplied by the browser in production.
+    const rects = vi
+      .spyOn(HTMLElement.prototype, 'getClientRects')
+      .mockReturnValue(
+        Object.assign([new DOMRect()], { item: () => new DOMRect() }),
+      );
+    await user.keyboard('{Shift>}{Tab}{/Shift}');
+    expect(screen.getByRole('button', { name: 'Inside' })).toHaveFocus();
+    await user.tab();
+    expect(screen.getByRole('button', { name: 'Close' })).toHaveFocus();
+    rects.mockRestore();
+    unmount();
+    expect(opener).toHaveFocus();
+    opener.remove();
+  });
+
   it('closes with Escape', async () => {
     const user = userEvent.setup();
     const onClose = vi.fn();

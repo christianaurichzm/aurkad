@@ -142,7 +142,14 @@ export const SpellEditor: React.FC<SpellEditorProps> = ({
         <label style={label}>{t('editor.description')}</label>
         <input style={input} {...register('description')} placeholder="..." />
       </div>
-      <div style={{ display: 'flex', gap: 8, alignItems: 'flex-end' }}>
+      <div
+        style={{
+          display: 'flex',
+          flexWrap: 'wrap',
+          gap: 8,
+          alignItems: 'flex-end',
+        }}
+      >
         <div style={field}>
           <label style={label}>{t('editor.sprite')}</label>
           <input

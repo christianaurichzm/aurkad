@@ -24,12 +24,10 @@ engine.i18n({
   },
 });
 
-// The toolkit panel is light (src/client/theme.ts: surface #fff, text #333,
-// border #ddd); a module gets no import of that file, so it is written here.
-const TEXT = '#333333';
-const MUTED = '#666666';
-const LINE = '#dddddd';
-const PRICE = '#217a3a';
+const TEXT = 'var(--color-text)';
+const MUTED = 'var(--color-text-muted)';
+const LINE = 'var(--color-border)';
+const PRICE = 'var(--color-success)';
 
 const ui = engine.ui;
 const panel = ui.panel({ title: 'Auction' });
@@ -136,7 +134,7 @@ function sellBody() {
   const picker = document.createElement('select');
   picker.style.cssText =
     `width:100%;padding:6px 8px;border:1px solid ${LINE};border-radius:4px;` +
-    `font:13px sans-serif;background:#fff;color:${TEXT};box-sizing:border-box;`;
+    `font:13px sans-serif;background:var(--color-surface-muted);color:${TEXT};box-sizing:border-box;`;
   for (const entry of state.inventory) {
     const option = document.createElement('option');
     option.value = String(entry.itemId);

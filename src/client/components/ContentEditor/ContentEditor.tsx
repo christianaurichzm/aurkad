@@ -31,7 +31,6 @@ import {
   listRecipes,
 } from '../../io/network';
 import { Modal } from '../common/Modal';
-import { colors, radius } from '../../theme';
 import { useUIStore } from '../../stores/uiStore';
 import { useT, type TranslationKey } from '../../i18n';
 
@@ -202,20 +201,27 @@ export const ContentEditor: React.FC = () => {
   ];
 
   return (
-    <Modal title={t('editor.contentTitle')} onClose={close} width={580}>
-      <div style={layout}>
-        <div style={tabBar}>
+    <Modal title={t('editor.contentTitle')} onClose={close} width={880}>
+      <div className="content-workspace">
+        <nav
+          className="content-navigation"
+          aria-label={t('editor.contentTitle')}
+        >
           {tabs.map((entry) => (
             <button
               key={entry.id}
-              style={{ ...tabBtn, ...(tab === entry.id ? tabBtnActive : {}) }}
+              className="content-tab"
+              aria-pressed={tab === entry.id}
               onClick={() => void selectTab(entry.id)}
             >
               {t(entry.label)}
             </button>
           ))}
-        </div>
-        <div style={tabContent}>
+        </nav>
+        <div className="content-inspector">
+          <h3 className="inspector-title">
+            {t(tabs.find((entry) => entry.id === tab)!.label)}
+          </h3>
           {tab === 'npcs' && (
             <NpcEditor
               npcs={npcs}
@@ -316,40 +322,3 @@ export const ContentEditor: React.FC = () => {
     </Modal>
   );
 };
-
-const layout: React.CSSProperties = {
-  display: 'flex',
-  flexDirection: 'column',
-  gap: 0,
-};
-
-const tabBar: React.CSSProperties = {
-  display: 'flex',
-  // Ten tabs at ~100px each is 1000px of row: on a phone that pushed the modal
-  // wider than the screen instead of using the second line it had free.
-  flexWrap: 'wrap',
-  gap: 2,
-  borderBottom: `1px solid ${colors.border}`,
-  marginBottom: 20,
-};
-
-const tabBtn: React.CSSProperties = {
-  padding: '8px 18px',
-  border: 'none',
-  background: 'transparent',
-  color: colors.textMuted,
-  fontWeight: 600,
-  fontSize: 14,
-  cursor: 'pointer',
-  paddingBottom: 10,
-  marginBottom: -1,
-  borderBottom: '2px solid transparent',
-  borderRadius: `${radius.sm}px ${radius.sm}px 0 0`,
-};
-
-const tabBtnActive: React.CSSProperties = {
-  color: colors.primary,
-  borderBottom: `2px solid ${colors.primary}`,
-};
-
-const tabContent: React.CSSProperties = { minHeight: 300 };

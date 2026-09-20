@@ -189,7 +189,7 @@ const summaryGrid: React.CSSProperties = {
 };
 
 const summaryCard = (active: boolean): React.CSSProperties => ({
-  background: active ? '#e8fdf0' : colors.surfaceMuted,
+  background: active ? colors.selected : colors.surfaceMuted,
   border: `1px solid ${active ? colors.success : colors.border}`,
   borderRadius: radius.lg,
   padding: '10px 12px',
@@ -298,7 +298,7 @@ const remainingText = (n: number): React.CSSProperties => ({
 });
 
 const errorStyle: React.CSSProperties = {
-  color: colors.danger,
+  color: colors.dangerText,
   fontSize: 13,
   margin: 0,
 };

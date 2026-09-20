@@ -1,3 +1,4 @@
+import { AuthLayout } from '../components/common/AuthLayout';
 import { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import {
@@ -10,7 +11,7 @@ import {
 import { setAssetKey } from '../io/assets';
 import { useGame } from '../context/GameContext';
 import { useUIStore } from '../stores/uiStore';
-import { colors, radius, zIndex } from '../theme';
+import { colors, radius } from '../theme';
 import { useT } from '../i18n';
 
 type FormValues = {
@@ -108,12 +109,13 @@ export const Login = ({ onSwitch }: { onSwitch: () => void }) => {
   };
 
   return (
-    <div style={styles.container}>
-      <form style={styles.form} onSubmit={handleSubmit(onSubmit)}>
+    <AuthLayout title={t('auth.login')}>
+      <form className="auth-form" onSubmit={handleSubmit(onSubmit)}>
         <div style={styles.field}>
           <input
             type="text"
             autoComplete="username"
+            aria-label={t('auth.username')}
             placeholder={t('auth.username')}
             style={styles.input}
             {...register('username', { required: t('auth.username') })}
@@ -126,6 +128,7 @@ export const Login = ({ onSwitch }: { onSwitch: () => void }) => {
           <input
             type="password"
             autoComplete="current-password"
+            aria-label={t('auth.password')}
             placeholder={t('auth.password')}
             style={styles.input}
             {...register('password', { required: t('auth.password') })}
@@ -141,6 +144,7 @@ export const Login = ({ onSwitch }: { onSwitch: () => void }) => {
               inputMode="numeric"
               autoComplete="one-time-code"
               autoFocus
+              aria-label={t('auth.totpCode')}
               placeholder={t('auth.totpCode')}
               style={styles.input}
               {...register('totpToken')}
@@ -205,33 +209,17 @@ export const Login = ({ onSwitch }: { onSwitch: () => void }) => {
             {t('auth.register')}
           </button>
         </p>
-        {serverError && <div style={styles.error}>{serverError}</div>}
+        {serverError && (
+          <div role="alert" style={styles.error}>
+            {serverError}
+          </div>
+        )}
       </form>
-    </div>
+    </AuthLayout>
   );
 };
 
 const styles: Record<string, React.CSSProperties> = {
-  container: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    width: '100%',
-    height: '100%',
-    backgroundColor: '#f0f0f0',
-    zIndex: zIndex.auth,
-    display: 'flex',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  form: {
-    background: colors.surface,
-    padding: '40px 30px',
-    borderRadius: radius.lg,
-    boxShadow: '0 4px 15px rgba(0, 0, 0, 0.1)',
-    width: '320px',
-    textAlign: 'center',
-  },
   field: {
     marginBottom: '20px',
     textAlign: 'left',
@@ -247,7 +235,7 @@ const styles: Record<string, React.CSSProperties> = {
   fieldError: {
     display: 'block',
     marginTop: '4px',
-    color: colors.danger,
+    color: colors.dangerText,
     fontSize: '0.8rem',
   },
   hint: {
@@ -310,7 +298,7 @@ const styles: Record<string, React.CSSProperties> = {
   },
   error: {
     marginTop: '15px',
-    color: colors.danger,
+    color: colors.dangerText,
     fontSize: '0.9rem',
   },
 };

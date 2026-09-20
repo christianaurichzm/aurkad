@@ -1,3 +1,4 @@
+import { useT } from '../../../i18n';
 import { useEffect, useState } from 'react';
 import { Select } from './Select';
 
@@ -17,6 +18,7 @@ export function AsyncSelect<T extends string | number>({
   value,
   onChange,
 }: AsyncSelectProps<T>) {
+  const t = useT();
   const [options, setOptions] = useState<AsyncSelectOption<T>[]>([]);
 
   useEffect(() => {
@@ -44,7 +46,7 @@ export function AsyncSelect<T extends string | number>({
   return (
     <Select
       options={[
-        { value: '', label: '- Select -' },
+        { value: '', label: t('common.select') },
         ...options.map((o) => ({
           value: String(o.value),
           label: o.label,

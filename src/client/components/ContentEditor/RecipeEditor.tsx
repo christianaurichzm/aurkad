@@ -335,7 +335,7 @@ const entryRow: React.CSSProperties = {
 };
 const hint: React.CSSProperties = {
   fontSize: 12,
-  color: colors.danger,
+  color: colors.dangerText,
   whiteSpace: 'nowrap',
   paddingBottom: 8,
 };
@@ -374,7 +374,7 @@ const ghostBtn: React.CSSProperties = {
 };
 const addBtn: React.CSSProperties = {
   background: 'transparent',
-  color: colors.primary,
+  color: colors.info,
   border: `1px solid ${colors.primary}`,
   padding: '3px 10px',
   borderRadius: radius.sm,

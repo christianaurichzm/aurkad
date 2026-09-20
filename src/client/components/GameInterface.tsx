@@ -1,3 +1,4 @@
+import { colors } from '../theme';
 import { useLayoutEffect, useRef } from 'react';
 import { initializeAssets } from '../io/assets';
 import { handleInput } from '../io/keyboard';
@@ -93,7 +94,7 @@ export const GameInterface = () => {
         <p
           id="currentMapName"
           style={{
-            color: currentMap?.type === 'normal' ? 'black' : 'red',
+            color: currentMap?.type === 'normal' ? colors.text : colors.warning,
           }}
         >
           {currentMap?.id} - {currentMap?.name || 'Loading Map...'}

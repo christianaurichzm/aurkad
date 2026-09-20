@@ -34,7 +34,7 @@ engine.onServerEvent('dialog:show', function (payload) {
   // Box
   var box = document.createElement('div');
   box.style.cssText =
-    'background:#1a1a2e;color:#e0e0e0;border:2px solid #555;border-radius:8px;' +
+    'background:var(--color-surface);color:var(--color-text);border:2px solid var(--color-border);border-radius:8px;' +
     'padding:22px 26px;max-width:420px;width:88%;' +
     'box-shadow:0 8px 32px rgba(0,0,0,0.7);font:14px/1.6 sans-serif;';
 
@@ -53,13 +53,13 @@ engine.onServerEvent('dialog:show', function (payload) {
     btn.textContent = i + 1 + '. ' + label;
     btn.style.cssText =
       'display:block;width:100%;margin-bottom:5px;padding:7px 11px;' +
-      'background:#252540;color:#e0e0e0;border:1px solid #444;border-radius:4px;' +
+      'background:var(--surface-control);color:var(--color-text);border:1px solid var(--color-border);border-radius:4px;' +
       'cursor:pointer;font:13px sans-serif;text-align:left;';
     btn.onmouseenter = function () {
-      btn.style.background = '#35356a';
+      btn.style.background = 'var(--surface-control-hover)';
     };
     btn.onmouseleave = function () {
-      btn.style.background = '#252540';
+      btn.style.background = 'var(--surface-control)';
     };
     btn.onclick = function () {
       pick(i);

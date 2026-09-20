@@ -143,30 +143,48 @@ export const ActionPanel: React.FC = () => {
     <section id="actionPanel" aria-label={t('actions.title')}>
       <div className="panel-title">{t('actions.title')}</div>
       <div className="action-grid">
-        {visibleActions.map((action) => (
-          <button
-            key={action.id}
-            type="button"
-            className={['action-button', action.className]
-              .filter(Boolean)
-              .join(' ')}
-            disabled={loadingPanel === action.id}
-            onClick={() => void openAction(action)}
-            title={t('actions.open', { panel: t(action.label) })}
-          >
-            {action.keyLabel && (
-              <span className="action-key">{action.keyLabel}</span>
-            )}
-            <span>
-              {loadingPanel === action.id
-                ? t('actions.opening')
-                : t(action.label)}
-            </span>
-          </button>
+        {visibleActions.map((action, index) => (
+          <React.Fragment key={action.id}>
+            {action.minAccess > Access.USER &&
+              visibleActions[index - 1]?.minAccess === Access.USER && (
+                <div
+                  className="panel-title"
+                  style={{ gridColumn: '1 / -1', marginTop: 8 }}
+                >
+                  {t('actions.tools')}
+                </div>
+              )}
+            <button
+              type="button"
+              className={['action-button', action.className]
+                .filter(Boolean)
+                .join(' ')}
+              disabled={loadingPanel === action.id}
+              onClick={() => void openAction(action)}
+              title={t('actions.open', { panel: t(action.label) })}
+            >
+              {action.keyLabel && (
+                <span className="action-key">{action.keyLabel}</span>
+              )}
+              <span>
+                {loadingPanel === action.id
+                  ? t('actions.opening')
+                  : t(action.label)}
+              </span>
+            </button>
+          </React.Fragment>
         ))}
         {/* A module label is its own English, translated by the table its
             module declared (engine.i18n), so it follows a switch like the
             built-ins above rather than staying in the language it registered. */}
+        {moduleActions.length > 0 && (
+          <div
+            className="panel-title"
+            style={{ gridColumn: '1 / -1', marginTop: 8 }}
+          >
+            {t('actions.modules')}
+          </div>
+        )}
         {moduleActions.map((action) => (
           <button
             key={action.id}

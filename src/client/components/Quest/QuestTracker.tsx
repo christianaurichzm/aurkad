@@ -1,3 +1,4 @@
+import { colors, radius } from '../../theme';
 import React, { useEffect, useState } from 'react';
 import { onServerEvent } from '../../io/network/customEvents';
 import { useT } from '../../i18n';
@@ -32,10 +33,11 @@ export const QuestTracker: React.FC = () => {
         position: 'absolute',
         top: 12,
         right: 12,
-        background: 'rgba(0,0,0,0.6)',
-        color: 'white',
+        background: colors.overlay,
+        color: colors.text,
         padding: '8px 12px',
-        borderRadius: 6,
+        borderRadius: radius.md,
+        border: `1px solid ${colors.border}`,
         fontSize: 13,
         maxWidth: 220,
         pointerEvents: 'none',

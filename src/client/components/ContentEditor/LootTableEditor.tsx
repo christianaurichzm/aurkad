@@ -497,7 +497,7 @@ const ghostBtn: React.CSSProperties = {
 };
 const addBtn: React.CSSProperties = {
   background: 'transparent',
-  color: colors.primary,
+  color: colors.info,
   border: `1px solid ${colors.primary}`,
   padding: '3px 10px',
   borderRadius: radius.sm,

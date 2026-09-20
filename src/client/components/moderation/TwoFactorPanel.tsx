@@ -270,7 +270,7 @@ const secretBox: React.CSSProperties = {
 
 const link: React.CSSProperties = {
   fontSize: 11,
-  color: colors.primary,
+  color: colors.info,
   wordBreak: 'break-all',
 };
 

@@ -34,7 +34,8 @@ function render() {
     used: bank.items.length,
     max: bank.maxCapacity,
   });
-  header.style.cssText = 'font-size:11px;color:#aaa;margin-bottom:4px;';
+  header.style.cssText =
+    'font-size:11px;color:var(--color-text-muted);margin-bottom:4px;';
 
   const list = document.createElement('div');
   list.style.cssText = 'max-height:180px;overflow-y:auto;margin-bottom:8px;';
@@ -42,14 +43,15 @@ function render() {
   if (bank.items.length === 0) {
     const empty = document.createElement('div');
     empty.textContent = engine.t('Empty');
-    empty.style.cssText = 'color:#888;font-size:12px;padding:4px 0;';
+    empty.style.cssText =
+      'color:var(--color-text-muted);font-size:12px;padding:4px 0;';
     list.appendChild(empty);
   } else {
     for (const entry of bank.items) {
       const row = document.createElement('div');
       row.style.cssText =
         'display:flex;justify-content:space-between;align-items:center;' +
-        'padding:3px 0;border-bottom:1px solid #2a2a2a;font-size:13px;';
+        'padding:3px 0;border-bottom:1px solid var(--color-surface-muted);font-size:13px;';
       const label = document.createElement('span');
       label.textContent = `#${entry.item} ×${entry.quantity}`;
       const wBtn = ui.button('↓ Withdraw', () => {
@@ -84,11 +86,13 @@ function render() {
   });
 
   const controls = document.createElement('div');
-  controls.style.cssText = 'border-top:1px solid #333;padding-top:8px;';
+  controls.style.cssText =
+    'border-top:1px solid var(--color-border);padding-top:8px;';
   const controlRow = ui.row(itemInput, qtyInput, depositBtn);
   const controlLabel = document.createElement('div');
   controlLabel.textContent = engine.t('Deposit: Item ID, Qty');
-  controlLabel.style.cssText = 'font-size:11px;color:#aaa;margin-bottom:4px;';
+  controlLabel.style.cssText =
+    'font-size:11px;color:var(--color-text-muted);margin-bottom:4px;';
   controls.append(controlLabel, controlRow);
 
   panel.setBody(header, list, controls);

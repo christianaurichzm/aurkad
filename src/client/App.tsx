@@ -40,13 +40,28 @@ function App() {
     <>
       {isLoggedIn ? (
         <div id="ui">
+          <header className="workspace-header">
+            <div className="engine-brand">
+              <span aria-hidden="true">{t('app.brandMark')}</span>{' '}
+              {t('app.brand')}
+            </div>
+            <span className="workspace-context">{t('app.workspace')}</span>
+            <span className="workspace-mode">{t('app.gameMap')}</span>
+          </header>
           <div id="gameShell">
             <main id="gameMain" aria-label={t('app.gameMap')}>
-              <div id="canvasFrame">
-                <GameCanvas />
-                <GameInterface />
-                <QuestTracker />
-                <TouchControls />
+              <div className="viewport-title">
+                <span className="viewport-indicator" />
+                {t('app.gameMap')}
+                <span>{t('app.dimension')}</span>
+              </div>
+              <div className="viewport-stage">
+                <div id="canvasFrame">
+                  <GameCanvas />
+                  <GameInterface />
+                  <QuestTracker />
+                  <TouchControls />
+                </div>
               </div>
             </main>
             <aside id="sidePanel" aria-label={t('app.gameControls')}>

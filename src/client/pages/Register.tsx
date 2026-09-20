@@ -1,7 +1,8 @@
+import { AuthLayout } from '../components/common/AuthLayout';
 import { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { friendlyHttpError, register as registerUser } from '../io/network';
-import { colors, radius, zIndex } from '../theme';
+import { colors, radius } from '../theme';
 import { useT } from '../i18n';
 
 type FormValues = { username: string; password: string };
@@ -34,12 +35,13 @@ export const Register = ({ onSwitch }: { onSwitch: () => void }) => {
   };
 
   return (
-    <div style={styles.container}>
-      <form style={styles.form} onSubmit={handleSubmit(onSubmit)}>
+    <AuthLayout title={t('auth.register')}>
+      <form className="auth-form" onSubmit={handleSubmit(onSubmit)}>
         <div style={styles.field}>
           <input
             type="text"
             autoComplete="username"
+            aria-label={t('auth.chooseUsername')}
             placeholder={t('auth.chooseUsername')}
             style={styles.input}
             {...register('username', {
@@ -58,6 +60,7 @@ export const Register = ({ onSwitch }: { onSwitch: () => void }) => {
           <input
             type="password"
             autoComplete="new-password"
+            aria-label={t('auth.choosePassword')}
             placeholder={t('auth.choosePassword')}
             style={styles.input}
             {...register('password', { required: 'Password is required' })}
@@ -75,34 +78,18 @@ export const Register = ({ onSwitch }: { onSwitch: () => void }) => {
             {t('auth.login')}
           </button>
         </p>
-        {serverError && <div style={styles.error}>{serverError}</div>}
+        {serverError && (
+          <div role="alert" style={styles.error}>
+            {serverError}
+          </div>
+        )}
         {successMsg && <div style={styles.success}>{successMsg}</div>}
       </form>
-    </div>
+    </AuthLayout>
   );
 };
 
 const styles: Record<string, React.CSSProperties> = {
-  container: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    width: '100%',
-    height: '100%',
-    backgroundColor: '#f0f0f0',
-    zIndex: zIndex.auth,
-    display: 'flex',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  form: {
-    background: colors.surface,
-    padding: '40px 30px',
-    borderRadius: radius.lg,
-    boxShadow: '0 4px 15px rgba(0, 0, 0, 0.1)',
-    width: '320px',
-    textAlign: 'center',
-  },
   field: {
     marginBottom: '20px',
     textAlign: 'left',
@@ -118,7 +105,7 @@ const styles: Record<string, React.CSSProperties> = {
   fieldError: {
     display: 'block',
     marginTop: '4px',
-    color: colors.danger,
+    color: colors.dangerText,
     fontSize: '0.8rem',
   },
   button: {
@@ -147,12 +134,12 @@ const styles: Record<string, React.CSSProperties> = {
   },
   error: {
     marginTop: '15px',
-    color: colors.danger,
+    color: colors.dangerText,
     fontSize: '0.9rem',
   },
   success: {
     marginTop: '15px',
-    color: colors.primary,
+    color: colors.info,
     fontSize: '0.9rem',
   },
 };

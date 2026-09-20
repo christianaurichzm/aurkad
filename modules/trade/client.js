@@ -106,7 +106,7 @@ function render() {
       const row = document.createElement('div');
       row.style.cssText =
         'display:flex;justify-content:space-between;align-items:center;' +
-        'padding:3px 0;border-bottom:1px solid #2a2a2a;font-size:12px;';
+        'padding:3px 0;border-bottom:1px solid var(--color-surface-muted);font-size:12px;';
       const label = document.createElement('span');
       label.textContent = `${offer.from}: ${offerLabel(offer)}`;
       const acceptBtn = ui.button('Accept', () =>
@@ -117,9 +117,10 @@ function render() {
         engine.sendServerEvent('trade:cancel', { player: offer.from }),
       );
       cancelBtn.style.cssText +=
-        'font-size:11px;padding:3px 7px;background:#555;';
+        'font-size:11px;padding:3px 7px;background:var(--color-border);';
       cancelBtn.onmouseenter = () => (cancelBtn.style.background = '#777');
-      cancelBtn.onmouseleave = () => (cancelBtn.style.background = '#555');
+      cancelBtn.onmouseleave = () =>
+        (cancelBtn.style.background = 'var(--color-border)');
       row.append(label, ui.row(acceptBtn, cancelBtn));
       sections.push(row);
     }
@@ -136,16 +137,17 @@ function render() {
       const row = document.createElement('div');
       row.style.cssText =
         'display:flex;justify-content:space-between;align-items:center;' +
-        'padding:3px 0;border-bottom:1px solid #2a2a2a;font-size:12px;';
+        'padding:3px 0;border-bottom:1px solid var(--color-surface-muted);font-size:12px;';
       const label = document.createElement('span');
       label.textContent = `→ ${offer.to}: ${offerLabel(offer)}`;
       const cancelBtn = ui.button('Cancel', () =>
         engine.sendServerEvent('trade:cancel', { player: offer.to }),
       );
       cancelBtn.style.cssText +=
-        'font-size:11px;padding:3px 7px;background:#555;';
+        'font-size:11px;padding:3px 7px;background:var(--color-border);';
       cancelBtn.onmouseenter = () => (cancelBtn.style.background = '#777');
-      cancelBtn.onmouseleave = () => (cancelBtn.style.background = '#555');
+      cancelBtn.onmouseleave = () =>
+        (cancelBtn.style.background = 'var(--color-border)');
       row.append(label, cancelBtn);
       sections.push(row);
     }
@@ -154,13 +156,14 @@ function render() {
   if (!incoming.length && !outgoing.length) {
     const empty = document.createElement('div');
     empty.textContent = engine.t('No active trades.');
-    empty.style.cssText = 'color:#888;font-size:12px;padding:4px 0;';
+    empty.style.cssText =
+      'color:var(--color-text-muted);font-size:12px;padding:4px 0;';
     sections.push(empty);
   }
 
   const sep = document.createElement('div');
   sep.style.cssText =
-    'border-top:1px solid #333;padding-top:8px;margin-top:8px;';
+    'border-top:1px solid var(--color-border);padding-top:8px;margin-top:8px;';
   const formLabel = document.createElement('div');
   formLabel.textContent = engine.t('Send offer');
   formLabel.style.cssText =
@@ -193,7 +196,7 @@ engine.onServerEvent('trade:complete', (offer) => {
   });
   msg.style.cssText =
     'position:fixed;bottom:80px;left:50%;transform:translateX(-50%);' +
-    'background:#27ae60;color:#fff;padding:8px 16px;border-radius:6px;' +
+    'background:var(--color-primary);color:#fff;padding:8px 16px;border-radius:6px;' +
     'font:bold 13px sans-serif;z-index:9999;pointer-events:none;';
   document.body.appendChild(msg);
   setTimeout(() => msg.remove(), 3000);

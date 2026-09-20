@@ -39,7 +39,8 @@ function render() {
   if (recipes.length === 0) {
     const empty = document.createElement('div');
     empty.textContent = engine.t('You know no recipes.');
-    empty.style.cssText = 'color:#888;font-size:12px;padding:4px 0;';
+    empty.style.cssText =
+      'color:var(--color-text-muted);font-size:12px;padding:4px 0;';
     list.appendChild(empty);
   }
 
@@ -49,7 +50,7 @@ function render() {
     const row = document.createElement('div');
     row.style.cssText =
       'display:flex;justify-content:space-between;align-items:center;' +
-      'padding:5px 0;border-bottom:1px solid #2a2a2a;font-size:13px;' +
+      'padding:5px 0;border-bottom:1px solid var(--color-surface-muted);font-size:13px;' +
       (ready ? '' : 'opacity:0.55;');
 
     const text = document.createElement('div');
@@ -59,7 +60,7 @@ function render() {
       (recipe.output.quantity > 1 ? ' ×' + recipe.output.quantity : '');
     const cost = document.createElement('div');
     cost.textContent = recipe.inputs.map(amount).join(' + ');
-    cost.style.cssText = 'font-size:11px;color:#aaa;';
+    cost.style.cssText = 'font-size:11px;color:var(--color-text-muted);';
     text.append(title, cost);
 
     const craftBtn = ui.button('Craft', () => {

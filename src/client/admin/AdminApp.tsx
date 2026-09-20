@@ -1,3 +1,4 @@
+import { AuthLayout } from '../components/common/AuthLayout';
 import React, { useEffect, useState } from 'react';
 import {
   adminLogin,
@@ -48,9 +49,9 @@ export const AdminApp: React.FC = () => {
 
   return (
     <div style={page}>
-      <header style={header}>
+      <header className="admin-header" style={header}>
         <div style={brand}>{t('admin.title')}</div>
-        <div style={headerRight}>
+        <div className="admin-header-actions" style={headerRight}>
           <span style={who}>
             {session.username} · {Access[session.access]}
           </span>
@@ -134,7 +135,7 @@ const AdminLogin: React.FC<{ onLogin: (s: AdminSession) => void }> = ({
   };
 
   return (
-    <div style={centered}>
+    <AuthLayout title={t('admin.title')}>
       <form
         style={loginCard}
         onSubmit={(e) => {
@@ -142,10 +143,10 @@ const AdminLogin: React.FC<{ onLogin: (s: AdminSession) => void }> = ({
           void submit();
         }}
       >
-        <h1 style={loginTitle}>{t('admin.title')}</h1>
         <p style={loginSub}>{t('admin.loginHint')}</p>
         <input
           style={loginInput}
+          aria-label={t('auth.username')}
           placeholder={t('auth.username')}
           value={username}
           autoFocus
@@ -154,6 +155,7 @@ const AdminLogin: React.FC<{ onLogin: (s: AdminSession) => void }> = ({
         <input
           style={loginInput}
           type="password"
+          aria-label={t('auth.password')}
           placeholder={t('auth.password')}
           value={password}
           onChange={(e) => setPassword(e.target.value)}
@@ -166,6 +168,7 @@ const AdminLogin: React.FC<{ onLogin: (s: AdminSession) => void }> = ({
               inputMode="numeric"
               autoComplete="one-time-code"
               autoFocus
+              aria-label={t('auth.totpCode')}
               placeholder={t('auth.totpCode')}
               value={totpToken}
               onChange={(e) => setTotpToken(e.target.value)}
@@ -178,7 +181,7 @@ const AdminLogin: React.FC<{ onLogin: (s: AdminSession) => void }> = ({
           {busy ? t('admin.signingIn') : t('admin.signIn')}
         </button>
       </form>
-    </div>
+    </AuthLayout>
   );
 };
 
@@ -230,7 +233,7 @@ const logoutBtn: React.CSSProperties = {
 };
 const grid: React.CSSProperties = {
   display: 'grid',
-  gridTemplateColumns: 'repeat(auto-fit, minmax(340px, 1fr))',
+  gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 340px), 1fr))',
   gap: 16,
   padding: 20,
   maxWidth: 1300,
@@ -262,16 +265,10 @@ const centered: React.CSSProperties = {
   color: colors.text,
 };
 const loginCard: React.CSSProperties = {
-  width: 320,
   display: 'flex',
   flexDirection: 'column',
-  gap: 10,
-  background: colors.surface,
-  border: `1px solid ${colors.border}`,
-  borderRadius: radius.md,
-  padding: 24,
+  gap: 12,
 };
-const loginTitle: React.CSSProperties = { margin: 0, fontSize: 20 };
 const loginSub: React.CSSProperties = {
   margin: 0,
   color: colors.textMuted,
@@ -285,7 +282,10 @@ const loginInput: React.CSSProperties = {
   fontSize: 14,
   background: colors.surface,
 };
-const loginError: React.CSSProperties = { color: colors.danger, fontSize: 13 };
+const loginError: React.CSSProperties = {
+  color: colors.dangerText,
+  fontSize: 13,
+};
 const loginBtn: React.CSSProperties = {
   background: colors.primary,
   color: '#fff',

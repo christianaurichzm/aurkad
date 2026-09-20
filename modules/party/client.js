@@ -52,7 +52,7 @@ function render() {
 
   const memberList = document.createElement('div');
   memberList.style.cssText =
-    'margin-bottom:4px;padding:4px 0;border-bottom:1px solid #333;';
+    'margin-bottom:4px;padding:4px 0;border-bottom:1px solid var(--color-border);';
   for (const m of state.members) {
     memberList.appendChild(memberLine(m, m === state.leader));
   }
@@ -66,9 +66,11 @@ function render() {
   const leaveBtn = ui.button('Leave', () =>
     engine.sendServerEvent('party:leave'),
   );
-  leaveBtn.style.cssText += 'background:#c0392b;margin-top:4px;width:100%;';
+  leaveBtn.style.cssText +=
+    'background:var(--color-danger);margin-top:4px;width:100%;';
   leaveBtn.onmouseenter = () => (leaveBtn.style.background = '#e74c3c');
-  leaveBtn.onmouseleave = () => (leaveBtn.style.background = '#c0392b');
+  leaveBtn.onmouseleave = () =>
+    (leaveBtn.style.background = 'var(--color-danger)');
 
   panel.setTitle(
     engine.t('Party ({size}/{max})', {
@@ -93,9 +95,10 @@ engine.onServerEvent('party:invite', ({ from }) => {
     notif.remove();
   });
   const declineBtn = ui.button('Decline', () => notif.remove());
-  declineBtn.style.background = '#555';
+  declineBtn.style.background = 'var(--color-border)';
   declineBtn.onmouseenter = () => (declineBtn.style.background = '#777');
-  declineBtn.onmouseleave = () => (declineBtn.style.background = '#555');
+  declineBtn.onmouseleave = () =>
+    (declineBtn.style.background = 'var(--color-border)');
   notif.setBody(ui.row(acceptBtn, declineBtn));
   notif.show();
   setTimeout(() => notif.remove(), 30_000);

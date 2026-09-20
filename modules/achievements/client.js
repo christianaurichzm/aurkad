@@ -11,15 +11,11 @@ engine.i18n({
   },
 });
 
-// The panel the toolkit builds is light (src/client/theme.ts: surface #fff,
-// text #333, border #ddd). A module gets no import of that file, so the values
-// are repeated here. The toast is the exception: it paints its own dark card
-// over the world, so it keeps its own light-on-dark palette.
-const TEXT = '#333333';
-const MUTED = '#666666';
-const LINE = '#dddddd';
-const GOLD = '#c9971a';
-const FILL = '#2ecc40';
+const TEXT = 'var(--color-text)';
+const MUTED = 'var(--color-text-muted)';
+const LINE = 'var(--color-border)';
+const GOLD = 'var(--color-warning)';
+const FILL = 'var(--color-success)';
 
 const ui = engine.ui;
 const panel = ui.panel({ title: 'Achievements' });
@@ -107,18 +103,19 @@ function toast(entry) {
   const el = document.createElement('div');
   el.style.cssText =
     'position:absolute;left:50%;top:14%;transform:translateX(-50%);' +
-    'background:rgba(12,14,20,0.92);border:1px solid #ffd479;border-radius:8px;' +
+    'background:var(--color-surface);border:1px solid var(--color-warning);border-radius:8px;' +
     'padding:10px 18px;text-align:center;pointer-events:none;z-index:40;' +
     'transition:opacity .4s;';
 
   const head = document.createElement('div');
   head.textContent = '★ ' + engine.t('Achievement unlocked');
   head.style.cssText =
-    'font:bold 11px sans-serif;color:#ffd479;letter-spacing:1px;';
+    'font:bold 11px sans-serif;color:var(--color-warning);letter-spacing:1px;';
 
   const name = document.createElement('div');
   name.textContent = engine.t(entry.name);
-  name.style.cssText = 'font:bold 15px sans-serif;color:#eee;margin-top:2px;';
+  name.style.cssText =
+    'font:bold 15px sans-serif;color:var(--color-text);margin-top:2px;';
 
   el.append(head, name);
   engine.mount().append(el);

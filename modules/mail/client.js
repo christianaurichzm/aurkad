@@ -37,7 +37,7 @@ let letters = []; // [{ id, itemId, itemName, quantity, from, message, sentAt }]
 function letterCard(letter) {
   const card = document.createElement('div');
   card.style.cssText =
-    'padding:6px 8px;border-radius:4px;border:1px solid #333;background:#1a1a1a;margin-bottom:4px;';
+    'padding:6px 8px;border-radius:4px;border:1px solid var(--color-border);background:var(--color-surface-muted);margin-bottom:4px;';
 
   const header = document.createElement('div');
   header.style.cssText =
@@ -45,7 +45,7 @@ function letterCard(letter) {
 
   const who = document.createElement('span');
   who.textContent = engine.t('From {player}', { player: letter.from });
-  who.style.cssText = 'font-weight:bold;color:#eee;';
+  who.style.cssText = 'font-weight:bold;color:var(--color-text);';
 
   const collect = ui.button('Collect', () => {
     engine.sendServerEvent('mail:claim', { ids: [letter.id] });
@@ -56,7 +56,8 @@ function letterCard(letter) {
 
   const contents = document.createElement('div');
   contents.textContent = `${letter.quantity}× ${letter.itemName}`;
-  contents.style.cssText = 'font-size:12px;color:#f59e0b;margin-top:2px;';
+  contents.style.cssText =
+    'font-size:12px;color:var(--color-warning);margin-top:2px;';
 
   card.append(header, contents);
 
@@ -64,7 +65,7 @@ function letterCard(letter) {
     const note = document.createElement('div');
     note.textContent = letter.message;
     note.style.cssText =
-      'font-size:12px;color:#aaa;margin-top:3px;font-style:italic;';
+      'font-size:12px;color:var(--color-text-muted);margin-top:3px;font-style:italic;';
     card.appendChild(note);
   }
 
@@ -100,10 +101,12 @@ function sendForm() {
 
   const label = document.createElement('div');
   label.textContent = engine.t('Send an item');
-  label.style.cssText = 'font-size:11px;color:#aaa;margin-bottom:4px;';
+  label.style.cssText =
+    'font-size:11px;color:var(--color-text-muted);margin-bottom:4px;';
 
   const wrap = document.createElement('div');
-  wrap.style.cssText = 'border-top:1px solid #333;padding-top:8px;';
+  wrap.style.cssText =
+    'border-top:1px solid var(--color-border);padding-top:8px;';
   wrap.append(
     label,
     ui.row(toInput, itemInput, qtyInput),
@@ -119,7 +122,8 @@ function render() {
   if (letters.length === 0) {
     const empty = document.createElement('div');
     empty.textContent = engine.t('Nothing waiting.');
-    empty.style.cssText = 'color:#888;font-size:12px;padding:4px 0;';
+    empty.style.cssText =
+      'color:var(--color-text-muted);font-size:12px;padding:4px 0;';
     list.appendChild(empty);
   } else {
     for (const letter of letters) list.appendChild(letterCard(letter));

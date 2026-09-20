@@ -292,7 +292,7 @@ export const ScriptEditor: React.FC<{ height?: number }> = ({
               path={`file:///scripts/${selected}`}
               defaultLanguage="javascript"
               value={content}
-              theme="vs"
+              theme="vs-dark"
               onChange={(v) => setContent(v ?? '')}
               onMount={handleMount}
               options={{ minimap: { enabled: false }, fontSize: 13 }}
@@ -475,7 +475,7 @@ const errorWhere: React.CSSProperties = {
   color: colors.textMuted,
 };
 const errorMessage: React.CSSProperties = {
-  color: colors.danger,
+  color: colors.dangerText,
   overflow: 'hidden',
   textOverflow: 'ellipsis',
   whiteSpace: 'nowrap',

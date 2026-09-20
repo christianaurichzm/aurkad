@@ -173,5 +173,5 @@ const empty: React.CSSProperties = {
 
 const errorLine: React.CSSProperties = {
   fontSize: 12,
-  color: colors.danger,
+  color: colors.dangerText,
 };

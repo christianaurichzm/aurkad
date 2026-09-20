@@ -142,7 +142,7 @@ const code: React.CSSProperties = {
   borderRadius: radius.sm,
 };
 const lineIn: React.CSSProperties = {
-  color: colors.primary,
+  color: colors.info,
   whiteSpace: 'pre-wrap',
 };
 const lineOut: React.CSSProperties = {
@@ -163,7 +163,7 @@ const inputRow: React.CSSProperties = {
   borderRadius: radius.sm,
   padding: '6px 10px',
 };
-const prompt: React.CSSProperties = { color: colors.primary, fontWeight: 700 };
+const prompt: React.CSSProperties = { color: colors.info, fontWeight: 700 };
 const inputBox: React.CSSProperties = {
   flex: 1,
   background: 'transparent',

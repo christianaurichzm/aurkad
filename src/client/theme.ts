@@ -1,23 +1,28 @@
+// CSS variables are shared by React panels and the game shell.
 export const colors = {
-  primary: '#2ecc40',
-  primaryHover: '#219b3a',
-  success: '#27ae60',
-  danger: '#e74c3c',
-  dangerDark: '#c0392b',
-  info: '#3498db',
-  warning: '#f1c40f',
-  text: '#333333',
-  textMuted: '#666666',
-  surface: '#ffffff',
-  surfaceMuted: '#f5f5f5',
-  border: '#dddddd',
-  overlay: 'rgba(0, 0, 0, 0.55)',
+  primary: 'var(--color-primary)',
+  primaryHover: 'var(--color-primary-hover)',
+  success: 'var(--color-success)',
+  danger: 'var(--color-danger)',
+  dangerText: 'var(--color-danger-text)',
+  dangerDark: 'var(--color-danger-dark)',
+  info: 'var(--color-info)',
+  warning: 'var(--color-warning)',
+  text: 'var(--color-text)',
+  textMuted: 'var(--color-text-muted)',
+  surface: 'var(--color-surface)',
+  surfaceMuted: 'var(--color-surface-muted)',
+  border: 'var(--color-border)',
+  overlay: 'var(--color-overlay)',
+  app: 'var(--color-app-bg)',
+  selected: 'var(--color-selected)',
+  dangerMuted: 'var(--color-danger-muted)',
 } as const;
 
 export const radius = {
   sm: 4,
   md: 6,
-  lg: 8,
+  lg: 6,
 } as const;
 
 export const zIndex = {

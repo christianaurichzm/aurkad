@@ -66,6 +66,8 @@ export const pt: Record<keyof typeof en, string> = {
   'actions.unavailable': 'Painel indisponível',
   'actions.couldNotOpen': 'Não foi possível abrir {panel}.',
 
+  'inventory.bag': 'Bolsa',
+  'inventory.equipment': 'Equipamento',
   'inventory.title': 'Inventário',
   'inventory.use': 'Usar',
   'inventory.equip': 'Equipar',
@@ -568,6 +570,14 @@ export const pt: Record<keyof typeof en, string> = {
 
   'hud.atk': 'ATQ',
 
+  'app.brand': 'AURKAD',
+  'app.brandMark': 'A',
+  'app.dimension': '2D',
+  'app.workspace': 'Área de trabalho',
+  'actions.modules': 'Módulos do jogo',
+  'actions.tools': 'Ferramentas de criação',
+  'common.select': 'Selecionar…',
+  'common.close': 'Fechar',
   'app.gameMap': 'Mapa do jogo',
   'app.gameControls': 'Controles do jogo',
 

@@ -136,21 +136,23 @@ export const InventoryPanel: React.FC = () => {
           <div style={styles.title}>{t('inventory.title')}</div>
           <button
             type="button"
+            aria-label={t('common.close')}
             style={styles.closeBtn}
             onClick={() => setVisible(false)}
           >
-            x
+            ×
           </button>
         </div>
         <div style={styles.tabs}>
           {[
-            ['bag', 'Bag'],
-            ['equipment', 'Equipment'],
+            ['bag', t('inventory.bag')],
+            ['equipment', t('inventory.equipment')],
           ].map(([tab, label]) => (
             <button
               key={tab}
               type="button"
               style={styles.tabBtn(activeTab === tab)}
+              aria-pressed={activeTab === tab}
               onClick={() => {
                 setActiveTab(tab as InventoryTab);
                 setSelected(null);
@@ -168,10 +170,10 @@ export const InventoryPanel: React.FC = () => {
               {player.inventory.map((inv) => {
                 const border =
                   selected?.item.id === inv.item.id
-                    ? '2px solid #e67e22'
+                    ? `2px solid ${colors.warning}`
                     : isEquipped(player, inv.item.id)
                       ? `2px solid ${colors.primary}`
-                      : '1px solid #333';
+                      : `1px solid ${colors.border}`;
                 return (
                   <div
                     key={inv.item.id}
@@ -334,7 +336,7 @@ const tradeSelectBtn: React.CSSProperties = {
   padding: 0,
   border: 'none',
   borderRadius: 2,
-  background: '#27ae60',
+  background: colors.primary,
   color: '#fff',
   cursor: 'pointer',
   zIndex: 1,

@@ -99,7 +99,7 @@ const toolbar: React.CSSProperties = {
 
 const countBadge: React.CSSProperties = {
   color: colors.success,
-  background: '#e8fdf0',
+  background: colors.selected,
   border: `1px solid ${colors.success}`,
   borderRadius: radius.md,
   padding: '8px 12px',
@@ -166,7 +166,7 @@ const emptyState: React.CSSProperties = {
 };
 
 const errorStyle: React.CSSProperties = {
-  color: colors.danger,
+  color: colors.dangerText,
   fontSize: 13,
   margin: 0,
 };

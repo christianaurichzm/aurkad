@@ -79,7 +79,7 @@ export const TilesetEditor: React.FC = () => {
         overflow: 'hidden',
         display: 'flex',
         flexDirection: 'column',
-        maxHeight: '95vh',
+        maxHeight: 'calc(100dvh - 96px)',
       }}
     >
       <div
@@ -101,6 +101,8 @@ export const TilesetEditor: React.FC = () => {
           {t('tileset.title')}
         </span>
         <button
+          aria-label={t('common.close')}
+          className="window-close"
           style={{
             border: 'none',
             background: 'transparent',

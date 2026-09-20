@@ -64,6 +64,8 @@ export const en = {
   'actions.couldNotOpen': 'Could not open {panel}.',
 
   // Inventory and equipment
+  'inventory.bag': 'Bag',
+  'inventory.equipment': 'Equipment',
   'inventory.title': 'Inventory',
   'inventory.use': 'Use',
   'inventory.equip': 'Equip',
@@ -569,6 +571,14 @@ export const en = {
 
   'hud.atk': 'ATK',
 
+  'app.brand': 'AURKAD',
+  'app.brandMark': 'A',
+  'app.dimension': '2D',
+  'app.workspace': 'Workspace',
+  'actions.modules': 'Game modules',
+  'actions.tools': 'Creator tools',
+  'common.select': 'Select…',
+  'common.close': 'Close',
   'app.gameMap': 'Game map',
   'app.gameControls': 'Game controls',
 

@@ -14,12 +14,10 @@ engine.i18n({
   },
 });
 
-// The toolkit panel is light (src/client/theme.ts: surface #fff, text #333,
-// border #ddd); a module gets no import of that file, so it is written here.
-const TEXT = '#333333';
-const MUTED = '#666666';
-const LINE = '#dddddd';
-const MINE = '#2ecc40';
+const TEXT = 'var(--color-text)';
+const MUTED = 'var(--color-text-muted)';
+const LINE = 'var(--color-border)';
+const MINE = 'var(--color-success)';
 
 const ui = engine.ui;
 const panel = ui.panel({ title: 'Leaderboard' });
