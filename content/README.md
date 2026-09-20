@@ -4,8 +4,13 @@ Versionable game content as JSON. Put files here and they are imported into
 MongoDB at server boot (files win for the ids they define). Mongo stays the
 runtime source of truth; commit these files to version your game.
 
-The starter pack (`items.json`, `npcs.json`, `shops.json`) is included and
-active. Maps are created in-game via the admin map editor and exported with
+This directory ships empty on purpose - the engine you clone has no game in it,
+and what you put here is yours. The sample game is a pack of its own,
+`demos/starter/`, loaded with `npm run starter`. That script is one
+`CONTENT_PATH` away from this one, which is how any pack is loaded without
+being copied in here first.
+
+Maps are created in-game via the admin map editor and exported with
 `npm run content:export`.
 
 ## Files loaded at boot
@@ -19,7 +24,8 @@ active. Maps are created in-game via the admin map editor and exported with
 - `shops.json`
 - `maps.json`
 
-The `*.example.json` files are **not** loaded; they are reference templates.
+The `*.example.json` files are **not** loaded - they are reference templates,
+and with the sample game moved out they are all this directory ships.
 
 ## Workflow
 

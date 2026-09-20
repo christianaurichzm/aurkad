@@ -30,6 +30,7 @@
     "replay": "cross-env TS_NODE_PROJECT=tools/tsconfig.json node --loader ts-node/esm tools/replay.ts",
     "profile": "cross-env TS_NODE_PROJECT=tools/tsconfig.json node --loader ts-node/esm tools/profileServer.ts",
     "dev:seed": "npm run db:reset && sleep 2 && npm run seed && npm run dev",
+    "starter": "cross-env CONTENT_PATH=demos/starter npm run content:import",
     "fresh": "npm run db:reset && npm run build && npm start",
     "typecheck": "tsc -p tsconfig.server.json --noEmit && tsc -p tsconfig.client.json --noEmit && npm run typecheck:scripts && npm run typecheck:modules && npm run typecheck:bench && npm run typecheck:tools && npm run typecheck:e2e",
     "typecheck:bench": "tsc -p bench/tsconfig.json --noEmit",
