@@ -33,35 +33,27 @@
     "dialog": { "enabled": true },
     "quest": { "enabled": true },
     "crafting": { "enabled": true },
-    "guild": { "enabled": true, "config": { "maxMembers": 50 } },
+    "guild": { "enabled": true },
     "magic": { "enabled": true },
-    "pk": { "enabled": true, "config": { "flagMinutes": 10 } },
+    "pk": { "enabled": true },
     "pet": { "enabled": true },
     "archery": { "enabled": true },
-    "party": {
-      "enabled": true,
-      "config": { "maxMembers": 5, "shareRadius": 320 }
-    },
+    "party": { "enabled": true },
     "trade": { "enabled": true },
     "equipment": { "enabled": true },
     "status": { "enabled": true },
     "social": { "enabled": true },
     "achievements": { "enabled": true },
     "leaderboard": { "enabled": true },
-    "auction": { "enabled": true },
+    "bank": { "enabled": true },
+    "mail": { "enabled": true },
+    "auction": { "enabled": false },
+    "knockback": { "enabled": false },
+    "los": { "enabled": false },
     "minimap": { "enabled": false },
     "daynight": { "enabled": false },
     "weather": { "enabled": false },
     "lighting": { "enabled": false },
-    "cutscene": { "enabled": false },
-    "bank": { "enabled": true, "config": { "maxSlots": 50 } },
-    "mail": {
-      "enabled": true,
-      "config": {
-        "maxMessageLength": 140,
-        "costPerLetter": 0,
-        "currencyItemId": 3
-      }
-    }
+    "cutscene": { "enabled": false }
   }
 }
