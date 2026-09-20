@@ -118,6 +118,15 @@ export const setMapMeta = (meta: MapMetaClient) => {
   }
   if (staticMap) remember(staticMap, staticMapRevision);
 
+  // After a map change the next update inserts everything in view and sends
+  // no `leave` for the old map, so its entities are dropped here.
+  if (dynamic) {
+    dynamic = {
+      ...dynamic,
+      map: { id: meta.id, players: {}, npcs: {}, droppedItems: [] },
+    };
+  }
+
   const known = visited.get(visitedKey(meta.id, meta.revision));
   staticMap = {
     id: meta.id,

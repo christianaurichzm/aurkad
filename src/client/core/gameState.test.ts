@@ -179,6 +179,18 @@ describe('a map that is still arriving', () => {
     expect(getGameState()?.tiles[0]?.[0]?.tileIndex).toBe(5);
   });
 
+  // After a map change the server inserts everything in view and names
+  // nobody as leaving, so old entities must be dropped here.
+  it("leaves the old map's entities behind with it", () => {
+    applyWorldUpdate(update({ entities: { p2: otherPlayer as never } }));
+    expect(getGameState()!.players['p2']).toBeDefined();
+
+    setMapMeta(meta('B'));
+
+    expect(getGameState()!.players).toEqual({});
+    expect(getGameState()!.id).toBe('B');
+  });
+
   it('keeps three maps, not the whole tour', () => {
     setMapMeta(meta('A'));
     applyMapChunk(chunk('A', 0, 0));

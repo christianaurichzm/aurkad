@@ -14,7 +14,10 @@ import {
   setMapMeta,
   setPlayerStats,
 } from '../../../core/gameState';
-import { onServerPositionUpdate } from '../../../graphics/movementAnimation';
+import {
+  clearMovementQueues,
+  onServerPositionUpdate,
+} from '../../../graphics/movementAnimation';
 import { useUIStore } from '../../../stores/uiStore';
 import {
   playMusic,
@@ -96,6 +99,10 @@ export function resetInterpolation() {
   lastPlayerState.clear();
   lastNpcState.clear();
   lastLocalPosition = null;
+  // Queued slides outlive the entity. An npc with a step left from the last
+  // visit to this map would snap back to that old position when drawn, and its
+  // next move would start from there instead of where the server has it.
+  clearMovementQueues();
 }
 
 function trackEntities(
