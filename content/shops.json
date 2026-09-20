@@ -7,6 +7,7 @@
       { "itemId": 2, "currency": 3, "price": 50 },
       { "itemId": 4, "currency": 3, "price": 40 },
       { "itemId": 5, "currency": 3, "price": 30 },
+      { "itemId": 6, "currency": 3, "price": 25 },
       { "itemId": 7, "currency": 3, "price": 20 }
     ]
   }

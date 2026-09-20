@@ -3,7 +3,7 @@
     "id": 1,
     "name": "Health Potion",
     "description": "Restores 50 health.",
-    "sprite": 0,
+    "sprite": 280,
     "type": "consumable",
     "effects": [{ "attribute": "health", "type": "add", "value": 50 }]
   },
@@ -11,7 +11,7 @@
     "id": 2,
     "name": "Iron Sword",
     "description": "A sturdy blade. +5 attack.",
-    "sprite": 1,
+    "sprite": 1731,
     "type": "weapon",
     "effects": [{ "attribute": "attack", "type": "add", "value": 5 }]
   },
@@ -19,14 +19,14 @@
     "id": 3,
     "name": "Gold Coin",
     "description": "Currency.",
-    "sprite": 2,
+    "sprite": 130,
     "type": "money"
   },
   {
     "id": 4,
     "name": "Leather Armor",
     "description": "Light protection. +3 defense.",
-    "sprite": 3,
+    "sprite": 1980,
     "type": "chestplate",
     "effects": [{ "attribute": "defense", "type": "add", "value": 3 }]
   },
@@ -34,15 +34,23 @@
     "id": 5,
     "name": "Iron Helmet",
     "description": "A solid iron helmet. +2 defense.",
-    "sprite": 4,
+    "sprite": 1911,
     "type": "helmet",
     "effects": [{ "attribute": "defense", "type": "add", "value": 2 }]
+  },
+  {
+    "id": 6,
+    "name": "Iron Gauntlets",
+    "description": "Heavy iron gloves. +1 defense.",
+    "sprite": 2058,
+    "type": "gloves",
+    "effects": [{ "attribute": "defense", "type": "add", "value": 1 }]
   },
   {
     "id": 7,
     "name": "Iron Boots",
     "description": "Sturdy boots. +1 defense.",
-    "sprite": 6,
+    "sprite": 1943,
     "type": "boots",
     "effects": [{ "attribute": "defense", "type": "add", "value": 1 }]
   },
@@ -50,7 +58,7 @@
     "id": 8,
     "name": "Steel Sword",
     "description": "Sharper and heavier. +10 attack.",
-    "sprite": 7,
+    "sprite": 1735,
     "type": "weapon",
     "effects": [{ "attribute": "attack", "type": "add", "value": 10 }]
   }
