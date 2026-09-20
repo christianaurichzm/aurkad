@@ -41,6 +41,17 @@ const MAX_UNDO = 50;
 let undoStack: Tile[][][] = [];
 let redoStack: Tile[][][] = [];
 
+/**
+ * The map the editor's buffer belongs to, which may not be the one under
+ * the player. A save takes the id from here, so a buffer only lands on the
+ * map it was read from.
+ */
+let editorMapId = '';
+
+export const setEditorMapId = (id: string) => {
+  editorMapId = id;
+};
+
 const snapshotForUndo = () => {
   undoStack.push(map.map((row) => row.map((tile) => ({ ...tile }))));
   if (undoStack.length > MAX_UNDO) undoStack.shift();
@@ -845,7 +856,13 @@ export const saveCurrentMap = async (
 ): Promise<SaveMapResponse | null> => {
   let result: SaveMapResponse | null = null;
   await withLoading('saveButton', async () => {
-    result = await saveMap(map, name, type, editorMusic || undefined);
+    result = await saveMap(
+      map,
+      name,
+      type,
+      editorMusic || undefined,
+      editorMapId || undefined,
+    );
     if (result?.success) {
       setMapEdited(false);
       originalMap = map.map((row) => row.map((tile) => ({ ...tile })));

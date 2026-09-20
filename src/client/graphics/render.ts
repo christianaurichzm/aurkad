@@ -10,7 +10,6 @@ import { getGameState, getPlayer, isMapPending } from '../core/gameState';
 import { updatePlayerHealthBar } from './hud';
 import {
   foregroundCanvas,
-  foregroundCtx,
   maskCanvas,
   maskCtx,
   itemCanvas,
@@ -41,6 +40,7 @@ import { calcCamera, setCamera } from './camera';
 import { OverlayLayer, runOverlays } from './overlayRegistry';
 
 let lastDrawnTiles: Tile[][] | null = null;
+let lastEditorTiles: Tile[][] | null = null;
 let lastCamX = 0;
 let lastCamY = 0;
 
@@ -96,23 +96,24 @@ export const render = () => {
     playerCtx.clearRect(0, 0, foregroundCanvas.width, foregroundCanvas.height);
     itemCtx.clearRect(0, 0, itemCanvas.width, itemCanvas.height);
 
-    // The ground and the editor's overlay are drawn in camera space, so both
-    // go stale when the camera moves. Unsaved edits live only in the editor's
-    // copy of the map, which is the one drawn while it holds them, and holding
-    // them keeps the pass dirty, as painting a tile changes no game state.
-    const editorTiles = mapEdited ? getEditorTiles() : null;
+    // The ground and the editor's overlay are drawn in camera space, so both go
+    // stale when the camera moves; unsaved edits draw from the editor's copy.
+    // Every source the pass reads is in the check, so swapping sources (a
+    // border crossed with the editor open) also repaints.
+    const editorTiles = getEditorTiles();
+    const ground = mapEdited ? editorTiles : map.tiles;
     const tilesDirty =
-      map.tiles !== lastDrawnTiles || cam.x !== lastCamX || cam.y !== lastCamY;
+      ground !== lastDrawnTiles ||
+      editorTiles !== lastEditorTiles ||
+      cam.x !== lastCamX ||
+      cam.y !== lastCamY;
     if (tilesDirty) {
-      foregroundCtx.clearRect(
-        0,
-        0,
-        foregroundCanvas.width,
-        foregroundCanvas.height,
-      );
-      renderGameMap(editorTiles ?? map.tiles);
+      renderGameMap(ground);
       renderEditorLayer();
-      lastDrawnTiles = editorTiles ? null : map.tiles;
+      // The editor mutates its grid in place, so null keeps the pass dirty
+      // while it is the one drawn.
+      lastDrawnTiles = mapEdited ? null : map.tiles;
+      lastEditorTiles = editorTiles;
       lastCamX = cam.x;
       lastCamY = cam.y;
     }

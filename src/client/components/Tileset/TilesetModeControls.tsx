@@ -22,6 +22,7 @@ import {
   setPendingScriptTrigger,
   toggleConditionalBlock,
   setEditorMusic,
+  setEditorMapId,
   setEditorTiles,
   undo,
   redo,
@@ -137,22 +138,28 @@ const TilesetModeControlsComponent: React.FC = () => {
   const [mapMusic, setMapMusic] = useState<string>('');
 
   const loadMapData = useCallback(async () => {
-    const state = getGameState();
-    if (state?.id) {
-      const map = await fetchMap(state.id);
-      if (map) {
-        setMapType(map.type);
-        setMapName(map.name);
-        const music = map.music ?? '';
-        setMapMusic(music);
-        setEditorMusic(music);
-        setEditorTiles(map.tiles, music);
-      } else {
-        setMapType('normal');
-        setMapName(t('tileset.newMap'));
-        setMapMusic('');
-        setEditorMusic('');
-      }
+    const mapId = getGameState()?.id;
+    if (!mapId) return;
+    // Edits belong to the map they were painted on, and the ground draws from
+    // the editor's copy while this is set, so it is cleared before the fetch.
+    setMapEdited(false);
+    const map = await fetchMap(mapId);
+    // The player walked on while this was in flight, so the load for the new
+    // map is right behind; this answer is dropped.
+    if (getGameState()?.id !== mapId) return;
+    setEditorMapId(mapId);
+    if (map) {
+      setMapType(map.type);
+      setMapName(map.name);
+      const music = map.music ?? '';
+      setMapMusic(music);
+      setEditorMusic(music);
+      setEditorTiles(map.tiles, music);
+    } else {
+      setMapType('normal');
+      setMapName(t('tileset.newMap'));
+      setMapMusic('');
+      setEditorMusic('');
     }
   }, []);
 

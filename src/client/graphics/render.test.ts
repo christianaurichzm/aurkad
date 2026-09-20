@@ -156,6 +156,34 @@ describe('the ground pass', () => {
     expect(mocks.renderGameMap).toHaveBeenLastCalledWith(mocks.editorTiles);
   });
 
+  // Crossing a border with the editor open changes where the ground comes
+  // from, and the pass must notice and repaint.
+  it('repaints when the ground changes hands between the game and the editor', async () => {
+    const render = await freshRender();
+    render();
+
+    mocks.mapEdited = true;
+    mocks.editorTiles = mapOf(9);
+    vi.clearAllMocks();
+    render();
+
+    expect(mocks.renderGameMap).toHaveBeenCalledWith(mocks.editorTiles);
+  });
+
+  // Markers come from the editor's copy, so swapping it for another map's
+  // must repaint the overlay.
+  it('repaints the overlay when the editor loads another map', async () => {
+    const render = await freshRender();
+    mocks.editorTiles = mapOf(9);
+    render();
+
+    mocks.editorTiles = mapOf(7);
+    vi.clearAllMocks();
+    render();
+
+    expect(mocks.renderEditorLayer).toHaveBeenCalledTimes(1);
+  });
+
   it('draws nothing on a frame where neither the map nor the camera moved', async () => {
     // Whatever clears the ground outside this pass must put it back, since a
     // still frame will not.

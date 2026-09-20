@@ -38,9 +38,10 @@ export const saveMap = async (
   name: string,
   type: MapType,
   music?: string,
+  mapId?: string,
 ): Promise<SaveMapResponse | null> => {
   const mapData = {
-    mapId: getGameState()?.id,
+    mapId: mapId ?? getGameState()?.id,
     tiles: newMapTiles,
     name,
     type,
