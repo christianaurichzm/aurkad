@@ -38,9 +38,11 @@
   --z-canvas-base: 1;
   --z-canvas-mask: 2;
   --z-canvas-items: 3;
-  --z-canvas-grid: 4;
-  --z-canvas-actors: 5;
-  --z-canvas-fringe: 6;
+  --z-canvas-actors: 4;
+  --z-canvas-fringe: 5;
+  /* Editor markers (B, W, N, ...) sit above every world layer: a tile hidden
+     under a fringe roof is exactly the one whose blocking you need to see. */
+  --z-canvas-grid: 6;
   --z-game-overlay: 50;
   --z-hud: 100;
   --z-panel: 150;
