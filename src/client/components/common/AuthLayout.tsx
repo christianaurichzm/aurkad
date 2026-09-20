@@ -14,7 +14,13 @@ export function AuthLayout({
       <section className="auth-card">
         <header className="auth-heading">
           <div className="engine-brand">
-            <span aria-hidden="true">{t('app.brandMark')}</span>{' '}
+            <img
+              src="/favicon.svg"
+              alt=""
+              width={24}
+              height={24}
+              aria-hidden="true"
+            />{' '}
             {t('app.brand')}
           </div>
           <h1>{title}</h1>

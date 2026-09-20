@@ -571,7 +571,6 @@ export const pt: Record<keyof typeof en, string> = {
   'hud.atk': 'ATQ',
 
   'app.brand': 'AURKAD',
-  'app.brandMark': 'A',
   'app.dimension': '2D',
   'app.workspace': 'Área de trabalho',
   'actions.modules': 'Módulos do jogo',

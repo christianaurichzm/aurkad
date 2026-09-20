@@ -42,7 +42,13 @@ function App() {
         <div id="ui">
           <header className="workspace-header">
             <div className="engine-brand">
-              <span aria-hidden="true">{t('app.brandMark')}</span>{' '}
+              <img
+                src="/favicon.svg"
+                alt=""
+                width={24}
+                height={24}
+                aria-hidden="true"
+              />{' '}
               {t('app.brand')}
             </div>
             <span className="workspace-context">{t('app.workspace')}</span>

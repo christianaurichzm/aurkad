@@ -572,7 +572,6 @@ export const en = {
   'hud.atk': 'ATK',
 
   'app.brand': 'AURKAD',
-  'app.brandMark': 'A',
   'app.dimension': '2D',
   'app.workspace': 'Workspace',
   'actions.modules': 'Game modules',
