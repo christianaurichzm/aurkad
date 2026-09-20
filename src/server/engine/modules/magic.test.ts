@@ -117,4 +117,28 @@ describe('magic module', () => {
     expect(ev?.payload.mana).toBe(100);
     expect(ev?.payload.spells.length).toBe(2);
   });
+
+  // The hotbar paints a self-cast slot differently, and the only place that
+  // knows which spells those are is the definition the cast was built from.
+  it('marks a spell that acts on the caster as selfCast', () => {
+    const sim = createFixture(0);
+    sim.addPlayer({ name: 'Alice' });
+    drainGameEvents();
+
+    handleCustomAction({
+      type: 'custom',
+      username: 'Alice',
+      channel: 'magic:request',
+    });
+
+    const ev = drainGameEvents().find(
+      (e) => e.type === 'customPlayer' && e.channel === 'magic:update',
+    ) as
+      { payload: { spells: { id: string; selfCast: boolean }[] } } | undefined;
+    const byId = Object.fromEntries(
+      (ev?.payload.spells ?? []).map((s) => [s.id, s.selfCast]),
+    );
+    expect(byId['heal']).toBe(true);
+    expect(byId['blast']).toBe(false);
+  });
 });

@@ -9,6 +9,10 @@
 // Spells from SpellEditor load at startup with a default cast that deals
 // `damage` in an area, or heals when damage is 0. With manualVisual:true
 // the cast function sends its own visuals.
+//
+// visualTarget doubles as the spell's kind in the UI: 'self' acts on the
+// caster (heals, buffs), anything else on what is around them. Unset, a
+// spell gets the offensive look.
 
 const manaMax = Number((config && config.manaMax) || 100);
 const regenPerSec = Number((config && config.manaRegenPerSec) || 5);
@@ -34,6 +38,7 @@ function pushState(player) {
       name: s.name,
       cost: s.cost,
       readyAt: cd[s.id] || 0,
+      selfCast: s.visualTarget === 'self',
       // The whole duration, so the slot can show the share left.
       cooldownMs: s.cooldownMs || 0,
     })),
@@ -115,6 +120,7 @@ function makeCast(sprite, damage, visualTarget) {
 const dbSpells = getSpells();
 if (dbSpells.length > 0) {
   for (const s of dbSpells) {
+    const visualTarget = s.visualTarget || (s.damage > 0 ? 'targets' : 'self');
     defineSpell({
       id: String(s.id),
       name: s.name,
@@ -122,11 +128,8 @@ if (dbSpells.length > 0) {
       cost: s.mpCost,
       cooldownMs: s.cooldownMs,
       manualVisual: true,
-      cast: makeCast(
-        s.sprite,
-        s.damage,
-        s.visualTarget || (s.damage > 0 ? 'targets' : 'self'),
-      ),
+      visualTarget,
+      cast: makeCast(s.sprite, s.damage, visualTarget),
     });
   }
   log('Loaded ' + dbSpells.length + ' spell(s) from database.');
@@ -155,6 +158,7 @@ if (dbSpells.length > 0) {
   ];
 
   for (const s of builtins) {
+    const visualTarget = s.damage > 0 ? 'targets' : 'self';
     defineSpell({
       id: s.id,
       name: s.name,
@@ -162,7 +166,8 @@ if (dbSpells.length > 0) {
       cost: s.mpCost,
       cooldownMs: s.cooldownMs,
       manualVisual: true,
-      cast: makeCast(s.sprite, s.damage, s.damage > 0 ? 'targets' : 'self'),
+      visualTarget,
+      cast: makeCast(s.sprite, s.damage, visualTarget),
     });
   }
   createSpells(builtins);

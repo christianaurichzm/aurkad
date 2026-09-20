@@ -141,3 +141,29 @@ describe('spell hotbar', () => {
     expect(drawHotbar().of('fillRect')).toHaveLength(8);
   });
 });
+
+// Colour alone would not do it: the slot also carries a cross, so a heal and a
+// damage spell are still distinguishable when the two greens read the same.
+describe('self-cast spells', () => {
+  it('marks a self-cast slot with a cross and a green border', () => {
+    push({
+      mana: 100,
+      manaMax: 100,
+      spells: [spell({ id: 'heal', name: 'Heal', selfCast: true })],
+    });
+
+    const rec = drawHotbar();
+
+    expect(rec.of('fillText').map((c) => c.args[0])).toContain('+');
+    expect(rec.ctx.strokeStyle).toBe('rgba(74,222,128,0.9)');
+  });
+
+  it('leaves an offensive slot unmarked', () => {
+    push({ mana: 100, manaMax: 100, spells: [spell()] });
+
+    const rec = drawHotbar();
+
+    expect(rec.of('fillText').map((c) => c.args[0])).not.toContain('+');
+    expect(rec.ctx.strokeStyle).toBe('rgba(56,189,248,0.9)');
+  });
+});
