@@ -354,6 +354,9 @@ export function buildApi(
       mpCost: number;
       damage: number;
       cooldownMs: number;
+      target: 'enemies' | 'self' | 'party' | 'guild';
+      heal: number;
+      frames: number;
       visualTarget: 'self' | 'targets';
     }[] => getAllSpells().map((s) => ({ ...s })),
 
@@ -367,6 +370,9 @@ export function buildApi(
         mpCost: number;
         damage: number;
         cooldownMs: number;
+        target?: 'enemies' | 'self' | 'party' | 'guild';
+        heal?: number;
+        frames?: number;
         visualTarget?: 'self' | 'targets';
       }[],
     ): void => {
@@ -383,6 +389,9 @@ export function buildApi(
               mpCost: Number(spell.mpCost),
               damage: Number(spell.damage),
               cooldownMs: Number(spell.cooldownMs),
+              target: spell.target ?? (spell.damage > 0 ? 'enemies' : 'self'),
+              heal: Number(spell.heal ?? 0),
+              frames: Number(spell.frames ?? 1),
               visualTarget:
                 spell.visualTarget ?? (spell.damage > 0 ? 'targets' : 'self'),
             });
@@ -528,8 +537,12 @@ export function buildApi(
     },
 
     // Health
-    healPlayer: (player: PlayerServer): void => {
-      player.health = player.maxHealth;
+    // Without an amount, to full.
+    healPlayer: (player: PlayerServer, amount?: number): void => {
+      player.health =
+        amount === undefined
+          ? player.maxHealth
+          : Math.min(player.maxHealth, player.health + Math.max(0, amount));
       persist(scriptName, player);
     },
     killPlayer: (player: PlayerServer): void => {

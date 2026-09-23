@@ -5,12 +5,14 @@ import { ObjectPool } from './objectPool';
 const TILE = 32;
 const DISPLAY = 64;
 const DURATION = 350;
+export const SPELL_FRAME_MS = 80;
 
 interface SpellEffect {
   active: boolean;
   x: number;
   y: number;
   sprite: number;
+  frames: number;
   start: number;
 }
 
@@ -19,10 +21,16 @@ const pool = new ObjectPool<SpellEffect>(16, () => ({
   x: 0,
   y: 0,
   sprite: 0,
+  frames: 1,
   start: 0,
 }));
 
-export function spawnSpellEffect(x: number, y: number, sprite: number): void {
+export function spawnSpellEffect(
+  x: number,
+  y: number,
+  sprite: number,
+  frames = 1,
+): void {
   if (!spellSheet) return;
   const slot = pool.acquire();
   if (!slot) return;
@@ -30,6 +38,7 @@ export function spawnSpellEffect(x: number, y: number, sprite: number): void {
   slot.x = x;
   slot.y = y;
   slot.sprite = sprite;
+  slot.frames = Math.max(1, frames);
   slot.start = performance.now();
 }
 
@@ -42,14 +51,20 @@ export function renderSpellEffects(ctx: CanvasRenderingContext2D): void {
 
   pool.forEach((fx) => {
     const elapsed = now - fx.start;
-    if (elapsed >= DURATION) {
+    const animated = fx.frames > 1;
+    if (elapsed >= (animated ? fx.frames * SPELL_FRAME_MS : DURATION)) {
       fx.active = false;
       return;
     }
-    const sx = (fx.sprite % tilesPerRow) * TILE;
-    const sy = Math.floor(fx.sprite / tilesPerRow) * TILE;
+    // A single sprite fades out; an animation plays its frames once, and the
+    // sheet's own last frames do the fading.
+    const sprite = animated
+      ? fx.sprite + Math.floor(elapsed / SPELL_FRAME_MS)
+      : fx.sprite;
+    const sx = (sprite % tilesPerRow) * TILE;
+    const sy = Math.floor(sprite / tilesPerRow) * TILE;
     ctx.save();
-    ctx.globalAlpha = 1 - elapsed / DURATION;
+    ctx.globalAlpha = animated ? 1 : 1 - elapsed / DURATION;
     ctx.drawImage(
       entityAtlas!,
       off.x + sx,

@@ -37,12 +37,7 @@ interface EquippedItems {
 type Direction = 0 | 1 | 2 | 3;
 type CharacterAction = 'Idle' | 'Walk' | 'Run' | 'Attack';
 type NpcBehavior =
-  | 'aggressive'
-  | 'hostile'
-  | 'neutral'
-  | 'friendly'
-  | 'shopkeeper'
-  | 'guard';
+  'aggressive' | 'hostile' | 'neutral' | 'friendly' | 'shopkeeper' | 'guard';
 type ChatScope = 'global' | 'map' | 'player';
 type MapType = 'pvp' | 'normal';
 
@@ -322,13 +317,17 @@ type ScriptParamValueOf<D extends ScriptParamDecl> = D extends {
  * only when `required` or defaulted; otherwise it may be absent, never 0.
  */
 type ScriptParamsOf<P extends Record<string, ScriptParamDecl>> = {
-  [K in keyof P as P[K] extends { required: true } | { default: unknown }
-    ? K
-    : never]: ScriptParamValueOf<P[K]>;
+  [
+    K in keyof P as P[K] extends { required: true } | { default: unknown }
+      ? K
+      : never
+  ]: ScriptParamValueOf<P[K]>;
 } & {
-  [K in keyof P as P[K] extends { required: true } | { default: unknown }
-    ? never
-    : K]?: ScriptParamValueOf<P[K]>;
+  [
+    K in keyof P as P[K] extends { required: true } | { default: unknown }
+      ? never
+      : K
+  ]?: ScriptParamValueOf<P[K]>;
 };
 
 interface EntityBehavior<
@@ -410,6 +409,12 @@ interface SpellData {
   mpCost: number;
   damage: number;
   cooldownMs: number;
+  /** Who the spell acts on: enemies take `damage`, the rest get `heal`. */
+  target: 'enemies' | 'self' | 'party' | 'guild';
+  /** HP restored per target; 0 restores to full. */
+  heal: number;
+  /** Consecutive sheet sprites, starting at `sprite`, played as one effect. */
+  frames: number;
   visualTarget: 'self' | 'targets';
 }
 
@@ -499,7 +504,8 @@ declare function getRecipes(): RecipeData[];
 /**
  * Saves spells to the database one after another, without waiting. For a
  * module seeding its built-ins in SpellEditor when getSpells() is empty.
- * `visualTarget` defaults to 'targets' when damage > 0, else 'self'.
+ * `target` defaults to 'enemies' when damage > 0, else 'self', and
+ * `visualTarget` to 'targets' when damage > 0, else 'self'.
  */
 declare function createSpells(
   spells: {
@@ -509,6 +515,9 @@ declare function createSpells(
     mpCost: number;
     damage: number;
     cooldownMs: number;
+    target?: 'enemies' | 'self' | 'party' | 'guild';
+    heal?: number;
+    frames?: number;
     visualTarget?: 'self' | 'targets';
   }[],
 ): void;
@@ -765,8 +774,8 @@ declare const delivery: {
   cancel(id: string): Promise<boolean>;
 };
 
-/** Restore a player's health to max. */
-declare function healPlayer(player: PlayerServer): void;
+/** Restore `amount` HP (capped at max), or all of it when omitted. */
+declare function healPlayer(player: PlayerServer, amount?: number): void;
 
 /** Kill and respawn a player. */
 declare function killPlayer(player: PlayerServer): void;

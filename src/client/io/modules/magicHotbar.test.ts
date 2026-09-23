@@ -144,12 +144,12 @@ describe('spell hotbar', () => {
 
 // Colour alone would not do it: the slot also carries a cross, so a heal and a
 // damage spell are still distinguishable when the two greens read the same.
-describe('self-cast spells', () => {
-  it('marks a self-cast slot with a cross and a green border', () => {
+describe('friendly spells', () => {
+  it('marks a friendly slot with a cross and a green border', () => {
     push({
       mana: 100,
       manaMax: 100,
-      spells: [spell({ id: 'heal', name: 'Heal', selfCast: true })],
+      spells: [spell({ id: 'heal', name: 'Heal', friendly: true })],
     });
 
     const rec = drawHotbar();

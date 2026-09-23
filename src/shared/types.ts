@@ -498,6 +498,12 @@ export interface Spell {
   mpCost: number;
   damage: number;
   cooldownMs: number;
+  /** Who the spell acts on: enemies take `damage`, the rest get `heal`. */
+  target: 'enemies' | 'self' | 'party' | 'guild';
+  /** HP restored per target; 0 restores to full. */
+  heal: number;
+  /** Consecutive sheet sprites, starting at `sprite`, played as one effect. */
+  frames: number;
   visualTarget: 'self' | 'targets';
 }
 

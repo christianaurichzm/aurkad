@@ -1,16 +1,25 @@
 // Exercises the real shipped magic module (modules/magic) end to end: casting
 // via the spell:cast custom action applies effects through dealDamage and
 // healPlayer and spends mana, bounded by cooldowns.
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { unloadAllModules } from './moduleLoader.js';
 import { loadModulesForTest } from '../../../test/modules.js';
 import { useApi, clearProvides } from './registry.js';
-import { clearCommands } from '../commands.js';
+import { clearCommands, handleChatCommand } from '../commands.js';
 import { clearAll } from '../hooks.js';
 import { drainGameEvents } from '../eventBus.js';
+import { clearKvStoreMemory } from '../../persistence/kvStore.js';
 import { handleCustomAction } from '../../services/comms/customEventService.js';
 import { createFixture, tile } from '../../sim/simFixture.js';
-import type { PlayerServer } from '../../../shared/types.js';
+import type { PlayerServer, Spell } from '../../../shared/types.js';
+
+// What the module reads back as the database's spells. Empty, it seeds and
+// casts its built-ins.
+const dbSpells: Spell[] = [];
+vi.mock('../../services/content/spellService.js', async (importOriginal) => ({
+  ...(await importOriginal<object>()),
+  getAllSpells: () => dbSpells,
+}));
 
 interface MagicApi {
   cast: (player: PlayerServer, spellId: string) => boolean;
@@ -29,11 +38,13 @@ beforeEach(() => {
   clearAll();
   clearCommands();
   clearProvides();
+  clearKvStoreMemory();
   drainGameEvents();
   loadModulesForTest('magic');
 });
 
 afterEach(() => {
+  dbSpells.length = 0;
   unloadAllModules();
   clearAll();
   clearProvides();
@@ -119,9 +130,9 @@ describe('magic module', () => {
     expect(ev?.payload.spells.length).toBe(2);
   });
 
-  // The hotbar paints a self-cast slot differently, and the only place that
+  // The hotbar paints a friendly slot differently, and the only place that
   // knows which spells those are is the definition the cast was built from.
-  it('marks a spell that acts on the caster as selfCast', () => {
+  it('marks a spell that acts on the caster as friendly', () => {
     const sim = createFixture(0);
     sim.addPlayer({ name: 'Alice' });
     drainGameEvents();
@@ -135,11 +146,77 @@ describe('magic module', () => {
     const ev = drainGameEvents().find(
       (e) => e.type === 'customPlayer' && e.channel === 'magic:update',
     ) as
-      { payload: { spells: { id: string; selfCast: boolean }[] } } | undefined;
+      { payload: { spells: { id: string; friendly: boolean }[] } } | undefined;
     const byId = Object.fromEntries(
-      (ev?.payload.spells ?? []).map((s) => [s.id, s.selfCast]),
+      (ev?.payload.spells ?? []).map((s) => [s.id, s.friendly]),
     );
     expect(byId['heal']).toBe(true);
     expect(byId['blast']).toBe(false);
   });
+
+  const groups = {
+    party: (alice: PlayerServer, bob: PlayerServer) => {
+      const party = useApi<{
+        create: (p: PlayerServer) => void;
+        invite: (p: PlayerServer, name: string) => string;
+        accept: (p: PlayerServer, leader: string) => string;
+      }>('party')!;
+      party.create(alice);
+      party.invite(alice, 'Bob');
+      party.accept(bob, 'Alice');
+    },
+    guild: (alice: PlayerServer, bob: PlayerServer) => {
+      handleChatCommand(alice, '/guild create Dragons');
+      handleChatCommand(bob, '/guild join Dragons');
+    },
+  };
+
+  it.each(['party', 'guild'] as const)(
+    'a %s spell heals the group in range and no one else',
+    (target) => {
+      dbSpells.push({
+        id: 1,
+        name: 'Mend',
+        description: '',
+        sprite: 0,
+        frames: 1,
+        mpCost: 10,
+        damage: 0,
+        heal: 20,
+        cooldownMs: 0,
+        target,
+        visualTarget: 'targets',
+      });
+      unloadAllModules();
+      loadModulesForTest('magic', target);
+
+      const sim = createFixture(0);
+      const alice = sim.addPlayer({
+        name: 'Alice',
+        position: tile(5, 5),
+        health: 90,
+        maxHealth: 100,
+      });
+      const bob = sim.addPlayer({
+        name: 'Bob',
+        position: tile(6, 5),
+        health: 40,
+        maxHealth: 100,
+      });
+      const carol = sim.addPlayer({
+        name: 'Carol',
+        position: tile(5, 6),
+        health: 40,
+        maxHealth: 100,
+      });
+      sim.step(1);
+      groups[target](alice, bob);
+
+      castVia('spell:cast', 'Alice', '1');
+
+      expect(alice.health).toBe(100); // capped at max
+      expect(bob.health).toBe(60);
+      expect(carol.health).toBe(40); // not in the group
+    },
+  );
 });

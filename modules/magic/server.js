@@ -6,13 +6,10 @@
 //   const magic = use('magic');
 //   magic.defineSpell({ id, name, cost, cooldownMs, cast(caster) { ... } });
 //
-// Spells from SpellEditor load at startup with a default cast that deals
-// `damage` in an area, or heals when damage is 0. With manualVisual:true
-// the cast function sends its own visuals.
-//
-// visualTarget doubles as the spell's kind in the UI: 'self' acts on the
-// caster (heals, buffs), anything else on what is around them. Unset, a
-// spell gets the offensive look.
+// Spells from SpellEditor load at startup with a default cast by `target`:
+// 'enemies' damages npcs in range, 'self' heals the caster, 'party' and
+// 'guild' heal allies in range. With manualVisual:true the cast function
+// sends its own visuals.
 
 const manaMax = Number((config && config.manaMax) || 100);
 const regenPerSec = Number((config && config.manaRegenPerSec) || 5);
@@ -38,7 +35,7 @@ function pushState(player) {
       name: s.name,
       cost: s.cost,
       readyAt: cd[s.id] || 0,
-      selfCast: s.visualTarget === 'self',
+      friendly: s.target ? s.target !== 'enemies' : s.visualTarget === 'self',
       // The whole duration, so the slot can show the share left.
       cooldownMs: s.cooldownMs || 0,
     })),
@@ -73,6 +70,7 @@ function cast(player, spellId) {
       x: player.position.x,
       y: player.position.y,
       sprite: spell.sprite || 0,
+      frames: spell.frames,
     });
   }
 
@@ -84,54 +82,95 @@ function cast(player, spellId) {
 
 // --- Helper for building cast functions --------------------------------------
 
-// visualTarget: 'self'    → effect on the caster (heals, buffs)
-//               'targets' → effect on each NPC hit (damage spells)
-function makeCast(sprite, damage, visualTarget) {
-  return function (caster) {
-    const targets = getNearbyNpcs(
-      caster.mapId,
-      caster.position.x,
-      caster.position.y,
-      blastRadius,
+// A spell with no `target` aims at enemies when it deals damage and
+// otherwise heals the caster.
+const targetOf = (s) => s.target || (s.damage > 0 ? 'enemies' : 'self');
+
+// Names in the caster's party or guild; none when the caster has neither or
+// the module is off.
+function groupNames(caster, kind) {
+  if (kind === 'party') {
+    const party = use('party');
+    return party ? party.members(caster) : [];
+  }
+  const guild = use('guild');
+  const g = guild && guild.guildOf(caster);
+  return g ? guild.members(g.name) : [];
+}
+
+// The caster's party or guild on this map within blast range, the caster
+// included. With no group the caster heals alone.
+function alliesAround(caster, kind) {
+  const near = groupNames(caster, kind)
+    .map((name) => getPlayer(name))
+    .filter(
+      (p) =>
+        p &&
+        p.health > 0 &&
+        p.mapId === caster.mapId &&
+        Math.hypot(
+          p.position.x - caster.position.x,
+          p.position.y - caster.position.y,
+        ) <= blastRadius,
     );
-    if (damage > 0) {
-      for (const npc of targets) {
-        dealDamage(npc, damage, caster);
-      }
+  return near.length > 0 ? near : [caster];
+}
+
+// visualTarget: 'self'    → effect on the caster
+//               'targets' → effect on each enemy hit or ally healed
+function makeCast(s) {
+  const target = targetOf(s);
+  const visualTarget =
+    s.visualTarget || (target === 'self' ? 'self' : 'targets');
+  return function (caster) {
+    let affected;
+    if (target === 'enemies') {
+      affected = getNearbyNpcs(
+        caster.mapId,
+        caster.position.x,
+        caster.position.y,
+        blastRadius,
+      );
+      for (const npc of affected) dealDamage(npc, s.damage, caster);
     } else {
-      healPlayer(caster);
+      affected = target === 'self' ? [caster] : alliesAround(caster, target);
+      // 0 heals to full.
+      for (const p of affected) healPlayer(p, s.heal || undefined);
     }
     const visualPositions =
-      visualTarget === 'targets' && targets.length > 0
-        ? targets.map((t) => t.position)
+      visualTarget === 'targets' && affected.length > 0
+        ? affected.map((t) => t.position)
         : [caster.position];
     for (const pos of visualPositions) {
       sendMapEvent(caster.mapId, 'spell:visual', {
         x: pos.x,
         y: pos.y,
-        sprite,
+        sprite: s.sprite,
+        frames: s.frames,
       });
     }
   };
+}
+
+function defineFromData(id, s) {
+  defineSpell({
+    id,
+    name: s.name,
+    sprite: s.sprite,
+    frames: s.frames,
+    cost: s.mpCost,
+    cooldownMs: s.cooldownMs,
+    manualVisual: true,
+    target: targetOf(s),
+    cast: makeCast(s),
+  });
 }
 
 // --- Load spells from DB -----------------------------------------------------
 
 const dbSpells = getSpells();
 if (dbSpells.length > 0) {
-  for (const s of dbSpells) {
-    const visualTarget = s.visualTarget || (s.damage > 0 ? 'targets' : 'self');
-    defineSpell({
-      id: String(s.id),
-      name: s.name,
-      sprite: s.sprite,
-      cost: s.mpCost,
-      cooldownMs: s.cooldownMs,
-      manualVisual: true,
-      visualTarget,
-      cast: makeCast(s.sprite, s.damage, visualTarget),
-    });
-  }
+  for (const s of dbSpells) defineFromData(String(s.id), s);
   log('Loaded ' + dbSpells.length + ' spell(s) from database.');
 } else {
   // No spells in the database yet: define the built-ins in memory and seed
@@ -157,19 +196,7 @@ if (dbSpells.length > 0) {
     },
   ];
 
-  for (const s of builtins) {
-    const visualTarget = s.damage > 0 ? 'targets' : 'self';
-    defineSpell({
-      id: s.id,
-      name: s.name,
-      sprite: s.sprite,
-      cost: s.mpCost,
-      cooldownMs: s.cooldownMs,
-      manualVisual: true,
-      visualTarget,
-      cast: makeCast(s.sprite, s.damage, visualTarget),
-    });
-  }
+  for (const s of builtins) defineFromData(s.id, s);
   createSpells(builtins);
 
   log(

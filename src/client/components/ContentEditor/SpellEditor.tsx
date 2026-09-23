@@ -10,8 +10,10 @@ import { chatResultMsg } from '../ChatPanel';
 import { AsyncSelect } from '../common/Select/AsyncSelect';
 import { SpritePreview } from '../common/SpritePreview';
 import { spellSheet } from '../../io/assets';
+import { SPELL_FRAME_MS } from '../../graphics/spellEffect';
 import { colors, radius } from '../../theme';
 import { useT } from '../../i18n';
+import type { Spell } from '../../../shared/types';
 
 interface SpellEditorProps {
   onDirtyChange: (dirty: boolean) => void;
@@ -22,18 +24,24 @@ type SpellForm = {
   name: string;
   description: string;
   sprite: number;
+  frames: number;
   mpCost: number;
+  target: Spell['target'];
   damage: number;
+  heal: number;
   cooldownMs: number;
-  visualTarget: 'self' | 'targets';
+  visualTarget: Spell['visualTarget'];
 };
 
 const defaults: SpellForm = {
   name: '',
   description: '',
   sprite: 0,
+  frames: 1,
   mpCost: 0,
+  target: 'enemies',
   damage: 0,
+  heal: 0,
   cooldownMs: 3000,
   visualTarget: 'self',
 };
@@ -74,8 +82,13 @@ export const SpellEditor: React.FC<SpellEditorProps> = ({
         name: s.name,
         description: s.description,
         sprite: s.sprite,
+        frames: s.frames ?? 1,
         mpCost: s.mpCost,
+        // A spell with no target aims at enemies when it deals damage and heals
+        // the caster otherwise.
+        target: s.target ?? (s.damage > 0 ? 'enemies' : 'self'),
         damage: s.damage,
+        heal: s.heal ?? 0,
         cooldownMs: s.cooldownMs ?? 0,
         visualTarget: s.visualTarget ?? 'self',
       });
@@ -103,6 +116,7 @@ export const SpellEditor: React.FC<SpellEditorProps> = ({
   };
 
   const name = watch('name');
+  const target = watch('target');
 
   return (
     <form style={container} onSubmit={handleSubmit(handleSave)}>
@@ -158,11 +172,22 @@ export const SpellEditor: React.FC<SpellEditorProps> = ({
             {...register('sprite', { valueAsNumber: true })}
           />
         </div>
+        <div style={field}>
+          <label style={label}>{t('spell.frames')}</label>
+          <input
+            style={{ ...input, width: 70 }}
+            type="number"
+            min={1}
+            {...register('frames', { valueAsNumber: true })}
+          />
+        </div>
         <SpritePreview
           spriteId={watch('sprite')}
           sheet={spellSheet}
           tileSize={32}
           size={48}
+          frames={watch('frames') || 1}
+          frameMs={SPELL_FRAME_MS}
         />
         <div style={field}>
           <label style={label}>{t('spell.mpCost')}</label>
@@ -172,14 +197,26 @@ export const SpellEditor: React.FC<SpellEditorProps> = ({
             {...register('mpCost', { valueAsNumber: true })}
           />
         </div>
-        <div style={field}>
-          <label style={label}>{t('editor.damage')}</label>
-          <input
-            style={{ ...input, width: 70 }}
-            type="number"
-            {...register('damage', { valueAsNumber: true })}
-          />
-        </div>
+        {target === 'enemies' ? (
+          <div style={field}>
+            <label style={label}>{t('editor.damage')}</label>
+            <input
+              style={{ ...input, width: 70 }}
+              type="number"
+              {...register('damage', { valueAsNumber: true })}
+            />
+          </div>
+        ) : (
+          <div style={field}>
+            <label style={label}>{t('spell.heal')}</label>
+            <input
+              style={{ ...input, width: 90 }}
+              type="number"
+              min={0}
+              {...register('heal', { valueAsNumber: true })}
+            />
+          </div>
+        )}
         <div style={field}>
           <label style={label}>{t('spell.cooldown')}</label>
           <input
@@ -191,12 +228,23 @@ export const SpellEditor: React.FC<SpellEditorProps> = ({
         </div>
       </div>
       <div style={field}>
-        <label style={label}>{t('spell.visualTarget')}</label>
-        <select style={input} {...register('visualTarget')}>
-          <option value="self">{t('spell.visualSelf')}</option>
-          <option value="targets">{t('spell.visualTargets')}</option>
+        <label style={label}>{t('spell.target')}</label>
+        <select style={input} {...register('target')}>
+          <option value="enemies">{t('spell.targetEnemies')}</option>
+          <option value="self">{t('spell.targetSelf')}</option>
+          <option value="party">{t('spell.targetParty')}</option>
+          <option value="guild">{t('spell.targetGuild')}</option>
         </select>
       </div>
+      {target !== 'self' && (
+        <div style={field}>
+          <label style={label}>{t('spell.visualTarget')}</label>
+          <select style={input} {...register('visualTarget')}>
+            <option value="self">{t('spell.visualSelf')}</option>
+            <option value="targets">{t('spell.visualTargets')}</option>
+          </select>
+        </div>
+      )}
       <div style={{ display: 'flex', gap: 8 }}>
         <button type="submit" style={saveBtn} disabled={!name.trim()}>
           {selectedId ? t('common.save') : t('editor.create')}

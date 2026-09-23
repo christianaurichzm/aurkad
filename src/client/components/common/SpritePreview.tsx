@@ -10,6 +10,9 @@ interface SpritePreviewProps {
   style?: React.CSSProperties;
   sheet?: HTMLCanvasElement;
   tileSize?: number;
+  /** Loops `spriteId .. spriteId + frames - 1` from `sheet`. */
+  frames?: number;
+  frameMs?: number;
 }
 
 export const SpritePreview: React.FC<SpritePreviewProps> = ({
@@ -18,6 +21,8 @@ export const SpritePreview: React.FC<SpritePreviewProps> = ({
   style,
   sheet,
   tileSize,
+  frames = 1,
+  frameMs = 100,
 }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
@@ -28,14 +33,20 @@ export const SpritePreview: React.FC<SpritePreviewProps> = ({
     if (!ctx) return;
 
     let frame = 0;
+    const start = performance.now();
     const draw = () => {
       ctx.clearRect(0, 0, size, size);
       if (sheet) {
         const ts = tileSize ?? TILE_SIZE;
         const tilesPerRow = Math.max(1, Math.floor(sheet.width / ts));
-        const sx = (spriteId % tilesPerRow) * ts;
-        const sy = Math.floor(spriteId / tilesPerRow) * ts;
+        const id =
+          spriteId +
+          (Math.floor((performance.now() - start) / frameMs) %
+            Math.max(1, frames));
+        const sx = (id % tilesPerRow) * ts;
+        const sy = Math.floor(id / tilesPerRow) * ts;
         ctx.drawImage(sheet, sx, sy, ts, ts, 0, 0, size, size);
+        if (frames > 1) frame = requestAnimationFrame(draw);
         return;
       }
       drawSpriteGeneric(ctx, spriteId, 0, 0, 0, 0, size, size);
@@ -46,7 +57,7 @@ export const SpritePreview: React.FC<SpritePreviewProps> = ({
     draw();
 
     return () => cancelAnimationFrame(frame);
-  }, [spriteId, size, sheet, tileSize]);
+  }, [spriteId, size, sheet, tileSize, frames, frameMs]);
 
   return (
     <canvas

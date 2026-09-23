@@ -9,6 +9,13 @@ const SpellSchema = new mongoose.Schema(
     mpCost: { type: Number, required: true, min: 0, default: 0 },
     damage: { type: Number, required: true, min: 0, default: 0 },
     cooldownMs: { type: Number, required: true, min: 0, default: 0 },
+    target: {
+      type: String,
+      enum: ['enemies', 'self', 'party', 'guild'],
+      default: 'enemies',
+    },
+    heal: { type: Number, min: 0, default: 0 },
+    frames: { type: Number, min: 1, default: 1 },
     visualTarget: { type: String, enum: ['self', 'targets'], default: 'self' },
   },
   { _id: false },

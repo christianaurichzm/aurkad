@@ -512,7 +512,7 @@ command(
 //   getPlayers()                   → PlayerServer[]
 //   sendMessage(player, text)      private message
 //   broadcastMessage(text)         all players
-//   healPlayer(player)             full health
+//   healPlayer(player[, amount])   heal amount HP, or to full
 //   killPlayer(player)             kill + respawn
 //   teleportPlayer(p, mapId, col, row)
 //   giveItem(player, itemId, qty)

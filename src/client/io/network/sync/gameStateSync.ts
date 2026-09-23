@@ -69,8 +69,13 @@ onServerEvent('projectile:fire', (payload) => {
 });
 
 onServerEvent('spell:visual', (payload) => {
-  const p = payload as { x: number; y: number; sprite: number };
-  spawnSpellEffect(p.x, p.y, p.sprite ?? 0);
+  const p = payload as {
+    x: number;
+    y: number;
+    sprite: number;
+    frames?: number;
+  };
+  spawnSpellEffect(p.x, p.y, p.sprite ?? 0, p.frames ?? 1);
   playSound('magiceffect.mp3', { x: p.x, y: p.y });
 });
 

@@ -92,8 +92,8 @@ const BOTTOM = 12;
 const HOTBAR_COLORS = {
   slot: 'rgba(12,16,24,0.35)',
   slotReady: 'rgba(56,189,248,0.9)',
-  // A spell that acts on the caster reads green and carries a cross, so the
-  // two kinds are told apart without relying on the colour alone.
+  // A spell aimed at friends (self, party, guild) reads green and carries a
+  // cross, so the kinds differ without relying on colour alone.
   slotReadySelf: 'rgba(74,222,128,0.9)',
   selfMark: '#4ade80',
   slotBlocked: 'rgba(120,130,150,0.45)',
@@ -112,14 +112,14 @@ function drawSlot(ctx, x, y, spell, index, now, mana) {
   ctx.fillStyle = HOTBAR_COLORS.slot;
   ctx.fillRect(x, y, SLOT, SLOT);
   ctx.strokeStyle = ready
-    ? spell.selfCast
+    ? spell.friendly
       ? HOTBAR_COLORS.slotReadySelf
       : HOTBAR_COLORS.slotReady
     : HOTBAR_COLORS.slotBlocked;
   ctx.lineWidth = ready ? 2 : 1;
   ctx.strokeRect(x + 0.5, y + 0.5, SLOT - 1, SLOT - 1);
 
-  if (spell.selfCast) {
+  if (spell.friendly) {
     ctx.fillStyle = ready ? HOTBAR_COLORS.selfMark : HOTBAR_COLORS.dim;
     ctx.font = 'bold 11px monospace';
     ctx.textAlign = 'right';

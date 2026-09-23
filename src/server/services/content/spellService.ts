@@ -15,6 +15,9 @@ export const SpellSchema = z.object({
   mpCost: z.number().int().nonnegative().default(0),
   damage: z.number().int().nonnegative().default(0),
   cooldownMs: z.number().int().nonnegative().default(0),
+  target: z.enum(['enemies', 'self', 'party', 'guild']).default('enemies'),
+  heal: z.number().int().nonnegative().default(0),
+  frames: z.number().int().min(1).default(1),
   visualTarget: z.enum(['self', 'targets']).default('self'),
 });
 
