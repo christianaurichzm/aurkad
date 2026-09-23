@@ -88,14 +88,13 @@ export const ScriptEditor: React.FC<{ height?: number }> = ({
   const t = useT();
   const [files, setFiles] = useState<ScriptFileInfo[]>([]);
   const [selected, setSelected] = useState<string | null>(null);
-  const [content, setContent] = useState('');
   const [savedContent, setSavedContent] = useState('');
+  const [dirty, setDirty] = useState(false);
   const [status, setStatus] = useState('');
   const [newName, setNewName] = useState('');
   const [errors, setErrors] = useState<ScriptError[]>([]);
   const [unavailable, setUnavailable] = useState(false);
   const editorRef = useRef<monaco.editor.IStandaloneCodeEditor | null>(null);
-  const dirty = content !== savedContent;
   const fileErrors = errors.filter((e) => e.script === selected);
 
   const refreshFiles = () =>
@@ -125,7 +124,7 @@ export const ScriptEditor: React.FC<{ height?: number }> = ({
 
   useEffect(() => {
     if (selected) applyRuntimeMarkers(selected, errors);
-  }, [selected, errors, content]);
+  }, [selected, errors, savedContent]);
 
   useEffect(() => {
     void refreshFiles();
@@ -154,17 +153,24 @@ export const ScriptEditor: React.FC<{ height?: number }> = ({
     }
     setStatus('');
     const text = await getScript(name);
+    // A file opened before keeps its model, discarded edits included;
+    // `defaultValue` only seeds a model the first time its path is seen.
+    modelFor(name)?.setValue(text);
     setSelected(name);
-    setContent(text);
     setSavedContent(text);
+    setDirty(false);
   };
 
   const save = async () => {
-    if (!selected) return;
-    const ok = await saveScript(selected, content);
-    setSavedContent(ok ? content : savedContent);
+    const editor = editorRef.current;
+    if (!selected || !editor) return;
+    const text = editor.getValue();
+    const ok = await saveScript(selected, text);
     setStatus(ok ? t('script.saved') : t('script.saveFailed'));
     if (!ok) return;
+    setSavedContent(text);
+    // Typing goes on while the request is in flight.
+    setDirty(editor.getValue() !== text);
     // A filesystem watcher drives the reload, so errors in what was just saved
     // land after the response; wait for them.
     window.setTimeout(() => void refreshErrors(), 400);
@@ -219,8 +225,8 @@ export const ScriptEditor: React.FC<{ height?: number }> = ({
     await deleteScript(name);
     if (selected === name) {
       setSelected(null);
-      setContent('');
       setSavedContent('');
+      setDirty(false);
     }
     await refreshFiles();
   };
@@ -288,12 +294,14 @@ export const ScriptEditor: React.FC<{ height?: number }> = ({
         </div>
         <div style={editorWrap}>
           {selected ? (
+            // No `value` prop: the wrapper writes it into the model from an
+            // effect, and a render trailing fast typing would undo keystrokes.
             <Editor
               path={`file:///scripts/${selected}`}
               defaultLanguage="javascript"
-              value={content}
+              defaultValue={savedContent}
               theme="vs-dark"
-              onChange={(v) => setContent(v ?? '')}
+              onChange={(v) => setDirty((v ?? '') !== savedContent)}
               onMount={handleMount}
               options={{ minimap: { enabled: false }, fontSize: 13 }}
             />

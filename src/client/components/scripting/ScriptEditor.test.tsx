@@ -1,5 +1,11 @@
 import { useEffect, useRef } from 'react';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import {
+  act,
+  render,
+  screen,
+  fireEvent,
+  waitFor,
+} from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mocks = vi.hoisted(() => ({
@@ -22,6 +28,38 @@ vi.mock('../../io/network', () => ({
   getScriptErrors: mocks.getScriptErrors,
 }));
 
+// Monaco's models, by path. Like the real ones they outlive a file switch, and
+// `defaultValue` only seeds a path the first time it is seen.
+const models = vi.hoisted(() => {
+  class Model {
+    value: string;
+    constructor(value: string) {
+      this.value = value;
+    }
+    getValue() {
+      return this.value;
+    }
+    setValue(value: string) {
+      this.value = value;
+    }
+    getLineCount() {
+      return this.value.split('\n').length;
+    }
+    getLineMaxColumn() {
+      return 1;
+    }
+  }
+  const byPath = new Map<string, Model>();
+  return {
+    get: (path: string) => byPath.get(path) ?? null,
+    open: (path: string, seed: string) => {
+      if (!byPath.has(path)) byPath.set(path, new Model(seed));
+      return byPath.get(path)!;
+    },
+    clear: () => byPath.clear(),
+  };
+});
+
 vi.mock('monaco-editor', () => ({
   languages: {
     typescript: {
@@ -34,7 +72,7 @@ vi.mock('monaco-editor', () => ({
   },
   editor: {
     getModels: () => [],
-    getModel: () => null,
+    getModel: (uri: string) => models.get(uri),
     setModelMarkers: vi.fn(),
   },
   Uri: { parse: (v: string) => v },
@@ -46,41 +84,57 @@ vi.mock('monaco-editor', () => ({
 // Holds the keybinding the component registers, so tests can fire it.
 const commands = vi.hoisted(() => ({ current: null as null | (() => void) }));
 
-// Stands in for the Monaco widget, which does not run in jsdom; a textarea
-// is enough to exercise ScriptEditor's own state. onMount fires once, as the
-// real editor does (switching files swaps the model, not the editor).
+// A textarea over the path's model stands in for Monaco, which does not run
+// in jsdom. Like the real editor it mounts once, reports edits from a native
+// listener, and writes a `value` prop into the model from an effect.
 vi.mock('@monaco-editor/react', () => ({
   __esModule: true,
   loader: { config: vi.fn() },
   default: function MockEditor({
+    path,
+    defaultValue,
     value,
     onChange,
     onMount,
   }: {
-    value: string;
+    path: string;
+    defaultValue?: string;
+    value?: string;
     onChange?: (v: string) => void;
     onMount?: (editor: unknown, monaco: unknown) => void;
   }) {
+    const model = models.open(path, defaultValue ?? value ?? '');
+    const latest = useRef({ model, onChange });
+    latest.current = { model, onChange };
+    const textarea = useRef<HTMLTextAreaElement>(null);
     const mounted = useRef(false);
     useEffect(() => {
       if (mounted.current) return;
       mounted.current = true;
+      const input = textarea.current!;
+      input.addEventListener('change', () => {
+        latest.current.model.setValue(input.value);
+        latest.current.onChange?.(input.value);
+      });
       onMount?.(
         {
           addCommand: (_key: number, handler: () => void) => {
             commands.current = handler;
           },
+          getValue: () => latest.current.model.getValue(),
         },
         {},
       );
     });
-    return (
-      <textarea
-        data-testid="editor"
-        value={value}
-        onChange={(e) => onChange?.(e.target.value)}
-      />
-    );
+    useEffect(() => {
+      if (value !== undefined && value !== model.getValue()) {
+        model.setValue(value);
+      }
+    }, [value, model]);
+    useEffect(() => {
+      textarea.current!.value = model.getValue();
+    });
+    return <textarea data-testid="editor" ref={textarea} />;
   },
 }));
 
@@ -89,6 +143,7 @@ import { ScriptEditor } from './ScriptEditor';
 beforeEach(() => {
   vi.clearAllMocks();
   commands.current = null;
+  models.clear();
   vi.spyOn(window, 'confirm').mockReturnValue(true);
   mocks.getScriptTypes.mockResolvedValue({ globalDts: '', contentDts: '' });
   mocks.getScriptErrors.mockResolvedValue([]);
@@ -236,6 +291,48 @@ describe('ScriptEditor', () => {
         'edited after mount',
       ),
     );
+  });
+
+  // Typing faster than React renders: a render that commits after the next
+  // key must not write over it.
+  it('keeps a keystroke that lands before the previous one has rendered', async () => {
+    mocks.getScript.mockResolvedValue('x');
+    render(<ScriptEditor />);
+
+    fireEvent.click(await screen.findByText('a.js'));
+    await waitFor(() => expect(screen.getByTestId('editor')).toHaveValue('x'));
+
+    const editor = screen.getByTestId<HTMLTextAreaElement>('editor');
+    const model = models.get('file:///scripts/a.js')!;
+    // Not fireEvent: its own act() would flush the render before the next key.
+    act(() => {
+      editor.value = 'xa';
+      editor.dispatchEvent(new Event('change'));
+      model.setValue('xab');
+    });
+
+    expect(model.getValue()).toBe('xab');
+  });
+
+  it('reloads a file from disk when it is opened again', async () => {
+    mocks.getScript
+      .mockResolvedValueOnce('a1')
+      .mockResolvedValueOnce('b')
+      .mockResolvedValueOnce('a2');
+    render(<ScriptEditor />);
+
+    fireEvent.click(await screen.findByText('a.js'));
+    await waitFor(() => expect(screen.getByTestId('editor')).toHaveValue('a1'));
+    fireEvent.change(screen.getByTestId('editor'), {
+      target: { value: 'discarded' },
+    });
+
+    fireEvent.click(screen.getByText('b.js'));
+    await waitFor(() => expect(screen.getByTestId('editor')).toHaveValue('b'));
+    expect(window.confirm).toHaveBeenCalledTimes(1);
+
+    fireEvent.click(screen.getByText('a.js'));
+    await waitFor(() => expect(screen.getByTestId('editor')).toHaveValue('a2'));
   });
 });
 
