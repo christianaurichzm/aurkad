@@ -6,7 +6,12 @@ import { playersWsMap } from './connections.js';
 import { config } from '../config.js';
 import { createFixture, tile } from '../sim/simFixture.js';
 import { rebuildQuadtree } from '../spatial/spatialManager.js';
-import type { PlayerServer } from '../../shared/types.js';
+import {
+  createOrUpdateItem,
+  deleteItem,
+} from '../services/economy/inventoryService.js';
+import ItemModel from '../model/Item.js';
+import type { Item, PlayerCold, PlayerServer } from '../../shared/types.js';
 
 function fakeWs(bufferedAmount: number) {
   return {
@@ -236,5 +241,91 @@ describe('viewer cadence', () => {
     broadcastGameState();
 
     expect(ws.send).toHaveBeenCalled();
+  });
+});
+
+// Cold state carries each held item's whole definition, but what decides a
+// resend compares only ids and quantities, so a catalogue edit has to reach
+// the holders some other way.
+describe('item definitions in cold state', () => {
+  const potion: Item = {
+    id: 1,
+    name: 'Health Potion',
+    description: '',
+    sprite: 0,
+    type: 'consumable',
+  };
+  const sword: Item = {
+    id: 2,
+    name: 'Sword',
+    description: '',
+    sprite: 0,
+    type: 'weapon',
+  };
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+    resetPlayerNetState('Bob');
+    resetEntityReplication();
+  });
+
+  function connect(name: string) {
+    const ws = fakeWs(0);
+    playersWsMap.set(name, ws as unknown as WebSocket);
+    return ws;
+  }
+
+  function statsSent(ws: ReturnType<typeof fakeWs>): PlayerCold[] {
+    return ws.send.mock.calls
+      .map(
+        (c) =>
+          JSON.parse(String(c[0])) as { type: string; payload: PlayerCold },
+      )
+      .filter((m) => m.type === 'playerStats')
+      .map((m) => m.payload);
+  }
+
+  it('resends to holders of an edited item, and only to them', async () => {
+    vi.spyOn(ItemModel, 'findOneAndUpdate').mockResolvedValue(null);
+    const sim = createFixture(0);
+    sim.addItem(potion);
+    sim.addItem(sword);
+    sim.addPlayer({
+      name: 'Alice',
+      inventory: { items: [{ item: 1, quantity: 3 }], maxCapacity: 10 },
+    });
+    sim.addPlayer({
+      name: 'Bob',
+      inventory: { items: [{ item: 2, quantity: 1 }], maxCapacity: 10 },
+    });
+    rebuildQuadtree(sim.mapId, sim.map);
+    const alice = connect('Alice');
+    const bob = connect('Bob');
+    broadcastGameState();
+
+    await createOrUpdateItem({ ...potion, name: 'Aurora Elixir' });
+    broadcastGameState();
+
+    expect(statsSent(alice).at(-1)?.inventory[0]?.item.name).toBe(
+      'Aurora Elixir',
+    );
+    expect(statsSent(bob)).toHaveLength(1);
+  });
+
+  it('resends to a player wearing a deleted item', async () => {
+    vi.spyOn(ItemModel, 'deleteOne').mockResolvedValue(null as never);
+    const sim = createFixture(0);
+    sim.addItem(sword);
+    sim.addPlayer({ name: 'Alice', equipped: { weapon: 2 } });
+    rebuildQuadtree(sim.mapId, sim.map);
+    const alice = connect('Alice');
+    broadcastGameState();
+
+    await deleteItem(2);
+    broadcastGameState();
+
+    const sent = statsSent(alice);
+    expect(sent).toHaveLength(2);
+    expect(sent[1]?.equipped.weapon).toBeUndefined();
   });
 });

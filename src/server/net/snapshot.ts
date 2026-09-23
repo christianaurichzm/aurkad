@@ -28,6 +28,7 @@ import {
 import { queryEntitiesInRect } from '../spatial/spatialManager.js';
 import {
   type ColdSnapshot,
+  coldSnapshotHolds,
   createColdSnapshot,
   updateColdSnapshot,
   toPlayerCold,
@@ -106,6 +107,18 @@ export function resetPlayerNetState(name: string) {
   lastSentSelf.delete(name);
   playerChunkState.delete(name);
   playerInterestSets.delete(name);
+}
+
+/**
+ * Drops the cold state cached for every viewer last sent `itemId`, so the next
+ * tick resends it with the item's current definition. The snapshot compares
+ * held ids and quantities, never what an item is, so an edit or deletion in
+ * the catalogue is invisible to it.
+ */
+export function forgetSentItem(itemId: number) {
+  for (const [name, snapshot] of lastSentPlayerCold) {
+    if (coldSnapshotHolds(snapshot, itemId)) lastSentPlayerCold.delete(name);
+  }
 }
 
 /**

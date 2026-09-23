@@ -15,6 +15,7 @@ import { emit } from '../../engine/hooks.js';
 import { dispatchEntityScript } from '../../engine/scripting/entityScripts.js';
 import { addItem, canFit, removeItem } from './economyService.js';
 import { sweepUnclaimableDeliveries } from './deliveryService.js';
+import { forgetSentItem } from '../../net/snapshot.js';
 
 export function getItemById(id: number): Item | null {
   return items.get(id) ?? null;
@@ -52,11 +53,13 @@ export async function createOrUpdateItem(
     { upsert: true },
   );
   items.set(id, { ...item, id });
+  forgetSentItem(id);
 }
 
 export async function deleteItem(id: number): Promise<void> {
   await ItemModel.deleteOne({ id });
   items.delete(id);
+  forgetSentItem(id);
   // Anything queued for delivery of this item just became unclaimable, and the
   // recipient cannot get rid of it either. Here rather than in the route: this
   // is the funnel every deletion crosses.

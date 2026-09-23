@@ -575,6 +575,17 @@ export function updateColdSnapshot(
   return changed;
 }
 
+/** Whether `snapshot` last recorded `itemId` in the inventory or equipped. */
+export function coldSnapshotHolds(
+  snapshot: ColdSnapshot,
+  itemId: number,
+): boolean {
+  for (let i = 0; i < snapshot.inventoryLength; i++) {
+    if (snapshot.inventory[i * 2] === itemId) return true;
+  }
+  return snapshot.equipped.includes(itemId);
+}
+
 export function enrichPlayer(player: PlayerServer): Player {
   return {
     ...toPlayerCold(player),
