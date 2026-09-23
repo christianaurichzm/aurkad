@@ -360,14 +360,18 @@ export function toPlayerHot(player: PlayerServer): PlayerHot {
 }
 
 export function toPlayerCold(player: PlayerServer): PlayerCold {
-  const inventory: InventoryItemDetailed[] = (
-    player.inventory?.items ?? []
-  ).map((entry) => {
+  // An id the catalogue no longer has (deleted in the editor, lost to a
+  // restore, skipped at boot as malformed) is left out, never thrown on or
+  // dropped: every stats payload, login and purchase crosses here, and the
+  // entry itself survives, so recreating the item under that id returns it to
+  // whoever held it.
+  // The hidden entry still takes an inventory slot the player cannot
+  // see or empty; strip holders in deleteItem if that starts to matter.
+  const inventory: InventoryItemDetailed[] = [];
+  for (const entry of player.inventory?.items ?? []) {
     const item = getItemById(entry.item);
-
-    if (!item) throw new Error(`Item ${entry.item} not found`);
-    return { item, quantity: entry.quantity };
-  });
+    if (item) inventory.push({ item, quantity: entry.quantity });
+  }
 
   const equippedSource = player.equipped ?? {};
   const equipped: EquippedItemsDetailed = {};

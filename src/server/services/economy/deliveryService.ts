@@ -316,8 +316,8 @@ export async function claimDeliveries(
     }
 
     // An item deleted from the catalogue after the row was queued would put an
-    // unresolvable entry in the inventory, which then throws while building the
-    // player's stats payload.
+    // entry in the inventory that the stats payload leaves out, taking a slot
+    // the player can neither see nor empty.
     if (!getItemById(row.itemId)) {
       outcomes.push({ id: row.id, ok: false, reason: 'unknown-item' });
       continue;

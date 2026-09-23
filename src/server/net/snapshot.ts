@@ -234,9 +234,8 @@ function sendPlayerStatsIfNeeded(player: PlayerServer, ws: WebSocket) {
     );
   } catch (err) {
     // The snapshot already advanced, so leaving it would mean never retrying:
-    // the client would be stuck on whatever it last received. `toPlayerCold`
-    // throws for real (an inventory entry whose item was deleted), so this is
-    // not just defensive. Drop it and let the next tick rebuild in full.
+    // the client would be stuck on whatever it last received. Drop it and let
+    // the next tick rebuild in full.
     lastSentPlayerCold.delete(player.name);
     throw err;
   }

@@ -11,6 +11,7 @@ import {
   deleteItem,
 } from '../services/economy/inventoryService.js';
 import ItemModel from '../model/Item.js';
+import DeliveryModel from '../model/Delivery.js';
 import type { Item, PlayerCold, PlayerServer } from '../../shared/types.js';
 
 function fakeWs(bufferedAmount: number) {
@@ -327,5 +328,40 @@ describe('item definitions in cold state', () => {
     const sent = statsSent(alice);
     expect(sent).toHaveLength(2);
     expect(sent[1]?.equipped.weapon).toBeUndefined();
+  });
+
+  it('keeps serving a player carrying a deleted item', async () => {
+    vi.spyOn(ItemModel, 'deleteOne').mockResolvedValue(null as never);
+    vi.spyOn(DeliveryModel, 'deleteMany').mockResolvedValue({
+      deletedCount: 0,
+    } as never);
+    const sim = createFixture(0);
+    sim.addItem(potion);
+    sim.addItem(sword);
+    const player = sim.addPlayer({
+      name: 'Alice',
+      inventory: {
+        items: [
+          { item: 1, quantity: 3 },
+          { item: 2, quantity: 1 },
+        ],
+        maxCapacity: 10,
+      },
+    });
+    rebuildQuadtree(sim.mapId, sim.map);
+    const alice = connect('Alice');
+    broadcastGameState();
+
+    await deleteItem(2);
+    // Gives `self` news, so a healthy tick owes Alice a world update.
+    player.position.x += 1;
+    alice.send.mockClear();
+    broadcastGameState();
+
+    const types = alice.send.mock.calls.map(
+      (c) => (JSON.parse(String(c[0])) as { type: string }).type,
+    );
+    expect(types).toContain('worldUpdate');
+    expect(statsSent(alice)[0]?.inventory.map((e) => e.item.id)).toEqual([1]);
   });
 });
