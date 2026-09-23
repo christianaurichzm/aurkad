@@ -46,6 +46,12 @@ export const useDraggable = (initialX = 0, initialY = 0) => {
     pointerId: number | null,
   ) => {
     if (!node.current || isInteractiveTarget(target)) return false;
+    if (
+      window.matchMedia(
+        '(max-width: 700px), (pointer: coarse) and (max-height: 600px)',
+      ).matches
+    )
+      return false;
     const rect = node.current.getBoundingClientRect();
     dragRef.current = {
       dragging: true,

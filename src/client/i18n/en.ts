@@ -44,7 +44,6 @@ export const en = {
   'hud.level': 'Level {level}',
   'hud.hp': 'HP',
   'hud.xp': 'XP {current}/{max}',
-  'hud.attackCooldown': 'Attack cooldown',
   'hud.disconnected': 'Disconnected',
 
   // Actions menu
@@ -576,16 +575,17 @@ export const en = {
   'twofa.lockedOut':
     'Lost the phone and the codes? Another admin runs: twofactor <name> off',
 
-  'hud.atk': 'ATK',
-
   'app.brand': 'AURKAD',
-  'app.dimension': '2D',
-  'app.workspace': 'Workspace',
-  'actions.modules': 'Game modules',
+  'actions.modules': 'Adventures & social',
   'actions.tools': 'Creator tools',
   'common.select': 'Select…',
   'common.close': 'Close',
   'app.gameMap': 'Game map',
+  'app.menu': 'Menu',
+  'app.expandPanel': 'Open game menu',
+  'app.collapsePanel': 'Close game menu',
+  'hud.mp': 'MP',
+  'hud.mana': 'Mana',
   'app.gameControls': 'Game controls',
 
   // On-screen pad labels, for screen readers; the glyphs say nothing to them.

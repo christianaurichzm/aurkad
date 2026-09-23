@@ -150,18 +150,138 @@ test('register, log in, move, and attack over the real stack', async ({
   // change the position.
   expect(moved.position.y).toBeGreaterThan(start.position.y);
 
-  // Attack. Same idea: the HUD cooldown below is client-side and fires
-  // without waiting for anyone, so the server echoing Attack is what
-  // separates "the client thinks it attacked" from "it attacked".
+  // The server echoing Attack proves the attack happened, not just the
+  // client thinking it did.
   const attackedPromise = self.waitUntil(
     'the attack to be applied',
     (s) => s.action === 'Attack',
   );
   await page.keyboard.down('Control');
   await attackedPromise;
-  await expect(page.locator('#atk-cooldown-container')).toBeVisible();
   await page.keyboard.up('Control');
 
   // The connection survived all of it, which is the point of a smoke test.
   expect(ws.isClosed()).toBe(false);
+
+  // A desktop keeps the card and the menu in a column beside the world, with
+  // nothing to toggle; the sheet and its toggle are the touch test's.
+  await expect(page.locator('#hud')).toBeVisible();
+  await expect(page.locator('#sidePanel')).toBeVisible();
+  await expect(page.locator('.panel-toggle')).toBeHidden();
+});
+
+test.describe('touch layout', () => {
+  test.use({
+    viewport: { width: 390, height: 844 },
+    isMobile: true,
+    hasTouch: true,
+  });
+
+  test('fits player panels and changes direction without lifting the thumb', async ({
+    page,
+  }) => {
+    const errors: string[] = [];
+    page.on('pageerror', (error) => errors.push(error.message));
+    const { ws } = await registerAndLogin(
+      page,
+      uniqueUsername(),
+      'e2e-password',
+    );
+    await expect(page.getByRole('progressbar', { name: 'Mana' })).toBeVisible();
+    await page.getByRole('button', { name: 'Settings', exact: true }).click();
+    const settings = page.getByRole('dialog', { name: 'Settings' });
+    await expect(settings).toBeVisible();
+    expect(await settings.boundingBox()).toEqual({
+      x: 0,
+      y: 0,
+      width: 390,
+      height: 844,
+    });
+    await settings.getByRole('button', { name: 'Close', exact: true }).click();
+    await page.getByRole('button', { name: 'Open game menu' }).click();
+    await page.getByRole('button', { name: /inventory/i }).click();
+    const inventory = page.getByRole('dialog', {
+      name: 'Inventory',
+      exact: true,
+    });
+    await expect(inventory).toBeVisible();
+    expect(await inventory.boundingBox()).toEqual({
+      x: 0,
+      y: 0,
+      width: 390,
+      height: 844,
+    });
+    await inventory.getByRole('button', { name: 'Close', exact: true }).click();
+    await page.getByRole('button', { name: /Spells/ }).click();
+    const spells = page.getByRole('dialog', { name: 'Spells', exact: true });
+    await expect(spells).toBeVisible();
+    expect(await spells.boundingBox()).toEqual({
+      x: 0,
+      y: 0,
+      width: 390,
+      height: 844,
+    });
+    await spells.getByRole('button', { name: 'Close', exact: true }).click();
+    await page.getByRole('button', { name: 'Close game menu' }).click();
+
+    const actions: Array<{ key: string; type: string }> = [];
+    ws.on('framesent', (frame) => {
+      if (typeof frame.payload !== 'string') return;
+      const msg = JSON.parse(frame.payload) as {
+        type: string;
+        keyboardAction?: { key: string; type: string };
+      };
+      if (msg.type === 'keyboard' && msg.keyboardAction)
+        actions.push(msg.keyboardAction);
+    });
+    const up = page.getByRole('button', { name: 'Move up', exact: true });
+    const right = page.getByRole('button', { name: 'Move right', exact: true });
+    const upBox = (await up.boundingBox())!;
+    const rightBox = (await right.boundingBox())!;
+    const touch = await page.context().newCDPSession(page);
+    await touch.send('Input.dispatchTouchEvent', {
+      type: 'touchStart',
+      touchPoints: [
+        { x: upBox.x + upBox.width / 2, y: upBox.y + upBox.height / 2, id: 1 },
+      ],
+    });
+    await expect(up).toHaveAttribute('aria-pressed', 'true');
+    await touch.send('Input.dispatchTouchEvent', {
+      type: 'touchMove',
+      touchPoints: [
+        {
+          x: rightBox.x + rightBox.width / 2,
+          y: rightBox.y + rightBox.height / 2,
+          id: 1,
+        },
+      ],
+    });
+    await expect(right).toHaveAttribute('aria-pressed', 'true');
+    await touch.send('Input.dispatchTouchEvent', {
+      type: 'touchEnd',
+      touchPoints: [],
+    });
+    await expect(right).toHaveAttribute('aria-pressed', 'false');
+    await expect
+      .poll(() => actions)
+      .toEqual([
+        { key: 'ArrowUp', type: 'press' },
+        { key: 'ArrowUp', type: 'release' },
+        { key: 'ArrowRight', type: 'press' },
+        { key: 'ArrowRight', type: 'release' },
+      ]);
+
+    await page.setViewportSize({ width: 844, height: 390 });
+    await page.getByRole('button', { name: 'Settings', exact: true }).click();
+    expect(await settings.boundingBox()).toEqual({
+      x: 0,
+      y: 0,
+      width: 844,
+      height: 390,
+    });
+    expect(
+      await page.evaluate(() => document.documentElement.scrollWidth),
+    ).toBe(844);
+    expect(errors).toEqual([]);
+  });
 });

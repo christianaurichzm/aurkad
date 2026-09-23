@@ -1,4 +1,3 @@
-import { colors } from '../theme';
 import { useLayoutEffect, useRef } from 'react';
 import { initializeAssets } from '../io/assets';
 import { handleInput } from '../io/keyboard';
@@ -18,7 +17,6 @@ import { useUIStore } from '../stores/uiStore';
 export const GameInterface = () => {
   const { map: initialMap, player } = useGame();
   const initialized = useRef(false);
-  const currentMap = useUIStore((state) => state.currentMap);
 
   useLayoutEffect(() => {
     if (!initialMap || !player || initialized.current) return;
@@ -87,20 +85,5 @@ export const GameInterface = () => {
     void init();
   }, [initialMap, player]);
 
-  return (
-    <>
-      <ConnectionStatus />
-      <div id="gameInfo">
-        <p
-          id="currentMapName"
-          style={{
-            color: currentMap?.type === 'normal' ? colors.text : colors.warning,
-          }}
-        >
-          {currentMap?.id} - {currentMap?.name || 'Loading Map...'}
-        </p>
-        <div id="gameArea"></div>
-      </div>
-    </>
-  );
+  return <ConnectionStatus />;
 };

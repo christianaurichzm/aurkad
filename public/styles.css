@@ -62,7 +62,7 @@ body {
   font-size: 13px;
   -webkit-font-smoothing: antialiased;
   overflow: hidden;
-  height: 100vh;
+  height: 100dvh;
   width: 100vw;
   margin: 0;
   background: var(--color-app-bg);
@@ -92,16 +92,24 @@ body {
 }
 
 #gameShell {
+  position: relative;
+  container-type: size;
   width: 100%;
   flex: 1;
   min-height: 0;
   display: grid;
-  /* The panel follows the window instead of standing at 336px: on a laptop it
-     gives width back to the world, on a wide screen it stops the chat from
-     becoming a column of air. */
-  grid-template-columns: minmax(0, 1fr) clamp(296px, 23vw, 380px);
-  gap: 6px;
-  padding: 6px;
+  /* The world is 1280x896, so a landscape screen runs out of height first:
+     the player card and menu take a column beside it, out of width that the
+     world could not have used, and nothing is drawn over the map. */
+  grid-template-columns: minmax(0, 1fr) 320px;
+  grid-template-rows: auto minmax(0, 1fr);
+  grid-template-areas:
+    'main bar'
+    'main panel';
+  gap: 10px;
+  padding: max(10px, env(safe-area-inset-top))
+    max(10px, env(safe-area-inset-right)) max(10px, env(safe-area-inset-bottom))
+    max(10px, env(safe-area-inset-left));
 }
 
 #gameMain {
@@ -119,12 +127,7 @@ body {
      rather than against the window, which is a different number on a phone in
      landscape than the world it letterboxes into. */
   container: gameframe / size;
-  /* Fills its column. The old ceiling was the canvas's own 1280x896 backing
-     store, which left 256px of dead board either side of a 1080p screen to
-     avoid scaling up - but the same canvas is already scaled *down* on any
-     laptop, so 1:1 was never the rule, only the best case. The remaining cap
-     keeps a very wide screen from blowing the sprites up past legibility. */
-  width: min(100%, 1920px, calc((100dvh - 110px) * 1.42857));
+  width: min(100cqw, calc(100cqh * 1280 / 896));
   aspect-ratio: 1280 / 896;
   border: 1px solid rgba(0, 0, 0, 0.6);
   border-radius: 4px;
@@ -388,35 +391,6 @@ body {
   transform: translate(-50%, -50%);
   font-weight: bold;
   text-shadow: 1px 1px 2px #000;
-}
-
-#atk-cooldown-container {
-  width: 100%;
-  height: 6px;
-  background: rgba(0, 0, 0, 0.45);
-  border: 1px solid rgba(0, 0, 0, 0.55);
-  border-radius: 3px;
-  position: relative;
-  overflow: hidden;
-}
-
-#atk-cooldown-bar {
-  height: 100%;
-  background: #e05;
-  position: absolute;
-  top: 0;
-  left: 0;
-}
-
-#atk-cooldown-label {
-  position: absolute;
-  right: 4px;
-  top: 50%;
-  transform: translateY(-50%);
-  font-size: 8px;
-  color: rgba(255, 255, 255, 0.7);
-  font-weight: bold;
-  line-height: 1;
 }
 
 #connection-status {
@@ -713,53 +687,6 @@ body {
   right: 15px;
 }
 
-#gameInfo {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  pointer-events: none;
-  z-index: var(--z-game-overlay);
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-}
-
-/* Top left, not top centre: the middle of the top edge is where the player
-   walks and where the connection notice appears, and the two used to stack. */
-#currentMapName {
-  position: absolute;
-  top: 10px;
-  left: 10px;
-  margin: 0;
-  max-width: calc(100% - 32px);
-  padding: 5px 10px;
-  background: rgba(12, 14, 18, 0.55);
-  color: #fff;
-  border: 1px solid rgba(255, 255, 255, 0.16);
-  border-radius: 6px;
-  font-size: 12px;
-  font-weight: 700;
-  letter-spacing: 0.02em;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-#gameArea {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  display: flex;
-  justify-content: flex-end;
-  align-items: flex-start;
-  padding: 15px;
-  pointer-events: none;
-}
-
 /* The keyboard a phone does not have, drawn over the bottom of the frame.
    Hidden unless the primary pointer is a finger: a mouse already has the
    arrow keys, and a pad sitting over the world would only cover it.
@@ -770,14 +697,7 @@ body {
 
 @media (pointer: coarse) {
   #touchControls {
-    /* Two declarations on purpose: the second wins wherever container queries
-       exist, and a browser without them keeps the first rather than losing the
-       variable and collapsing the buttons to nothing. */
-    --touch-button: 44px;
-    /* A share of the world it sits on, so it takes the same bite out of the
-       view upright and sideways. The floor is roughly the smallest target a
-       thumb hits without looking. */
-    --touch-button: clamp(38px, 11cqh, 46px);
+    --touch-button: clamp(40px, 10dvh, 46px);
     position: absolute;
     left: 0;
     right: 0;
@@ -792,6 +712,9 @@ body {
   }
 
   .touch-dpad {
+    pointer-events: auto;
+    touch-action: none;
+    user-select: none;
     display: grid;
     grid-template-columns: repeat(3, var(--touch-button));
     grid-template-rows: repeat(3, var(--touch-button));
@@ -841,144 +764,14 @@ body {
     cursor: pointer;
   }
 
-  .touch-button:active {
+  .touch-button:active,
+  .touch-button[aria-pressed='true'] {
     background: rgba(56, 111, 206, 0.4);
   }
 
   .touch-attack {
     background: rgba(56, 111, 206, 0.28);
     border-color: rgba(56, 111, 206, 0.5);
-  }
-}
-
-@media (max-width: 1100px) {
-  #gameShell {
-    grid-template-columns: 1fr;
-    grid-template-rows: minmax(0, 1fr) minmax(220px, 34vh);
-  }
-
-  #canvasFrame {
-    width: min(100%, 1920px, calc(94.286vh - 46px));
-  }
-
-  #sidePanel {
-    display: grid;
-    grid-template-columns: minmax(220px, 280px) minmax(0, 1fr);
-    grid-template-rows: auto minmax(0, 1fr);
-  }
-
-  #hud {
-    grid-column: 1;
-  }
-
-  #actionPanel {
-    grid-column: 1;
-    grid-row: 2;
-  }
-
-  #chatContainer {
-    grid-column: 2;
-    grid-row: 1 / span 2;
-  }
-}
-
-@media (max-width: 768px) {
-  body {
-    overflow: auto;
-  }
-
-  #ui {
-    min-height: 100vh;
-    overflow: auto;
-  }
-
-  #gameShell {
-    min-height: 100vh;
-    height: auto;
-    padding: 10px;
-    gap: 10px;
-    grid-template-rows: auto auto;
-  }
-
-  /* No floor under the frame: its height follows the 1280x896 aspect at the
-     width the phone gives it, and a taller box only added a band of black
-     between the world and the panel under it. */
-  #gameMain {
-    min-height: 0;
-  }
-
-  #canvasFrame {
-    width: 100%;
-    max-height: none;
-  }
-
-  #sidePanel {
-    display: flex;
-  }
-
-  .editor-menu {
-    width: 95vw;
-  }
-  #chatContainer {
-    width: 100%;
-  }
-  #hud {
-    top: auto;
-    left: auto;
-  }
-  #gameArea {
-    padding: 10px;
-  }
-  .inventory {
-    display: none;
-  }
-}
-
-/* A phone held sideways: the way a touch player actually holds it, and the
-   stacked layout above leaves the world a letterbox strip with the pad hanging
-   off the bottom of it. Back to the two-column split, which is what a short
-   wide viewport wants - the world takes the full height, the panel becomes a
-   narrow column that scrolls. Keyed on height rather than a device, because
-   what breaks the stack is vertical room. */
-@media (orientation: landscape) and (max-height: 560px) {
-  body {
-    overflow: hidden;
-    height: 100vh;
-    /* The dynamic unit, because this is the one layout that fills the screen
-       on a phone: 100vh there is the viewport with the address bar hidden, so
-       the panel would sit under it until the player scrolled. */
-    height: 100dvh;
-  }
-
-  #ui {
-    overflow: hidden;
-    height: 100%;
-    min-height: 0;
-  }
-
-  #gameShell {
-    height: 100%;
-    min-height: 0;
-    padding: 8px;
-    gap: 8px;
-    grid-template-columns: minmax(0, 1fr) clamp(190px, 30vw, 300px);
-    grid-template-rows: minmax(0, 1fr);
-  }
-
-  #gameMain {
-    min-height: 0;
-  }
-
-  #canvasFrame {
-    width: min(100%, calc((100dvh - 80px) * 1.42857));
-    max-height: none;
-  }
-
-  #sidePanel {
-    display: flex;
-    padding: 10px;
-    gap: 8px;
-    overflow-y: auto;
   }
 }
 
@@ -1039,16 +832,6 @@ body {
   color: var(--color-info);
 }
 
-.workspace-header {
-  display: flex;
-  align-items: center;
-  gap: 20px;
-  min-height: 44px;
-  padding: 0 16px;
-  border-bottom: 1px solid var(--color-border);
-  background: var(--color-surface);
-  flex-shrink: 0;
-}
 .engine-brand {
   display: flex;
   align-items: center;
@@ -1062,46 +845,15 @@ body {
   width: 24px;
   height: 24px;
 }
-.workspace-context {
-  color: var(--color-text-muted);
-  border-left: 1px solid var(--color-border);
-  padding-left: 20px;
-}
-.workspace-mode {
-  margin-left: auto;
-  color: var(--color-info);
-  font-size: 12px;
-}
 #gameMain {
+  grid-area: main;
+  position: relative;
   flex-direction: column;
-  border: 1px solid var(--color-border);
-  border-radius: 4px;
-  background: var(--color-app-bg);
-}
-.viewport-title {
-  align-self: stretch;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  min-height: 34px;
-  padding: 0 12px;
-  background: var(--color-surface);
-  border-bottom: 1px solid var(--color-border);
-  color: var(--color-text-muted);
-  font-size: 12px;
-}
-.viewport-title > span:last-child {
-  margin-left: auto;
-  font-family: monospace;
-  font-size: 11px;
-}
-.viewport-indicator {
-  width: 7px;
-  height: 7px;
-  border-radius: 2px;
-  background: var(--color-info);
+  border-radius: 10px;
+  background: radial-gradient(ellipse at center, #1b2a30, #101519 80%);
 }
 .viewport-stage {
+  container-type: size;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1109,16 +861,10 @@ body {
   width: 100%;
   flex: 1;
   overflow: hidden;
-  padding: 6px;
-  background-image: radial-gradient(
-    var(--color-border) 0.7px,
-    transparent 0.7px
-  );
-  background-size: 16px 16px;
 }
 #canvasFrame {
-  box-shadow: 0 2px 16px #0006;
-  border-radius: 2px;
+  box-shadow: 0 2px 24px #0008;
+  border-radius: 4px;
 }
 #sidePanel,
 #hud,
@@ -1293,14 +1039,6 @@ body {
 }
 
 @media (max-width: 640px) {
-  .workspace-header {
-    min-height: 38px;
-    gap: 10px;
-    padding: 0 10px;
-  }
-  .workspace-context {
-    display: none;
-  }
   .content-workspace {
     grid-template-columns: minmax(0, 1fr);
     gap: 14px;
@@ -1329,6 +1067,346 @@ body {
     padding: 24px;
   }
 }
+#sidePanel {
+  grid-area: panel;
+}
+#playerBar {
+  grid-area: bar;
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  min-width: 0;
+}
+#map-name {
+  position: absolute;
+  top: 8px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: var(--z-game-overlay);
+  max-width: 40%;
+  padding: 3px 12px;
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.45);
+  color: rgba(255, 255, 255, 0.9);
+  font-size: 12px;
+  font-weight: 600;
+  text-shadow: 1px 1px 2px #000;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  pointer-events: none;
+}
+#map-name.map-name-pvp {
+  color: var(--color-warning);
+}
+#playerBar #hud {
+  flex: 1;
+  min-width: 0;
+  position: relative;
+  overflow: hidden;
+  padding: 10px 12px;
+  background: linear-gradient(135deg, #243139, #192127);
+  border-color: #3e515b;
+  border-radius: 10px;
+}
+#status-bar:empty {
+  display: none;
+}
+#hud-row,
+.hud-resource-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.hud-resource-label {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--color-info);
+}
+.hud-resource-values {
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.mana-track {
+  position: relative;
+  height: 12px;
+  flex: 1;
+  min-width: 0;
+  border-radius: 3px;
+  overflow: hidden;
+  background: #0c192c;
+}
+.mana-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #3977d6, #8bcaff);
+  transition: width 0.2s ease;
+}
+.mana-text {
+  position: absolute;
+  inset: 0;
+  text-align: center;
+  font-size: 10px;
+  line-height: 12px;
+  font-variant-numeric: tabular-nums;
+  color: white;
+  font-weight: bold;
+  text-shadow: 1px 1px 2px #000;
+}
+.player-controls {
+  display: flex;
+  gap: 8px;
+  flex-shrink: 0;
+}
+.player-controls button {
+  min-height: 44px;
+  min-width: 44px;
+  border-radius: 8px;
+}
+.panel-toggle {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+.panel-toggle[aria-expanded='true'] {
+  background: var(--color-selected);
+  border-color: var(--color-info);
+}
+#sidePanel {
+  border-radius: 10px;
+}
+.creator-tools {
+  border-top: 1px solid var(--color-border);
+  margin-top: 4px;
+  padding-top: 10px;
+}
+.creator-tools summary {
+  color: var(--color-text-muted);
+  cursor: pointer;
+  padding: 8px 0;
+}
+.creator-tools[open] summary {
+  margin-bottom: 6px;
+}
+
+/* A small screen has no width to spare for the column: the menu becomes a
+   sheet over the world, opened on demand. */
+@media (max-width: 900px), (max-height: 500px) {
+  .panel-toggle {
+    display: flex;
+  }
+  #sidePanel {
+    position: fixed;
+    z-index: var(--z-panel);
+    top: max(108px, env(safe-area-inset-top));
+    right: max(10px, env(safe-area-inset-right));
+    bottom: max(10px, env(safe-area-inset-bottom));
+    width: min(340px, calc(100vw - 20px));
+    box-shadow: 0 12px 48px #000a;
+  }
+  #gameShell.panel-collapsed #sidePanel {
+    display: none;
+  }
+  .action-button {
+    min-height: 44px;
+  }
+}
+/* Upright, the height is what is spare: the card sits in a bar above the
+   world, which starts right under it. */
+@media (max-width: 900px) {
+  #gameShell {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-areas:
+      'bar'
+      'main';
+  }
+  #playerBar {
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+  }
+  #playerBar #hud {
+    flex: 0 1 480px;
+    display: grid;
+    grid-template-columns: minmax(100px, 150px) minmax(120px, 1fr);
+    align-items: center;
+    gap: 5px 16px;
+    padding: 8px 12px;
+  }
+  #hud-identity {
+    grid-column: 1;
+    grid-row: 1 / span 3;
+  }
+  #hud-row,
+  .hud-resource-row,
+  #xp-bar-container {
+    grid-column: 2;
+  }
+  #status-bar {
+    grid-column: 1 / -1;
+  }
+  .viewport-stage {
+    align-items: flex-start;
+  }
+}
+@media (max-width: 540px) {
+  #gameShell {
+    padding: max(6px, env(safe-area-inset-top)) 6px
+      max(6px, env(safe-area-inset-bottom));
+    gap: 6px;
+  }
+  #playerBar {
+    gap: 6px;
+  }
+  #playerBar #hud {
+    grid-template-columns: minmax(60px, 85px) minmax(80px, 1fr);
+    gap: 5px 8px;
+    padding: 8px;
+  }
+  #hud-identity {
+    gap: 4px;
+  }
+  #hud-identity > canvas {
+    display: none;
+  }
+  #hud-name {
+    font-size: 12px;
+  }
+  #hud-level {
+    font-size: 10px;
+    padding: 1px 3px;
+  }
+  .player-controls {
+    flex-direction: column;
+    gap: 4px;
+  }
+  .player-controls button {
+    padding: 4px 8px;
+  }
+  .panel-toggle > span:last-child {
+    display: none;
+  }
+}
+/* A phone on its side: no height for a bar and no width for a column, but
+   the world leaves a band either side of it. The card takes the left band and
+   the buttons the right, over the thumb pad's corners, and the map stays
+   clear. --band is that width, from the same min() that sizes #canvasFrame. */
+@media (max-height: 500px) and (orientation: landscape) {
+  #gameShell {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: minmax(0, 1fr);
+    grid-template-areas: 'main';
+  }
+  #playerBar {
+    --band: calc((100cqw - min(100cqw, 100cqh * 1280 / 896)) / 2 - 8px);
+    position: absolute;
+    z-index: var(--z-hud);
+    top: max(10px, env(safe-area-inset-top));
+    left: max(10px, env(safe-area-inset-left));
+    width: 100cqw;
+    justify-content: space-between;
+    pointer-events: none;
+  }
+  #playerBar > * {
+    pointer-events: auto;
+  }
+  #playerBar #hud {
+    display: flex;
+    align-items: stretch;
+    flex: 0 0 auto;
+    width: max(120px, var(--band));
+    gap: 4px;
+    padding: 6px 8px;
+  }
+  #hud-identity > canvas,
+  #hud-hp-values,
+  .hud-resource-values {
+    display: none;
+  }
+  .player-controls {
+    flex-direction: column;
+  }
+  .panel-toggle > span:last-child {
+    display: none;
+  }
+}
+@media (pointer: coarse) and (orientation: portrait) {
+  #touchControls {
+    position: static;
+    width: 100%;
+    flex-shrink: 0;
+    padding: 12px;
+  }
+}
+/* Inline geometry belongs to desktop dragging; mobile surfaces are anchored. */
+@media (max-width: 700px), (pointer: coarse) and (max-height: 600px) {
+  .editor-window,
+  .inventory-window,
+  .module-panel {
+    inset: 0 !important;
+    width: 100% !important;
+    max-width: none !important;
+    height: 100dvh !important;
+    max-height: 100dvh !important;
+    border-radius: 0 !important;
+    padding: env(safe-area-inset-top) env(safe-area-inset-right)
+      env(safe-area-inset-bottom) env(safe-area-inset-left);
+    background: var(--color-surface);
+  }
+  .inventory-panel {
+    width: 100% !important;
+    max-width: none !important;
+    flex: 1;
+    min-height: 0;
+    max-height: none !important;
+    border-radius: 0 !important;
+  }
+  .window-titlebar {
+    cursor: default !important;
+    touch-action: auto !important;
+  }
+  .window-close {
+    min-width: 44px;
+    min-height: 44px;
+    flex-shrink: 0;
+  }
+  .window-content {
+    padding: 16px;
+  }
+  .editor-window input,
+  .editor-window select,
+  .module-panel input,
+  #chatInput,
+  #chatScope {
+    font-size: 16px !important;
+  }
+  .ui-dialog-overlay {
+    align-items: flex-end !important;
+    padding: 0 !important;
+  }
+  #ui-dialog {
+    width: 100% !important;
+    max-height: 85dvh;
+    overflow: auto;
+    border-radius: 16px 16px 0 0 !important;
+    padding-bottom: max(20px, env(safe-area-inset-bottom)) !important;
+  }
+  #ui-dialog button {
+    min-height: 44px;
+  }
+  .inventory-drop-backdrop {
+    position: fixed !important;
+    align-items: flex-end !important;
+    padding: 0 !important;
+  }
+  .inventory-drop-sheet {
+    width: 100% !important;
+    border-radius: 16px 16px 0 0 !important;
+    padding-bottom: max(16px, env(safe-area-inset-bottom)) !important;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,

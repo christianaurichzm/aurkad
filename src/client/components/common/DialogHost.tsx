@@ -33,7 +33,7 @@ export const DialogHost: React.FC = () => {
         : colors.primary;
 
   return (
-    <div style={styles.overlay}>
+    <div className="ui-dialog-overlay" style={styles.overlay}>
       <section
         id="ui-dialog"
         tabIndex={-1}

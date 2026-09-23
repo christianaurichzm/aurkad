@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { ContentEditor } from './components/ContentEditor/ContentEditor';
 import { GameInterface } from './components/GameInterface';
-import { HudBar } from './components/HUD/HudBar';
+import { HudBar, MapName } from './components/HUD/HudBar';
 import { TouchControls } from './components/HUD/TouchControls';
 import { InventoryPanel } from './components/Inventory/InventoryPanel';
 import { Login } from './pages/Login';
@@ -25,6 +25,10 @@ function App() {
   const t = useT();
   const { isLoggedIn } = useGame();
   const [showRegister, setShowRegister] = useState(false);
+  // Only a small screen collapses the panel, opening it over the world, so
+  // it starts closed.
+  const [panelCollapsed, setPanelCollapsed] = useState(true);
+  const togglePanel = () => setPanelCollapsed((collapsed) => !collapsed);
   // A reset link arrives as `/?reset=<token>`, read once on mount and dropped
   // from the address bar when the screen closes.
   const [resetToken, setResetToken] = useState(() =>
@@ -40,38 +44,65 @@ function App() {
     <>
       {isLoggedIn ? (
         <div id="ui">
-          <header className="workspace-header">
-            <div className="engine-brand">
-              <img
-                src="/favicon.svg"
-                alt=""
-                width={24}
-                height={24}
-                aria-hidden="true"
-              />{' '}
-              {t('app.brand')}
-            </div>
-            <span className="workspace-context">{t('app.workspace')}</span>
-            <span className="workspace-mode">{t('app.gameMap')}</span>
-          </header>
-          <div id="gameShell">
+          <div
+            id="gameShell"
+            className={panelCollapsed ? 'panel-collapsed' : ''}
+          >
+            <header id="playerBar">
+              <HudBar />
+              <nav
+                className="player-controls"
+                aria-label={t('app.gameControls')}
+              >
+                <button
+                  type="button"
+                  onClick={() =>
+                    window.dispatchEvent(new Event('toggleSettings'))
+                  }
+                  aria-label={t('actions.settings')}
+                  title={t('actions.settings')}
+                >
+                  <svg
+                    aria-hidden="true"
+                    width="18"
+                    height="18"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                  >
+                    <circle cx="12" cy="12" r="6" />
+                    <circle cx="12" cy="12" r="2" />
+                    <path d="M12 2v4m0 12v4M2 12h4m12 0h4M5 5l3 3m8 8 3 3M5 19l3-3m8-8 3-3" />
+                  </svg>
+                </button>
+                <button
+                  type="button"
+                  className="panel-toggle"
+                  onClick={togglePanel}
+                  aria-expanded={!panelCollapsed}
+                  aria-controls="sidePanel"
+                  aria-label={t(
+                    panelCollapsed ? 'app.expandPanel' : 'app.collapsePanel',
+                  )}
+                >
+                  <span aria-hidden="true">{panelCollapsed ? '☰' : '×'}</span>
+                  <span>{t('app.menu')}</span>
+                </button>
+              </nav>
+            </header>
             <main id="gameMain" aria-label={t('app.gameMap')}>
-              <div className="viewport-title">
-                <span className="viewport-indicator" />
-                {t('app.gameMap')}
-                <span>{t('app.dimension')}</span>
-              </div>
               <div className="viewport-stage">
                 <div id="canvasFrame">
                   <GameCanvas />
                   <GameInterface />
+                  <MapName />
                   <QuestTracker />
-                  <TouchControls />
                 </div>
               </div>
+              <TouchControls />
             </main>
             <aside id="sidePanel" aria-label={t('app.gameControls')}>
-              <HudBar />
               <ActionPanel />
               <ChatPanel />
             </aside>

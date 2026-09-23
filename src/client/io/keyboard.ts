@@ -8,8 +8,6 @@ import {
 } from './network';
 import { getAnimatedState } from '../graphics/movementAnimation';
 import { getPlayer } from '../core/gameState';
-import { useUIStore } from '../stores/uiStore';
-import { PLAYER_ATTACK_COOLDOWN_MS } from '../../shared/constants';
 
 const isValidKey = (value: string): value is Key =>
   Object.values(Key).includes(value as Key);
@@ -65,9 +63,6 @@ function isLocalPlayerMoving(): boolean {
 const sendPress = (key: Key) => {
   const seq = ++inputSeq;
   sendAction({ type: 'keyboard', keyboardAction: { key, type: 'press' }, seq });
-  if (key === Key.Control) {
-    useUIStore.getState().setAttackCooldown(PLAYER_ATTACK_COOLDOWN_MS);
-  }
 };
 
 export function flushInputBuffer(): void {

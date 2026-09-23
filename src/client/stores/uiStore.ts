@@ -74,9 +74,6 @@ interface UIState {
   setChatScope: (scope: ChatScope) => void;
   clearChatInput: () => void;
 
-  attackCooldownUntil: number;
-  setAttackCooldown: (durationMs: number) => void;
-
   dialog: DialogState;
   showDialog: (options: DialogOptions) => Promise<boolean>;
   closeDialog: (confirmed: boolean) => void;
@@ -170,10 +167,6 @@ export const useUIStore = create<UIState>((set) => ({
         inputValue: '',
       },
     })),
-
-  attackCooldownUntil: 0,
-  setAttackCooldown: (durationMs) =>
-    set({ attackCooldownUntil: Date.now() + durationMs }),
 
   dialog: {
     visible: false,

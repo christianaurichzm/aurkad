@@ -1,5 +1,7 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { act, render, screen } from '@testing-library/react';
+import '../../io/network/wsManager';
+import { dispatchServerEvent } from '../../io/network/customEvents';
 import { HudBar } from './HudBar';
 import { useUIStore } from '../../stores/uiStore';
 
@@ -14,6 +16,30 @@ vi.mock('../../hooks/usePlayerForceUpdate', () => ({
 }));
 
 describe('HudBar Component', () => {
+  it('shows mana only after magic publishes its state and follows consumption', () => {
+    const { unmount } = render(<HudBar />);
+    expect(
+      screen.queryByRole('progressbar', { name: 'Mana' }),
+    ).not.toBeInTheDocument();
+    act(() => dispatchServerEvent('magic:update', { mana: 70, manaMax: 100 }));
+    expect(screen.getByRole('progressbar', { name: 'Mana' })).toHaveAttribute(
+      'aria-valuenow',
+      '70',
+    );
+    act(() => dispatchServerEvent('magic:update', { mana: 25, manaMax: 100 }));
+    expect(screen.getByText('25/100')).toBeInTheDocument();
+    act(() => dispatchServerEvent('magic:update', { mana: NaN, manaMax: 0 }));
+    expect(screen.getByRole('progressbar', { name: 'Mana' })).toHaveAttribute(
+      'aria-valuenow',
+      '25',
+    );
+    unmount();
+    render(<HudBar />);
+    expect(
+      screen.queryByRole('progressbar', { name: 'Mana' }),
+    ).not.toBeInTheDocument();
+  });
+
   beforeEach(() => {
     useUIStore.setState({
       playerHealth: {

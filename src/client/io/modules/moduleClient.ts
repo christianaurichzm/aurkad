@@ -2,6 +2,7 @@ import { onServerEvent, sendServerEvent } from '../network/customEvents';
 import { colors, radius, shadow, zIndex } from '../../theme';
 import {
   moduleText,
+  t,
   onLanguageChange,
   registerModuleStrings,
 } from '../../i18n';
@@ -174,6 +175,8 @@ function moduleContainer(id: string): HTMLElement {
 
 // A small styled UI toolkit so module client code doesn't hand-roll CSS and
 // matches the core look (theme colors/radius/shadow).
+let nextPanelId = 0;
+
 function makeUi(container: HTMLElement) {
   const button = (label: string, onClick?: () => void): HTMLButtonElement => {
     const b = document.createElement('button');
@@ -207,6 +210,8 @@ function makeUi(container: HTMLElement) {
   // ui.actionButton(...) so it opens from the Actions menu like the built-ins.
   const panel = (opts: { title?: string } = {}) => {
     const el = document.createElement('div');
+    el.className = 'module-panel';
+    el.setAttribute('role', 'dialog');
     el.style.cssText =
       `position:fixed;top:90px;left:calc(50% - 120px);min-width:220px;` +
       `max-width:calc(100vw - 16px);max-height:calc(100dvh - 16px);` +
@@ -215,6 +220,7 @@ function makeUi(container: HTMLElement) {
       `display:none;flex-direction:column;overflow:hidden;z-index:${zIndex.floatingPanel};`;
 
     const header = document.createElement('div');
+    header.className = 'window-titlebar';
     header.style.cssText =
       `display:flex;align-items:center;justify-content:space-between;gap:12px;` +
       `padding:6px 10px;font-weight:bold;cursor:move;user-select:none;` +
@@ -223,8 +229,16 @@ function makeUi(container: HTMLElement) {
       `touch-action:none;flex-shrink:0;` +
       `border-bottom:1px solid ${colors.border};background:${colors.surfaceMuted};`;
     const titleEl = document.createElement('span');
+    titleEl.id = `module-panel-${++nextPanelId}`;
+    el.setAttribute('aria-labelledby', titleEl.id);
     setText(titleEl, opts.title ?? '');
-    const closeEl = document.createElement('span');
+    const closeEl = document.createElement('button');
+    closeEl.type = 'button';
+    closeEl.className = 'window-close';
+    closeEl.setAttribute('aria-label', t('common.close'));
+    const unsubscribeCloseLabel = onLanguageChange(() =>
+      closeEl.setAttribute('aria-label', t('common.close')),
+    );
     closeEl.textContent = '×';
     closeEl.style.cssText =
       'cursor:pointer;padding:0 4px;font-size:16px;line-height:1;';
@@ -264,7 +278,13 @@ function makeUi(container: HTMLElement) {
       el.style.top = `${y}px`;
     };
     header.addEventListener('pointerdown', (e) => {
-      if (e.target === closeEl) return;
+      if (
+        e.target === closeEl ||
+        window.matchMedia(
+          '(max-width: 700px), (pointer: coarse) and (max-height: 600px)',
+        ).matches
+      )
+        return;
       const r = el.getBoundingClientRect();
       dragging = true;
       offX = e.clientX - r.left;
@@ -290,7 +310,10 @@ function makeUi(container: HTMLElement) {
       hide,
       toggle: () => (isOpen() ? hide() : show()),
       isOpen,
-      remove: () => el.remove(),
+      remove: () => {
+        unsubscribeCloseLabel();
+        el.remove();
+      },
     };
   };
 

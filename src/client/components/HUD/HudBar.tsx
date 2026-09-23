@@ -4,8 +4,8 @@ import { useGame } from '../../context/GameContext';
 import { usePlayerForceUpdate } from '../../hooks/usePlayerForceUpdate';
 import { SpritePreview } from '../common/SpritePreview';
 import { getHealthBarInfo } from '../../graphics/hud';
-import { PLAYER_ATTACK_COOLDOWN_MS } from '../../../shared/constants';
 import { useT } from '../../i18n';
+import { onServerEvent } from '../../io/network/customEvents';
 
 export const HudBar = () => {
   const t = useT();
@@ -16,27 +16,34 @@ export const HudBar = () => {
   const identity = livePlayer ?? sessionPlayer;
   const { current, max, level = 1 } = useUIStore((state) => state.playerHealth);
   const xp = useUIStore((state) => state.playerXp);
-  const attackCooldownUntil = useUIStore((s) => s.attackCooldownUntil);
   const { percentage, color, text } = getHealthBarInfo(current, max);
   const xpPercentage =
     xp.max > 0 ? Math.max(0, Math.min(xp.current / xp.max, 1)) : 0;
 
-  const [cooldownFraction, setCooldownFraction] = useState(0);
+  const [mana, setMana] = useState<{ current: number; max: number } | null>(
+    null,
+  );
 
-  useEffect(() => {
-    let rafId: number;
-    const update = () => {
-      const remaining = attackCooldownUntil - Date.now();
-      if (remaining <= 0) {
-        setCooldownFraction(0);
-        return;
-      }
-      setCooldownFraction(remaining / PLAYER_ATTACK_COOLDOWN_MS);
-      rafId = requestAnimationFrame(update);
-    };
-    rafId = requestAnimationFrame(update);
-    return () => cancelAnimationFrame(rafId);
-  }, [attackCooldownUntil]);
+  useEffect(
+    () =>
+      onServerEvent('magic:update', (payload) => {
+        if (!payload || typeof payload !== 'object') return;
+        const data = payload as { mana?: unknown; manaMax?: unknown };
+        if (
+          typeof data.mana !== 'number' ||
+          !Number.isFinite(data.mana) ||
+          typeof data.manaMax !== 'number' ||
+          !Number.isFinite(data.manaMax) ||
+          data.manaMax <= 0
+        )
+          return;
+        setMana({
+          current: Math.max(0, Math.min(data.mana, data.manaMax)),
+          max: data.manaMax,
+        });
+      }),
+    [],
+  );
 
   return (
     <div id="hud">
@@ -67,21 +74,48 @@ export const HudBar = () => {
           {current}/{max}
         </span>
       </div>
+      {mana && (
+        <div className="hud-resource-row">
+          <span className="hud-resource-label">{t('hud.mp')}</span>
+          <div
+            className="mana-track"
+            role="progressbar"
+            aria-label={t('hud.mana')}
+            aria-valuemin={0}
+            aria-valuemax={mana.max}
+            aria-valuenow={mana.current}
+          >
+            <div
+              className="mana-fill"
+              style={{ width: `${(mana.current / mana.max) * 100}%` }}
+            />
+            <div className="mana-text">
+              {getHealthBarInfo(mana.current, mana.max).text}
+            </div>
+          </div>
+          <span className="hud-resource-values">
+            {Math.floor(mana.current)}/{mana.max}
+          </span>
+        </div>
+      )}
       <div id="xp-bar-container" title={`${xp.current}/${xp.max} XP`}>
         <div id="xp-bar" style={{ width: `${xpPercentage * 100}%` }} />
         <div id="xp-bar-text">
           {t('hud.xp', { current: xp.current, max: xp.max })}
         </div>
       </div>
-      {cooldownFraction > 0 && (
-        <div id="atk-cooldown-container" title={t('hud.attackCooldown')}>
-          <div
-            id="atk-cooldown-bar"
-            style={{ width: `${cooldownFraction * 100}%` }}
-          />
-          <div id="atk-cooldown-label">{t('hud.atk')}</div>
-        </div>
-      )}
+    </div>
+  );
+};
+
+// Primitives, since the store rebuilds currentMap on every state message.
+export const MapName = () => {
+  const name = useUIStore((state) => state.currentMap?.name);
+  const pvp = useUIStore((state) => state.currentMap?.type === 'pvp');
+  if (!name) return null;
+  return (
+    <div id="map-name" className={pvp ? 'map-name-pvp' : undefined}>
+      {name}
     </div>
   );
 };

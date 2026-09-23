@@ -63,11 +63,13 @@ describe('ActionPanel', () => {
     ).not.toBeInTheDocument();
   });
 
-  it('shows moderation for moderators without admin editors', () => {
+  it('keeps moderation collapsed until requested, without admin editors', async () => {
     setAccess(Access.MOD);
 
     render(<ActionPanel />);
 
+    expect(screen.getByRole('button', { name: /gm/i })).not.toBeVisible();
+    await userEvent.click(screen.getByText('Creator tools'));
     expect(screen.getByRole('button', { name: /gm/i })).toBeInTheDocument();
     expect(
       screen.queryByRole('button', { name: /map editor/i }),
@@ -77,10 +79,15 @@ describe('ActionPanel', () => {
     ).not.toBeInTheDocument();
   });
 
-  it('shows editor actions for admins', () => {
+  it('keeps creator tools collapsed even for admins', async () => {
     setAccess(Access.ADMIN);
 
     render(<ActionPanel />);
+
+    expect(
+      screen.getByRole('button', { name: /map editor/i }),
+    ).not.toBeVisible();
+    await userEvent.click(screen.getByText('Creator tools'));
 
     expect(
       screen.getByRole('button', { name: /map editor/i }),
@@ -100,6 +107,7 @@ describe('ActionPanel', () => {
 
     render(<ActionPanel />);
 
+    await user.click(screen.getByText('Creator tools'));
     await user.click(screen.getByRole('button', { name: /map editor/i }));
 
     await waitFor(() => expect(mocks.openMapEditor).toHaveBeenCalledTimes(1));

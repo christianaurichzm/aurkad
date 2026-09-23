@@ -130,13 +130,24 @@ export const InventoryPanel: React.FC = () => {
   if (!visible) return null;
 
   return (
-    <div ref={ref} style={{ ...styles.container, left: pos.x, top: pos.y }}>
-      <div style={styles.panel}>
-        <div style={styles.header} onPointerDown={onPointerDown}>
+    <div
+      ref={ref}
+      className="inventory-window"
+      role="dialog"
+      aria-label={t('inventory.title')}
+      style={{ ...styles.container, left: pos.x, top: pos.y }}
+    >
+      <div className="inventory-panel" style={styles.panel}>
+        <div
+          className="window-titlebar"
+          style={styles.header}
+          onPointerDown={onPointerDown}
+        >
           <div style={styles.title}>{t('inventory.title')}</div>
           <button
             type="button"
             aria-label={t('common.close')}
+            className="window-close"
             style={styles.closeBtn}
             onClick={() => setVisible(false)}
           >
@@ -267,8 +278,11 @@ export const InventoryPanel: React.FC = () => {
           </button>
         </div>
         {dropTarget && (
-          <div style={styles.dropPromptBackdrop}>
-            <div style={styles.dropPrompt}>
+          <div
+            className="inventory-drop-backdrop"
+            style={styles.dropPromptBackdrop}
+          >
+            <div className="inventory-drop-sheet" style={styles.dropPrompt}>
               <strong>{t('inventory.dropQuantity')}</strong>
               <span>
                 {t('inventory.available', {

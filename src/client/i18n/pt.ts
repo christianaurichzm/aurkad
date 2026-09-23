@@ -48,7 +48,6 @@ export const pt: Record<keyof typeof en, string> = {
   'hud.level': 'Nível {level}',
   'hud.hp': 'HP',
   'hud.xp': 'XP {current}/{max}',
-  'hud.attackCooldown': 'Recarga de ataque',
   'hud.disconnected': 'Desconectado',
 
   'actions.title': 'Ações',
@@ -575,16 +574,17 @@ export const pt: Record<keyof typeof en, string> = {
   'twofa.lockedOut':
     'Perdeu o telefone e os códigos? Outro admin roda: twofactor <nome> off',
 
-  'hud.atk': 'ATQ',
-
   'app.brand': 'AURKAD',
-  'app.dimension': '2D',
-  'app.workspace': 'Área de trabalho',
-  'actions.modules': 'Módulos do jogo',
+  'actions.modules': 'Aventuras e social',
   'actions.tools': 'Ferramentas de criação',
   'common.select': 'Selecionar…',
   'common.close': 'Fechar',
   'app.gameMap': 'Mapa do jogo',
+  'app.menu': 'Menu',
+  'app.expandPanel': 'Abrir menu do jogo',
+  'app.collapsePanel': 'Fechar menu do jogo',
+  'hud.mp': 'MP',
+  'hud.mana': 'Mana',
   'app.gameControls': 'Controles do jogo',
 
   'touch.controls': 'Controles de toque',
