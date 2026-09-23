@@ -190,6 +190,8 @@ export interface Progression {
 export interface InventoryHolder {
   inventory: Inventory;
   equipped: EquippedItems;
+  /** What equipping each slot added to the stats, taken off on unequip. */
+  equippedEffects?: Partial<Record<EquipmentSlot, Effect[]>>;
 }
 
 export interface CharacterBase extends Identity, BaseStats {}

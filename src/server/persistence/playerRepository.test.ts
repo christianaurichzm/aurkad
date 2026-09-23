@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { PlayerRecord } from '../../shared/types.js';
 import { gameConfig } from '../gameConfig.js';
 import { normalizePlayerRecord } from './playerRepository.js';
+import PlayerModel from '../model/Player.js';
 
 function mkRecord(overrides: Partial<PlayerRecord>): PlayerRecord {
   return {
@@ -44,5 +45,18 @@ describe('normalizePlayerRecord', () => {
 
     expect(normalized.equipped).toEqual({ weapon: 2 });
     expect(normalized.inventory.maxCapacity).toBe(5);
+  });
+});
+
+describe('the player schema', () => {
+  // A path the schema does not declare is dropped from every save, silently.
+  it('keeps what equipping each slot added to the stats', () => {
+    const equippedEffects = {
+      weapon: [{ attribute: 'attack', type: 'add', value: 10 }],
+    };
+    const doc = new PlayerModel({ equippedEffects }).toObject() as {
+      equippedEffects?: unknown;
+    };
+    expect(doc.equippedEffects).toEqual(equippedEffects);
   });
 });

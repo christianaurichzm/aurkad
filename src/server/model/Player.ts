@@ -57,6 +57,7 @@ const PlayerSchema = new mongoose.Schema({
   experienceToNextLevel: { type: Number, min: 0 },
   inventory: InventorySchema,
   equipped: EquippedItemsSchema,
+  equippedEffects: mongoose.Schema.Types.Mixed,
   access: { type: Number, enum: [0, 1, 2] },
   data: { type: mongoose.Schema.Types.Mixed, default: {} },
   password: { type: String, required: true },

@@ -1,7 +1,10 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, afterEach, vi } from 'vitest';
 import { createFixture } from '../../sim/simFixture.js';
 import type { Item } from '../../../shared/types.js';
+import ItemModel from '../../model/Item.js';
+import DeliveryModel from '../../model/Delivery.js';
 import {
+  deleteItem,
   dropItemFromInventory,
   equipItem,
   unequipItem,
@@ -107,5 +110,39 @@ describe('bound items', () => {
 
     expect(alice.equipped.weapon).toBe(50);
     expect(alice.inventory.items.find((e) => e.item === 60)?.quantity).toBe(1);
+  });
+});
+
+describe('equipment effects', () => {
+  afterEach(() => vi.restoreAllMocks());
+
+  it('come off when an item deleted from the catalogue is replaced', async () => {
+    vi.spyOn(ItemModel, 'deleteOne').mockResolvedValue(null as never);
+    vi.spyOn(DeliveryModel, 'deleteMany').mockResolvedValue({
+      deletedCount: 0,
+    } as never);
+    const sim = createFixture(0);
+    sim.addItem(
+      item(50, { effects: [{ attribute: 'attack', type: 'add', value: 10 }] }),
+    );
+    sim.addItem(item(60));
+    const alice = sim.addPlayer({
+      name: 'Alice',
+      attack: 5,
+      inventory: {
+        items: [
+          { item: 50, quantity: 1 },
+          { item: 60, quantity: 1 },
+        ],
+        maxCapacity: 10,
+      },
+    });
+    equipItem(alice, 50);
+    expect(alice.attack).toBe(15);
+
+    await deleteItem(50);
+    equipItem(alice, 60);
+
+    expect(alice.attack).toBe(5);
   });
 });

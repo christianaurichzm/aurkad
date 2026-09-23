@@ -3,6 +3,7 @@ import {
   PlayerServer,
   Item,
   EquipmentSlot,
+  Effect,
 } from '../../../shared/types.js';
 import type { ClientItemAction } from '../../engine/actions.js';
 import { getMap, updatePlayer, updateMap, items } from '../world/gameData.js';
@@ -161,7 +162,7 @@ export function useItem(username: string, itemId: number): boolean {
       { player, item, itemId },
       item.scriptParams,
     );
-    applyItemEffects(player, itemId);
+    applyItemEffects(player, item.effects);
     removeItem(player.inventory, itemId, 1);
   } else {
     const slot = item.type as EquipmentSlot;
@@ -207,7 +208,11 @@ export function equipItem(player: PlayerServer, itemId: number): void {
 
   removeItem(player.inventory, itemId, 1);
 
-  applyItemEffects(player, itemId);
+  // Copied, because unequipping must take off what went on here: by then the
+  // definition may have been edited or deleted from the catalogue.
+  const effects = item.effects?.map((effect) => ({ ...effect })) ?? [];
+  (player.equippedEffects ??= {})[slot] = effects;
+  applyItemEffects(player, effects);
 
   // Last, so a handler reading the player sees the item on and its effects
   // applied, the state it is being told about.
@@ -229,7 +234,15 @@ export function unequipItem(player: PlayerServer, slot: EquipmentSlot): void {
   const unequipped = getItemById(itemId);
   if (unequipped?.bound && !canFit(player.inventory, itemId)) return;
 
-  applyItemEffects(player, itemId, true);
+  // A slot with no record was filled without equipItem (a save older than the
+  // records, a script, an admin edit), so the definition is all there is.
+  // Such a slot still strands the bonus if its item is deleted
+  // first; record it at login if old saves matter.
+  applyItemEffects(
+    player,
+    player.equippedEffects?.[slot] ?? unequipped?.effects,
+    true,
+  );
 
   // A full inventory sends it to the ground rather than deleting it. Bound
   // items never get here, as the check above refuses the unequip.
@@ -247,6 +260,7 @@ export function unequipItem(player: PlayerServer, slot: EquipmentSlot): void {
   }
 
   player.equipped[slot] = undefined;
+  delete player.equippedEffects?.[slot];
 
   // After the slot is cleared, and only on the paths that got here: the refusal
   // above is not an unequip, and a listener told about one would take away a
@@ -264,13 +278,12 @@ export function unequipItem(player: PlayerServer, slot: EquipmentSlot): void {
 
 export function applyItemEffects(
   player: PlayerServer,
-  itemId: number,
+  effects: Effect[] | undefined,
   reverse = false,
 ): void {
-  const item = getItemById(itemId);
-  if (!item?.effects) return;
+  if (!effects) return;
 
-  for (const effect of item.effects) {
+  for (const effect of effects) {
     const { attribute, type, value } = effect;
 
     if (type === 'add') {
