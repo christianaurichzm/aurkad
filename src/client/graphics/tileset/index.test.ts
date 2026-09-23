@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { Tile } from '../../../shared/types';
 import {
   fillMap,
@@ -8,6 +8,7 @@ import {
   renderGameMap,
   resetToOriginalMap,
   setEditorTiles,
+  toggleBlocking,
 } from './index';
 
 const mocks = vi.hoisted(() => {
@@ -20,7 +21,16 @@ const mocks = vi.hoisted(() => {
   return {
     calls,
     cam: { x: 0, y: 0 },
-    canvas: { width: 128, height: 64 },
+    canvas: {
+      width: 128,
+      height: 64,
+      getBoundingClientRect: () => ({
+        left: 0,
+        top: 0,
+        width: 128,
+        height: 64,
+      }),
+    },
     ctx: {
       clearRect: record('clearRect'),
       drawImage: record('drawImage'),
@@ -185,5 +195,53 @@ describe('the layer the editor draws over the map', () => {
       (c) => c.fn === 'fillText' && c.args[0] === 'B',
     );
     expect(markers).toHaveLength(2);
+  });
+});
+
+describe('a drag in a toggle mode', () => {
+  beforeEach(() => {
+    mocks.cam.x = 0;
+    mocks.cam.y = 0;
+    document.body.innerHTML =
+      '<canvas id="tilesetCanvas"></canvas><canvas id="gridCanvas"></canvas>' +
+      '<canvas id="foregroundCanvas"></canvas>';
+    vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockReturnValue(
+      mocks.ctx,
+    );
+    initTilesetEditor();
+    setEditorTiles(mapOf(1));
+    toggleBlocking();
+  });
+
+  afterEach(() => {
+    toggleBlocking();
+  });
+
+  const mouse = (type: string, clientX: number, clientY = 10) =>
+    document
+      .getElementById('foregroundCanvas')!
+      .dispatchEvent(new MouseEvent(type, { clientX, clientY }));
+
+  const blocked = (row: number) =>
+    getEditorTiles()[row].map((tile) => Boolean(tile.blocked));
+
+  it('blocks every tile it crosses, however many moves land in each', () => {
+    mouse('mousedown', 10);
+    // Two events land in every tile, so a toggle per event would leave the
+    // whole strip back where it started.
+    for (const x of [20, 70, 80, 130, 140, 200, 210]) mouse('mousemove', x);
+    mouse('mouseup', 210);
+
+    expect(blocked(0)).toEqual([true, true, true, true]);
+    expect(blocked(1)).toEqual([false, false, false, false]);
+  });
+
+  it('still toggles a tile back on a second click', () => {
+    mouse('mousedown', 10);
+    mouse('mouseup', 10);
+    mouse('mousedown', 10);
+    mouse('mouseup', 10);
+
+    expect(blocked(0)[0]).toBe(false);
   });
 });

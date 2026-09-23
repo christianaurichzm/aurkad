@@ -422,8 +422,13 @@ const highlightSelectedTile = () => {
   tilesetCtx.strokeRect(startX, startY, width, height);
 };
 
+// Tiles the current stroke has placed on. A drag fires many mousemoves per
+// tile, so a stroke acts on each tile once, as a click would.
+const strokeTiles = new Set<string>();
+
 const startPlacing = (event: MouseEvent) => {
   isPlacing = true;
+  strokeTiles.clear();
   snapshotForUndo();
   placeTile(event);
 };
@@ -438,6 +443,9 @@ const placeTile = (event: MouseEvent) => {
   const cam = getCamera();
   const col = Math.floor((x + cam.x) / TILE_SIZE);
   const row = Math.floor((y + cam.y) / TILE_SIZE);
+  const key = `${row},${col}`;
+  if (strokeTiles.has(key)) return;
+  strokeTiles.add(key);
   if (activeMode) {
     modes[activeMode].place(row, col);
   } else {
