@@ -69,10 +69,10 @@ on('playerLevelUp', ({ player, level }) => {
 on('npcInteract', ({ player, npc }) => {
   if (!dialog) return;
 
-  // An NPC with a dialog set in the content editor is already answered: the
-  // dialog module opens that conversation on its own, and greeting them here
-  // would put two boxes on screen for one keypress.
-  if (npc.dialogId) return;
+  // An NPC with a dialog or a behaviour set in the content editor is already
+  // answered, by the dialog module or by the behaviour's onInteract, and
+  // greeting them here would put a second box on screen for one keypress.
+  if (npc.dialogId || npc.scriptId) return;
 
   if (npc.name === 'Elder') {
     handleElderDialog(player);

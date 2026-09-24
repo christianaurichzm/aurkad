@@ -1,9 +1,11 @@
-// A chest, written once and configured per tile.
+// A chest, written once and configured per tile or per npc. This file has
+// no ids: the item, the amount, the message and whether it can be looted
+// twice are fields the editor renders from `params` below, and the values
+// live on the tile or npc. Two chests on the seeded map share this
+// behaviour with different settings.
 //
-// The point is that this file has no ids in it: which item, how many, what the
-// message says and whether it can be looted twice are all fields the map editor
-// renders from the `params` declaration below, and the values live on the tile.
-// Two chests on the seeded map share this behaviour with different settings.
+// On a tile it is looted by stepping on it. On an npc it is solid and
+// opened with the interact key, and `openSprite` is what it shows after.
 
 attach('chest', {
   params: {
@@ -20,21 +22,41 @@ attach('chest', {
       help: 'Remembers on the player, so it survives a relog.',
       default: false,
     },
+    openSprite: {
+      type: 'number',
+      label: 'Sprite once opened',
+      help: 'Npc chests only: what it shows after it is opened.',
+      min: 0,
+    },
   },
 
-  onEnter({ player, tile, map, params }) {
+  onEnter({ player, map, params }) {
     // Per tile, not per behaviour: two chests must not share one "looted" flag.
-    const key = `chest:${map.id}:${tile.tileIndex}:${params.itemId}`;
-    if (params.once && getPlayerData(player, key)) return;
+    // The player is standing on it, so where they stand is where it is.
+    const col = Math.round(player.position.x / TILE_SIZE);
+    const row = Math.round(player.position.y / TILE_SIZE);
+    loot(player, `chest:${map.id}:${row}:${col}:${params.itemId}`, params);
+  },
 
-    // giveItem reports whether it happened; a full bag would otherwise use up
-    // the chest and hand over nothing.
-    if (!giveItem(player, params.itemId, params.quantity)) {
-      sendMessage(player, 'Your bag is full.');
-      return;
-    }
-
-    sendMessage(player, params.message);
-    if (params.once) setPlayerData(player, key, true);
+  onInteract({ player, npc, params }) {
+    // A spawned npc's id carries its map and tile, so it is per chest already.
+    if (!loot(player, `chest:${npc.id}`, params)) return;
+    if (params.openSprite !== undefined) npc.sprite = params.openSprite;
   },
 });
+
+/** Hands the reward over; false when there was nothing to take. */
+function loot(player, key, params) {
+  if (params.once && getPlayerData(player, key)) return false;
+
+  // giveItem reports whether it happened; a full bag would otherwise use up
+  // the chest and hand over nothing.
+  if (!giveItem(player, params.itemId, params.quantity)) {
+    sendMessage(player, 'Your bag is full.');
+    return false;
+  }
+
+  sendMessage(player, params.message);
+  if (params.once) setPlayerData(player, key, true);
+  return true;
+}

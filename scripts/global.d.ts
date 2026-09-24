@@ -118,6 +118,8 @@ interface RuntimeNpc {
   dialogId?: string;
   /** Quest the quest module offers when a player talks to this npc. */
   questId?: string;
+  /** Behavior attached in the content editor (see `attach`). */
+  scriptId?: string;
   /**
    * Tiles this npc notices a player from on its own. Absent means the default
    * for its behavior (aggressive 8, hostile 4). Being hit ignores it.
