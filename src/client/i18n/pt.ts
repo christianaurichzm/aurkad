@@ -81,6 +81,11 @@ export const pt: Record<keyof typeof en, string> = {
   'attributes.confirm': 'Confirmar',
 
   'shop.title': 'Loja',
+  'shop.balance': 'Saldo: {count} {currency}',
+  'shop.owned': 'Você tem: {count}',
+  'shop.insufficient': 'Saldo insuficiente',
+  'shop.purchased': '{item} comprado.',
+  'shop.purchaseFailed': 'Falha na compra.',
   'shop.buy': 'Comprar',
 
   'online.title': 'Jogadores online',

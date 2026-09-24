@@ -5,15 +5,29 @@ import { ShopModal } from './ShopModal';
 
 const mocks = vi.hoisted(() => ({
   fetchShop: vi.fn(),
+  inventory: [] as { item: { id: number }; quantity: number }[],
 }));
 
 vi.mock('../../io/network', () => ({
   fetchShop: mocks.fetchShop,
 }));
 
+vi.mock('../../hooks/usePlayerForceUpdate', () => ({
+  usePlayerForceUpdate: () => ({ inventory: mocks.inventory }),
+}));
+
 vi.mock('./ShopRow', () => ({
-  ShopRow: ({ product }: { product: { item: { name: string } } }) => (
-    <div data-testid="shop-row">{product.item.name}</div>
+  ShopRow: ({
+    product,
+    onBought,
+  }: {
+    product: { item: { name: string } };
+    onBought?: () => void;
+  }) => (
+    <div data-testid="shop-row">
+      {product.item.name}
+      <button onClick={onBought}>buy {product.item.name}</button>
+    </div>
   ),
 }));
 
@@ -45,6 +59,7 @@ describe('ShopModal', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mocks.fetchShop.mockResolvedValue(mockShop);
+    mocks.inventory = [];
   });
 
   it('stays closed until the open-shop event fires', () => {
@@ -90,5 +105,21 @@ describe('ShopModal', () => {
 
     expect(await screen.findByText("Thomas's Wares")).toBeInTheDocument();
     expect(mocks.fetchShop).toHaveBeenCalledTimes(2);
+  });
+
+  it('redraws the balance as soon as a row reports a purchase', async () => {
+    mocks.inventory = [{ item: { id: 3 }, quantity: 40 }];
+    render(<ShopModal />);
+    act(() => {
+      window.dispatchEvent(
+        new CustomEvent('open-shop', { detail: 'aurora-general' }),
+      );
+    });
+    expect(await screen.findByText('Balance: 40 Gold')).toBeInTheDocument();
+
+    mocks.inventory = [{ item: { id: 3 }, quantity: 30 }];
+    await userEvent.click(screen.getByRole('button', { name: 'buy Apple' }));
+
+    expect(screen.getByText('Balance: 30 Gold')).toBeInTheDocument();
   });
 });

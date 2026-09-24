@@ -12,17 +12,24 @@ interface ShopRowProps {
   shopId: string;
   product: ProductDetailed;
   onBought?: () => void;
+  balance: number;
+  owned: number;
 }
 
 export const ShopRow: React.FC<ShopRowProps> = ({
   shopId,
   product,
   onBought,
+  balance,
+  owned,
 }) => {
   const t = useT();
   const itemCanvas = useRef<HTMLCanvasElement>(null);
   const coinCanvas = useRef<HTMLCanvasElement>(null);
   const [buying, setBuying] = useState(false);
+  const [notice, setNotice] = useState('');
+  const [failed, setFailed] = useState(false);
+  const affordable = balance >= product.price;
 
   useEffect(() => {
     const c = itemCanvas.current;
@@ -51,7 +58,10 @@ export const ShopRow: React.FC<ShopRowProps> = ({
   }, [product.currency.sprite]);
 
   const handleBuy = async () => {
+    if (buying || !affordable) return;
     setBuying(true);
+    setNotice('');
+    setFailed(false);
     try {
       const res = await buyShopItem(shopId, product.item.id);
       if (!res?.success) {
@@ -67,13 +77,11 @@ export const ShopRow: React.FC<ShopRowProps> = ({
         scope: 'player',
         type: 'chat',
       });
+      setNotice(t('shop.purchased', { item: product.item.name }));
       onBought?.();
     } catch (error) {
-      await useUIStore.getState().showDialog({
-        title: 'Purchase failed',
-        message: httpError(error).message || 'Error purchasing.',
-        kind: 'error',
-      });
+      setFailed(true);
+      setNotice(httpError(error).message || t('shop.purchaseFailed'));
     } finally {
       setBuying(false);
     }
@@ -81,6 +89,7 @@ export const ShopRow: React.FC<ShopRowProps> = ({
 
   return (
     <div
+      data-shop-item={product.item.id}
       style={{
         display: 'flex',
         alignItems: 'center',
@@ -95,27 +104,36 @@ export const ShopRow: React.FC<ShopRowProps> = ({
         <canvas ref={itemCanvas} width={ITEM_SIZE} height={ITEM_SIZE} />
         <div style={{ display: 'flex', flexDirection: 'column' }}>
           <strong>{product.item.name}</strong>
+          <span style={{ fontSize: 14, lineHeight: 1.5 }}>
+            {product.item.description}
+          </span>
+          <span style={{ fontSize: 13, color: colors.textMuted }}>
+            {t('shop.owned', { count: owned })}
+          </span>
           <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
             <canvas ref={coinCanvas} width={ITEM_SIZE} height={ITEM_SIZE} />
             <span>
               {product.price} × {product.currency.name}
             </span>
           </div>
+          {notice && <span role={failed ? 'alert' : 'status'}>{notice}</span>}
         </div>
       </div>
       <button
         onClick={handleBuy}
-        disabled={buying}
+        disabled={buying || !affordable}
+        title={!affordable ? t('shop.insufficient') : undefined}
         style={{
-          padding: '4px 10px',
+          padding: '10px 14px',
           background: colors.primary,
           color: '#fff',
           border: 'none',
           borderRadius: radius.md,
-          cursor: 'pointer',
+          cursor: affordable ? 'pointer' : 'not-allowed',
+          opacity: buying || !affordable ? 0.55 : 1,
         }}
       >
-        {buying ? '…' : t('shop.buy')}
+        {buying ? '…' : t(affordable ? 'shop.buy' : 'shop.insufficient')}
       </button>
     </div>
   );

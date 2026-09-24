@@ -4,20 +4,18 @@ import { getPlayer } from '../core/gameState';
 
 const POLL_MS = 300;
 
-export function usePlayerForceUpdate(active: boolean = true) {
+// Read on every render, so a panel shows the player it opens on; the timer
+// only keeps it re-rendering while it stays open.
+export function usePlayerForceUpdate(active: boolean = true): Player | null {
   const [, setTick] = useState(0);
-  const [player, setPlayer] = useState<Player | null>(getPlayer());
 
   useEffect(() => {
     if (!active) return;
 
-    const interval = setInterval(() => {
-      setPlayer(getPlayer());
-      setTick((t) => t + 1);
-    }, POLL_MS);
+    const interval = setInterval(() => setTick((t) => t + 1), POLL_MS);
 
     return () => clearInterval(interval);
   }, [active]);
 
-  return player;
+  return getPlayer();
 }

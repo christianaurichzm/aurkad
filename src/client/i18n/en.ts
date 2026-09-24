@@ -81,6 +81,11 @@ export const en = {
 
   // Shop
   'shop.title': 'Shop',
+  'shop.balance': 'Balance: {count} {currency}',
+  'shop.owned': 'Owned: {count}',
+  'shop.insufficient': 'Not enough money',
+  'shop.purchased': '{item} purchased.',
+  'shop.purchaseFailed': 'Purchase failed.',
   'shop.buy': 'Buy',
 
   // Online players
