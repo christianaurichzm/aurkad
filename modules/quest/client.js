@@ -1,7 +1,7 @@
 // @ts-check
 // Quest module, client entry: a tracker panel (Q) with the active quests
-// and a progress bar each, completed ones in a collapsed section. A quest
-// completing shows a toast and logs a chat message.
+// and a progress bar each, completed ones in a collapsed section. Starting
+// or completing a quest shows a toast and logs a chat message.
 
 // Strings this module draws, keyed by the English itself: text handed to the
 // `ui` helpers is translated for free, the rest goes through engine.t.
@@ -14,6 +14,8 @@ engine.i18n({
     'Completed ({count})': 'Concluídas ({count})',
     'Quest completed: {quest}': 'Missão concluída: {quest}',
     '✓ Quest complete: {quest}': '✓ Missão concluída: {quest}',
+    'Quest started: {quest}': 'Missão iniciada: {quest}',
+    'New quest: {quest}': 'Nova missão: {quest}',
   },
 });
 
@@ -30,6 +32,8 @@ ui.actionButton(
 
 let quests = []; // [{ id, name, description, progress, target, status }]
 let prevStatuses = {}; // id → status, for detecting transitions
+// The first list is what the player already had when the game opened.
+let listed = false;
 
 function progressBar(progress, target) {
   const pct = target > 0 ? Math.round((progress / target) * 100) : 100;
@@ -111,15 +115,17 @@ function render() {
   panel.setBody(...nodes);
 }
 
-function showCompletionToast(name) {
-  engine.chat(engine.t('Quest completed: {quest}', { quest: name }));
-  const toast = document.createElement('div');
-  toast.style.cssText =
-    'position:fixed;bottom:80px;left:50%;transform:translateX(-50%);' +
+// Over the world rather than the page, and under the achievement toast (14%):
+// a first kill can finish a quest and earn an achievement in the same tick,
+// and the bottom of the world is where the spell hotbar is drawn.
+function toast(text) {
+  const el = document.createElement('div');
+  el.style.cssText =
+    'position:absolute;top:24%;left:50%;transform:translateX(-50%);' +
     'background:var(--color-warning);color:#000;padding:8px 18px;border-radius:6px;' +
-    'font:bold 13px sans-serif;z-index:9999;pointer-events:none;' +
+    'font:bold 13px sans-serif;z-index:40;pointer-events:none;' +
     'animation:questToastIn .25s ease;';
-  toast.textContent = engine.t('✓ Quest complete: {quest}', { quest: name });
+  el.textContent = text;
 
   if (!document.getElementById('quest-toast-style')) {
     const style = document.createElement('style');
@@ -130,19 +136,24 @@ function showCompletionToast(name) {
     document.head.appendChild(style);
   }
 
-  document.body.appendChild(toast);
-  setTimeout(() => toast.remove(), 3500);
+  engine.mount().append(el);
+  setTimeout(() => el.remove(), 3500);
 }
 
 engine.onServerEvent('quest:update', (list) => {
   if (!Array.isArray(list)) return;
 
-  // Detect newly completed quests to show toasts
   for (const q of list) {
-    if (q.status === 'completed' && prevStatuses[q.id] === 'active') {
-      showCompletionToast(q.name);
+    const was = prevStatuses[q.id];
+    if (q.status === 'completed' && was === 'active') {
+      engine.chat(engine.t('Quest completed: {quest}', { quest: q.name }));
+      toast(engine.t('✓ Quest complete: {quest}', { quest: q.name }));
+    } else if (listed && q.status === 'active' && !was) {
+      engine.chat(engine.t('Quest started: {quest}', { quest: q.name }));
+      toast(engine.t('New quest: {quest}', { quest: q.name }));
     }
   }
+  listed = true;
 
   prevStatuses = {};
   for (const q of list) prevStatuses[q.id] = q.status;

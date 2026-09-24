@@ -28,6 +28,7 @@ const scriptGlobals = [
   'getSpells',
   'createSpells',
   'getDialog',
+  'getQuest',
   'getQuests',
   'getRecipes',
   'getArrow',

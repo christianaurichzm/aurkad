@@ -153,8 +153,7 @@ describe('quest module with authored quests', () => {
     reward: { experience: 50 },
   };
 
-  // Content goes in the cache before the module loads, as it reads
-  // getQuests() once at load, the same as on a real boot.
+  // Content in the cache and the module loaded, as a real boot leaves them.
   async function bootWith(...quests: Quest[]): Promise<QuestApi> {
     unloadAllModules();
     clearAll();
@@ -311,5 +310,36 @@ describe('quest module with authored quests', () => {
     quest.start(alice, 'orcs');
 
     expect(quest.get(alice, 'orcs')?.target).toBe(99);
+  });
+
+  // The editor saves into the running game: a quest written after boot, or a
+  // rule changed on one, counts from its next event, not from the next restart.
+  it('starts and counts a quest saved after the module loaded', async () => {
+    const quest = await bootWith();
+    await createOrUpdateQuest(killOrcs);
+    const sim = createFixture(0);
+    const alice = sim.addPlayer({ name: 'Alice' });
+
+    expect(quest.start(alice, 'orcs')).toBe(true);
+    const orc = sim.addNpc({ id: 'orc:1:1', templateId: 'orc' });
+    emit('npcDeath', { npc: orc, killer: alice, contributors: [] });
+
+    expect(quest.get(alice, 'orcs')?.progress).toBe(1);
+  });
+
+  it('matches kills against the objective as it is now', async () => {
+    const quest = await bootWith(killOrcs);
+    const sim = createFixture(0);
+    const alice = sim.addPlayer({ name: 'Alice' });
+    quest.start(alice, 'orcs');
+
+    await createOrUpdateQuest({
+      ...killOrcs,
+      objective: { type: 'kill', npcId: 'goblin', count: 2 },
+    });
+    const goblin = sim.addNpc({ id: 'goblin:1:1', templateId: 'goblin' });
+    emit('npcDeath', { npc: goblin, killer: alice, contributors: [] });
+
+    expect(quest.get(alice, 'orcs')?.progress).toBe(1);
   });
 });

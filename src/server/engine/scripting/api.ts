@@ -75,7 +75,10 @@ import {
   createOrUpdateSpell,
 } from '../../services/content/spellService.js';
 import { getDialogById } from '../../services/content/dialogService.js';
-import { cachedQuests } from '../../services/content/questService.js';
+import {
+  cachedQuests,
+  getQuestById,
+} from '../../services/content/questService.js';
 import { cachedRecipes } from '../../services/content/recipeService.js';
 import { queryEntitiesInRadius } from '../../spatial/spatialManager.js';
 import type { SpawnNpcOptions } from '../../services/npc/spawn.js';
@@ -334,10 +337,15 @@ export function buildApi(
       return dialog ? structuredClone(dialog) : undefined;
     },
 
-    // Every authored quest, copied for the same reason getDialog copies. The
-    // whole list rather than one by id: the quest module registers all of them
-    // at load, and asking for them one at a time would need a second call just
-    // to learn the ids.
+    // An authored quest, by id, copied for the same reason getDialog copies.
+    // Read when it is needed rather than kept: the editor saves into the
+    // running game, and a copy taken at load would not know the save.
+    getQuest: (id: string): Quest | undefined => {
+      const quest = getQuestById(id);
+      return quest ? structuredClone(quest) : undefined;
+    },
+
+    // Every authored quest, copied the same way.
     getQuests: (): Quest[] => structuredClone(cachedQuests()),
 
     // Every authored recipe, copied for the same reason getQuests copies. The

@@ -1,6 +1,6 @@
 // @ts-check
 // Quest module: definitions in a module registry, per-player progress in
-// the data bag, and quest:update pushed to the client's QuestTracker.
+// the data bag, and quest:update pushed to the client's quest log.
 //
 //   const quest = use('quest');
 //   quest.define({ id: 'hunt', name: 'Hunt', target: 5,
@@ -8,9 +8,9 @@
 //   quest.start(player, 'hunt');
 //   quest.advance(player, 'hunt', 1);
 //
-// A script's define() owns the whole quest. Quests authored in the editor
-// load first through getQuests() and advance by the hook their objective
-// type names, so a script defining the same id wins.
+// A script's define() owns the whole quest. A quest authored in the editor
+// is read through getQuest() when needed and advanced by the hook its
+// objective type names. A script defining the same id wins.
 
 i18n({
   pt: {
@@ -19,7 +19,26 @@ i18n({
   },
 });
 
-const defs = new Map();
+const defs = new Map(); // define()d by scripts
+
+const targetOf = (objective) =>
+  objective.type === 'talk' || objective.type === 'reach' ? 1 : objective.count;
+
+function defOf(id) {
+  const scripted = defs.get(id);
+  if (scripted) return scripted;
+  const q = getQuest(id);
+  return (
+    q && {
+      id: q.id,
+      name: q.name,
+      description: q.description || '',
+      target: targetOf(q.objective),
+      objective: q.objective,
+      reward: q.reward,
+    }
+  );
+}
 
 const bagOf = (player) => getPlayerData(player, 'quests') || {};
 
@@ -48,7 +67,7 @@ function payItems(player, items) {
 
 function finish(player, id, bag) {
   bag[id].status = 'completed';
-  const def = defs.get(id);
+  const def = defOf(id);
   if (!def) return;
   // A script's reward is a function. An authored one describes the reward
   // and may name a handler, run last, for what a document cannot say.
@@ -83,7 +102,7 @@ function define(def) {
 
 // Returns false if the quest is undefined or the player already has it.
 function start(player, id) {
-  const def = defs.get(id);
+  const def = defOf(id);
   if (!def) return false;
   const bag = bagOf(player);
   if (bag[id]) return false;
@@ -134,30 +153,13 @@ on('customAction', ({ player, channel }) => {
 
 // ─── AUTHORED QUESTS ─────────────────────────────────────────────────────────
 
-// Content quests register at load, before any script has run, so a script that
-// defines the same id overrides rather than races.
-const authored = getQuests();
-for (const q of authored) {
-  defs.set(q.id, {
-    id: q.id,
-    name: q.name,
-    description: q.description || '',
-    target:
-      q.objective.type === 'talk' || q.objective.type === 'reach'
-        ? 1
-        : q.objective.count,
-    objective: q.objective,
-    reward: q.reward,
-  });
-}
-
 /** The authored quests this player has open, so a hook only walks their own. */
 function activeObjectives(player, type) {
   const bag = bagOf(player);
   const out = [];
   for (const id of Object.keys(bag)) {
     if (bag[id].status !== 'active') continue;
-    const def = defs.get(id);
+    const def = defOf(id);
     if (def && def.objective && def.objective.type === type) {
       out.push({ id, objective: def.objective });
     }
@@ -221,4 +223,4 @@ provide('dialogAction.questStart', ({ player, arg }) => {
   if (arg) start(player, arg);
 });
 
-log(`Quest module ready (${authored.length} authored).`);
+log(`Quest module ready (${getQuests().length} authored).`);

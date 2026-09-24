@@ -477,12 +477,12 @@ interface QuestData {
   reward?: QuestRewardData;
 }
 
+/** An authored quest (QuestEditor) by id, current and as a copy. */
+declare function getQuest(id: string): QuestData | undefined;
+
 /**
- * Every authored quest from the database (via QuestEditor).
- *
- * A copy: editing what comes back changes nothing. The quest module registers
- * these at load and advances them from the matching hook, so a script only
- * needs this to read one directly.
+ * Every authored quest (QuestEditor), as copies. The quest module advances
+ * them from hooks, so a script only needs this to list them.
  */
 declare function getQuests(): QuestData[];
 
