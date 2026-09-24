@@ -1,6 +1,7 @@
 import type { RuntimeNpc } from '../../../shared/types.js';
 import { isHunter, type NpcAiState, type NpcAiStateName } from './types.js';
 import { getTick } from '../../sim/clock.js';
+import { getPlayerById } from '../../sim/world.js';
 
 const npcAiState = new Map<string, NpcAiState>();
 
@@ -28,6 +29,10 @@ export function getOrInitNpcAi(npc: RuntimeNpc): NpcAiState {
  * A hit is a target. Without this an archer (6 tiles by default) outranges
  * every hostile npc's notice radius (4) and kills it for free, and no npc ever
  * answers a blow struck from outside its sight or through a wall.
+ *
+ * Except while its target is within reach: whoever it is trading blows with
+ * keeps it. Otherwise every arrow from the back of a party pulls it off the
+ * player standing in front of it, and the fight turns into a chase.
  */
 export function markNpcAggro(npc: RuntimeNpc, playerId: string) {
   if (!isHunter(npc.behavior)) return;
@@ -36,8 +41,24 @@ export function markNpcAggro(npc: RuntimeNpc, playerId: string) {
   // An npc walking back to its post is deaf. Otherwise a player
   // pulls it out again one arrow at a time and the leash buys nothing.
   if (ai.state === 'return') return;
+  if (ai.aggroPlayerId !== playerId && withinReach(npc, ai.aggroPlayerId)) {
+    return;
+  }
 
   ai.aggroPlayerId = playerId;
+}
+
+function withinReach(npc: RuntimeNpc, playerId: string | undefined): boolean {
+  const player = playerId ? getPlayerById(playerId) : undefined;
+  return (
+    !!player &&
+    player.health > 0 &&
+    player.mapId === npc.mapId &&
+    Math.hypot(
+      player.position.x - npc.position.x,
+      player.position.y - npc.position.y,
+    ) <= npc.attackRange
+  );
 }
 
 export function transitionNpcAi(ai: NpcAiState, next: NpcAiStateName) {

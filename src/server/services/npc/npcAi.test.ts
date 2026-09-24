@@ -407,6 +407,32 @@ describe('aggro and leash', () => {
     expect(npc.position).toEqual(tile(5, 5));
   });
 
+  // A party: one player in its face, one shooting from the side.
+  it('keeps fighting the player in its reach when someone else hits it', () => {
+    const npc = sim.addNpc({ behavior: 'hostile', position: tile(5, 5) });
+    const tank = sim.addPlayer({ name: 'Tank', position: tile(4, 5) });
+    const archer = sim.addPlayer({ name: 'Archer', position: tile(5, 8) });
+
+    resolveDamage(npc, 1, { attacker: tank });
+    resolveDamage(npc, 1, { attacker: archer });
+    sim.step(1);
+
+    expect(getOrInitNpcAi(npc).aggroPlayerId).toBe(tank.id);
+    expect(npc.position).toEqual(tile(5, 5));
+  });
+
+  it('turns on the next hitter once its target is out of reach', () => {
+    const npc = sim.addNpc({ behavior: 'hostile', position: tile(5, 5) });
+    const tank = sim.addPlayer({ name: 'Tank', position: tile(4, 5) });
+    const archer = sim.addPlayer({ name: 'Archer', position: tile(5, 8) });
+    resolveDamage(npc, 1, { attacker: tank });
+
+    tank.position = tile(1, 5);
+    resolveDamage(npc, 1, { attacker: archer });
+
+    expect(getOrInitNpcAi(npc).aggroPlayerId).toBe(archer.id);
+  });
+
   it('sight on the npc widens what it notices on its own', () => {
     const npc = sim.addNpc({
       behavior: 'hostile',
