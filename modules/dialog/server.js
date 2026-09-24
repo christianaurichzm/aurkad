@@ -19,7 +19,12 @@ function show(player, options, onChoice) {
     choiceCount: choices.length,
     onChoice: typeof onChoice === 'function' ? onChoice : () => {},
   });
-  sendEvent(player, 'dialog:show', { id, text: options.text, choices });
+  sendEvent(player, 'dialog:show', {
+    id,
+    speaker: options.speaker,
+    text: options.text,
+    choices,
+  });
 }
 
 // Untrusted client input: onChoice fires only if the id matches the
@@ -102,7 +107,11 @@ function openNode(player, dialog, nodeId, npc) {
 
   show(
     player,
-    { text: node.text, choices: choices.map((c) => c.label) },
+    {
+      speaker: npc?.name || dialog.name,
+      text: node.text,
+      choices: choices.map((c) => c.label),
+    },
     (index) => {
       // No choices means a single "Continue": nothing to run and nowhere to go.
       const choice = choices[index];

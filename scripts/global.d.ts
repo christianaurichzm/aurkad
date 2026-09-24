@@ -992,6 +992,8 @@ declare function httpRequest(
 ): Promise<HttpResponse>;
 
 interface DialogOptions {
+  /** Shown above the text as who is talking. Omit for a generic title. */
+  speaker?: string;
   text: string;
   /** Buttons. Omit for a single "Continue" (onChoice receives 0). */
   choices?: string[];
