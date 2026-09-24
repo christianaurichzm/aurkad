@@ -5,6 +5,7 @@
 //
 //   const magic = use('magic');
 //   magic.defineSpell({ id, name, cost, cooldownMs, cast(caster) { ... } });
+//   magic.setSpells(player, ['fireball', 'frost']); // undefined: all again
 //
 // Spells from SpellEditor load at startup with a default cast by `target`:
 // 'enemies' damages npcs in range, 'self' heals the caster, 'party' and
@@ -25,20 +26,29 @@ const getMana = (p) => {
 const setMana = (p, v) =>
   setPlayerData(p, 'mana', Math.max(0, Math.min(manaMax, v)));
 
+// The ids a player may cast, or null for all of them.
+function spellbook(player) {
+  const list = getPlayerData(player, 'spells');
+  return Array.isArray(list) ? new Set(list.map(String)) : null;
+}
+
 function pushState(player) {
   const cd = cooldowns[player.name] || {};
+  const book = spellbook(player);
   sendEvent(player, 'magic:update', {
     mana: getMana(player),
     manaMax,
-    spells: [...spells.values()].map((s) => ({
-      id: s.id,
-      name: s.name,
-      cost: s.cost,
-      readyAt: cd[s.id] || 0,
-      friendly: s.target ? s.target !== 'enemies' : s.visualTarget === 'self',
-      // The whole duration, so the slot can show the share left.
-      cooldownMs: s.cooldownMs || 0,
-    })),
+    spells: [...spells.values()]
+      .filter((s) => !book || book.has(s.id))
+      .map((s) => ({
+        id: s.id,
+        name: s.name,
+        cost: s.cost,
+        readyAt: cd[s.id] || 0,
+        friendly: s.target ? s.target !== 'enemies' : s.visualTarget === 'self',
+        // The whole duration, so the slot can show the share left.
+        cooldownMs: s.cooldownMs || 0,
+      })),
   });
 }
 
@@ -49,6 +59,8 @@ function defineSpell(spell) {
 function cast(player, spellId) {
   const spell = spells.get(spellId);
   if (!spell) return false;
+  const book = spellbook(player);
+  if (book && !book.has(spellId)) return false; // not one of theirs
 
   const now = Date.now();
   const cd = cooldowns[player.name] || (cooldowns[player.name] = {});
@@ -227,6 +239,12 @@ on('tick', ({ tick }) => {
   }
 });
 
-provide('magic', { defineSpell, cast });
+/** What `player` can cast, as spell ids; undefined gives every spell back. */
+function setSpells(player, ids) {
+  setPlayerData(player, 'spells', ids && ids.map(String));
+  pushState(player);
+}
+
+provide('magic', { defineSpell, cast, setSpells });
 
 log('Magic module ready (manaMax=' + manaMax + ').');

@@ -23,6 +23,7 @@ vi.mock('../../services/content/spellService.js', async (importOriginal) => ({
 
 interface MagicApi {
   cast: (player: PlayerServer, spellId: string) => boolean;
+  setSpells: (player: PlayerServer, ids?: string[]) => void;
 }
 
 function castVia(action: string, username: string, id: string) {
@@ -128,6 +129,29 @@ describe('magic module', () => {
     ) as { payload: { mana: number; spells: unknown[] } } | undefined;
     expect(ev?.payload.mana).toBe(100);
     expect(ev?.payload.spells.length).toBe(2);
+  });
+
+  // Classes: with no list a player casts every spell.
+  it('a player with a spell list sees and casts only those', () => {
+    const sim = createFixture(0);
+    const caster = sim.addPlayer({ name: 'Alice', health: 40, maxHealth: 100 });
+    sim.step(1);
+    drainGameEvents();
+
+    useApi<MagicApi>('magic')!.setSpells(caster, ['blast']);
+    const ev = drainGameEvents().find(
+      (e) => e.type === 'customPlayer' && e.channel === 'magic:update',
+    ) as { payload: { spells: { id: string }[] } } | undefined;
+    castVia('spell:cast', 'Alice', 'heal');
+
+    expect(ev?.payload.spells.map((s) => s.id)).toEqual(['blast']);
+    expect(caster.health).toBe(40); // not one of hers
+    expect(caster.data?.mana).toBeUndefined(); // nothing spent
+
+    useApi<MagicApi>('magic')!.setSpells(caster, undefined);
+    castVia('spell:cast', 'Alice', 'heal');
+
+    expect(caster.health).toBe(100);
   });
 
   // The hotbar paints a friendly slot differently, and the only place that

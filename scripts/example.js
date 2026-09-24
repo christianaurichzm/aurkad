@@ -554,6 +554,7 @@ command(
 //   use('dialog').show(player, { text, choices? }, onChoice?)
 //   use('quest').define(def) / start(p, id) / advance(p, id, n?) / get(p, id)
 //   use('magic').defineSpell({ id, name, manaCost, cooldownMs, cast(player) })
+//   use('magic').setSpells(p, ids?)    what p can cast; undefined = every spell
 //   use('guild').guildOf(player) / isMember(p, name) / members(name)
 //   use('party').partyOf(player) / isMember(p, name) / members(name)
 //
