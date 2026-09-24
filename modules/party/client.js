@@ -9,6 +9,8 @@
 engine.i18n({
   pt: {
     Party: 'Grupo',
+    'Party ready. Stay together to share experience.':
+      'Grupo pronto. Fiquem próximos para compartilhar experiência.',
     'Party ({size}/{max})': 'Grupo ({size}/{max})',
     'Player name to invite': 'Nome do jogador a convidar',
     'Create Party': 'Criar grupo',
@@ -24,6 +26,8 @@ engine.i18n({
 
 const ui = engine.ui;
 const panel = ui.panel({ title: 'Party' });
+panel.el.style.minWidth = '300px';
+panel.el.style.fontSize = '16px';
 ui.actionButton('Party', () => panel.toggle(), 'p');
 
 let state = null; // null = solo, { leader, members, maxMembers } = in party
@@ -31,7 +35,7 @@ let state = null; // null = solo, { leader, members, maxMembers } = in party
 function memberLine(name, isLeader) {
   const el = document.createElement('div');
   el.textContent = (isLeader ? '★ ' : '• ') + name;
-  el.style.cssText = 'padding:2px 0;font-size:13px;';
+  el.style.cssText = 'padding:6px 0;font-size:17px;';
   return el;
 }
 
@@ -78,12 +82,23 @@ function render() {
       max: state.maxMembers,
     }),
   );
-  panel.setBody(memberList, ui.row(nameInput, inviteBtn), leaveBtn);
+  const status = document.createElement('p');
+  status.setAttribute('role', 'status');
+  status.style.cssText = 'margin:0 0 8px;max-width:300px;line-height:1.5;';
+  status.textContent =
+    state.members.length > 1
+      ? engine.t('Party ready. Stay together to share experience.')
+      : '';
+  panel.setBody(status, memberList, ui.row(nameInput, inviteBtn), leaveBtn);
 }
 
 engine.onServerEvent('party:update', (data) => {
+  const joined =
+    data?.members?.length > 1 &&
+    (state?.members?.length ?? 0) < data.members.length;
   state = data;
   render();
+  if (joined) panel.show();
 });
 
 engine.onServerEvent('party:invite', ({ from }) => {
