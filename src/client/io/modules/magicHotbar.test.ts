@@ -10,7 +10,8 @@ import {
 // canvas, where a player who never opens the panel can see it.
 
 const NOW = 1_700_000_000_000;
-const SLOT = 46;
+const SLOT = 128;
+const HEIGHT = 72;
 
 const spell = (over: Record<string, unknown> = {}) => ({
   id: 'arcane',
@@ -75,7 +76,7 @@ describe('spell hotbar', () => {
     const [x, y] = slots[0].args as number[];
     const width = 2 * SLOT + 6;
     expect(x).toBe((800 - width) / 2);
-    expect(y).toBe(600 - SLOT - 12);
+    expect(y).toBe(600 - HEIGHT - 12);
   });
 
   // The reason cooldownMs was added to the payload: without the whole
@@ -91,7 +92,7 @@ describe('spell hotbar', () => {
     const rec = drawHotbar();
     const shutter = rec.of('fillRect')[1].args as number[];
 
-    expect(shutter[3]).toBeCloseTo(SLOT * 0.75);
+    expect(shutter[3]).toBeCloseTo(HEIGHT * 0.75);
   });
 
   it('counts down in whole seconds, and in tenths under one', () => {
@@ -116,7 +117,7 @@ describe('spell hotbar', () => {
       .of('fillText')
       .map((c) => c.args[0]);
 
-    expect(text).toEqual(['F1', 'Arcane', '30']);
+    expect(text).toEqual(['F1', 'Arcane', '30 MP']);
   });
 
   it('does not shutter a spell the player merely cannot afford', () => {
@@ -138,7 +139,13 @@ describe('spell hotbar', () => {
       ),
     });
 
-    expect(drawHotbar().of('fillRect')).toHaveLength(8);
+    const slots = drawHotbar().of('fillRect');
+    expect(slots).toHaveLength(8);
+    for (const slot of slots) {
+      const [x, , width] = slot.args as number[];
+      expect(x).toBeGreaterThanOrEqual(12);
+      expect(x + width).toBeLessThanOrEqual(788);
+    }
   });
 });
 

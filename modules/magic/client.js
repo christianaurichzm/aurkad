@@ -85,11 +85,12 @@ engine.sendServerEvent('magic:request');
 // as a shutter wiping downward as the spell comes back. Read-only, as
 // casting is the F-keys and the panel, so there is no hit-testing here.
 
-const SLOT = 46;
+const SLOT = 128;
+const HEIGHT = 72;
 const GAP = 6;
 const BOTTOM = 12;
 const HOTBAR_COLORS = {
-  slot: 'rgba(12,16,24,0.35)',
+  slot: 'rgba(12,16,24,0.90)',
   slotReady: 'rgba(56,189,248,0.9)',
   // A spell aimed at friends (self, party, guild) reads green and carries a
   // cross, so the kinds differ without relying on colour alone.
@@ -98,69 +99,71 @@ const HOTBAR_COLORS = {
   slotBlocked: 'rgba(120,130,150,0.45)',
   shutter: 'rgba(4,8,16,0.45)',
   text: '#e5edff',
-  dim: 'rgba(229,237,255,0.45)',
+  dim: '#aebbd2',
   cost: '#7dd3fc',
 };
 
-function drawSlot(ctx, x, y, spell, index, now, mana) {
+function drawSlot(ctx, x, y, width, spell, index, now, mana) {
   const remaining = Math.max(0, spell.readyAt - now);
   const total = spell.cooldownMs || 0;
   const tooPoor = mana < spell.cost;
   const ready = remaining <= 0 && !tooPoor;
 
   ctx.fillStyle = HOTBAR_COLORS.slot;
-  ctx.fillRect(x, y, SLOT, SLOT);
+  ctx.fillRect(x, y, width, HEIGHT);
   ctx.strokeStyle = ready
     ? spell.friendly
       ? HOTBAR_COLORS.slotReadySelf
       : HOTBAR_COLORS.slotReady
     : HOTBAR_COLORS.slotBlocked;
   ctx.lineWidth = ready ? 2 : 1;
-  ctx.strokeRect(x + 0.5, y + 0.5, SLOT - 1, SLOT - 1);
+  ctx.strokeRect(x + 0.5, y + 0.5, width - 1, HEIGHT - 1);
 
+  // The covered part is what is still owed. With no declared duration there
+  // is no fraction to draw, so the slot stays shuttered until it is ready.
+  if (remaining > 0) {
+    const left = total > 0 ? Math.min(1, remaining / total) : 1;
+    ctx.fillStyle = HOTBAR_COLORS.shutter;
+    ctx.fillRect(x, y, width, HEIGHT * left);
+  }
+  ctx.textAlign = 'left';
+  ctx.fillStyle = HOTBAR_COLORS.text;
+  ctx.font = 'bold 14px monospace';
+  ctx.fillText(`F${index + 1}`, x + 8, y + 18);
   if (spell.friendly) {
-    ctx.fillStyle = ready ? HOTBAR_COLORS.selfMark : HOTBAR_COLORS.dim;
-    ctx.font = 'bold 11px monospace';
+    ctx.fillStyle = HOTBAR_COLORS.selfMark;
     ctx.textAlign = 'right';
-    ctx.fillText('+', x + SLOT - 4, y + 12);
+    ctx.fillText('+', x + width - 8, y + 18);
     ctx.textAlign = 'left';
   }
-
   ctx.fillStyle = ready ? HOTBAR_COLORS.text : HOTBAR_COLORS.dim;
-  ctx.font = 'bold 10px monospace';
-  ctx.textAlign = 'left';
-  ctx.fillText(`F${index + 1}`, x + 4, y + 12);
-  ctx.font = '9px monospace';
-  ctx.fillText(spell.name.slice(0, 7), x + 4, y + 26);
+  ctx.font = '14px sans-serif';
+  ctx.fillText(spell.name, x + 8, y + 40, width - 16);
+  ctx.font = '12px monospace';
   ctx.fillStyle = tooPoor ? HOTBAR_COLORS.dim : HOTBAR_COLORS.cost;
-  ctx.fillText(String(spell.cost), x + 4, y + SLOT - 6);
-
-  if (remaining <= 0) return;
-
-  // Wipes downward: the covered part is what is still owed. With no declared
-  // duration there is nothing to draw a fraction of, so the slot just stays
-  // shuttered until it is ready.
-  const left = total > 0 ? Math.min(1, remaining / total) : 1;
-  ctx.fillStyle = HOTBAR_COLORS.shutter;
-  ctx.fillRect(x, y, SLOT, SLOT * left);
-
-  ctx.fillStyle = HOTBAR_COLORS.text;
-  ctx.font = 'bold 13px monospace';
-  ctx.textAlign = 'center';
-  const secs = remaining / 1000;
-  ctx.fillText(
-    secs >= 1 ? String(Math.ceil(secs)) : secs.toFixed(1),
-    x + SLOT / 2,
-    y + SLOT / 2 + 5,
-  );
-  ctx.textAlign = 'left';
+  ctx.fillText(`${spell.cost} MP`, x + 8, y + HEIGHT - 10);
+  if (remaining > 0) {
+    ctx.fillStyle = HOTBAR_COLORS.text;
+    ctx.textAlign = 'right';
+    const secs = remaining / 1000;
+    ctx.fillText(
+      secs >= 1 ? String(Math.ceil(secs)) : secs.toFixed(1),
+      x + width - 8,
+      y + HEIGHT - 10,
+    );
+    ctx.textAlign = 'left';
+  }
 }
 
 engine.registerOverlay((ctx, cam) => {
   if (!state || !state.spells || !state.spells.length) return;
 
   const slots = state.spells.slice(0, 8);
-  const width = slots.length * SLOT + (slots.length - 1) * GAP;
+  const slotWidth = Math.min(
+    SLOT,
+    (ctx.canvas.width - 24 - (slots.length - 1) * GAP) / slots.length,
+  );
+  const width = slots.length * slotWidth + (slots.length - 1) * GAP;
 
   ctx.save();
   // Screen space: the hotbar belongs to the bottom of the view, not to a place
@@ -169,10 +172,19 @@ engine.registerOverlay((ctx, cam) => {
   ctx.textBaseline = 'alphabetic';
 
   const x0 = (ctx.canvas.width - width) / 2;
-  const y = ctx.canvas.height - SLOT - BOTTOM;
+  const y = ctx.canvas.height - HEIGHT - BOTTOM;
   const now = Date.now();
   slots.forEach((spell, i) => {
-    drawSlot(ctx, x0 + i * (SLOT + GAP), y, spell, i, now, state.mana);
+    drawSlot(
+      ctx,
+      x0 + i * (slotWidth + GAP),
+      y,
+      slotWidth,
+      spell,
+      i,
+      now,
+      state.mana,
+    );
   });
 
   ctx.restore();
