@@ -241,6 +241,26 @@ export const SaveMapBodySchema = z.object({
   music: z.string().optional(),
 });
 
+/**
+ * How an npc hunts and how soon it comes back. The content pack declares its
+ * npcs with these same fields: z.object drops what it does not know, so a
+ * field missing there is lost on every pack import.
+ */
+export const NpcTuningFields = {
+  // AI tuning in tiles. Clamped here rather than defaulted: absent has to stay
+  // absent so the engine default for the behaviour keeps applying, and a sight
+  // of 200 tiles would make every npc query the whole map.
+  sight: z.number().int().min(1).max(20).optional(),
+  pathDepth: z.number().int().min(0).max(40).optional(),
+  leash: z.number().int().min(0).max(60).optional(),
+  // Milliseconds between steps. Floored at one tick at 20 Hz; a minute is
+  // already a statue that twitches.
+  moveIntervalMs: z.number().int().min(50).max(60_000).optional(),
+  // Milliseconds dead before coming back. An hour is a raid boss; past that it
+  // is a one-off, which is a script's job, not a timer's.
+  respawnMs: z.number().int().min(0).max(3_600_000).optional(),
+};
+
 export const CreateNpcBodySchema = z.object({
   name: z.string().min(1),
   sprite: z.number().int().nonnegative(),
@@ -256,15 +276,7 @@ export const CreateNpcBodySchema = z.object({
   questId: z.string().optional(),
   scriptId: z.string().optional(),
   scriptParams: ScriptParamsSchema.optional(),
-  // AI tuning in tiles. Clamped here rather than defaulted: absent has to stay
-  // absent so the engine default for the behaviour keeps applying, and a sight
-  // of 200 tiles would make every npc query the whole map.
-  sight: z.number().int().min(1).max(20).optional(),
-  pathDepth: z.number().int().min(0).max(40).optional(),
-  leash: z.number().int().min(0).max(60).optional(),
-  // Milliseconds between steps. Floored at one tick at 20 Hz; a minute is
-  // already a statue that twitches.
-  moveIntervalMs: z.number().int().min(50).max(60_000).optional(),
+  ...NpcTuningFields,
 });
 
 /**

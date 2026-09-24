@@ -255,6 +255,11 @@ export interface PersistentNpc extends CharacterBase {
    * whole tick, so 50 is the floor at 20 Hz.
    */
   moveIntervalMs?: number;
+  /**
+   * Milliseconds a killed npc stays gone before it comes back at one of its
+   * spawn tiles. Absent or 0 brings it back at once, the tick it dies.
+   */
+  respawnMs?: number;
 }
 
 export interface RuntimeNpc extends PersistentNpc, CharacterRuntime {

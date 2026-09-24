@@ -316,6 +316,39 @@ describe('respawnNpc', () => {
     respawnNpc(sim.mapId, npc);
     expect(npc.health).toBe(1);
   });
+
+  it('keeps an npc with respawnMs off the map until its time is up', () => {
+    const npc = sim.addNpc({
+      id: 'goblin',
+      maxHealth: 30,
+      health: 0,
+      position: tile(6, 6),
+      respawnMs: 1000,
+    });
+    sim.map.tiles[3]![3]!.npcSpawn = npc.id;
+
+    respawnNpc(sim.mapId, npc);
+    expect(sim.map.npcs[npc.id]).toBeUndefined();
+
+    sim.step(msToTicks(1000) - 1);
+    expect(sim.map.npcs[npc.id]).toBeUndefined();
+
+    sim.step(1);
+    expect(sim.map.npcs[npc.id]).toBe(npc);
+    expect(npc.health).toBe(30);
+    expect(npc.position).toEqual(tile(3, 3));
+  });
+
+  it('leaves the rebuilt npc alone when the map was reloaded meanwhile', () => {
+    const npc = sim.addNpc({ id: 'goblin', maxHealth: 30, respawnMs: 1000 });
+    sim.map.tiles[3]![3]!.npcSpawn = npc.id;
+
+    respawnNpc(sim.mapId, npc);
+    const rebuilt = sim.addNpc({ id: 'goblin', maxHealth: 30 });
+    sim.step(msToTicks(1000));
+
+    expect(sim.map.npcs[npc.id]).toBe(rebuilt);
+  });
 });
 
 // retaliation, leash and the walk home

@@ -138,6 +138,11 @@ interface RuntimeNpc {
    * interval (1250 by default); 50 is one step per tick.
    */
   moveIntervalMs?: number;
+  /**
+   * Milliseconds a killed npc stays gone before it comes back at a spawn tile.
+   * Absent or 0 brings it back the moment it dies.
+   */
+  respawnMs?: number;
   mapId: string;
   position: Position;
   direction: Direction;

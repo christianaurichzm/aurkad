@@ -253,8 +253,9 @@ export const en = {
   'npc.pathDepth': 'Path depth',
   'npc.leash': 'Leash',
   'npc.stepEvery': 'Step every (ms)',
+  'npc.respawnAfter': 'Respawn after (ms)',
   'npc.aiHint':
-    'Empty uses the default for the behavior. Sight is how far it notices a player on its own - being hit ignores it. Path depth 0 walks straight at you and bumps into walls; higher rounds bigger obstacles. Leash is how far it follows before walking back to its spawn, 0 for no limit. Step every is speed: lower is faster, and 50 is one step per tick.',
+    'Empty uses the default for the behavior. Sight is how far it notices a player on its own - being hit ignores it. Path depth 0 walks straight at you and bumps into walls; higher rounds bigger obstacles. Leash is how far it follows before walking back to its spawn, 0 for no limit. Step every is speed: lower is faster, and 50 is one step per tick. Respawn after is how long it stays gone once killed; empty or 0 brings it back at once.',
   'npc.behaviorHint': 'Runs when a player talks to this NPC, and when it dies',
   'npc.dialog': 'Dialog',
   'npc.dialogSet':

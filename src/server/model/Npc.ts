@@ -39,6 +39,8 @@ const NpcSchema = new mongoose.Schema(
     leash: { type: Number, min: 0, max: 60 },
     // Milliseconds, not tiles: how often this npc steps.
     moveIntervalMs: { type: Number, min: 50, max: 60_000 },
+    // Milliseconds a killed npc stays off the map.
+    respawnMs: { type: Number, min: 0, max: 3_600_000 },
   },
   { _id: false },
 );

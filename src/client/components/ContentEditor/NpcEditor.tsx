@@ -40,6 +40,7 @@ type NpcFormValues = {
   pathDepth: string;
   leash: string;
   moveIntervalMs: string;
+  respawnMs: string;
 };
 
 const defaultValues: NpcFormValues = {
@@ -58,6 +59,7 @@ const defaultValues: NpcFormValues = {
   pathDepth: '',
   leash: '',
   moveIntervalMs: '',
+  respawnMs: '',
 };
 
 // Empty reaches the server as absent, not 0, so the engine default applies.
@@ -82,6 +84,7 @@ const npcToFormValues = (npc: RuntimeNpc): NpcFormValues => ({
   pathDepth: npc.pathDepth?.toString() ?? '',
   leash: npc.leash?.toString() ?? '',
   moveIntervalMs: npc.moveIntervalMs?.toString() ?? '',
+  respawnMs: npc.respawnMs?.toString() ?? '',
 });
 
 export const NpcEditor: React.FC<NpcEditorProps> = ({
@@ -148,6 +151,7 @@ export const NpcEditor: React.FC<NpcEditorProps> = ({
     pathDepth,
     leash,
     moveIntervalMs,
+    respawnMs,
   }: NpcFormValues) => {
     const data = {
       name,
@@ -170,6 +174,7 @@ export const NpcEditor: React.FC<NpcEditorProps> = ({
       pathDepth: optionalNumber(pathDepth),
       leash: optionalNumber(leash),
       moveIntervalMs: optionalNumber(moveIntervalMs),
+      respawnMs: optionalNumber(respawnMs),
     };
     const result = selectedId
       ? await updateNpc(selectedId, data).catch(() => null)
@@ -330,16 +335,29 @@ export const NpcEditor: React.FC<NpcEditorProps> = ({
               />
             </div>
           </div>
-          <div style={{ ...field, marginTop: 8, maxWidth: 180 }}>
-            <label style={label}>{t('npc.stepEvery')}</label>
-            <input
-              style={input}
-              type="number"
-              min={50}
-              max={60000}
-              placeholder="1250"
-              {...register('moveIntervalMs')}
-            />
+          <div style={{ ...triRow, marginTop: 8 }}>
+            <div style={field}>
+              <label style={label}>{t('npc.stepEvery')}</label>
+              <input
+                style={input}
+                type="number"
+                min={50}
+                max={60000}
+                placeholder="1250"
+                {...register('moveIntervalMs')}
+              />
+            </div>
+            <div style={field}>
+              <label style={label}>{t('npc.respawnAfter')}</label>
+              <input
+                style={input}
+                type="number"
+                min={0}
+                max={3600000}
+                placeholder="0"
+                {...register('respawnMs')}
+              />
+            </div>
           </div>
           <p style={dropHint}>{t('npc.aiHint')}</p>
         </div>

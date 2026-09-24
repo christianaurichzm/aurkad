@@ -248,8 +248,9 @@ export const pt: Record<keyof typeof en, string> = {
   'npc.pathDepth': 'Profundidade do caminho',
   'npc.leash': 'Coleira',
   'npc.stepEvery': 'Passo a cada (ms)',
+  'npc.respawnAfter': 'Renasce após (ms)',
   'npc.aiHint':
-    'Vazio usa o padrão do comportamento. Visão é a distância em que ele nota um jogador sozinho - levar dano ignora isso. Profundidade 0 anda reto na sua direção e esbarra nas paredes; valores maiores contornam obstáculos maiores. Coleira é o quanto ele persegue antes de voltar ao ponto de origem, 0 para sem limite. Passo a cada é velocidade: menor é mais rápido, e 50 é um passo por tick.',
+    'Vazio usa o padrão do comportamento. Visão é a distância em que ele nota um jogador sozinho - levar dano ignora isso. Profundidade 0 anda reto na sua direção e esbarra nas paredes; valores maiores contornam obstáculos maiores. Coleira é o quanto ele persegue antes de voltar ao ponto de origem, 0 para sem limite. Passo a cada é velocidade: menor é mais rápido, e 50 é um passo por tick. Renasce após é quanto tempo ele some depois de morto; vazio ou 0 o traz de volta na hora.',
   'npc.behaviorHint':
     'Roda quando um jogador fala com este NPC, e quando ele morre',
   'npc.dialog': 'Diálogo',

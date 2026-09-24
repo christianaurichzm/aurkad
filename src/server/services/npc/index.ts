@@ -20,6 +20,8 @@ import { getMap } from '../world/gameData.js';
 import { getOrInitNpcAi, transitionNpcAi, resetNpcAi } from './aiBrain.js';
 import { isHunter, type NpcAiState } from './types.js';
 import { getTick, msToTicks } from '../../sim/clock.js';
+import { scheduleAfter } from '../../sim/scheduler.js';
+import { forgetReplicatedEntity } from '../../net/snapshot.js';
 import { gameConfig } from '../../gameConfig.js';
 import {
   findClosestPlayer,
@@ -183,19 +185,42 @@ function idleStep(npc: RuntimeNpc, ai: NpcAiState, map: MapStateServer) {
 // ---- public API ----
 
 export const respawnNpc = (mapId: string, npc: RuntimeNpc) => {
+  const delay = npc.respawnMs ? msToTicks(npc.respawnMs) : 0;
+  if (delay === 0) {
+    placeAtSpawn(mapId, npc);
+    return;
+  }
+  // Off the map is what makes it dead to everything at once: the quadtree,
+  // targeting, collision and the ai all walk map.npcs, and a viewer is sent
+  // the id as gone. Replication forgets it because the id comes back, and
+  // a returning entity is sent whole, not diffed against the corpse.
   const map = getMap(mapId);
-  if (!map) return;
+  if (map?.npcs[npc.id] === npc) delete map.npcs[npc.id];
+  forgetReplicatedEntity(npc.id);
+  scheduleAfter(delay, () => {
+    // The map is looked up again: a save in the editor rebuilds its npcs, and
+    // one rebuilt meanwhile already stands in this id's place.
+    const current = getMap(mapId);
+    if (!current || current.npcs[npc.id]) return;
+    if (placeAtSpawn(mapId, npc)) current.npcs[npc.id] = npc;
+  });
+};
+
+function placeAtSpawn(mapId: string, npc: RuntimeNpc): boolean {
+  const map = getMap(mapId);
+  if (!map) return false;
 
   const positions = findNpcSpawnPositions(map, npc.templateId ?? npc.id);
   const newPosition = randomPick(positions);
-  if (!newPosition) return;
+  if (!newPosition) return false;
 
   npc.health = npc.maxHealth;
   npc.position = newPosition;
   npc.action = CharacterAction.Idle;
 
   resetNpcAi(npc);
-};
+  return true;
+}
 
 export const findNpcSpawnPositions = (
   map: MapStateServer,
