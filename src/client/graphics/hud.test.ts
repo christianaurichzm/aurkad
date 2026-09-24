@@ -157,6 +157,22 @@ describe('renderNpcLabel', () => {
     expect(rec.ctx.lineWidth).toBe(1);
   });
 
+  // Mitred, the outline of a small bold M or W sticks out above the name.
+  it('outlines with round joins, and puts the mitred ones back', () => {
+    const rec = recordingContext();
+    let join: CanvasLineJoin | undefined;
+    const stroke = rec.ctx.strokeText.bind(rec.ctx);
+    rec.ctx.strokeText = (...args) => {
+      join = rec.ctx.lineJoin;
+      stroke(...args);
+    };
+
+    renderNpcLabel(npc('Mira, huntress'), false, rec.ctx);
+
+    expect(join).toBe('round');
+    expect(rec.ctx.lineJoin).toBe('miter');
+  });
+
   it('draws nothing for an unnamed npc', () => {
     const rec = recordingContext();
 

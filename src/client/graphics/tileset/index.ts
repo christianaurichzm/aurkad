@@ -854,12 +854,15 @@ const drawNpcSpawnName = (col: number, row: number, npcId: string) => {
   gridCtx.font = 'bold 12px Arial';
   gridCtx.textAlign = 'center';
   gridCtx.lineWidth = 3;
+  // Round, like the names in the world: mitred joins spike off an M or a W.
+  gridCtx.lineJoin = 'round';
   gridCtx.strokeStyle = 'black';
   gridCtx.fillStyle = 'yellow';
   gridCtx.strokeText(label, sx + TILE_SIZE / 2, sy + TILE_SIZE - 6);
   gridCtx.fillText(label, sx + TILE_SIZE / 2, sy + TILE_SIZE - 6);
   gridCtx.textAlign = 'left';
   gridCtx.lineWidth = 1;
+  gridCtx.lineJoin = 'miter';
 };
 
 export const setEditorMusic = (music: string): void => {

@@ -23,8 +23,8 @@ const isDarkFill = (fill: unknown): boolean => {
 };
 
 // Names are lifted off whatever is behind them: a light name gets a black
-// outline, a dark one a light halo. Both are undone after, since the same
-// context draws the health bar and sprites next.
+// outline with round joins, a dark one a light halo. Both are undone after,
+// since the same context draws the health bar and sprites next.
 const outlinedText = (
   ctx: CanvasRenderingContext2D,
   text: string,
@@ -50,9 +50,11 @@ const outlinedText = (
   } else {
     ctx.strokeStyle = 'black';
     ctx.lineWidth = 3;
+    ctx.lineJoin = 'round';
     ctx.strokeText(text, x, y);
     ctx.fillText(text, x, y);
     ctx.lineWidth = 1;
+    ctx.lineJoin = 'miter';
   }
 
   ctx.textAlign = 'left';
