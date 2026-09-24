@@ -52,6 +52,19 @@ describe('renderSpeechBubble', () => {
     expect(rec.of('fillText')[0].args[1]).toBe(200);
   });
 
+  // The bubble stops growing at a cap and the text must stop with it, or a
+  // long line runs out of the box.
+  it('keeps a long line inside its bubble', () => {
+    const rec = recordingContext();
+    setPlayerSpeech('p5', 'Anyone up for the crypt? Bring potions!!');
+
+    renderSpeechBubble(rec.ctx, 'p5', 0, 0);
+
+    const [, , bw] = rec.of('roundRect')[0].args as number[];
+    const maxWidth = rec.of('fillText')[0].args[3] as number;
+    expect(maxWidth).toBeLessThan(bw);
+  });
+
   it('fades over the last quarter and then expires', () => {
     const rec = recordingContext();
     setPlayerSpeech('p4', 'bye');

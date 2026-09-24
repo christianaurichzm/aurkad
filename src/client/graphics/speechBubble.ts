@@ -1,5 +1,7 @@
 const BUBBLE_DURATION = 4000;
 const MAX_TEXT_LEN = 42;
+// Past this the bubble stops growing and the line is squeezed to fit it.
+const MAX_TEXT_WIDTH = 240;
 
 const bubbles = new Map<string, { text: string; startTime: number }>();
 
@@ -34,13 +36,14 @@ export function renderSpeechBubble(
 
   ctx.save();
   ctx.globalAlpha = Math.max(0, alpha);
-  ctx.font = '12px Arial';
+  // The size of the name under it, so a line is as readable as who said it.
+  ctx.font = 'bold 14px Arial';
 
-  const textW = Math.min(ctx.measureText(text).width, 180);
+  const textW = Math.min(ctx.measureText(text).width, MAX_TEXT_WIDTH);
   const padX = 10;
-  const padY = 5;
+  const padY = 6;
   const bw = textW + padX * 2;
-  const bh = 22;
+  const bh = 24;
   const bx = cx - bw / 2;
   const by = ty - bh - 28;
   const r = 6;
@@ -66,7 +69,7 @@ export function renderSpeechBubble(
   // text
   ctx.fillStyle = '#222';
   ctx.textAlign = 'center';
-  ctx.fillText(text, cx, by + bh - padY);
+  ctx.fillText(text, cx, by + bh - padY, textW);
 
   ctx.restore();
 }
