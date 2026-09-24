@@ -3,8 +3,6 @@
 
 window.addEventListener('keydown', (e) => {
   if (e.key !== 'r' && e.key !== 'R') return;
-  if (e.repeat) return;
-  const a = document.activeElement;
-  if (a && (a.tagName === 'INPUT' || a.tagName === 'TEXTAREA')) return;
+  if (e.repeat || engine.ui.isInputActive()) return;
   engine.sendServerEvent('shoot');
 });

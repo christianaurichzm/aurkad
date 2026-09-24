@@ -1,3 +1,6 @@
+import { claimEscape } from '../../hooks/useEscapeClose';
+import { focusDialog } from '../../hooks/useDialogFocus';
+import { isInputActive } from '../../utils/domHelpers';
 import { onServerEvent, sendServerEvent } from '../network/customEvents';
 import { colors, radius, shadow, zIndex } from '../../theme';
 import {
@@ -212,6 +215,7 @@ function makeUi(container: HTMLElement) {
     const el = document.createElement('div');
     el.className = 'module-panel';
     el.setAttribute('role', 'dialog');
+    el.tabIndex = -1;
     el.style.cssText =
       `position:fixed;top:90px;left:calc(50% - 120px);min-width:220px;` +
       `max-width:calc(100vw - 16px);max-height:calc(100dvh - 16px);` +
@@ -253,9 +257,25 @@ function makeUi(container: HTMLElement) {
     el.append(header, body);
     container.append(el);
 
-    const show = () => (el.style.display = 'flex');
-    const hide = () => (el.style.display = 'none');
-    const isOpen = () => el.style.display !== 'none';
+    // While open the panel owns Escape and keeps Tab inside it; both claims
+    // are released on the way out, focus going back to whatever had it.
+    let release: (() => void) | undefined;
+    const hide = () => {
+      el.style.display = 'none';
+      release?.();
+      release = undefined;
+    };
+    const show = () => {
+      if (release) return;
+      el.style.display = 'flex';
+      const releaseEscape = claimEscape(hide);
+      const releaseFocus = focusDialog(el);
+      release = () => {
+        releaseEscape();
+        releaseFocus();
+      };
+    };
+    const isOpen = () => !!release;
     closeEl.onclick = hide;
 
     // Drag by the header with pointer events, since a finger sends no mouse
@@ -294,9 +314,10 @@ function makeUi(container: HTMLElement) {
       header.setPointerCapture(e.pointerId);
       e.preventDefault();
     });
-    window.addEventListener('pointermove', (e) => {
+    const onPointerMove = (e: PointerEvent) => {
       if (dragging) moveTo(e.clientX, e.clientY);
-    });
+    };
+    window.addEventListener('pointermove', onPointerMove);
     const stopDragging = () => (dragging = false);
     window.addEventListener('pointerup', stopDragging);
     window.addEventListener('pointercancel', stopDragging);
@@ -311,6 +332,10 @@ function makeUi(container: HTMLElement) {
       toggle: () => (isOpen() ? hide() : show()),
       isOpen,
       remove: () => {
+        hide();
+        window.removeEventListener('pointermove', onPointerMove);
+        window.removeEventListener('pointerup', stopDragging);
+        window.removeEventListener('pointercancel', stopDragging);
         unsubscribeCloseLabel();
         el.remove();
       },
@@ -318,6 +343,8 @@ function makeUi(container: HTMLElement) {
   };
 
   return {
+    focusDialog,
+    isInputActive,
     button,
     input,
     row: (...c: Node[]) => flex('row', ...c),

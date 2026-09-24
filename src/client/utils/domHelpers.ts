@@ -1,5 +1,11 @@
 import { capitalizeFirst } from '../../shared/utils';
 
+export function isInputActive(): boolean {
+  return !!document.activeElement?.closest(
+    'input, textarea, select, [contenteditable]:not([contenteditable="false"]), [role="textbox"]',
+  );
+}
+
 export function getEl<T extends HTMLElement = HTMLElement>(
   id: string,
 ): T | null {

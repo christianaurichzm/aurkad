@@ -63,8 +63,7 @@ function render() {
 window.addEventListener('keydown', (e) => {
   const m = /^F(\d+)$/.exec(e.key);
   if (!m || !state) return;
-  const a = document.activeElement;
-  if (a && (a.tagName === 'INPUT' || a.tagName === 'TEXTAREA')) return; // typing
+  if (e.defaultPrevented || e.repeat || ui.isInputActive()) return;
   const spell = state.spells[Number(m[1]) - 1];
   if (!spell) return;
   e.preventDefault();

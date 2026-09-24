@@ -1,3 +1,5 @@
+import { isInputActive } from '../../utils/domHelpers';
+
 // Action-menu buttons added by client modules (engine.ui.actionButton). The
 // core ActionPanel renders one button each, so module panels open like the
 // built-in ones. An optional hotkey shows as a badge and is bound here.
@@ -44,9 +46,9 @@ function ensureHotkeyListener(): void {
   if (hotkeyListenerInstalled) return;
   hotkeyListenerInstalled = true;
   window.addEventListener('keydown', (e) => {
-    if (e.repeat || e.ctrlKey || e.altKey || e.metaKey) return;
-    const a = document.activeElement;
-    if (a && (a.tagName === 'INPUT' || a.tagName === 'TEXTAREA')) return;
+    if (e.defaultPrevented || e.repeat || e.ctrlKey || e.altKey || e.metaKey)
+      return;
+    if (isInputActive()) return;
     const action = actions.find((x) => x.key && x.key === e.key.toLowerCase());
     if (!action) return;
     e.preventDefault();

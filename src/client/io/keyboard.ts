@@ -8,14 +8,10 @@ import {
 } from './network';
 import { getAnimatedState } from '../graphics/movementAnimation';
 import { getPlayer } from '../core/gameState';
+import { isInputActive } from '../utils/domHelpers';
 
 const isValidKey = (value: string): value is Key =>
   Object.values(Key).includes(value as Key);
-
-const isInputActive = (): boolean => {
-  const a = document.activeElement;
-  return !!a && (a.id === 'chatInput' || a.tagName === 'INPUT');
-};
 
 const handleKeyPress = async (key: Key) => {
   switch (key) {
@@ -108,7 +104,7 @@ export const releaseKey = (key: Key) => {
 // Kept out of the listener because an async listener hands its rejection to
 // the DOM, which drops it.
 const onKeyDown = async (e: KeyboardEvent) => {
-  if (isInputActive()) return;
+  if (e.defaultPrevented || isInputActive()) return;
   if (!document.hasFocus()) return;
   if (e.key in keyRecord) e.preventDefault();
   // OS auto-repeat is ignored: the server keeps moving while a key is held,

@@ -33,6 +33,24 @@ describe('Modal', () => {
     opener.remove();
   });
 
+  it('closes only the topmost dialog on one Escape', async () => {
+    const lower = vi.fn();
+    const top = vi.fn();
+    render(
+      <>
+        <Modal title="Inventory" onClose={lower}>
+          Bag
+        </Modal>
+        <Modal title="Shop" onClose={top}>
+          Wares
+        </Modal>
+      </>,
+    );
+    await userEvent.keyboard('{Escape}');
+    expect(top).toHaveBeenCalledTimes(1);
+    expect(lower).not.toHaveBeenCalled();
+  });
+
   it('closes with Escape', async () => {
     const user = userEvent.setup();
     const onClose = vi.fn();

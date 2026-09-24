@@ -1,12 +1,28 @@
 import { useEffect, useRef } from 'react';
 import { useUIStore } from '../stores/uiStore';
 
-// Anything listening here owns Escape while it is open. The settings shortcut
-// asks this before claiming the key, so it opens on an empty screen and not on
-// the Escape that just closed a panel.
-let claims = 0;
+// A listener here owns Escape while open, so the settings shortcut only
+// opens on an empty screen. Claims stack; one Escape closes the newest.
+const claims: Array<() => void | Promise<void>> = [];
 
-export const escapeClaimed = () => claims > 0;
+export const escapeClaimed = () => claims.length > 0;
+
+export function claimEscape(onClose: () => void | Promise<void>) {
+  const close = () => onClose();
+  const onKeyDown = (event: KeyboardEvent) => {
+    if (event.key !== 'Escape' || event.defaultPrevented) return;
+    if (claims.at(-1) !== close || useUIStore.getState().dialog.visible) return;
+    event.preventDefault();
+    void close();
+  };
+  claims.push(close);
+  window.addEventListener('keydown', onKeyDown);
+  return () => {
+    const index = claims.indexOf(close);
+    if (index !== -1) claims.splice(index, 1);
+    window.removeEventListener('keydown', onKeyDown);
+  };
+}
 
 export const useEscapeClose = (
   active: boolean,
@@ -20,19 +36,6 @@ export const useEscapeClose = (
   useEffect(() => {
     if (!active) return;
 
-    const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key !== 'Escape') return;
-      if (useUIStore.getState().dialog.visible) return;
-
-      event.preventDefault();
-      void onCloseRef.current();
-    };
-
-    claims += 1;
-    window.addEventListener('keydown', onKeyDown);
-    return () => {
-      claims -= 1;
-      window.removeEventListener('keydown', onKeyDown);
-    };
+    return claimEscape(() => onCloseRef.current());
   }, [active]);
 };

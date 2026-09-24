@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 // First, for its side effect: customEvents and wsManager import each other
 // and gameStateSync subscribes at module scope, so load order decides
 // whether that subscribe finds an initialized map. The app reaches wsManager
@@ -6,6 +6,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import '../network/wsManager';
 import { loadClientModules } from './moduleClient';
 import { setLanguage } from '../../i18n';
+import { escapeClaimed } from '../../hooks/useEscapeClose';
 
 /**
  * The browser half of a module, loaded the way the real loader loads it.
@@ -30,6 +31,41 @@ const serve = (code: string) => {
 beforeEach(() => {
   setLanguage('en');
   document.body.innerHTML = '';
+});
+
+afterEach(() => {
+  document
+    .querySelectorAll<HTMLButtonElement>('.module-panel .window-close')
+    .forEach((b) => b.click());
+  vi.unstubAllGlobals();
+  vi.restoreAllMocks();
+});
+
+describe('module panels', () => {
+  it('closes the top module panel, consumes Escape and restores focus', async () => {
+    serve(`
+      const first = engine.ui.panel({ title: 'Party' });
+      const second = engine.ui.panel({ title: 'Invite' });
+      first.show(); second.show();
+    `);
+    await loadClientModules();
+    const panels = document.querySelectorAll<HTMLElement>('.module-panel');
+    expect(document.activeElement).toBe(panels[1]);
+    const key = new KeyboardEvent('keydown', {
+      key: 'Escape',
+      bubbles: true,
+      cancelable: true,
+    });
+    window.dispatchEvent(key);
+    expect(key.defaultPrevented).toBe(true);
+    expect(panels[1].style.display).toBe('none');
+    expect(panels[0].style.display).toBe('flex');
+    expect(document.activeElement).toBe(panels[0]);
+    window.dispatchEvent(
+      new KeyboardEvent('keydown', { key: 'Escape', cancelable: true }),
+    );
+    expect(escapeClaimed()).toBe(false);
+  });
 });
 
 describe('module client strings', () => {

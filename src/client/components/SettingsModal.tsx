@@ -1,3 +1,4 @@
+import { isInputActive } from '../utils/domHelpers';
 import React, { useEffect, useState } from 'react';
 import { PASSWORD_MIN_LENGTH } from '../../shared/constants';
 import { AudioSettings, getAudioSettings, setAudioSettings } from '../audio';
@@ -59,12 +60,7 @@ export const SettingsModal: React.FC = () => {
     // Escape opens settings when nothing else claims it through
     // useEscapeClose, and never while typing.
     const onEscape = (event: KeyboardEvent) => {
-      if (event.key !== 'Escape') return;
-      const active = document.activeElement;
-      if (
-        active &&
-        (active.tagName === 'INPUT' || active.tagName === 'TEXTAREA')
-      )
+      if (event.key !== 'Escape' || event.defaultPrevented || isInputActive())
         return;
       if (escapeClaimed()) return;
       event.preventDefault();

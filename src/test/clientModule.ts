@@ -1,3 +1,5 @@
+import { isInputActive } from '../client/utils/domHelpers';
+import { focusDialog } from '../client/hooks/useDialogFocus';
 import fs from 'node:fs';
 import path from 'node:path';
 import { vi } from 'vitest';
@@ -146,6 +148,8 @@ function fakeUi(panels: FakePanel[], actions: Map<string, HTMLButtonElement>) {
   };
 
   return {
+    isInputActive,
+    focusDialog,
     panel: (options?: { title?: string }) => {
       const record: FakePanel = {
         body: el(),

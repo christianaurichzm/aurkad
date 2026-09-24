@@ -22,6 +22,7 @@ import { saveMap, type SaveMapResponse, fetchNpcs } from '../../io/network';
 import { foregroundCanvas, foregroundCtx, maskCtx, fringeCtx } from '../canvas';
 import { useUIStore } from '../../stores/uiStore';
 import { getCamera } from '../camera';
+import { isInputActive } from '../../utils/domHelpers';
 
 type ModeConfig = {
   place: (row: number, col: number) => void;
@@ -555,6 +556,8 @@ export const toggleScript = () => toggleMode('script');
 export const toggleConditionalBlock = () => toggleMode('conditionalBlock');
 
 const handleKeyDown = (e: KeyboardEvent) => {
+  // Ctrl+Z in a text field undoes the typing, not the map.
+  if (isInputActive()) return;
   if (e.ctrlKey && e.key === 'z' && !e.shiftKey) {
     e.preventDefault();
     undo();

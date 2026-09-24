@@ -13,6 +13,10 @@ interface PanelApi {
 }
 
 interface ModuleUi {
+  /** Focus and contain Tab within a dialog; cleanup restores the opener. */
+  focusDialog(element: HTMLElement): () => void;
+  /** Whether keyboard focus is inside an editable field. */
+  isInputActive(): boolean;
   panel(options?: { title?: string }): PanelApi;
   button(label: string, onClick?: () => void): HTMLButtonElement;
   input(placeholder?: string): HTMLInputElement;
