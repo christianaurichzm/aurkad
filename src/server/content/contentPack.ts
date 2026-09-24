@@ -4,11 +4,13 @@ import { z } from 'zod';
 import { logger } from '../logger.js';
 import {
   BorderLinksSchema,
+  CreateArrowBodySchema,
+  CreateItemBodySchema,
+  NpcTuningFields,
   ScriptParamsSchema,
   TileSchema,
 } from '../http/bodySchemas.js';
 import {
-  EQUIPMENT_SLOTS,
   SPRITE_HEIGHT,
   SPRITE_WIDTH,
   TILE_SIZE,
@@ -40,6 +42,15 @@ import {
   createOrUpdateRecipe,
   listRecipes,
 } from '../services/content/recipeService.js';
+import {
+  createOrUpdateArrow,
+  listArrows,
+} from '../services/content/arrowService.js';
+import {
+  createOrUpdateSpell,
+  listSpells,
+  SpellSchema as SpellFieldsSchema,
+} from '../services/content/spellService.js';
 import { gameConfig } from '../gameConfig.js';
 import {
   validateContentReferences,
@@ -60,25 +71,6 @@ const contentDir = (): string =>
     ? path.resolve(process.env.CONTENT_PATH)
     : path.join(process.cwd(), 'content');
 
-const ItemTypeSchema = z.enum([...EQUIPMENT_SLOTS, 'consumable', 'money']);
-const EffectSchema = z.object({
-  attribute: z.enum([
-    'health',
-    'maxHealth',
-    'attack',
-    'strength',
-    'defense',
-    'agility',
-    'vitality',
-    'speed',
-    'attackRange',
-    'experience',
-    'experienceToNextLevel',
-    'level',
-  ]),
-  type: z.enum(['add', 'multiply']),
-  value: z.number(),
-});
 const NpcBehaviorSchema = z.enum([
   'aggressive',
   'hostile',
@@ -88,15 +80,16 @@ const NpcBehaviorSchema = z.enum([
   'guard',
 ]);
 
-const ItemSchema = z.object({
+// The editor's own schema plus the id the file carries: z.object drops what it
+// does not know, so a field declared in one place only is lost on every import.
+const ItemSchema = CreateItemBodySchema.extend({
   id: z.number().int().nonnegative(),
-  name: z.string().min(1),
-  description: z.string().default(''),
-  sprite: z.number().int().nonnegative(),
-  type: ItemTypeSchema,
-  effects: z.array(EffectSchema).optional(),
-  scriptId: z.string().optional(),
-  scriptParams: ScriptParamsSchema.optional(),
+});
+const ArrowSchema = CreateArrowBodySchema.extend({
+  id: z.number().int().positive(),
+});
+const SpellSchema = SpellFieldsSchema.extend({
+  id: z.number().int().positive(),
 });
 
 const NpcSchema = z.object({
@@ -130,6 +123,7 @@ const NpcSchema = z.object({
   questId: z.string().optional(),
   scriptId: z.string().optional(),
   scriptParams: ScriptParamsSchema.optional(),
+  ...NpcTuningFields,
 });
 
 const LootQuantitySchema = z.union([
@@ -243,6 +237,7 @@ const MapSchema = z.object({
   name: z.string().min(1),
   type: z.enum(['pvp', 'normal']),
   pvp: z.enum(['safe', 'normal', 'no-penalty']).optional(),
+  instanced: z.boolean().optional(),
   // What joins one map to the next. Undeclared here, `z.object` would drop it
   // between the file and the database and adjacent maps would arrive as
   // islands, though the model declares it.
@@ -280,11 +275,23 @@ type FileSpec<T extends z.ZodType> = {
   list: () => Promise<unknown[]>;
 };
 
-// Import order: items first, then loot tables (item ids), dialogs and
-// quests, then npcs and shops (all of them), maps last (npc and item ids in
-// tiles). Quests and npcs name each other, so quests go first: npc.questId
-// is the reference a save would enforce.
-const SPECS = {
+// Import order: arrows first (a ranged weapon names one), then items, loot
+// tables (item ids), dialogs and quests, then npcs and shops (all of them),
+// maps last (npc and item ids in tiles). Quests and npcs name each other,
+// so quests go first: npc.questId is the reference a save would enforce.
+export const SPECS = {
+  arrows: {
+    file: 'arrows.json',
+    schema: ArrowSchema,
+    upsert: (e) => createOrUpdateArrow(e),
+    list: listArrows,
+  } as FileSpec<typeof ArrowSchema>,
+  spells: {
+    file: 'spells.json',
+    schema: SpellSchema,
+    upsert: (e) => createOrUpdateSpell(e),
+    list: listSpells,
+  } as FileSpec<typeof SpellSchema>,
   items: {
     file: 'items.json',
     schema: ItemSchema,
@@ -344,6 +351,8 @@ const SPECS = {
 };
 
 const IMPORT_ORDER: (keyof typeof SPECS)[] = [
+  'arrows',
+  'spells',
   'items',
   'loot',
   'dialogs',

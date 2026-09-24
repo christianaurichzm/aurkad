@@ -15,6 +15,8 @@ Maps are created in-game via the admin map editor and exported with
 
 ## Files loaded at boot
 
+- `arrows.json`
+- `spells.json`
 - `items.json`
 - `loot.json`
 - `dialogs.json`
@@ -39,12 +41,11 @@ Or edit the JSON by hand and `content:import` (or restart).
 
 ## Import order & validation
 
-Imported as items → loot → dialogs → quests → recipes → npcs → shops → maps (later types
-reference earlier ids). Quests and npcs point at each other, so no order
-satisfies both; quests go first because `npc.questId` is the reference a save
-would break.
-Each entry is validated; invalid entries are skipped with a logged reason, so
-one bad row never blocks the rest.
+Imported as arrows → spells → items → loot → dialogs → quests → recipes →
+npcs → shops → maps (later types reference earlier ids). Quests and npcs point
+at each other, so no order satisfies both; quests go first because
+`npc.questId` is the reference a save would break. Each entry is validated;
+an invalid one is skipped with a logged reason and never blocks the rest.
 
 ## Formats
 
@@ -62,6 +63,28 @@ one bad row never blocks the rest.
 `type`: `weapon | helmet | chestplate | gloves | boots | consumable | money`.
 `effect.attribute`: `health | maxHealth | attack | speed | attackRange | experience | experienceToNextLevel | level`.
 `effect.type`: `add | multiply`.
+`arrowId` makes a weapon fire that arrow (the `archery` module, key R);
+`bound: true` keeps an item from being dropped, traded or banked.
+
+**arrows.json**: what a ranged weapon fires. `id` is a number.
+
+```json
+[{ "id": 1, "name": "Wooden Arrow", "sprite": 0, "damage": 9, "rangeTiles": 6 }]
+```
+
+**spells.json**: the `magic` module's hotbar, in file order (F1, F2, …).
+
+```json
+[
+  { "id": 1, "name": "Arcane Blast", "sprite": 0, "mpCost": 30, "damage": 15,
+    "cooldownMs": 3000 },
+  { "id": 2, "name": "Mending Light", "sprite": 57, "frames": 3, "mpCost": 30,
+    "target": "party", "heal": 40, "visualTarget": "targets" }
+]
+```
+
+`target`: `enemies` take `damage`; `self | party | guild` get `heal`, where 0
+heals to full.
 
 **npcs.json**: `id` is a string.
 

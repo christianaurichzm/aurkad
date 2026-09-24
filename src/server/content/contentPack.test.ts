@@ -20,7 +20,17 @@ import { TILE_SIZE } from '../../shared/constants.js';
 import mongoose from 'mongoose';
 import type { MongoMemoryServer } from 'mongodb-memory-server';
 import { startMemoryMongo } from '../../test/mongo.js';
-import { importContentPack, exportContentPack } from './contentPack.js';
+import { importContentPack, exportContentPack, SPECS } from './contentPack.js';
+import ArrowModel from '../model/Arrow.js';
+import SpellModel from '../model/Spell.js';
+import ItemModel from '../model/Item.js';
+import LootTableModel from '../model/LootTable.js';
+import DialogModel from '../model/Dialog.js';
+import QuestModel from '../model/Quest.js';
+import RecipeModel from '../model/Recipe.js';
+import NpcModel from '../model/Npc.js';
+import ShopModel from '../model/Shop.js';
+import MapModel from '../model/Map.js';
 import {
   listItems,
   createOrUpdateItem,
@@ -33,6 +43,8 @@ import {
   clearLootTableCache,
 } from '../services/economy/lootTableService.js';
 import { getNextItemId, getNextNpcId } from '../services/dbService.js';
+import { listArrows } from '../services/content/arrowService.js';
+import { listSpells } from '../services/content/spellService.js';
 
 let mongod: MongoMemoryServer;
 let tmpDir: string;
@@ -62,6 +74,55 @@ afterEach(() => {
 function write(file: string, data: unknown) {
   fs.writeFileSync(path.join(tmpDir, file), JSON.stringify(data));
 }
+
+// z.object strips unknown keys, so a field the model persists but the pack
+// schema does not declare survives export and is silently dropped on the next
+// import. Every model field is either in the pack or listed here with a reason.
+const MODEL_FIELDS_NOT_IN_PACK: Record<keyof typeof SPECS, string[]> = {
+  arrows: [],
+  spells: [],
+  items: [],
+  loot: [],
+  dialogs: [],
+  quests: [],
+  recipes: [],
+  npcs: [],
+  shops: [],
+  maps: [],
+};
+
+const PACK_MODELS: Record<keyof typeof SPECS, { schema: mongoose.Schema }> = {
+  arrows: ArrowModel,
+  spells: SpellModel,
+  items: ItemModel,
+  loot: LootTableModel,
+  dialogs: DialogModel,
+  quests: QuestModel,
+  recipes: RecipeModel,
+  npcs: NpcModel,
+  shops: ShopModel,
+  maps: MapModel,
+};
+
+describe('pack schemas', () => {
+  it.each(Object.keys(SPECS) as (keyof typeof SPECS)[])(
+    '%s declares every field its model persists',
+    (key) => {
+      const topLevel = new Set(
+        Object.keys(PACK_MODELS[key].schema.paths).map((p) => p.split('.')[0]),
+      );
+      const packKeys = Object.keys(SPECS[key].schema.shape);
+      const missing = [...topLevel].filter(
+        (p) =>
+          p !== '_id' &&
+          p !== '__v' &&
+          !packKeys.includes(p!) &&
+          !MODEL_FIELDS_NOT_IN_PACK[key].includes(p!),
+      );
+      expect(missing).toEqual([]);
+    },
+  );
+});
 
 describe('importContentPack', () => {
   it('imports valid items, npcs, shops and maps into the DB', async () => {
@@ -156,6 +217,22 @@ describe('importContentPack', () => {
   // These hold a world of several maps together, and the schema that parses
   // the file decides what survives, so adjacent maps must not arrive as
   // islands while the import reports every map written.
+  it('keeps a dungeon a dungeon through the map import', async () => {
+    write('maps.json', [
+      {
+        id: 'crypt',
+        name: 'Crypt',
+        type: 'normal',
+        instanced: true,
+        tiles: [[{ tileIndex: 0 }]],
+      },
+    ]);
+    await importContentPack();
+
+    const [crypt] = await listMaps();
+    expect(crypt).toMatchObject({ id: 'crypt', instanced: true });
+  });
+
   it('persists border links through the map import', async () => {
     write('maps.json', [
       {
@@ -205,6 +282,43 @@ describe('importContentPack', () => {
     expect(items[0]!.name).toBe('Potion v2');
   });
 
+  // A pack is a whole game: a bow that lost its arrow on import is a weapon
+  // that cannot shoot, and nothing said so.
+  it('keeps what makes an item a ranged weapon or a bound one', async () => {
+    write('arrows.json', [
+      { id: 1, name: 'Wooden Arrow', sprite: 4, damage: 9, rangeTiles: 6 },
+    ]);
+    write('items.json', [
+      { id: 9, name: 'Hunting Bow', sprite: 1, type: 'weapon', arrowId: 1 },
+      { id: 10, name: 'Relic', sprite: 2, type: 'consumable', bound: true },
+    ]);
+    await importContentPack();
+
+    const items = await listItems();
+    expect(items.find((i) => i.id === 9)).toMatchObject({ arrowId: 1 });
+    expect(items.find((i) => i.id === 10)).toMatchObject({ bound: true });
+    expect(await listArrows()).toEqual([
+      expect.objectContaining({ id: 1, name: 'Wooden Arrow', damage: 9 }),
+    ]);
+  });
+
+  it('imports the spells a pack defines', async () => {
+    write('spells.json', [
+      { id: 3, name: 'Mending Light', sprite: 57, target: 'party', heal: 40 },
+    ]);
+    await importContentPack();
+
+    expect(await listSpells()).toEqual([
+      expect.objectContaining({
+        id: 3,
+        name: 'Mending Light',
+        target: 'party',
+        heal: 40,
+        mpCost: 0,
+      }),
+    ]);
+  });
+
   it('does nothing when content dir is missing', async () => {
     fs.rmSync(tmpDir, { recursive: true, force: true });
     await expect(importContentPack()).resolves.toBeUndefined();
@@ -241,6 +355,11 @@ describe('exportContentPack', () => {
         maxHealth: 50,
         attack: 8,
         behavior: 'hostile',
+        sight: 6,
+        pathDepth: 10,
+        leash: 3,
+        moveIntervalMs: 800,
+        respawnMs: 30000,
       },
     ]);
     await importContentPack();
@@ -257,7 +376,34 @@ describe('exportContentPack', () => {
       id: 'orc',
       name: 'Orc',
       behavior: 'hostile',
+      sight: 6,
+      pathDepth: 10,
+      leash: 3,
+      moveIntervalMs: 800,
+      respawnMs: 30000,
     });
+  });
+});
+
+describe('exporting arrows and spells', () => {
+  it('writes them next to the items that use them', async () => {
+    write('arrows.json', [{ id: 1, name: 'Wooden Arrow', sprite: 4 }]);
+    write('spells.json', [{ id: 1, name: 'Arcane Blast', sprite: 0 }]);
+    await importContentPack();
+
+    fs.rmSync(tmpDir, { recursive: true, force: true });
+    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'content-out-'));
+    process.env.CONTENT_PATH = tmpDir;
+    await exportContentPack();
+
+    const read = (file: string) =>
+      JSON.parse(fs.readFileSync(path.join(tmpDir, file), 'utf-8'));
+    expect(read('arrows.json')).toEqual([
+      expect.objectContaining({ id: 1, name: 'Wooden Arrow' }),
+    ]);
+    expect(read('spells.json')).toEqual([
+      expect.objectContaining({ id: 1, name: 'Arcane Blast' }),
+    ]);
   });
 });
 
