@@ -9,6 +9,7 @@ import {
   resetToOriginalMap,
   setEditorTiles,
   toggleBlocking,
+  toggleMask,
 } from './index';
 
 const mocks = vi.hoisted(() => {
@@ -40,6 +41,7 @@ const mocks = vi.hoisted(() => {
       moveTo: record('moveTo'),
       lineTo: record('lineTo'),
       stroke: record('stroke'),
+      strokeRect: record('strokeRect'),
     } as unknown as CanvasRenderingContext2D,
   };
 });
@@ -243,5 +245,63 @@ describe('a drag in a toggle mode', () => {
     mouse('mouseup', 10);
 
     expect(blocked(0)[0]).toBe(false);
+  });
+});
+
+describe('a mask placed from a selection of several tiles', () => {
+  beforeEach(() => {
+    mocks.cam.x = 0;
+    mocks.cam.y = 0;
+    document.body.innerHTML =
+      '<canvas id="tilesetCanvas"></canvas><canvas id="gridCanvas"></canvas>' +
+      '<canvas id="foregroundCanvas"></canvas>';
+    vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockReturnValue(
+      mocks.ctx,
+    );
+    initTilesetEditor();
+    setEditorTiles(mapOf(1));
+    toggleMask();
+  });
+
+  afterEach(() => {
+    toggleMask();
+  });
+
+  const on = (id: string, type: string, clientX: number, clientY: number) =>
+    document
+      .getElementById(id)!
+      .dispatchEvent(new MouseEvent(type, { clientX, clientY }));
+
+  const masks = () =>
+    getEditorTiles().map((row) => row.map((tile) => tile.maskIndex));
+
+  it('lays down the whole selection, and a second click takes it back off', () => {
+    const tilesetCanvas = document.getElementById('tilesetCanvas')!;
+    tilesetCanvas.getBoundingClientRect = () =>
+      ({ left: 0, top: 0, width: 256, height: 256 }) as DOMRect;
+    // Tileset cells (1,1) to (2,2) of a 4-wide sheet: indices 5, 6, 9 and 10.
+    on('tilesetCanvas', 'mousedown', 70, 70);
+    on('tilesetCanvas', 'mousemove', 130, 130);
+    on('tilesetCanvas', 'mouseup', 130, 130);
+
+    on('foregroundCanvas', 'mousedown', 10, 10);
+    on('foregroundCanvas', 'mouseup', 10, 10);
+
+    const u = undefined;
+    expect(masks()).toEqual([
+      [5, 6, u, u],
+      [9, 10, u, u],
+      [u, u, u, u],
+      [u, u, u, u],
+    ]);
+
+    on('foregroundCanvas', 'mousedown', 10, 10);
+    on('foregroundCanvas', 'mouseup', 10, 10);
+
+    expect(
+      masks()
+        .flat()
+        .every((index) => index === undefined),
+    ).toBe(true);
   });
 });

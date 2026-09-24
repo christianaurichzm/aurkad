@@ -267,26 +267,12 @@ const modes: Record<TileEditMode, ModeConfig> = {
     },
   },
   fringe: {
-    place: (row: number, col: number) => {
-      const { startX, startY } = calculateSelectionBounds();
-      const tilesPerRow = Math.floor(tilesetCanvas.width / TILE_SIZE);
-      const idx = startY * tilesPerRow + startX;
-      map[row][col].fringeIndex =
-        map[row][col].fringeIndex === idx ? undefined : idx;
-      setMapEdited(true);
-      renderMap();
-    },
+    place: (row: number, col: number) =>
+      toggleLayerTiles(row, col, 'fringeIndex'),
   },
   mask: {
-    place: (row: number, col: number) => {
-      const { startX, startY } = calculateSelectionBounds();
-      const tilesPerRow = Math.floor(tilesetCanvas.width / TILE_SIZE);
-      const idx = startY * tilesPerRow + startX;
-      map[row][col].maskIndex =
-        map[row][col].maskIndex === idx ? undefined : idx;
-      setMapEdited(true);
-      renderMap();
-    },
+    place: (row: number, col: number) =>
+      toggleLayerTiles(row, col, 'maskIndex'),
   },
   heal: {
     place: (row: number, col: number) => {
@@ -453,24 +439,43 @@ const placeTile = (event: MouseEvent) => {
   }
 };
 
-const placeSelectedTile = (row: number, col: number) => {
+// Each tile of the tileset selection with the map cell it lands on when the
+// selection's top-left corner goes at (row, col); cells past the map edge are
+// skipped.
+const forEachSelectedTile = (
+  row: number,
+  col: number,
+  fn: (row: number, col: number, tileIndex: number) => void,
+) => {
   const { startX, startY, width, height } = calculateSelectionBounds();
+  const tilesPerRow = Math.floor(tilesetCanvas.width / TILE_SIZE);
   for (let i = 0; i < width; i++) {
     for (let j = 0; j < height; j++) {
       if (row + j < mapHeight && col + i < mapWidth) {
-        const tileIndex =
-          (startY + j) * Math.floor(tilesetCanvas.width / TILE_SIZE) +
-          (startX + i);
-        const prev = map[row + j][col + i];
-        map[row + j][col + i] = {
-          ...prev,
-          tileIndex,
-        };
-        drawTileOnCanvas(col + i, row + j, tileIndex);
+        fn(row + j, col + i, (startY + j) * tilesPerRow + (startX + i));
       }
     }
   }
+};
+
+const placeSelectedTile = (row: number, col: number) => {
+  forEachSelectedTile(row, col, (r, c, tileIndex) => {
+    map[r][c] = { ...map[r][c], tileIndex };
+    drawTileOnCanvas(c, r, tileIndex);
+  });
   setMapEdited(true);
+};
+
+const toggleLayerTiles = (
+  row: number,
+  col: number,
+  layer: 'fringeIndex' | 'maskIndex',
+) => {
+  forEachSelectedTile(row, col, (r, c, tileIndex) => {
+    map[r][c][layer] = map[r][c][layer] === tileIndex ? undefined : tileIndex;
+  });
+  setMapEdited(true);
+  renderMap();
 };
 
 const calculateSelectionBounds = () => {
