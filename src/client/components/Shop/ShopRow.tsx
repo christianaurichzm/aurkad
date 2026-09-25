@@ -116,7 +116,17 @@ export const ShopRow: React.FC<ShopRowProps> = ({
               {product.price} × {product.currency.name}
             </span>
           </div>
-          {notice && <span role={failed ? 'alert' : 'status'}>{notice}</span>}
+          {notice && (
+            <span
+              role={failed ? 'alert' : 'status'}
+              style={{
+                color: failed ? colors.dangerText : colors.success,
+                fontWeight: 600,
+              }}
+            >
+              {failed ? notice : `✓ ${notice}`}
+            </span>
+          )}
         </div>
       </div>
       <button
