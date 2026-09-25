@@ -6,7 +6,6 @@ import { updatePlayer } from '../../services/world/gameData.js';
 import { getPlayerById } from '../../services/player/playerService.js';
 import { playersWsMap } from '../../net/connections.js';
 import { listOnlineEverywhere } from '../../persistence/presence.js';
-import { gameConfig } from '../../gameConfig.js';
 import { createRouter } from '../../app.js';
 
 // What a player asks about themselves and about who else is here. Gameplay
@@ -67,8 +66,10 @@ export function createPlayerRouter() {
       player.agility += agility;
       player.unspentPoints -= totalAssigned;
 
-      player.maxHealth =
-        gameConfig.player.startingMaxHealth + player.vitality * 10;
+      // Added to the ceiling the player has, which is not only vitality's: a
+      // GM, a script or the seed can set it too, and a recomputed one would
+      // throw that away on the first point spent.
+      player.maxHealth += vitality * 10;
 
       updatePlayer(player);
 
