@@ -1,4 +1,4 @@
-import { colors, radius } from '../../theme';
+import { colors, radius, zIndex } from '../../theme';
 import React, { useEffect, useState } from 'react';
 import { onServerEvent } from '../../io/network/customEvents';
 import { useT } from '../../i18n';
@@ -41,6 +41,9 @@ export const QuestTracker: React.FC = () => {
         fontSize: 13,
         maxWidth: 220,
         pointerEvents: 'none',
+        // The canvases in the frame are stacked themselves; without a layer of
+        // its own the tracker sits under them.
+        zIndex: zIndex.gameOverlay,
       }}
     >
       <div style={{ fontWeight: 'bold', marginBottom: 4 }}>
