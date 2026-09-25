@@ -176,6 +176,29 @@ function moduleContainer(id: string): HTMLElement {
   return el;
 }
 
+// Notices over the world, centred on it under the map name. Every module's
+// share one stack, so two landing in the same tick (a first kill that finishes
+// a quest and earns an achievement) sit one under the other. The stack lives
+// in the world's frame, above the dimming an open window puts over the page:
+// a dialog choice is what starts a quest, and its window is still up then.
+function toast(el: HTMLElement, ms = 3000, fallback: HTMLElement): void {
+  const frame = document.getElementById('canvasFrame');
+  let stack = frame?.querySelector<HTMLElement>(':scope > .module-toasts');
+  if (frame && !stack) {
+    stack = document.createElement('div');
+    stack.className = 'module-toasts';
+    stack.style.cssText =
+      'position:absolute;top:44px;left:50%;transform:translateX(-50%);' +
+      'display:flex;flex-direction:column;align-items:center;gap:8px;' +
+      `pointer-events:none;z-index:${zIndex.toast};`;
+    frame.append(stack);
+  }
+  el.style.transition = 'opacity .4s';
+  (stack ?? fallback).append(el);
+  setTimeout(() => (el.style.opacity = '0'), ms);
+  setTimeout(() => el.remove(), ms + 400);
+}
+
 // A small styled UI toolkit so module client code doesn't hand-roll CSS and
 // matches the core look (theme colors/radius/shadow).
 let nextPanelId = 0;
@@ -350,6 +373,9 @@ function makeUi(container: HTMLElement) {
     row: (...c: Node[]) => flex('row', ...c),
     column: (...c: Node[]) => flex('column', ...c),
     panel,
+    // A notice the module styled, shown over the world for `ms` and then
+    // faded out and removed.
+    toast: (el: HTMLElement, ms?: number) => toast(el, ms, container),
     // A button in the in-game Actions menu, e.g. to toggle a panel. A
     // one-char hotkey adds a key badge and global shortcut like the built-ins
     // ("I" for Inventory).

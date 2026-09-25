@@ -208,6 +208,31 @@ describe('quest module with authored quests', () => {
     expect(alice.experience).toBe(50);
   });
 
+  it('tells the client what a quest pays, items by name', async () => {
+    const quest = await bootWith({
+      ...killOrcs,
+      reward: { experience: 50, items: [{ itemId: 3, quantity: 25 }] },
+    });
+    const sim = createFixture(0);
+    sim.addItem({
+      id: 3,
+      name: 'Gold Coin',
+      type: 'money',
+      sprite: 0,
+    } as Parameters<typeof sim.addItem>[0]);
+    const alice = sim.addPlayer({ name: 'Alice' });
+    drainGameEvents();
+    quest.start(alice, 'orcs');
+
+    const pushed = drainGameEvents().find(
+      (e) => e.type === 'customPlayer' && e.channel === 'quest:update',
+    ) as { payload: { id: string; reward: unknown }[] } | undefined;
+    expect(pushed?.payload.find((q) => q.id === 'orcs')?.reward).toEqual({
+      experience: 50,
+      items: [{ name: 'Gold Coin', quantity: 25 }],
+    });
+  });
+
   it('ignores a kill of an npc the objective does not name', async () => {
     const quest = await bootWith(killOrcs);
     const sim = createFixture(0);

@@ -68,6 +68,35 @@ describe('module panels', () => {
   });
 });
 
+describe('module toasts', () => {
+  it('stack over the world, one under the other, and take themselves away', async () => {
+    const frame = document.createElement('div');
+    frame.id = 'canvasFrame';
+    document.body.append(frame);
+    serve(`
+      for (const text of ['Achievement unlocked', 'Quest complete']) {
+        const el = document.createElement('div');
+        el.textContent = text;
+        engine.ui.toast(el, 1000);
+      }
+    `);
+    vi.useFakeTimers();
+    try {
+      await loadClientModules();
+      const stacks = frame.querySelectorAll('.module-toasts');
+      expect(stacks).toHaveLength(1);
+      expect([...stacks[0].children].map((c) => c.textContent)).toEqual([
+        'Achievement unlocked',
+        'Quest complete',
+      ]);
+      vi.advanceTimersByTime(1400);
+      expect(stacks[0].children).toHaveLength(0);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+});
+
 describe('module client strings', () => {
   it('translates a panel title and follows a language switch', async () => {
     serve(`

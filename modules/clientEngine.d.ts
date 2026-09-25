@@ -22,6 +22,11 @@ interface ModuleUi {
   input(placeholder?: string): HTMLInputElement;
   row(...children: Node[]): HTMLElement;
   column(...children: Node[]): HTMLElement;
+  /**
+   * Show a notice the module styled over the world for `ms` (3000), then
+   * fade it out and remove it.
+   */
+  toast(element: HTMLElement, ms?: number): void;
   actionButton(label: string, onClick: () => void, hotkey?: string): HTMLButtonElement;
 }
 

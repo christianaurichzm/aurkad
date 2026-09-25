@@ -102,10 +102,8 @@ function render() {
 function toast(entry) {
   const el = document.createElement('div');
   el.style.cssText =
-    'position:absolute;left:50%;top:14%;transform:translateX(-50%);' +
     'background:var(--color-surface);border:1px solid var(--color-warning);border-radius:8px;' +
-    'padding:10px 18px;text-align:center;pointer-events:none;z-index:40;' +
-    'transition:opacity .4s;';
+    'padding:10px 18px;text-align:center;';
 
   const head = document.createElement('div');
   head.textContent = '★ ' + engine.t('Achievement unlocked');
@@ -118,11 +116,7 @@ function toast(entry) {
     'font:bold 15px sans-serif;color:var(--color-text);margin-top:2px;';
 
   el.append(head, name);
-  engine.mount().append(el);
-  setTimeout(() => {
-    el.style.opacity = '0';
-  }, 2600);
-  setTimeout(() => el.remove(), 3100);
+  engine.ui.toast(el, 2600);
 }
 
 engine.onServerEvent('achievements:update', (payload) => {

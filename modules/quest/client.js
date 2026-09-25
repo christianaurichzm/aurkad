@@ -115,29 +115,30 @@ function render() {
   panel.setBody(...nodes);
 }
 
-// Over the world rather than the page, and under the achievement toast (14%):
-// a first kill can finish a quest and earn an achievement in the same tick,
-// and the bottom of the world is where the spell hotbar is drawn.
-function toast(text) {
+// What finishing a quest paid, as the server describes it: `{ experience,
+// items: [{ name, quantity }] }`, absent for a reward only a script knows.
+function rewardLine(reward) {
+  if (!reward) return '';
+  const parts = [];
+  if (reward.experience) parts.push(`+${reward.experience} XP`);
+  for (const item of reward.items || [])
+    parts.push(`+${item.quantity} ${item.name}`);
+  return parts.join(' · ');
+}
+
+function toast(text, detail) {
   const el = document.createElement('div');
   el.style.cssText =
-    'position:absolute;top:24%;left:50%;transform:translateX(-50%);' +
     'background:var(--color-warning);color:#000;padding:8px 18px;border-radius:6px;' +
-    'font:bold 13px sans-serif;z-index:40;pointer-events:none;' +
-    'animation:questToastIn .25s ease;';
+    'font:bold 13px sans-serif;text-align:center;';
   el.textContent = text;
-
-  if (!document.getElementById('quest-toast-style')) {
-    const style = document.createElement('style');
-    style.id = 'quest-toast-style';
-    style.textContent =
-      '@keyframes questToastIn{from{opacity:0;transform:translateX(-50%) translateY(8px)}' +
-      'to{opacity:1;transform:translateX(-50%) translateY(0)}}';
-    document.head.appendChild(style);
+  if (detail) {
+    const line = document.createElement('div');
+    line.textContent = detail;
+    line.style.cssText = 'font-weight:normal;margin-top:2px;';
+    el.append(line);
   }
-
-  engine.mount().append(el);
-  setTimeout(() => el.remove(), 3500);
+  engine.ui.toast(el, 3500);
 }
 
 engine.onServerEvent('quest:update', (list) => {
@@ -147,7 +148,10 @@ engine.onServerEvent('quest:update', (list) => {
     const was = prevStatuses[q.id];
     if (q.status === 'completed' && was === 'active') {
       engine.chat(engine.t('Quest completed: {quest}', { quest: q.name }));
-      toast(engine.t('✓ Quest complete: {quest}', { quest: q.name }));
+      toast(
+        engine.t('✓ Quest complete: {quest}', { quest: q.name }),
+        rewardLine(q.reward),
+      );
     } else if (listed && q.status === 'active' && !was) {
       engine.chat(engine.t('Quest started: {quest}', { quest: q.name }));
       toast(engine.t('New quest: {quest}', { quest: q.name }));

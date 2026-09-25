@@ -42,9 +42,25 @@ function defOf(id) {
 
 const bagOf = (player) => getPlayerData(player, 'quests') || {};
 
+// A declared reward in words the client can show without a content lookup of
+// its own. A script's reward is a function, and says nothing until it runs.
+function rewardOf(id) {
+  const reward = defOf(id)?.reward;
+  if (!reward || typeof reward !== 'object') return undefined;
+  return {
+    experience: reward.experience || 0,
+    items: (reward.items || []).map((entry) => ({
+      name: getItem(entry.itemId)?.name ?? `#${entry.itemId}`,
+      quantity: entry.quantity || 1,
+    })),
+  };
+}
+
 function save(player, bag) {
   setPlayerData(player, 'quests', bag); // persists with the player
-  const list = Object.keys(bag).map((id) => Object.assign({ id }, bag[id]));
+  const list = Object.keys(bag).map((id) =>
+    Object.assign({ id, reward: rewardOf(id) }, bag[id]),
+  );
   sendEvent(player, 'quest:update', list);
 }
 

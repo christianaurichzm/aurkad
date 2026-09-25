@@ -129,7 +129,11 @@ export type LoadedClientModule = {
  * shipped one does (moduleClient.ts), because a module that builds DOM is only
  * testable if the DOM it built is somewhere a test can query.
  */
-function fakeUi(panels: FakePanel[], actions: Map<string, HTMLButtonElement>) {
+function fakeUi(
+  panels: FakePanel[],
+  actions: Map<string, HTMLButtonElement>,
+  container: HTMLElement,
+) {
   const el = () => document.createElement('div');
   const wire = (b: HTMLButtonElement, onClick?: () => void) => {
     if (onClick) b.addEventListener('click', onClick);
@@ -185,6 +189,12 @@ function fakeUi(panels: FakePanel[], actions: Map<string, HTMLButtonElement>) {
     },
     row: (...c: Node[]) => flex('row', ...c),
     column: (...c: Node[]) => flex('column', ...c),
+    // Into the module's own container, so a test reads a notice where it reads
+    // the rest of what the module drew; gone on the shipped one's schedule.
+    toast: (toastEl: HTMLElement, ms = 3000) => {
+      container.append(toastEl);
+      setTimeout(() => toastEl.remove(), ms + 400);
+    },
     actionButton: (label: string, onClick: () => void) => {
       const b = button(label, onClick);
       actions.set(label, b);
@@ -222,7 +232,7 @@ export function loadClientModule(
     getCamera: () => ({ x: 0, y: 0 }),
     onServerEvent: (channel, handler) => handlers.set(channel, handler),
     sendServerEvent: vi.fn(),
-    ui: fakeUi(panels, actions),
+    ui: fakeUi(panels, actions, container),
     // The English passes through, as the real one does for a language with no
     // entry, so a test asserting on a label reads what ships.
     i18n: vi.fn(),
