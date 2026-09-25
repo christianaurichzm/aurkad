@@ -105,7 +105,6 @@ export const pt: Record<keyof typeof en, string> = {
   'settings.password': 'Senha',
   'settings.email': 'E-mail',
 
-  'quest.title': 'Missões',
   'quest.progress': '{current}/{target}',
 
   'common.cancel': 'Cancelar',

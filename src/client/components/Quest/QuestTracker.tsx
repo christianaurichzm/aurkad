@@ -6,7 +6,6 @@ import { useT } from '../../i18n';
 interface Quest {
   id: string;
   name: string;
-  description: string;
   progress: number;
   target: number;
   status: 'active' | 'completed';
@@ -27,6 +26,7 @@ export const QuestTracker: React.FC = () => {
   const active = quests.filter((q) => q.status === 'active');
   if (active.length === 0) return null;
 
+  // One line per quest with its progress; the story is in the quest log (Q).
   return (
     <div
       style={{
@@ -35,10 +35,10 @@ export const QuestTracker: React.FC = () => {
         right: 12,
         background: colors.overlay,
         color: colors.text,
-        padding: '8px 12px',
+        padding: '6px 10px',
         borderRadius: radius.md,
         border: `1px solid ${colors.border}`,
-        fontSize: 13,
+        fontSize: 12,
         maxWidth: 220,
         pointerEvents: 'none',
         // The canvases in the frame are stacked themselves; without a layer of
@@ -46,18 +46,12 @@ export const QuestTracker: React.FC = () => {
         zIndex: zIndex.gameOverlay,
       }}
     >
-      <div style={{ fontWeight: 'bold', marginBottom: 4 }}>
-        {t('quest.title')}
-      </div>
       {active.map((q) => (
-        <div key={q.id} style={{ marginBottom: 4 }}>
-          <div>{q.name}</div>
-          <div style={{ opacity: 0.8 }}>
-            {q.description}
-            {q.target > 1
-              ? ` (${t('quest.progress', { current: q.progress, target: q.target })})`
-              : ''}
-          </div>
+        <div key={q.id} style={{ display: 'flex', gap: 10 }}>
+          <span style={{ flex: 1 }}>{q.name}</span>
+          <span style={{ color: colors.textMuted }}>
+            {t('quest.progress', { current: q.progress, target: q.target })}
+          </span>
         </div>
       ))}
     </div>

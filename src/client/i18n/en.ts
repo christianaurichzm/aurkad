@@ -109,7 +109,6 @@ export const en = {
   'settings.email': 'Email',
 
   // Quests
-  'quest.title': 'Quests',
   'quest.progress': '{current}/{target}',
 
   // Shared
