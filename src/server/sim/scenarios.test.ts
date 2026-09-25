@@ -291,6 +291,33 @@ describe('item pickup', () => {
     expect(sim.getPlayer('Alice').inventory.items).toHaveLength(0);
     expect(sim.map.droppedItems.find((d) => d.itemId === 6)).toBeDefined();
   });
+
+  it('takes the item drawn on top of a pile first', () => {
+    for (const [id, name] of [
+      [7, 'Gold'],
+      [8, 'Potion'],
+    ] as const) {
+      sim.addItem({ id, name, description: '', sprite: 0, type: 'consumable' });
+    }
+    const at = { x: 3 * TILE_SIZE, y: 3 * TILE_SIZE };
+    sim.addPlayer({ name: 'Alice', position: at });
+    for (const itemId of [7, 8]) {
+      sim.map.droppedItems.push({
+        itemId,
+        sprite: 0,
+        position: at,
+        quantity: 1,
+      });
+    }
+
+    sim.press('Alice', Key.e);
+    sim.step(1);
+
+    expect(sim.getPlayer('Alice').inventory.items.map((i) => i.item)).toEqual([
+      8,
+    ]);
+    expect(sim.map.droppedItems.map((d) => d.itemId)).toEqual([7]);
+  });
 });
 
 // Warps

@@ -72,7 +72,9 @@ export async function listItems(): Promise<Item[]> {
 }
 
 export const pickUpItem = (map: MapStateServer, player: PlayerServer) => {
-  const dropIndex = map.droppedItems.findIndex(
+  // The client draws a tile's drops in order, so the last one is the one the
+  // player sees on top of the pile.
+  const dropIndex = map.droppedItems.findLastIndex(
     (drop) =>
       drop.position.x === player.position.x &&
       drop.position.y === player.position.y,
