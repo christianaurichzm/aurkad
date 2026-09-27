@@ -53,6 +53,20 @@ describe('overlay order', () => {
     expect(order).toEqual(['hud', 'world']);
   });
 
+  // A darkness under the fringe left every roof and tree top lit at night.
+  it('runs scene in a pass of its own, between world and hud', () => {
+    const order: string[] = [];
+    add(() => order.push('hud'), OverlayLayer.hud);
+    add(() => order.push('scene'), OverlayLayer.scene);
+    add(() => order.push('world'));
+
+    runOverlays(ctx, cam, OverlayLayer.scene);
+    expect(order).toEqual(['scene']);
+
+    runOverlays(ctx, cam);
+    expect(order).toEqual(['scene', 'world', 'scene', 'hud']);
+  });
+
   it('defaults to the world layer', () => {
     const order: string[] = [];
     add(() => order.push('default'));

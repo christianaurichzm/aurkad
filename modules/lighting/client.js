@@ -116,4 +116,4 @@ engine.registerOverlay((ctx, cam) => {
   ctx.translate(cam.x, cam.y);
   ctx.drawImage(buffer, 0, 0);
   ctx.restore();
-});
+}, engine.OverlayLayer.scene);

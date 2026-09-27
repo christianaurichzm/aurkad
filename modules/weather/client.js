@@ -118,4 +118,4 @@ engine.registerOverlay((ctx, cam) => {
   }
 
   ctx.restore();
-}, engine.OverlayLayer.world);
+}, engine.OverlayLayer.scene);

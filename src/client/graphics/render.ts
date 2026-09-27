@@ -214,6 +214,7 @@ export const render = () => {
     }
     fringeCtx.save();
     fringeCtx.translate(-cam.x, -cam.y);
+    runOverlays(fringeCtx, cam, OverlayLayer.scene);
     renderEntityHuds(hudEntries, fringeCtx);
     renderFloatingTexts(fringeCtx);
     // Same world translate the world layer gets, so an overlay undoing it with

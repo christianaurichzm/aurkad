@@ -7,8 +7,13 @@ type OverlayFn = (ctx: CanvasRenderingContext2D, cam: Camera) => void;
  * whatever order the modules load in.
  */
 export const OverlayLayer = {
-  /** In the world: markers, ranges, a tint over the scene. */
+  /** In the world, under tree tops and roofs: markers, ranges, spell glow. */
   world: 0,
+  /**
+   * Over the whole scene, tree tops and roofs included, under the names: the
+   * dark, a tint, the rain. A night that a roof pokes through is not a night.
+   */
+  scene: 50,
   /** On the screen: minimap, counters, anything the world must not dim. */
   hud: 100,
 } as const;
@@ -16,7 +21,11 @@ export const OverlayLayer = {
 type Entry = { fn: OverlayFn; order: number };
 
 const layerOf = (order: number) =>
-  order >= OverlayLayer.hud ? OverlayLayer.hud : OverlayLayer.world;
+  order >= OverlayLayer.hud
+    ? OverlayLayer.hud
+    : order >= OverlayLayer.scene
+      ? OverlayLayer.scene
+      : OverlayLayer.world;
 
 const entries: Entry[] = [];
 
@@ -35,9 +44,9 @@ export function registerOverlay(
 }
 
 /**
- * With no `layer`, every overlay. With one, only that layer: `world` and `hud`
- * draw on different canvases, because the fringe (tree tops, roofs) paints over
- * the one the entities live on and a HUD must survive walking under a tree.
+ * With no `layer`, every overlay. With one, only that layer: `world` draws on
+ * the entities' canvas, which the fringe (tree tops, roofs) paints over;
+ * `scene` and `hud` on the fringe's, after it, with the names between them.
  */
 export function runOverlays(
   ctx: CanvasRenderingContext2D,

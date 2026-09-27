@@ -59,4 +59,4 @@ engine.registerOverlay((ctx, cam) => {
   ctx.fillStyle = `rgba(${tint.r},${tint.g},${tint.b},${tint.a})`;
   ctx.fillRect(0, 0, ctx.canvas.width, ctx.canvas.height);
   ctx.restore();
-});
+}, engine.OverlayLayer.scene);

@@ -128,9 +128,9 @@ declare const engine: {
     order?: number,
   ): () => void;
   /**
-   * Draw order for `registerOverlay`. Anything on `hud` covers `world` (the
-   * default), so a minimap or counter belongs there, where a day/night tint
-   * cannot dim it.
+   * Draw order for `registerOverlay`. `world` (the default) sits under tree
+   * tops and roofs; `scene` covers them too, for darkness, tints or rain;
+   * `hud` sits above both and the names, for a minimap a tint must not dim.
    */
-  OverlayLayer: { world: number; hud: number };
+  OverlayLayer: { world: number; scene: number; hud: number };
 };

@@ -466,9 +466,9 @@ function makeEngineApi(id: string) {
       order?: number,
     ) => registerOverlay(fn, order),
     /**
-     * Draw order for registerOverlay. Anything on `hud` covers `world` (the
-     * default), so a minimap or counter belongs there, where a day/night tint
-     * cannot dim it.
+     * Draw order for registerOverlay. `world` (the default) sits under tree
+     * tops and roofs; `scene` covers them too, for darkness, a tint or rain;
+     * `hud` sits above both and the names, so a tint never dims a minimap.
      */
     OverlayLayer,
   };
