@@ -70,6 +70,11 @@ const renderEntity = (entity: SpriteEntity) => {
   );
 };
 
+// The behaviors combat lets a player hit (combat/index.ts): a fight the
+// player can pick shows how it is going.
+const fightable = (npc: RuntimeNpc): boolean =>
+  npc.behavior === 'aggressive' || npc.behavior === 'hostile';
+
 type PlayerEntry = { kind: 'player'; y: number; entity: PlayerPublic };
 type NpcEntry = {
   kind: 'npc';
@@ -99,7 +104,7 @@ export function renderEntitiesSorted(
       kind: 'npc',
       y: s.position.y,
       entity: s,
-      hasHealthBar: npc.behavior === 'aggressive',
+      hasHealthBar: fightable(npc),
     });
   }
 
@@ -130,20 +135,6 @@ export const renderPlayers = (players: PlayersMap) => {
     const smoothed = animate(player);
     renderEntity(smoothed);
     renderHUD(smoothed);
-  });
-};
-
-export const renderNpcs = (npcs: RuntimeNpcsMap) => {
-  Object.values(npcs).forEach((npc) => {
-    if (npc.health > 0) {
-      const smoothed = animate(npc);
-      renderEntity(smoothed);
-      const hasHealthBar = npc.behavior === 'aggressive';
-      if (hasHealthBar) {
-        renderHealthBar(smoothed);
-      }
-      renderNpcLabel(smoothed, hasHealthBar);
-    }
   });
 };
 

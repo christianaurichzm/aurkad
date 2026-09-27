@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { renderDroppedItems } from './entityRendering';
+import { renderDroppedItems, renderEntitiesSorted } from './entityRendering';
 import { renderItemIcon } from './itemDrawing';
 
 const mocks = vi.hoisted(() => ({
@@ -57,5 +57,34 @@ describe('renderDroppedItems', () => {
       192,
       256,
     );
+  });
+});
+
+describe('renderEntitiesSorted', () => {
+  it('gives a health bar to every npc a player can fight, and to no other', () => {
+    const npc = (id: string, behavior: string) =>
+      ({
+        id,
+        behavior,
+        health: 10,
+        maxHealth: 10,
+        position: { x: 0, y: 0 },
+      }) as never;
+    const bars = renderEntitiesSorted(
+      {},
+      {
+        a: npc('a', 'aggressive'),
+        h: npc('h', 'hostile'),
+        f: npc('f', 'friendly'),
+        s: npc('s', 'shopkeeper'),
+      },
+    ).map((e) => [e.entity.id, e.kind === 'npc' && e.hasHealthBar]);
+
+    expect(Object.fromEntries(bars)).toEqual({
+      a: true,
+      h: true,
+      f: false,
+      s: false,
+    });
   });
 });
