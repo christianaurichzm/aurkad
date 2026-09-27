@@ -48,6 +48,23 @@ beforeEach(() => {
   applyWorldUpdate(update({}));
 });
 
+describe('getGameState', () => {
+  // The HUD marks a PvP map by it, and the pack sets it apart from `type`.
+  it("keeps the map's PvP morale from its meta", () => {
+    setMapMeta({
+      id: '2',
+      name: 'Arena',
+      type: 'normal',
+      pvp: 'normal',
+      cols: 1,
+      rows: 1,
+    } as never);
+    applyWorldUpdate(update({}));
+
+    expect(getGameState()?.pvp).toBe('normal');
+  });
+});
+
 describe('applyWorldUpdate', () => {
   it('inserts an unknown entity, routing it by kind', () => {
     applyWorldUpdate(

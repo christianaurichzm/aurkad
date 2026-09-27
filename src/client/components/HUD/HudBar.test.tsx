@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { act, render, screen } from '@testing-library/react';
 import '../../io/network/wsManager';
 import { dispatchServerEvent } from '../../io/network/customEvents';
-import { HudBar } from './HudBar';
+import { HudBar, MapName } from './HudBar';
 import { useUIStore } from '../../stores/uiStore';
 
 // The card names the player, which is session state rather than store state;
@@ -196,5 +196,27 @@ describe('HudBar Component', () => {
 
     rerender(<HudBar />);
     expect(screen.getByText('50%')).toBeInTheDocument();
+  });
+});
+
+describe('MapName', () => {
+  it('marks a map PvP by the morale the server fights by, not by its type', () => {
+    const shown = (map: {
+      type: 'normal' | 'pvp';
+      pvp?: 'safe' | 'normal';
+    }) => {
+      useUIStore.setState({ currentMap: { id: '1', name: 'Vale', ...map } });
+      const { container, unmount } = render(<MapName />);
+      const pvp = container
+        .querySelector('#map-name')!
+        .classList.contains('map-name-pvp');
+      unmount();
+      return pvp;
+    };
+
+    expect(shown({ type: 'normal', pvp: 'normal' })).toBe(true);
+    expect(shown({ type: 'pvp', pvp: 'safe' })).toBe(false);
+    expect(shown({ type: 'pvp' })).toBe(true);
+    expect(shown({ type: 'normal' })).toBe(false);
   });
 });

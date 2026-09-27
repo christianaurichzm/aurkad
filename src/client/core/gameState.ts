@@ -64,6 +64,7 @@ export const getGameState = (): MapStateClient | null => {
     id: staticMap.id,
     name: staticMap.name,
     type: staticMap.type,
+    pvp: staticMap.pvp,
     tiles: staticMap.tiles,
     droppedItems: dynMap.droppedItems,
     npcs: dynMap.npcs,

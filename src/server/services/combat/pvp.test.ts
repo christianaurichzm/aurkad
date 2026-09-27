@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { createFixture, tile } from '../../sim/simFixture.js';
 import { Direction, Key, PvpMorale } from '../../../shared/types.js';
-import { mapPvpMorale, mapAllowsPvp } from './index.js';
+import { mapPvpMorale, mapAllowsPvp } from '../../../shared/utils.js';
 
 describe('mapPvpMorale', () => {
   it('derives from type when unset (back-compat)', () => {

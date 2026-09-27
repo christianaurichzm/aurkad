@@ -6,6 +6,7 @@ import { SpritePreview } from '../common/SpritePreview';
 import { getHealthBarInfo } from '../../graphics/hud';
 import { useT } from '../../i18n';
 import { onServerEvent } from '../../io/network/customEvents';
+import { mapAllowsPvp } from '../../../shared/utils';
 
 export const HudBar = () => {
   const t = useT();
@@ -111,7 +112,9 @@ export const HudBar = () => {
 // Primitives, since the store rebuilds currentMap on every state message.
 export const MapName = () => {
   const name = useUIStore((state) => state.currentMap?.name);
-  const pvp = useUIStore((state) => state.currentMap?.type === 'pvp');
+  const pvp = useUIStore(
+    (state) => !!state.currentMap && mapAllowsPvp(state.currentMap),
+  );
   if (!name) return null;
   return (
     <div id="map-name" className={pvp ? 'map-name-pvp' : undefined}>

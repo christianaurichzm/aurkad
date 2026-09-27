@@ -3,6 +3,7 @@ import type {
   ChatMessagePayload,
   ChatScope,
   MapType,
+  PvpMorale,
 } from '../../shared/types';
 import { t } from '../i18n';
 
@@ -32,7 +33,8 @@ interface ChatState {
 interface MapState {
   id: string;
   name: string;
-  type: 'normal' | 'pvp';
+  type: MapType;
+  pvp?: PvpMorale;
 }
 
 export type DialogKind = 'info' | 'error' | 'confirm';
@@ -66,7 +68,7 @@ interface UIState {
   setPlayerXp: (current: number, max: number) => void;
 
   currentMap: MapState | null;
-  setCurrentMap: (map: { id: string; name: string; type: MapType }) => void;
+  setCurrentMap: (map: MapState) => void;
 
   chat: ChatState;
   addChatMessage: (message: ChatMessagePayload) => void;
@@ -131,6 +133,7 @@ export const useUIStore = create<UIState>((set) => ({
         id: map.id,
         name: map.name,
         type: map.type,
+        pvp: map.pvp,
       },
     }),
 

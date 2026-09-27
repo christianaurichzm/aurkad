@@ -4,7 +4,6 @@ import {
   MapStateServer,
   DroppedItem,
   CombatTarget,
-  PvpMorale,
   RuntimeNpc,
   LootEntry,
   LootTable,
@@ -15,6 +14,7 @@ import { logger } from '../../logger.js';
 import { getTick } from '../../sim/clock.js';
 import { queryEntitiesInRadius } from '../../spatial/spatialManager.js';
 import { gameConfig } from '../../gameConfig.js';
+import { mapAllowsPvp } from '../../../shared/utils.js';
 import { tryConsumeAttackCooldown } from './attackCooldown.js';
 import {
   clampDamage,
@@ -38,17 +38,6 @@ export type ResolveDamageOptions = {
   attacker?: CombatTarget;
   map?: MapStateServer;
 };
-
-// A map's PvP morale, deriving from `type` when unset (back-compat).
-export const mapPvpMorale = (map: {
-  type: MapStateServer['type'];
-  pvp?: PvpMorale;
-}): PvpMorale => map.pvp ?? (map.type === 'pvp' ? 'no-penalty' : 'safe');
-
-export const mapAllowsPvp = (map: {
-  type: MapStateServer['type'];
-  pvp?: PvpMorale;
-}): boolean => mapPvpMorale(map) !== 'safe';
 
 const playerStat = (
   entity: CombatTarget | undefined,

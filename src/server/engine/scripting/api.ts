@@ -82,7 +82,8 @@ import {
 import { cachedRecipes } from '../../services/content/recipeService.js';
 import { queryEntitiesInRadius } from '../../spatial/spatialManager.js';
 import type { SpawnNpcOptions } from '../../services/npc/spawn.js';
-import { resolveDamage, mapPvpMorale } from '../../services/combat/index.js';
+import { resolveDamage } from '../../services/combat/index.js';
+import { mapPvpMorale } from '../../../shared/utils.js';
 import { findPlacement } from '../../services/world/physicsService.js';
 import type {
   CombatTarget,
