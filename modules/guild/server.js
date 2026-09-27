@@ -1,8 +1,8 @@
 // @ts-check
 // Guild module, server entry. Guilds are public or private (invite only),
-// have owner, moderator and member roles, and give an XP bonus when enough
-// members are online. A record with members as string[] is migrated the
-// first time it is read.
+// have owner, moderator and member roles, give an XP bonus when enough
+// members are online, and can share a dungeon copy (config.sharedInstances).
+// A record with members as string[] is migrated on first read.
 
 i18n({
   pt: {
@@ -62,6 +62,7 @@ const xpBonusMinMembers = Math.max(
   2,
   Math.floor(Number((config && config.xpBonusMinMembers) || 3)),
 );
+const sharedInstances = !!(config && config.sharedInstances);
 
 // ---------- helpers ----------------------------------------------------------
 
@@ -364,6 +365,16 @@ if (xpBonus > 0) {
     if (onlineMemberCount(g) >= xpBonusMinMembers) {
       ctx.amount = Math.floor(ctx.amount * (1 + xpBonus));
     }
+  });
+}
+
+// Guildmates who go in together share a copy, like a party. Off by default,
+// since a member could no longer run a dungeon alone. A party decides first.
+if (sharedInstances) {
+  on('instanceOwner', (ctx) => {
+    if (ctx.owner !== ctx.player.name) return;
+    const gn = myGuildName(ctx.player);
+    if (gn) ctx.owner = `guild:${gn}`;
   });
 }
 

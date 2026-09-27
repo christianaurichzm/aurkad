@@ -10,6 +10,8 @@ import { drainGameEvents } from '../eventBus.js';
 import { handleCustomAction } from '../../services/comms/customEventService.js';
 import { createFixture } from '../../sim/simFixture.js';
 import { Access, PlayerServer } from '../../../shared/types.js';
+import { emit } from '../hooks.js';
+import { gameConfig } from '../../gameConfig.js';
 
 interface GuildMember {
   name: string;
@@ -220,5 +222,56 @@ describe('guild module', () => {
       kvGet<Guild>('guild', 'Dragons')?.members.find((m) => m.name === 'Bob')
         ?.role,
     ).toBe('member');
+  });
+});
+
+describe('guild dungeon copies', () => {
+  const ownerOf = (player: PlayerServer, owner = player.name) => {
+    const ctx = { player, mapId: '3', owner };
+    emit('instanceOwner', ctx);
+    return ctx.owner;
+  };
+  const guildOfTwo = () => {
+    const sim = createFixture(0);
+    const alice = sim.addPlayer({ name: 'Alice' });
+    const bob = sim.addPlayer({ name: 'Bob' });
+    handleChatCommand(alice, '/guild create Dragons');
+    handleChatCommand(bob, '/guild join Dragons');
+    return { sim, alice, bob };
+  };
+  const reloadWith = (sharedInstances: boolean) => {
+    unloadAllModules();
+    clearCommands();
+    clearProvides();
+    gameConfig.modules.guild = {
+      ...gameConfig.modules.guild,
+      config: { ...gameConfig.modules.guild?.config, sharedInstances },
+    };
+    loadModulesForTest('guild');
+  };
+
+  afterEach(() => reloadWith(false));
+
+  it('leaves each member a copy of their own by default', () => {
+    const { alice } = guildOfTwo();
+
+    expect(ownerOf(alice)).toBe('Alice');
+  });
+
+  it('gives guildmates one copy when sharedInstances is on', () => {
+    reloadWith(true);
+    const { sim, alice, bob } = guildOfTwo();
+    const carol = sim.addPlayer({ name: 'Carol' });
+
+    expect(ownerOf(alice)).toBe('guild:Dragons');
+    expect(ownerOf(bob)).toBe('guild:Dragons');
+    expect(ownerOf(carol)).toBe('Carol');
+  });
+
+  it('leaves a copy another group already claimed (a party)', () => {
+    reloadWith(true);
+    const { alice } = guildOfTwo();
+
+    expect(ownerOf(alice, 'party:Carol')).toBe('party:Carol');
   });
 });

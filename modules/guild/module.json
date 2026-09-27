@@ -9,6 +9,7 @@
   "config": {
     "maxMembers": 50,
     "xpBonus": 0.1,
-    "xpBonusMinMembers": 3
+    "xpBonusMinMembers": 3,
+    "sharedInstances": false
   }
 }
