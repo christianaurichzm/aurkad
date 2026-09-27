@@ -37,6 +37,9 @@ const mocks = vi.hoisted(() => {
       drawImage: record('drawImage'),
       fillRect: record('fillRect'),
       fillText: record('fillText'),
+      strokeText: record('strokeText'),
+      fill: record('fill'),
+      closePath: record('closePath'),
       beginPath: record('beginPath'),
       moveTo: record('moveTo'),
       lineTo: record('lineTo'),
@@ -165,13 +168,29 @@ describe('the layer the editor draws over the map', () => {
     mocks.calls.length = 0;
 
     renderEditorLayer();
-    expect(markerAt()).toBe(1 * 64 + 20);
+    expect(markerAt()).toBe(1 * 64 + 3);
 
     mocks.calls.length = 0;
     mocks.cam.x = 64;
     renderEditorLayer();
 
-    expect(markerAt()).toBe(1 * 64 - 64 + 20);
+    expect(markerAt()).toBe(1 * 64 - 64 + 3);
+  });
+
+  it("puts a tile's marks side by side, off the middle of the tile", () => {
+    const tiles = mapOf(1);
+    tiles[0][0].blocked = true;
+    tiles[0][0].avoidNpc = true;
+    setEditorTiles(tiles);
+    mocks.calls.length = 0;
+
+    renderEditorLayer();
+
+    const at = (letter: string) =>
+      mocks.calls.find((c) => c.fn === 'fillText' && c.args[0] === letter)
+        ?.args;
+    expect(at('B')?.slice(1)).toEqual([3, 3]);
+    expect(at('A')?.slice(1)).toEqual([14, 3]);
   });
 
   it('keeps the fetched map as the one a discard restores', () => {

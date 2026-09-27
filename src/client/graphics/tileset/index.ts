@@ -725,115 +725,94 @@ const drawMarkers = (tiles: Tile[][]) => {
     for (let colIndex = startCol; colIndex <= endCol; colIndex++) {
       const tile = row[colIndex];
       if (!tile) continue;
-      if (tile.blocked) drawMarker(colIndex, rowIndex, 'B', 'red');
-      if (tile.warp) drawMarker(colIndex, rowIndex, 'W', 'blue');
-      if (tile.npcSpawn) {
-        drawMarker(colIndex, rowIndex, 'N', 'yellow');
-        drawNpcSpawnName(colIndex, rowIndex, tile.npcSpawn);
-      }
-      if (tile.item) drawMarker(colIndex, rowIndex, 'I', 'orange');
-      if (tile.shop) drawMarker(colIndex, rowIndex, 'S', 'green');
-      if (tile.bank) drawMarker(colIndex, rowIndex, '$', '#f59e0b');
-      if (tile.avoidNpc) drawMarker(colIndex, rowIndex, 'A', 'purple');
-      if (tile.maskIndex !== undefined) {
-        drawLayerEdge(colIndex, rowIndex, '#00bcd4', 'left');
-        drawLayerBadge(colIndex, rowIndex, '#00bcd4', 'M', 'bl');
-      }
-      if (tile.fringeIndex !== undefined) {
-        drawLayerEdge(colIndex, rowIndex, '#9c27b0', 'right');
-        drawLayerBadge(colIndex, rowIndex, '#9c27b0', 'F', 'br');
-      }
+      const marks: [string, string][] = [];
+      if (tile.blocked) marks.push(['B', '#ff3b30']);
+      if (tile.warp) marks.push(['W', '#4d8dff']);
+      if (tile.npcSpawn) marks.push(['N', 'yellow']);
+      if (tile.item) marks.push(['I', 'orange']);
+      if (tile.shop) marks.push(['S', '#22c55e']);
+      if (tile.bank) marks.push(['$', '#f59e0b']);
+      if (tile.avoidNpc) marks.push(['A', '#c084fc']);
       if (tile.triggers?.some((t) => t.action === 'heal'))
-        drawMarker(colIndex, rowIndex, 'H', '#00e676');
+        marks.push(['H', '#00e676']);
       if (tile.triggers?.some((t) => t.action === 'kill'))
-        drawMarker(colIndex, rowIndex, 'K', '#ff1744');
+        marks.push(['K', '#ff1744']);
       if (tile.triggers?.some((t) => t.action === 'message'))
-        drawMarker(colIndex, rowIndex, '!', '#ff9100');
+        marks.push(['!', '#ff9100']);
       if (tile.triggers?.some((t) => t.action === 'sound'))
-        drawMarker(colIndex, rowIndex, '♪', '#00bcd4');
+        marks.push(['♪', '#00bcd4']);
       if (tile.triggers?.some((t) => t.action === 'changeSprite'))
-        drawMarker(colIndex, rowIndex, 'C', '#9c27b0');
+        marks.push(['C', '#c084fc']);
       if (tile.triggers?.some((t) => t.action === 'script'))
-        drawMarker(colIndex, rowIndex, 'J', '#607d8b');
-      if (tile.door) drawMarker(colIndex, rowIndex, 'D', '#ff8f00');
-      if (tile.conditionalBlock) drawMarker(colIndex, rowIndex, '?', '#78909c');
+        marks.push(['J', '#90a4ae']);
+      if (tile.door) marks.push(['D', '#ff8f00']);
+      if (tile.conditionalBlock) marks.push(['?', '#90a4ae']);
+      if (marks.length) drawMarks(colIndex, rowIndex, marks);
+      if (tile.npcSpawn) drawNpcSpawnName(colIndex, rowIndex, tile.npcSpawn);
+      if (tile.maskIndex !== undefined)
+        drawLayerCorner(colIndex, rowIndex, '#00bcd4', 'left');
+      if (tile.fringeIndex !== undefined)
+        drawLayerCorner(colIndex, rowIndex, '#9c27b0', 'right');
     }
   }
 };
-const drawMarker = (col: number, row: number, text: string, color: string) => {
-  if (!gridCtx) return;
+
+const tileOnScreen = (col: number, row: number) => {
   const cam = getCamera();
   const sx = col * TILE_SIZE - cam.x;
   const sy = row * TILE_SIZE - cam.y;
-  if (
-    sx + TILE_SIZE <= 0 ||
-    sx >= gridCanvas.width ||
-    sy + TILE_SIZE <= 0 ||
-    sy >= gridCanvas.height
-  )
-    return;
-  gridCtx.fillStyle = color;
-  gridCtx.font = '40px Arial';
-  gridCtx.fillText(text, sx + 20, sy + 35);
+  const on =
+    sx + TILE_SIZE > 0 &&
+    sx < gridCanvas.width &&
+    sy + TILE_SIZE > 0 &&
+    sy < gridCanvas.height;
+  return on ? { sx, sy } : null;
 };
 
-const drawLayerEdge = (
+// Small letters side by side in the tile's top-left corner: the tile under
+// them is what the creator is painting, and it has to stay in view.
+const drawMarks = (col: number, row: number, marks: [string, string][]) => {
+  const at = tileOnScreen(col, row);
+  if (!gridCtx || !at) return;
+  gridCtx.font = 'bold 13px Arial';
+  gridCtx.textBaseline = 'top';
+  gridCtx.lineWidth = 3;
+  gridCtx.lineJoin = 'round';
+  gridCtx.strokeStyle = 'rgba(0, 0, 0, 0.8)';
+  marks.forEach(([letter, color], i) => {
+    const x = at.sx + 3 + i * 11;
+    gridCtx.strokeText(letter, x, at.sy + 3);
+    gridCtx.fillStyle = color;
+    gridCtx.fillText(letter, x, at.sy + 3);
+  });
+  gridCtx.textBaseline = 'alphabetic';
+  gridCtx.lineWidth = 1;
+  gridCtx.lineJoin = 'miter';
+};
+
+// A corner in the layer's colour, the same the layer's button lights up in:
+// which layers a tile has, without covering what they draw.
+const LAYER_CORNER = 10;
+const drawLayerCorner = (
   col: number,
   row: number,
   color: string,
   side: 'left' | 'right',
 ) => {
-  if (!gridCtx) return;
-  const cam = getCamera();
-  const sx = col * TILE_SIZE - cam.x;
-  const sy = row * TILE_SIZE - cam.y;
-  if (
-    sx + TILE_SIZE <= 0 ||
-    sx >= gridCanvas.width ||
-    sy + TILE_SIZE <= 0 ||
-    sy >= gridCanvas.height
-  )
-    return;
-  const ex = side === 'right' ? sx + TILE_SIZE - 3 : sx;
+  const at = tileOnScreen(col, row);
+  if (!gridCtx || !at) return;
+  const x = side === 'left' ? at.sx : at.sx + TILE_SIZE;
+  const inward = side === 'left' ? LAYER_CORNER : -LAYER_CORNER;
+  const y = at.sy + TILE_SIZE;
+  gridCtx.globalAlpha = 0.7;
   gridCtx.fillStyle = color;
-  gridCtx.globalAlpha = 0.8;
-  gridCtx.fillRect(ex, sy, 3, TILE_SIZE);
+  gridCtx.beginPath();
+  gridCtx.moveTo(x, y);
+  gridCtx.lineTo(x + inward, y);
+  gridCtx.lineTo(x, y - LAYER_CORNER);
+  gridCtx.closePath();
+  gridCtx.fill();
   gridCtx.globalAlpha = 1;
-};
-
-const BADGE_SIZE = 14;
-
-const drawLayerBadge = (
-  col: number,
-  row: number,
-  color: string,
-  letter: string,
-  corner: 'bl' | 'br',
-) => {
-  if (!gridCtx) return;
-  const cam = getCamera();
-  const sx = col * TILE_SIZE - cam.x;
-  const sy = row * TILE_SIZE - cam.y;
-  if (
-    sx + TILE_SIZE <= 0 ||
-    sx >= gridCanvas.width ||
-    sy + TILE_SIZE <= 0 ||
-    sy >= gridCanvas.height
-  )
-    return;
-  const dx = corner === 'br' ? sx + TILE_SIZE - BADGE_SIZE - 1 : sx + 1;
-  const dy = sy + TILE_SIZE - BADGE_SIZE - 1;
-  gridCtx.fillStyle = 'rgba(0,0,0,0.75)';
-  gridCtx.fillRect(dx - 1, dy - 1, BADGE_SIZE + 2, BADGE_SIZE + 2);
-  gridCtx.fillStyle = color;
-  gridCtx.fillRect(dx, dy, BADGE_SIZE, BADGE_SIZE);
-  gridCtx.fillStyle = '#fff';
-  gridCtx.font = 'bold 10px Arial';
-  gridCtx.textAlign = 'center';
-  gridCtx.textBaseline = 'middle';
-  gridCtx.fillText(letter, dx + BADGE_SIZE / 2, dy + BADGE_SIZE / 2);
-  gridCtx.textAlign = 'left';
-  gridCtx.textBaseline = 'alphabetic';
 };
 
 // The NPC's name (or "#id" if not loaded yet) at the bottom of a spawn tile, so
