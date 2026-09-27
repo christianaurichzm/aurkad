@@ -39,10 +39,8 @@ const outlinedText = (
 
   if (isDarkFill(ctx.fillStyle)) {
     ctx.shadowColor = 'rgba(255, 255, 255, 0.85)';
-    ctx.shadowBlur = 5;
-    // One pass at this radius is a wash. Stacking them is what thickens the
-    // halo into something a black glyph reads against.
-    ctx.fillText(text, x, y);
+    ctx.shadowBlur = 3;
+    // Two passes make a halo a black glyph reads against; more becomes a plate.
     ctx.fillText(text, x, y);
     ctx.fillText(text, x, y);
     ctx.shadowBlur = 0;
