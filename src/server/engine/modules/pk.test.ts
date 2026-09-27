@@ -10,6 +10,7 @@ import { clearAll, emit } from '../hooks.js';
 import { drainGameEvents } from '../eventBus.js';
 import { setCosmetic } from '../../services/player/cosmeticsService.js';
 import { createFixture } from '../../sim/simFixture.js';
+import { Access } from '../../../shared/types.js';
 
 beforeEach(() => {
   clearAll();
@@ -63,6 +64,18 @@ describe('pk module', () => {
     emit('playerDeath', { player: victim, killer }); // becomes a PK
 
     expect(killer.nameColor).toBe('red'); // PK (priority 100) wins
+  });
+
+  it('never flags an admin', () => {
+    const sim = createFixture(0);
+    sim.map.pvp = 'normal';
+    const victim = sim.addPlayer({ name: 'Victim' });
+    const admin = sim.addPlayer({ name: 'Admin', access: Access.ADMIN });
+
+    emit('playerDeath', { player: victim, killer: admin });
+
+    expect(admin.data?.pkUntil).toBeUndefined();
+    expect(admin.nameColor).toBeUndefined();
   });
 
   it('ignores deaths with no player killer (traps, falls)', () => {

@@ -39,6 +39,8 @@ i18n({
 on('playerDeath', ({ player, killer }) => {
   if (!killer || killer.kind !== 'player' || killer.name === player.name)
     return;
+  // An admin is the server's own hand, so a GM is never flagged.
+  if (killer.access >= Access.ADMIN) return;
   if (getMapPvp(player.mapId) !== 'normal') return; // only penalty maps flag
   flag(killer);
   broadcastMessage(killer.name + ' became a player killer!');
