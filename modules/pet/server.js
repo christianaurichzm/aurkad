@@ -10,6 +10,7 @@ i18n({
   },
 });
 
+const petSprite = Number((config && config.sprite) || 0);
 const petAttack = Number((config && config.attack) || 5);
 const aggroRadius = Number((config && config.aggroRadius) || 120);
 const cadence = Number((config && config.moveEveryTicks) || 25);
@@ -17,13 +18,15 @@ const cadence = Number((config && config.moveEveryTicks) || 25);
 const pets = {}; // ownerName -> npc
 
 function spawnPet(player) {
-  const col = Math.round(player.position.x / TILE_SIZE) + 1; // beside the owner
-  const row = Math.round(player.position.y / TILE_SIZE);
+  // A step behind and to the side, so the two names do not overlap.
+  const col = Math.round(player.position.x / TILE_SIZE) + 1;
+  const row = Math.round(player.position.y / TILE_SIZE) + 1;
   const pet = spawnNpc({
     mapId: player.mapId,
     col,
     row,
     name: player.name + "'s Pet",
+    sprite: petSprite,
     maxHealth: 40,
     behavior: 'friendly', // passive AI (this module drives it); renders green
   });

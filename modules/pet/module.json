@@ -6,6 +6,7 @@
   "description": "Summon a pet that follows you and fights nearby enemies. /pet to toggle.",
   "enabledByDefault": true,
   "config": {
+    "sprite": 11,
     "attack": 5,
     "aggroRadius": 120,
     "moveEveryTicks": 25
