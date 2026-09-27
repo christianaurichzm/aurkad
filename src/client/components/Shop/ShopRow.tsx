@@ -116,35 +116,44 @@ export const ShopRow: React.FC<ShopRowProps> = ({
               {product.price} × {product.currency.name}
             </span>
           </div>
-          {notice && (
-            <span
-              role={failed ? 'alert' : 'status'}
-              style={{
-                color: failed ? colors.dangerText : colors.success,
-                fontWeight: 600,
-              }}
-            >
-              {failed ? notice : `✓ ${notice}`}
-            </span>
-          )}
         </div>
       </div>
-      <button
-        onClick={handleBuy}
-        disabled={buying || !affordable}
-        title={!affordable ? t('shop.insufficient') : undefined}
-        style={{
-          padding: '10px 14px',
-          background: colors.primary,
-          color: '#fff',
-          border: 'none',
-          borderRadius: radius.md,
-          cursor: affordable ? 'pointer' : 'not-allowed',
-          opacity: buying || !affordable ? 0.55 : 1,
-        }}
-      >
-        {buying ? '…' : t(affordable ? 'shop.buy' : 'shop.insufficient')}
-      </button>
+      {/* The notice hangs under the button, out of the flow: a line added to
+          the row would push every row below it down the list. */}
+      <div style={{ position: 'relative' }}>
+        <button
+          onClick={handleBuy}
+          disabled={buying || !affordable}
+          title={!affordable ? t('shop.insufficient') : undefined}
+          style={{
+            padding: '10px 14px',
+            background: colors.primary,
+            color: '#fff',
+            border: 'none',
+            borderRadius: radius.md,
+            cursor: affordable ? 'pointer' : 'not-allowed',
+            opacity: buying || !affordable ? 0.55 : 1,
+          }}
+        >
+          {buying ? '…' : t(affordable ? 'shop.buy' : 'shop.insufficient')}
+        </button>
+        {notice && (
+          <span
+            role={failed ? 'alert' : 'status'}
+            style={{
+              position: 'absolute',
+              top: '100%',
+              right: 0,
+              marginTop: 6,
+              whiteSpace: 'nowrap',
+              color: failed ? colors.dangerText : colors.success,
+              fontWeight: 600,
+            }}
+          >
+            {failed ? notice : `✓ ${notice}`}
+          </span>
+        )}
+      </div>
     </div>
   );
 };
