@@ -1,4 +1,7 @@
 {
+  "brand": {
+    "name": "Aurkad"
+  },
   "player": {
     "startingAttack": 100,
     "startingStrength": 0,

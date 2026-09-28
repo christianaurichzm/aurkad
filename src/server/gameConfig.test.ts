@@ -135,6 +135,18 @@ describe('a file that cannot be trusted', () => {
   });
 });
 
+describe('brand', () => {
+  it('is the engine until the game names itself', () => {
+    expect(loadGameConfig(dir).brand).toEqual({ name: 'Aurkad' });
+  });
+
+  it('refuses a blank name, which would leave the tab and the card empty', () => {
+    write({ brand: { name: '   ' } });
+
+    expect(() => loadGameConfig(dir)).toThrow(/brand\.name/);
+  });
+});
+
 describe('modules', () => {
   // Unknown keys here are module ids, not typos, so strictness stops here;
   // the config inside belongs to the module.
@@ -180,6 +192,7 @@ describe('the repository game.json', () => {
     expect(() => loadGameConfig(dir)).not.toThrow();
     // Every section the schema knows about appears in the example.
     expect(Object.keys(example).sort()).toEqual([
+      'brand',
       'combat',
       'leveling',
       'modules',

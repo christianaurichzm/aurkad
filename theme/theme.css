@@ -1,0 +1,16 @@
+/* This game's look. Loaded after the engine's stylesheet (public/styles.css),
+   so a rule here wins over the engine's. Every file in this folder is served
+   at /theme/<name> to anyone, logged in or not, so url(...) can point at a
+   picture next to this file, and game.json's `brand.logo` names one.
+
+   The panels, the menus and the login screen are drawn from the colour tokens
+   at the top of public/styles.css; redefining them repaints all of it:
+
+   :root {
+     --color-primary: #d9822b;
+     --color-app-bg: #1d1712;
+     --color-surface: #2a211a;
+   }
+
+   The login screen is .auth-layout (the backdrop) and .auth-card (the box),
+   with the name and logo in .engine-brand. */

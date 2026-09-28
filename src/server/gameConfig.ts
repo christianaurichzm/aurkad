@@ -77,8 +77,21 @@ const CombatSchema = z
   })
   .prefault({});
 
+// Who the game is to someone who has not logged in yet: the name on the browser
+// tab and the login card, and the picture beside it. The rest of the look is
+// theme/theme.css, served next to it (gameRoutes).
+const BrandSchema = z
+  .strictObject({
+    name: z.string().trim().min(1).max(40).default('Aurkad'),
+    // A file in theme/, so it is public: the login screen shows it before
+    // there is a session to check.
+    logo: z.string().min(1).optional(),
+  })
+  .prefault({});
+
 const GameConfigSchema = z
   .strictObject({
+    brand: BrandSchema,
     player: PlayerSchema,
     leveling: LevelingSchema,
     world: WorldSchema,

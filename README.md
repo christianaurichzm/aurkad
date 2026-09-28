@@ -18,9 +18,9 @@ npm run docker:logs    # tail server logs
 
 The game is served at http://localhost:8080.
 
-`game.json`, `scripts/` and `assets/` are bind-mounted into the container, so
-you edit them on the host: scripts hot-reload instantly, `game.json` applies on
-`docker compose restart app`.
+`game.json`, `scripts/`, `assets/` and `theme/` are bind-mounted into the
+container, so you edit them on the host: scripts hot-reload instantly, the
+theme on a page reload, `game.json` on `docker compose restart app`.
 
 Stop everything with `npm run docker:down`.
 
@@ -46,6 +46,13 @@ npm run dev            # server (8080) + client dev server with HMR
   breaks the game (zero starting health, an XP curve that never grows) is an
   error rather than a setting that silently does nothing. Delete the file and
   the engine runs on defaults.
+- **`brand` in `game.json` and `theme/`** - what the game is called and how it
+  looks. `brand.name` goes on the browser tab and the login card, `brand.logo`
+  names a picture in `theme/` to go beside it. `theme/theme.css` loads after the
+  engine's stylesheet, so it can repaint anything: the colour tokens every panel
+  is drawn from, fonts, a background for the login screen, textures on the
+  panels. Every file in `theme/` is public at `/theme/<name>`, because the login
+  screen needs it before anyone has a session.
 - **`scripts/`** - server-side game logic in JavaScript (or TypeScript). Files
   are loaded at boot and hot-reloaded on save. See `scripts/example.js` and the
   typed API in `scripts/global.d.ts` - `npm run docs:api` renders it, and the

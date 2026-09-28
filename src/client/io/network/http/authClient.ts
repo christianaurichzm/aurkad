@@ -80,6 +80,23 @@ export const fetchAuthCapabilities = async () => {
   });
 };
 
+/** What the game is called and the picture it goes by (game.json `brand`). */
+export interface GameBrand {
+  name: string;
+  logo: string;
+}
+
+let gameBrand: Promise<GameBrand | null> | undefined;
+
+/**
+ * Asked once per page: the tab, favicon and auth screens all want it, and it
+ * changes only when the server restarts on another game.json.
+ */
+export const fetchGameBrand = () =>
+  (gameBrand ??= httpClient<GameBrand>('/game', { method: 'GET' }).catch(
+    () => null,
+  ));
+
 export async function silentAction<T>(promise: Promise<T>): Promise<T | null> {
   try {
     return await promise;

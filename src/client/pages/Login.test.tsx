@@ -11,6 +11,7 @@ vi.mock('../io/network', () => ({
   friendlyHttpError: (e: { message?: string }) => e?.message ?? 'failed',
   // No mail transport here, so the reset form stays hidden, as by default.
   fetchAuthCapabilities: () => Promise.resolve({ mail: false }),
+  fetchGameBrand: () => Promise.resolve(null),
   requestPasswordReset: vi.fn(),
 }));
 

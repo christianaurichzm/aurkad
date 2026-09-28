@@ -836,14 +836,23 @@ body {
   display: flex;
   align-items: center;
   gap: 9px;
+  /* The logo's height, held while the name is on its way. */
+  min-height: 24px;
   font-size: 12px;
   font-weight: 750;
   letter-spacing: 0.14em;
+  text-transform: uppercase;
 }
 .engine-brand > img {
   display: block;
-  width: 24px;
+  width: auto;
   height: 24px;
+}
+.engine-credit {
+  margin-top: 20px;
+  font-size: 11px;
+  color: var(--color-text-muted);
+  text-align: center;
 }
 #gameMain {
   grid-area: main;

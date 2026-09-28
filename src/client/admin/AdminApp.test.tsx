@@ -13,6 +13,7 @@ const mocks = vi.hoisted(() => ({
 
 vi.mock('../io/network', () => ({
   adminSession: mocks.adminSession,
+  fetchGameBrand: () => Promise.resolve(null),
   adminLogin: mocks.adminLogin,
   adminLogout: mocks.adminLogout,
   fetchOnlinePlayers: mocks.fetchOnlinePlayers,

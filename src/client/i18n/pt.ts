@@ -579,7 +579,7 @@ export const pt: Record<keyof typeof en, string> = {
   'twofa.lockedOut':
     'Perdeu o telefone e os códigos? Outro admin roda: twofactor <nome> off',
 
-  'app.brand': 'AURKAD',
+  'app.poweredBy': 'Feito com Aurkad {version}',
   'actions.modules': 'Aventuras e social',
   'actions.tools': 'Ferramentas de criação',
   'common.select': 'Selecionar…',

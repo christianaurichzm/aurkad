@@ -580,7 +580,7 @@ export const en = {
   'twofa.lockedOut':
     'Lost the phone and the codes? Another admin runs: twofactor <name> off',
 
-  'app.brand': 'AURKAD',
+  'app.poweredBy': 'Powered by Aurkad {version}',
   'actions.modules': 'Adventures & social',
   'actions.tools': 'Creator tools',
   'common.select': 'Select…',

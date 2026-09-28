@@ -16,6 +16,8 @@ export default defineConfig({
     proxy: {
       // Public
       "/healthz": { target: "http://localhost:8080", changeOrigin: true },
+      "/game": { target: "http://localhost:8080", changeOrigin: true },
+      "/theme": { target: "http://localhost:8080", changeOrigin: true },
 
       // Auth. Each key is a prefix, so "/password" also carries the reset
       // endpoints under it.

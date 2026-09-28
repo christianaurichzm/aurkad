@@ -20,6 +20,8 @@ export {
   confirmPasswordReset,
   fetchAuthCapabilities,
   fetchEmail,
+  fetchGameBrand,
+  type GameBrand,
   login,
   register,
   requestPasswordReset,

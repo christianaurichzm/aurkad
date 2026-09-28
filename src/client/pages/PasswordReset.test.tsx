@@ -9,6 +9,7 @@ const mocks = vi.hoisted(() => ({ confirmPasswordReset: vi.fn() }));
 // a written one for anything from 500 up.
 vi.mock('../io/network', () => ({
   confirmPasswordReset: mocks.confirmPasswordReset,
+  fetchGameBrand: () => Promise.resolve(null),
   httpError: (e: unknown) => (e ?? {}) as { status?: number },
   friendlyHttpError: (e: unknown) => {
     const { status, message } = (e ?? {}) as {

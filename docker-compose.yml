@@ -48,6 +48,7 @@ services:
       - ./game.json:/app/game.json:ro
       - ./scripts:/app/scripts:ro
       - ./assets:/app/assets:ro
+      - ./theme:/app/theme:ro
       - ./content:/app/content:ro
       - ./modules:/app/modules:ro
 
@@ -78,6 +79,7 @@ services:
   #     - ./game.json:/app/game.json:ro
   #     - ./scripts:/app/scripts:ro
   #     - ./assets:/app/assets:ro
+  #     - ./theme:/app/theme:ro
   #     - ./content:/app/content:ro
   #     - ./modules:/app/modules:ro
 

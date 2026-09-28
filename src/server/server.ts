@@ -57,6 +57,7 @@ import { registerServerCommands } from './admin/serverCommands.js';
 import { runForwardedCommand } from './engine/commands.js';
 import { registerPlayerCommands } from './admin/playerCommands.js';
 import { createHealthRouter } from './http/routes/healthRoutes.js';
+import { createGameRouter } from './http/routes/gameRoutes.js';
 import { createMetricsRouter } from './http/routes/metricsRoutes.js';
 import {
   markServerShuttingDown,
@@ -98,8 +99,10 @@ const __dirname = path.dirname(__filename);
 
 const port = config.port;
 
-// Health probes mount before session so they stay cheap and sessionless.
+// Health probes, and the name and theme the login screen shows, mount before
+// session so they stay cheap and sessionless.
 app.use(createHealthRouter());
+app.use(createGameRouter());
 
 const sessionMiddleware = createSessionMiddleware();
 app.use(sessionMiddleware);
