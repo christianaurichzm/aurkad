@@ -637,6 +637,31 @@ describe('API helpers', () => {
   });
 });
 
+describe('getMapTile', () => {
+  it('tells a script what is painted on the tile, not only whether it blocks', () => {
+    const sim = createFixture(0);
+    sim.map.tiles[2]![3] = { tileIndex: 5, blocked: true };
+    const player = sim.addPlayer({ name: 'Alice' });
+
+    const handle = runInSandbox(
+      `
+      on('playerJoin', ({ player }) => {
+        setPlayerData(player, 'tile', getMapTile(player.mapId, 3, 2));
+        setPlayerData(player, 'off', getMapTile(player.mapId, -1, 0));
+      });
+    `,
+      'map-tile.js',
+    );
+
+    emit('playerJoin', { player });
+
+    expect(player.data?.tile).toEqual({ blocked: true, tileIndex: 5 });
+    expect(player.data?.off).toBeNull();
+
+    handle.cleanup();
+  });
+});
+
 describe('player data bag', () => {
   it('setPlayerData writes a value readable by getPlayerData', () => {
     const sim = createFixture(0);

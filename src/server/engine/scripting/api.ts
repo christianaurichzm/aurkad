@@ -280,7 +280,9 @@ export function buildApi(
       const tile = getMap(String(mapId))?.tiles[Math.floor(row)]?.[
         Math.floor(col)
       ];
-      return tile ? { blocked: tile.blocked ?? false } : null;
+      return tile
+        ? { blocked: tile.blocked ?? false, tileIndex: tile.tileIndex }
+        : null;
     },
 
     getMapSize: (mapId: string): { cols: number; rows: number } | undefined => {
