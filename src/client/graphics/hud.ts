@@ -62,12 +62,20 @@ export const renderHUD = (
   player: Player | PlayerPublic,
   ctx: CanvasRenderingContext2D = playerCtx,
 ) => {
-  const { name, level, position, access, nameColor, nameTag } = player;
+  const { name, level, position, access, nameColor, nameTag, nameTagColor } =
+    player;
   const { x, y } = position;
   const cx = x + TILE_SIZE / 2; // sprite center: names are centered over it
 
   if (nameTag) {
-    outlinedText(ctx, nameTag, cx, y - 15, 'bold 11px Arial', '#ffd24d');
+    outlinedText(
+      ctx,
+      nameTag,
+      cx,
+      y - 15,
+      'bold 12px Arial',
+      nameTagColor ?? '#ffd24d',
+    );
   }
   outlinedText(
     ctx,

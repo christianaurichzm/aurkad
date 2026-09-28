@@ -69,6 +69,7 @@ describe('updateColdSnapshot', () => {
     ['mapId', (p) => void (p.mapId = 'elsewhere')],
     ['nameColor', (p) => void (p.nameColor = '#ff0000')],
     ['nameTag', (p) => void (p.nameTag = 'Champion')],
+    ['nameTagColor', (p) => void (p.nameTagColor = 'purple')],
   ];
 
   it.each(scalarCases)('detects a change to %s', (_field, mutate) => {

@@ -58,12 +58,17 @@ describe('toPlayerCold', () => {
     expect(cold.inventory).toEqual([]);
   });
 
-  it('carries nameColor and nameTag through serialization', () => {
+  it('carries nameColor, nameTag and its colour through serialization', () => {
     const cold = toPlayerCold(
-      mkPlayer({ nameColor: 'gold', nameTag: '[Dragons]' }),
+      mkPlayer({
+        nameColor: 'gold',
+        nameTag: '[Dragons]',
+        nameTagColor: 'purple',
+      }),
     );
     expect(cold.nameColor).toBe('gold');
     expect(cold.nameTag).toBe('[Dragons]');
+    expect(cold.nameTagColor).toBe('purple');
   });
 });
 

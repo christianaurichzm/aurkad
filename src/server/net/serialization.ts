@@ -33,6 +33,7 @@ export function toPlayerPublic(player: PlayerServer): PlayerPublic {
     action: player.action,
     nameColor: player.nameColor,
     nameTag: player.nameTag,
+    nameTagColor: player.nameTagColor,
     kind: 'player',
   };
 }

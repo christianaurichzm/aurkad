@@ -185,12 +185,13 @@ describe('renderNpcLabel', () => {
 // A dark name gets a light halo, which must be off again before the next
 // sprite is drawn.
 describe('renderHUD', () => {
-  const player = (access: Access) =>
+  const player = (access: Access, extra = {}) =>
     ({
       name: 'Nyx',
       level: 3,
       access,
       position: { x: 0, y: 64 },
+      ...extra,
     }) as never;
 
   it('haloes a dark name instead of outlining it', () => {
@@ -201,6 +202,29 @@ describe('renderHUD', () => {
     expect(rec.of('strokeText')).toHaveLength(0);
     expect(rec.of('fillText').length).toBeGreaterThan(1);
     expect(rec.ctx.shadowBlur).toBe(0);
+  });
+
+  // A tag in a dark colour over an admin's name reads as one label with it:
+  // both haloed, neither outlined.
+  it('draws a tag in the colour set for it', () => {
+    const rec = recordingContext();
+    const tagFill: unknown[] = [];
+    const fill = rec.ctx.fillText.bind(rec.ctx);
+    rec.ctx.fillText = (...args) => {
+      if (args[0] === 'Rootbreaker') tagFill.push(rec.ctx.fillStyle);
+      fill(...args);
+    };
+
+    renderHUD(
+      player(Access.ADMIN, {
+        nameTag: 'Rootbreaker',
+        nameTagColor: '#6d28d9',
+      }),
+      rec.ctx,
+    );
+
+    expect(tagFill[0]).toBe('#6d28d9');
+    expect(rec.of('strokeText')).toHaveLength(0);
   });
 
   it('keeps the outline for a name that reads over black', () => {

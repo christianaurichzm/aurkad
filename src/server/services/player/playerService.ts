@@ -407,6 +407,7 @@ export function toPlayerCold(player: PlayerServer): PlayerCold {
     mapId: player.mapId,
     nameColor: player.nameColor,
     nameTag: player.nameTag,
+    nameTagColor: player.nameTagColor,
     kind: 'player',
   };
 }
@@ -535,6 +536,10 @@ export function updateColdSnapshot(
   }
   if (s[19] !== player.nameTag) {
     s[19] = player.nameTag;
+    changed = true;
+  }
+  if (s[20] !== player.nameTagColor) {
+    s[20] = player.nameTagColor;
     changed = true;
   }
 

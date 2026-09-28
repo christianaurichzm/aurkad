@@ -520,7 +520,7 @@ command(
 //   giveExperience(player, amount) - passes through beforeXpGain
 //   dealDamage(target, amount, attacker?)
 //   setNameColor(player, color)    - cosmetic name color (undefined to clear)
-//   setNameTag(player, tag)        - cosmetic tag above name (e.g. guild)
+//   setNameTag(player, tag, color?) - cosmetic tag above name (e.g. guild)
 //   getPlayerData(player, key)     - read persisted custom field
 //   setPlayerData(player, key, val)- write persisted custom field
 //

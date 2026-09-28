@@ -101,6 +101,8 @@ interface PlayerServer {
   nameColor?: string;
   /** Cosmetic tag drawn above the name (e.g. a guild name). */
   nameTag?: string;
+  /** The CSS colour the tag is drawn in (see setNameTag). */
+  nameTagColor?: string;
   kind: 'player';
 }
 
@@ -803,10 +805,15 @@ declare function setNameColor(
   color: string | undefined,
 ): void;
 
-/** Set the cosmetic tag drawn above a player's name (undefined clears it). */
+/**
+ * Set the cosmetic tag drawn above a player's name (undefined clears it), in
+ * `color` if given: any CSS colour, e.g. 'purple' or '#6d28d9'. A dark colour
+ * gets a light halo, a light one a black outline, as names do.
+ */
 declare function setNameTag(
   player: PlayerServer,
   tag: string | undefined,
+  color?: string,
 ): void;
 
 /**

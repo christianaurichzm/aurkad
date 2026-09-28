@@ -586,10 +586,15 @@ export function buildApi(
       persist(scriptName, player);
     },
 
-    // Cosmetic tag above the name (a guild name, say); undefined clears it.
-    setNameTag: (player: PlayerServer, tag: string | undefined): void => {
+    // Cosmetic tag drawn above the name (e.g. a guild name), in `color` when
+    // given (any CSS colour). undefined clears it.
+    setNameTag: (
+      player: PlayerServer,
+      tag: string | undefined,
+      color?: string,
+    ): void => {
       if (tag === undefined) clearCosmetic(player, 'nameTag', 'base');
-      else setCosmetic(player, 'nameTag', 'base', tag, 0);
+      else setCosmetic(player, 'nameTag', 'base', tag, 0, color);
       persist(scriptName, player);
     },
 

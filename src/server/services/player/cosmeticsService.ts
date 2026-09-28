@@ -10,6 +10,9 @@ export type CosmeticField = 'nameColor' | 'nameTag';
 interface Contribution {
   value: string;
   priority: number;
+  // nameTag only: the colour the tag is drawn in. It belongs to this
+  // contribution, so a tag that wins is never shown in another source's colour.
+  color?: string;
 }
 
 function sourcesFor(
@@ -22,16 +25,13 @@ function sourcesFor(
 
 function resolve(player: PlayerServer, field: CosmeticField): void {
   const sources = player.cosmetics?.[field];
-  let bestValue: string | undefined;
-  let bestPriority = -Infinity;
+  let best: Contribution | undefined;
   for (const source in sources) {
     const c = sources[source]!;
-    if (c.priority >= bestPriority) {
-      bestPriority = c.priority;
-      bestValue = c.value;
-    }
+    if (!best || c.priority >= best.priority) best = c;
   }
-  player[field] = bestValue;
+  player[field] = best?.value;
+  if (field === 'nameTag') player.nameTagColor = best?.color;
 }
 
 // Contribute a value to a cosmetic field from a named source. Higher priority
@@ -42,8 +42,9 @@ export function setCosmetic(
   source: string,
   value: string,
   priority = 0,
+  color?: string,
 ): void {
-  sourcesFor(player, field)[source] = { value, priority };
+  sourcesFor(player, field)[source] = { value, priority, color };
   resolve(player, field);
 }
 

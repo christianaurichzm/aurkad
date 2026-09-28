@@ -74,6 +74,17 @@ describe('derived cosmetics', () => {
     expect(p.nameTag).toBe('[Dragons]');
   });
 
+  it("a tag's colour goes with the tag that wins", () => {
+    const p = mkPlayer();
+    setCosmetic(p, 'nameTag', 'base', 'Rootbreaker', 0, 'purple');
+    expect(p.nameTagColor).toBe('purple');
+    setCosmetic(p, 'nameTag', 'guild', '[Dragons]', 5);
+    expect(p.nameTag).toBe('[Dragons]');
+    expect(p.nameTagColor).toBeUndefined();
+    clearCosmetic(p, 'nameTag', 'guild');
+    expect(p.nameTagColor).toBe('purple');
+  });
+
   it('re-setting the same source updates its value', () => {
     const p = mkPlayer();
     setCosmetic(p, 'nameTag', 'guild', '[Dragons]');

@@ -45,6 +45,7 @@ interface ClientPlayer {
   action: CharacterAction;
   nameColor?: string;
   nameTag?: string;
+  nameTagColor?: string;
   kind: 'player';
 }
 

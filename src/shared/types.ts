@@ -284,6 +284,8 @@ export interface PlayerServer extends PersistentPlayer, CharacterRuntime {
   nameColor?: string;
   // Optional tag drawn above the name (e.g. a guild name). Runtime-only.
   nameTag?: string;
+  // The CSS colour nameTag is drawn in; unset, the client's default.
+  nameTagColor?: string;
   // The language this session reads, sent by its client. Runtime-only and
   // not persisted: the browser remembers the choice, and one account on two
   // machines can be read in two languages.
@@ -294,7 +296,7 @@ export interface PlayerServer extends PersistentPlayer, CharacterRuntime {
   cosmetics?: Partial<
     Record<
       'nameColor' | 'nameTag',
-      Record<string, { value: string; priority: number }>
+      Record<string, { value: string; priority: number; color?: string }>
     >
   >;
 }
@@ -338,6 +340,7 @@ export interface PlayerPublic {
   action: CharacterAction;
   nameColor?: string;
   nameTag?: string;
+  nameTagColor?: string;
   kind: 'player';
 }
 
@@ -383,6 +386,7 @@ export interface PlayerCold {
   mapId: string;
   nameColor?: string;
   nameTag?: string;
+  nameTagColor?: string;
   kind: 'player';
 }
 
