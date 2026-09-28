@@ -1362,6 +1362,12 @@ body {
     max-height: none !important;
     border-radius: 0 !important;
   }
+  /* The two rows the grid keeps free on a desktop window are, on a phone
+     held sideways, what pushes Use and Drop off the bottom once an item is
+     picked and its details open. */
+  .inventory-grid {
+    min-height: 0 !important;
+  }
   .window-titlebar {
     cursor: default !important;
     touch-action: auto !important;

@@ -177,7 +177,7 @@ export const InventoryPanel: React.FC = () => {
 
         {activeTab === 'bag' ? (
           player.inventory.length > 0 ? (
-            <div style={styles.grid}>
+            <div className="inventory-grid" style={styles.grid}>
               {player.inventory.map((inv) => {
                 const border =
                   selected?.item.id === inv.item.id
