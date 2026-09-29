@@ -7,7 +7,7 @@ import { Icon } from '../common/Icon';
 import { useStyles } from './styles';
 import { usePlayerForceUpdate } from '../../hooks/usePlayerForceUpdate';
 import { isEquipped } from '../../utils/isEquipped';
-import { colors } from '../../theme';
+import { colors, radius } from '../../theme';
 import { useDraggable } from '../../hooks/useDraggable';
 import { useEscapeClose } from '../../hooks/useEscapeClose';
 import { useT } from '../../i18n';
@@ -149,7 +149,6 @@ export const InventoryPanel: React.FC = () => {
             type="button"
             aria-label={t('common.close')}
             className="window-close"
-            style={styles.closeBtn}
             onClick={() => setVisible(false)}
           >
             <Icon name="close" />
@@ -350,7 +349,7 @@ const tradeSelectBtn: React.CSSProperties = {
   textAlign: 'center',
   padding: 0,
   border: 'none',
-  borderRadius: 2,
+  borderRadius: radius.control,
   background: colors.primary,
   color: '#fff',
   cursor: 'pointer',

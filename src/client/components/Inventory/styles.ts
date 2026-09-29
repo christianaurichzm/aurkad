@@ -23,13 +23,11 @@ export const useStyles = () => ({
     gap: 9,
     alignItems: 'flex-start' as const,
   },
+  // Its paint is the .inventory-panel rule in styles.css, where a theme can
+  // reach it; a background set here would win over any theme.css.
   panel: {
     position: 'relative' as const,
-    background: colors.surface,
     padding: 12,
-    borderRadius: 7,
-    border: `1px solid ${colors.border}`,
-    color: '#fff',
     width: 440,
     maxWidth: 'calc(100vw - 32px)',
     maxHeight: '72vh',
@@ -38,7 +36,6 @@ export const useStyles = () => ({
     flexDirection: 'column' as const,
     gap: 10,
     overflowY: 'auto' as const,
-    boxShadow: shadow.panel,
   },
   header: {
     display: 'flex' as const,
@@ -55,18 +52,6 @@ export const useStyles = () => ({
     color: colors.text,
     textAlign: 'left' as const,
     letterSpacing: 0,
-  },
-  closeBtn: {
-    width: 24,
-    height: 24,
-    border: 'none',
-    borderRadius: radius.control,
-    color: colors.text,
-    background: colors.surfaceMuted,
-    cursor: 'pointer',
-    fontWeight: 700,
-    lineHeight: 1,
-    flexShrink: 0,
   },
   tabs: {
     display: 'grid' as const,
@@ -109,7 +94,7 @@ export const useStyles = () => ({
     width: ITEM_SIZE,
     height: ITEM_SIZE,
     border,
-    borderRadius: 5,
+    borderRadius: radius.control,
     background: colors.surfaceMuted,
     position: 'relative' as const,
     cursor: 'pointer',
@@ -130,7 +115,7 @@ export const useStyles = () => ({
     background: colors.overlay,
     color: '#fff',
     padding: '1px 5px',
-    borderRadius: 5,
+    borderRadius: radius.control,
     pointerEvents: 'none' as const,
   },
   row: {
@@ -200,7 +185,7 @@ export const useStyles = () => ({
     height: ITEM_SIZE,
     background: colors.surfaceMuted,
     border: `1px dashed ${colors.border}`,
-    borderRadius: 5,
+    borderRadius: radius.control,
     display: 'flex' as const,
     alignItems: 'center' as const,
     justifyContent: 'center' as const,
@@ -246,7 +231,7 @@ export const useStyles = () => ({
     justifyContent: 'center' as const,
     padding: 12,
     background: colors.overlay,
-    borderRadius: 7,
+    borderRadius: radius.panel,
   },
   dropPrompt: {
     width: 'min(280px, 100%)',
