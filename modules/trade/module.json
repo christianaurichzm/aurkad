@@ -3,7 +3,7 @@
   "name": "Player Trading",
   "version": "1.0.0",
   "server": "server.js",
-  "client": "client.js",
+  "client": "client.jsx",
   "description": "One-item-for-one-item trade offers between online players.",
   "enabledByDefault": true
 }
