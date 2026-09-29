@@ -411,7 +411,8 @@ describe('runtime error reporting', () => {
     render(<ScriptEditor />);
 
     fireEvent.click(await screen.findByText('a.js'));
-    fireEvent.change(await screen.findByTestId('editor'), {
+    await waitFor(() => expect(screen.getByTestId('editor')).toHaveValue('x'));
+    fireEvent.change(screen.getByTestId('editor'), {
       target: { value: 'x = 1;' },
     });
     fireEvent.click(screen.getByText('Save'));
