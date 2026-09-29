@@ -18,8 +18,6 @@ function ensureBar() {
   if (bar) return bar;
   bar = document.createElement('div');
   bar.id = 'status-bar';
-  bar.style.cssText =
-    'display:flex;gap:4px;flex-wrap:wrap;padding:2px 6px 4px;min-height:0;';
   const hud = document.getElementById('hud');
   if (hud) hud.appendChild(bar);
   else document.body.appendChild(bar);
@@ -32,9 +30,11 @@ function badge(status, tick) {
   const secsLeft = Math.ceil(ticksLeft / 20);
   const color = COLORS[status.id] || DEFAULT_COLOR;
   el.textContent = `${status.name || status.id}${secsLeft > 0 ? ` ${secsLeft}s` : ''}`;
-  el.style.cssText =
-    `background:${color};color:#fff;font-weight:bold;font-size:10px;` +
-    `border-radius:3px;padding:1px 5px;white-space:nowrap;`;
+  // A variable rather than the background, so a theme's rule for
+  // .status-badge (or one [data-status]) still wins.
+  el.className = 'status-badge';
+  el.dataset.status = status.id;
+  el.style.setProperty('--status-color', color);
   el.title = status.name || status.id;
   return el;
 }

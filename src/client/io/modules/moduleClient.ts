@@ -4,7 +4,6 @@ import { claimEscape } from '../../hooks/useEscapeClose';
 import { focusDialog } from '../../hooks/useDialogFocus';
 import { isInputActive } from '../../utils/domHelpers';
 import { onServerEvent, sendServerEvent } from '../network/customEvents';
-import { colors, radius, shadow, zIndex } from '../../theme';
 import {
   moduleText,
   t,
@@ -71,25 +70,19 @@ function showContextMenu(name: string, x: number, y: number) {
   if (!playerActions.length) return;
 
   const menu = document.createElement('div');
-  menu.style.cssText =
-    `position:fixed;left:${x}px;top:${y}px;z-index:${zIndex.floatingPanel};` +
-    `background:${colors.surface};border:1px solid ${colors.border};` +
-    `border-radius:${radius.control};box-shadow:${shadow.panel};` +
-    `display:flex;flex-direction:column;gap:4px;padding:6px;min-width:160px;font:13px sans-serif;`;
+  menu.className = 'player-menu';
+  menu.style.left = `${x}px`;
+  menu.style.top = `${y}px`;
 
   const title = document.createElement('div');
+  title.className = 'player-menu-title';
   title.textContent = name;
-  title.style.cssText = `font-weight:bold;padding:2px 4px;border-bottom:1px solid ${colors.border};margin-bottom:2px;`;
   menu.appendChild(title);
 
   for (const action of playerActions) {
     const btn = document.createElement('button');
+    btn.type = 'button';
     setText(btn, action.label);
-    btn.style.cssText =
-      `background:transparent;border:none;color:${colors.text};padding:5px 8px;` +
-      `text-align:left;cursor:pointer;border-radius:${radius.control};width:100%;`;
-    btn.onmouseenter = () => (btn.style.background = colors.surfaceMuted);
-    btn.onmouseleave = () => (btn.style.background = 'transparent');
     btn.onclick = () => {
       action.callback(name);
       hideContextMenu();
