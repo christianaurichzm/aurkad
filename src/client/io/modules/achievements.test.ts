@@ -1,12 +1,15 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+import { act, fireEvent, screen, within } from '@testing-library/react';
 import { loadClientModule } from '../../../test/clientModule';
 
-// The shipped modules/achievements/client.js, as the browser loads it.
+// The shipped modules/achievements/client.jsx, compiled and loaded the way
+// the browser gets it.
 
 let mod: ReturnType<typeof loadClientModule>;
 
 beforeEach(() => {
   vi.useFakeTimers();
+  document.body.innerHTML = '';
   mod = loadClientModule('achievements');
 });
 
@@ -14,11 +17,11 @@ afterEach(() => {
   vi.useRealTimers();
 });
 
-const panel = () => mod.panels[0];
+const openWindow = () => act(() => mod.actions.get('Achievements')!.click());
 const update = (payload: unknown) =>
-  mod.handlers.get('achievements:update')!(payload);
+  act(() => mod.handlers.get('achievements:update')!(payload));
 const earn = (payload: unknown) =>
-  mod.handlers.get('achievements:earned')!(payload);
+  act(() => mod.handlers.get('achievements:earned')!(payload));
 
 const STATE = {
   earned: ['first_blood'],
@@ -40,7 +43,7 @@ const STATE = {
   ],
 };
 
-describe('the panel', () => {
+describe('the window', () => {
   it('asks the server for the list on load', () => {
     expect(
       (
@@ -51,30 +54,47 @@ describe('the panel', () => {
     ).toContainEqual(['achievements:request']);
   });
 
-  it('says nothing is defined rather than showing a blank panel', () => {
-    expect(panel().body.textContent).toContain('Nothing defined yet.');
+  it('opens from the Actions menu and closes on Escape', () => {
+    openWindow();
+    expect(screen.getByRole('dialog')).toBeTruthy();
+
+    fireEvent.keyDown(window, { key: 'Escape' });
+    expect(screen.queryByRole('dialog')).toBeNull();
+  });
+
+  it('says nothing is defined rather than showing a blank window', () => {
+    openWindow();
+
+    expect(screen.getByRole('dialog').textContent).toContain(
+      'Nothing defined yet.',
+    );
   });
 
   it('counts the earned ones in the title', () => {
     update(STATE);
+    openWindow();
 
-    expect(panel().title).toBe('Achievements (1/2)');
+    expect(
+      screen.getByRole('dialog', { name: 'Achievements (1/2)' }),
+    ).toBeTruthy();
   });
 
   it('puts the earned ones first: a trophy case before a to-do list', () => {
     update(STATE);
+    openWindow();
 
-    const marks = [...panel().body.querySelectorAll('span')]
-      .map((s) => s.textContent)
-      .filter((text) => text === '★' || text === '☆');
-    expect(marks).toEqual(['★', '☆']);
+    const rows = screen.getAllByRole('listitem');
+    expect(rows.map((row) => row.textContent?.[0])).toEqual(['★', '☆']);
+    expect(within(rows[0]).getByText('First Blood')).toBeTruthy();
   });
 
   it('shows progress on a locked one and nothing on an earned one', () => {
     update(STATE);
+    openWindow();
 
-    expect(panel().body.textContent).toContain('5/50');
-    expect(panel().body.textContent).not.toContain('1/1');
+    const dialog = screen.getByRole('dialog');
+    expect(dialog.textContent).toContain('5/50');
+    expect(dialog.textContent).not.toContain('1/1');
   });
 });
 

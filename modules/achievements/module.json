@@ -3,7 +3,7 @@
   "name": "Achievements",
   "version": "1.0.0",
   "server": "server.js",
-  "client": "client.js",
+  "client": "client.jsx",
   "description": "Named milestones counted off the hooks the engine already emits. Definitions come from game.json; a game replaces the sample three with its own.",
   "config": {
     "achievements": [
