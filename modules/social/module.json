@@ -3,7 +3,7 @@
   "name": "Friends & Ignore",
   "version": "1.0.0",
   "server": "server.js",
-  "client": "client.js",
+  "client": "client.jsx",
   "description": "The two lists a player keeps about other players: friends, whose comings and goings they are told about, and ignore, whose chat they are not shown.",
   "config": { "maxFriends": 100, "maxIgnored": 100, "announceLogin": true },
   "enabledByDefault": false
