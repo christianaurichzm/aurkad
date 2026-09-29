@@ -1,3 +1,5 @@
+import * as React from 'react';
+import { createRoot, type Root } from 'react-dom/client';
 import { claimEscape } from '../../hooks/useEscapeClose';
 import { focusDialog } from '../../hooks/useDialogFocus';
 import { isInputActive } from '../../utils/domHelpers';
@@ -8,7 +10,9 @@ import {
   t,
   onLanguageChange,
   registerModuleStrings,
+  useModuleText,
 } from '../../i18n';
+import { ModuleWindow } from '../../components/common/Modal';
 import { registerModuleAction } from './moduleActions';
 import { getGameState, getPlayer } from '../../core/gameState';
 import { enqueueChatMessage } from '../network/sync/chatSync';
@@ -364,16 +368,36 @@ function makeUi(container: HTMLElement) {
     // ("I" for Inventory).
     actionButton: (label: string, onClick: () => void, key?: string) =>
       registerModuleAction(label, onClick, key),
+    // The window panel() builds, as a component for engine.render.
+    Window: ModuleWindow,
   };
 }
 
 function makeEngineApi(id: string) {
   const container = moduleContainer(id);
+  // In a div of its own: React empties the element it renders into, and the
+  // container also holds what the DOM toolkit built.
+  let root: Root | undefined;
   return {
     onServerEvent,
     sendServerEvent,
     /** A DOM element this module owns; render UI into it. */
     mount: () => container,
+    /**
+     * Draw the module's React UI, replacing what the last call drew. Call it
+     * again whenever the module's own state changes (a server event, a
+     * toggle); React keeps what did not change, a half-typed input included.
+     */
+    render: (node: React.ReactNode) => {
+      if (!root) {
+        const el = document.createElement('div');
+        container.append(el);
+        root = createRoot(el);
+      }
+      root.render(node);
+    },
+    /** engine.t as a hook: the component re-renders on a language switch. */
+    useT: useModuleText,
     /** Styled UI helpers (panel/button/input/row/column) in the core look. */
     ui: makeUi(container),
     /**
@@ -473,7 +497,7 @@ export async function loadClientModules(): Promise<void> {
       // this server (see the trust model in the server's sandbox.ts). There is
       // no other way to run code fetched at runtime.
       // eslint-disable-next-line @typescript-eslint/no-implied-eval, @typescript-eslint/no-unsafe-call
-      new Function('engine', code)(makeEngineApi(m.id));
+      new Function('engine', 'React', code)(makeEngineApi(m.id), React);
       console.log(`[modules] client loaded: ${m.id}`);
     } catch (e) {
       console.error(`[modules] client "${m.id}" failed to load`, e);

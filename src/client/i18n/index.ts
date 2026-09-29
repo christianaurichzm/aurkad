@@ -109,4 +109,10 @@ export function useT(): typeof t {
   return t;
 }
 
+/** `useT` for a module's React UI, over the tables keyed by the English. */
+export function useModuleText(): typeof moduleText {
+  useSyncExternalStore(onLanguageChange, getLanguage, () => 'en');
+  return moduleText;
+}
+
 export type { TranslationKey };

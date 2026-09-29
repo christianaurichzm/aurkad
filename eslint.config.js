@@ -286,11 +286,25 @@ export default tseslint.config(
   },
 
   {
-    files: ['modules/**/client.js'],
+    files: ['modules/**/client.{js,jsx}'],
     extends: [js.configs.recommended, tseslint.configs.disableTypeChecked],
     languageOptions: {
       sourceType: 'script',
-      globals: { ...globals.browser, engine: 'readonly' },
+      globals: { ...globals.browser, engine: 'readonly', React: 'readonly' },
+    },
+  },
+
+  {
+    // JSX compiles to React.createElement (moduleLoader.ts), so the classic
+    // runtime's rules, not the jsx-runtime ones the client bundle uses.
+    files: ['modules/**/client.jsx'],
+    extends: [react.configs.flat.recommended],
+    plugins: { 'react-hooks': reactHooks },
+    settings: { react: { version: 'detect' } },
+    rules: {
+      'react/prop-types': 'off',
+      'react-hooks/rules-of-hooks': 'error',
+      'react-hooks/exhaustive-deps': 'warn',
     },
   },
 

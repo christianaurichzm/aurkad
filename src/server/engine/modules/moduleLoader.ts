@@ -4,6 +4,7 @@ import { z } from 'zod';
 import { logger } from '../../logger.js';
 import { gameConfig } from '../../gameConfig.js';
 import { runInSandbox, type ScriptHandle } from '../scripting/sandbox.js';
+import { transpile } from '../scripting/loader.js';
 import {
   isModuleEnabled,
   resolveModuleConfig,
@@ -168,5 +169,31 @@ export function readModuleClientFile(id: string): string | null {
     return null; // traversal guard: must stay within the module dir
   }
   if (!fs.existsSync(filePath)) return null;
-  return fs.readFileSync(filePath, 'utf-8');
+  return readClientSource(filePath);
+}
+
+const compiledClients = new Map<string, { mtimeMs: number; code: string }>();
+
+/**
+ * A browser entry as the client runs it. A `.jsx` one is compiled here once
+ * per edit of the file: per request it would cost each login ~20 ms of the
+ * tick's thread per module, and cached at boot a panel change would need a
+ * restart. A file that does not compile is served as a throw, so the browser
+ * console names the line too.
+ */
+export function readClientSource(filePath: string): string {
+  if (!filePath.endsWith('.jsx')) return fs.readFileSync(filePath, 'utf-8');
+  const { mtimeMs } = fs.statSync(filePath);
+  const cached = compiledClients.get(filePath);
+  if (cached?.mtimeMs === mtimeMs) return cached.code;
+  const name = path.basename(filePath);
+  const out = transpile(fs.readFileSync(filePath, 'utf-8'), name);
+  const errors = out ? out.errors : [`${name}: TypeScript is not installed`];
+  for (const e of errors) logger.error(`[modules] ${e}`);
+  const code =
+    out && errors.length === 0
+      ? out.code
+      : `throw new SyntaxError(${JSON.stringify(errors.join('\n'))});`;
+  compiledClients.set(filePath, { mtimeMs, code });
+  return code;
 }

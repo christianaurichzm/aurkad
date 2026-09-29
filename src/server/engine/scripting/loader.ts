@@ -28,23 +28,48 @@ export async function initTsSupport(): Promise<void> {
   }
 }
 
+/**
+ * TypeScript or JSX down to the plain script a sandbox or the browser runs.
+ * JSX becomes `React.createElement` calls: a module's browser half may be
+ * `.jsx`, and the client loader hands it `React`. Syntax errors come back as
+ * `file(line,col): message`, since what TypeScript emits past one still runs.
+ */
+export function transpile(
+  raw: string,
+  fileName: string,
+): { code: string; errors: string[] } | null {
+  if (!ts) return null;
+  const tsc = ts;
+  const out = tsc.transpileModule(raw, {
+    compilerOptions: {
+      module: tsc.ModuleKind.None,
+      target: tsc.ScriptTarget.ES2022,
+      strict: false,
+      jsx: tsc.JsxEmit.React,
+    },
+    fileName,
+    reportDiagnostics: true,
+  });
+  const errors = (out.diagnostics ?? []).map((d) => {
+    const message = tsc.flattenDiagnosticMessageText(d.messageText, ' ');
+    if (!d.file || d.start === undefined) return `${fileName}: ${message}`;
+    const { line, character } = d.file.getLineAndCharacterOfPosition(d.start);
+    return `${fileName}(${line + 1},${character + 1}): ${message}`;
+  });
+  return { code: out.outputText, errors };
+}
+
 function prepareCode(filePath: string): string | null {
   const raw = fs.readFileSync(filePath, 'utf-8');
   if (filePath.endsWith('.ts')) {
-    if (!ts) {
+    const out = transpile(raw, path.basename(filePath));
+    if (!out) {
       logger.warn(
         `[scripting] Skipping ${path.basename(filePath)}: TypeScript not available`,
       );
       return null;
     }
-    return ts.transpileModule(raw, {
-      compilerOptions: {
-        module: ts.ModuleKind.None,
-        target: ts.ScriptTarget.ES2022,
-        strict: false,
-      },
-      fileName: path.basename(filePath),
-    }).outputText;
+    return out.code;
   }
   return raw;
 }

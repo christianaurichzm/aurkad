@@ -136,6 +136,8 @@ engine.sendServerEvent('guild:request'); // talk back to the server entry
 - `ui` → styled helpers matching the core look:
   - `ui.panel({ title?, anchor? })` → `{ body, setTitle, setBody(...nodes), show, hide, remove }`
   - `ui.button(label, onClick)`, `ui.input(placeholder)`, `ui.row(...)`, `ui.column(...)`
+  - `ui.Window` - the same window as a React component, see below.
+- `render(node)` / `useT()` - React, see below.
 - `i18n(tables)` / `t(text, params?)` - translations, see below.
 - `log` / `warn` / `error`.
 
@@ -144,6 +146,56 @@ const ui = engine.ui;
 const panel = ui.panel({ title: 'Guild' });
 panel.setBody(ui.input('name'), ui.button('Create', () => engine.sendServerEvent('guild:create', ...)));
 ```
+
+### React
+
+`setBody` throws the whole body away, so a panel redrawn on every server event
+loses whatever the player was typing into it. A module that redraws often can
+draw with React instead: the loader hands it `React` next to `engine` (the same
+instance as the game's, so hooks work), and the server compiles a
+`"client": "client.jsx"` entry on its own, with no bundler. A syntax error comes
+back as the file and line, in the server log and in the browser console.
+
+```jsx
+const ui = engine.ui;
+let guild = null;
+let shown = false;
+
+function draw() {
+  engine.render(shown && <GuildWindow g={guild} />);
+}
+
+function toggle() {
+  shown = !shown;
+  draw();
+}
+
+function GuildWindow({ g }) {
+  const t = engine.useT(); // re-renders on a language switch
+  const [name, setName] = React.useState('');
+  return (
+    <ui.Window title={g ? g.name : t('Guild')} onClose={toggle}>
+      <input value={name} onChange={(e) => setName(e.target.value)} />
+      <button className="button-primary" onClick={() => engine.sendServerEvent('guild:create', { name })}>
+        {t('Create Guild')}
+      </button>
+    </ui.Window>
+  );
+}
+
+ui.actionButton('Guild', toggle, 'g');
+engine.onServerEvent('guild:update', (g) => {
+  guild = g;
+  draw();
+});
+```
+
+The module keeps its state and calls `engine.render` again whenever it changes;
+React keeps what did not. `ui.Window` is open while rendered, owns Escape and
+Tab like `ui.panel`, and wears the same classes. Plain buttons and inputs take
+the stylesheet's look; `className="button-primary"` marks the action a window
+leads with and `"button-danger"` one that takes something away, as the core's
+windows do. `modules/guild/client.jsx` is a whole module written this way.
 
 ### Translations
 

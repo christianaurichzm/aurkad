@@ -28,6 +28,20 @@ interface ModuleUi {
    */
   toast(element: HTMLElement, ms?: number): void;
   actionButton(label: string, onClick: () => void, hotkey?: string): HTMLButtonElement;
+  /**
+   * The window of `panel()` for a module drawn with `engine.render`: open
+   * while rendered, so the module keeps whether it is open and renders it or
+   * not. Translate the title with `engine.useT()`.
+   *
+   * @example open && <engine.ui.Window title={t('Guild')} onClose={close}>…</engine.ui.Window>
+   */
+  Window: (props: {
+    title: string;
+    /** In pixels; without it the window fits what it holds. */
+    width?: number;
+    onClose(): void;
+    children?: React.ReactNode;
+  }) => React.ReactElement;
 }
 
 /** Another player as the client knows them: no inventory, no stats. */
@@ -65,6 +79,15 @@ declare const engine: {
   sendServerEvent(channel: string, payload?: unknown): void;
   /** A DOM element this module owns; render UI into it. */
   mount(): HTMLElement;
+  /**
+   * Draw the module's React UI (the loader hands the module `React`, and a
+   * `client.jsx` entry is compiled by the server), replacing what the last
+   * call drew. Call it again whenever the module's own state changes; React
+   * keeps what did not change, a half-typed input included.
+   */
+  render(node: React.ReactNode): void;
+  /** `t` as a hook: the component re-renders on a language switch. */
+  useT(): (text: string, params?: Record<string, string | number>) => string;
   /** Styled UI helpers (panel/button/input/row/column) in the core look. */
   ui: ModuleUi;
   /**

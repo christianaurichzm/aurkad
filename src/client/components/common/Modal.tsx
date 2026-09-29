@@ -7,20 +7,28 @@ import { Icon } from './Icon';
 
 interface ModalProps {
   title: string;
+  /** Without it a Modal is 520px wide; a floating window fits its content. */
   width?: number;
   onClose: () => void | Promise<void>;
   children: ReactNode;
+  /**
+   * A module's window: over the world without dimming it or holding the rest
+   * of the page, and above any Modal. It still owns Escape and Tab while open.
+   */
+  floating?: boolean;
 }
 
 export const Modal = ({
   title,
-  width = 520,
+  width,
   onClose,
   children,
+  floating = false,
 }: ModalProps) => {
   const t = useT();
   const titleId = useId();
-  const initialX = Math.max(12, window.innerWidth / 2 - width / 2);
+  const w = width ?? (floating ? undefined : 520);
+  const initialX = Math.max(12, window.innerWidth / 2 - (w ?? 240) / 2);
   const { ref, pos, onPointerDown } = useDraggable(
     initialX,
     window.innerHeight * 0.1,
@@ -31,16 +39,16 @@ export const Modal = ({
 
   return (
     <>
-      <div className="window-overlay" />
+      {!floating && <div className="window-overlay" />}
       <div
         ref={ref}
         id={titleId}
-        className="editor-window"
+        className={floating ? 'editor-window module-panel' : 'editor-window'}
         role="dialog"
-        aria-modal="true"
+        aria-modal={floating ? undefined : 'true'}
         aria-labelledby={`${titleId}-title`}
         tabIndex={-1}
-        style={{ width, left: pos.x, top: pos.y }}
+        style={{ width: w, left: pos.x, top: pos.y }}
       >
         <div className="window-titlebar" onPointerDown={onPointerDown}>
           <h2 id={`${titleId}-title`}>{title}</h2>
@@ -58,3 +66,8 @@ export const Modal = ({
     </>
   );
 };
+
+/** What a module renders as `engine.ui.Window`. */
+export const ModuleWindow = (props: Omit<ModalProps, 'floating'>) => (
+  <Modal {...props} floating />
+);

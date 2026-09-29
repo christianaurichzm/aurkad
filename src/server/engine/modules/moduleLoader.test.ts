@@ -1,13 +1,16 @@
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
+import vm from 'node:vm';
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import {
   loadModules,
   unloadAllModules,
   getClientModules,
   readModuleClientFile,
+  readClientSource,
 } from './moduleLoader.js';
+import { initTsSupport } from '../scripting/loader.js';
 import { handleReplCommand, clearCommands } from '../commands.js';
 import { clearProvides, isProvided } from './registry.js';
 
@@ -243,6 +246,28 @@ describe('client entries', () => {
 
   it('returns null for a module that is not loaded', () => {
     expect(readModuleClientFile('ghost')).toBeNull();
+  });
+
+  it('serves a .jsx entry compiled, and recompiles it once edited', async () => {
+    await initTsSupport();
+    const file = path.join(tmpDir, 'client.jsx');
+    fs.writeFileSync(file, 'engine.render(<b>hi</b>);');
+    expect(readClientSource(file)).toContain(
+      'React.createElement("b", null, "hi")',
+    );
+    fs.writeFileSync(file, 'engine.render(<i>hi</i>);');
+    fs.utimesSync(file, new Date(), new Date(Date.now() + 1000));
+    expect(readClientSource(file)).toContain('React.createElement("i"');
+  });
+
+  it('serves a .jsx that does not compile as a throw naming the line', async () => {
+    await initTsSupport();
+    const file = path.join(tmpDir, 'client.jsx');
+    fs.writeFileSync(file, '\nengine.render(<div><span></div>);');
+    const code = readClientSource(file);
+    expect(() => vm.runInNewContext(code)).toThrow(
+      "client.jsx(2,21): JSX element 'span' has no corresponding closing tag.",
+    );
   });
 
   it('refuses a client path that escapes the module dir', () => {

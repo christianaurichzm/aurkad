@@ -1,14 +1,29 @@
 import { isInputActive } from '../client/utils/domHelpers';
 import { focusDialog } from '../client/hooks/useDialogFocus';
+import { ModuleWindow } from '../client/components/common/Modal';
+import { readClientSource } from '../server/engine/modules/moduleLoader.js';
+import { initTsSupport } from '../server/engine/scripting/loader.js';
 import fs from 'node:fs';
 import path from 'node:path';
-import { vi } from 'vitest';
+import * as React from 'react';
+import { createRoot, type Root } from 'react-dom/client';
+import { afterEach, vi } from 'vitest';
+
+// The server compiles a client.jsx with the TypeScript it loads at boot.
+await initTsSupport();
+
+// A module window left open would hold Escape into the next test.
+const roots: Root[] = [];
+afterEach(() => {
+  React.act(() => roots.splice(0).forEach((root) => root.unmount()));
+});
 
 /**
  * Loads a module's real shipped browser half and captures what it draws.
- * That half is plain JavaScript run with a single `engine` global, so there
- * is no import to reach for. This calls `new Function('engine', code)`
- * like the client loader, with a fake engine and a recording context.
+ * That half is plain JavaScript run with an `engine` global (and `React`),
+ * so there is no import to reach for. This runs the code the server serves
+ * as the client loader does, `new Function('engine', 'React', code)`,
+ * against a fake engine and a recording context.
  *
  * Drawing is not pixels: it answers "was the shutter half the slot", "did
  * the tint land in screen space", "which overlay drew first", questions
@@ -200,6 +215,7 @@ function fakeUi(
       actions.set(label, b);
       return b;
     },
+    Window: ModuleWindow,
   };
 }
 
@@ -216,6 +232,14 @@ export function loadClientModule(
   // module appends to it.
   const container = document.createElement('div');
   document.body.append(container);
+
+  let root: Root | undefined;
+  const t = (text: string, params?: Record<string, string | number>) =>
+    params
+      ? text.replace(/\{(\w+)\}/g, (whole, name: string) =>
+          name in params ? String(params[name]) : whole,
+        )
+      : text;
 
   const engine: FakeEngine = {
     registerOverlay: (fn, order = 0) => {
@@ -236,13 +260,20 @@ export function loadClientModule(
     // The English passes through, as the real one does for a language with no
     // entry, so a test asserting on a label reads what ships.
     i18n: vi.fn(),
-    t: (text: string, params?: Record<string, string | number>) =>
-      params
-        ? text.replace(/\{(\w+)\}/g, (whole, name: string) =>
-            name in params ? String(params[name]) : whole,
-          )
-        : text,
+    t,
+    useT: () => t,
     mount: () => container,
+    // The real renderer, flushed at once so a test reads what an event drew.
+    render: (node: React.ReactNode) =>
+      React.act(() => {
+        if (!root) {
+          const el = document.createElement('div');
+          container.append(el);
+          root = createRoot(el);
+          roots.push(root);
+        }
+        root.render(node);
+      }),
     chat: vi.fn(),
     log: vi.fn(),
     warn: vi.fn(),
@@ -253,13 +284,16 @@ export function loadClientModule(
     ...overrides,
   };
 
-  const file = path.join(process.cwd(), 'modules', id, 'client.js');
-  const code = fs.readFileSync(file, 'utf-8');
+  const dir = path.join(process.cwd(), 'modules', id);
+  const manifest = JSON.parse(
+    fs.readFileSync(path.join(dir, 'module.json'), 'utf-8'),
+  ) as { client: string };
+  const code = readClientSource(path.join(dir, manifest.client));
   // The same call the real client loader makes (io/modules/moduleClient.ts):
   // a test that imported the file some other way would be testing a loading
   // path that does not ship.
   // eslint-disable-next-line @typescript-eslint/no-implied-eval, @typescript-eslint/no-unsafe-call
-  new Function('engine', code)(engine);
+  new Function('engine', 'React', code)(engine, React);
 
   return { overlays, handlers, panels, actions, container, engine };
 }
