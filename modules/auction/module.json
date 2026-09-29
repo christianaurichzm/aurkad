@@ -3,7 +3,7 @@
   "name": "Auction House",
   "version": "1.0.0",
   "server": "server.js",
-  "client": "client.js",
+  "client": "client.jsx",
   "description": "Sell to a player who is not online. Listings hold the item, the buyer pays through the atomic exchange, and the seller is paid through the mail queue.",
   "config": {
     "currencyItemId": 3,
