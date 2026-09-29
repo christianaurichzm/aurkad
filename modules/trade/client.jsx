@@ -243,14 +243,9 @@ engine.onServerEvent('trade:update', (data) => {
 engine.onServerEvent('trade:complete', (offer) => {
   const other = offer.from === myName ? offer.to : offer.from;
   engine.chat(engine.t('Trade with {player} completed.', { player: other }));
-  const el = document.createElement('div');
-  el.textContent = engine.t('Trade complete with {player}!', {
-    player: other,
+  ui.notice(engine.t('Trade complete with {player}!', { player: other }), {
+    tone: 'primary',
   });
-  el.style.cssText =
-    'background:var(--color-primary);color:#fff;padding:8px 16px;' +
-    'border-radius:var(--radius-control);font-size:13px;font-weight:bold;';
-  ui.toast(el, 3000);
   send('trade:request');
 });
 

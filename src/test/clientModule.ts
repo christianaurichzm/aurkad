@@ -210,6 +210,24 @@ function fakeUi(
       container.append(toastEl);
       setTimeout(() => toastEl.remove(), ms + 400);
     },
+    notice: (
+      text: string,
+      opts: {
+        tone?: string;
+        label?: string;
+        detail?: string;
+        ms?: number;
+      } = {},
+    ) => {
+      const n = el();
+      n.className = 'notice';
+      if (opts.tone) n.dataset.tone = opts.tone;
+      n.append(
+        ...[opts.label, text, opts.detail].filter((t): t is string => !!t),
+      );
+      container.append(n);
+      setTimeout(() => n.remove(), (opts.ms ?? 3000) + 400);
+    },
     actionButton: (label: string, onClick: () => void) => {
       const b = button(label, onClick);
       actions.set(label, b);

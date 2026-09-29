@@ -157,23 +157,11 @@ function AchievementRow({ entry, earned }) {
 }
 
 function toast(entry) {
-  const el = document.createElement('div');
-  el.style.cssText =
-    'background:var(--color-surface);border:1px solid var(--color-warning);border-radius:8px;' +
-    'padding:10px 18px;text-align:center;';
-
-  const head = document.createElement('div');
-  head.textContent = '★ ' + engine.t('Achievement unlocked');
-  head.style.cssText =
-    'font-size:11px;font-weight:bold;color:var(--color-warning);letter-spacing:1px;';
-
-  const name = document.createElement('div');
-  name.textContent = engine.t(entry.name);
-  name.style.cssText =
-    'font-size:15px;font-weight:bold;color:var(--color-text);margin-top:2px;';
-
-  el.append(head, name);
-  ui.toast(el, 2600);
+  ui.notice(entry.name, {
+    tone: 'highlight',
+    label: '★ ' + engine.t('Achievement unlocked'),
+    ms: 2600,
+  });
 }
 
 ui.actionButton('Achievements', toggle, 'k');

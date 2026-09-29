@@ -184,18 +184,7 @@ function rewardLine(reward) {
 }
 
 function toast(text, detail) {
-  const el = document.createElement('div');
-  el.style.cssText =
-    'background:var(--color-warning);color:#000;padding:8px 18px;border-radius:6px;' +
-    'font-size:13px;font-weight:bold;text-align:center;';
-  el.textContent = text;
-  if (detail) {
-    const line = document.createElement('div');
-    line.textContent = detail;
-    line.style.cssText = 'font-weight:normal;margin-top:2px;';
-    el.append(line);
-  }
-  ui.toast(el, 3500);
+  ui.notice(text, { tone: 'warning', detail, ms: 3500 });
 }
 
 ui.actionButton('Quests', toggle, 'q');

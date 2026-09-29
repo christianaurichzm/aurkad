@@ -288,12 +288,10 @@ engine.onServerEvent('guild:kicked', ({ from }) => {
   engine.chat(
     engine.t('You were kicked from guild "{guild}".', { guild: from }),
   );
-  const el = document.createElement('div');
-  el.textContent = engine.t('You were kicked from "{guild}"', { guild: from });
-  el.style.cssText =
-    'background:var(--color-danger);color:#fff;padding:8px 16px;' +
-    'border-radius:var(--radius-control);font-weight:bold;';
-  ui.toast(el, 4000);
+  ui.notice(engine.t('You were kicked from "{guild}"', { guild: from }), {
+    tone: 'danger',
+    ms: 4000,
+  });
 });
 
 engine.registerPlayerAction('Invite to Guild', (name) => {

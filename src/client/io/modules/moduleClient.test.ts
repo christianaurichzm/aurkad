@@ -95,6 +95,24 @@ describe('module toasts', () => {
       vi.useRealTimers();
     }
   });
+
+  it('draws a notice in the stylesheet look, painted by its tone and translated', async () => {
+    const frame = document.createElement('div');
+    frame.id = 'canvasFrame';
+    document.body.append(frame);
+    serve(`
+      engine.i18n({ pt: { 'Quest complete': 'Missão cumprida' } });
+      engine.ui.notice('Quest complete', { tone: 'warning', label: 'Quests', detail: '+50 XP' });
+    `);
+    setLanguage('pt');
+    await loadClientModules();
+    const notice = frame.querySelector<HTMLElement>('.module-toasts > .notice');
+    expect(notice?.dataset.tone).toBe('warning');
+    expect(notice?.getAttribute('style')).toBeNull();
+    expect(notice?.querySelector('.notice-label')?.textContent).toBe('Quests');
+    expect(notice?.querySelector('.notice-detail')?.textContent).toBe('+50 XP');
+    expect(notice?.textContent).toBe('QuestsMissão cumprida+50 XP');
+  });
 });
 
 describe('module client strings', () => {

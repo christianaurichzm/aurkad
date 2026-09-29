@@ -27,6 +27,23 @@ interface ModuleUi {
    * fade it out and remove it.
    */
   toast(element: HTMLElement, ms?: number): void;
+  /**
+   * The same notice in the stylesheet's look (`.notice`, painted by `tone`), so
+   * a theme restyles it with every other module's. `label` is a small line
+   * above the text, `detail` a lighter one under it; all three are translated
+   * like the other `ui` labels.
+   *
+   * @example ui.notice(engine.t('New quest: {quest}', { quest: name }), { tone: 'warning' })
+   */
+  notice(
+    text: string,
+    options?: {
+      tone?: 'primary' | 'danger' | 'warning' | 'highlight';
+      label?: string;
+      detail?: string;
+      ms?: number;
+    },
+  ): void;
   actionButton(label: string, onClick: () => void, hotkey?: string): HTMLButtonElement;
   /**
    * The window of `panel()` for a module drawn with `engine.render`: open

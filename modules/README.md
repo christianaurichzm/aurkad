@@ -140,6 +140,9 @@ engine.sendServerEvent('guild:request'); // talk back to the server entry
   - `ui.panel({ title?, anchor? })` → `{ body, setTitle, setBody(...nodes), show, hide, remove }`
   - `ui.button(label, onClick)`, `ui.input(placeholder)`, `ui.row(...)`, `ui.column(...)`
   - `ui.Window` - the same window as a React component, see below.
+  - `ui.notice(text, { tone?, label?, detail?, ms? })` - a notice over the world,
+    painted by `tone` (`primary`, `danger`, `warning`, `highlight`) in the same
+    `.notice` a theme restyles; `ui.toast(element, ms?)` shows one you styled.
 - `render(node)` / `useT()` - React, see below.
 - `i18n(tables)` / `t(text, params?)` - translations, see below.
 - `log` / `warn` / `error`.

@@ -191,13 +191,8 @@ function toast(el: HTMLElement, ms = 3000, fallback: HTMLElement): void {
   if (frame && !stack) {
     stack = document.createElement('div');
     stack.className = 'module-toasts';
-    stack.style.cssText =
-      'position:absolute;top:44px;left:50%;transform:translateX(-50%);' +
-      'display:flex;flex-direction:column;align-items:center;gap:8px;' +
-      `pointer-events:none;z-index:${zIndex.toast};`;
     frame.append(stack);
   }
-  el.style.transition = 'opacity .4s';
   (stack ?? fallback).append(el);
   setTimeout(() => (el.style.opacity = '0'), ms);
   setTimeout(() => el.remove(), ms + 400);
@@ -363,6 +358,31 @@ function makeUi(container: HTMLElement) {
     // A notice the module styled, shown over the world for `ms` and then
     // faded out and removed.
     toast: (el: HTMLElement, ms?: number) => toast(el, ms, container),
+    // The same, in the stylesheet's look: the tone picks the paint, and a
+    // theme restyles every module's notices through .notice at once.
+    notice: (
+      text: string,
+      opts: {
+        tone?: 'primary' | 'danger' | 'warning' | 'highlight';
+        label?: string;
+        detail?: string;
+        ms?: number;
+      } = {},
+    ) => {
+      const el = document.createElement('div');
+      el.className = 'notice';
+      if (opts.tone) el.dataset.tone = opts.tone;
+      const line = (className: string, source: string) => {
+        const d = document.createElement('div');
+        d.className = className;
+        d.textContent = moduleText(source);
+        return d;
+      };
+      if (opts.label) el.append(line('notice-label', opts.label));
+      el.append(moduleText(text));
+      if (opts.detail) el.append(line('notice-detail', opts.detail));
+      toast(el, opts.ms, container);
+    },
     // A button in the in-game Actions menu, e.g. to toggle a panel. A
     // one-char hotkey adds a key badge and global shortcut like the built-ins
     // ("I" for Inventory).
