@@ -3,7 +3,7 @@
   "name": "Leaderboard",
   "version": "1.0.0",
   "server": "server.js",
-  "client": "client.js",
+  "client": "client.jsx",
   "description": "Standings that outlive a session: the level board the module keeps by itself, plus any board a script submits scores to.",
   "config": { "size": 100, "sweepSeconds": 60 },
   "enabledByDefault": false
