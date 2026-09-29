@@ -35,3 +35,23 @@ it('names the NPC, traps Tab, chooses once and restores the opener', async () =>
   rects.mockRestore();
   opener.remove();
 });
+
+it('answers the next line of a conversation with its own choices', async () => {
+  const mod = loadClientModule('dialog');
+  mod.handlers.get('dialog:show')!({ id: 1, text: 'Hello.' });
+  await userEvent.keyboard('1');
+  mod.handlers.get('dialog:show')!({
+    id: 1,
+    speaker: 'Tomás',
+    text: 'Anything else?',
+    choices: ['Wares', 'Rumours', 'Goodbye'],
+  });
+  expect(screen.getAllByRole('dialog')).toHaveLength(1);
+  await userEvent.keyboard('3');
+  expect(mod.engine.sendServerEvent).toHaveBeenCalledTimes(2);
+  expect(mod.engine.sendServerEvent).toHaveBeenLastCalledWith('dialog:choose', {
+    id: 1,
+    index: 2,
+  });
+  expect(screen.queryByRole('dialog')).toBeNull();
+});
