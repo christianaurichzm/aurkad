@@ -5,7 +5,7 @@ import {
   type LoadedClientModule,
 } from '../../../test/clientModule';
 
-// The hotbar half of the shipped modules/magic/client.js. The panel already
+// The hotbar half of the shipped modules/magic/client.jsx. The panel already
 // greyed out a spell on cooldown; what this draws is the same state on the
 // canvas, where a player who never opens the panel can see it.
 

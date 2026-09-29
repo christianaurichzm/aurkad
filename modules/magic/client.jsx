@@ -1,15 +1,14 @@
 // @ts-check
 // Magic module, client entry. A Spells button in the Actions menu opens a
-// panel with mana and castable spells; a click or the spell's hotkey (F1,
+// window with mana and castable spells; a click or the spell's hotkey (F1,
 // F2, …) casts it. It redraws on magic:update and on a timer so cooldown
 // and mana stay current.
 //
-// The hotkeys work with the panel closed, which is how the game is played,
+// The hotkeys work with the window closed, which is how the game is played,
 // so the hotbar below always draws the same state on the canvas.
 
-// Strings this module draws, keyed by the English itself: text handed to the
-// `ui` helpers is translated for free, the rest goes through engine.t. Spell
-// names are content, so they stay in the language the operator wrote them in.
+// Translations keyed by the English text; components use engine.useT().
+// Spell names are content and stay in the operator's language.
 engine.i18n({
   pt: {
     Spells: 'Magias',
@@ -18,12 +17,22 @@ engine.i18n({
 });
 
 const ui = engine.ui;
-const panel = ui.panel({ title: 'Spells' });
-ui.actionButton('Spells', () => panel.toggle(), 's'); // S opens/closes
 
 let state = null;
+let shown = false;
 
-// Cast only when off cooldown and affordable: the one gate the panel
+function draw() {
+  engine.render(shown && <SpellsWindow s={state} />);
+}
+
+function toggle() {
+  shown = !shown;
+  draw();
+}
+
+ui.actionButton('Spells', toggle, 's'); // S opens/closes
+
+// Cast only when off cooldown and affordable: the one gate the window
 // buttons and the F-key hotkeys share.
 function tryCast(spell) {
   if (!spell) return;
@@ -32,34 +41,59 @@ function tryCast(spell) {
   engine.sendServerEvent('spell:cast', { id: spell.id });
 }
 
-function render() {
-  if (!state) {
-    panel.setBody(document.createTextNode('…'));
-    return;
-  }
-  const mana = document.createElement('div');
-  mana.textContent = engine.t('Mana: {mana}/{max}', {
-    mana: Math.round(state.mana),
-    max: state.manaMax,
-  });
+function SpellsWindow({ s }) {
+  const t = engine.useT();
+  // Cooldowns end between server pushes, so the window redraws on a timer.
+  const [, tick] = React.useState(0);
+  React.useEffect(() => {
+    const id = setInterval(() => tick((n) => n + 1), 500);
+    return () => clearInterval(id);
+  }, []);
 
   const now = Date.now();
-  const buttons = state.spells.map((s, i) => {
-    const onCooldown = s.readyAt > now;
-    const tooPoor = state.mana < s.cost;
-    const b = ui.button(`F${i + 1} · ${s.name} (${s.cost})`, () => tryCast(s));
-    if (onCooldown || tooPoor) {
-      b.disabled = true;
-      b.style.opacity = '0.5';
-    }
-    return b;
-  });
-
-  panel.setBody(mana, ui.column(...buttons));
+  return (
+    <ui.Window title={t('Spells')} onClose={toggle}>
+      {s ? (
+        <>
+          <div>
+            {t('Mana: {mana}/{max}', {
+              mana: Math.round(s.mana),
+              max: s.manaMax,
+            })}
+          </div>
+          <ul
+            style={{
+              listStyle: 'none',
+              margin: 0,
+              padding: 0,
+              display: 'flex',
+              flexDirection: 'column',
+              gap: 6,
+            }}
+          >
+            {s.spells.map((spell, i) => (
+              <li key={spell.id}>
+                <button
+                  type="button"
+                  style={{ width: '100%' }}
+                  disabled={spell.readyAt > now || s.mana < spell.cost}
+                  onClick={() => tryCast(spell)}
+                >
+                  {`F${i + 1} · ${spell.name} (${spell.cost})`}
+                </button>
+              </li>
+            ))}
+          </ul>
+        </>
+      ) : (
+        '…'
+      )}
+    </ui.Window>
+  );
 }
 
 // Hotkeys: F1 casts the first spell, F2 the second, and so on. Ignored while
-// typing in a field. Works whether or not the panel is open.
+// typing in a field. Works whether or not the window is open.
 window.addEventListener('keydown', (e) => {
   const m = /^F(\d+)$/.exec(e.key);
   if (!m || !state) return;
@@ -72,18 +106,15 @@ window.addEventListener('keydown', (e) => {
 
 engine.onServerEvent('magic:update', (s) => {
   state = s;
-  render();
+  draw();
 });
-
-// Keep cooldown/mana gating fresh between server pushes.
-setInterval(render, 500);
 
 engine.sendServerEvent('magic:request');
 
 // ─── HOTBAR ──────────────────────────────────────────────────────────────────
 // Slots along the bottom of the screen: key, name, cost, and the cooldown
 // as a shutter wiping downward as the spell comes back. Read-only, as
-// casting is the F-keys and the panel, so there is no hit-testing here.
+// casting is the F-keys and the window, so there is no hit-testing here.
 
 const SLOT = 128;
 const HEIGHT = 72;

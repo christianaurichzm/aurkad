@@ -3,7 +3,7 @@
   "name": "Magic System",
   "version": "1.0.0",
   "server": "server.js",
-  "client": "client.js",
+  "client": "client.jsx",
   "description": "Spells with mana + cooldowns, cast from a hotbar. Provides use('magic').defineSpell/cast.",
   "enabledByDefault": true,
   "config": {
