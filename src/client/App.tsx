@@ -3,6 +3,7 @@ import { ContentEditor } from './components/ContentEditor/ContentEditor';
 import { GameInterface } from './components/GameInterface';
 import { HudBar, MapName } from './components/HUD/HudBar';
 import { TouchControls } from './components/HUD/TouchControls';
+import { Icon } from './components/common/Icon';
 import { InventoryPanel } from './components/Inventory/InventoryPanel';
 import { Login } from './pages/Login';
 import { Register } from './pages/Register';
@@ -62,19 +63,7 @@ function App() {
                   aria-label={t('actions.settings')}
                   title={t('actions.settings')}
                 >
-                  <svg
-                    aria-hidden="true"
-                    width="18"
-                    height="18"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                  >
-                    <circle cx="12" cy="12" r="6" />
-                    <circle cx="12" cy="12" r="2" />
-                    <path d="M12 2v4m0 12v4M2 12h4m12 0h4M5 5l3 3m8 8 3 3M5 19l3-3m8-8 3-3" />
-                  </svg>
+                  <Icon name="settings" />
                 </button>
                 <button
                   type="button"
@@ -86,7 +75,7 @@ function App() {
                     panelCollapsed ? 'app.expandPanel' : 'app.collapsePanel',
                   )}
                 >
-                  <span aria-hidden="true">{panelCollapsed ? '☰' : '×'}</span>
+                  <Icon name={panelCollapsed ? 'menu' : 'close'} />
                   <span>{t('app.menu')}</span>
                 </button>
               </nav>

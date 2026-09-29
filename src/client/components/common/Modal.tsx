@@ -3,6 +3,7 @@ import { useId, type ReactNode } from 'react';
 import { useDraggable } from '../../hooks/useDraggable';
 import { useEscapeClose } from '../../hooks/useEscapeClose';
 import { useT } from '../../i18n';
+import { Icon } from './Icon';
 
 interface ModalProps {
   title: string;
@@ -49,7 +50,7 @@ export const Modal = ({
             aria-label={t('common.close')}
             onClick={onClose}
           >
-            ×
+            <Icon name="close" />
           </button>
         </div>
         <div className="window-content">{children}</div>

@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { Key } from '../../../shared/types';
 import { pressKey, releaseKey } from '../../io/keyboard';
 import { useT } from '../../i18n';
+import { Icon } from '../common/Icon';
 
 // Pointer capture keeps the held direction alive as the thumb crosses buttons.
 // Movement still enters through the same discrete keys as keyboard/gamepad.
@@ -98,7 +99,7 @@ export const TouchControls: React.FC = () => {
           data-direction={Key.ArrowUp}
           aria-pressed={direction === Key.ArrowUp}
         >
-          ▲
+          <Icon name="up" />
         </button>
         <button
           type="button"
@@ -107,7 +108,7 @@ export const TouchControls: React.FC = () => {
           data-direction={Key.ArrowLeft}
           aria-pressed={direction === Key.ArrowLeft}
         >
-          ◀
+          <Icon name="left" />
         </button>
         <button
           type="button"
@@ -116,7 +117,7 @@ export const TouchControls: React.FC = () => {
           data-direction={Key.ArrowRight}
           aria-pressed={direction === Key.ArrowRight}
         >
-          ▶
+          <Icon name="right" />
         </button>
         <button
           type="button"
@@ -125,7 +126,7 @@ export const TouchControls: React.FC = () => {
           data-direction={Key.ArrowDown}
           aria-pressed={direction === Key.ArrowDown}
         >
-          ▼
+          <Icon name="down" />
         </button>
       </div>
       <div className="touch-actions">
@@ -135,7 +136,7 @@ export const TouchControls: React.FC = () => {
           aria-label={t('touch.attack')}
           {...hold(Key.Control)}
         >
-          ⚔
+          <Icon name="attack" />
         </button>
         <button
           type="button"
@@ -143,20 +144,7 @@ export const TouchControls: React.FC = () => {
           aria-label={t('touch.interact')}
           {...hold(Key.f)}
         >
-          <svg
-            aria-hidden="true"
-            width="20"
-            height="20"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          >
-            <path d="M8 13V5a1.5 1.5 0 0 1 3 0v6M11 11V3.5a1.5 1.5 0 0 1 3 0V11M14 11V5a1.5 1.5 0 0 1 3 0v6" />
-            <path d="M17 11V8a1.5 1.5 0 0 1 3 0v6a7 7 0 0 1-7 7h-1a6 6 0 0 1-5-2.7l-2.7-3.6a1.5 1.5 0 0 1 2.4-1.8L8 14.5V13" />
-          </svg>
+          <Icon name="interact" />
         </button>
         <button
           type="button"
@@ -164,7 +152,7 @@ export const TouchControls: React.FC = () => {
           aria-label={t('touch.pickUp')}
           {...hold(Key.e)}
         >
-          ↧
+          <Icon name="pickup" />
         </button>
         <button
           type="button"
@@ -172,7 +160,7 @@ export const TouchControls: React.FC = () => {
           aria-label={t('touch.run')}
           {...hold(Key.Shift)}
         >
-          »
+          <Icon name="run" />
         </button>
       </div>
     </div>

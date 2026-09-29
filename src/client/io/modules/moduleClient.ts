@@ -250,7 +250,12 @@ function makeUi(container: HTMLElement) {
     const unsubscribeCloseLabel = onLanguageChange(() =>
       closeEl.setAttribute('aria-label', t('common.close')),
     );
-    closeEl.textContent = '×';
+    // The markup <Icon name="close" /> renders, for the same close as a Modal.
+    const closeIcon = document.createElement('span');
+    closeIcon.className = 'icon icon-close';
+    closeIcon.setAttribute('aria-hidden', 'true');
+    closeIcon.style.setProperty('--icon', 'var(--icon-close)');
+    closeEl.append(closeIcon);
     header.append(titleEl, closeEl);
 
     const body = document.createElement('div');

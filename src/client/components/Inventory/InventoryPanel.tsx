@@ -3,6 +3,7 @@ import type { Item } from '../../../shared/types';
 import { sendAction } from '../../io/network';
 import { EquipmentPanel } from './EquipmentPanel';
 import { ItemIcon } from './ItemIcon';
+import { Icon } from '../common/Icon';
 import { useStyles } from './styles';
 import { usePlayerForceUpdate } from '../../hooks/usePlayerForceUpdate';
 import { isEquipped } from '../../utils/isEquipped';
@@ -151,7 +152,7 @@ export const InventoryPanel: React.FC = () => {
             style={styles.closeBtn}
             onClick={() => setVisible(false)}
           >
-            ×
+            <Icon name="close" />
           </button>
         </div>
         <div style={styles.tabs}>
