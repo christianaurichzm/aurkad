@@ -116,11 +116,7 @@ function render() {
       const cancelBtn = ui.button('✕', () =>
         engine.sendServerEvent('trade:cancel', { player: offer.from }),
       );
-      cancelBtn.style.cssText +=
-        'font-size:11px;padding:3px 7px;background:var(--color-border);';
-      cancelBtn.onmouseenter = () => (cancelBtn.style.background = '#777');
-      cancelBtn.onmouseleave = () =>
-        (cancelBtn.style.background = 'var(--color-border)');
+      cancelBtn.style.cssText += 'font-size:11px;padding:3px 7px;';
       row.append(label, ui.row(acceptBtn, cancelBtn));
       sections.push(row);
     }
@@ -143,11 +139,7 @@ function render() {
       const cancelBtn = ui.button('Cancel', () =>
         engine.sendServerEvent('trade:cancel', { player: offer.to }),
       );
-      cancelBtn.style.cssText +=
-        'font-size:11px;padding:3px 7px;background:var(--color-border);';
-      cancelBtn.onmouseenter = () => (cancelBtn.style.background = '#777');
-      cancelBtn.onmouseleave = () =>
-        (cancelBtn.style.background = 'var(--color-border)');
+      cancelBtn.style.cssText += 'font-size:11px;padding:3px 7px;';
       row.append(label, cancelBtn);
       sections.push(row);
     }

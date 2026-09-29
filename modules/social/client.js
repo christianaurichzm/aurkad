@@ -20,12 +20,9 @@ engine.i18n({
   },
 });
 
-// The toolkit's panel is light (src/client/theme.ts: surface #fff, text
-// #333, border #ddd). A module cannot import that file, so the values are
-// repeated here; guessing dark would draw invisible text on the panel.
-const TEXT = '#333333';
-const MUTED = '#666666';
-const LINE = '#dddddd';
+const TEXT = 'var(--color-text)';
+const MUTED = 'var(--color-text-muted)';
+const LINE = 'var(--color-border)';
 const ONLINE = '#2ecc40';
 const OFFLINE = '#999999';
 

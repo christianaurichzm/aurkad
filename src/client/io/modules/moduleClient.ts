@@ -199,19 +199,16 @@ function toast(el: HTMLElement, ms = 3000, fallback: HTMLElement): void {
   setTimeout(() => el.remove(), ms + 400);
 }
 
-// A small styled UI toolkit so module client code doesn't hand-roll CSS and
-// matches the core look (theme colors/radius/shadow).
+// A small UI toolkit so module code doesn't hand-roll CSS. It styles nothing
+// itself: panels wear the React Modal's classes and controls take the
+// stylesheet's defaults, so module and core windows match.
 let nextPanelId = 0;
 
 function makeUi(container: HTMLElement) {
   const button = (label: string, onClick?: () => void): HTMLButtonElement => {
     const b = document.createElement('button');
+    b.type = 'button';
     setText(b, label);
-    b.style.cssText =
-      `background:${colors.primary};color:#fff;border:none;border-radius:${radius.sm}px;` +
-      `padding:6px 10px;cursor:pointer;font:13px sans-serif;`;
-    b.onmouseenter = () => (b.style.background = colors.primaryHover);
-    b.onmouseleave = () => (b.style.background = colors.primary);
     if (onClick) b.onclick = onClick;
     return b;
   };
@@ -219,9 +216,8 @@ function makeUi(container: HTMLElement) {
   const input = (placeholder = ''): HTMLInputElement => {
     const i = document.createElement('input');
     setPlaceholder(i, placeholder);
-    i.style.cssText =
-      `width:100%;box-sizing:border-box;padding:6px 8px;border:1px solid ${colors.border};` +
-      `border-radius:${radius.sm}px;font:13px sans-serif;`;
+    // Fills its row; a module narrows the short ones (a quantity) itself.
+    i.style.width = '100%';
     return i;
   };
 
@@ -236,26 +232,14 @@ function makeUi(container: HTMLElement) {
   // ui.actionButton(...) so it opens from the Actions menu like the built-ins.
   const panel = (opts: { title?: string } = {}) => {
     const el = document.createElement('div');
-    el.className = 'module-panel';
+    el.className = 'editor-window module-panel';
     el.setAttribute('role', 'dialog');
     el.tabIndex = -1;
-    el.style.cssText =
-      `position:fixed;top:90px;left:calc(50% - 120px);min-width:220px;` +
-      `max-width:calc(100vw - 16px);max-height:calc(100dvh - 16px);` +
-      `background:${colors.surface};color:${colors.text};border:1px solid ${colors.border};` +
-      `border-radius:${radius.md}px;box-shadow:${shadow.panel};font:13px sans-serif;` +
-      `display:none;flex-direction:column;overflow:hidden;z-index:${zIndex.floatingPanel};`;
+    el.style.cssText = 'display:none;top:90px;left:calc(50% - 120px);';
 
     const header = document.createElement('div');
     header.className = 'window-titlebar';
-    header.style.cssText =
-      `display:flex;align-items:center;justify-content:space-between;gap:12px;` +
-      `padding:6px 10px;font-weight:bold;cursor:move;user-select:none;` +
-      // The pointer has to belong to the drag, or the browser scrolls the page
-      // with it and cancels the gesture, and a finger cannot move the panel.
-      `touch-action:none;flex-shrink:0;` +
-      `border-bottom:1px solid ${colors.border};background:${colors.surfaceMuted};`;
-    const titleEl = document.createElement('span');
+    const titleEl = document.createElement('h2');
     titleEl.id = `module-panel-${++nextPanelId}`;
     el.setAttribute('aria-labelledby', titleEl.id);
     setText(titleEl, opts.title ?? '');
@@ -267,16 +251,10 @@ function makeUi(container: HTMLElement) {
       closeEl.setAttribute('aria-label', t('common.close')),
     );
     closeEl.textContent = '×';
-    closeEl.style.cssText =
-      'cursor:pointer;padding:0 4px;font-size:16px;line-height:1;';
     header.append(titleEl, closeEl);
 
     const body = document.createElement('div');
-    body.style.cssText =
-      'padding:10px 12px;display:flex;flex-direction:column;gap:6px;' +
-      // A list of mail or auctions is as long as it is; the panel scrolls it
-      // rather than growing past the bottom of a phone.
-      'overflow:auto;min-height:0;';
+    body.className = 'window-content';
     el.append(header, body);
     container.append(el);
 

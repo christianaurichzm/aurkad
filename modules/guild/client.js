@@ -157,10 +157,7 @@ function renderGuild(g) {
   const leaveBtn = ui.button('Leave Guild', () =>
     engine.sendServerEvent('guild:leave'),
   );
-  leaveBtn.style.cssText += 'background:var(--color-border);width:100%;';
-  leaveBtn.onmouseenter = () => (leaveBtn.style.background = '#777');
-  leaveBtn.onmouseleave = () =>
-    (leaveBtn.style.background = 'var(--color-border)');
+  leaveBtn.style.cssText += 'width:100%;';
   controls.push(leaveBtn);
 
   panel.setTitle(`${g.name} (${g.members.length})`);
@@ -193,10 +190,6 @@ engine.onServerEvent('guild:invite', ({ guildName, from }) => {
     notif.remove();
   });
   const declineBtn = ui.button('Decline', () => notif.remove());
-  declineBtn.style.background = 'var(--color-border)';
-  declineBtn.onmouseenter = () => (declineBtn.style.background = '#777');
-  declineBtn.onmouseleave = () =>
-    (declineBtn.style.background = 'var(--color-border)');
   notif.setBody(msg, ui.row(acceptBtn, declineBtn));
   notif.show();
   setTimeout(() => notif.remove(), 60_000);

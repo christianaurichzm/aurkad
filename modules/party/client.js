@@ -207,10 +207,6 @@ engine.onServerEvent('party:invite', ({ from }) => {
     b.style.cssText +=
       'flex:1;padding:10px 12px;font-size:15px;font-weight:600;';
   }
-  declineBtn.style.background = 'var(--color-border)';
-  declineBtn.onmouseenter = () => (declineBtn.style.background = '#777');
-  declineBtn.onmouseleave = () =>
-    (declineBtn.style.background = 'var(--color-border)');
   notif.setBody(why, ui.row(acceptBtn, declineBtn));
   notif.show();
   setTimeout(() => notif.remove(), 30_000);
