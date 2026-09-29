@@ -799,6 +799,20 @@ body {
 :where(button):hover:not(:disabled) {
   filter: brightness(1.12);
 }
+/* The action a window leads with, and one that takes something away. Core and
+   module windows mark theirs with the same class, so a theme restyles both. */
+.button-primary,
+.button-danger {
+  border-color: transparent;
+  color: #fff;
+  font-weight: 600;
+}
+.button-primary {
+  background: var(--color-primary);
+}
+.button-danger {
+  background: var(--color-danger);
+}
 :where(button, input, select, textarea):disabled {
   opacity: 0.5;
   cursor: not-allowed;

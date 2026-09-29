@@ -165,7 +165,8 @@ export const AttributeDistributorModal: React.FC = () => {
         {error && <p style={errorStyle}>{error}</p>}
 
         <button
-          style={confirmBtn(loading || assigned === 0 || remaining < 0)}
+          className="button-primary"
+          style={confirmBtn}
           onClick={handleConfirm}
           disabled={loading || assigned === 0 || remaining < 0}
         >
@@ -303,15 +304,8 @@ const errorStyle: React.CSSProperties = {
   margin: 0,
 };
 
-const confirmBtn = (disabled: boolean): React.CSSProperties => ({
-  background: colors.primary,
-  color: '#fff',
-  border: 'none',
+const confirmBtn: React.CSSProperties = {
   padding: '10px 16px',
-  borderRadius: radius.control,
-  cursor: disabled ? 'not-allowed' : 'pointer',
-  fontWeight: 600,
   fontSize: 14,
-  opacity: disabled ? 0.5 : 1,
   width: '100%',
-});
+};

@@ -125,15 +125,8 @@ export const ShopRow: React.FC<ShopRowProps> = ({
           onClick={handleBuy}
           disabled={buying || !affordable}
           title={!affordable ? t('shop.insufficient') : undefined}
-          style={{
-            padding: '10px 14px',
-            background: colors.primary,
-            color: '#fff',
-            border: 'none',
-            borderRadius: radius.control,
-            cursor: affordable ? 'pointer' : 'not-allowed',
-            opacity: buying || !affordable ? 0.55 : 1,
-          }}
+          className="button-primary"
+          style={{ padding: '10px 14px' }}
         >
           {buying ? '…' : t(affordable ? 'shop.buy' : 'shop.insufficient')}
         </button>

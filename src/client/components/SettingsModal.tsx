@@ -204,6 +204,7 @@ export const SettingsModal: React.FC = () => {
               type="button"
               disabled={saving || !email || !emailPassword}
               onClick={() => void submitEmail()}
+              className="button-primary"
               style={button}
             >
               {t('auth.saveEmail')}
@@ -235,6 +236,7 @@ export const SettingsModal: React.FC = () => {
           type="button"
           disabled={saving || !current || !next}
           onClick={() => void submitPassword()}
+          className="button-primary"
           style={button}
         >
           {t('auth.changePassword')}
@@ -271,16 +273,7 @@ const input: React.CSSProperties = {
   width: '100%',
 };
 
-const button: React.CSSProperties = {
-  padding: '9px 12px',
-  border: 'none',
-  borderRadius: radius.control,
-  background: colors.primary,
-  color: '#fff',
-  fontWeight: 600,
-  fontSize: 14,
-  cursor: 'pointer',
-};
+const button: React.CSSProperties = { padding: '9px 12px', fontSize: 14 };
 
 const note: React.CSSProperties = { fontSize: 13, color: colors.textMuted };
 

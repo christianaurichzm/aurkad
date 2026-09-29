@@ -55,6 +55,7 @@ export const OnlinePlayersModal: React.FC = () => {
           <div style={countBadge}>{t('online.count', { count })}</div>
           <button
             type="button"
+            className="button-primary"
             style={refreshButton(loading)}
             onClick={() => void loadPlayers()}
             disabled={loading}
@@ -108,13 +109,8 @@ const countBadge: React.CSSProperties = {
 };
 
 const refreshButton = (loading: boolean): React.CSSProperties => ({
-  color: '#fff',
-  background: colors.primary,
-  border: 'none',
-  borderRadius: radius.control,
   padding: '9px 12px',
   fontSize: 13,
-  fontWeight: 700,
   cursor: loading ? 'wait' : 'pointer',
   opacity: loading ? 0.65 : 1,
 });

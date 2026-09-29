@@ -59,11 +59,10 @@ export const DialogHost: React.FC = () => {
           )}
           <button
             type="button"
-            style={{
-              ...styles.primaryButton,
-              backgroundColor:
-                dialog.kind === 'error' ? colors.danger : colors.primary,
-            }}
+            className={
+              dialog.kind === 'error' ? 'button-danger' : 'button-primary'
+            }
+            style={styles.primaryButton}
             onClick={() => closeDialog(true)}
           >
             {dialog.confirmLabel}
@@ -113,11 +112,6 @@ const styles = {
     marginTop: 20,
   },
   primaryButton: {
-    border: 'none',
-    borderRadius: radius.control,
-    color: '#fff',
-    cursor: 'pointer',
-    fontWeight: 700,
     padding: '9px 14px',
   },
   secondaryButton: {
