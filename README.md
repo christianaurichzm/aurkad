@@ -4,35 +4,60 @@ A server-authoritative 2D MMO engine. Node.js + WebSocket + MongoDB on the
 server, React + Canvas on the client. You run your own server, build your own
 content, and define your own rules.
 
-## Run with Docker (fastest)
+## Quick start
 
-Requires Docker with the Compose plugin.
+Requires Docker with the Compose plugin; there is nothing to clone. In an
+empty folder:
 
 ```bash
-cp .env.example .env
-# edit .env and set a strong SESSION_SECRET (openssl rand -hex 32)
-
-npm run docker:up      # builds the image, starts MongoDB + the server
-npm run docker:logs    # tail server logs
+curl -LO https://github.com/christianaurichzm/aurkad/releases/latest/download/compose.yml
+echo "SESSION_SECRET=$(openssl rand -hex 32)" > .env
+echo "ADMIN=yourname" >> .env      # registering this username makes you admin
+mkdir game
+docker compose run --rm --user "$(id -u):$(id -g)" new-game "My Game"
+docker compose up -d
 ```
 
-The game is served at http://localhost:8080.
+Open https://localhost. The browser warns once about the certificate: logins
+only travel over HTTPS, so Caddy sits in front even on your own computer and
+signs `localhost` itself. On a server, point a domain at it, add
+`PUBLIC_URL=https://your.domain` to `.env` and run `docker compose up -d`
+again; Caddy fetches a real certificate.
 
-`game.json`, `scripts/`, `assets/` and `theme/` are bind-mounted into the
-container, so you edit them on the host: scripts hot-reload instantly, the
-theme on a page reload, `game.json` on `docker compose restart app`.
+`new-game` writes a small playable game into `game/`: a map, a few monsters and
+items, a `game.json` with the name the login screen shows, and placeholder art
+drawn in code. The folder is yours to edit on the host - scripts hot-reload,
+the rest applies on `docker compose restart app` - and the world (maps,
+players, items) lives in MongoDB. Upgrading the engine is changing the version on the `image:` lines of
+`compose.yml` and `docker compose up -d`; `game/` is never touched.
 
-Stop everything with `npm run docker:down`.
+The art is six PNG sheets in `game/assets/`, and the placeholders show the grid
+each one is cut into, so you can paint over them:
 
-## Local development
+| Sheet              | Cell | Layout                                                           |
+| ------------------ | ---- | ---------------------------------------------------------------- |
+| `tiles.png`        | 64px | any number of tiles per row; leave cell 0 transparent            |
+| `sprites.png`      | 64px | 4x4 per character: rows face down, left, right, up; columns walk |
+| `items.png`        | 64px | one icon per cell                                                |
+| `spells.png`       | 32px | a spell's frames side by side                                    |
+| `arrows.png`       | 32px | four per arrow: down, up, right, left                            |
+| `attackeffect.png` | 64px | six frames of the melee swing                                    |
+
+## Changing the engine
+
+To work on the engine itself, clone it and run from source:
 
 ```bash
 npm install
-npm run db:up          # MongoDB only, in Docker
-npm run dev            # server (8080) + client dev server with HMR
+npm run db:up                        # MongoDB only, in Docker
+npm run new-game -- games/my-game    # named after the folder, or pass "A Name"
+GAME_DIR=games/my-game npm run dev   # server (8080) + client dev server with HMR
 ```
 
-`npm run dev:seed` resets the database, seeds sample content and starts dev.
+In development the first account registered becomes the admin.
+`docker build -t aurkad:dev .` packs your changes into an image, and naming it
+on the `image:` lines of `compose.game.yml` runs a game on it the same way as
+above.
 
 ## Customizing your game
 
@@ -46,6 +71,7 @@ npm run dev            # server (8080) + client dev server with HMR
   breaks the game (zero starting health, an XP curve that never grows) is an
   error rather than a setting that silently does nothing. Delete the file and
   the engine runs on defaults.
+
 - **`brand` in `game.json` and `theme/`** - what the game is called and how it
   looks. `brand.name` goes on the browser tab and the login card, `brand.logo`
   names a picture in `theme/` to go beside it. `theme/theme.css` loads after the

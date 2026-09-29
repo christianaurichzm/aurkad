@@ -20,8 +20,14 @@ RUN npm ci --omit=dev && npm cache clean --force
 
 COPY --from=builder /app/dist ./dist
 
-# game.json, scripts/, assets/ and theme/ are provided at runtime via bind mounts
-# (see docker-compose.yml) so creators edit them without rebuilding the image.
+# Read from disk at runtime rather than compiled in: the official modules, and
+# the scripting API's declarations that game scripts are type-checked against.
+COPY modules ./modules
+COPY scripts/global.d.ts scripts/tsconfig.json ./scripts/
+
+# The game itself is a bind mount - one folder with GAME_DIR pointing at it
+# (compose.game.yml), or game.json, scripts/, assets/ and theme/ one by one
+# (docker-compose.yml) - so creators edit it without rebuilding the image.
 USER node
 EXPOSE 8080
 # --enable-source-maps: the build ships .js.map files, so without it every

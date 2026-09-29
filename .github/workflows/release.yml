@@ -31,14 +31,19 @@ jobs:
           echo "$GH_TOKEN" | docker login ghcr.io -u "$ACTOR" --password-stdin
           docker build -t "$IMAGE:${GITHUB_REF_NAME#v}" -t "$IMAGE:latest" .
           docker push --all-tags "$IMAGE"
+          echo "IMAGE=$IMAGE" >> "$GITHUB_ENV"
 
       # Conventional-commit subjects are already the changelog; the release page
       # is where it lives, so there is no CHANGELOG.md to keep in sync.
+      # compose.yml is how a creator installs the engine, so it goes out pinned
+      # to this release's image: releases/latest/download/compose.yml is always
+      # the newest, and one already downloaded keeps running what it names.
       - name: release
         run: |
           prev=$(git describe --tags --abbrev=0 "$GITHUB_REF_NAME^" 2>/dev/null || true)
           git log --no-merges --pretty='- %s' ${prev:+"$prev.."}"$GITHUB_REF_NAME" > notes.md
-          gh release create "$GITHUB_REF_NAME" --title "$GITHUB_REF_NAME" --notes-file notes.md
+          sed "s|ghcr.io/christianaurichzm/aurkad:latest|$IMAGE:${GITHUB_REF_NAME#v}|" compose.game.yml > compose.yml
+          gh release create "$GITHUB_REF_NAME" --title "$GITHUB_REF_NAME" --notes-file notes.md compose.yml
 
   # Pages has to be set to "GitHub Actions" as its source once, in the
   # repository settings, or this job has nothing to deploy to and fails.
