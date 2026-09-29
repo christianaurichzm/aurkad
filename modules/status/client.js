@@ -33,7 +33,7 @@ function badge(status, tick) {
   const color = COLORS[status.id] || DEFAULT_COLOR;
   el.textContent = `${status.name || status.id}${secsLeft > 0 ? ` ${secsLeft}s` : ''}`;
   el.style.cssText =
-    `background:${color};color:#fff;font:bold 10px sans-serif;` +
+    `background:${color};color:#fff;font-weight:bold;font-size:10px;` +
     `border-radius:3px;padding:1px 5px;white-space:nowrap;`;
   el.title = status.name || status.id;
   return el;
