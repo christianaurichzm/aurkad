@@ -3,7 +3,7 @@
   "name": "Crafting",
   "version": "1.0.0",
   "server": "server.js",
-  "client": "client.js",
+  "client": "client.jsx",
   "description": "Turns authored recipes into items. Provides use('crafting').list/available/craft/define.",
   "enabledByDefault": true
 }
