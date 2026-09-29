@@ -8,6 +8,16 @@ import { useT } from '../../i18n';
 import { onServerEvent } from '../../io/network/customEvents';
 import { mapAllowsPvp } from '../../../shared/utils';
 
+// SpritePreview frames itself inline, where no theme could reach it; the
+// card's frame is #hud-portrait in styles.css instead, which is also where a
+// theme swaps the sprite for a picture chosen by data-sprite.
+const portraitCanvas = {
+  display: 'block',
+  border: 'none',
+  borderRadius: 0,
+  background: 'none',
+};
+
 export const HudBar = () => {
   const t = useT();
   // The live player's name and sprite when there is one, so a GM change
@@ -49,11 +59,13 @@ export const HudBar = () => {
   return (
     <div id="hud">
       <div id="hud-identity">
-        <SpritePreview
-          spriteId={identity?.sprite ?? 0}
-          size={38}
-          style={{ background: 'rgba(0,0,0,0.25)' }}
-        />
+        <div id="hud-portrait" data-sprite={identity?.sprite ?? 0}>
+          <SpritePreview
+            spriteId={identity?.sprite ?? 0}
+            size={38}
+            style={portraitCanvas}
+          />
+        </div>
         <div id="hud-who">
           <span id="hud-name">{identity?.name}</span>
           <span id="hud-level">{t('hud.level', { level })}</span>

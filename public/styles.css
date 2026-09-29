@@ -9,7 +9,8 @@
      login screen  .auth-layout .auth-card .auth-heading .auth-form
                    .engine-brand
      game screen   #ui #canvasFrame #sidePanel #map-name .player-controls
-     player card   #hud #hud-name #hud-level #hud-row #xp-bar-container
+     player card   #hud #hud-portrait[data-sprite] #hud-name #hud-level
+                   #hud-row #xp-bar-container
      side panel    .panel-title .action-button
      windows       .editor-window .module-panel .window-titlebar
                    .window-content .inventory-panel
@@ -301,6 +302,20 @@ body {
   display: flex;
   align-items: center;
   gap: 10px;
+}
+
+/* data-sprite is the character's sprite id, so a theme can put a picture in
+   place of the sprite for one class, or for everyone:
+     #hud-portrait[data-sprite="12"] { background-image: url(portraits/mage.png); }
+     #hud-portrait[data-sprite="12"] > canvas { visibility: hidden; } */
+#hud-portrait {
+  flex-shrink: 0;
+  width: 40px;
+  height: 40px;
+  overflow: hidden;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-control);
+  background: rgb(0 0 0 / 25%) center / cover no-repeat;
 }
 
 #hud-who {
@@ -1369,7 +1384,7 @@ body {
   #hud-identity {
     gap: 4px;
   }
-  #hud-identity > canvas {
+  #hud-portrait {
     display: none;
   }
   #hud-name {
@@ -1421,7 +1436,7 @@ body {
     gap: 4px;
     padding: 6px 8px;
   }
-  #hud-identity > canvas,
+  #hud-portrait,
   #hud-hp-values,
   .hud-resource-values {
     display: none;

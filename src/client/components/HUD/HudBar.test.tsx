@@ -16,6 +16,14 @@ vi.mock('../../hooks/usePlayerForceUpdate', () => ({
 }));
 
 describe('HudBar Component', () => {
+  it('marks the portrait with the sprite id, for a theme to pick a picture by', () => {
+    const { container } = render(<HudBar />);
+    expect(container.querySelector('#hud-portrait')).toHaveAttribute(
+      'data-sprite',
+      '3',
+    );
+  });
+
   it('shows mana only after magic publishes its state and follows consumption', () => {
     const { unmount } = render(<HudBar />);
     expect(

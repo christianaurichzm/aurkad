@@ -58,7 +58,10 @@ npm run dev            # server (8080) + client dev server with HMR
   root because a relative url inside a variable does not resolve against
   `theme.css`. `public/styles.css` lists every name, and opens with the ids and
   classes a theme can rely on across releases; anything else in the markup may
-  change.
+  change. The player card's portrait is the character's sprite, marked with its
+  id: a `background-image` on `#hud-portrait[data-sprite="12"]` and a hidden
+  `> canvas` show a picture instead, for that sprite (a class, say) or, without
+  the attribute, for everyone.
 - **`scripts/`** - server-side game logic in JavaScript (or TypeScript). Files
   are loaded at boot and hot-reloaded on save. See `scripts/example.js` and the
   typed API in `scripts/global.d.ts` - `npm run docs:api` renders it, and the
