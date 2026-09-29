@@ -134,7 +134,7 @@ describe('loadModules', () => {
     expect(await repl('bank')).toEqual(['official']);
     expect(await repl('guild')).toEqual(['game']);
     expect(await repl('puzzle')).toEqual(['game']);
-    expect(readModuleClientFile('puzzle')).toBe('engine.mount();');
+    expect(readModuleClientFile('puzzle')).toContain('engine.mount();');
   });
 
   it('does nothing when modules dir is absent', () => {
@@ -265,11 +265,17 @@ describe('client entries', () => {
     ]);
   });
 
-  it('serves the declared client file', () => {
-    writeClientModule('hasclient', `engine.mount();`);
+  it('serves the declared client file as a module the browser can import', async () => {
+    writeClientModule('hasclient', `engine.mount(React); // trailing comment`);
     loadModules();
 
-    expect(readModuleClientFile('hasclient')).toBe('engine.mount();');
+    const code = readModuleClientFile('hasclient') ?? '';
+    const { default: run } = (await import(
+      `data:text/javascript,${encodeURIComponent(code)}`
+    )) as { default: (engine: object, react: string) => void };
+    const mounted: string[] = [];
+    run({ mount: (react: string) => mounted.push(react) }, 'React');
+    expect(mounted).toEqual(['React']);
   });
 
   it('returns null for a module that is not loaded', () => {

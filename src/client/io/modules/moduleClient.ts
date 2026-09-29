@@ -505,12 +505,20 @@ export async function loadClientModules(): Promise<void> {
 
   for (const m of modules) {
     try {
-      const code = await (await fetch(`/modules/${m.id}/client`)).text();
       // A module's client half is the server owner's own code, served by
-      // this server (see the trust model in the server's sandbox.ts). There is
-      // no other way to run code fetched at runtime.
-      // eslint-disable-next-line @typescript-eslint/no-implied-eval, @typescript-eslint/no-unsafe-call
-      new Function('engine', 'React', code)(makeEngineApi(m.id), React);
+      // this server (see the trust model in the server's sandbox.ts) as an ES
+      // module exporting a function of (engine, React). Imported from our own
+      // origin, it is script the page's `script-src 'self'` allows, where
+      // evaluating a fetched string would need 'unsafe-eval'.
+      const { default: run } = (await import(
+        /* @vite-ignore */ `/modules/${m.id}/client`
+      )) as {
+        default: (
+          engine: ReturnType<typeof makeEngineApi>,
+          react: typeof React,
+        ) => void;
+      };
+      run(makeEngineApi(m.id), React);
       console.log(`[modules] client loaded: ${m.id}`);
     } catch (e) {
       console.error(`[modules] client "${m.id}" failed to load`, e);

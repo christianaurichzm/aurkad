@@ -20,10 +20,10 @@ afterEach(() => {
 
 /**
  * Loads a module's real shipped browser half and captures what it draws.
- * That half is plain JavaScript run with an `engine` global (and `React`),
- * so there is no import to reach for. This runs the code the server serves
- * as the client loader does, `new Function('engine', 'React', code)`,
- * against a fake engine and a recording context.
+ * That half is plain JavaScript run with an `engine` parameter (and
+ * `React`), so there is no import to reach for. This runs the code the
+ * server serves as the client loader does, the strict body of a function
+ * of (engine, React), against a fake engine and a recording context.
  *
  * Drawing is not pixels: it answers "was the shutter half the slot", "did
  * the tint land in screen space", "which overlay drew first", questions
@@ -307,11 +307,12 @@ export function loadClientModule(
     fs.readFileSync(path.join(dir, 'module.json'), 'utf-8'),
   ) as { client: string };
   const code = readClientSource(path.join(dir, manifest.client));
-  // The same call the real client loader makes (io/modules/moduleClient.ts):
-  // a test that imported the file some other way would be testing a loading
-  // path that does not ship.
+  // Run as the real client loader runs it (io/modules/moduleClient.ts): the
+  // body of an ES module's default export, called with (engine, React), a
+  // strict function as module code always is. Run sloppy, a test would pass
+  // code the shipped loader throws on.
   // eslint-disable-next-line @typescript-eslint/no-implied-eval, @typescript-eslint/no-unsafe-call
-  new Function('engine', 'React', code)(engine, React);
+  new Function('engine', 'React', `'use strict';${code}`)(engine, React);
 
   return { overlays, handlers, panels, actions, container, engine };
 }

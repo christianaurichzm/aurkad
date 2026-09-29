@@ -188,8 +188,12 @@ export function getClientModules(): { id: string; client: string }[] {
     .map((m) => ({ id: m.id, client: m.client }));
 }
 
-// Reads a loaded module's declared client file. Returns null if the module
-// isn't loaded or has no client entry; resolves strictly within the module dir.
+// Reads a loaded module's declared client file, as the ES module the browser
+// imports: the entry's code is the body of its default export, which the client
+// loader calls with the module's engine API and React. The code starts on the
+// wrapper's own line, so a line in a stack trace is the same line in the file.
+// Returns null if the module isn't loaded or has no client entry; resolves
+// strictly within the module dir.
 export function readModuleClientFile(id: string): string | null {
   const manifest = loadedManifests.get(id);
   const moduleDir = moduleDirs.get(id);
@@ -199,7 +203,7 @@ export function readModuleClientFile(id: string): string | null {
     return null; // traversal guard: must stay within the module dir
   }
   if (!fs.existsSync(filePath)) return null;
-  return readClientSource(filePath);
+  return `export default function (engine, React) {${readClientSource(filePath)}\n}\n`;
 }
 
 const compiledClients = new Map<string, { mtimeMs: number; code: string }>();

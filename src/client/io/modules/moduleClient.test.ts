@@ -19,13 +19,16 @@ import { escapeClaimed } from '../../hooks/useEscapeClose';
 const serve = (code: string) => {
   vi.stubGlobal(
     'fetch',
-    vi.fn((url: string) =>
+    vi.fn(() =>
       Promise.resolve({
         json: () => Promise.resolve([{ id: 'test', client: 'client.js' }]),
-        text: () => Promise.resolve(url.endsWith('/client') ? code : ''),
       }),
     ),
   );
+  vi.doMock('/modules/test/client', () => ({
+    // eslint-disable-next-line @typescript-eslint/no-implied-eval
+    default: new Function('engine', 'React', `'use strict';${code}`),
+  }));
 };
 
 beforeEach(() => {
