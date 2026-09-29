@@ -486,7 +486,7 @@ body {
   background:
     linear-gradient(180deg, rgba(255, 255, 255, 0.07), transparent),
     var(--surface-control-hover);
-  border-color: #55606f;
+  border-color: color-mix(in srgb, var(--color-panel-border), white 15%);
 }
 
 /* Pressed, and reachable by keyboard: the panel is the one thing every player
@@ -503,21 +503,6 @@ body {
 .action-button:disabled {
   cursor: wait;
   opacity: 0.65;
-}
-
-.action-button-primary {
-  background:
-    linear-gradient(180deg, rgba(56, 111, 206, 0.16), transparent 70%),
-    var(--surface-control);
-  border-color: rgba(56, 111, 206, 0.38);
-  border-top-color: rgba(56, 111, 206, 0.5);
-}
-
-.action-button-primary:hover:not(:disabled) {
-  background:
-    linear-gradient(180deg, rgba(56, 111, 206, 0.26), transparent 70%),
-    var(--surface-control-hover);
-  border-color: rgba(56, 111, 206, 0.7);
 }
 
 .action-key {
@@ -651,7 +636,7 @@ body {
 #chatInput:focus,
 #chatScope:focus {
   outline: none;
-  border-color: rgba(56, 111, 206, 0.6);
+  border-color: color-mix(in srgb, var(--color-primary) 60%, transparent);
   box-shadow: var(--focus-ring);
 }
 
@@ -757,7 +742,7 @@ body {
     font-size: 18px;
     line-height: 1;
     color: var(--color-panel-text);
-    background: rgba(32, 36, 43, 0.5);
+    background: color-mix(in srgb, var(--color-surface) 50%, transparent);
     border: 1px solid var(--edge-strong);
     border-radius: 12px;
     box-shadow: var(--shadow-control);
@@ -766,12 +751,12 @@ body {
 
   .touch-button:active,
   .touch-button[aria-pressed='true'] {
-    background: rgba(56, 111, 206, 0.4);
+    background: color-mix(in srgb, var(--color-primary) 40%, transparent);
   }
 
   .touch-attack {
-    background: rgba(56, 111, 206, 0.28);
-    border-color: rgba(56, 111, 206, 0.5);
+    background: color-mix(in srgb, var(--color-primary) 28%, transparent);
+    border-color: color-mix(in srgb, var(--color-primary) 50%, transparent);
   }
 }
 
@@ -859,7 +844,11 @@ body {
   position: relative;
   flex-direction: column;
   border-radius: 10px;
-  background: radial-gradient(ellipse at center, #1b2a30, #101519 80%);
+  background: radial-gradient(
+    ellipse at center,
+    var(--color-surface),
+    var(--color-app-bg) 80%
+  );
 }
 .viewport-stage {
   container-type: size;
@@ -1119,14 +1108,20 @@ body {
 #map-name.map-name-pvp {
   color: var(--color-warning);
 }
-#playerBar #hud {
+/* A theme repaints the card with a plain #hud. theme.css loads after this
+   file, so it wins on order, but only while this selector weighs no more than
+   one id. */
+#hud {
   flex: 1;
   min-width: 0;
   position: relative;
   overflow: hidden;
   padding: 10px 12px;
-  background: linear-gradient(135deg, #243139, #192127);
-  border-color: #3e515b;
+  background: linear-gradient(
+    135deg,
+    var(--surface-control),
+    var(--color-surface)
+  );
   border-radius: 10px;
 }
 #status-bar:empty {
