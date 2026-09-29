@@ -3,7 +3,7 @@
   "name": "Party System",
   "version": "1.0.0",
   "server": "server.js",
-  "client": "client.js",
+  "client": "client.jsx",
   "description": "Runtime player parties with invites, member updates, and nearby kill XP sharing.",
   "enabledByDefault": true,
   "config": {
