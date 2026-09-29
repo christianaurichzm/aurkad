@@ -3,7 +3,7 @@
   "name": "Bank Storage",
   "version": "1.0.0",
   "server": "server.js",
-  "client": "client.js",
+  "client": "client.jsx",
   "description": "Per-player item storage backed by the shared KV store.",
   "enabledByDefault": true,
   "config": {
