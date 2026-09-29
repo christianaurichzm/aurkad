@@ -26,10 +26,8 @@ import { checkDatabaseSchemaVersion } from './services/dbService.js';
 
 export async function connectToDatabase() {
   try {
-    logger.info('[DB] Connecting...');
-    await mongoose.connect(
-      process.env.MONGO_URI || 'mongodb://localhost:27017/game',
-    );
+    logger.info('[DB] Connecting...', { db: config.mongoDbName });
+    await mongoose.connect(config.mongoUri, { dbName: config.mongoDbName });
     logger.info('[DB] Connected successfully');
     // Asked once, here, because it is a property of the deployment and not of
     // any write: whether two documents can be committed together.

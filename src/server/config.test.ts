@@ -209,4 +209,32 @@ describe('GAME_DIR', () => {
     process.env.GAME_DIR = 'no-such-game';
     await expect(import('./config.js')).rejects.toThrow(/not a folder/);
   });
+
+  it('keeps each game folder in a database of its own', async () => {
+    const { mongoDbName } = await import('./config.js');
+    const uri = 'mongodb://mongo:27017';
+    expect(mongoDbName(uri, undefined)).toBe('game');
+    expect(mongoDbName(uri, '/srv/games/my-game')).toBe('my-game');
+    expect(mongoDbName(`${uri}/?replicaSet=rs0`, '/srv/games/my-game')).toBe(
+      'my-game',
+    );
+    expect(mongoDbName(uri, '/srv/games/My Game.v2')).toBe('My_Game_v2');
+  });
+
+  it('lets a database named in the URI win over the game folder', async () => {
+    const { mongoDbName } = await import('./config.js');
+    expect(
+      mongoDbName('mongodb://a:1,b:2/live?replicaSet=rs0', '/srv/games/x'),
+    ).toBe('live');
+    expect(mongoDbName('mongodb+srv://u:p@c.example.net/live', '/x')).toBe(
+      'live',
+    );
+  });
+
+  it('keeps each game folder in a replay folder of its own', async () => {
+    delete process.env.REPLAY_DIR;
+    process.env.GAME_DIR = os.tmpdir();
+    const { config } = await import('./config.js');
+    expect(config.replay.dir).toBe(path.join('replays', config.mongoDbName));
+  });
 });

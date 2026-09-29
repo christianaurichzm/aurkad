@@ -188,11 +188,13 @@ if (process.env.WS_PUBLIC_URL && mapIds) {
 
 const sessionSecret =
   process.env.SESSION_SECRET ?? crypto.randomBytes(32).toString('hex');
+const dbName = mongoDbName(process.env.MONGO_URI ?? '');
 
 export const config = {
   nodeEnv,
   port: parseIntEnv('PORT', 8080, { min: 1, max: 65535 }),
-  mongoUri: process.env.MONGO_URI || 'mongodb://localhost:27017/game',
+  mongoUri: process.env.MONGO_URI || 'mongodb://localhost:27017',
+  mongoDbName: dbName,
   imagesBaseUrl: process.env.IMAGES_BASE_URL || '.',
   session: {
     secret: sessionSecret,
@@ -337,7 +339,12 @@ export const config = {
       min: 100,
       max: 5_000_000,
     }),
-    dir: process.env.REPLAY_DIR || 'replays',
+    // Recordings are player data, so they stay out of the game folder, which
+    // is the creator's source and read-only when mounted into Docker. Games
+    // run from one checkout each get a folder, so one never lists another's.
+    dir:
+      process.env.REPLAY_DIR ||
+      (gameDir() ? path.join('replays', dbName) : 'replays'),
   },
   audit: {
     // How long the administrative trail is kept. MongoDB expires the entries
@@ -481,6 +488,26 @@ export function gameDir(): string | undefined {
 
 export function gamePath(...parts: string[]): string {
   return path.resolve(gameDir() ?? '.', ...parts);
+}
+
+/**
+ * The database a game's world is kept in. A name in MONGO_URI is the
+ * operator's and wins. Without one, each game folder gets a database of its
+ * own, named after the folder: maps, players and items live there rather than
+ * in the folder, so two games sharing one would boot the second on the first
+ * one's world, with its content pack merged over the top.
+ */
+export function mongoDbName(uri: string, dir = gameDir()): string {
+  const named = /^mongodb(?:\+srv)?:\/\/[^/?]+\/([^?]+)/.exec(uri)?.[1];
+  if (named) return decodeURIComponent(named);
+  // Mongo caps a database name at 63 bytes and refuses / \ . " $ and spaces.
+  const fromDir = dir
+    ? path
+        .basename(dir)
+        .replace(/[^\w-]/g, '_')
+        .slice(0, 63)
+    : '';
+  return fromDir || 'game';
 }
 
 // Every file under it is optional, so a mistyped folder would boot an empty

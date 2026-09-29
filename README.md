@@ -73,14 +73,17 @@ npm run dev            # server (8080) + client dev server with HMR
   });
   ```
 
-- **Maps, NPCs, items, shops** - edited in-game via the admin tools, or managed
+- **Maps, NPCs, items, shops**: edited in-game via the admin tools, or managed
   through the admin REPL (console attached to the running server).
-- **`GAME_DIR`** - the whole game in one folder. With `GAME_DIR=games/my-game`
+- **`GAME_DIR`**: the whole game in one folder. With `GAME_DIR=games/my-game`
   the engine reads `game.json`, `theme/`, `assets/`, `scripts/`, `content/` and
   the game's own `modules/` from there instead of the repository root, so
   switching games is one variable, or one Docker mount. The official modules
   still come from the engine's `modules/` and the game's load alongside them;
-  one with an official module's id replaces it.
+  one with an official module's id replaces it. The world itself (maps,
+  players, items) lives in MongoDB, in a database named after the folder
+  (`my-game`), so games sharing one MongoDB never see each other's data. A
+  database named in `MONGO_URI` wins.
 
 ## Content packs
 

@@ -60,6 +60,7 @@ async function accountStillBacks(
 export function createSessionMiddleware(
   store: session.Store = MongoStore.create({
     mongoUrl: config.mongoUri,
+    dbName: config.mongoDbName,
     collectionName: 'sessions',
     ttl: 7 * 24 * 60 * 60, // 7 days in seconds
   }),
@@ -69,6 +70,11 @@ export function createSessionMiddleware(
     resave: false,
     saveUninitialized: false,
     store,
+    // Browsers scope cookies by host, not port, so two games on one host
+    // (localhost, or a server reached by its IP) would each overwrite the
+    // other's login. Instances of one game share a database, and with it the
+    // name, so a warp to another instance stays signed in.
+    name: `${config.mongoDbName}.sid`,
     cookie: {
       httpOnly: true,
       sameSite: 'lax',
