@@ -1,5 +1,5 @@
-import path from 'node:path';
 import express from 'express';
+import { gamePath } from '../../config.js';
 import { gameConfig, type GameConfig } from '../../gameConfig.js';
 import { createRouter } from '../../app.js';
 
@@ -9,7 +9,7 @@ import { createRouter } from '../../app.js';
 // page load is not worth a rate-limit bucket.
 export function createGameRouter({
   brand = gameConfig.brand,
-  themeDir = path.resolve('theme'),
+  themeDir = gamePath('theme'),
 }: { brand?: GameConfig['brand']; themeDir?: string } = {}) {
   const router = createRouter();
 

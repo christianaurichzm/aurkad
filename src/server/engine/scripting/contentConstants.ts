@@ -4,6 +4,7 @@ import { items, runtimeState } from '../../services/world/gameData.js';
 import { getAllSpells } from '../../services/content/spellService.js';
 import { getAllArrows } from '../../services/content/arrowService.js';
 import { listNpcs } from '../../services/npc/index.js';
+import { gamePath } from '../../config.js';
 import { logger } from '../../logger.js';
 
 // Typed content constants for scripts and modules, so game code names
@@ -134,9 +135,7 @@ export function renderContentDts(c: ContentConstants = current): string {
 // Writes the .d.ts next to the game scripts for the editor. Best effort: a
 // read-only mount (docker `scripts:ro`) only loses autocomplete, and the
 // runtime constants still work.
-export function writeContentDts(
-  dir = path.join(process.cwd(), 'scripts'),
-): void {
+export function writeContentDts(dir = gamePath('scripts')): void {
   try {
     mkdirSync(dir, { recursive: true });
     writeFileSync(path.join(dir, 'content.generated.d.ts'), renderContentDts());

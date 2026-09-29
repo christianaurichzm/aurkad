@@ -16,8 +16,13 @@ import { clearProvides, isProvided } from './registry.js';
 
 let tmpDir: string;
 
-function writeModule(id: string, manifest: object, server: string) {
-  const dir = path.join(tmpDir, id);
+function writeModule(
+  id: string,
+  manifest: object,
+  server: string,
+  root = tmpDir,
+) {
+  const dir = path.join(root, id);
   fs.mkdirSync(dir, { recursive: true });
   fs.writeFileSync(
     path.join(dir, 'module.json'),
@@ -51,6 +56,10 @@ afterEach(() => {
   clearProvides();
   delete process.env.MODULES_PATH;
   fs.rmSync(tmpDir, { recursive: true, force: true });
+  if (process.env.GAME_DIR) {
+    fs.rmSync(process.env.GAME_DIR, { recursive: true, force: true });
+    delete process.env.GAME_DIR;
+  }
 });
 
 describe('loadModules', () => {
@@ -107,6 +116,25 @@ describe('loadModules', () => {
     expect(await handleReplCommand('broken', [], (s) => out.push(s))).toBe(
       false,
     );
+  });
+
+  it("adds a game folder's modules to the official ones, its copy winning", async () => {
+    process.env.GAME_DIR = fs.mkdtempSync(path.join(os.tmpdir(), 'game-'));
+    const own = path.join(process.env.GAME_DIR, 'modules');
+    const says = (id: string, text: string) =>
+      `command('${id}', {}, ({ reply }) => reply('${text}'));`;
+    writeModule('bank', {}, says('bank', 'official'));
+    writeModule('guild', {}, says('guild', 'official'));
+    writeModule('guild', {}, says('guild', 'game'), own);
+    writeModule('puzzle', { client: 'client.js' }, says('puzzle', 'game'), own);
+    fs.writeFileSync(path.join(own, 'puzzle', 'client.js'), 'engine.mount();');
+
+    loadModules();
+
+    expect(await repl('bank')).toEqual(['official']);
+    expect(await repl('guild')).toEqual(['game']);
+    expect(await repl('puzzle')).toEqual(['game']);
+    expect(readModuleClientFile('puzzle')).toBe('engine.mount();');
   });
 
   it('does nothing when modules dir is absent', () => {

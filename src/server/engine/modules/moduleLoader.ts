@@ -1,6 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { z } from 'zod';
+import { gameDir } from '../../config.js';
 import { logger } from '../../logger.js';
 import { gameConfig } from '../../gameConfig.js';
 import { runInSandbox, type ScriptHandle } from '../scripting/sandbox.js';
@@ -23,6 +24,18 @@ const modulesDir = (): string =>
     ? path.resolve(process.env.MODULES_PATH)
     : path.join(process.cwd(), 'modules');
 
+// The official modules ship with the engine; a game in a folder of its own
+// (GAME_DIR) may bring more in its modules/, which load alongside them. It is
+// read last, so a module of the game's with an official one's id replaces it:
+// that is how a game changes how guilds work without editing the engine.
+function modulesDirs(): string[] {
+  const official = modulesDir();
+  const dir = gameDir();
+  const own = dir ? path.join(dir, 'modules') : official;
+  const dirs = own === official ? [official] : [official, own];
+  return dirs.filter((d) => fs.existsSync(d));
+}
+
 const ManifestSchema = z.object({
   id: z.string().min(1),
   name: z.string().min(1),
@@ -40,6 +53,7 @@ const ManifestSchema = z.object({
 const handles = new Map<string, ScriptHandle>();
 // Manifests of successfully loaded modules, for serving client entries.
 const loadedManifests = new Map<string, ModuleManifest>();
+const moduleDirs = new Map<string, string>();
 
 function readManifests(dir: string): ModuleManifest[] {
   const manifests: ModuleManifest[] = [];
@@ -72,14 +86,27 @@ function readManifests(dir: string): ModuleManifest[] {
 }
 
 export function loadModules(): void {
-  const dir = modulesDir();
-  if (!fs.existsSync(dir)) {
+  const dirs = modulesDirs();
+  if (dirs.length === 0) {
     logger.info('[modules] No modules/ directory - skipping');
     return;
   }
 
   loadedManifests.clear();
-  const all = readManifests(dir);
+  moduleDirs.clear();
+  const byId = new Map<string, ModuleManifest>();
+  for (const dir of dirs) {
+    for (const manifest of readManifests(dir)) {
+      if (byId.has(manifest.id)) {
+        logger.info(
+          `[modules] ${manifest.id}: the game's own copy replaces the official one`,
+        );
+      }
+      byId.set(manifest.id, manifest);
+      moduleDirs.set(manifest.id, path.join(dir, manifest.id));
+    }
+  }
+  const all = [...byId.values()];
   const enabled = all.filter((m) => isModuleEnabled(m, gameConfig.modules));
   const ordered = orderModules(enabled);
 
@@ -103,7 +130,10 @@ export function loadModules(): void {
     // It is still listed, toggled and configured like the rest, with nothing
     // to run in the sandbox.
     if (manifest.server) {
-      const entryPath = path.join(dir, manifest.id, manifest.server);
+      const entryPath = path.join(
+        moduleDirs.get(manifest.id)!,
+        manifest.server,
+      );
       if (!fs.existsSync(entryPath)) {
         logger.error(
           `[modules] ${manifest.id}: entry not found: ${manifest.server}`,
@@ -162,8 +192,8 @@ export function getClientModules(): { id: string; client: string }[] {
 // isn't loaded or has no client entry; resolves strictly within the module dir.
 export function readModuleClientFile(id: string): string | null {
   const manifest = loadedManifests.get(id);
-  if (!manifest?.client) return null;
-  const moduleDir = path.resolve(modulesDir(), id);
+  const moduleDir = moduleDirs.get(id);
+  if (!manifest?.client || !moduleDir) return null;
   const filePath = path.resolve(moduleDir, manifest.client);
   if (filePath !== moduleDir && !filePath.startsWith(moduleDir + path.sep)) {
     return null; // traversal guard: must stay within the module dir

@@ -7,6 +7,7 @@ const mockSmtp = { url: '' };
 vi.mock('../../config.js', async (importOriginal) => {
   const actual = await importOriginal<typeof import('../../config.js')>();
   return {
+    ...actual,
     config: {
       ...actual.config,
       mail: {

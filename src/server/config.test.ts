@@ -1,3 +1,5 @@
+import os from 'node:os';
+import path from 'node:path';
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 
 // config.ts evaluates its guards at module load, so each case re-imports it
@@ -180,5 +182,31 @@ describe('OTEL_EXPORTER_OTLP_ENDPOINT', () => {
     vi.resetModules();
     process.env.OTEL_TRACES_SAMPLE_PERCENT = '-5';
     expect((await load()).samplePercent).toBe(0);
+  });
+});
+
+describe('GAME_DIR', () => {
+  beforeEach(() => {
+    vi.resetModules();
+  });
+
+  afterEach(() => {
+    delete process.env.GAME_DIR;
+  });
+
+  it('resolves the game files against the working directory when unset', async () => {
+    const { gamePath } = await import('./config.js');
+    expect(gamePath('theme')).toBe(path.resolve('theme'));
+  });
+
+  it('resolves them against the game folder when set', async () => {
+    process.env.GAME_DIR = os.tmpdir();
+    const { gamePath } = await import('./config.js');
+    expect(gamePath('theme')).toBe(path.join(os.tmpdir(), 'theme'));
+  });
+
+  it('refuses to boot on a folder that is not there', async () => {
+    process.env.GAME_DIR = 'no-such-game';
+    await expect(import('./config.js')).rejects.toThrow(/not a folder/);
   });
 });

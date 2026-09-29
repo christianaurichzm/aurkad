@@ -1,5 +1,6 @@
 import fs from 'node:fs';
 import path from 'node:path';
+import { gamePath } from '../../config.js';
 import { logger } from '../../logger.js';
 import { runInSandbox, type ScriptHandle } from './sandbox.js';
 import {
@@ -9,7 +10,12 @@ import {
 } from './scriptErrors.js';
 import { clearHandlerBudget } from './handlerBudget.js';
 
-export const SCRIPTS_DIR = path.join(process.cwd(), 'scripts');
+// The game's scripts, with the content.generated.d.ts written at boot next to
+// them. global.d.ts and the tsconfig describe the engine's API, not a game, so
+// they stay in the engine's scripts/ when the game has a folder of its own
+// (GAME_DIR); without one the two are the same folder.
+export const SCRIPTS_DIR = gamePath('scripts');
+export const SCRIPT_API_DIR = path.resolve('scripts');
 const handles = new Map<string, ScriptHandle>();
 let watcher: fs.FSWatcher | null = null;
 
@@ -93,7 +99,7 @@ export function checkScriptTypes(files: string[]): void {
   if (!tsc || files.length === 0) return;
 
   const config = tsc.readConfigFile(
-    path.join(SCRIPTS_DIR, 'tsconfig.json'),
+    path.join(SCRIPT_API_DIR, 'tsconfig.json'),
     (f) => tsc.sys.readFile(f),
   );
   // Read rather than restated so this and `npm run typecheck:scripts` cannot
@@ -102,7 +108,7 @@ export function checkScriptTypes(files: string[]): void {
   const { options } = tsc.parseJsonConfigFileContent(
     config.config ?? {},
     tsc.sys,
-    SCRIPTS_DIR,
+    SCRIPT_API_DIR,
   );
   const compilerOptions = {
     ...options,
@@ -111,9 +117,10 @@ export function checkScriptTypes(files: string[]): void {
     noEmit: true,
   };
 
-  const declarations = ['global.d.ts', 'content.generated.d.ts']
-    .map((f) => path.join(SCRIPTS_DIR, f))
-    .filter((f) => fs.existsSync(f));
+  const declarations = [
+    path.join(SCRIPT_API_DIR, 'global.d.ts'),
+    path.join(SCRIPTS_DIR, 'content.generated.d.ts'),
+  ].filter((f) => fs.existsSync(f));
 
   let program: import('typescript').Program | undefined;
   for (const file of files) {

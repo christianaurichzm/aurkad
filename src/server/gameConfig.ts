@@ -3,6 +3,7 @@ import path from 'node:path';
 import { z } from 'zod';
 import { TILE_SIZE, DEFAULT_PLAYER_SPEED } from '../shared/constants.js';
 import type { Position } from '../shared/types.js';
+import { gamePath } from './config.js';
 
 // Gameplay configuration: what a creator tunes without touching code. The
 // deployment's settings (ports, limits, feature flags) come from the
@@ -119,10 +120,10 @@ function fail(reason: string): never {
  * fresh clone; a file that cannot be understood fails, since somebody wrote
  * it meaning to change something.
  */
-export function loadGameConfig(cwd = process.cwd()): GameConfig {
+export function loadGameConfig(dir = gamePath()): GameConfig {
   let raw: string;
   try {
-    raw = readFileSync(path.join(cwd, GAME_CONFIG_FILE), 'utf-8');
+    raw = readFileSync(path.join(dir, GAME_CONFIG_FILE), 'utf-8');
   } catch {
     return GameConfigSchema.parse(undefined);
   }

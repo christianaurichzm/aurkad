@@ -12,7 +12,7 @@ const { tracing } = vi.hoisted(() => ({
 
 vi.mock('../config.js', async (importOriginal) => {
   const actual = await importOriginal<typeof import('../config.js')>();
-  return { config: { ...actual.config, tracing } };
+  return { ...actual, config: { ...actual.config, tracing } };
 });
 
 import { requestLoggerMiddleware } from './requestLogger.js';

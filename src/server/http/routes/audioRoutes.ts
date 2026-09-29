@@ -1,10 +1,11 @@
 import path from 'node:path';
+import { gamePath } from '../../config.js';
 import { logger } from '../../logger.js';
 import { createRouter } from '../../app.js';
 
 const ASSETS_DIR = process.env.ASSETS_PATH
   ? path.resolve(process.env.ASSETS_PATH)
-  : path.resolve('assets');
+  : gamePath('assets');
 
 const ALLOWED_EXTENSIONS = new Set(['.mp3', '.ogg', '.wav']);
 

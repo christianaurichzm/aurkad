@@ -1,6 +1,6 @@
 import fs from 'node:fs';
 import path from 'node:path';
-import { SCRIPTS_DIR, isScriptFile } from './loader.js';
+import { SCRIPT_API_DIR, SCRIPTS_DIR, isScriptFile } from './loader.js';
 
 // fs layer behind the Monaco script editor. The server runs what is written
 // here (loader.ts hot-reloads SCRIPTS_DIR), so every function is a remote
@@ -73,13 +73,13 @@ export interface ScriptTypeDefs {
 export function readTypeDefs(): ScriptTypeDefs {
   const read = (file: string): string => {
     try {
-      return fs.readFileSync(path.join(SCRIPTS_DIR, file), 'utf-8');
+      return fs.readFileSync(file, 'utf-8');
     } catch {
       return '';
     }
   };
   return {
-    globalDts: read('global.d.ts'),
-    contentDts: read('content.generated.d.ts'),
+    globalDts: read(path.join(SCRIPT_API_DIR, 'global.d.ts')),
+    contentDts: read(path.join(SCRIPTS_DIR, 'content.generated.d.ts')),
   };
 }

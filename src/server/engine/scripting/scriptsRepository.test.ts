@@ -12,6 +12,7 @@ vi.mock('./loader.js', async () => {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'scripts-repo-test-'));
   return {
     SCRIPTS_DIR: dir,
+    SCRIPT_API_DIR: dir,
     isScriptFile: (f: string) =>
       !f.endsWith('.d.ts') && (f.endsWith('.js') || f.endsWith('.ts')),
   };

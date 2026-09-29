@@ -39,7 +39,6 @@ services:
       NODE_ENV: production
       PORT: '8080'
       MONGO_URI: mongodb://mongo:27017/game
-      ASSETS_PATH: /app/assets
       SESSION_SECRET: ${SESSION_SECRET:?set SESSION_SECRET in .env}
       BOOTSTRAP_ADMIN_USERNAME: ${BOOTSTRAP_ADMIN_USERNAME:-}
     volumes:
@@ -51,6 +50,11 @@ services:
       - ./theme:/app/theme:ro
       - ./content:/app/content:ro
       - ./modules:/app/modules:ro
+      # A game kept in a folder of its own is one mount in place of game.json,
+      # assets, theme and content, plus GAME_DIR: /app/game in environment
+      # above. scripts/ stays mounted for the engine's global.d.ts; the game's
+      # own scripts live in its folder.
+      #   - ./games/my-game:/app/game:ro
 
   # --- Multi-instance example (sharding by map) ---
   # Uncomment and adjust to run two server instances splitting maps between them.

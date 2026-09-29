@@ -1,7 +1,10 @@
 # Modules
 
 Official, optional toolkit features. Each module is a folder here with a
-manifest and a server entry, toggled and configured from `game.json`.
+manifest and a server entry, toggled and configured from `game.json`. A game
+kept in a folder of its own (`GAME_DIR`) can bring modules in its `modules/`:
+they load alongside these, and one with the same id as a bundled module
+replaces it.
 
 ```
 modules/

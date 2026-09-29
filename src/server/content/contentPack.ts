@@ -1,6 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { z } from 'zod';
+import { gamePath } from '../config.js';
 import { logger } from '../logger.js';
 import {
   BorderLinksSchema,
@@ -69,7 +70,7 @@ import { raiseCounter } from '../services/dbService.js';
 const contentDir = (): string =>
   process.env.CONTENT_PATH
     ? path.resolve(process.env.CONTENT_PATH)
-    : path.join(process.cwd(), 'content');
+    : gamePath('content');
 
 const NpcBehaviorSchema = z.enum([
   'aggressive',

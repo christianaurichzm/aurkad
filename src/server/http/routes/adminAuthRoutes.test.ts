@@ -20,6 +20,7 @@ import { startMemoryMongo } from '../../../test/mongo.js';
 vi.mock('../../config.js', async (importOriginal) => {
   const actual = await importOriginal<typeof import('../../config.js')>();
   return {
+    ...actual,
     config: { ...actual.config, scripting: { editorEnabled: false } },
   };
 });

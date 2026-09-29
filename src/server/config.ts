@@ -1,5 +1,7 @@
 import crypto from 'node:crypto';
+import fs from 'node:fs';
 import { createRequire } from 'node:module';
+import path from 'node:path';
 import type { CorsOptions } from 'cors';
 import { TICK_RATE } from '../shared/constants.js';
 
@@ -464,3 +466,32 @@ export const config = {
     } satisfies CorsOptions,
   },
 } as const;
+
+/**
+ * The folder a game lives in, when it has one of its own: game.json, theme/,
+ * assets/, scripts/, content/ and any modules it brings, so that switching
+ * games is one variable, or one mount. Unset, the game is spread over the
+ * working directory next to the engine. Read on each call, as the *_PATH
+ * overrides are, so a test can point it somewhere.
+ */
+export function gameDir(): string | undefined {
+  const dir = process.env['GAME_DIR'];
+  return dir ? path.resolve(dir) : undefined;
+}
+
+export function gamePath(...parts: string[]): string {
+  return path.resolve(gameDir() ?? '.', ...parts);
+}
+
+// Every file under it is optional, so a mistyped folder would boot an empty
+// game on defaults that looks fine.
+const configuredGameDir = gameDir();
+if (
+  configuredGameDir &&
+  !fs.statSync(configuredGameDir, { throwIfNoEntry: false })?.isDirectory()
+) {
+  throw new Error(
+    `[config] GAME_DIR is ${configuredGameDir}, which is not a folder. ` +
+      'Point it at the folder holding the game.json, or unset it to use the working directory.',
+  );
+}

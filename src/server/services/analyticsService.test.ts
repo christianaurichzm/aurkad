@@ -18,7 +18,7 @@ const { analytics } = vi.hoisted(() => ({
 
 vi.mock('../config.js', async (importOriginal) => {
   const actual = await importOriginal<typeof import('../config.js')>();
-  return { config: { ...actual.config, analytics } };
+  return { ...actual, config: { ...actual.config, analytics } };
 });
 
 import PlayerDayModel from '../model/PlayerDay.js';
