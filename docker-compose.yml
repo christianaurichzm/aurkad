@@ -33,19 +33,21 @@ services:
     depends_on:
       mongo:
         condition: service_healthy
-    ports:
-      - '8080:8080'
     environment:
       NODE_ENV: production
       PORT: '8080'
       MONGO_URI: mongodb://mongo:27017/game
       SESSION_SECRET: ${SESSION_SECRET:?set SESSION_SECRET in .env}
       BOOTSTRAP_ADMIN_USERNAME: ${BOOTSTRAP_ADMIN_USERNAME:-}
+      CORS_ALLOWED_ORIGINS: ${PUBLIC_URL:-https://localhost}
+      USE_SECURE_COOKIES: 'true'
+      TRUST_PROXY: '1'
     volumes:
       # Creators edit these on the host - no image rebuild needed.
       # scripts/ hot-reloads; game.json applies on restart.
       - ./game.json:/app/game.json:ro
-      - ./scripts:/app/scripts:ro
+      # Writable: the boot writes content.generated.d.ts there for your editor.
+      - ./scripts:/app/scripts
       - ./assets:/app/assets:ro
       - ./theme:/app/theme:ro
       - ./content:/app/content:ro
@@ -56,12 +58,34 @@ services:
       # own scripts live in its folder.
       #   - ./games/my-game:/app/game:ro
 
+  # The session cookie is Secure in production, and a browser never stores one
+  # sent over plain http, so the game is only reachable through TLS - on your
+  # own computer too, where Caddy signs https://localhost itself and the
+  # browser warns once. On a server, set PUBLIC_URL=https://your.domain in
+  # .env and Caddy fetches a real certificate.
+  caddy:
+    image: caddy:2
+    container_name: engine-caddy
+    restart: unless-stopped
+    depends_on:
+      - app
+    command: caddy reverse-proxy --from ${PUBLIC_URL:-https://localhost} --to app:8080
+    ports:
+      - '80:80'
+      - '443:443'
+    volumes:
+      - caddy-data:/data
+
   # --- Multi-instance example (sharding by map) ---
   # Uncomment and adjust to run two server instances splitting maps between them.
   # Each instance must have a unique WS_PUBLIC_URL and a non-overlapping MAP_IDS.
-  # A reverse proxy (nginx/Caddy) should route players to the correct instance.
-  # Set TRUST_PROXY on each instance when you put one in front, or every player
-  # shares one rate-limit bucket - see .env.example.
+  # Caddy then serves one site per instance, so its command becomes a Caddyfile
+  # mounted at /etc/caddy/Caddyfile:
+  #
+  #   https://localhost { reverse_proxy app:8080 }
+  #   https://localhost:8444 { reverse_proxy app-b:8081 }
+  #
+  # with '8444:8444' added to its ports.
   #
   # app-b:
   #   build: .
@@ -70,18 +94,19 @@ services:
   #   depends_on:
   #     mongo:
   #       condition: service_healthy
-  #   ports:
-  #     - '8081:8081'
   #   environment:
   #     NODE_ENV: production
   #     PORT: '8081'
   #     MONGO_URI: mongodb://mongo:27017/game
   #     SESSION_SECRET: ${SESSION_SECRET:?set SESSION_SECRET in .env}
-  #     WS_PUBLIC_URL: ws://your-host:8081
+  #     CORS_ALLOWED_ORIGINS: https://localhost,https://localhost:8444
+  #     USE_SECURE_COOKIES: 'true'
+  #     TRUST_PROXY: '1'
+  #     WS_PUBLIC_URL: wss://localhost:8444
   #     MAP_IDS: map3,map4
   #   volumes:
   #     - ./game.json:/app/game.json:ro
-  #     - ./scripts:/app/scripts:ro
+  #     - ./scripts:/app/scripts
   #     - ./assets:/app/assets:ro
   #     - ./theme:/app/theme:ro
   #     - ./content:/app/content:ro
@@ -89,3 +114,4 @@ services:
 
 volumes:
   mongo-data:
+  caddy-data:
