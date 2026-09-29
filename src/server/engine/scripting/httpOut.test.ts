@@ -1,3 +1,6 @@
+// @vitest-environment node
+// The dns mock below only reaches httpOut.ts in the node environment: under
+// jsdom, vitest hands the modules a test imports the real builtin.
 import {
   describe,
   it,
