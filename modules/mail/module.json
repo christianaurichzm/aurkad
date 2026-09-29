@@ -3,7 +3,7 @@
   "name": "Mail",
   "version": "1.0.0",
   "server": "server.js",
-  "client": "client.js",
+  "client": "client.jsx",
   "description": "Send an item and a note to another player, online or not. Delivery is held until the recipient collects it.",
   "enabledByDefault": true,
   "config": {
