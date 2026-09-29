@@ -3,7 +3,7 @@
   "name": "Quest System",
   "version": "1.0.0",
   "server": "server.js",
-  "client": "client.js",
+  "client": "client.jsx",
   "description": "Quests with progress and rewards. Provides use('quest').define/start/advance/complete/get.",
   "enabledByDefault": true
 }
