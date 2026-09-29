@@ -1,3 +1,22 @@
+/* A game's theme/theme.css loads after this file, so it can restyle anything,
+   but only the names below are a promise: renaming or removing one breaks
+   every theme written against it, the way a wire change breaks clients.
+   Everything else here may change in any release. Their colours, borders and
+   corners are set in this file, not inline, so a theme's rule wins over them.
+   styles.test.ts fails if one of them disappears from the client.
+
+   Theme contract:
+     login screen  .auth-layout .auth-card .auth-heading .auth-form
+                   .engine-brand
+     game screen   #ui #canvasFrame #sidePanel #map-name .player-controls
+     player card   #hud #hud-name #hud-level #hud-row #xp-bar-container
+     side panel    .panel-title .action-button
+     windows       .editor-window .module-panel .window-titlebar
+                   .window-content .inventory-panel
+     buttons       .button-primary .button-danger
+     icons         .icon
+   and the variables in :root, except the --z-* stacking order. */
+
 * {
   box-sizing: border-box;
   margin: 0;

@@ -56,7 +56,9 @@ npm run dev            # server (8080) + client dev server with HMR
   (`--radius-control`, `--radius-panel`) and the UI icons are variables too:
   `--icon-attack: url(/theme/icons/sword.svg)` replaces one, written from the
   root because a relative url inside a variable does not resolve against
-  `theme.css`. `public/styles.css` lists every name.
+  `theme.css`. `public/styles.css` lists every name, and opens with the ids and
+  classes a theme can rely on across releases; anything else in the markup may
+  change.
 - **`scripts/`** - server-side game logic in JavaScript (or TypeScript). Files
   are loaded at boot and hot-reloaded on save. See `scripts/example.js` and the
   typed API in `scripts/global.d.ts` - `npm run docs:api` renders it, and the

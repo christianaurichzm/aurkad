@@ -12,5 +12,6 @@
      --color-surface: #2a211a;
    }
 
-   The login screen is .auth-layout (the backdrop) and .auth-card (the box),
-   with the name and logo in .engine-brand. */
+   The ids and classes that stay put across engine releases are listed at the
+   top of public/styles.css. The login screen is .auth-layout (the backdrop)
+   and .auth-card (the box), with the name and logo in .engine-brand. */
