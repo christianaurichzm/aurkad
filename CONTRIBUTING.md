@@ -13,11 +13,10 @@ very welcome: open an issue.
 
 ```bash
 npm install
-npm run db:up          # MongoDB in Docker
-npm run dev            # server (8080) + client dev server with HMR
+npm run db:up                        # MongoDB in Docker
+npm run new-game -- games/my-game    # a small playable game to run against
+GAME_DIR=games/my-game npm run dev   # server (8080) + client dev server with HMR
 ```
-
-`npm run dev:seed` resets the database, seeds sample content, and starts dev.
 
 ## Quality bar
 

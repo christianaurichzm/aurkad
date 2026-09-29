@@ -151,6 +151,10 @@ assets/*.wav
 # Local seed script
 src/server/model/seed.ts
 
+# Games made with `npm run new-game` to run the engine against while working on
+# it. A game is versioned on its own, not inside the engine.
+/games/
+
 # Generated per-project content constants (rebuilt at server boot)
 scripts/content.generated.d.ts
 
