@@ -48,7 +48,7 @@ import { t, useT, type TranslationKey } from '../../i18n';
 const inputStyle: React.CSSProperties = {
   padding: '6px 8px',
   border: `1px solid ${colors.border}`,
-  borderRadius: radius.sm,
+  borderRadius: radius.control,
   fontSize: 13,
   fontFamily: 'inherit',
   width: '100%',
@@ -71,7 +71,7 @@ const inputsBox: React.CSSProperties = {
   padding: '10px 12px',
   background: colors.surfaceMuted,
   border: `1px solid ${colors.border}`,
-  borderRadius: radius.md,
+  borderRadius: radius.control,
 };
 
 const propModes: TileEditMode[] = [
@@ -378,7 +378,7 @@ const TilesetModeControlsComponent: React.FC = () => {
             color: '#fff',
             border: 'none',
             padding: '7px 14px',
-            borderRadius: radius.md,
+            borderRadius: radius.control,
             cursor: !mapEdited ? 'not-allowed' : 'pointer',
             fontWeight: 700,
             fontSize: 13,
@@ -406,7 +406,7 @@ const TilesetModeControlsComponent: React.FC = () => {
               style={{
                 padding: '6px 0',
                 border: `1px solid ${isActive ? colors.danger : colors.border}`,
-                borderRadius: radius.sm,
+                borderRadius: radius.control,
                 background: isActive ? colors.danger : colors.surfaceMuted,
                 color: isActive ? '#fff' : colors.text,
                 fontWeight: 600,
@@ -445,7 +445,7 @@ const TilesetModeControlsComponent: React.FC = () => {
                   flex: 1,
                   padding: '6px 0',
                   border: `1px solid ${isActive ? activeColor : colors.border}`,
-                  borderRadius: radius.sm,
+                  borderRadius: radius.control,
                   background: isActive ? activeColor : colors.surfaceMuted,
                   color: isActive ? '#fff' : colors.text,
                   fontWeight: 600,
@@ -612,7 +612,7 @@ const ghostBtn: React.CSSProperties = {
   color: colors.text,
   border: `1px solid ${colors.border}`,
   padding: '7px 10px',
-  borderRadius: radius.md,
+  borderRadius: radius.control,
   cursor: 'pointer',
   fontWeight: 600,
   fontSize: 12,

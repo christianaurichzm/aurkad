@@ -89,7 +89,7 @@ const styles = {
     width: 'min(420px, 100%)',
     background: colors.surface,
     color: colors.text,
-    borderRadius: radius.lg,
+    borderRadius: radius.panel,
     borderTop: `4px solid ${colors.primary}`,
     boxShadow: shadow.modal,
     padding: 20,
@@ -114,7 +114,7 @@ const styles = {
   },
   primaryButton: {
     border: 'none',
-    borderRadius: radius.md,
+    borderRadius: radius.control,
     color: '#fff',
     cursor: 'pointer',
     fontWeight: 700,
@@ -122,7 +122,7 @@ const styles = {
   },
   secondaryButton: {
     border: `1px solid ${colors.border}`,
-    borderRadius: radius.md,
+    borderRadius: radius.control,
     background: colors.surfaceMuted,
     color: colors.text,
     cursor: 'pointer',

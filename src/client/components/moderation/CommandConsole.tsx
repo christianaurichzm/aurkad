@@ -128,7 +128,7 @@ const wrap: React.CSSProperties = {
 const log: React.CSSProperties = {
   overflowY: 'auto',
   border: `1px solid ${colors.border}`,
-  borderRadius: radius.sm,
+  borderRadius: radius.control,
   padding: 10,
   fontFamily: mono,
   fontSize: 13,
@@ -139,7 +139,7 @@ const hint: React.CSSProperties = { color: colors.textMuted, margin: 0 };
 const code: React.CSSProperties = {
   background: colors.surface,
   padding: '1px 5px',
-  borderRadius: radius.sm,
+  borderRadius: radius.control,
 };
 const lineIn: React.CSSProperties = {
   color: colors.info,
@@ -160,7 +160,7 @@ const inputRow: React.CSSProperties = {
   alignItems: 'center',
   gap: 8,
   border: `1px solid ${colors.border}`,
-  borderRadius: radius.sm,
+  borderRadius: radius.control,
   padding: '6px 10px',
 };
 const prompt: React.CSSProperties = { color: colors.info, fontWeight: 700 };

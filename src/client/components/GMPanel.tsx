@@ -147,7 +147,7 @@ const row: React.CSSProperties = { display: 'flex', gap: 6 };
 const input: React.CSSProperties = {
   padding: '7px 9px',
   border: `1.5px solid ${colors.border}`,
-  borderRadius: radius.sm,
+  borderRadius: radius.control,
   outline: 'none',
   fontSize: 14,
   background: colors.surface,
@@ -159,7 +159,7 @@ const btn: React.CSSProperties = {
   color: colors.text,
   border: `1px solid ${colors.border}`,
   padding: '7px 12px',
-  borderRadius: radius.sm,
+  borderRadius: radius.control,
   cursor: 'pointer',
   fontWeight: 600,
   fontSize: 13,

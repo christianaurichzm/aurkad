@@ -264,7 +264,7 @@ const sectionTitle: React.CSSProperties = {
 const input: React.CSSProperties = {
   padding: '9px 11px',
   border: `1px solid ${colors.border}`,
-  borderRadius: radius.md,
+  borderRadius: radius.control,
   background: colors.surface,
   fontSize: 14,
   boxSizing: 'border-box',
@@ -274,7 +274,7 @@ const input: React.CSSProperties = {
 const button: React.CSSProperties = {
   padding: '9px 12px',
   border: 'none',
-  borderRadius: radius.md,
+  borderRadius: radius.control,
   background: colors.primary,
   color: '#fff',
   fontWeight: 600,
@@ -292,7 +292,7 @@ const row: React.CSSProperties = {
   gap: 10,
   background: colors.surfaceMuted,
   border: `1px solid ${colors.border}`,
-  borderRadius: radius.md,
+  borderRadius: radius.control,
   padding: '10px 12px',
   cursor: 'pointer',
 };
@@ -302,7 +302,7 @@ const select: React.CSSProperties = {
   background: colors.surface,
   color: colors.text,
   border: `1px solid ${colors.border}`,
-  borderRadius: radius.sm,
+  borderRadius: radius.control,
   padding: '4px 8px',
   fontSize: 14,
 };

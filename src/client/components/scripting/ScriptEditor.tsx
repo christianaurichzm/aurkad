@@ -339,7 +339,7 @@ export const ScriptEditor: React.FC<{ height?: number }> = ({
 const wrap: React.CSSProperties = {
   display: 'flex',
   border: `1px solid ${colors.border}`,
-  borderRadius: radius.md,
+  borderRadius: radius.control,
   overflow: 'hidden',
 };
 const sidebar: React.CSSProperties = {
@@ -400,7 +400,7 @@ const newFileInput: React.CSSProperties = {
   minWidth: 0,
   padding: '6px 8px',
   border: `1px solid ${colors.border}`,
-  borderRadius: radius.sm,
+  borderRadius: radius.control,
   fontSize: 12,
   outline: 'none',
 };
@@ -427,7 +427,7 @@ const saveBtn: React.CSSProperties = {
   color: '#fff',
   border: 'none',
   padding: '6px 14px',
-  borderRadius: radius.sm,
+  borderRadius: radius.control,
   cursor: 'pointer',
   fontWeight: 600,
   fontSize: 13,

@@ -66,7 +66,7 @@ export const SpritePreview: React.FC<SpritePreviewProps> = ({
       height={size}
       style={{
         border: `1px solid ${colors.border}`,
-        borderRadius: radius.sm,
+        borderRadius: radius.control,
         background: colors.surfaceMuted,
         flexShrink: 0,
         ...style,

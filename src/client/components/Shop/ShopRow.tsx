@@ -97,7 +97,7 @@ export const ShopRow: React.FC<ShopRowProps> = ({
         background: colors.surfaceMuted,
         border: `1px solid ${colors.border}`,
         padding: 8,
-        borderRadius: radius.lg,
+        borderRadius: radius.panel,
       }}
     >
       <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
@@ -130,7 +130,7 @@ export const ShopRow: React.FC<ShopRowProps> = ({
             background: colors.primary,
             color: '#fff',
             border: 'none',
-            borderRadius: radius.md,
+            borderRadius: radius.control,
             cursor: affordable ? 'pointer' : 'not-allowed',
             opacity: buying || !affordable ? 0.55 : 1,
           }}

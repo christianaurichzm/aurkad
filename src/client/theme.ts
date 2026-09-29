@@ -20,9 +20,8 @@ export const colors = {
 } as const;
 
 export const radius = {
-  sm: 4,
-  md: 6,
-  lg: 6,
+  control: 'var(--radius-control)',
+  panel: 'var(--radius-panel)',
 } as const;
 
 export const zIndex = {

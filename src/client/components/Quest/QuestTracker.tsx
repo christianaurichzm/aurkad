@@ -36,7 +36,7 @@ export const QuestTracker: React.FC = () => {
         background: colors.overlay,
         color: colors.text,
         padding: '6px 10px',
-        borderRadius: radius.md,
+        borderRadius: radius.control,
         border: `1px solid ${colors.border}`,
         fontSize: 12,
         maxWidth: 220,

@@ -70,7 +70,7 @@ function showContextMenu(name: string, x: number, y: number) {
   menu.style.cssText =
     `position:fixed;left:${x}px;top:${y}px;z-index:${zIndex.floatingPanel};` +
     `background:${colors.surface};border:1px solid ${colors.border};` +
-    `border-radius:${radius.md}px;box-shadow:${shadow.panel};` +
+    `border-radius:${radius.control};box-shadow:${shadow.panel};` +
     `display:flex;flex-direction:column;gap:4px;padding:6px;min-width:160px;font:13px sans-serif;`;
 
   const title = document.createElement('div');
@@ -83,7 +83,7 @@ function showContextMenu(name: string, x: number, y: number) {
     setText(btn, action.label);
     btn.style.cssText =
       `background:transparent;border:none;color:${colors.text};padding:5px 8px;` +
-      `text-align:left;cursor:pointer;border-radius:${radius.sm}px;width:100%;`;
+      `text-align:left;cursor:pointer;border-radius:${radius.control};width:100%;`;
     btn.onmouseenter = () => (btn.style.background = colors.surfaceMuted);
     btn.onmouseleave = () => (btn.style.background = 'transparent');
     btn.onclick = () => {

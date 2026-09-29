@@ -218,7 +218,7 @@ const gameLink: React.CSSProperties = {
   color: colors.text,
   border: `1px solid ${colors.border}`,
   padding: '6px 12px',
-  borderRadius: radius.sm,
+  borderRadius: radius.control,
   fontSize: 13,
   textDecoration: 'none',
 };
@@ -227,7 +227,7 @@ const logoutBtn: React.CSSProperties = {
   color: colors.text,
   border: `1px solid ${colors.border}`,
   padding: '6px 12px',
-  borderRadius: radius.sm,
+  borderRadius: radius.control,
   cursor: 'pointer',
   fontSize: 13,
 };
@@ -245,7 +245,7 @@ const wideSection: React.CSSProperties = {
 const panel: React.CSSProperties = {
   background: colors.surface,
   border: `1px solid ${colors.border}`,
-  borderRadius: radius.md,
+  borderRadius: radius.control,
   padding: 16,
   display: 'flex',
   flexDirection: 'column',
@@ -277,7 +277,7 @@ const loginSub: React.CSSProperties = {
 const loginInput: React.CSSProperties = {
   padding: '9px 11px',
   border: `1.5px solid ${colors.border}`,
-  borderRadius: radius.sm,
+  borderRadius: radius.control,
   outline: 'none',
   fontSize: 14,
   background: colors.surface,
@@ -291,7 +291,7 @@ const loginBtn: React.CSSProperties = {
   color: '#fff',
   border: 'none',
   padding: '10px',
-  borderRadius: radius.sm,
+  borderRadius: radius.control,
   cursor: 'pointer',
   fontWeight: 700,
   fontSize: 14,

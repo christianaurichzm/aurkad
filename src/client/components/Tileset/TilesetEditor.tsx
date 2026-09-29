@@ -74,7 +74,7 @@ export const TilesetEditor: React.FC = () => {
         zIndex: zIndex.editor,
         background: colors.surface,
         border: `1px solid ${colors.border}`,
-        borderRadius: radius.lg,
+        borderRadius: radius.panel,
         boxShadow: shadow.modal,
         overflow: 'hidden',
         display: 'flex',

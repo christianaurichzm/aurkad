@@ -226,14 +226,14 @@ const warn: React.CSSProperties = {
   color: colors.text,
   background: colors.surfaceMuted,
   border: `1px solid ${colors.border}`,
-  borderRadius: radius.sm,
+  borderRadius: radius.control,
   padding: 8,
 };
 
 const input: React.CSSProperties = {
   padding: '8px 10px',
   border: `1px solid ${colors.border}`,
-  borderRadius: radius.sm,
+  borderRadius: radius.control,
   fontSize: 13,
 };
 
@@ -242,7 +242,7 @@ const button: React.CSSProperties = {
   color: colors.surface,
   border: 'none',
   padding: '8px 14px',
-  borderRadius: radius.sm,
+  borderRadius: radius.control,
   cursor: 'pointer',
   fontSize: 13,
 };
@@ -252,7 +252,7 @@ const quietButton: React.CSSProperties = {
   color: colors.text,
   border: `1px solid ${colors.border}`,
   padding: '8px 14px',
-  borderRadius: radius.sm,
+  borderRadius: radius.control,
   cursor: 'pointer',
   fontSize: 13,
 };
@@ -264,7 +264,7 @@ const secretBox: React.CSSProperties = {
   wordBreak: 'break-all',
   background: colors.surfaceMuted,
   border: `1px solid ${colors.border}`,
-  borderRadius: radius.sm,
+  borderRadius: radius.control,
   padding: 8,
 };
 
@@ -285,7 +285,7 @@ const codeCell: React.CSSProperties = {
   fontSize: 13,
   background: colors.surfaceMuted,
   border: `1px solid ${colors.border}`,
-  borderRadius: radius.sm,
+  borderRadius: radius.control,
   padding: '4px 6px',
   textAlign: 'center',
 };

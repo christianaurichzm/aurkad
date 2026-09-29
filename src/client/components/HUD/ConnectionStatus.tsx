@@ -20,7 +20,7 @@ export const ConnectionStatus: React.FC = () => {
         background: colors.surface,
         border: `1px solid ${connectionStatus.isError ? colors.danger : colors.border}`,
         color: connectionStatus.isError ? colors.dangerText : colors.success,
-        borderRadius: radius.sm,
+        borderRadius: radius.control,
         fontWeight: 'bold',
         fontSize: 14,
         zIndex: zIndex.toast,

@@ -99,7 +99,7 @@ const input: React.CSSProperties = {
   flex: 1,
   padding: '6px 8px',
   border: `1px solid ${colors.border}`,
-  borderRadius: radius.sm,
+  borderRadius: radius.control,
   fontSize: 13,
   background: colors.surface,
 };
@@ -118,7 +118,7 @@ const refreshBtn: React.CSSProperties = {
   color: colors.text,
   border: `1px solid ${colors.border}`,
   padding: '6px 10px',
-  borderRadius: radius.sm,
+  borderRadius: radius.control,
   cursor: 'pointer',
   fontSize: 12,
   fontWeight: 600,
@@ -127,7 +127,7 @@ const refreshBtn: React.CSSProperties = {
 const list: React.CSSProperties = {
   overflowY: 'auto',
   border: `1px solid ${colors.border}`,
-  borderRadius: radius.sm,
+  borderRadius: radius.control,
   background: colors.surface,
 };
 
@@ -147,7 +147,7 @@ const time: React.CSSProperties = {
 };
 
 const badge: React.CSSProperties = {
-  borderRadius: radius.sm,
+  borderRadius: radius.control,
   padding: '1px 6px',
   fontSize: 11,
   fontWeight: 600,

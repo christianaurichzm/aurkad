@@ -251,7 +251,7 @@ const box: React.CSSProperties = {
   gap: 6,
   background: colors.surfaceMuted,
   border: `1px solid ${colors.border}`,
-  borderRadius: radius.md,
+  borderRadius: radius.control,
   padding: '10px 12px',
 };
 
@@ -287,7 +287,7 @@ const checkboxRow: React.CSSProperties = {
 const input: React.CSSProperties = {
   padding: '6px 8px',
   border: `1px solid ${colors.border}`,
-  borderRadius: radius.sm,
+  borderRadius: radius.control,
   fontSize: 13,
   fontFamily: 'inherit',
   width: '100%',

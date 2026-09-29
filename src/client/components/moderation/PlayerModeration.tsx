@@ -309,7 +309,7 @@ const ghostBtn: React.CSSProperties = {
   color: colors.text,
   border: `1px solid ${colors.border}`,
   padding: '5px 10px',
-  borderRadius: radius.sm,
+  borderRadius: radius.control,
   cursor: 'pointer',
   fontSize: 13,
 };
@@ -320,7 +320,7 @@ const list: React.CSSProperties = {
   maxHeight: 180,
   overflowY: 'auto',
   border: `1px solid ${colors.border}`,
-  borderRadius: radius.sm,
+  borderRadius: radius.control,
 };
 const row = (sel: boolean): React.CSSProperties => ({
   display: 'flex',
@@ -355,7 +355,7 @@ const rowWrap: React.CSSProperties = { display: 'flex', gap: 6 };
 const input: React.CSSProperties = {
   padding: '7px 9px',
   border: `1.5px solid ${colors.border}`,
-  borderRadius: radius.sm,
+  borderRadius: radius.control,
   outline: 'none',
   fontSize: 14,
   background: colors.surface,
@@ -367,7 +367,7 @@ const btn: React.CSSProperties = {
   color: '#fff',
   border: 'none',
   padding: '7px 14px',
-  borderRadius: radius.sm,
+  borderRadius: radius.control,
   cursor: 'pointer',
   fontWeight: 600,
   fontSize: 13,
@@ -380,6 +380,6 @@ const banBox: React.CSSProperties = {
   gap: 6,
   background: colors.dangerMuted,
   border: `1px solid ${colors.danger}`,
-  borderRadius: radius.sm,
+  borderRadius: radius.control,
   padding: 10,
 };

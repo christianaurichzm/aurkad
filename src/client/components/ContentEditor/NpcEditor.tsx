@@ -486,7 +486,7 @@ const triRow: React.CSSProperties = {
 const dropSection: React.CSSProperties = {
   background: colors.surfaceMuted,
   border: `1px solid ${colors.border}`,
-  borderRadius: radius.md,
+  borderRadius: radius.control,
   padding: '10px 12px',
 };
 
@@ -513,7 +513,7 @@ const label: React.CSSProperties = {
 const input: React.CSSProperties = {
   padding: '7px 9px',
   border: `1.5px solid ${colors.border}`,
-  borderRadius: radius.sm,
+  borderRadius: radius.control,
   fontSize: 14,
   outline: 'none',
   width: '100%',
@@ -529,7 +529,7 @@ const saveBtn: React.CSSProperties = {
   color: '#fff',
   border: 'none',
   padding: '9px 16px',
-  borderRadius: radius.md,
+  borderRadius: radius.control,
   cursor: 'pointer',
   fontWeight: 600,
   fontSize: 14,
@@ -540,7 +540,7 @@ const deleteBtn: React.CSSProperties = {
   color: '#fff',
   border: 'none',
   padding: '9px 14px',
-  borderRadius: radius.md,
+  borderRadius: radius.control,
   cursor: 'pointer',
   fontWeight: 600,
   fontSize: 14,
@@ -551,7 +551,7 @@ const resetBtn: React.CSSProperties = {
   color: colors.text,
   border: `1px solid ${colors.border}`,
   padding: '7px 12px',
-  borderRadius: radius.md,
+  borderRadius: radius.control,
   cursor: 'pointer',
   fontWeight: 600,
   fontSize: 13,

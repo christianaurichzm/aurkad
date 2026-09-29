@@ -35,6 +35,10 @@
   --shadow-panel: 0 8px 24px rgba(0, 0, 0, 0.3);
   --shadow-control: 0 1px 2px rgba(0, 0, 0, 0.2);
   --focus-ring: 0 0 0 2px var(--color-info);
+  /* The UI's two shapes: what a hand presses or a bar fills, and what holds
+     them. theme.ts hands the same two to the React panels' inline styles. */
+  --radius-control: 4px;
+  --radius-panel: 10px;
   --z-canvas-base: 1;
   --z-canvas-mask: 2;
   --z-canvas-items: 3;
@@ -235,7 +239,7 @@ body {
   background: var(--color-primary);
   color: #fff;
   border: none;
-  border-radius: 4px;
+  border-radius: var(--radius-control);
   cursor: pointer;
 }
 
@@ -253,7 +257,7 @@ body {
     linear-gradient(180deg, rgba(255, 255, 255, 0.05), transparent 60%),
     var(--surface-raised);
   padding: 11px 12px;
-  border-radius: 4px;
+  border-radius: var(--radius-panel);
   color: white;
   z-index: auto;
   font-size: 14px;
@@ -301,7 +305,7 @@ body {
   align-self: flex-start;
   white-space: nowrap;
   padding: 1px 7px;
-  border-radius: 3px;
+  border-radius: var(--radius-control);
   background: var(--color-selected);
   border: 1px solid var(--color-border);
   color: var(--color-info);
@@ -331,7 +335,7 @@ body {
   background: rgba(0, 0, 0, 0.45);
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.5) inset;
   border: 1px solid rgba(0, 0, 0, 0.55);
-  border-radius: 3px;
+  border-radius: var(--radius-control);
   position: relative;
   overflow: hidden;
 }
@@ -365,7 +369,7 @@ body {
   background: rgba(60, 8, 8, 0.85);
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.5) inset;
   border: 1px solid rgba(0, 0, 0, 0.55);
-  border-radius: 3px;
+  border-radius: var(--radius-control);
   position: relative;
   overflow: hidden;
 }
@@ -414,7 +418,7 @@ body {
     var(--color-panel-bg);
   border: 1px solid var(--color-panel-border);
   border-top-color: var(--edge-strong);
-  border-radius: 4px;
+  border-radius: var(--radius-panel);
   box-shadow: var(--shadow-panel);
 }
 
@@ -468,7 +472,7 @@ body {
     var(--surface-control);
   border: 1px solid var(--color-panel-border);
   border-top-color: var(--edge-strong);
-  border-radius: 4px;
+  border-radius: var(--radius-control);
   box-shadow: var(--shadow-control);
   cursor: pointer;
   transition:
@@ -517,7 +521,7 @@ body {
   background: var(--color-surface-muted);
   border: 1px solid var(--color-border);
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.4);
-  border-radius: 5px;
+  border-radius: var(--radius-control);
   font-size: 11px;
   font-weight: 800;
   letter-spacing: 0.02em;
@@ -531,7 +535,7 @@ body {
   background:
     linear-gradient(180deg, rgba(255, 255, 255, 0.045), transparent 60px),
     var(--surface-raised);
-  border-radius: 4px;
+  border-radius: var(--radius-control);
   padding: 10px;
   border: 1px solid var(--color-panel-border);
   border-top-color: var(--edge-strong);
@@ -579,7 +583,7 @@ body {
   color: rgba(255, 255, 255, 0.92);
   padding: 8px 10px;
   font-size: 13px;
-  border-radius: 6px;
+  border-radius: var(--radius-control);
   border: 1px solid rgba(0, 0, 0, 0.35);
   line-height: 1.45;
 }
@@ -600,7 +604,7 @@ body {
 }
 .chat-box::-webkit-scrollbar-thumb {
   background: rgba(255, 255, 255, 0.16);
-  border-radius: 3px;
+  border-radius: var(--radius-control);
 }
 .chat-box::-webkit-scrollbar-thumb:hover {
   background: rgba(255, 255, 255, 0.28);
@@ -615,7 +619,7 @@ body {
   padding: 8px 9px;
   font-size: 13px;
   font-family: inherit;
-  border-radius: 6px;
+  border-radius: var(--radius-control);
   border: 1px solid var(--color-panel-border);
   background: var(--surface-control);
   color: var(--color-panel-text);
@@ -769,7 +773,7 @@ body {
 :where(button) {
   padding: 7px 10px;
   border: 1px solid var(--color-border);
-  border-radius: 4px;
+  border-radius: var(--radius-control);
   background: var(--surface-control);
   cursor: pointer;
 }
@@ -782,7 +786,7 @@ body {
   max-width: 100%;
   padding: 8px 10px;
   border: 1px solid var(--color-border);
-  border-radius: 4px;
+  border-radius: var(--radius-control);
   background: var(--color-surface-muted);
 }
 :where(textarea) {
@@ -843,7 +847,7 @@ body {
   grid-area: main;
   position: relative;
   flex-direction: column;
-  border-radius: 10px;
+  border-radius: var(--radius-panel);
   background: radial-gradient(
     ellipse at center,
     var(--color-surface),
@@ -908,7 +912,7 @@ body {
   max-width: calc(100vw - 24px);
   max-height: 85dvh;
   border: 1px solid var(--color-border);
-  border-radius: 6px;
+  border-radius: var(--radius-panel);
   background: var(--color-surface);
   color: var(--color-text);
   box-shadow: 0 16px 64px #0009;
@@ -939,7 +943,7 @@ body {
   height: 28px;
   padding: 0;
   border: 0;
-  border-radius: 4px;
+  border-radius: var(--radius-control);
   background: transparent;
   color: var(--color-text-muted);
   font-size: 20px;
@@ -1018,7 +1022,7 @@ body {
   margin: auto;
   padding: 28px;
   border: 1px solid var(--color-border);
-  border-radius: 8px;
+  border-radius: var(--radius-panel);
   background: var(--color-surface);
   box-shadow: var(--shadow-panel);
 }
@@ -1122,7 +1126,6 @@ body {
     var(--surface-control),
     var(--color-surface)
   );
-  border-radius: 10px;
 }
 #status-bar:empty {
   display: none;
@@ -1148,7 +1151,7 @@ body {
   height: 12px;
   flex: 1;
   min-width: 0;
-  border-radius: 3px;
+  border-radius: var(--radius-control);
   overflow: hidden;
   background: #0c192c;
 }
@@ -1176,7 +1179,7 @@ body {
 .player-controls button {
   min-height: 44px;
   min-width: 44px;
-  border-radius: 8px;
+  border-radius: var(--radius-control);
 }
 .panel-toggle {
   display: none;
@@ -1187,9 +1190,6 @@ body {
 .panel-toggle[aria-expanded='true'] {
   background: var(--color-selected);
   border-color: var(--color-info);
-}
-#sidePanel {
-  border-radius: 10px;
 }
 .creator-tools {
   border-top: 1px solid var(--color-border);
