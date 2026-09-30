@@ -557,18 +557,28 @@ declare function getArrow(id: number): ArrowData | undefined;
 declare function getArrows(): ArrowData[];
 
 /**
- * Looks up an item by numeric id. A `bound` item cannot be dropped,
+ * An item as the catalogue defines it. `bound` items cannot be dropped,
  * traded or banked.
  */
-declare function getItem(id: number):
-  | {
-      id: number;
-      name: string;
-      type: string;
-      arrowId?: number;
-      bound?: boolean;
-    }
-  | undefined;
+interface ItemData {
+  id: number;
+  name: string;
+  description: string;
+  /** Its tile on the item sheet. */
+  sprite: number;
+  /** An equipment slot (`'weapon'`, ...), `'consumable'` or `'money'`. */
+  type: string;
+  /** What using or wearing it changes; empty when it changes nothing. */
+  effects: { attribute: string; type: 'add' | 'multiply'; value: number }[];
+  arrowId?: number;
+  bound?: boolean;
+}
+
+/** Look up an item by numeric id. */
+declare function getItem(id: number): ItemData | undefined;
+
+/** All items defined in the database. */
+declare function getItems(): ItemData[];
 
 /** Tile size in pixels for a map (returns undefined if map doesn't exist). */
 declare function getMapSize(
@@ -1022,6 +1032,11 @@ declare function httpRequest(
 interface DialogOptions {
   /** Shown above the text as who is talking. Omit for a generic title. */
   speaker?: string;
+  /**
+   * The npc talking: the box shows its sprite as a portrait and its name when
+   * there is no `speaker`, and the world darkens around it.
+   */
+  npc?: RuntimeNpc;
   text: string;
   /** Buttons. Omit for a single "Continue" (onChoice receives 0). */
   choices?: string[];
@@ -1029,7 +1044,9 @@ interface DialogOptions {
 
 /**
  * Dialog API, from the dialog module: `const dialog = use('dialog')`.
- * Shows a box and runs onChoice(index) when the player picks.
+ * Shows a box and runs onChoice(index) when the player picks. A player who
+ * walks away from the box (Escape, its close button) picks nothing, and
+ * onChoice is not called.
  */
 interface DialogApi {
   show(
@@ -1085,6 +1102,8 @@ interface QuestState {
   progress: number;
   target: number;
   status: 'active' | 'completed';
+  /** Who gave it, when the quest came from an npc or a script said. */
+  from?: string;
 }
 
 /**
@@ -1093,8 +1112,11 @@ interface QuestState {
 interface QuestApi {
   /** Register a quest definition (id, name, target, reward). */
   define(def: QuestDef): void;
-  /** Start a defined quest for a player. False if unknown or already taken. */
-  start(player: PlayerServer, id: string): boolean;
+  /**
+   * Start a defined quest for a player. False if unknown or already taken.
+   * `from` names who gave it, for the quest log.
+   */
+  start(player: PlayerServer, id: string, from?: string): boolean;
   /** Add to progress; auto-completes and rewards at the target. */
   advance(player: PlayerServer, id: string, amount?: number): void;
   /** Force-complete a quest and grant its reward. */

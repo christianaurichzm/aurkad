@@ -34,6 +34,7 @@ const scriptGlobals = [
   'getArrow',
   'getArrows',
   'getItem',
+  'getItems',
   'getMapSize',
   'getMapTile',
   'getMapPvp',

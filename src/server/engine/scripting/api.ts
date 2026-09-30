@@ -13,7 +13,7 @@ import {
   getFlag,
   type FlagValue,
 } from '../../services/liveOpsService.js';
-import { getMap, updatePlayer } from '../../services/world/gameData.js';
+import { getMap, items, updatePlayer } from '../../services/world/gameData.js';
 import { handleChatAction } from '../../services/comms/chatService.js';
 import { setIgnored } from '../../services/world/serverState.js';
 import { updatePlayerMap } from '../../services/world/mapService.js';
@@ -88,6 +88,7 @@ import { findPlacement } from '../../services/world/physicsService.js';
 import type {
   CombatTarget,
   Dialog,
+  Item,
   Quest,
   Recipe,
   RuntimeNpc,
@@ -129,6 +130,24 @@ import { recordHealthChange } from '../../net/snapshot.js';
 // Mutations go through updatePlayer so state is marked dirty (persisted by the
 // snapshot loop) and broadcast to clients on the next tick. No DB write happens
 // here, which is why scripts can call it from inside a synchronous hook.
+type ItemData = Pick<
+  Item,
+  'id' | 'name' | 'description' | 'sprite' | 'type' | 'arrowId' | 'bound'
+> & { effects: NonNullable<Item['effects']> };
+
+// Copied, effects included: a script that edits what it was handed must not
+// be editing the catalogue.
+const itemData = (item: Item): ItemData => ({
+  id: item.id,
+  name: item.name,
+  description: item.description,
+  sprite: item.sprite,
+  type: item.type,
+  effects: (item.effects ?? []).map((effect) => ({ ...effect })),
+  ...(item.arrowId != null && { arrowId: item.arrowId }),
+  ...(item.bound != null && { bound: item.bound }),
+});
+
 function persist(_scriptName: string, player: PlayerServer): void {
   updatePlayer(player);
 }
@@ -425,28 +444,13 @@ export function buildApi(
       );
     },
 
-    // Item metadata lookup, with arrowId for ranged weapons.
-    getItem: (
-      id: number,
-    ):
-      | {
-          id: number;
-          name: string;
-          type: string;
-          arrowId?: number;
-          bound?: boolean;
-        }
-      | undefined => {
+    // The catalogue as a script may read it: what the item is and does, not
+    // the behaviour it runs.
+    getItem: (id: number): ItemData | undefined => {
       const item = getItemById(Number(id));
-      if (!item) return undefined;
-      return {
-        id: item.id,
-        name: item.name,
-        type: item.type,
-        ...(item.arrowId != null && { arrowId: item.arrowId }),
-        ...(item.bound != null && { bound: item.bound }),
-      };
+      return item ? itemData(item) : undefined;
     },
+    getItems: (): ItemData[] => [...items.values()].map(itemData),
 
     // Inventory. These return whether they happened, so a script can tell a
     // delivered reward from one lost to a full bag or a short stack.
