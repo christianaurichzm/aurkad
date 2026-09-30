@@ -310,8 +310,8 @@ body {
   margin-top: 8px;
 }
 
-/* One framed block of the side column: the player card, the menu, the chat,
-   the creator tools. A theme frames every one of them with this selector. */
+/* One framed block of the side column: the player card, the menu, the chat.
+   A theme frames every one of them with this selector. */
 .panel {
   padding: 8px;
   color: var(--color-panel-text);
@@ -1653,9 +1653,12 @@ body {
   background: var(--color-selected);
   border-color: var(--color-info);
 }
+/* The owner's strip, shown to staff only. It stays outside .panel so that a
+   theme's frame does not give it the weight of something the player uses. */
 .creator-tools {
   flex: none;
-  padding: 0;
+  border: 2px solid var(--color-border);
+  border-radius: var(--radius-panel);
 }
 .creator-tools summary {
   padding: 5px 8px;

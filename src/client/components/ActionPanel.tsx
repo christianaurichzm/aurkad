@@ -201,7 +201,7 @@ export const CreatorTools: React.FC = () => {
   };
 
   return (
-    <details className="creator-tools panel">
+    <details className="creator-tools">
       <summary>{t('actions.tools')}</summary>
       <div className="creator-tools-body">
         {creatorActions
