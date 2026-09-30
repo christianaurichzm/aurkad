@@ -49,6 +49,13 @@ export function handleRouteError(
   res: Response,
   _next: NextFunction,
 ) {
+  // A body parser refuses a request with its own status (too large, bad JSON).
+  // That is the caller's doing, and the answer says so.
+  const { status, message } = err as { status?: unknown; message?: string };
+  if (typeof status === 'number' && status >= 400 && status < 500) {
+    if (!res.headersSent) res.status(status).json({ error: message });
+    return;
+  }
   logger.error('Unhandled error in route', {
     method: req.method,
     path: req.path,

@@ -61,6 +61,22 @@ describe('createRouter', () => {
     );
   });
 
+  it("answers a body parser's refusal with the status it gave, and logs no fault", async () => {
+    const app = express();
+    app.use(express.json());
+    app.use(handleRouteError);
+    vi.mocked(logger.error).mockClear();
+
+    const res = await request(app)
+      .post('/anything')
+      .set('Content-Type', 'application/json')
+      .send('{ not json');
+
+    expect(res.status).toBe(400);
+    expect(res.body.error).toEqual(expect.any(String));
+    expect(logger.error).not.toHaveBeenCalled();
+  });
+
   it('leaves a handler that already answered alone', async () => {
     const app = appWith((router) => {
       router.get('/late', async (_req, res) => {
