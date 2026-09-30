@@ -12,6 +12,7 @@
     "startingInventoryCapacity": 10
   },
   "leveling": {
+    "enabled": true,
     "baseXp": 100,
     "xpGrowthRate": 1.5,
     "pointsPerLevel": 5

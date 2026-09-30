@@ -4,6 +4,7 @@ import { assignPointsPlayer, httpError } from '../io/network';
 import { Modal } from './common/Modal';
 import { colors, radius } from '../theme';
 import { useT } from '../i18n';
+import { useGameBrand } from './common/AuthLayout';
 
 type AttributeKey = 'strength' | 'defense' | 'vitality' | 'agility';
 type QueuedAttributes = Record<AttributeKey, number>;
@@ -23,6 +24,7 @@ export const AttributeDistributorModal: React.FC = () => {
   const [loading, setLoading] = useState(false);
 
   const player = usePlayerForceUpdate(visible);
+  const game = useGameBrand();
 
   useEffect(() => {
     const onToggle = () => setVisible((v) => !v);
@@ -31,7 +33,8 @@ export const AttributeDistributorModal: React.FC = () => {
       window.removeEventListener('toggleAttributeDistributor', onToggle);
   }, []);
 
-  if (!player || !visible) return null;
+  // V still reaches here in a game without attribute points.
+  if (!player || !visible || game?.attributes === false) return null;
 
   const assigned = Object.values(queued).reduce((sum, value) => sum + value, 0);
   const remaining = player.unspentPoints - assigned;

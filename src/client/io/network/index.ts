@@ -21,6 +21,7 @@ export {
   fetchAuthCapabilities,
   fetchEmail,
   fetchGameBrand,
+  getGameBrand,
   type GameBrand,
   login,
   register,

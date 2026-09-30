@@ -7,6 +7,7 @@ import { getHealthBarInfo } from '../../graphics/hud';
 import { useT } from '../../i18n';
 import { onServerEvent } from '../../io/network/customEvents';
 import { mapAllowsPvp } from '../../../shared/utils';
+import { useGameBrand } from '../common/AuthLayout';
 
 // SpritePreview frames itself inline, where no theme could reach it; the
 // card's frame is #hud-portrait in styles.css instead, which is also where a
@@ -35,6 +36,7 @@ export const HudBar = () => {
   const identity = livePlayer ?? sessionPlayer;
   const { current, max, level = 1 } = useUIStore((state) => state.playerHealth);
   const xp = useUIStore((state) => state.playerXp);
+  const levels = useGameBrand()?.levels !== false;
   const { percentage, color } = getHealthBarInfo(current, max);
   const xpPercentage =
     xp.max > 0 ? Math.max(0, Math.min(xp.current / xp.max, 1)) : 0;
@@ -76,7 +78,7 @@ export const HudBar = () => {
       <div className="hud-stats">
         <div id="hud-who">
           <span id="hud-name">{identity?.name}</span>
-          <span id="hud-level">{t('hud.level', { level })}</span>
+          {levels && <span id="hud-level">{t('hud.level', { level })}</span>}
         </div>
         <div id="hud-row" data-tone={healthTone[color]}>
           <span id="hud-hp-label">{t('hud.hp')}</span>
@@ -115,14 +117,16 @@ export const HudBar = () => {
             </span>
           </div>
         )}
-        <div id="xp-bar-container" title={`${xp.current}/${xp.max} XP`}>
-          <div className="xp-track">
-            <div id="xp-bar" style={{ width: `${xpPercentage * 100}%` }} />
+        {levels && (
+          <div id="xp-bar-container" title={`${xp.current}/${xp.max} XP`}>
+            <div className="xp-track">
+              <div id="xp-bar" style={{ width: `${xpPercentage * 100}%` }} />
+            </div>
+            <span id="xp-bar-text">
+              {t('hud.xp', { current: xp.current, max: xp.max })}
+            </span>
           </div>
-          <span id="xp-bar-text">
-            {t('hud.xp', { current: xp.current, max: xp.max })}
-          </span>
-        </div>
+        )}
       </div>
     </div>
   );

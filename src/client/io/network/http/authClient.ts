@@ -84,18 +84,29 @@ export const fetchAuthCapabilities = async () => {
 export interface GameBrand {
   name: string;
   logo: string;
+  /** Whether the game has levels and experience at all (`leveling.enabled`). */
+  levels: boolean;
+  /** Whether levels hand out attribute points (`leveling.pointsPerLevel`). */
+  attributes: boolean;
 }
 
 let gameBrand: Promise<GameBrand | null> | undefined;
+let gameBrandNow: GameBrand | null = null;
 
 /**
  * Asked once per page: the tab, favicon and auth screens all want it, and it
  * changes only when the server restarts on another game.json.
  */
 export const fetchGameBrand = () =>
-  (gameBrand ??= httpClient<GameBrand>('/game', { method: 'GET' }).catch(
-    () => null,
-  ));
+  (gameBrand ??= httpClient<GameBrand>('/game', { method: 'GET' })
+    .then((brand) => (gameBrandNow = brand))
+    .catch(() => null));
+
+/**
+ * The answer once it arrived, for the canvas, which draws every frame and
+ * cannot await. main.tsx asks at boot, long before a world is drawn.
+ */
+export const getGameBrand = () => gameBrandNow;
 
 export async function silentAction<T>(promise: Promise<T>): Promise<T | null> {
   try {

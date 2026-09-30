@@ -7,9 +7,11 @@ import {
 } from '../../shared/mappings';
 import { useUIStore } from '../stores/uiStore';
 import { renderSpeechBubble } from './speechBubble';
+import { getGameBrand } from '../io/network/http/authClient';
 
-export const getPlayerHudText = (name: string, level: number) =>
-  `${name} (${level})`;
+// A game with no levels shows none; until /game has answered, assume it has.
+export const getPlayerHudText = (name: string, level: number, levels = true) =>
+  levels ? `${name} (${level})` : name;
 
 // Reading a canvas colour back normalises it, which is all the parsing this
 // needs; anything but a plain hex counts as light.
@@ -79,7 +81,7 @@ export const renderHUD = (
   }
   outlinedText(
     ctx,
-    getPlayerHudText(name, level),
+    getPlayerHudText(name, level, getGameBrand()?.levels !== false),
     cx,
     y,
     'bold 14px Arial',

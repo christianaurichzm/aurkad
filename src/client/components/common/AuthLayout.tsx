@@ -3,7 +3,7 @@ import { useEffect, useState, type ReactNode } from 'react';
 import { fetchGameBrand, type GameBrand } from '../../io/network';
 import { version } from '../../../../package.json';
 
-function useGameBrand() {
+export function useGameBrand() {
   const [brand, setBrand] = useState<GameBrand | null>(null);
   useEffect(() => {
     let live = true;

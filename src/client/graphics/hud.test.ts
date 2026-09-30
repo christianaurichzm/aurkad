@@ -15,6 +15,10 @@ describe('getPlayerHudText', () => {
   it('renders level in parentheses without the level label', () => {
     expect(getPlayerHudText('Alice', 5)).toBe('Alice (5)');
   });
+
+  it('is the name alone in a game without levels', () => {
+    expect(getPlayerHudText('Alice', 5, false)).toBe('Alice');
+  });
 });
 
 describe('getHealthBarInfo', () => {

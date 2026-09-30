@@ -16,8 +16,13 @@ afterEach(() => {
   fs.rmSync(themeDir, { recursive: true, force: true });
 });
 
-const appFor = (brand: { name: string; logo?: string }) =>
-  express().use(createGameRouter({ brand, themeDir }));
+const appFor = (
+  brand: { name: string; logo?: string },
+  {
+    levels = true,
+    attributes = levels,
+  }: { levels?: boolean; attributes?: boolean } = {},
+) => express().use(createGameRouter({ brand, levels, attributes, themeDir }));
 
 describe('gameRoutes', () => {
   it('names the game and points at its logo in theme/', async () => {
@@ -25,7 +30,28 @@ describe('gameRoutes', () => {
       '/game',
     );
 
-    expect(res.body).toEqual({ name: 'Tandem', logo: '/theme/logo.png' });
+    expect(res.body).toEqual({
+      name: 'Tandem',
+      logo: '/theme/logo.png',
+      levels: true,
+      attributes: true,
+    });
+  });
+
+  it('says so when the game has no attribute points to hand out', async () => {
+    const res = await request(
+      appFor({ name: 'Tandem' }, { attributes: false }),
+    ).get('/game');
+
+    expect(res.body).toMatchObject({ levels: true, attributes: false });
+  });
+
+  it('says so when the game has no levels at all', async () => {
+    const res = await request(
+      appFor({ name: 'Tandem' }, { levels: false }),
+    ).get('/game');
+
+    expect(res.body).toMatchObject({ levels: false, attributes: false });
   });
 
   it('falls back to the engine icon for a game with no logo', async () => {

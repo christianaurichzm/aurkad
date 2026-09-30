@@ -37,6 +37,9 @@ const PlayerSchema = z
 
 const LevelingSchema = z
   .strictObject({
+    // Off for a game with no levels at all: no experience is ever awarded, and
+    // the client drops the level from nameplates and the XP bar from the HUD.
+    enabled: z.boolean().default(true),
     baseXp: z.number().positive().default(100),
     // At or below 1 the curve never rises, so every level costs the same and
     // the last one arrives in seconds.

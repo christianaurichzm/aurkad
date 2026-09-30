@@ -292,6 +292,7 @@ export const awardExperience = (
   amount: number,
   source = 'script',
 ): number => {
+  if (!gameConfig.leveling.enabled) return 0;
   const ctx = { player, amount, source };
   emit('beforeXpGain', ctx);
   const gained =

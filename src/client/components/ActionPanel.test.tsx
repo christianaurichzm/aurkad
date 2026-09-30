@@ -12,6 +12,7 @@ const mocks = vi.hoisted(() => ({
   openConsole: vi.fn(),
   useGame: vi.fn(),
   usePlayerForceUpdate: vi.fn(),
+  fetchGameBrand: vi.fn(),
 }));
 
 vi.mock('../context/GameContext', () => ({
@@ -27,6 +28,7 @@ vi.mock('../io/network', () => ({
   openMapEditor: mocks.openMapEditor,
   openModEditor: mocks.openModEditor,
   openConsole: mocks.openConsole,
+  fetchGameBrand: mocks.fetchGameBrand,
 }));
 
 const setAccess = (access: Access) => {
@@ -39,6 +41,7 @@ describe('ActionPanel', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     setAccess(Access.USER);
+    mocks.fetchGameBrand.mockResolvedValue({ attributes: true });
   });
 
   it('shows only user actions for regular users', () => {
@@ -68,6 +71,18 @@ describe('ActionPanel', () => {
       screen.queryByRole('button', { name: /content/i }),
     ).not.toBeInTheDocument();
     expect(screen.queryByText('Creator tools')).not.toBeInTheDocument();
+  });
+
+  it('has no Attributes tile in a game that hands out no points', async () => {
+    mocks.fetchGameBrand.mockResolvedValue({ attributes: false });
+    render(<ActionPanel />);
+
+    await waitFor(() =>
+      expect(
+        screen.queryByRole('button', { name: /attributes/i }),
+      ).not.toBeInTheDocument(),
+    );
+    expect(screen.getByRole('button', { name: /inventory/i })).toBeVisible();
   });
 
   it('names a tile by its panel and its hotkey apart', () => {

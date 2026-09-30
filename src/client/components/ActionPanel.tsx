@@ -15,6 +15,7 @@ import {
 import { useUIStore } from '../stores/uiStore';
 import { moduleText, useT, type TranslationKey } from '../i18n';
 import { Icon, type IconName } from './common/Icon';
+import { useGameBrand } from './common/AuthLayout';
 
 type PlayerAction = {
   id: string;
@@ -113,15 +114,18 @@ export const ActionPanel: React.FC = () => {
   // Buttons contributed by client modules (engine.ui.actionButton).
   const [, forceUpdate] = useReducer((n: number) => n + 1, 0);
   useEffect(() => subscribeModuleActions(forceUpdate), []);
+  const game = useGameBrand();
 
   const tiles: Tile[] = [
-    ...playerActions.map((action) => ({
-      id: action.id,
-      label: t(action.label),
-      keyLabel: action.keyLabel,
-      icon: action.icon,
-      onClick: () => togglePanel(action.eventName),
-    })),
+    ...playerActions
+      .filter((a) => a.id !== 'attributes' || game?.attributes !== false)
+      .map((action) => ({
+        id: action.id,
+        label: t(action.label),
+        keyLabel: action.keyLabel,
+        icon: action.icon,
+        onClick: () => togglePanel(action.eventName),
+      })),
     // A module label is its own English, translated by the module's table, so
     // it follows a language switch.
     ...getModuleActions().map((action) => ({

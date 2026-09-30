@@ -12,6 +12,7 @@ import {
 import { on, clearAll } from '../../engine/hooks.js';
 import { createFixture } from '../../sim/simFixture.js';
 import { getPlayerByName } from '../../sim/world.js';
+import { gameConfig } from '../../gameConfig.js';
 
 function mkPlayer(overrides: Partial<PlayerServer> = {}): PlayerServer {
   return {
@@ -103,6 +104,18 @@ describe('awardExperience', () => {
     });
     awardExperience(mkPlayer(), 10, 'quest');
     expect(seen).toBe('quest');
+  });
+
+  it('awards nothing in a game with levels turned off', () => {
+    const leveling = gameConfig.leveling;
+    gameConfig.leveling = { ...leveling, enabled: false };
+    try {
+      const player = mkPlayer({ experience: 0, experienceToNextLevel: 100 });
+      expect(awardExperience(player, 500, 'kill')).toBe(0);
+      expect(player).toMatchObject({ level: 1, experience: 0 });
+    } finally {
+      gameConfig.leveling = leveling;
+    }
   });
 
   it('clamps negative or non-finite amounts to zero', () => {

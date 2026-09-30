@@ -15,6 +15,9 @@ vi.mock('../../hooks/usePlayerForceUpdate', () => ({
   usePlayerForceUpdate: () => null,
 }));
 
+const game = vi.hoisted(() => ({ brand: null as { levels: boolean } | null }));
+vi.mock('../common/AuthLayout', () => ({ useGameBrand: () => game.brand }));
+
 const healthBar = () => document.getElementById('health-bar');
 const healthTone = () =>
   document.getElementById('hud-row')?.getAttribute('data-tone');
@@ -178,6 +181,19 @@ describe('HudBar Component', () => {
     const xpBar = document.getElementById('xp-bar');
     expect(xpBar).toBeInTheDocument();
     expect(xpBar).toHaveStyle({ width: '25%' });
+  });
+
+  it('shows neither level nor experience in a game without levels', () => {
+    game.brand = { levels: false };
+    try {
+      render(<HudBar />);
+    } finally {
+      game.brand = null;
+    }
+
+    expect(document.getElementById('hud-level')).toBeNull();
+    expect(document.getElementById('xp-bar-container')).toBeNull();
+    expect(document.getElementById('hud-name')).toHaveTextContent('Alice');
   });
 
   it('should render health bar element with correct id', () => {
