@@ -29,6 +29,7 @@ import {
   listDialogs,
   listQuests,
   listRecipes,
+  listModules,
 } from '../../io/network';
 import { Modal } from '../common/Modal';
 import { useUIStore } from '../../stores/uiStore';
@@ -46,6 +47,16 @@ type Tab =
   | 'spells'
   | 'arrows';
 
+// Tabs whose content only means something while the module that runs it is
+// loaded; every other tab is core.
+const MODULE_TABS: Partial<Record<Tab, string>> = {
+  dialogs: 'dialog',
+  quests: 'quest',
+  recipes: 'crafting',
+  spells: 'magic',
+  arrows: 'archery',
+};
+
 export const ContentEditor: React.FC = () => {
   const t = useT();
   const [visible, setVisible] = useState(false);
@@ -58,6 +69,7 @@ export const ContentEditor: React.FC = () => {
   const [dialogs, setDialogs] = useState<Dialog[]>([]);
   const [quests, setQuests] = useState<Quest[]>([]);
   const [recipes, setRecipes] = useState<Recipe[]>([]);
+  const [modules, setModules] = useState<string[]>([]);
   const [contentDirty, setContentDirty] = useState(false);
   const visibleRef = useRef(false);
   const dirtyRef = useRef(false);
@@ -107,6 +119,7 @@ export const ContentEditor: React.FC = () => {
       dialogData,
       questData,
       recipeData,
+      moduleIds,
     ] = await Promise.all([
       fetchNpcs(),
       fetchItems(),
@@ -116,6 +129,7 @@ export const ContentEditor: React.FC = () => {
       listDialogs(),
       listQuests(),
       listRecipes(),
+      listModules(),
     ]);
     setNpcs(npcData);
     setItems(itemData);
@@ -125,6 +139,7 @@ export const ContentEditor: React.FC = () => {
     setDialogs(dialogData);
     setQuests(questData);
     setRecipes(recipeData);
+    setModules(moduleIds);
   }, []);
 
   useEffect(() => {
@@ -187,7 +202,7 @@ export const ContentEditor: React.FC = () => {
     setTab(nextTab);
   };
 
-  const tabs: { id: Tab; label: TranslationKey }[] = [
+  const allTabs: { id: Tab; label: TranslationKey }[] = [
     { id: 'npcs', label: 'editor.tabNpcs' },
     { id: 'items', label: 'editor.tabItems' },
     { id: 'loot', label: 'editor.tabLoot' },
@@ -199,6 +214,10 @@ export const ContentEditor: React.FC = () => {
     { id: 'spells', label: 'editor.tabSpells' },
     { id: 'arrows', label: 'editor.tabArrows' },
   ];
+  const tabs = allTabs.filter(({ id }) => {
+    const module = MODULE_TABS[id];
+    return !module || modules.includes(module);
+  });
 
   return (
     <Modal title={t('editor.contentTitle')} onClose={close} width={880}>
@@ -231,6 +250,7 @@ export const ContentEditor: React.FC = () => {
               loadLootTables={loadLootTables}
               loadDialogs={loadDialogs}
               loadQuests={loadQuests}
+              modules={modules}
               onDirtyChange={setContentDirty}
               requestDiscard={confirmDiscard}
             />
@@ -240,6 +260,7 @@ export const ContentEditor: React.FC = () => {
               items={items}
               loadItems={loadItems}
               refreshData={refreshData}
+              modules={modules}
               onDirtyChange={setContentDirty}
               requestDiscard={confirmDiscard}
             />

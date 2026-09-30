@@ -7,6 +7,7 @@ import {
   loadModules,
   unloadAllModules,
   getClientModules,
+  getLoadedModuleIds,
   readModuleClientFile,
   readClientSource,
 } from './moduleLoader.js';
@@ -225,6 +226,15 @@ describe('inter-module API', () => {
 
     expect(getClientModules()).toEqual([]);
     expect(readModuleClientFile('halfdead')).toBeNull();
+  });
+
+  it('lists server-only modules as loaded, and leaves out one that threw', () => {
+    writeModule('fine', {}, '');
+    writeModule('broken', {}, `throw new Error('boom');`);
+
+    loadModules();
+
+    expect(getLoadedModuleIds()).toEqual(['fine']);
   });
 
   it('unload withdraws a module provided API', () => {

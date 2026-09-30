@@ -23,7 +23,7 @@ import {
   validateScriptReferences,
   type ContentGraph,
 } from '../../services/content/contentValidation.js';
-import { isProvided } from '../../engine/modules/registry.js';
+import { isProvided, providedNames } from '../../engine/modules/registry.js';
 import {
   describeBehaviors,
   registeredBehaviors,
@@ -264,6 +264,16 @@ export function createContentRouter() {
 
   router.get('/dialogs', checkAccess(Access.ADMIN), async (_req, res) => {
     res.status(200).json(await listDialogs());
+  });
+
+  // The names a choice's condition and action can reference right now. A
+  // disabled module never provides its handlers, so this is also what keeps
+  // its actions out of the editor.
+  router.get('/dialogs/refs', checkAccess(Access.ADMIN), (_req, res) => {
+    res.json({
+      conditions: providedNames('dialogCondition.'),
+      actions: providedNames('dialogAction.'),
+    });
   });
 
   router.post('/dialogs', checkAccess(Access.ADMIN), async (req, res) => {

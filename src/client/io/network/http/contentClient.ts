@@ -207,6 +207,26 @@ export const deleteQuest = async (id: string): Promise<void> => {
   await httpClient(`/quests/${encodeURIComponent(id)}`, { method: 'DELETE' });
 };
 
+/** Condition and action names a dialog choice can reference right now. */
+export const fetchDialogRefs = async (): Promise<{
+  conditions: string[];
+  actions: string[];
+}> => {
+  return (
+    (await httpClient<{ conditions: string[]; actions: string[] }>(
+      '/dialogs/refs',
+      { method: 'GET' },
+    )) ?? { conditions: [], actions: [] }
+  );
+};
+
+/** Ids of every module the server has loaded. */
+export const listModules = async (): Promise<string[]> => {
+  return (
+    (await httpClient<string[]>('/modules/loaded', { method: 'GET' })) ?? []
+  );
+};
+
 export const listRecipes = async (): Promise<Recipe[]> => {
   return (await httpClient<Recipe[]>('/recipes', { method: 'GET' })) ?? [];
 };

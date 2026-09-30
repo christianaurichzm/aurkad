@@ -3,10 +3,11 @@ import {
   Controller,
   useFieldArray,
   useForm,
+  useWatch,
   type Control,
 } from 'react-hook-form';
 import { Dialog } from '../../../shared/types';
-import { saveDialog, deleteDialog } from '../../io/network';
+import { saveDialog, deleteDialog, fetchDialogRefs } from '../../io/network';
 import { chatResultMsg } from '../ChatPanel';
 import { AsyncSelect } from '../common/Select/AsyncSelect';
 import { Select } from '../common/Select/Select';
@@ -66,6 +67,11 @@ const dialogToForm = (dialog: Dialog): DialogFormValues => ({
   })),
 });
 
+type DialogRefs = { conditions: string[]; actions: string[] };
+
+// `name` or `name:arg`; only the name is what a script provides.
+const refName = (ref: string) => ref.trim().split(':')[0];
+
 const newNode = (index: number): NodeRow => ({
   id: `node${index + 1}`,
   text: '',
@@ -88,12 +94,30 @@ const NodeChoices: React.FC<{
   nodeIndex: number;
   register: ReturnType<typeof useForm<DialogFormValues>>['register'];
   nodeOptions: { value: string; label: string }[];
-}> = ({ control, nodeIndex, register, nodeOptions }) => {
+  /** What is registered now; null until known, so nothing is flagged early. */
+  refs: DialogRefs | null;
+}> = ({ control, nodeIndex, register, nodeOptions, refs }) => {
   const t = useT();
   const choices = useFieldArray({
     control,
     name: `nodes.${nodeIndex}.choices` as const,
   });
+  const rows = useWatch({
+    control,
+    name: `nodes.${nodeIndex}.choices` as const,
+  });
+
+  // A reference whose module is off stays in the document untouched, so
+  // turning the module back on revives the choice; it is only pointed out.
+  const unavailable = (row: ChoiceRow | undefined): string[] => {
+    if (!refs || !row) return [];
+    return [
+      [row.condition, refs.conditions] as const,
+      [row.action, refs.actions] as const,
+    ]
+      .filter(([ref, names]) => ref.trim() && !names.includes(refName(ref)))
+      .map(([ref]) => refName(ref));
+  };
 
   return (
     <div style={choiceBox}>
@@ -111,66 +135,75 @@ const NodeChoices: React.FC<{
         <p style={emptyHint}>{t('dialog.noChoices')}</p>
       )}
       {choices.fields.map((field, i) => (
-        <div key={field.id} style={choiceRow}>
-          <div style={{ flex: 2, minWidth: 0 }}>
-            <label style={label}>{t('dialog.label')}</label>
-            <input
-              style={input}
-              placeholder={t('dialog.labelPlaceholder')}
-              {...register(`nodes.${nodeIndex}.choices.${i}.label` as const)}
-            />
+        <React.Fragment key={field.id}>
+          <div style={choiceRow}>
+            <div style={{ flex: 2, minWidth: 0 }}>
+              <label style={label}>{t('dialog.label')}</label>
+              <input
+                style={input}
+                placeholder={t('dialog.labelPlaceholder')}
+                {...register(`nodes.${nodeIndex}.choices.${i}.label` as const)}
+              />
+            </div>
+            <div style={{ flex: 1.4, minWidth: 0 }}>
+              <label style={label} title={t('dialog.goesToHelp')}>
+                {t('dialog.goesTo')}
+              </label>
+              <Controller
+                control={control}
+                name={`nodes.${nodeIndex}.choices.${i}.next` as const}
+                render={({ field: next }) => (
+                  <Select
+                    options={withCurrent(
+                      nodeOptions,
+                      next.value,
+                      t('dialog.missing', { id: next.value }),
+                    )}
+                    value={next.value}
+                    onChange={next.onChange}
+                  />
+                )}
+              />
+            </div>
+            <div style={{ flex: 1.2, minWidth: 0 }}>
+              <label style={label} title={t('dialog.conditionHelp')}>
+                {t('loot.condition')}
+              </label>
+              <input
+                style={input}
+                list="dialog-conditions"
+                placeholder={t('loot.conditionNone')}
+                {...register(
+                  `nodes.${nodeIndex}.choices.${i}.condition` as const,
+                )}
+              />
+            </div>
+            <div style={{ flex: 1.2, minWidth: 0 }}>
+              <label style={label} title={t('dialog.actionHelp')}>
+                {t('dialog.action')}
+              </label>
+              <input
+                style={input}
+                list="dialog-actions"
+                placeholder={t('loot.conditionNone')}
+                {...register(`nodes.${nodeIndex}.choices.${i}.action` as const)}
+              />
+            </div>
+            <button
+              type="button"
+              style={removeBtn}
+              onClick={() => choices.remove(i)}
+              title={t('editor.remove')}
+            >
+              ✕
+            </button>
           </div>
-          <div style={{ flex: 1.4, minWidth: 0 }}>
-            <label style={label} title={t('dialog.goesToHelp')}>
-              {t('dialog.goesTo')}
-            </label>
-            <Controller
-              control={control}
-              name={`nodes.${nodeIndex}.choices.${i}.next` as const}
-              render={({ field: next }) => (
-                <Select
-                  options={withCurrent(
-                    nodeOptions,
-                    next.value,
-                    t('dialog.missing', { id: next.value }),
-                  )}
-                  value={next.value}
-                  onChange={next.onChange}
-                />
-              )}
-            />
-          </div>
-          <div style={{ flex: 1.2, minWidth: 0 }}>
-            <label style={label} title={t('dialog.conditionHelp')}>
-              {t('loot.condition')}
-            </label>
-            <input
-              style={input}
-              placeholder={t('loot.conditionNone')}
-              {...register(
-                `nodes.${nodeIndex}.choices.${i}.condition` as const,
-              )}
-            />
-          </div>
-          <div style={{ flex: 1.2, minWidth: 0 }}>
-            <label style={label} title={t('dialog.actionHelp')}>
-              {t('dialog.action')}
-            </label>
-            <input
-              style={input}
-              placeholder={t('loot.conditionNone')}
-              {...register(`nodes.${nodeIndex}.choices.${i}.action` as const)}
-            />
-          </div>
-          <button
-            type="button"
-            style={removeBtn}
-            onClick={() => choices.remove(i)}
-            title={t('editor.remove')}
-          >
-            ✕
-          </button>
-        </div>
+          {unavailable(rows?.[i]).map((name) => (
+            <p key={name} style={warning}>
+              {t('dialog.refUnavailable', { name })}
+            </p>
+          ))}
+        </React.Fragment>
       ))}
     </div>
   );
@@ -208,6 +241,19 @@ export const DialogEditor: React.FC<DialogEditorProps> = ({
   } = useForm<DialogFormValues>({ defaultValues });
 
   const nodes = useFieldArray({ control, name: 'nodes' });
+  const [refs, setRefs] = useState<DialogRefs | null>(null);
+
+  useEffect(() => {
+    let active = true;
+    fetchDialogRefs()
+      .then((list) => {
+        if (active) setRefs(list);
+      })
+      .catch(() => {});
+    return () => {
+      active = false;
+    };
+  }, []);
   const watchedNodes = watch('nodes');
 
   useEffect(() => {
@@ -386,10 +432,22 @@ export const DialogEditor: React.FC<DialogEditorProps> = ({
               nodeIndex={index}
               register={register}
               nodeOptions={nodeOptions}
+              refs={refs}
             />
           </div>
         ))}
       </div>
+
+      <datalist id="dialog-conditions">
+        {refs?.conditions.map((name) => (
+          <option key={name} value={name} />
+        ))}
+      </datalist>
+      <datalist id="dialog-actions">
+        {refs?.actions.map((name) => (
+          <option key={name} value={name} />
+        ))}
+      </datalist>
 
       <div style={actions}>
         <button type="submit" style={saveBtn}>
@@ -469,6 +527,11 @@ const choiceRow: React.CSSProperties = {
 const emptyHint: React.CSSProperties = {
   fontSize: 13,
   color: colors.textMuted,
+  margin: 0,
+};
+const warning: React.CSSProperties = {
+  fontSize: 12,
+  color: colors.dangerText,
   margin: 0,
 };
 const actions: React.CSSProperties = { display: 'flex', gap: 8 };

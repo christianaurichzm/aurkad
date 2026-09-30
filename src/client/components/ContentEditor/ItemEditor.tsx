@@ -22,6 +22,8 @@ interface ItemEditorProps {
   items: Item[];
   loadItems: () => Promise<any>;
   refreshData: () => void;
+  /** Loaded module ids; fields a disabled module would read stay hidden. */
+  modules: string[];
   onDirtyChange: (dirty: boolean) => void;
   requestDiscard: () => Promise<boolean>;
 }
@@ -102,6 +104,7 @@ export const ItemEditor: React.FC<ItemEditorProps> = ({
   items,
   loadItems,
   refreshData,
+  modules,
   onDirtyChange,
   requestDiscard,
 }) => {
@@ -302,7 +305,7 @@ export const ItemEditor: React.FC<ItemEditorProps> = ({
             hint={t(behaviorHint(type))}
             loadItems={loadItems}
           />
-          {type === 'weapon' && (
+          {type === 'weapon' && modules.includes('archery') && (
             <div style={field}>
               <label style={label}>{t('item.arrow')}</label>
               <Controller

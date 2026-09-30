@@ -11,11 +11,13 @@ import { DialogEditor } from './DialogEditor';
 const mocks = vi.hoisted(() => ({
   saveDialog: vi.fn(),
   deleteDialog: vi.fn(),
+  fetchDialogRefs: vi.fn(),
 }));
 
 vi.mock('../../io/network', () => ({
   saveDialog: mocks.saveDialog,
   deleteDialog: mocks.deleteDialog,
+  fetchDialogRefs: mocks.fetchDialogRefs,
 }));
 
 vi.mock('../ChatPanel', () => ({ chatResultMsg: vi.fn() }));
@@ -43,6 +45,10 @@ const saved = async (): Promise<Dialog> => {
 beforeEach(() => {
   mocks.saveDialog.mockReset();
   mocks.saveDialog.mockResolvedValue({});
+  mocks.fetchDialogRefs.mockResolvedValue({
+    conditions: ['trusted'],
+    actions: ['guardGift'],
+  });
 });
 
 describe('authoring a conversation', () => {
@@ -107,7 +113,11 @@ describe('authoring a conversation', () => {
     await user.click(screen.getByRole('button', { name: '+ Add node' }));
     await user.click(screen.getAllByRole('button', { name: '+ Add' })[0]);
 
-    const selects = screen.getAllByRole('combobox');
+    // Condition and action inputs are comboboxes too, through their suggestion
+    // lists; the node targets are the real selects.
+    const selects = screen
+      .getAllByRole('combobox')
+      .filter((el) => el.tagName === 'SELECT');
     const goesTo = selects[selects.length - 1];
     expect(
       within(goesTo).getByRole('option', { name: 'node2' }),
@@ -144,5 +154,37 @@ describe('editing an existing conversation', () => {
     await user.click(screen.getByRole('button', { name: 'Save dialog' }));
 
     expect(await saved()).toEqual(stored);
+  });
+
+  // With the quest module off, questStart is not registered; the choice
+  // still survives the save for when it comes back on.
+  it('flags a reference to a disabled module but keeps it', async () => {
+    const withQuest: Dialog = {
+      id: 'elder',
+      name: 'Elder',
+      nodes: [
+        {
+          id: 'hi',
+          text: 'Help us?',
+          choices: [{ label: 'Yes', action: 'questStart:goblinHunt' }],
+        },
+      ],
+    };
+    const user = userEvent.setup();
+    setup([withQuest]);
+
+    await screen.findByRole('option', { name: 'Elder' });
+    await user.selectOptions(screen.getAllByRole('combobox')[0], 'elder');
+
+    expect(
+      await screen.findByText(/questStart is not available/),
+    ).toBeInTheDocument();
+    const offered = [
+      ...document.querySelectorAll('#dialog-actions option'),
+    ].map((o) => o.getAttribute('value'));
+    expect(offered).toEqual(['guardGift']);
+
+    await user.click(screen.getByRole('button', { name: 'Save dialog' }));
+    expect(await saved()).toEqual(withQuest);
   });
 });

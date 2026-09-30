@@ -20,6 +20,14 @@ export function isProvided(name: string): boolean {
   return provides.has(name);
 }
 
+// The part after `prefix` of every name provided under it, e.g. the
+// `questStart` of `dialogAction.questStart`.
+export function providedNames(prefix: string): string[] {
+  return [...provides.keys()]
+    .filter((name) => name.startsWith(prefix))
+    .map((name) => name.slice(prefix.length));
+}
+
 // Test helper.
 export function clearProvides(): void {
   provides.clear();

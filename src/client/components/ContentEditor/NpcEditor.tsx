@@ -18,6 +18,8 @@ interface NpcEditorProps {
   loadDialogs: () => Promise<{ value: string; label: string }[]>;
   loadQuests: () => Promise<{ value: string; label: string }[]>;
   refreshData: () => void;
+  /** Loaded module ids; fields a disabled module would read stay hidden. */
+  modules: string[];
   onDirtyChange: (dirty: boolean) => void;
   requestDiscard: () => Promise<boolean>;
 }
@@ -95,6 +97,7 @@ export const NpcEditor: React.FC<NpcEditorProps> = ({
   loadDialogs,
   loadQuests,
   refreshData,
+  modules,
   onDirtyChange,
   requestDiscard,
 }) => {
@@ -378,45 +381,49 @@ export const NpcEditor: React.FC<NpcEditorProps> = ({
         loadNpcs={loadNpcs}
       />
 
-      <div style={dropSection}>
-        <label style={{ ...label, marginBottom: 6, display: 'block' }}>
-          {t('npc.dialog')}
-        </label>
-        <Controller
-          control={control}
-          name="dialogId"
-          render={({ field }) => (
-            <AsyncSelect
-              loadOptions={loadDialogs}
-              value={field.value}
-              onChange={field.onChange}
-            />
-          )}
-        />
-        <p style={dropHint}>
-          {watch('dialogId') ? t('npc.dialogSet') : t('npc.dialogNone')}
-        </p>
-      </div>
+      {modules.includes('dialog') && (
+        <div style={dropSection}>
+          <label style={{ ...label, marginBottom: 6, display: 'block' }}>
+            {t('npc.dialog')}
+          </label>
+          <Controller
+            control={control}
+            name="dialogId"
+            render={({ field }) => (
+              <AsyncSelect
+                loadOptions={loadDialogs}
+                value={field.value}
+                onChange={field.onChange}
+              />
+            )}
+          />
+          <p style={dropHint}>
+            {watch('dialogId') ? t('npc.dialogSet') : t('npc.dialogNone')}
+          </p>
+        </div>
+      )}
 
-      <div style={dropSection}>
-        <label style={{ ...label, marginBottom: 6, display: 'block' }}>
-          {t('npc.quest')}
-        </label>
-        <Controller
-          control={control}
-          name="questId"
-          render={({ field }) => (
-            <AsyncSelect
-              loadOptions={loadQuests}
-              value={field.value}
-              onChange={field.onChange}
-            />
-          )}
-        />
-        <p style={dropHint}>
-          {watch('questId') ? t('npc.questSet') : t('npc.questNone')}
-        </p>
-      </div>
+      {modules.includes('quest') && (
+        <div style={dropSection}>
+          <label style={{ ...label, marginBottom: 6, display: 'block' }}>
+            {t('npc.quest')}
+          </label>
+          <Controller
+            control={control}
+            name="questId"
+            render={({ field }) => (
+              <AsyncSelect
+                loadOptions={loadQuests}
+                value={field.value}
+                onChange={field.onChange}
+              />
+            )}
+          />
+          <p style={dropHint}>
+            {watch('questId') ? t('npc.questSet') : t('npc.questNone')}
+          </p>
+        </div>
+      )}
 
       <div style={dropSection}>
         <label style={{ ...label, marginBottom: 6, display: 'block' }}>

@@ -1,5 +1,11 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { provideApi, useApi, isProvided, clearProvides } from './registry.js';
+import {
+  provideApi,
+  useApi,
+  isProvided,
+  providedNames,
+  clearProvides,
+} from './registry.js';
 
 beforeEach(() => clearProvides());
 
@@ -26,5 +32,12 @@ describe('inter-module registry', () => {
     provideApi('x', { v: 2 }); // replaces
     disposeOld(); // should NOT delete the v2 provider
     expect(useApi<{ v: number }>('x')?.v).toBe(2);
+  });
+
+  it('lists the names provided under a prefix, without it', () => {
+    provideApi('dialogAction.questStart', () => {});
+    provideApi('dialogCondition.trusted', () => {});
+    provideApi('dialog', {});
+    expect(providedNames('dialogAction.')).toEqual(['questStart']);
   });
 });

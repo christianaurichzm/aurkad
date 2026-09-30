@@ -369,6 +369,8 @@ export const en = {
   'dialog.action': 'Action',
   'dialog.actionHelp':
     "Name of a handler a script registered with provide('dialogAction.<name>'), run when this choice is picked. If it is missing or throws, the conversation stops instead of moving on.",
+  'dialog.refUnavailable':
+    '{name} is not available: its module is off or its script did not load. The value is kept.',
   'dialog.missing': '{id} (missing)',
   'dialog.idPlaceholder': 'elder-intro',
   'dialog.namePlaceholder': 'Village elder - intro',

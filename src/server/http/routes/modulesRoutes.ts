@@ -1,5 +1,6 @@
 import {
   getClientModules,
+  getLoadedModuleIds,
   readModuleClientFile,
 } from '../../engine/modules/moduleLoader.js';
 import { createRouter } from '../../app.js';
@@ -11,6 +12,10 @@ export function createModulesRouter() {
 
   router.get('/modules', (_req, res) => {
     res.json(getClientModules());
+  });
+
+  router.get('/modules/loaded', (_req, res) => {
+    res.json(getLoadedModuleIds());
   });
 
   router.get('/modules/:id/client', (req, res) => {

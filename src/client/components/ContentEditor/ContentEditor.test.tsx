@@ -13,6 +13,7 @@ const mocks = vi.hoisted(() => ({
   fetchNpcs: vi.fn(),
   fetchItems: vi.fn(),
   fetchMaps: vi.fn(),
+  listModules: vi.fn(),
   useGame: vi.fn(),
 }));
 
@@ -51,6 +52,7 @@ vi.mock('../../io/network', () => ({
   saveQuest: vi.fn(),
   deleteQuest: vi.fn(),
   listRecipes: vi.fn().mockResolvedValue([]),
+  listModules: mocks.listModules,
   saveRecipe: vi.fn(),
   deleteRecipe: vi.fn(),
   createNpc: vi.fn(),
@@ -110,6 +112,7 @@ describe('ContentEditor', () => {
     mocks.fetchNpcs.mockResolvedValue([npc]);
     mocks.fetchItems.mockResolvedValue([]);
     mocks.fetchMaps.mockResolvedValue([currentMap]);
+    mocks.listModules.mockResolvedValue([]);
   });
 
   it('asks before closing with Escape when editor fields are dirty', async () => {
@@ -151,5 +154,21 @@ describe('ContentEditor', () => {
     await waitFor(() =>
       expect(screen.queryByText('Content Editor')).not.toBeInTheDocument(),
     );
+  });
+
+  it('lists only the tabs of modules the server has loaded', async () => {
+    mocks.listModules.mockResolvedValue(['quest', 'magic']);
+    render(<ContentEditor />);
+
+    openContentEditor();
+
+    expect(
+      await screen.findByRole('button', { name: 'Quests' }),
+    ).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Spells' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'NPCs' })).toBeInTheDocument();
+    for (const name of ['Dialogs', 'Recipes', 'Arrows']) {
+      expect(screen.queryByRole('button', { name })).not.toBeInTheDocument();
+    }
   });
 });

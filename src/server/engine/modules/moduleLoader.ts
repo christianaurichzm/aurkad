@@ -181,6 +181,12 @@ export function unloadAllModules(): void {
   loadedManifests.clear();
 }
 
+// Every loaded module, including server-only ones, so the editors can tell
+// which content systems this game actually runs.
+export function getLoadedModuleIds(): string[] {
+  return [...loadedManifests.keys()];
+}
+
 // Loaded modules that ship a browser entry, for the client loader.
 export function getClientModules(): { id: string; client: string }[] {
   return [...loadedManifests.values()]

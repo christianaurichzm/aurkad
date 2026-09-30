@@ -368,6 +368,8 @@ export const pt: Record<keyof typeof en, string> = {
   'dialog.action': 'Ação',
   'dialog.actionHelp':
     "Nome de um handler que um script registrou com provide('dialogAction.<nome>'), rodado quando esta escolha é feita. Se ele faltar ou lançar erro, a conversa para em vez de seguir.",
+  'dialog.refUnavailable':
+    '{name} não está disponível: o módulo está desligado ou o script não carregou. O valor é mantido.',
   'dialog.missing': '{id} (ausente)',
   'dialog.idPlaceholder': 'anciao-intro',
   'dialog.namePlaceholder': 'Ancião da vila - intro',

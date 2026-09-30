@@ -78,6 +78,8 @@ export {
   saveQuest,
   deleteQuest,
   listRecipes,
+  listModules,
+  fetchDialogRefs,
   saveRecipe,
   deleteRecipe,
   fetchBehaviors,
