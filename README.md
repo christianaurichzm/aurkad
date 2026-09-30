@@ -76,8 +76,10 @@ above.
   looks. `brand.name` goes on the browser tab and the login card, `brand.logo`
   names a picture in `theme/` to go beside it. `theme/theme.css` loads after the
   engine's stylesheet, so it can repaint anything: the colour tokens every panel
-  is drawn from, fonts, a background for the login screen, textures on the
-  panels. Every file in `theme/` is public at `/theme/<name>`, because the login
+  is drawn from, the three fonts (`--font-ui` for text, `--font-display` for
+  titles and names, `--font-world` for levels, bars and keys), a background
+  for the login screen, textures on the panels. Every file in `theme/` is
+  public at `/theme/<name>`, because the login
   screen needs it before anyone has a session. The two corner radii
   (`--radius-control`, `--radius-panel`) and the UI icons are variables too:
   `--icon-attack: url(/theme/icons/sword.svg)` replaces one, written from the
