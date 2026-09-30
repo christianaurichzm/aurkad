@@ -157,13 +157,15 @@ export function useItem(username: string, itemId: number): boolean {
   if (item.type === 'consumable') {
     if (!invItem || invItem.quantity <= 0) return false;
 
-    emit('itemUse', { player, itemId });
+    let refused = false;
     dispatchEntityScript(
       item.scriptId,
       'onUse',
-      { player, item, itemId },
+      { player, item, itemId, refuse: () => void (refused = true) },
       item.scriptParams,
     );
+    if (refused) return false;
+    emit('itemUse', { player, itemId });
     const before = player.health;
     applyItemEffects(player, item.effects);
     recordHealthChange(player, player.health - before);

@@ -309,7 +309,13 @@ type ScriptParamDecl = { label?: string; help?: string; required?: boolean } & (
       max?: number;
     }
   | { type: 'boolean'; default?: boolean }
-  | { type: 'select'; options: string[]; default?: string }
+  | {
+      type: 'select';
+      options: string[];
+      /** What the editor shows for each option, when the value is an id. */
+      optionLabels?: string[];
+      default?: string;
+    }
 );
 
 /** What one declared field is worth at runtime; ids are numbers. */
@@ -364,14 +370,15 @@ interface EntityBehavior<
     params: ScriptParamsOf<P>;
   }): void;
   /**
-   * A player consumed an item carrying this behavior. Consumables only -
-   * equipment reaches onEquip/onUnequip instead, so the item's type decides
-   * which of the three can ever run.
+   * A player consumed an item carrying this behavior; equipment gets
+   * onEquip/onUnequip instead. `refuse()` keeps the item: nothing is spent,
+   * no effects apply and `itemUse` does not fire.
    */
   onUse?(ctx: {
     player: PlayerServer;
     item: { id: number; name: string; type: string; scriptId?: string };
     itemId: number;
+    refuse(): void;
     params: ScriptParamsOf<P>;
   }): void;
   /**

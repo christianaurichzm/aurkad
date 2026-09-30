@@ -40,8 +40,17 @@ interface BehaviorEvents extends Record<ScriptBehaviorEvent, object> {
   onInteract: { player: PlayerServer; npc: RuntimeNpc };
   /** An npc carrying this behaviour died. */
   onDeath: { npc: RuntimeNpc; killer?: CombatTarget };
-  /** A player consumed an item carrying this behaviour. */
-  onUse: { player: PlayerServer; item: Item; itemId: number };
+  /**
+   * A player consumed an item carrying this behaviour. `refuse()` keeps the
+   * item: nothing is spent, its effects do not apply and `itemUse` does not
+   * fire, as for a tome offered to someone who already knows its spell.
+   */
+  onUse: {
+    player: PlayerServer;
+    item: Item;
+    itemId: number;
+    refuse: () => void;
+  };
   /**
    * A player put on equipment carrying this behaviour.
    *

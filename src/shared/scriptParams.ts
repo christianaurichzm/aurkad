@@ -53,6 +53,12 @@ export interface ScriptParamSpec {
   max?: number;
   /** `select` only, and non-empty: the allowed values. */
   options?: string[];
+  /**
+   * `select` only: what the editor shows for each option, in the same order.
+   * For values that are ids: the stored value stays the id, so renaming the
+   * thing it points at breaks nothing.
+   */
+  optionLabels?: string[];
 }
 
 /** Dispatch points a behaviour can implement, in the editors' order. */
@@ -268,6 +274,20 @@ export function normalizeParamSpecs(raw: unknown): {
         continue;
       }
       spec.options = options as string[];
+      const labels = decl['optionLabels'];
+      if (labels !== undefined) {
+        if (
+          !Array.isArray(labels) ||
+          labels.length !== options.length ||
+          labels.some((l) => typeof l !== 'string')
+        ) {
+          errors.push(
+            `param "${key}" has optionLabels that are not one string per option`,
+          );
+          continue;
+        }
+        spec.optionLabels = labels as string[];
+      }
     }
 
     if (isNumericParam(type)) {

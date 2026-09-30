@@ -11,10 +11,24 @@
 // 'enemies' damages npcs in range, 'self' heals the caster, 'party' and
 // 'guild' heal allies in range. With manualVisual:true the cast function
 // sends its own visuals.
+//
+// `startingSpells` in config is what a new character can cast (unset:
+// everything). Dialogs teach with `learnSpell:<id>` and test with
+// `lacksSpell:<id>` or `knowsSpell:<id>`, and a tome is a consumable whose
+// behaviour is `learnSpell`.
 
 const manaMax = Number((config && config.manaMax) || 100);
 const regenPerSec = Number((config && config.manaRegenPerSec) || 5);
 const blastRadius = Number((config && config.blastRadius) || 120);
+const starting = config && config.startingSpells;
+const startingSpells = Array.isArray(starting) ? starting.map(String) : null;
+
+i18n({
+  pt: {
+    'You learned {spell}.': 'Você aprendeu {spell}.',
+    'You already know {spell}.': 'Você já conhece {spell}.',
+  },
+});
 
 const spells = new Map();
 const cooldowns = {}; // playerName -> { spellId: readyAtMs }
@@ -245,6 +259,64 @@ function setSpells(player, ids) {
   pushState(player);
 }
 
-provide('magic', { defineSpell, cast, setSpells });
+function knows(player, spellId) {
+  const book = spellbook(player);
+  return spells.has(String(spellId)) && (!book || book.has(String(spellId)));
+}
+
+/**
+ * Adds a spell to what `player` can cast. False when they can cast it already,
+ * which with no list of their own is every spell; throws on an id no spell
+ * has, so a dialog naming a deleted spell stops instead of moving on to "now
+ * you know it".
+ */
+function learn(player, spellId) {
+  const spell = spells.get(String(spellId));
+  if (!spell) throw new Error('no spell ' + spellId);
+  if (knows(player, spell.id)) return false;
+  setSpells(player, [...(spellbook(player) || []), spell.id]);
+  sendMessage(player, t(player, 'You learned {spell}.', { spell: spell.name }));
+  return true;
+}
+
+// Only a character with no list yet gets the starting spells.
+on('playerJoin', ({ player }) => {
+  if (startingSpells && !spellbook(player)) setSpells(player, startingSpells);
+});
+
+provide('dialogAction.learnSpell', ({ player, arg }) => {
+  learn(player, arg);
+});
+provide('dialogCondition.knowsSpell', ({ player, arg }) => knows(player, arg));
+provide('dialogCondition.lacksSpell', ({ player, arg }) => !knows(player, arg));
+
+// The editor lists the spells defined by the time this runs; one a
+// script defines later is taught by id from a dialog, or with setSpells.
+const teachable = [...spells.values()];
+attach('learnSpell', {
+  params: {
+    spell: {
+      type: 'select',
+      label: 'Spell',
+      options: teachable.map((s) => s.id),
+      optionLabels: teachable.map((s) => s.name),
+    },
+  },
+  onUse({ player, params, refuse }) {
+    const spell = spells.get(String(params.spell));
+    if (spell && !knows(player, spell.id)) {
+      learn(player, spell.id);
+      return;
+    }
+    refuse();
+    if (!spell) throw new Error('tome names no spell: ' + params.spell);
+    sendMessage(
+      player,
+      t(player, 'You already know {spell}.', { spell: spell.name }),
+    );
+  },
+});
+
+provide('magic', { defineSpell, cast, setSpells, learn });
 
 log('Magic module ready (manaMax=' + manaMax + ').');

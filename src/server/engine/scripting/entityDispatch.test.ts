@@ -205,6 +205,36 @@ describe('item with a behavior', () => {
     handle.cleanup();
   });
 
+  it('keeps an item whose behavior refuses the use, effects and all', () => {
+    const sim = createFixture(0);
+    const handle = script(`
+      attach('sealed', { onUse({ refuse }) { refuse(); } });
+      on('itemUse', () => record('itemUse'));
+    `);
+
+    items.set(1, {
+      id: 1,
+      name: 'Sealed potion',
+      sprite: 0,
+      type: 'consumable',
+      scriptId: 'sealed',
+      effects: [{ attribute: 'health', type: 'add', value: 50 }],
+    } as Item);
+    const alice = sim.addPlayer({
+      name: 'Alice',
+      health: 10,
+      inventory: { items: [{ item: 1, quantity: 1 }], maxCapacity: 10 },
+    });
+
+    expect(useItem('Alice', 1)).toBe(false);
+
+    expect(alice.inventory.items).toEqual([{ item: 1, quantity: 1 }]);
+    expect(alice.health).toBe(10);
+    expect(calls.log).toEqual([]);
+
+    handle.cleanup();
+  });
+
   it('runs onEquip and onUnequip when a player puts equipment on and takes it off', () => {
     const sim = createFixture(0);
     const handle = script(`

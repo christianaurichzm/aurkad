@@ -180,7 +180,10 @@ const ParamField: React.FC<ParamFieldProps> = ({
       <div style={paramField}>
         {heading}
         <Select
-          options={(spec.options ?? []).map((o) => ({ value: o, label: o }))}
+          options={(spec.options ?? []).map((o, i) => ({
+            value: o,
+            label: spec.optionLabels?.[i] ?? o,
+          }))}
           value={String(shown)}
           onChange={onChange}
         />

@@ -6,11 +6,14 @@ import { unloadAllModules } from './moduleLoader.js';
 import { loadModulesForTest } from '../../../test/modules.js';
 import { useApi, clearProvides } from './registry.js';
 import { clearCommands, handleChatCommand } from '../commands.js';
-import { clearAll } from '../hooks.js';
+import { clearAll, emit } from '../hooks.js';
 import { drainGameEvents } from '../eventBus.js';
 import { clearKvStoreMemory } from '../../persistence/kvStore.js';
 import { handleCustomAction } from '../../services/comms/customEventService.js';
 import { createFixture, tile } from '../../sim/simFixture.js';
+import { gameConfig } from '../../gameConfig.js';
+import { useItem } from '../../services/economy/inventoryService.js';
+import { items } from '../../services/world/gameData.js';
 import type { PlayerServer, Spell } from '../../../shared/types.js';
 
 // What the module reads back as the database's spells. Empty, it seeds and
@@ -24,6 +27,7 @@ vi.mock('../../services/content/spellService.js', async (importOriginal) => ({
 interface MagicApi {
   cast: (player: PlayerServer, spellId: string) => boolean;
   setSpells: (player: PlayerServer, ids?: string[]) => void;
+  learn: (player: PlayerServer, spellId: string) => boolean;
 }
 
 function castVia(action: string, username: string, id: string) {
@@ -243,4 +247,91 @@ describe('magic module', () => {
       expect(carol.health).toBe(40); // not in the group
     },
   );
+});
+
+describe('learning spells', () => {
+  type DialogRef = (ctx: { player: PlayerServer; arg: string }) => unknown;
+  const ref = (name: string) => useApi<DialogRef>(name)!;
+  const said = () =>
+    drainGameEvents().flatMap((e) =>
+      e.type === 'chatPlayer' ? [e.payload.message] : [],
+    );
+
+  it('starts a character with no list of their own on the configured spells', () => {
+    const before = gameConfig.modules['magic'];
+    unloadAllModules();
+    clearAll();
+    clearProvides();
+    gameConfig.modules['magic'] = {
+      enabled: true,
+      config: { startingSpells: ['heal'] },
+    };
+    try {
+      loadModulesForTest('magic');
+      const sim = createFixture(0);
+      const fresh = sim.addPlayer({ name: 'Alice' });
+      const taught = sim.addPlayer({
+        name: 'Bob',
+        data: { spells: ['blast', 'heal'] },
+      });
+
+      emit('playerJoin', { player: fresh });
+      emit('playerJoin', { player: taught });
+
+      expect(fresh.data?.spells).toEqual(['heal']);
+      expect(taught.data?.spells).toEqual(['blast', 'heal']);
+    } finally {
+      gameConfig.modules['magic'] = before!;
+    }
+  });
+
+  it('teaches from a dialog, whose offer goes once the spell is known', () => {
+    const sim = createFixture(0);
+    const alice = sim.addPlayer({ name: 'Alice' });
+    useApi<MagicApi>('magic')!.setSpells(alice, ['blast']);
+    drainGameEvents();
+    const ctx = { player: alice, arg: 'heal' };
+
+    expect(ref('dialogCondition.lacksSpell')(ctx)).toBe(true);
+    ref('dialogAction.learnSpell')(ctx);
+
+    expect(alice.data?.spells).toEqual(['blast', 'heal']);
+    expect(said()).toEqual(['You learned Heal.']);
+    expect(ref('dialogCondition.lacksSpell')(ctx)).toBe(false);
+    expect(ref('dialogCondition.knowsSpell')(ctx)).toBe(true);
+    // A dialog naming a spell that is gone stops rather than saying it taught.
+    expect(() =>
+      ref('dialogAction.learnSpell')({ player: alice, arg: 'gone' }),
+    ).toThrow();
+  });
+
+  it('teaches from a tome, kept by a reader who knows the spell already', () => {
+    const sim = createFixture(0);
+    items.set(90, {
+      id: 90,
+      name: 'Tome of Healing',
+      description: '',
+      sprite: 0,
+      type: 'consumable',
+      scriptId: 'learnSpell',
+      scriptParams: { spell: 'heal' },
+    });
+    const alice = sim.addPlayer({
+      name: 'Alice',
+      inventory: { items: [{ item: 90, quantity: 2 }], maxCapacity: 10 },
+    });
+    useApi<MagicApi>('magic')!.setSpells(alice, ['blast']);
+    drainGameEvents();
+
+    try {
+      expect(useItem('Alice', 90)).toBe(true);
+      expect(useItem('Alice', 90)).toBe(false);
+
+      expect(alice.data?.spells).toEqual(['blast', 'heal']);
+      expect(alice.inventory.items).toEqual([{ item: 90, quantity: 1 }]);
+      expect(said()).toEqual(['You learned Heal.', 'You already know Heal.']);
+    } finally {
+      items.delete(90);
+    }
+  });
 });

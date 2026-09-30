@@ -51,6 +51,24 @@ describe('normalizeParamSpecs', () => {
     ).toHaveLength(1);
   });
 
+  it('takes a label per select option, and only one per option', () => {
+    const labelled = normalizeParamSpecs({
+      spell: {
+        type: 'select',
+        options: ['1', '2'],
+        optionLabels: ['Frost', 'Heal'],
+      },
+    });
+    expect(labelled.errors).toEqual([]);
+    expect(labelled.specs[0]!.optionLabels).toEqual(['Frost', 'Heal']);
+
+    expect(
+      normalizeParamSpecs({
+        spell: { type: 'select', options: ['1', '2'], optionLabels: ['Frost'] },
+      }).errors,
+    ).toHaveLength(1);
+  });
+
   it('rejects a default the type cannot hold', () => {
     const { errors } = normalizeParamSpecs({
       x: { type: 'number', default: 'lots' },
