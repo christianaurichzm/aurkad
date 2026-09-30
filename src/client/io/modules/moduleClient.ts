@@ -178,18 +178,25 @@ function moduleContainer(id: string): HTMLElement {
   return el;
 }
 
-// Notices over the world, centred on it under the map name. Every module's
-// share one stack, so two landing in the same tick (a first kill that finishes
-// a quest and earns an achievement) sit one under the other. The stack lives
-// in the world's frame, above the dimming an open window puts over the page:
-// a dialog choice is what starts a quest, and its window is still up then.
+// Notices over the world, centred under the map name. All modules share one
+// stack, so two in the same tick (a kill that ends a quest and earns an
+// achievement) stack up. It must sit above the dimming of an open window,
+// since a dialog choice starts a quest, so it hangs off the body: inside the
+// frame, size containment makes a stacking context no z-index escapes.
 function toast(el: HTMLElement, ms = 3000, fallback: HTMLElement): void {
   const frame = document.getElementById('canvasFrame');
-  let stack = frame?.querySelector<HTMLElement>(':scope > .module-toasts');
+  let stack = document.querySelector<HTMLElement>('body > .module-toasts');
   if (frame && !stack) {
     stack = document.createElement('div');
     stack.className = 'module-toasts';
-    frame.append(stack);
+    document.body.append(stack);
+  }
+  if (frame && stack) {
+    // Placed as each notice lands, so a resize while one is up
+    // leaves it where the frame was until the next.
+    const box = frame.getBoundingClientRect();
+    stack.style.left = `${box.left + box.width / 2}px`;
+    stack.style.top = `${box.top + 44}px`;
   }
   (stack ?? fallback).append(el);
   setTimeout(() => (el.style.opacity = '0'), ms);

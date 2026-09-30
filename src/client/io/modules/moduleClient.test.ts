@@ -86,7 +86,7 @@ describe('module toasts', () => {
     vi.useFakeTimers();
     try {
       await loadClientModules();
-      const stacks = frame.querySelectorAll('.module-toasts');
+      const stacks = document.querySelectorAll('.module-toasts');
       expect(stacks).toHaveLength(1);
       expect([...stacks[0].children].map((c) => c.textContent)).toEqual([
         'Achievement unlocked',
@@ -109,7 +109,9 @@ describe('module toasts', () => {
     `);
     setLanguage('pt');
     await loadClientModules();
-    const notice = frame.querySelector<HTMLElement>('.module-toasts > .notice');
+    const notice = document.querySelector<HTMLElement>(
+      '.module-toasts > .notice',
+    );
     expect(notice?.dataset.tone).toBe('warning');
     expect(notice?.getAttribute('style')).toBeNull();
     expect(notice?.querySelector('.notice-label')?.textContent).toBe('Quests');

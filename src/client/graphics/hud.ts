@@ -1,5 +1,6 @@
 import { RuntimeNpc, Player, PlayerPublic } from '../../shared/types';
 import { TILE_SIZE } from '../../shared/constants';
+import { themeToken } from './floatingText';
 import { playerCtx } from './canvas';
 import {
   playerNameColorRecord,
@@ -8,6 +9,22 @@ import {
 import { useUIStore } from '../stores/uiStore';
 import { renderSpeechBubble } from './speechBubble';
 import { getGameBrand } from '../io/network/http/authClient';
+
+// Fonts and colours come from the theme, whose stylesheet blocks rendering,
+// so they are read once on first use.
+const readTheme = () => ({
+  world: themeToken('--font-world', 'monospace'),
+  muted: themeToken('--color-text-muted', '#94a3b0'),
+  danger: themeToken('--color-danger', '#cf4555'),
+  dangerTrack: themeToken('--color-danger-muted', '#2e1d22'),
+  surface: themeToken('--color-surface-muted', '#141a20'),
+  border: themeToken('--color-border', '#34424f'),
+  text: themeToken('--color-text', '#e8eef4'),
+  accent: themeToken('--color-accent', '#4ea8de'),
+  appBg: themeToken('--color-app-bg', '#0c1014'),
+});
+let theme: ReturnType<typeof readTheme> | null = null;
+const hudTheme = () => (theme ??= readTheme());
 
 // A game with no levels shows none; until /game has answered, assume it has.
 export const getPlayerHudText = (name: string, level: number, levels = true) =>
@@ -68,14 +85,15 @@ export const renderHUD = (
     player;
   const { x, y } = position;
   const cx = x + TILE_SIZE / 2; // sprite center: names are centered over it
+  const { world } = hudTheme();
 
   if (nameTag) {
     outlinedText(
       ctx,
       nameTag,
       cx,
-      y - 15,
-      'bold 12px Arial',
+      y - 16,
+      `bold 12px ${world}`,
       nameTagColor ?? '#ffd24d',
     );
   }
@@ -84,7 +102,7 @@ export const renderHUD = (
     getPlayerHudText(name, level, getGameBrand()?.levels !== false),
     cx,
     y,
-    'bold 14px Arial',
+    `bold 15px ${world}`,
     nameColor ?? playerNameColorRecord[access],
   );
 
@@ -115,43 +133,57 @@ export const updatePlayerHealthBar = (player: Player) => {
 };
 
 // The npc's name above its sprite, tinted by behavior and a shade smaller
-// than player names, above the health bar for npcs that have one
-// (aggressive), otherwise at the sprite top.
+// than player names. "Thomas, merchant" draws the title smaller and muted
+// under the name, above the health bar when there is one.
 export const renderNpcLabel = (
   npc: RuntimeNpc,
   hasHealthBar: boolean,
   ctx: CanvasRenderingContext2D = playerCtx,
 ) => {
   if (!npc.name) return;
+  const { world, muted } = hudTheme();
   const cx = npc.position.x + TILE_SIZE / 2; // centered over the sprite
-  const y = hasHealthBar ? npc.position.y - 18 : npc.position.y;
+  let y = hasHealthBar ? npc.position.y - HEALTH_BAR_CLEARANCE : npc.position.y;
+  const comma = npc.name.indexOf(',');
+  const role = comma > 0 ? npc.name.slice(comma + 1).trim() : '';
+  if (role) {
+    outlinedText(ctx, role, cx, y, `bold 12px ${world}`, muted);
+    y -= 14;
+  }
 
   outlinedText(
     ctx,
-    npc.name,
+    role ? npc.name.slice(0, comma) : npc.name,
     cx,
     y,
-    'bold 13px Arial',
+    `bold 14px ${world}`,
     npcBehaviorColorRecord[npc.behavior] ?? '#e5e7eb',
   );
 };
 
+const HEALTH_BAR_HEIGHT = 5;
+// Room above the sprite for the bar, its outline and a name's descenders.
+const HEALTH_BAR_CLEARANCE = HEALTH_BAR_HEIGHT + 8;
+
+// A slim bar in the danger colour: the colour says whose health it is, the
+// length how much is left.
 export const renderHealthBar = (
   npc: RuntimeNpc,
   ctx: CanvasRenderingContext2D = playerCtx,
 ) => {
-  const barWidth = npc.width;
-  const barHeight = 10;
-  const barX = npc.position.x;
-  const barY = npc.position.y - barHeight - 5;
+  const { danger, dangerTrack } = hudTheme();
+  const width = npc.width;
+  const height = HEALTH_BAR_HEIGHT;
+  const x = npc.position.x;
+  const y = npc.position.y - height - 4;
+  const { percentage } = getHealthBarInfo(npc.health, npc.maxHealth);
 
-  const { percentage, color } = getHealthBarInfo(npc.health, npc.maxHealth);
-
-  ctx.fillStyle = color;
-  ctx.fillRect(barX, barY, barWidth * percentage, barHeight);
-
-  ctx.strokeStyle = 'black';
-  ctx.strokeRect(barX, barY, barWidth, barHeight);
+  ctx.fillStyle = 'black';
+  ctx.fillRect(x - 1, y - 1, width + 2, height + 2);
+  ctx.fillStyle = dangerTrack;
+  ctx.fillRect(x, y, width, height);
+  ctx.fillStyle = danger;
+  ctx.fillRect(x, y, Math.round(width * percentage), height);
 };
 
 export function showConnectionStatus(message: string, isError = false) {

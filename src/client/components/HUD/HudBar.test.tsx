@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { act, render, screen } from '@testing-library/react';
 import '../../io/network/wsManager';
 import { dispatchServerEvent } from '../../io/network/customEvents';
-import { HudBar, MapName } from './HudBar';
+import { HudBar, LowHealthVignette, MapName } from './HudBar';
 import { useUIStore } from '../../stores/uiStore';
 
 // The card names the player, which is session state rather than store state;
@@ -247,5 +247,53 @@ describe('MapName', () => {
     expect(shown({ type: 'pvp', pvp: 'safe' })).toBe(false);
     expect(shown({ type: 'pvp' })).toBe(true);
     expect(shown({ type: 'normal' })).toBe(false);
+  });
+});
+
+describe('the zone banner', () => {
+  it('announces a map once as it is entered, and again for the next one', () => {
+    useUIStore.setState({
+      currentMap: { id: '1', name: 'Vale', type: 'normal' },
+    });
+    const { container, rerender } = render(<MapName />);
+    const banner = container.querySelector('.zone-banner')!;
+    expect(banner).toHaveTextContent('Vale');
+
+    act(() =>
+      useUIStore.setState({
+        currentMap: { id: '1', name: 'Vale', type: 'normal' },
+      }),
+    );
+    rerender(<MapName />);
+    expect(container.querySelector('.zone-banner')).toBe(banner);
+
+    act(() =>
+      useUIStore.setState({
+        currentMap: { id: '2', name: 'Crypt', type: 'normal' },
+      }),
+    );
+    const next = container.querySelector('.zone-banner')!;
+    expect(next).not.toBe(banner);
+    expect(next).toHaveTextContent('Crypt');
+  });
+});
+
+describe('LowHealthVignette', () => {
+  it('pulses in the red band of the bar only, and not over the dead', () => {
+    const at = (current: number) => {
+      useUIStore.setState({ playerHealth: { current, max: 100 } });
+      const { container, unmount } = render(<LowHealthVignette />);
+      const shown = !!container.querySelector('.low-health-vignette');
+      unmount();
+      return shown;
+    };
+
+    expect([at(50), at(21), at(20), at(1), at(0)]).toEqual([
+      false,
+      false,
+      true,
+      true,
+      false,
+    ]);
   });
 });

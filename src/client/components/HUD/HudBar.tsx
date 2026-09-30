@@ -134,14 +134,33 @@ export const HudBar = () => {
 
 // Primitives, since the store rebuilds currentMap on every state message.
 export const MapName = () => {
+  const id = useUIStore((state) => state.currentMap?.id);
   const name = useUIStore((state) => state.currentMap?.name);
   const pvp = useUIStore(
     (state) => !!state.currentMap && mapAllowsPvp(state.currentMap),
   );
   if (!name) return null;
   return (
-    <div id="map-name" className={pvp ? 'map-name-pvp' : undefined}>
-      {name}
-    </div>
+    <>
+      <div id="map-name" className={pvp ? 'map-name-pvp' : undefined}>
+        {name}
+      </div>
+      {/* Announced across the world as it is entered, then faded out by the
+          stylesheet; keyed by map so the next one plays it again. The pill
+          above is what a screen reader, and a player who looked away, reads. */}
+      <div className="zone-banner" key={id} aria-hidden="true">
+        {name}
+      </div>
+    </>
   );
+};
+
+// The world's edge pulsing red while health is in the red band of the bar.
+export const LowHealthVignette = () => {
+  const low = useUIStore(({ playerHealth: { current, max } }) => {
+    return current > 0 && getHealthBarInfo(current, max).color === 'red';
+  });
+  return low ? (
+    <div className="low-health-vignette" aria-hidden="true" />
+  ) : null;
 };

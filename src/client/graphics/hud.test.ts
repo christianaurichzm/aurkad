@@ -177,6 +177,23 @@ describe('renderNpcLabel', () => {
     expect(rec.ctx.lineJoin).toBe('miter');
   });
 
+  it('sets a title after the comma as a smaller line under the name', () => {
+    const rec = recordingContext();
+    const fonts: string[] = [];
+    const fill = rec.ctx.fillText.bind(rec.ctx);
+    rec.ctx.fillText = (...args) => {
+      fonts.push(rec.ctx.font);
+      fill(...args);
+    };
+
+    renderNpcLabel(npc('Thomas, merchant'), false, rec.ctx);
+
+    const lines = rec.of('fillText').map((c) => c.args);
+    expect(lines.map(([text]) => text)).toEqual(['merchant', 'Thomas']);
+    expect(lines[0][2]).toBeGreaterThan(lines[1][2] as number);
+    expect(fontSize(fonts[0])).toBeLessThan(fontSize(fonts[1]));
+  });
+
   it('draws nothing for an unnamed npc', () => {
     const rec = recordingContext();
 

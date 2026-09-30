@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { ContentEditor } from './components/ContentEditor/ContentEditor';
 import { GameInterface } from './components/GameInterface';
-import { HudBar, MapName } from './components/HUD/HudBar';
+import { HudBar, LowHealthVignette, MapName } from './components/HUD/HudBar';
 import { Hotbar } from './components/HUD/Hotbar';
 import { TouchControls } from './components/HUD/TouchControls';
 import { Icon } from './components/common/Icon';
@@ -86,6 +86,7 @@ function App() {
                 <div id="canvasFrame">
                   <GameCanvas />
                   <GameInterface />
+                  <LowHealthVignette />
                   <MapName />
                   <QuestTracker />
                   <Hotbar />
