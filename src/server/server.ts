@@ -52,6 +52,7 @@ import { createAudioRouter } from './http/routes/audioRoutes.js';
 import { createModulesRouter } from './http/routes/modulesRoutes.js';
 import { createConsoleRouter } from './http/routes/consoleRoutes.js';
 import { createAdminAuthRouter } from './http/routes/adminAuthRoutes.js';
+import { createThemeRouter } from './http/routes/themeRoutes.js';
 import { createScriptsRouter } from './http/routes/scriptsRoutes.js';
 import { registerServerCommands } from './admin/serverCommands.js';
 import { runForwardedCommand } from './engine/commands.js';
@@ -140,6 +141,7 @@ app.use(createAudioRouter());
 app.use(createModulesRouter());
 app.use(createConsoleRouter());
 app.use(createAdminAuthRouter());
+app.use(createThemeRouter());
 // Off by default: saving a script here runs on the server (see the trust
 // model in engine/scripting/sandbox.ts). Not mounted at all when disabled,
 // so the endpoints 404 rather than merely 403.

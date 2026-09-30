@@ -35,7 +35,32 @@ describe('gameRoutes', () => {
       logo: '/theme/logo.png',
       levels: true,
       attributes: true,
+      layout: 'right',
     });
+  });
+
+  it('says where the menu sits, once theme.json says', async () => {
+    fs.writeFileSync(
+      path.join(themeDir, 'theme.json'),
+      JSON.stringify({ layout: 'bottom' }),
+    );
+
+    const res = await request(appFor({ name: 'Tandem' })).get('/game');
+
+    expect(res.body.layout).toBe('bottom');
+  });
+
+  it('shows a logo uploaded from the Appearance page over the one game.json names', async () => {
+    fs.writeFileSync(
+      path.join(themeDir, 'theme.json'),
+      JSON.stringify({ logo: 'logo-0123abcd.webp' }),
+    );
+
+    const res = await request(appFor({ name: 'Tandem', logo: 'logo.png' })).get(
+      '/game',
+    );
+
+    expect(res.body.logo).toBe('/theme/logo-0123abcd.webp');
   });
 
   it('says so when the game has no attribute points to hand out', async () => {
@@ -79,5 +104,20 @@ describe('gameRoutes', () => {
     expect(res.status).toBe(200);
     expect(res.headers['content-type']).toMatch(/text\/css/);
     expect(res.text).toBe('');
+  });
+
+  it('puts what theme.json asks for ahead of the theme written by hand', async () => {
+    fs.writeFileSync(
+      path.join(themeDir, 'theme.json'),
+      JSON.stringify({ colors: { primary: '#d9822b' } }),
+    );
+    fs.writeFileSync(path.join(themeDir, 'theme.css'), '.a{color:red}');
+
+    const res = await request(appFor({ name: 'Tandem' })).get(
+      '/theme/theme.css',
+    );
+
+    expect(res.text).toMatch(/^:root \{\n {2}--color-primary: #d9822b;/);
+    expect(res.text.endsWith('.a{color:red}')).toBe(true);
   });
 });

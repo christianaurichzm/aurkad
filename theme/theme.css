@@ -12,6 +12,14 @@
      --color-surface: #2a211a;
    }
 
+   No CSS needed for the common choices: a theme.json beside this file picks
+   the colours (primary, accent, background, surface, text, danger, as #rrggbb),
+   the corners (square, soft, round), a font (system, serif, mono) and where the
+   menu sits (right, left, bottom), and the engine mixes the other tokens from
+   them. Anything written in this file wins over it:
+
+   { "colors": { "primary": "#d9822b" }, "corners": "soft", "layout": "bottom" }
+
    The ids and classes that stay put across engine releases are listed at the
    top of public/styles.css. The login screen is .auth-layout (the backdrop)
    and .auth-card (the box), with the name and logo in .engine-brand. */
