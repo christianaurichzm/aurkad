@@ -86,6 +86,7 @@ export const initializeWebSocket = (url = currentWsUrl) => {
     // On every open: the server keeps this on the session, so a reconnect or a
     // cross-map warp to another instance would answer in English until told.
     sendAction({ type: 'language', language: getLanguage() });
+    for (const action of beforeOpen.splice(0)) sendAction(action);
   };
 
   socket.onmessage = (event: MessageEvent<string>) => {
@@ -169,17 +170,28 @@ export const initializeWebSocket = (url = currentWsUrl) => {
   setChatSocketSender(sendAction);
 };
 
+// Modules ask for their state (quest:request) before the socket exists, so
+// custom events wait for it to open, or the module stays empty. Moves and
+// attacks do not wait: sent late, they are a step the player never meant.
+const beforeOpen: WsClientMessage[] = [];
+
 export function sendAction(action: WsClientMessage): void {
   if (socket?.readyState === WebSocket.OPEN) {
     socket.send(JSON.stringify(action));
+  } else if (
+    action.type === 'custom' &&
+    (!socket || socket.readyState === WebSocket.CONNECTING)
+  ) {
+    beforeOpen.push(action);
   } else {
     console.warn('WebSocket not open. Action skipped:', action.type);
   }
 }
 
-// A switch mid-session: the screens re-render on their own, and this is what
-// keeps the next command reply from arriving in the language just left behind.
+// A switch mid-session, so command replies follow it. A module adding its
+// table fires this too before the socket is up; the open sends it then.
 onLanguageChange(() => {
+  if (socket?.readyState !== WebSocket.OPEN) return;
   sendAction({ type: 'language', language: getLanguage() });
 });
 

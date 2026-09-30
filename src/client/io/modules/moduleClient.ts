@@ -517,25 +517,34 @@ export async function loadClientModules(): Promise<void> {
     return;
   }
 
-  for (const m of modules) {
+  // A module's client half is the server owner's code (see the trust model
+  // in the server's sandbox.ts), served as an ES module exporting a function
+  // of (engine, React). Importing it from our own origin satisfies the CSP's
+  // script-src 'self'; evaluating a fetched string would need 'unsafe-eval'.
+  //
+  // Fetched together and run in list order, which puts dependencies first.
+  type Run = (
+    engine: ReturnType<typeof makeEngineApi>,
+    react: typeof React,
+  ) => void;
+  const loaded = await Promise.all(
+    modules.map((m) =>
+      import(/* @vite-ignore */ `/modules/${m.id}/client`).then(
+        (mod: { default: Run }) => ({ id: m.id, run: mod.default }),
+        (e: unknown) => {
+          console.error(`[modules] client "${m.id}" failed to load`, e);
+          return undefined;
+        },
+      ),
+    ),
+  );
+  for (const entry of loaded) {
+    if (!entry) continue;
     try {
-      // A module's client half is the server owner's own code, served by
-      // this server (see the trust model in the server's sandbox.ts) as an ES
-      // module exporting a function of (engine, React). Imported from our own
-      // origin, it is script the page's `script-src 'self'` allows, where
-      // evaluating a fetched string would need 'unsafe-eval'.
-      const { default: run } = (await import(
-        /* @vite-ignore */ `/modules/${m.id}/client`
-      )) as {
-        default: (
-          engine: ReturnType<typeof makeEngineApi>,
-          react: typeof React,
-        ) => void;
-      };
-      run(makeEngineApi(m.id), React);
-      console.log(`[modules] client loaded: ${m.id}`);
+      entry.run(makeEngineApi(entry.id), React);
+      console.log(`[modules] client loaded: ${entry.id}`);
     } catch (e) {
-      console.error(`[modules] client "${m.id}" failed to load`, e);
+      console.error(`[modules] client "${entry.id}" failed to load`, e);
     }
   }
 }
