@@ -195,7 +195,7 @@ describe('buying from a shop', () => {
       maxCapacity: 10,
     });
 
-    expect(await buyShopItem(player, 2, shop(10))).toBe(true);
+    expect(await buyShopItem(player, 2, shop(10))).toEqual({ ok: true });
 
     expect(countItem(player.inventory, 1)).toBe(40);
     expect(countItem(player.inventory, 2)).toBe(1);
@@ -207,7 +207,10 @@ describe('buying from a shop', () => {
       maxCapacity: 10,
     });
 
-    expect(await buyShopItem(player, 2, shop(10))).toBe(false);
+    expect(await buyShopItem(player, 2, shop(10))).toEqual({
+      ok: false,
+      reason: 'not-enough',
+    });
 
     expect(countItem(player.inventory, 1)).toBe(5);
     expect(countItem(player.inventory, 2)).toBe(0);
@@ -223,7 +226,15 @@ describe('buying from a shop', () => {
       maxCapacity: 2,
     });
 
-    expect(await buyShopItem(player, 2, shop(10))).toBe(false);
+    expect(await buyShopItem(player, 2, shop(10))).toEqual({
+      ok: false,
+      reason: 'no-space',
+    });
+    // A different answer for what is not on the shelf at all.
+    expect(await buyShopItem(player, 3, shop(10))).toEqual({
+      ok: false,
+      reason: 'not-sold',
+    });
 
     expect(countItem(player.inventory, 1)).toBe(50);
     expect(countItem(player.inventory, 2)).toBe(0);
@@ -238,7 +249,7 @@ describe('buying from a shop', () => {
       maxCapacity: 2,
     });
 
-    expect(await buyShopItem(player, 2, shop(10))).toBe(true);
+    expect(await buyShopItem(player, 2, shop(10))).toEqual({ ok: true });
 
     expect(countItem(player.inventory, 2)).toBe(2);
   });

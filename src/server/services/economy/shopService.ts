@@ -3,7 +3,13 @@ import { PlayerServer, ProductRaw, Shop } from '../../../shared/types.js';
 import { tileAt } from '../../../shared/mapGeometry.js';
 import { getMap, updatePlayer } from '../world/gameData.js';
 import { persistPlayersNow } from '../player/playerService.js';
-import { addItem, canFit, hasItem, removeItem } from './economyService.js';
+import {
+  addItem,
+  canFit,
+  hasItem,
+  removeItem,
+  type EconomyResult,
+} from './economyService.js';
 
 export async function getShopById(id: string): Promise<Shop | null> {
   return shopRepository.findById(id);
@@ -36,36 +42,42 @@ export function shopOpenFor(player: PlayerServer, shopId: string): boolean {
   return !!map && tileAt(map.tiles, player.position)?.shop === shopId;
 }
 
+/** Why a purchase did not happen: the shop's own reason, or the bag's. */
+export type PurchaseResult = EconomyResult | { ok: false; reason: 'not-sold' };
+
 export const buyShopItem = async (
   player: PlayerServer,
   itemId: number,
   shop: Shop<ProductRaw>,
-): Promise<boolean> => {
+): Promise<PurchaseResult> => {
   const product = shop.products.find((p) => p.itemId === itemId);
-  if (!product) return false;
+  if (!product) return { ok: false, reason: 'not-sold' };
 
   // Both halves are checked before either runs, so the player can never pay
   // for something the inventory then has no room for.
-  if (!canFit(player.inventory, itemId)) return false;
+  if (!canFit(player.inventory, itemId)) {
+    return { ok: false, reason: 'no-space' };
+  }
   if (
     product.price > 0 &&
     !hasItem(player.inventory, product.currency, product.price)
   ) {
-    return false;
+    return { ok: false, reason: 'not-enough' };
   }
 
   if (product.price > 0) {
     removeItem(player.inventory, product.currency, product.price);
   }
-  if (!addItem(player.inventory, itemId, 1).ok) {
+  const added = addItem(player.inventory, itemId, 1);
+  if (!added.ok) {
     // Unreachable while canFit holds, but refunding beats charging for nothing.
     if (product.price > 0) {
       addItem(player.inventory, product.currency, product.price);
     }
-    return false;
+    return added;
   }
 
   updatePlayer(player);
   await persistPlayersNow([player]);
-  return true;
+  return { ok: true };
 };

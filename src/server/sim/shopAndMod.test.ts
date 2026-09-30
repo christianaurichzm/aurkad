@@ -52,9 +52,9 @@ describe('shop', () => {
       products: [{ itemId: 20, currency: 10, price: 3 }],
     };
 
-    const ok = await buyShopItem(player, 20, shop);
+    const bought = await buyShopItem(player, 20, shop);
 
-    expect(ok).toBe(true);
+    expect(bought.ok).toBe(true);
     expect(player.inventory.items.find((i) => i.item === 20)?.quantity).toBe(1);
     expect(player.inventory.items.find((i) => i.item === 10)?.quantity).toBe(2);
   });
@@ -86,9 +86,9 @@ describe('shop', () => {
       products: [{ itemId: 20, currency: 10, price: 5 }],
     };
 
-    const ok = await buyShopItem(player, 20, shop);
+    const bought = await buyShopItem(player, 20, shop);
 
-    expect(ok).toBe(false);
+    expect(bought).toEqual({ ok: false, reason: 'not-enough' });
     expect(player.inventory.items.find((i) => i.item === 20)).toBeUndefined();
     expect(player.inventory.items.find((i) => i.item === 10)?.quantity).toBe(1);
   });

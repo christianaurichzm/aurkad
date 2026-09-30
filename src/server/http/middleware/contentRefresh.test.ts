@@ -45,7 +45,7 @@ vi.mock('../../services/economy/shopService.js', () => ({
   listShops: () => Promise.resolve([]),
   createOrUpdateShop: () => Promise.resolve(),
   deleteShop: () => Promise.resolve(),
-  buyShopItem: () => Promise.resolve(false),
+  buyShopItem: () => Promise.resolve({ ok: false, reason: 'not-sold' }),
 }));
 vi.mock('../../services/player/playerService.js', () => ({
   getPlayerById: () => Promise.resolve(null),

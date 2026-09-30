@@ -103,6 +103,7 @@ export function createShopRouter() {
             sprite: item.sprite,
             description: item.description,
             type: item.type,
+            effects: item.effects,
           },
           currency: {
             id: currency.id,
@@ -185,21 +186,29 @@ export function createShopRouter() {
       return res.status(404).json({ error: 'Shop or player not found' });
     }
 
-    const success = await buyShopItem(player, itemId, shop);
+    const bought = await buyShopItem(player, itemId, shop);
 
-    if (success) {
+    if (bought.ok) {
       const enrichedPlayer = enrichPlayer(player);
       return res.status(200).json({
         success: true,
         message: 'Purchase completed successfully!',
         inventory: enrichedPlayer.inventory,
       });
-    } else {
-      return res.status(400).json({
-        success: false,
-        message: 'Purchase failed: insufficient coins/item',
-      });
     }
+    // The window greys a row out for a full bag or a short purse before anyone
+    // can press it, so these are read only by a client whose bag changed while
+    // the shop was open.
+    return res.status(400).json({
+      success: false,
+      reason: bought.reason,
+      message:
+        bought.reason === 'no-space'
+          ? 'Your bag is full.'
+          : bought.reason === 'not-enough'
+            ? 'You cannot afford that.'
+            : 'This shop does not sell that.',
+    });
   });
 
   return router;
