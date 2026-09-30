@@ -647,7 +647,7 @@ export const ITEMS = [
   {
     id: 1,
     name: 'Health Potion',
-    description: 'Restores 30 health.',
+    description: 'A red draught that closes wounds.',
     sprite: ITEM_SPRITE.potion,
     type: 'consumable',
     effects: [{ attribute: 'health', type: 'add', value: 30 }],
@@ -662,7 +662,7 @@ export const ITEMS = [
   {
     id: 3,
     name: 'Short Sword',
-    description: '+3 attack.',
+    description: 'Light and quick to draw.',
     sprite: ITEM_SPRITE.sword,
     type: 'weapon',
     effects: [{ attribute: 'attack', type: 'add', value: 3 }],
@@ -670,7 +670,7 @@ export const ITEMS = [
   {
     id: 4,
     name: 'Iron Helmet',
-    description: '+2 defense.',
+    description: 'A solid iron helmet.',
     sprite: ITEM_SPRITE.helmet,
     type: 'helmet',
     effects: [{ attribute: 'defense', type: 'add', value: 2 }],
@@ -678,7 +678,7 @@ export const ITEMS = [
   {
     id: 5,
     name: 'Leather Boots',
-    description: '+1 agility.',
+    description: 'Soft soles for a quick step.',
     sprite: ITEM_SPRITE.boots,
     type: 'boots',
     effects: [{ attribute: 'agility', type: 'add', value: 1 }],

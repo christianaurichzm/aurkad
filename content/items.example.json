@@ -2,7 +2,7 @@
   {
     "id": 1,
     "name": "Health Potion",
-    "description": "Restores 20 health.",
+    "description": "A red draught that closes wounds.",
     "sprite": 0,
     "type": "consumable",
     "effects": [{ "attribute": "health", "type": "add", "value": 20 }]
@@ -10,7 +10,7 @@
   {
     "id": 2,
     "name": "Iron Sword",
-    "description": "A sturdy blade. +5 attack.",
+    "description": "A sturdy blade.",
     "sprite": 1,
     "type": "weapon",
     "effects": [{ "attribute": "attack", "type": "add", "value": 5 }]
