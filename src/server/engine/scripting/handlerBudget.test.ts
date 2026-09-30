@@ -17,18 +17,20 @@ import { config } from '../../config.js';
 const OVER = config.scripting.handlerBudgetMs + 5;
 const STRIKES = config.scripting.handlerBudgetStrikes;
 
-/** Burns wall-clock time, which is what the budget actually measures. */
-const slow = (ms: number) => () => {
-  const until = performance.now() + ms;
-  while (performance.now() < until) {
-    /* blocking, exactly like the handler this catches */
-  }
-};
+/**
+ * Spends time on the clock the budget reads, which the test drives: on a real
+ * one, a machine busy with the rest of the suite adds milliseconds to a
+ * handler that is meant to be fast, and the order of two costs flips.
+ */
+const slow = (ms: number) => () => vi.advanceTimersByTime(ms);
 
 beforeEach(() => {
+  vi.useFakeTimers({ toFake: ['performance'] });
   clearHandlerBudget();
   clearScriptErrors();
 });
+
+afterEach(() => vi.useRealTimers());
 
 describe('runWithBudget', () => {
   it('runs a fast handler and says so', () => {
@@ -190,7 +192,6 @@ describe('share of wall clock', () => {
     return await import('./handlerBudget.js');
   }
 
-  const spend = (ms: number) => () => vi.advanceTimersByTime(ms);
   const idle = (ms: number) => vi.advanceTimersByTime(ms);
 
   /** The logger writes to stderr, so that is where a warning has to show up. */
@@ -213,7 +214,7 @@ describe('share of wall clock', () => {
   it('reports nothing until a window has closed', async () => {
     const budget = await withWindow(60_000);
 
-    budget.runWithBudget('game.js', 'on:tick', spend(2));
+    budget.runWithBudget('game.js', 'on:tick', slow(2));
 
     // Read halfway, a window would say a script costs half what it does.
     expect(budget.scriptTimeShares()).toEqual([]);
@@ -222,8 +223,8 @@ describe('share of wall clock', () => {
   it('charges a script for what all of its handlers spent', async () => {
     const budget = await withWindow(1_000);
 
-    budget.runWithBudget('game.js', 'on:tick', spend(300));
-    budget.runWithBudget('game.js', 'on:playerJoin', spend(200));
+    budget.runWithBudget('game.js', 'on:tick', slow(300));
+    budget.runWithBudget('game.js', 'on:playerJoin', slow(200));
     idle(600);
     // Costs nothing itself; it is only what crosses the boundary.
     budget.runWithBudget('quiet.js', 'on:tick', () => {});
@@ -242,9 +243,9 @@ describe('share of wall clock', () => {
     const budget = await withWindow(1_000, 20);
 
     for (let i = 0; i < 100; i++) {
-      budget.runWithBudget('greedy.js', 'on:tick', spend(5));
+      budget.runWithBudget('greedy.js', 'on:tick', slow(5));
     }
-    budget.runWithBudget('greedy.js', 'on:chatMessage', spend(20));
+    budget.runWithBudget('greedy.js', 'on:chatMessage', slow(20));
     idle(480);
     budget.runWithBudget('greedy.js', 'on:playerJoin', () => {});
 
@@ -261,7 +262,7 @@ describe('share of wall clock', () => {
     const log = captureLog();
     const budget = await withWindow(1_000, 90);
 
-    budget.runWithBudget('polite.js', 'on:tick', spend(100));
+    budget.runWithBudget('polite.js', 'on:tick', slow(100));
     idle(950);
     budget.runWithBudget('polite.js', 'on:tick', () => {});
 
