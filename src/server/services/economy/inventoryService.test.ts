@@ -1,8 +1,10 @@
 import { describe, it, expect, afterEach, vi } from 'vitest';
 import { createFixture } from '../../sim/simFixture.js';
-import type { Item } from '../../../shared/types.js';
+import type { Item, PlayerServer } from '../../../shared/types.js';
+import { clearAll, on } from '../../engine/hooks.js';
 import ItemModel from '../../model/Item.js';
 import DeliveryModel from '../../model/Delivery.js';
+import { countItem } from './economyService.js';
 import {
   deleteItem,
   dropItemFromInventory,
@@ -99,7 +101,9 @@ describe('bound items', () => {
             item: 100 + i,
             quantity: 1,
           })),
-          { item: 60, quantity: 1 },
+          // Two of them: taking one off the stack opens no slot for the bound
+          // piece to go to.
+          { item: 60, quantity: 2 },
         ],
         maxCapacity: 10,
       },
@@ -109,7 +113,109 @@ describe('bound items', () => {
     equipItem(alice, 60);
 
     expect(alice.equipped.weapon).toBe(50);
-    expect(alice.inventory.items.find((e) => e.item === 60)?.quantity).toBe(1);
+    expect(alice.inventory.items.find((e) => e.item === 60)?.quantity).toBe(2);
+    expect(sim.map.droppedItems).toHaveLength(0);
+  });
+});
+
+describe('equipping over a worn item with a full bag', () => {
+  afterEach(() => clearAll());
+
+  /**
+   * Alice wearing item 50 (+5 attack) with all ten slots taken: nine fillers
+   * and `quantity` of item 60 (+3 attack).
+   */
+  const fullBag = (quantity: number, worn: Partial<Item> = {}) => {
+    const sim = createFixture(0);
+    sim.addItem(
+      item(50, {
+        effects: [{ attribute: 'attack', type: 'add', value: 5 }],
+        ...worn,
+      }),
+    );
+    sim.addItem(
+      item(60, { effects: [{ attribute: 'attack', type: 'add', value: 3 }] }),
+    );
+    const fillers = Array.from({ length: 9 }, (_, i) => ({
+      item: 100 + i,
+      quantity: 1,
+    }));
+    for (const filler of fillers) {
+      sim.addItem(item(filler.item, { type: 'consumable' }));
+    }
+    const alice = sim.addPlayer({
+      name: 'Alice',
+      attack: 15,
+      inventory: {
+        items: [...fillers, { item: 60, quantity }],
+        maxCapacity: 10,
+      },
+      equipped: { weapon: 50 },
+    });
+    return { sim, alice };
+  };
+
+  it('puts the old piece in the slot a lone new piece leaves', () => {
+    const { sim, alice } = fullBag(1);
+
+    equipItem(alice, 60);
+
+    expect(alice.equipped.weapon).toBe(60);
+    expect(countItem(alice.inventory, 50)).toBe(1);
+    expect(countItem(alice.inventory, 60)).toBe(0);
+    expect(alice.inventory.items).toHaveLength(10);
+    expect(sim.map.droppedItems).toHaveLength(0);
+    expect(alice.attack).toBe(13);
+    expect(alice.equippedEffects?.weapon).toEqual([
+      { attribute: 'attack', type: 'add', value: 3 },
+    ]);
+  });
+
+  it('swaps a bound old piece the same way instead of refusing', () => {
+    const { sim, alice } = fullBag(1, { bound: true });
+
+    equipItem(alice, 60);
+
+    expect(alice.equipped.weapon).toBe(60);
+    expect(countItem(alice.inventory, 50)).toBe(1);
+    expect(countItem(alice.inventory, 60)).toBe(0);
+    expect(alice.inventory.items).toHaveLength(10);
+    expect(sim.map.droppedItems).toHaveLength(0);
+  });
+
+  it('drops the old piece when the new one comes off a stack', () => {
+    const { sim, alice } = fullBag(2);
+
+    equipItem(alice, 60);
+
+    expect(alice.equipped.weapon).toBe(60);
+    expect(countItem(alice.inventory, 50)).toBe(0);
+    expect(countItem(alice.inventory, 60)).toBe(1);
+    expect(alice.inventory.items).toHaveLength(10);
+    expect(sim.map.droppedItems).toEqual([
+      { itemId: 50, sprite: 0, position: alice.position, quantity: 1 },
+    ]);
+  });
+
+  it('shows each hook the state it announces', () => {
+    const { alice } = fullBag(1);
+    const seen: unknown[] = [];
+    const look = ({ player }: { player: PlayerServer }) =>
+      seen.push({
+        worn: player.equipped.weapon,
+        attack: player.attack,
+        old: countItem(player.inventory, 50),
+        new: countItem(player.inventory, 60),
+      });
+    on('itemUnequip', look);
+    on('itemEquip', look);
+
+    equipItem(alice, 60);
+
+    expect(seen).toEqual([
+      { worn: undefined, attack: 10, old: 1, new: 0 },
+      { worn: 60, attack: 13, old: 1, new: 0 },
+    ]);
   });
 });
 

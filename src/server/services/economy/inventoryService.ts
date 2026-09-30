@@ -204,15 +204,23 @@ export function equipItem(player: PlayerServer, itemId: number): void {
     return;
   }
 
+  // Out of the bag before the worn piece comes off: a piece that sat alone in
+  // its slot leaves that slot for the old one, which a full bag would otherwise
+  // send to the ground or, bound, refuse to take off.
+  const taken = removeItem(player.inventory, itemId, 1).ok;
+
   if (player.equipped[slot]) {
     unequipItem(player, slot);
-    // Unequip can refuse (a bound item, full inventory); never overwrite it.
-    if (player.equipped[slot]) return;
+    // Unequip can refuse (bound item, full inventory, and the new piece came
+    // off a stack so no slot opened); never overwrite it. The refusal happens
+    // before anything else moves, so that stack is still there to take it back.
+    if (player.equipped[slot]) {
+      if (taken) addItem(player.inventory, itemId, 1);
+      return;
+    }
   }
 
   player.equipped[slot] = itemId;
-
-  removeItem(player.inventory, itemId, 1);
 
   // Copied, because unequipping must take off what went on here: by then the
   // definition may have been edited or deleted from the catalogue.
