@@ -30,17 +30,24 @@ export const InventoryPanel: React.FC = () => {
     qty: number;
   } | null>(null);
 
-  const [visible, setVisible] = useState(false);
+  // 'trade' is a bag the trade window opened: it shuts with that window, where
+  // one the player opened, or has toggled since, stays as they left it.
+  const [bag, setBag] = useState<'closed' | 'open' | 'trade'>('closed');
+  const visible = bag !== 'closed';
+  const setVisible = (open: boolean) => setBag(open ? 'open' : 'closed');
   const [tradeMode, setTradeMode] = useState(false);
   const player = usePlayerForceUpdate(visible);
 
   useEffect(() => {
-    const onToggle = () => setVisible((v) => !v);
+    const onToggle = () => setBag((b) => (b === 'closed' ? 'open' : 'closed'));
     const onTradeActive = () => {
-      setVisible(true);
+      setBag((b) => (b === 'closed' ? 'trade' : b));
       setTradeMode(true);
     };
-    const onTradeInactive = () => setTradeMode(false);
+    const onTradeInactive = () => {
+      setBag((b) => (b === 'trade' ? 'closed' : b));
+      setTradeMode(false);
+    };
     window.addEventListener('toggleInventory', onToggle);
     window.addEventListener('trade:active', onTradeActive);
     window.addEventListener('trade:inactive', onTradeInactive);

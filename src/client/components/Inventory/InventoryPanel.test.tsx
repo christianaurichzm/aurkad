@@ -151,4 +151,24 @@ describe('InventoryPanel', () => {
       quantity: 3,
     });
   });
+
+  it('shuts with the trade window only when that window opened it', () => {
+    const trade = (open: boolean) =>
+      act(() => {
+        window.dispatchEvent(
+          new Event(open ? 'trade:active' : 'trade:inactive'),
+        );
+      });
+    render(<InventoryPanel />);
+
+    trade(true);
+    expect(screen.getByText('Inventory')).toBeInTheDocument();
+    trade(false);
+    expect(screen.queryByText('Inventory')).not.toBeInTheDocument();
+
+    openInventory();
+    trade(true);
+    trade(false);
+    expect(screen.getByText('Inventory')).toBeInTheDocument();
+  });
 });
