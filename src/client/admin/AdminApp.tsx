@@ -12,6 +12,7 @@ import { PlayerModeration } from '../components/moderation/PlayerModeration';
 import { CommandConsole } from '../components/moderation/CommandConsole';
 import { AuditLog } from '../components/moderation/AuditLog';
 import { TwoFactorPanel } from '../components/moderation/TwoFactorPanel';
+import { AppearancePanel } from '../components/moderation/AppearancePanel';
 import { colors, radius } from '../theme';
 import { useT } from '../i18n';
 
@@ -86,6 +87,12 @@ export const AdminApp: React.FC = () => {
           <h2 style={panelTitle}>{t('twofa.title')}</h2>
           <TwoFactorPanel />
         </section>
+        {session.access >= Access.ADMIN && (
+          <section style={{ ...panel, ...wideSection }}>
+            <h2 style={panelTitle}>{t('admin.appearance')}</h2>
+            <AppearancePanel />
+          </section>
+        )}
         {session.scriptEditorEnabled && (
           <section style={{ ...panel, ...wideSection }}>
             <h2 style={panelTitle}>{t('admin.scripts')}</h2>

@@ -1993,6 +1993,158 @@ button.item-slot:hover::after {
   flex-wrap: wrap;
 }
 
+/* The Appearance page of the admin panel: what is chosen on one side, the
+   game's own classes under those choices on the other. */
+.appearance {
+  display: grid;
+  grid-template-columns: minmax(260px, 340px) minmax(0, 1fr);
+  gap: 16px;
+  align-items: start;
+}
+.appearance-form,
+.appearance-form fieldset {
+  display: grid;
+  gap: 8px;
+}
+.appearance-form {
+  gap: 14px;
+}
+.appearance-form fieldset {
+  border: 0;
+}
+.appearance-form legend {
+  margin-bottom: 6px;
+  font-weight: 600;
+}
+.appearance-row,
+.appearance-row > label,
+.appearance-check,
+.appearance-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.appearance-row {
+  justify-content: space-between;
+  flex-wrap: wrap;
+}
+.appearance-row input[type='color'] {
+  width: 36px;
+  height: 28px;
+  padding: 0;
+}
+/* Only its button: a picture is sent as it is picked, so there is never a
+   chosen file waiting for the name of one to be worth showing. */
+.appearance-row input[type='file'] {
+  width: auto;
+  min-height: 0;
+  padding: 0;
+  border: 0;
+  background: none;
+  font-size: 0;
+}
+.appearance-row input[type='file']::file-selector-button {
+  margin: 0;
+  padding: 4px 8px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-control);
+  background: var(--surface-control);
+  color: var(--color-text);
+  font: 12px var(--font-ui);
+  cursor: pointer;
+}
+.appearance-note,
+.appearance-row > small {
+  font-size: 12px;
+  color: var(--color-text-muted);
+}
+.appearance-note[data-tone='warning'] {
+  padding: 8px;
+  border: 1px solid var(--color-warning);
+  color: var(--color-text);
+}
+.appearance-note[data-tone='danger'] {
+  color: var(--color-danger-text);
+}
+.appearance-swatches {
+  display: inline-flex;
+  align-self: center;
+}
+.appearance-swatches > i {
+  width: 10px;
+  height: 14px;
+}
+/* The variables arrive inline, the engine's under the draft's; what the body
+   sets from them is set again here, for the inherited value would be the
+   page's own. */
+.appearance-preview {
+  /* In view while the form beside it scrolls, under the page's own header. */
+  position: sticky;
+  top: 76px;
+  display: grid;
+  gap: 10px;
+  padding: 10px;
+  border: 1px solid var(--color-border);
+  font-family: var(--font-ui);
+  color: var(--color-text);
+  background: var(--color-app-bg);
+}
+/* As tall as its card, where the real one fills the screen. */
+.appearance-login > .auth-layout {
+  position: static;
+  padding: 24px 16px;
+}
+.appearance-login .auth-card {
+  display: grid;
+  gap: 16px;
+  width: 240px;
+  padding: 20px;
+}
+.appearance-game {
+  display: flex;
+  gap: 8px;
+}
+.appearance-game[data-layout='left'] {
+  flex-direction: row-reverse;
+}
+.appearance-game[data-layout='bottom'] {
+  flex-direction: column;
+}
+.appearance-game > .panel {
+  display: grid;
+  gap: 8px;
+  align-content: start;
+  flex: 0 0 220px;
+}
+.appearance-game[data-layout='bottom'] > .panel {
+  flex: none;
+}
+.appearance-world {
+  flex: 1;
+  display: grid;
+  place-items: center;
+  min-height: 150px;
+  border: 1px dashed var(--color-border);
+  color: var(--color-text-muted);
+}
+.appearance-bar {
+  height: 10px;
+  border-radius: var(--radius-control);
+  background: linear-gradient(
+    90deg,
+    var(--color-primary) 62%,
+    var(--surface-control) 62%
+  );
+}
+@media (max-width: 760px) {
+  .appearance {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .appearance-preview {
+    position: static;
+  }
+}
+
 @media (max-width: 640px) {
   .content-workspace {
     grid-template-columns: minmax(0, 1fr);

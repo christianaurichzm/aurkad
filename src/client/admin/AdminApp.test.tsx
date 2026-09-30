@@ -19,6 +19,7 @@ vi.mock('../io/network', () => ({
   fetchOnlinePlayers: mocks.fetchOnlinePlayers,
   fetchCommands: mocks.fetchCommands,
   fetchAuditLog: vi.fn().mockResolvedValue([]),
+  fetchTheme: vi.fn().mockResolvedValue(null),
   fetchTwoFactor: vi.fn().mockResolvedValue({
     enabled: false,
     recoveryLeft: 0,

@@ -114,6 +114,14 @@ export {
   type AuditFilter,
 } from './http/auditClient';
 
+// Appearance (admin panel)
+export {
+  fetchTheme,
+  saveTheme,
+  uploadThemeImage,
+  removeThemeImage,
+} from './http/themeClient';
+
 // Scripts (Monaco editor)
 export {
   listScripts,

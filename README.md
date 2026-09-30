@@ -90,6 +90,16 @@ above.
   id: a `background-image` on `#hud-portrait[data-sprite="12"]` and a hidden
   `> canvas` show a picture instead, for that sprite (a class, say) or, without
   the attribute, for everyone.
+
+  None of that needs CSS to start with. The **Appearance** section of `/admin`
+  picks six colours (the rest are mixed from them), the corners, a font, where
+  the menu and the player card sit (right of the world, left of it, or in a bar
+  under it) and whether the world darkens behind a conversation, with a preview
+  of the result, and takes a logo and a login background as uploads. It saves
+  to `theme/theme.json`, which can be written by hand as well; the server puts
+  its variables ahead of `theme.css`, so where both set the same thing the
+  stylesheet written by hand wins. With more than one instance, `theme/` has to
+  be a volume they share.
 - **`scripts/`** - server-side game logic in JavaScript (or TypeScript). Files
   are loaded at boot and hot-reloaded on save. See `scripts/example.js` and the
   typed API in `scripts/global.d.ts` - `npm run docs:api` renders it, and the

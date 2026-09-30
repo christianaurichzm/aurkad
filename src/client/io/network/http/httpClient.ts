@@ -65,14 +65,16 @@ export const httpClient = async <T>(
   endpoint: string,
   { method, headers, body }: HttpRequestOptions,
 ): Promise<T | null> => {
+  // A file goes as its own bytes under its own type; everything else is JSON.
+  const file = body instanceof Blob ? body : null;
   const response = await fetch(buildUrl(endpoint), {
     method,
     headers: {
-      'Content-Type': 'application/json',
+      'Content-Type': file ? file.type : 'application/json',
       traceparent: traceparent(),
       ...headers,
     },
-    body: body ? JSON.stringify(body) : undefined,
+    body: file ?? (body ? JSON.stringify(body) : undefined),
     credentials: 'include',
   });
 
