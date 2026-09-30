@@ -11,7 +11,7 @@ import {
 } from '../../shared/wsProtocol.js';
 import { config } from '../config.js';
 import { logger } from '../logger.js';
-import { getRuntimeState } from '../services/world/gameData.js';
+import { getRuntimeState, items } from '../services/world/gameData.js';
 import {
   toPlayerPublic,
   toNpcPublic,
@@ -381,9 +381,9 @@ function sendWorldUpdate(
   known.knownSlots = knownSlots;
   known.lastTick = tick;
 
-  const visibleDrops = map.droppedItems.filter((item: DroppedItem) =>
-    withinViewport(item.position, viewport),
-  );
+  const visibleDrops = map.droppedItems
+    .filter((item: DroppedItem) => withinViewport(item.position, viewport))
+    .map((item) => ({ ...item, name: items.get(item.itemId)?.name }));
   const dropsJson = JSON.stringify(visibleDrops);
   const dropsChanged = lastSentDroppedItems.get(player.name) !== dropsJson;
 

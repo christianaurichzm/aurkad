@@ -621,6 +621,10 @@ export const pt: Record<keyof typeof en, string> = {
   'touch.pickUp': 'Pegar',
   'touch.run': 'Correr',
 
+  'prompt.pickUp': 'Pegar {item}',
+  'prompt.talk': 'Falar com {name}',
+  'prompt.use': 'Usar {name}',
+
   'attributes.available': 'Disponíveis',
   'attributes.queued': 'Na fila',
   'attributes.decrease': 'Diminuir {stat}',

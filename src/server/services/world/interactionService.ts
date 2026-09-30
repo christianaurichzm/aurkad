@@ -1,10 +1,10 @@
 import {
-  Direction,
   PlayerServer,
   RuntimeNpc,
   MapStateServer,
 } from '../../../shared/types.js';
 import { TILE_SIZE } from '../../../shared/constants.js';
+import { canInteract } from '../../../shared/utils.js';
 import { getMap } from './gameData.js';
 import { queryEntitiesInRadius } from '../../spatial/spatialManager.js';
 import { emit } from '../../engine/hooks.js';
@@ -13,21 +13,6 @@ import { dispatchEntityScript } from '../../engine/scripting/entityScripts.js';
 // "Talk to the NPC you're facing". Mirrors combat target selection for any
 // npc, whatever its behavior, and emits the npcInteract hook so scripts
 // decide what happens (dialog, shop, quest).
-
-function isFacing(player: PlayerServer, npc: RuntimeNpc): boolean {
-  switch (player.direction) {
-    case Direction.Up:
-      return npc.position.y < player.position.y;
-    case Direction.Down:
-      return npc.position.y > player.position.y;
-    case Direction.Left:
-      return npc.position.x < player.position.x;
-    case Direction.Right:
-      return npc.position.x > player.position.x;
-    default:
-      return false;
-  }
-}
 
 export function findInteractTarget(
   player: PlayerServer,
@@ -40,12 +25,12 @@ export function findInteractTarget(
     TILE_SIZE,
   );
 
+  // The index answers with a box that overlaps each entity's own, which
+  // reaches further up and left than down and right; canInteract is the reach.
   for (const entity of nearby) {
     if (!entity.id) continue;
     const npc = map.npcs[entity.id];
-    if (!npc || npc.health <= 0) continue;
-    if (!isFacing(player, npc)) continue;
-    return npc;
+    if (npc && canInteract(player, npc)) return npc;
   }
   return undefined;
 }

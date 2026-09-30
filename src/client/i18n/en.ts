@@ -623,6 +623,12 @@ export const en = {
   'touch.pickUp': 'Pick up',
   'touch.run': 'Run',
 
+  // The prompt beside the player for what the pick-up or interact key does
+  // where they stand.
+  'prompt.pickUp': 'Pick up {item}',
+  'prompt.talk': 'Talk to {name}',
+  'prompt.use': 'Use {name}',
+
   'attributes.available': 'Available',
   'attributes.queued': 'Queued',
   'attributes.decrease': 'Decrease {stat}',

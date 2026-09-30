@@ -439,6 +439,8 @@ export interface DroppedItem {
   position: Position;
   sprite: number;
   quantity: number;
+  /** Added on the wire for the pick-up prompt: the client has no catalog. */
+  name?: string;
 }
 
 export type MapType = 'pvp' | 'normal';

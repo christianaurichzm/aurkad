@@ -1,7 +1,9 @@
 import { describe, it, expect } from 'vitest';
 import { recordingContext } from '../../test/clientModule';
-import { RuntimeNpc } from '../../shared/types';
+import { Direction, Key, Player, RuntimeNpc } from '../../shared/types';
+import { TILE_SIZE } from '../../shared/constants';
 import {
+  findInteractPrompt,
   getHealthBarInfo,
   getPlayerHudText,
   renderHUD,
@@ -255,5 +257,68 @@ describe('renderHUD', () => {
 
     expect(rec.of('strokeText')[0]?.args[0]).toBe('Nyx (3)');
     expect(rec.ctx.lineWidth).toBe(1);
+  });
+});
+
+describe('findInteractPrompt', () => {
+  const at = (col: number, row: number) => ({
+    x: col * TILE_SIZE,
+    y: row * TILE_SIZE,
+  });
+  const me = {
+    id: 'me',
+    position: at(5, 5),
+    direction: Direction.Right,
+  } as unknown as Player;
+  const npc = (over: Partial<RuntimeNpc>) =>
+    ({
+      id: 'n',
+      name: 'Lia',
+      health: 10,
+      behavior: 'friendly',
+      position: at(6, 5),
+      ...over,
+    }) as RuntimeNpc;
+  const world = (npcs: RuntimeNpc[], droppedItems = [] as never[]) => ({
+    droppedItems,
+    npcs: Object.fromEntries(npcs.map((n) => [n.id, n])),
+  });
+
+  it('names the last drop on the player tile, with its count, for E', () => {
+    const drops = [
+      { itemId: 1, sprite: 0, quantity: 1, position: at(5, 5), name: 'Rope' },
+      { itemId: 2, sprite: 0, quantity: 2, position: at(5, 5), name: 'Potion' },
+      { itemId: 3, sprite: 0, quantity: 1, position: at(6, 5), name: 'Axe' },
+    ];
+
+    expect(findInteractPrompt(me, world([npc({})], drops as never[]))).toEqual({
+      key: Key.e,
+      text: 'Pick up Potion x2',
+    });
+  });
+
+  it('offers F to talk to the npc faced, or to use one that only has a behaviour', () => {
+    expect(findInteractPrompt(me, world([npc({})]))).toEqual({
+      key: Key.f,
+      text: 'Talk to Lia',
+    });
+    expect(
+      findInteractPrompt(me, world([npc({ name: 'Chest', scriptId: 'chest' })]))
+        ?.text,
+    ).toBe('Use Chest');
+  });
+
+  it('offers nothing for a monster with no words, one out of reach, or one behind', () => {
+    const boss = npc({ behavior: 'hostile', scriptId: 'boss' });
+    expect(findInteractPrompt(me, world([boss]))).toBeNull();
+    expect(
+      findInteractPrompt(me, world([npc({ position: at(7, 5) })])),
+    ).toBeNull();
+    expect(
+      findInteractPrompt(me, world([npc({ position: at(4, 5) })])),
+    ).toBeNull();
+    expect(
+      findInteractPrompt(me, world([{ ...boss, dialogId: 'taunt' }]))?.text,
+    ).toBe('Talk to Lia');
   });
 });

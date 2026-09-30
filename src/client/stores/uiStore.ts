@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import type {
   ChatMessagePayload,
   ChatScope,
+  Key,
   MapType,
   PvpMorale,
 } from '../../shared/types';
@@ -70,6 +71,10 @@ interface UIState {
   currentMap: MapState | null;
   setCurrentMap: (map: MapState) => void;
 
+  /** The key the prompt beside the player names, for the touch pad to light. */
+  promptKey: Key | null;
+  setPromptKey: (key: Key | null) => void;
+
   chat: ChatState;
   addChatMessage: (message: ChatMessagePayload) => void;
   setChatInput: (value: string) => void;
@@ -125,6 +130,9 @@ export const useUIStore = create<UIState>((set) => ({
     max: 100,
   },
   setPlayerXp: (current, max) => set({ playerXp: { current, max } }),
+
+  promptKey: null,
+  setPromptKey: (promptKey) => set({ promptKey }),
 
   currentMap: null,
   setCurrentMap: (map) =>

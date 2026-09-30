@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { Key } from '../../../shared/types';
 import { pressKey, releaseKey } from '../../io/keyboard';
 import { useT } from '../../i18n';
+import { useUIStore } from '../../stores/uiStore';
 import { Icon } from '../common/Icon';
 
 // Pointer capture keeps the held direction alive as the thumb crosses buttons.
@@ -24,6 +25,7 @@ export const TouchControls: React.FC = () => {
   const t = useT();
   const gesture = useRef<{ pointerId: number; key: Key | null } | null>(null);
   const [direction, setDirection] = useState<Key | null>(null);
+  const promptKey = useUIStore((state) => state.promptKey);
 
   const changeDirection = (key: Key | null) => {
     const current = gesture.current;
@@ -142,6 +144,7 @@ export const TouchControls: React.FC = () => {
           type="button"
           className="touch-button"
           aria-label={t('touch.interact')}
+          data-ready={promptKey === Key.f || undefined}
           {...hold(Key.f)}
         >
           <Icon name="interact" />
@@ -150,6 +153,7 @@ export const TouchControls: React.FC = () => {
           type="button"
           className="touch-button"
           aria-label={t('touch.pickUp')}
+          data-ready={promptKey === Key.e || undefined}
           {...hold(Key.e)}
         >
           <Icon name="pickup" />

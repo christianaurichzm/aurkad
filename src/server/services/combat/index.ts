@@ -1,6 +1,5 @@
 import {
   PlayerServer,
-  Direction,
   MapStateServer,
   DroppedItem,
   CombatTarget,
@@ -14,7 +13,7 @@ import { logger } from '../../logger.js';
 import { getTick } from '../../sim/clock.js';
 import { queryEntitiesInRadius } from '../../spatial/spatialManager.js';
 import { gameConfig } from '../../gameConfig.js';
-import { mapAllowsPvp } from '../../../shared/utils.js';
+import { isFacing, mapAllowsPvp } from '../../../shared/utils.js';
 import { tryConsumeAttackCooldown } from './attackCooldown.js';
 import {
   clampDamage,
@@ -81,24 +80,6 @@ const isInAttackRange = (
   return inLine;
 };
 
-const isFacingTarget = (
-  attacker: PlayerServer,
-  target: CombatTarget,
-): boolean => {
-  switch (attacker.direction) {
-    case Direction.Up:
-      return target.position.y < attacker.position.y;
-    case Direction.Down:
-      return target.position.y > attacker.position.y;
-    case Direction.Left:
-      return target.position.x < attacker.position.x;
-    case Direction.Right:
-      return target.position.x > attacker.position.x;
-    default:
-      return false;
-  }
-};
-
 const findAttackTarget = (
   attacker: PlayerServer,
   map: MapStateServer,
@@ -125,7 +106,7 @@ const findAttackTarget = (
     )
       continue;
     if (!isInAttackRange(attacker, target)) continue;
-    if (!isFacingTarget(attacker, target)) continue;
+    if (!isFacing(attacker, target)) continue;
 
     return target;
   }

@@ -1,7 +1,8 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { fireEvent, render, screen } from '@testing-library/react';
+import { act, fireEvent, render, screen } from '@testing-library/react';
 import { Key } from '../../../shared/types';
 import { TouchControls } from './TouchControls';
+import { useUIStore } from '../../stores/uiStore';
 
 const { pressKey, releaseKey } = vi.hoisted(() => ({
   pressKey: vi.fn(),
@@ -83,5 +84,14 @@ describe('TouchControls', () => {
     ]) {
       expect(screen.getByLabelText(label)).toBeInTheDocument();
     }
+  });
+
+  it('lights the button the prompt beside the player is about', () => {
+    act(() => useUIStore.getState().setPromptKey(Key.e));
+    expect(screen.getByLabelText('Pick up')).toHaveAttribute('data-ready');
+    expect(screen.getByLabelText('Interact')).not.toHaveAttribute('data-ready');
+
+    act(() => useUIStore.getState().setPromptKey(null));
+    expect(screen.getByLabelText('Pick up')).not.toHaveAttribute('data-ready');
   });
 });

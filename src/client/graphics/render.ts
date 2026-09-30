@@ -5,9 +5,13 @@ export { onServerPositionUpdate } from './movementAnimation';
 export { renderPlayers } from './entityRendering';
 
 import { Tile } from '../../shared/types';
-import { GAME_HEIGHT, GAME_WIDTH } from '../../shared/constants';
+import { GAME_HEIGHT, GAME_WIDTH, TILE_SIZE } from '../../shared/constants';
 import { getGameState, getPlayer, isMapPending } from '../core/gameState';
-import { updatePlayerHealthBar } from './hud';
+import {
+  findInteractPrompt,
+  renderInteractPrompt,
+  updatePlayerHealthBar,
+} from './hud';
 import {
   foregroundCanvas,
   maskCanvas,
@@ -216,6 +220,20 @@ export const render = () => {
     fringeCtx.translate(-cam.x, -cam.y);
     runOverlays(fringeCtx, cam, OverlayLayer.scene);
     renderEntityHuds(hudEntries, fringeCtx);
+    // Asked of the player where the server has them, drawn where they are seen.
+    const prompt = rawPlayer ? findInteractPrompt(rawPlayer, map) : null;
+    if (prompt && currentPlayer) {
+      const { x, y } = currentPlayer.position;
+      renderInteractPrompt(
+        fringeCtx,
+        prompt,
+        x + TILE_SIZE / 2,
+        y + TILE_SIZE + 2,
+      );
+    }
+    const ui = useUIStore.getState();
+    if (ui.promptKey !== (prompt?.key ?? null))
+      ui.setPromptKey(prompt?.key ?? null);
     renderFloatingTexts(fringeCtx);
     // Same world translate the world layer gets, so an overlay undoing it with
     // translate(cam.x, cam.y) lands in screen space either way.

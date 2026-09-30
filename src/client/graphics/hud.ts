@@ -1,5 +1,14 @@
-import { RuntimeNpc, Player, PlayerPublic } from '../../shared/types';
+import {
+  RuntimeNpc,
+  Player,
+  PlayerPublic,
+  DroppedItem,
+  Key,
+  NpcBehavior,
+} from '../../shared/types';
 import { TILE_SIZE } from '../../shared/constants';
+import { canInteract } from '../../shared/utils';
+import { t } from '../i18n';
 import { themeToken } from './floatingText';
 import { playerCtx } from './canvas';
 import {
@@ -192,4 +201,91 @@ export function showConnectionStatus(message: string, isError = false) {
 
 export function hideConnectionStatus() {
   useUIStore.getState().hideConnectionStatus();
+}
+
+export interface InteractPrompt {
+  key: Key.e | Key.f;
+  text: string;
+}
+
+// A fighting npc offers interaction only with dialog content, since its
+// scriptId may serve its death; others always do, since a script can
+// answer npcInteract by name.
+const FIGHTERS = new Set<NpcBehavior>(['aggressive', 'hostile']);
+
+/**
+ * What the pick-up or interact key would do where the player stands: a drop on
+ * their tile first (the key takes the last one dropped there), else the npc
+ * they face, by the same reach the server applies to the press.
+ */
+export function findInteractPrompt(
+  player: Player,
+  map: { droppedItems: DroppedItem[]; npcs: Record<string, RuntimeNpc> },
+): InteractPrompt | null {
+  const { x, y } = player.position;
+  const drop = map.droppedItems.findLast(
+    (d) => d.position.x === x && d.position.y === y,
+  );
+  if (drop) {
+    const item =
+      drop.name && drop.quantity > 1
+        ? `${drop.name} x${drop.quantity}`
+        : (drop.name ?? '');
+    return { key: Key.e, text: t('prompt.pickUp', { item }).trim() };
+  }
+  for (const npc of Object.values(map.npcs)) {
+    if (!canInteract(player, npc)) continue;
+    const { name } = npc;
+    if (npc.dialogId || npc.questId)
+      return { key: Key.f, text: t('prompt.talk', { name }) };
+    if (FIGHTERS.has(npc.behavior)) continue;
+    return {
+      key: Key.f,
+      text: t(npc.scriptId ? 'prompt.use' : 'prompt.talk', { name }),
+    };
+  }
+  return null;
+}
+
+// A touch screen has no E or F to press: there the prompt is the words alone,
+// and the pad lights the button that does it.
+const coarsePointer =
+  typeof matchMedia === 'function' ? matchMedia('(pointer: coarse)') : null;
+
+/** The prompt as a plate centred on `cx`, its top edge at `top`. */
+export function renderInteractPrompt(
+  ctx: CanvasRenderingContext2D,
+  prompt: InteractPrompt,
+  cx: number,
+  top: number,
+) {
+  const s = hudTheme();
+  const key = coarsePointer?.matches ? '' : prompt.key.toUpperCase();
+  ctx.font = `13px ${s.world}`;
+  ctx.textBaseline = 'middle';
+  const pad = 7;
+  const height = 22;
+  const chip = key ? ctx.measureText(key).width + 10 : 0;
+  const gap = key ? 6 : 0;
+  const width = Math.round(
+    pad * 2 + chip + gap + ctx.measureText(prompt.text).width,
+  );
+  const left = Math.round(cx - width / 2);
+  const mid = top + height / 2;
+
+  ctx.fillStyle = s.border;
+  ctx.fillRect(left, top, width, height);
+  ctx.fillStyle = s.surface;
+  ctx.fillRect(left + 2, top + 2, width - 4, height - 4);
+  if (key) {
+    ctx.fillStyle = s.accent;
+    ctx.fillRect(left + pad, top + 4, chip, height - 8);
+    ctx.fillStyle = s.appBg;
+    ctx.textAlign = 'center';
+    ctx.fillText(key, left + pad + chip / 2, mid + 1);
+  }
+  ctx.fillStyle = s.text;
+  ctx.textAlign = 'left';
+  ctx.fillText(prompt.text, left + pad + chip + gap, mid + 1);
+  ctx.textBaseline = 'alphabetic';
 }

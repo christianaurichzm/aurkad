@@ -842,6 +842,14 @@ body {
     background: color-mix(in srgb, var(--color-primary) 28%, transparent);
     border-color: color-mix(in srgb, var(--color-primary) 50%, transparent);
   }
+
+  /* The button the prompt beside the player is about: a phone has no key for
+     the prompt to name. */
+  .touch-button[data-ready] {
+    color: var(--color-accent);
+    border: 2px solid var(--color-accent);
+    box-shadow: 0 0 10px color-mix(in srgb, var(--color-accent) 55%, transparent);
+  }
 }
 
 /* Low-specificity defaults also style controls contributed by game modules. */

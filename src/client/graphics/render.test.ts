@@ -57,7 +57,9 @@ vi.mock('./camera', () => ({
 }));
 
 vi.mock('../stores/uiStore', () => ({
-  useUIStore: { getState: () => ({ mapEdited: mocks.mapEdited }) },
+  useUIStore: {
+    getState: () => ({ mapEdited: mocks.mapEdited, promptKey: null }),
+  },
 }));
 
 vi.mock('./entityRendering', () => ({
@@ -68,7 +70,11 @@ vi.mock('./entityRendering', () => ({
   animate: (player: unknown) => player,
 }));
 
-vi.mock('./hud', () => ({ updatePlayerHealthBar: vi.fn() }));
+vi.mock('./hud', () => ({
+  updatePlayerHealthBar: vi.fn(),
+  findInteractPrompt: () => null,
+  renderInteractPrompt: vi.fn(),
+}));
 vi.mock('./floatingText', () => ({ renderFloatingTexts: vi.fn() }));
 vi.mock('./projectiles', () => ({ renderProjectiles: vi.fn() }));
 vi.mock('./attackEffect', () => ({ renderAttackEffects: vi.fn() }));

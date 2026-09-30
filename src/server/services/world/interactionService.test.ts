@@ -37,6 +37,27 @@ describe('findInteractTarget', () => {
     expect(findInteractTarget(player, sim.map)).toBeUndefined();
   });
 
+  it('reaches one tile on every side, no further', () => {
+    const sim = createFixture(0);
+    sim.addNpc({ behavior: 'shopkeeper', position: tile(5, 3), health: 10 });
+    const diagonal = sim.addNpc({
+      behavior: 'shopkeeper',
+      position: tile(4, 6),
+      health: 10,
+    });
+    const player = sim.addPlayer({
+      name: 'Alice',
+      position: tile(5, 5),
+      direction: Direction.Up,
+    });
+    sim.step(1);
+
+    // Two tiles up is out of reach even straight ahead.
+    expect(findInteractTarget(player, sim.map)).toBeUndefined();
+    player.direction = Direction.Down;
+    expect(findInteractTarget(player, sim.map)?.id).toBe(diagonal.id);
+  });
+
   it('ignores dead NPCs', () => {
     const sim = createFixture(0);
     sim.addNpc({ behavior: 'shopkeeper', position: tile(6, 5), health: 0 });

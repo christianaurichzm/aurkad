@@ -14,6 +14,7 @@ import {
   createOrUpdateItem,
   deleteItem,
 } from '../services/economy/inventoryService.js';
+import { items } from '../services/world/gameData.js';
 import ItemModel from '../model/Item.js';
 import DeliveryModel from '../model/Delivery.js';
 import type { Item, PlayerCold, PlayerServer } from '../../shared/types.js';
@@ -77,6 +78,47 @@ describe('health changes', () => {
       .map((c) => JSON.parse(String(c[0])).payload.healthChanges)
       .filter(Boolean);
     expect(changes).toEqual([[{ id: alice.id, ...tile(1, 1), delta: -5 }]]);
+  });
+});
+
+describe('dropped items', () => {
+  it('go out named, for a client that holds no item catalog', () => {
+    const sim = createFixture(0);
+    sim.addPlayer({ name: 'Alice', position: tile(1, 1) });
+    sim.map.droppedItems.push({
+      itemId: 7,
+      sprite: 4,
+      position: tile(1, 1),
+      quantity: 2,
+    });
+    items.set(7, {
+      id: 7,
+      name: 'Health Potion',
+      description: '',
+      sprite: 4,
+      type: 'consumable',
+    });
+    rebuildQuadtree(sim.mapId, sim.map);
+    const ws = fakeWs(0);
+    playersWsMap.set('Alice', ws as unknown as WebSocket);
+    try {
+      broadcastGameState();
+    } finally {
+      items.delete(7);
+    }
+
+    const [update] = ws.send.mock.calls
+      .map((c) => JSON.parse(String(c[0])))
+      .filter((m) => m.type === 'worldUpdate');
+    expect(update.payload.droppedItems).toEqual([
+      {
+        itemId: 7,
+        sprite: 4,
+        position: tile(1, 1),
+        quantity: 2,
+        name: 'Health Potion',
+      },
+    ]);
   });
 });
 
