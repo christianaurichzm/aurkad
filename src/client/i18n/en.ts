@@ -182,6 +182,10 @@ export const en = {
   'spell.namePlaceholder': 'Fireball',
   'spell.mpCost': 'MP Cost',
   'spell.cooldown': 'CD (ms)',
+  'spell.icon': 'Icon',
+  'spell.iconAuto': 'auto',
+  'spell.iconHint':
+    'A tile of the spell sheet, shown on the hotbar. Empty uses a frame of the effect.',
   'spell.frames': 'Frames',
   'spell.target': 'Target',
   'spell.targetEnemies': 'Nearby enemies (damage)',
@@ -599,6 +603,12 @@ export const en = {
   'app.collapsePanel': 'Close game menu',
   'hud.mp': 'MP',
   'hud.mana': 'Mana',
+  'hotbar.label': 'Hotbar',
+  'hotbar.ready': 'Ready',
+  'hotbar.cooldown': 'Ready in {seconds}s',
+  'hotbar.noMana': 'Not enough mana',
+  'hotbar.cost': '{cost} MP',
+  'hotbar.hotkey': 'Key {key}',
   'app.gameControls': 'Game controls',
 
   // On-screen pad labels, for screen readers; the glyphs say nothing to them.

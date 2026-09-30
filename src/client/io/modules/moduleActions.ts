@@ -45,8 +45,54 @@ export function subscribeModuleActions(listener: () => void): () => void {
   return () => listeners.delete(listener);
 }
 
-// One global keydown that toggles a module panel when its hotkey is pressed -
-// ignored while typing or with modifiers held, mirroring the core panel keys.
+// Slots along the bottom of the world (engine.ui.hotbar), drawn by the core
+// Hotbar, since icons come off the spell sheet only the engine holds. Each
+// module replaces its own run of slots; the bar keeps module load order.
+
+export interface HotbarSlot {
+  id: string;
+  name: string;
+  description?: string;
+  /** The KeyboardEvent.key that uses it (F1), shown on the slot and bound. */
+  key?: string;
+  /** A tile of the spell sheet; without one the slot shows the name's initial. */
+  icon?: number;
+  /** Mana, shown on the slot. */
+  cost?: number;
+  /** Date.now() at which the cooldown ends. */
+  readyAt?: number;
+  /** The whole cooldown, so the slot can show the share of it left. */
+  cooldownMs?: number;
+  noMana?: boolean;
+  /** Aimed at the player's side (a heal) rather than at enemies. */
+  friendly?: boolean;
+  onUse: () => void;
+}
+
+const hotbars = new Map<string, HotbarSlot[]>();
+let hotbarSlots: HotbarSlot[] = [];
+const hotbarListeners = new Set<() => void>();
+
+export function setHotbar(moduleId: string, slots: HotbarSlot[]): void {
+  hotbars.set(moduleId, slots);
+  // A new array each time: useSyncExternalStore compares snapshots by identity.
+  hotbarSlots = [...hotbars.values()].flat();
+  ensureHotkeyListener();
+  hotbarListeners.forEach((l) => l());
+}
+
+export function getHotbarSlots(): HotbarSlot[] {
+  return hotbarSlots;
+}
+
+export function subscribeHotbar(listener: () => void): () => void {
+  hotbarListeners.add(listener);
+  return () => hotbarListeners.delete(listener);
+}
+
+// One global keydown for module panel hotkeys and hotbar keys, ignored while
+// typing or with modifiers, like the core panel keys. Only bound keys are
+// taken from the browser, so F1 with no spell still opens its help.
 let hotkeyListenerInstalled = false;
 function ensureHotkeyListener(): void {
   if (hotkeyListenerInstalled) return;
@@ -55,9 +101,12 @@ function ensureHotkeyListener(): void {
     if (e.defaultPrevented || e.repeat || e.ctrlKey || e.altKey || e.metaKey)
       return;
     if (isInputActive()) return;
-    const action = actions.find((x) => x.key && x.key === e.key.toLowerCase());
-    if (!action) return;
+    const key = e.key.toLowerCase();
+    const use =
+      actions.find((x) => x.key === key)?.onClick ??
+      hotbarSlots.find((x) => x.key?.toLowerCase() === key)?.onUse;
+    if (!use) return;
     e.preventDefault();
-    action.onClick();
+    use();
   });
 }

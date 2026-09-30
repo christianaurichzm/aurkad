@@ -182,6 +182,40 @@ describe('magic module', () => {
     expect(byId['blast']).toBe(false);
   });
 
+  it('gives each slot its icon, or a frame a third into the effect', () => {
+    const base = {
+      description: 'Hurts.',
+      mpCost: 10,
+      damage: 5,
+      heal: 0,
+      cooldownMs: 0,
+      target: 'enemies',
+      visualTarget: 'targets',
+    } as const;
+    dbSpells.push(
+      { ...base, id: 1, name: 'Chosen', sprite: 144, frames: 12, icon: 7 },
+      { ...base, id: 2, name: 'Effect', sprite: 144, frames: 12, icon: null },
+      { ...base, id: 3, name: 'Still', sprite: 1, frames: 1 },
+    );
+    unloadAllModules();
+    loadModulesForTest('magic');
+    const sim = createFixture(0);
+    sim.addPlayer({ name: 'Alice' });
+    drainGameEvents();
+
+    handleCustomAction({
+      type: 'custom',
+      username: 'Alice',
+      channel: 'magic:request',
+    });
+
+    const ev = drainGameEvents().find(
+      (e) => e.type === 'customPlayer' && e.channel === 'magic:update',
+    ) as { payload: { spells: { icon?: number; description: string }[] } };
+    expect(ev.payload.spells.map((s) => s.icon)).toEqual([7, 148, 1]);
+    expect(ev.payload.spells[0]?.description).toBe('Hurts.');
+  });
+
   const groups = {
     party: (alice: PlayerServer, bob: PlayerServer) => {
       const party = useApi<{

@@ -432,6 +432,8 @@ interface SpellData {
   /** Consecutive sheet sprites, starting at `sprite`, played as one effect. */
   frames: number;
   visualTarget: 'self' | 'targets';
+  /** Its hotbar slot's tile on the spell sheet; none shows an effect frame. */
+  icon?: number | null;
 }
 
 /** All spells defined in the database (via SpellEditor). */
@@ -535,6 +537,7 @@ declare function createSpells(
     heal?: number;
     frames?: number;
     visualTarget?: 'self' | 'targets';
+    icon?: number;
   }[],
 ): void;
 

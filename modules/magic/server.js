@@ -46,6 +46,13 @@ function spellbook(player) {
   return Array.isArray(list) ? new Set(list.map(String)) : null;
 }
 
+const iconOf = (s) =>
+  typeof s.icon === 'number'
+    ? s.icon
+    : typeof s.sprite === 'number'
+      ? s.sprite + Math.floor((s.frames || 1) / 3)
+      : undefined;
+
 function pushState(player) {
   const cd = cooldowns[player.name] || {};
   const book = spellbook(player);
@@ -57,6 +64,8 @@ function pushState(player) {
       .map((s) => ({
         id: s.id,
         name: s.name,
+        description: s.description || '',
+        icon: iconOf(s),
         cost: s.cost,
         readyAt: cd[s.id] || 0,
         friendly: s.target ? s.target !== 'enemies' : s.visualTarget === 'self',
@@ -182,8 +191,10 @@ function defineFromData(id, s) {
   defineSpell({
     id,
     name: s.name,
+    description: s.description,
     sprite: s.sprite,
     frames: s.frames,
+    icon: s.icon,
     cost: s.mpCost,
     cooldownMs: s.cooldownMs,
     manualVisual: true,

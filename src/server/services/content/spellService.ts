@@ -19,6 +19,9 @@ export const SpellSchema = z.object({
   heal: z.number().int().nonnegative().default(0),
   frames: z.number().int().min(1).default(1),
   visualTarget: z.enum(['self', 'targets']).default('self'),
+  // Null, not absent, for "none": a save is an upsert, and a field left out
+  // of one keeps the icon it is meant to clear.
+  icon: z.number().int().nonnegative().nullable().default(null),
 });
 
 export type SpellInput = z.input<typeof SpellSchema>;

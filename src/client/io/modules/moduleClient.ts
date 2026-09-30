@@ -12,7 +12,12 @@ import {
   useModuleText,
 } from '../../i18n';
 import { ModuleWindow } from '../../components/common/Modal';
-import { registerModuleAction } from './moduleActions';
+import { SpellIcon } from '../../components/HUD/Hotbar';
+import {
+  registerModuleAction,
+  setHotbar,
+  type HotbarSlot,
+} from './moduleActions';
 import { getGameState, getPlayer } from '../../core/gameState';
 import { enqueueChatMessage } from '../network/sync/chatSync';
 import { TILE_SIZE } from '../../../shared/constants';
@@ -196,7 +201,7 @@ function toast(el: HTMLElement, ms = 3000, fallback: HTMLElement): void {
 // stylesheet's defaults, so module and core windows match.
 let nextPanelId = 0;
 
-function makeUi(container: HTMLElement) {
+function makeUi(id: string, container: HTMLElement) {
   const button = (label: string, onClick?: () => void): HTMLButtonElement => {
     const b = document.createElement('button');
     b.type = 'button';
@@ -385,8 +390,13 @@ function makeUi(container: HTMLElement) {
       key?: string,
       icon?: string,
     ) => registerModuleAction(label, onClick, key, icon),
+    // This module's slots on the bar along the bottom of the world, replacing
+    // the ones it set before; [] takes them off.
+    hotbar: (slots: HotbarSlot[]) => setHotbar(id, slots),
     // The window panel() builds, as a component for engine.render.
     Window: ModuleWindow,
+    // A spell's picture as the hotbar draws it, for a module's own windows.
+    SpellIcon,
   };
 }
 
@@ -416,7 +426,7 @@ function makeEngineApi(id: string) {
     /** engine.t as a hook: the component re-renders on a language switch. */
     useT: useModuleText,
     /** Styled UI helpers (panel/button/input/row/column) in the core look. */
-    ui: makeUi(container),
+    ui: makeUi(id, container),
     /**
      * Declare this module's translations. The key is the English string the
      * module already draws, so a language with no entry for it renders that

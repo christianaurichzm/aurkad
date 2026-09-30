@@ -17,6 +17,7 @@
      buttons       .button-primary .button-danger
      notices       .module-toasts .notice[data-tone] .notice-label
                    .notice-detail
+     hotbar        .hotbar .hotbar-slot[data-state] .hotbar-tooltip
      player menu   .player-menu .player-menu-title
      icons         .icon
    and the variables in :root, except the --z-* stacking order. */
@@ -1363,6 +1364,137 @@ body {
 }
 #map-name.map-name-pvp {
   color: var(--color-warning);
+}
+
+/* Slots along the bottom of the world (engine.ui.hotbar). Sized against the
+   frame rather than the window, so eight still fit across a phone held
+   upright; the icon is one tile of the spell sheet at its own 32px. */
+.hotbar {
+  --slot: clamp(38px, 6.5cqw, 56px);
+  position: absolute;
+  left: 50%;
+  bottom: 8px;
+  transform: translateX(-50%);
+  z-index: var(--z-game-overlay);
+  display: flex;
+  gap: 4px;
+  padding: 4px;
+  background: color-mix(in srgb, var(--color-surface-muted) 80%, transparent);
+  border: 2px solid var(--color-border);
+  border-radius: var(--radius-panel);
+}
+.hotbar-tip {
+  position: relative;
+  display: flex;
+}
+.hotbar-slot {
+  position: relative;
+  width: var(--slot);
+  height: var(--slot);
+  padding: 0;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  background: var(--color-surface);
+  border: 2px solid var(--color-border);
+  border-radius: var(--radius-control);
+}
+.hotbar-slot[data-state='ready'] {
+  border-color: var(--color-accent);
+}
+.hotbar-slot[data-state='ready'][data-friendly] {
+  border-color: var(--color-success);
+}
+.hotbar-slot:active {
+  transform: translateY(1px);
+}
+.hotbar-slot[data-state='nomana'] > :is(canvas, .spell-monogram) {
+  filter: grayscale(0.85);
+  opacity: 0.6;
+}
+.spell-monogram {
+  font-family: var(--font-world);
+  font-size: 20px;
+}
+.hotbar-key,
+.hotbar-cost,
+.hotbar-mark {
+  position: absolute;
+  font-family: var(--font-world);
+  font-size: 11px;
+  line-height: 1;
+  text-shadow: 1px 1px 0 #000;
+}
+.hotbar-key {
+  top: 2px;
+  left: 3px;
+  color: var(--color-text-muted);
+}
+.hotbar-cost {
+  bottom: 2px;
+  right: 3px;
+  color: var(--color-info);
+}
+.hotbar-mark {
+  top: 2px;
+  right: 3px;
+  color: var(--color-success);
+}
+.hotbar-slot[data-state='nomana'] :is(.hotbar-cost, .hotbar-mark) {
+  color: var(--color-danger-text);
+}
+/* The dark wedge is the share of the cooldown still owed, shrinking
+   clockwise as it runs out. */
+.hotbar-cooldown {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  font-family: var(--font-world);
+  font-size: 18px;
+  color: #fff;
+  text-shadow:
+    1px 1px 0 #000,
+    -1px -1px 0 #000;
+  background:
+    conic-gradient(
+      transparent 0 calc(100% - var(--cd)),
+      rgba(0, 0, 0, 0.72) 0
+    ),
+    rgba(0, 0, 0, 0.25);
+}
+.hotbar-tooltip {
+  position: absolute;
+  left: 50%;
+  bottom: calc(100% + 8px);
+  transform: translateX(-50%);
+  display: none;
+  flex-direction: column;
+  gap: 2px;
+  width: max-content;
+  max-width: 220px;
+  padding: 6px 10px;
+  font-size: 12px;
+  color: var(--color-text-muted);
+  background: var(--color-surface-muted);
+  border: 2px solid var(--color-warning);
+  box-shadow: var(--shadow-panel);
+  pointer-events: none;
+}
+.hotbar-tooltip > strong {
+  font-family: var(--font-display);
+  font-size: 13px;
+  color: var(--color-text);
+}
+/* On hover only where there is one: a tap on a phone is the cast, and a
+   tooltip left standing over the world after it would only cover it. */
+@media (hover: hover) {
+  .hotbar-tip:hover > .hotbar-tooltip {
+    display: flex;
+  }
+}
+.hotbar-tip:has(> :focus-visible) > .hotbar-tooltip {
+  display: flex;
 }
 .player-controls {
   display: flex;

@@ -33,6 +33,27 @@ interface PanelApi {
   remove(): void;
 }
 
+interface HotbarSlot {
+  id: string;
+  name: string;
+  /** A line under the name in the slot's tooltip. */
+  description?: string;
+  /** The KeyboardEvent.key that uses it (`'F1'`). */
+  key?: string;
+  /** A tile of the spell sheet; without one the slot shows the name's initial. */
+  icon?: number;
+  /** Mana, shown on the slot. */
+  cost?: number;
+  /** `Date.now()` at which the cooldown ends. */
+  readyAt?: number;
+  /** The whole cooldown, so the slot shows the share of it left. */
+  cooldownMs?: number;
+  noMana?: boolean;
+  /** Aimed at the player's side (a heal): a green border and a cross. */
+  friendly?: boolean;
+  onUse(): void;
+}
+
 interface ModuleUi {
   /** Focus and contain Tab within a dialog; cleanup restores the opener. */
   focusDialog(element: HTMLElement): () => void;
@@ -73,6 +94,17 @@ interface ModuleUi {
    * @example ui.actionButton('Guild', toggle, 'g', 'guild')
    */
   actionButton(label: string, onClick: () => void, hotkey?: string, icon?: ActionIcon): void;
+  /**
+   * This module's slots on the bar along the bottom of the world, replacing
+   * the ones it set before (`[]` takes them off). A slot's `key` is shown on
+   * it and bound while no field has focus; a click, a tap or the key calls
+   * `onUse`, which decides whether anything happens.
+   *
+   * @example ui.hotbar([{ id: 'blast', name: 'Blast', key: 'F1', icon: 148, cost: 30, onUse: cast }])
+   */
+  hotbar(slots: HotbarSlot[]): void;
+  /** A spell's picture: a tile of the spell sheet, or `name`'s initial. */
+  SpellIcon: (props: { icon?: number; name: string }) => React.ReactElement;
   /**
    * The window of `panel()` for a module drawn with `engine.render`: open
    * while rendered, so the module keeps whether it is open and renders it or

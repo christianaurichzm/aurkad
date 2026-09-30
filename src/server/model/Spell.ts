@@ -17,6 +17,7 @@ const SpellSchema = new mongoose.Schema(
     heal: { type: Number, min: 0, default: 0 },
     frames: { type: Number, min: 1, default: 1 },
     visualTarget: { type: String, enum: ['self', 'targets'], default: 'self' },
+    icon: { type: Number, min: 0, default: null },
   },
   { _id: false },
 );

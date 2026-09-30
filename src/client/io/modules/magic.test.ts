@@ -1,9 +1,9 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { act, fireEvent, screen } from '@testing-library/react';
+import { act, fireEvent, screen, within } from '@testing-library/react';
 import { loadClientModule } from '../../../test/clientModule';
 
-// The Spells window of the shipped modules/magic/client.jsx; the hotbar drawn
-// on the canvas is magicHotbar.test.ts.
+// The spellbook window of the shipped modules/magic/client.jsx; its slots on
+// the hotbar are magicHotbar.test.ts.
 
 const NOW = 1_700_000_000_000;
 
@@ -30,6 +30,8 @@ const sent = () =>
   ).mock.calls;
 const openWindow = () => act(() => mod.actions.get('Spells')!.click());
 const spellButton = (name: RegExp) => screen.getByRole('button', { name });
+const spellButtons = () =>
+  within(screen.getByRole('list')).getAllByRole('button');
 
 const spell = (over: Record<string, unknown> = {}) => ({
   id: 'arcane',
@@ -58,13 +60,35 @@ describe('the spells window', () => {
     expect(screen.queryByRole('dialog')).toBeNull();
   });
 
-  it('shows the mana and each spell with its key and cost', () => {
+  it('shows the mana and each spell with what it does, costs and takes', () => {
     openWindow();
-    update(STATE);
+    update({
+      ...STATE,
+      spells: [
+        spell({ description: 'Hurts.' }),
+        spell({ id: 'heal', name: 'Heal', cost: 30, readyAt: NOW + 2100 }),
+      ],
+    });
 
     expect(screen.getByRole('dialog').textContent).toContain('Mana: 40/100');
-    expect(spellButton(/^F1 · Arcane \(10\)$/)).toBeTruthy();
-    expect(spellButton(/^F2 · Heal \(30\)$/)).toBeTruthy();
+    const [arcane, heal] = spellButtons().map((b) => b.textContent);
+    expect(arcane).toBe('AArcaneHurts.10 MP3s cooldownF1');
+    // Cooling down: the seconds left instead of the whole cooldown.
+    expect(heal).toBe('HHeal30 MP3sF2');
+  });
+
+  it('lists the spells past F8, without a key', () => {
+    openWindow();
+    update({
+      ...STATE,
+      spells: Array.from({ length: 9 }, (_, i) =>
+        spell({ id: `s${i}`, name: `S${i}` }),
+      ),
+    });
+
+    const ninth = spellButtons()[8];
+    expect(ninth.textContent).toContain('S8');
+    expect(ninth.textContent).not.toContain('F9');
   });
 
   it('casts the spell clicked', () => {
@@ -84,7 +108,7 @@ describe('the spells window', () => {
       spells: [spell({ readyAt: NOW + 2000 }), spell({ id: 'heal', cost: 30 })],
     });
 
-    for (const b of screen.getAllByRole('button', { name: /^F\d/ })) {
+    for (const b of spellButtons()) {
       expect(b).toHaveProperty('disabled', true);
     }
   });

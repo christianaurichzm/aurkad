@@ -516,6 +516,8 @@ export interface Spell {
   /** Consecutive sheet sprites, starting at `sprite`, played as one effect. */
   frames: number;
   visualTarget: 'self' | 'targets';
+  /** Its hotbar slot's tile on the spell sheet; none shows an effect frame. */
+  icon?: number | null;
 }
 
 export interface MapChunkPayload {

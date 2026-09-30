@@ -1,6 +1,8 @@
 import { isInputActive } from '../client/utils/domHelpers';
 import { focusDialog } from '../client/hooks/useDialogFocus';
 import { ModuleWindow } from '../client/components/common/Modal';
+import { SpellIcon } from '../client/components/HUD/Hotbar';
+import type { HotbarSlot } from '../client/io/modules/moduleActions';
 import { readClientSource } from '../server/engine/modules/moduleLoader.js';
 import { initTsSupport } from '../server/engine/scripting/loader.js';
 import fs from 'node:fs';
@@ -136,6 +138,8 @@ export type LoadedClientModule = {
   container: HTMLElement;
   /** Action buttons it put in the player's panel, by label. */
   actions: Map<string, HTMLButtonElement>;
+  /** The slots it last put on the hotbar. */
+  hotbar: HotbarSlot[];
   engine: FakeEngine;
 };
 
@@ -147,6 +151,7 @@ export type LoadedClientModule = {
 function fakeUi(
   panels: FakePanel[],
   actions: Map<string, HTMLButtonElement>,
+  hotbar: HotbarSlot[],
   container: HTMLElement,
 ) {
   const el = () => document.createElement('div');
@@ -233,7 +238,9 @@ function fakeUi(
       actions.set(label, b);
       return b;
     },
+    hotbar: (slots: HotbarSlot[]) => hotbar.splice(0, hotbar.length, ...slots),
     Window: ModuleWindow,
+    SpellIcon,
   };
 }
 
@@ -245,6 +252,7 @@ export function loadClientModule(
   const handlers = new Map<string, (payload: unknown) => void>();
   const panels: FakePanel[] = [];
   const actions = new Map<string, HTMLButtonElement>();
+  const hotbar: HotbarSlot[] = [];
   // One container per module, attached and stable across calls, like the
   // real mount(); a fresh detached div per call would swallow anything a
   // module appends to it.
@@ -274,7 +282,7 @@ export function loadClientModule(
     getCamera: () => ({ x: 0, y: 0 }),
     onServerEvent: (channel, handler) => handlers.set(channel, handler),
     sendServerEvent: vi.fn(),
-    ui: fakeUi(panels, actions, container),
+    ui: fakeUi(panels, actions, hotbar, container),
     // The English passes through, as the real one does for a language with no
     // entry, so a test asserting on a label reads what ships.
     i18n: vi.fn(),
@@ -314,5 +322,5 @@ export function loadClientModule(
   // eslint-disable-next-line @typescript-eslint/no-implied-eval, @typescript-eslint/no-unsafe-call
   new Function('engine', 'React', `'use strict';${code}`)(engine, React);
 
-  return { overlays, handlers, panels, actions, container, engine };
+  return { overlays, handlers, panels, actions, hotbar, container, engine };
 }

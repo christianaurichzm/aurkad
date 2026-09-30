@@ -48,6 +48,7 @@ describe('createOrUpdateSpell', () => {
         heal: 0,
         frames: 1,
         visualTarget: 'self',
+        icon: null,
       },
       { upsert: true, new: true },
     );

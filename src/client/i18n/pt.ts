@@ -176,6 +176,10 @@ export const pt: Record<keyof typeof en, string> = {
   'spell.namePlaceholder': 'Bola de fogo',
   'spell.mpCost': 'Custo de MP',
   'spell.cooldown': 'Recarga (ms)',
+  'spell.icon': 'Ícone',
+  'spell.iconAuto': 'auto',
+  'spell.iconHint':
+    'Um tile da folha de magias, mostrado na barra de atalhos. Vazio usa um quadro do efeito.',
   'spell.frames': 'Quadros',
   'spell.target': 'Alvo',
   'spell.targetEnemies': 'Inimigos próximos (dano)',
@@ -598,6 +602,12 @@ export const pt: Record<keyof typeof en, string> = {
   'app.collapsePanel': 'Fechar menu do jogo',
   'hud.mp': 'MP',
   'hud.mana': 'Mana',
+  'hotbar.label': 'Barra de atalhos',
+  'hotbar.ready': 'Disponível',
+  'hotbar.cooldown': 'Disponível em {seconds}s',
+  'hotbar.noMana': 'Mana insuficiente',
+  'hotbar.cost': '{cost} MP',
+  'hotbar.hotkey': 'Tecla {key}',
   'app.gameControls': 'Controles do jogo',
 
   'touch.controls': 'Controles de toque',

@@ -31,6 +31,7 @@ type SpellForm = {
   heal: number;
   cooldownMs: number;
   visualTarget: Spell['visualTarget'];
+  icon: number | null;
 };
 
 const defaults: SpellForm = {
@@ -44,6 +45,7 @@ const defaults: SpellForm = {
   heal: 0,
   cooldownMs: 3000,
   visualTarget: 'self',
+  icon: null,
 };
 
 export const SpellEditor: React.FC<SpellEditorProps> = ({
@@ -91,6 +93,7 @@ export const SpellEditor: React.FC<SpellEditorProps> = ({
         heal: s.heal ?? 0,
         cooldownMs: s.cooldownMs ?? 0,
         visualTarget: s.visualTarget ?? 'self',
+        icon: s.icon ?? null,
       });
   };
 
@@ -117,6 +120,12 @@ export const SpellEditor: React.FC<SpellEditorProps> = ({
 
   const name = watch('name');
   const target = watch('target');
+  // What the hotbar shows (modules/magic/server.js): the icon, or a frame a
+  // third into the effect.
+  const icon = watch('icon');
+  const sprite = watch('sprite');
+  const frames = watch('frames') || 1;
+  const iconTile = icon ?? sprite + Math.floor(frames / 3);
 
   return (
     <form style={container} onSubmit={handleSubmit(handleSave)}>
@@ -186,9 +195,34 @@ export const SpellEditor: React.FC<SpellEditorProps> = ({
           sheet={spellSheet}
           tileSize={32}
           size={48}
-          frames={watch('frames') || 1}
+          frames={frames}
           frameMs={SPELL_FRAME_MS}
         />
+        <div style={field}>
+          <label style={label} htmlFor="spell-icon">
+            {t('spell.icon')}
+          </label>
+          <input
+            id="spell-icon"
+            style={{ ...input, width: 70 }}
+            type="number"
+            min={0}
+            placeholder={t('spell.iconAuto')}
+            title={t('spell.iconHint')}
+            {...register('icon', {
+              setValueAs: (v: unknown) =>
+                v === '' || v === null ? null : Number(v),
+            })}
+          />
+        </div>
+        {Number.isFinite(iconTile) && (
+          <SpritePreview
+            spriteId={iconTile}
+            sheet={spellSheet}
+            tileSize={32}
+            size={48}
+          />
+        )}
         <div style={field}>
           <label style={label}>{t('spell.mpCost')}</label>
           <input

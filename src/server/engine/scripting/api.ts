@@ -370,6 +370,7 @@ export function buildApi(
       heal: number;
       frames: number;
       visualTarget: 'self' | 'targets';
+      icon?: number | null;
     }[] => getAllSpells().map((s) => ({ ...s })),
 
     // Saves spells to the database one by one, without waiting. Use it when
@@ -386,6 +387,7 @@ export function buildApi(
         heal?: number;
         frames?: number;
         visualTarget?: 'self' | 'targets';
+        icon?: number;
       }[],
     ): void => {
       const run = async () => {
@@ -406,6 +408,7 @@ export function buildApi(
               frames: Number(spell.frames ?? 1),
               visualTarget:
                 spell.visualTarget ?? (spell.damage > 0 ? 'targets' : 'self'),
+              icon: spell.icon ?? null,
             });
           } catch (e) {
             logger.warn(`[script:${scriptName}] createSpells skipped a spell`, {
