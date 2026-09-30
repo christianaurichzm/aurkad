@@ -24,6 +24,7 @@ export const CommandConsole: React.FC<{ height?: number }> = ({
   const history = useRef<string[]>([]);
   const idx = useRef(0);
   const logRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     fetchCommands()
@@ -100,11 +101,27 @@ export const CommandConsole: React.FC<{ height?: number }> = ({
         )}
       </div>
       {commands.length > 0 && (
-        <div style={cmdHint}>{commands.map((c) => c.name).join('  ')}</div>
+        <div style={cmdList}>
+          {commands.map((c) => (
+            <button
+              key={c.name}
+              type="button"
+              style={cmdChip}
+              title={c.description}
+              onClick={() => {
+                setInput(`${c.name} `);
+                inputRef.current?.focus();
+              }}
+            >
+              {c.name}
+            </button>
+          ))}
+        </div>
       )}
       <div style={inputRow}>
         <span style={prompt}>›</span>
         <input
+          ref={inputRef}
           style={inputBox}
           value={input}
           spellCheck={false}
@@ -126,7 +143,7 @@ const wrap: React.CSSProperties = {
   gap: 8,
 };
 const log: React.CSSProperties = {
-  overflowY: 'auto',
+  overflow: 'auto',
   border: `1px solid ${colors.border}`,
   borderRadius: radius.control,
   padding: 10,
@@ -145,15 +162,27 @@ const lineIn: React.CSSProperties = {
   color: colors.info,
   whiteSpace: 'pre-wrap',
 };
+// Output is laid out in columns, so it keeps line breaks and scrolls sideways.
 const lineOut: React.CSSProperties = {
   color: colors.text,
-  whiteSpace: 'pre-wrap',
+  whiteSpace: 'pre',
 };
-const cmdHint: React.CSSProperties = {
-  fontSize: 11,
+const cmdList: React.CSSProperties = {
+  display: 'flex',
+  flexWrap: 'wrap',
+  gap: 4,
+  maxHeight: 76,
+  overflowY: 'auto',
+};
+const cmdChip: React.CSSProperties = {
+  padding: '2px 8px',
+  border: `1px solid ${colors.border}`,
+  borderRadius: radius.control,
+  background: colors.surface,
   color: colors.textMuted,
-  whiteSpace: 'nowrap',
-  overflowX: 'auto',
+  fontFamily: mono,
+  fontSize: 11,
+  cursor: 'pointer',
 };
 const inputRow: React.CSSProperties = {
   display: 'flex',

@@ -7,22 +7,23 @@ import {
   modGoto,
   modWarp,
   modSetAccess,
+  modSetMyAccess,
   modSetSprite,
 } from '../../io/network';
 import { Access } from '../../../shared/types';
 import { colors, radius } from '../../theme';
 import { useT } from '../../i18n';
 
-// Moderation core shared by the in-game GM panel and the /admin dashboard.
-// The name field is the one target: type a known name to act on it, offline
-// players included (to ban, say), or click a row to fill it; the online
-// list filters as you type. `allowRelativeTeleport` shows Bring and Go To,
-// which only make sense in-game where the operator has a position.
+// Moderation shared by the GM panel and /admin. The name field is the
+// target: type a name (offline players too) or click a row. Bring and Go To
+// need the operator in the world. Acting on `self` sets access through
+// setMyAccess, since setAccess would end the operator's own session.
 export const PlayerModeration: React.FC<{
   access: Access;
+  self?: string;
   allowRelativeTeleport?: boolean;
   onResult: (message: string) => void;
-}> = ({ access, allowRelativeTeleport = false, onResult }) => {
+}> = ({ access, self, allowRelativeTeleport = false, onResult }) => {
   const t = useT();
   const canAdmin = access >= Access.ADMIN;
 
@@ -37,7 +38,10 @@ export const PlayerModeration: React.FC<{
   const [spriteId, setSpriteId] = useState(0);
   const [banReason, setBanReason] = useState('');
   const [banDuration, setBanDuration] = useState(0);
-  const [accessLevel, setAccessLevel] = useState<Access>(Access.USER);
+  const [accessChoice, setAccessChoice] = useState<{
+    name: string;
+    level: Access;
+  }>();
 
   const accessOptions = useMemo(
     () =>
@@ -64,12 +68,24 @@ export const PlayerModeration: React.FC<{
     void load();
   }, [load]);
 
-  const filtered = players.filter((p) =>
-    p.toLowerCase().includes(target.trim().toLowerCase()),
-  );
-
   const name = target.trim();
+  // A picked row keeps the whole list in view, so switching target is a click.
+  const filtered = players.includes(name)
+    ? players
+    : players.filter((p) => p.toLowerCase().includes(name.toLowerCase()));
+
   const hasTarget = name.length > 0;
+  const isSelf = !!self && name === self;
+  // No preselected level, so a careless click demotes nobody; picking
+  // yourself starts on your own level, which changes nothing.
+  const accessLevel =
+    accessChoice?.name === name
+      ? accessChoice.level
+      : isSelf
+        ? access
+        : undefined;
+  const canApplyAccess =
+    accessLevel !== undefined && !(isSelf && accessLevel === access);
 
   const run = async (
     fn: () => Promise<unknown>,
@@ -89,19 +105,19 @@ export const PlayerModeration: React.FC<{
 
   return (
     <div style={wrap}>
-      <div style={head}>
-        <span style={countBadge}>{t('online.count', { count })}</span>
+      <div style={searchRow}>
+        <input
+          style={{ ...input, flex: 1 }}
+          aria-label={t('mod.targetPlaceholder')}
+          placeholder={t('mod.targetPlaceholder')}
+          value={target}
+          onChange={(e) => setTarget(e.target.value)}
+        />
         <button style={ghostBtn} onClick={() => void load()} disabled={loading}>
           {loading ? '…' : t('mod.refresh')}
         </button>
       </div>
-
-      <input
-        style={input}
-        placeholder={t('mod.targetPlaceholder')}
-        value={target}
-        onChange={(e) => setTarget(e.target.value)}
-      />
+      <span style={countLine}>{t('online.count', { count })}</span>
 
       <ul style={list}>
         {filtered.length === 0 ? (
@@ -118,191 +134,236 @@ export const PlayerModeration: React.FC<{
             >
               <span style={dot} />
               {p}
+              {p === self && <span style={youTag}>{t('mod.you')}</span>}
             </li>
           ))
         )}
       </ul>
 
-      <div style={actions(hasTarget)}>
-        <div style={rowWrap}>
-          <button
-            style={dangerBtn}
-            onClick={() =>
-              run(
-                () => modKick(name),
-                t('mod.kicked'),
-                t('mod.kickFailed'),
-                true,
-              )
-            }
-          >
-            {t('mod.kick')}
-          </button>
-          {allowRelativeTeleport && (
-            <>
-              <button
-                style={btn}
-                onClick={() =>
-                  run(() => modBring(name), t('mod.brought'), t('gm.failed'))
-                }
-              >
-                {t('mod.bring')}
-              </button>
-              <button
-                style={btn}
-                onClick={() =>
-                  run(() => modGoto(name), t('mod.teleported'), t('gm.failed'))
-                }
-              >
-                {t('mod.goTo')}
-              </button>
-            </>
-          )}
-        </div>
-
-        <div style={rowWrap}>
-          <input
-            style={{ ...input, flex: 2 }}
-            placeholder={t('gm.mapId')}
-            value={warpMap}
-            onChange={(e) => setWarpMap(e.target.value)}
-          />
-          <input
-            style={{ ...input, width: 56 }}
-            type="number"
-            title={t('questEditor.col')}
-            value={warpCol}
-            onChange={(e) => setWarpCol(+e.target.value)}
-          />
-          <input
-            style={{ ...input, width: 56 }}
-            type="number"
-            title={t('questEditor.row')}
-            value={warpRow}
-            onChange={(e) => setWarpRow(+e.target.value)}
-          />
-          <button
-            style={btn}
-            onClick={() =>
-              run(
-                () => modWarp(name, warpMap.trim(), warpCol, warpRow),
-                t('mod.warped'),
-                t('mod.warpFailed'),
-              )
-            }
-          >
-            {t('mod.warp')}
-          </button>
-        </div>
-
-        <div style={rowWrap}>
-          <input
-            style={{ ...input, flex: 1 }}
-            type="number"
-            placeholder={t('editor.spriteId')}
-            value={spriteId}
-            onChange={(e) => setSpriteId(+e.target.value)}
-          />
-          <button
-            style={btn}
-            onClick={() =>
-              run(
-                () => modSetSprite(name, spriteId),
-                t('gm.spriteSet'),
-                t('gm.failed'),
-              )
-            }
-          >
-            {t('gm.setSprite')}
-          </button>
-        </div>
-
-        {canAdmin && (
-          <>
-            <div style={rowWrap}>
-              <select
-                style={{ ...input, flex: 1 }}
-                value={accessLevel}
-                onChange={(e) => setAccessLevel(+e.target.value)}
-              >
-                {accessOptions.map((o) => (
-                  <option key={o.value} value={o.value}>
-                    {o.label}
-                  </option>
-                ))}
-              </select>
+      {!hasTarget ? (
+        <p style={hint}>{t('mod.pickHint')}</p>
+      ) : (
+        <>
+          <fieldset style={group}>
+            <legend style={legend}>{t('mod.groupTeleport')}</legend>
+            {allowRelativeTeleport && !isSelf && (
+              <div style={fieldRow}>
+                <button
+                  style={btn}
+                  onClick={() =>
+                    run(() => modBring(name), t('mod.brought'), t('gm.failed'))
+                  }
+                >
+                  {t('mod.bring')}
+                </button>
+                <button
+                  style={btn}
+                  onClick={() =>
+                    run(
+                      () => modGoto(name),
+                      t('mod.teleported'),
+                      t('gm.failed'),
+                    )
+                  }
+                >
+                  {t('mod.goTo')}
+                </button>
+              </div>
+            )}
+            <div style={fieldRow}>
+              <Field label={t('gm.mapId')} grow>
+                <input
+                  style={input}
+                  value={warpMap}
+                  onChange={(e) => setWarpMap(e.target.value)}
+                />
+              </Field>
+              <Field label={t('questEditor.col')}>
+                <input
+                  style={{ ...input, width: 64 }}
+                  type="number"
+                  value={warpCol}
+                  onChange={(e) => setWarpCol(+e.target.value)}
+                />
+              </Field>
+              <Field label={t('questEditor.row')}>
+                <input
+                  style={{ ...input, width: 64 }}
+                  type="number"
+                  value={warpRow}
+                  onChange={(e) => setWarpRow(+e.target.value)}
+                />
+              </Field>
               <button
                 style={btn}
                 onClick={() =>
                   run(
-                    () => modSetAccess(name, accessLevel),
-                    t('gm.accessSet'),
+                    () => modWarp(name, warpMap.trim(), warpCol, warpRow),
+                    t('mod.warped'),
+                    t('mod.warpFailed'),
+                  )
+                }
+              >
+                {t('mod.warp')}
+              </button>
+            </div>
+          </fieldset>
+
+          <fieldset style={group}>
+            <legend style={legend}>{t('mod.groupCharacter')}</legend>
+            <div style={fieldRow}>
+              <Field label={t('editor.spriteId')} grow>
+                <input
+                  style={input}
+                  type="number"
+                  value={spriteId}
+                  onChange={(e) => setSpriteId(+e.target.value)}
+                />
+              </Field>
+              <button
+                style={btn}
+                onClick={() =>
+                  run(
+                    () => modSetSprite(name, spriteId),
+                    t('gm.spriteSet'),
                     t('gm.failed'),
                   )
                 }
               >
-                {t('gm.setAccess')}
+                {t('gm.setSprite')}
               </button>
             </div>
+            {canAdmin && (
+              <div style={fieldRow}>
+                <Field label={t('mod.accessLevel')} grow>
+                  <select
+                    style={input}
+                    value={accessLevel ?? ''}
+                    onChange={(e) =>
+                      setAccessChoice({ name, level: +e.target.value })
+                    }
+                  >
+                    <option value="" disabled>
+                      {t('mod.pickLevel')}
+                    </option>
+                    {accessOptions.map((o) => (
+                      <option key={o.value} value={o.value}>
+                        {o.label}
+                      </option>
+                    ))}
+                  </select>
+                </Field>
+                <button
+                  style={btn}
+                  disabled={!canApplyAccess}
+                  onClick={() =>
+                    accessLevel !== undefined &&
+                    run(
+                      () =>
+                        isSelf
+                          ? modSetMyAccess(accessLevel)
+                          : modSetAccess(name, accessLevel),
+                      t('gm.accessSet'),
+                      t('gm.failed'),
+                    )
+                  }
+                >
+                  {t('gm.setAccess')}
+                </button>
+              </div>
+            )}
+          </fieldset>
 
-            <div style={banBox}>
-              <input
-                style={input}
-                placeholder={t('mod.banReason')}
-                value={banReason}
-                onChange={(e) => setBanReason(e.target.value)}
-              />
-              <div style={rowWrap}>
-                <input
-                  style={{ ...input, flex: 1 }}
-                  type="number"
-                  placeholder={t('mod.banMinutes')}
-                  value={banDuration}
-                  onChange={(e) => setBanDuration(+e.target.value)}
-                />
+          {!isSelf && (
+            <fieldset style={dangerGroup}>
+              <legend style={{ ...legend, color: colors.dangerText }}>
+                {t('mod.groupPunish')}
+              </legend>
+              <div style={fieldRow}>
                 <button
                   style={dangerBtn}
                   onClick={() =>
                     run(
-                      () =>
-                        modBan(
-                          name,
-                          banReason,
-                          banDuration
-                            ? Date.now() + banDuration * 60000
-                            : undefined,
-                        ),
-                      t('mod.banned'),
-                      t('mod.banFailed'),
+                      () => modKick(name),
+                      t('mod.kicked'),
+                      t('mod.kickFailed'),
                       true,
                     )
                   }
                 >
-                  {t('mod.ban')}
+                  {t('mod.kick')}
                 </button>
               </div>
-            </div>
-          </>
-        )}
-      </div>
+              {canAdmin && (
+                <>
+                  <Field label={t('mod.banReason')}>
+                    <input
+                      style={input}
+                      value={banReason}
+                      onChange={(e) => setBanReason(e.target.value)}
+                    />
+                  </Field>
+                  <div style={fieldRow}>
+                    <Field label={t('mod.banMinutes')} grow>
+                      <input
+                        style={input}
+                        type="number"
+                        value={banDuration}
+                        onChange={(e) => setBanDuration(+e.target.value)}
+                      />
+                    </Field>
+                    <button
+                      style={dangerBtn}
+                      onClick={() =>
+                        run(
+                          () =>
+                            modBan(
+                              name,
+                              banReason,
+                              banDuration
+                                ? Date.now() + banDuration * 60000
+                                : undefined,
+                            ),
+                          t('mod.banned'),
+                          t('mod.banFailed'),
+                          true,
+                        )
+                      }
+                    >
+                      {t('mod.ban')}
+                    </button>
+                  </div>
+                </>
+              )}
+            </fieldset>
+          )}
+        </>
+      )}
     </div>
   );
 };
+
+const Field: React.FC<{
+  label: string;
+  grow?: boolean;
+  children: React.ReactNode;
+}> = ({ label, grow, children }) => (
+  <label style={{ ...field, flex: grow ? 1 : undefined }}>
+    <span style={fieldLabel}>{label}</span>
+    {children}
+  </label>
+);
 
 const wrap: React.CSSProperties = {
   display: 'flex',
   flexDirection: 'column',
   gap: 8,
 };
-const head: React.CSSProperties = {
-  display: 'flex',
-  alignItems: 'center',
-  justifyContent: 'space-between',
-};
-const countBadge: React.CSSProperties = {
+const searchRow: React.CSSProperties = { display: 'flex', gap: 6 };
+const countLine: React.CSSProperties = {
   color: colors.success,
   fontWeight: 700,
-  fontSize: 13,
+  fontSize: 12,
 };
 const ghostBtn: React.CSSProperties = {
   background: colors.surfaceMuted,
@@ -312,12 +373,13 @@ const ghostBtn: React.CSSProperties = {
   borderRadius: radius.control,
   cursor: 'pointer',
   fontSize: 13,
+  flexShrink: 0,
 };
 const list: React.CSSProperties = {
   listStyle: 'none',
   margin: 0,
   padding: 0,
-  maxHeight: 180,
+  maxHeight: 150,
   overflowY: 'auto',
   border: `1px solid ${colors.border}`,
   borderRadius: radius.control,
@@ -326,10 +388,11 @@ const row = (sel: boolean): React.CSSProperties => ({
   display: 'flex',
   alignItems: 'center',
   gap: 8,
-  padding: '8px 12px',
+  padding: '7px 12px',
   cursor: 'pointer',
   borderBottom: `1px solid ${colors.border}`,
-  background: sel ? colors.surfaceMuted : 'transparent',
+  background: sel ? colors.selected : 'transparent',
+  boxShadow: sel ? `inset 3px 0 0 ${colors.primary}` : undefined,
   fontSize: 14,
 });
 const emptyRow: React.CSSProperties = {
@@ -344,14 +407,55 @@ const dot: React.CSSProperties = {
   borderRadius: '50%',
   background: colors.success,
 };
-const actions = (enabled: boolean): React.CSSProperties => ({
+const youTag: React.CSSProperties = {
+  marginLeft: 'auto',
+  fontSize: 11,
+  color: colors.textMuted,
+};
+const hint: React.CSSProperties = {
+  margin: '4px 0 0',
+  fontSize: 13,
+  color: colors.textMuted,
+  textAlign: 'center',
+};
+const group: React.CSSProperties = {
   display: 'flex',
   flexDirection: 'column',
   gap: 8,
-  opacity: enabled ? 1 : 0.5,
-  pointerEvents: enabled ? 'auto' : 'none',
-});
-const rowWrap: React.CSSProperties = { display: 'flex', gap: 6 };
+  margin: 0,
+  minWidth: 0,
+  padding: '6px 10px 10px',
+  border: `1px solid ${colors.border}`,
+  borderRadius: radius.control,
+};
+const dangerGroup: React.CSSProperties = {
+  ...group,
+  borderColor: colors.danger,
+  background: colors.dangerMuted,
+};
+const legend: React.CSSProperties = {
+  padding: '0 4px',
+  fontSize: 11,
+  fontWeight: 700,
+  textTransform: 'uppercase',
+  letterSpacing: '0.06em',
+  color: colors.textMuted,
+};
+const fieldRow: React.CSSProperties = {
+  display: 'flex',
+  alignItems: 'flex-end',
+  gap: 6,
+};
+const field: React.CSSProperties = {
+  display: 'flex',
+  flexDirection: 'column',
+  gap: 3,
+  minWidth: 0,
+};
+const fieldLabel: React.CSSProperties = {
+  fontSize: 11,
+  color: colors.textMuted,
+};
 const input: React.CSSProperties = {
   padding: '7px 9px',
   border: `1.5px solid ${colors.border}`,
@@ -361,12 +465,13 @@ const input: React.CSSProperties = {
   background: colors.surface,
   boxSizing: 'border-box',
   minWidth: 0,
+  width: '100%',
 };
 const btn: React.CSSProperties = {
   background: colors.primary,
   color: '#fff',
   border: 'none',
-  padding: '7px 14px',
+  padding: '8px 14px',
   borderRadius: radius.control,
   cursor: 'pointer',
   fontWeight: 600,
@@ -374,12 +479,3 @@ const btn: React.CSSProperties = {
   flexShrink: 0,
 };
 const dangerBtn: React.CSSProperties = { ...btn, background: colors.danger };
-const banBox: React.CSSProperties = {
-  display: 'flex',
-  flexDirection: 'column',
-  gap: 6,
-  background: colors.dangerMuted,
-  border: `1px solid ${colors.danger}`,
-  borderRadius: radius.control,
-  padding: 10,
-};
