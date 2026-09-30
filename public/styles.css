@@ -7,7 +7,7 @@
 
    Theme contract:
      login screen  .auth-layout .auth-card .auth-heading .auth-form
-                   .engine-brand
+                   .engine-brand .password-toggle
      game screen   #ui #canvasFrame #sidePanel #map-name .player-controls
      player card   #hud #hud-portrait[data-sprite] #hud-name #hud-level
                    #hud-row[data-tone] #xp-bar-container
@@ -933,6 +933,8 @@ body {
   --icon-settings: url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2'><circle cx='12' cy='12' r='6'/><circle cx='12' cy='12' r='2'/><path d='M12 2v4m0 12v4M2 12h4m12 0h4M5 5l3 3m8 8 3 3M5 19l3-3m8-8 3-3'/></svg>");
   --icon-menu: url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round'><path d='M4 7h16M4 12h16M4 17h16'/></svg>");
   --icon-close: url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round'><path d='m6 6 12 12M18 6 6 18'/></svg>");
+  --icon-eye: url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linejoin='round'><path d='M2 12s3.6-6.5 10-6.5S22 12 22 12s-3.6 6.5-10 6.5S2 12 2 12z'/><circle cx='12' cy='12' r='3'/></svg>");
+  --icon-eye-off: url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linejoin='round' stroke-linecap='round'><path d='M2 12s3.6-6.5 10-6.5S22 12 22 12s-3.6 6.5-10 6.5S2 12 2 12z'/><circle cx='12' cy='12' r='3'/><path d='M4 3l16 18'/></svg>");
   /* The menu's panels: filled silhouettes, which hold up at the size of a
      tile better than outlines do. */
   --icon-bag: url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill-rule='evenodd'><path d='M9 2.5h6l-1.6 3.2h-2.8zM8.2 7h7.6c2.9 2 5.2 5.8 5.2 9.3 0 3.3-2.6 4.7-9 4.7s-9-1.4-9-4.7C3 12.8 5.3 9 8.2 7z'/></svg>");
@@ -1294,6 +1296,29 @@ body {
 }
 .auth-form button[type='submit'] {
   font-size: 14px;
+}
+/* The eye sits inside the field. Edge draws its own reveal button there too,
+   and two eyes read as a glitch. */
+.password-field {
+  position: relative;
+  display: block;
+}
+.password-field > input::-ms-reveal {
+  display: none;
+}
+.password-toggle {
+  position: absolute;
+  top: 50%;
+  right: 6px;
+  display: inline-flex;
+  padding: 6px;
+  border: 0;
+  background: none;
+  color: var(--color-text-muted);
+  transform: translateY(-50%);
+}
+.password-toggle[aria-pressed='true'] {
+  color: var(--color-accent);
 }
 .admin-header {
   flex-wrap: wrap;

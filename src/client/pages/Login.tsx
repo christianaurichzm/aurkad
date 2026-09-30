@@ -1,4 +1,5 @@
 import { AuthLayout } from '../components/common/AuthLayout';
+import { PasswordInput } from '../components/common/PasswordInput';
 import { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import {
@@ -125,8 +126,7 @@ export const Login = ({ onSwitch }: { onSwitch: () => void }) => {
           )}
         </div>
         <div style={styles.field}>
-          <input
-            type="password"
+          <PasswordInput
             autoComplete="current-password"
             aria-label={t('auth.password')}
             placeholder={t('auth.password')}

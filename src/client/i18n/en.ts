@@ -7,6 +7,7 @@ export const en = {
   // Auth
   'auth.username': 'Username',
   'auth.password': 'Password',
+  'auth.showPassword': 'Show password',
   'auth.login': 'Login',
   'auth.register': 'Register',
   'auth.chooseUsername': 'Choose a username',

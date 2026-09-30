@@ -12,6 +12,8 @@ export const ICON_NAMES = [
   'settings',
   'menu',
   'close',
+  'eye',
+  'eye-off',
   'bag',
   'stats',
   'players',

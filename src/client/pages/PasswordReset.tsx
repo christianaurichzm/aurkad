@@ -1,4 +1,5 @@
 import { AuthLayout } from '../components/common/AuthLayout';
+import { PasswordInput } from '../components/common/PasswordInput';
 import { useState } from 'react';
 import { PASSWORD_MIN_LENGTH } from '../../shared/constants';
 import {
@@ -70,8 +71,7 @@ export const PasswordReset = ({
           </>
         ) : (
           <>
-            <input
-              type="password"
+            <PasswordInput
               autoFocus
               aria-label={t('auth.newPassword')}
               placeholder={t('auth.newPassword')}
@@ -79,8 +79,7 @@ export const PasswordReset = ({
               onChange={(e) => setPassword(e.target.value)}
               style={styles.input}
             />
-            <input
-              type="password"
+            <PasswordInput
               aria-label={t('auth.repeatPassword')}
               placeholder={t('auth.repeatPassword')}
               value={repeat}

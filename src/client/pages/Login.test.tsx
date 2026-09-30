@@ -118,3 +118,25 @@ describe('the second factor', () => {
     );
   });
 });
+
+describe('the password field', () => {
+  it('shows what was typed while the eye is pressed, and still sends it', async () => {
+    render(<Login onSwitch={vi.fn()} />);
+    const user = userEvent.setup();
+    const field = screen.getByPlaceholderText('Password');
+    const eye = screen.getByRole('button', { name: 'Show password' });
+
+    expect(field).toHaveAttribute('type', 'password');
+    await user.click(eye);
+    expect(field).toHaveAttribute('type', 'text');
+    expect(eye).toHaveAttribute('aria-pressed', 'true');
+
+    await signIn('Alice', 'correcthorse', false);
+    expect(mocks.login).toHaveBeenCalledWith(
+      'Alice',
+      'correcthorse',
+      false,
+      undefined,
+    );
+  });
+});

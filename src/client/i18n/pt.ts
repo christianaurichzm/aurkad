@@ -7,6 +7,7 @@ import type { en } from './en';
 export const pt: Record<keyof typeof en, string> = {
   'auth.username': 'Usuário',
   'auth.password': 'Senha',
+  'auth.showPassword': 'Mostrar senha',
   'auth.login': 'Entrar',
   'auth.register': 'Registrar',
   'auth.chooseUsername': 'Escolha um usuário',
