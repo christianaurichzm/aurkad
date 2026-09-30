@@ -1,17 +1,26 @@
 // @ts-check
-// Quest module, client entry: a tracker window (Q) with the active quests
-// and a progress bar each, completed ones in a collapsed section. Starting
-// or completing a quest shows a toast and logs a chat message.
+// Quest module, client entry: the quest log (Q), with active and completed
+// quests and the picked one's progress and reward. Starting or completing
+// one shows a toast and a chat line.
 
 // Translations keyed by the English text. `ui` helpers translate on their
 // own; other text goes through engine.t or engine.useT().
 engine.i18n({
   pt: {
     Quests: 'Missões',
-    'Quests ({count} active)': 'Missões ({count} ativas)',
+    '{count} active': '{count} ativas',
     'No quests yet.': 'Nenhuma missão ainda.',
-    '✓ Done': '✓ Feita',
-    'Completed ({count})': 'Concluídas ({count})',
+    'Talk to the people you meet to pick one up.':
+      'Fale com quem você encontrar para pegar uma.',
+    'Quest list': 'Lista de missões',
+    Active: 'Ativas',
+    Completed: 'Concluídas',
+    None: 'Nenhuma',
+    'From {giver}': 'De {giver}',
+    Progress: 'Progresso',
+    Rewards: 'Recompensas',
+    '{quest} progress': 'Progresso de {quest}',
+    'Completed - rewards claimed.': 'Concluída - recompensas recebidas.',
     'Quest completed: {quest}': 'Missão concluída: {quest}',
     '✓ Quest complete: {quest}': '✓ Missão concluída: {quest}',
     'Quest started: {quest}': 'Missão iniciada: {quest}',
@@ -21,8 +30,11 @@ engine.i18n({
 
 const ui = engine.ui;
 
-let quests = []; // [{ id, name, description, progress, target, status }]
+// [{ id, name, description, progress, target, status, from?, reward? }]
+let quests = [];
 let shown = false;
+// The quest whose detail is open; the first active one until one is picked.
+let picked = null;
 let prevStatuses = {}; // id → status, for detecting transitions
 // The first list is what the player already had when the game opened.
 let listed = false;
@@ -37,138 +49,152 @@ function toggle() {
   if (shown) engine.sendServerEvent('quest:request');
 }
 
+function pick(id) {
+  picked = id;
+  draw();
+}
+
+const section = { display: 'grid', gap: 6, alignContent: 'start' };
+
 function QuestWindow({ list }) {
   const t = engine.useT();
   const active = list.filter((q) => q.status === 'active');
   const done = list.filter((q) => q.status === 'completed');
+  if (list.length === 0)
+    return (
+      <ui.Window title={t('Quests')} width="wide" onClose={toggle}>
+        <ui.EmptyState
+          icon="quest"
+          title={t('No quests yet.')}
+          hint={t('Talk to the people you meet to pick one up.')}
+        />
+      </ui.Window>
+    );
+  const open = list.find((q) => q.id === picked) ?? active[0] ?? done[0];
   return (
     <ui.Window
-      title={
-        list.length === 0
-          ? t('Quests')
-          : t('Quests ({count} active)', { count: active.length })
-      }
+      title={t('Quests')}
+      counter={t('{count} active', { count: active.length })}
+      width="wide"
       onClose={toggle}
     >
-      {list.length === 0 ? (
-        <div
-          style={{
-            color: 'var(--color-text-muted)',
-            fontSize: 12,
-            padding: '4px 0',
-          }}
-        >
-          {t('No quests yet.')}
-        </div>
-      ) : (
-        <>
-          <QuestList list={active} />
-          {done.length > 0 && (
-            <details style={{ marginTop: 6, fontSize: 12 }}>
-              <summary
-                style={{
-                  cursor: 'pointer',
-                  color: 'var(--color-text-muted)',
-                  userSelect: 'none',
-                  padding: '2px 0',
-                }}
-              >
-                {t('Completed ({count})', { count: done.length })}
-              </summary>
-              <QuestList list={done} />
-            </details>
-          )}
-        </>
-      )}
+      <div className="window-split">
+        <nav style={{ ...section, gap: 10 }} aria-label={t('Quest list')}>
+          <QuestList title={t('Active')} list={active} open={open} />
+          <QuestList title={t('Completed')} list={done} open={open} />
+        </nav>
+        <Detail q={open} />
+      </div>
     </ui.Window>
   );
 }
 
-function QuestList({ list }) {
+function QuestList({ title, list, open }) {
+  const t = engine.useT();
   return (
-    <ul style={{ listStyle: 'none', margin: 0, padding: 0 }}>
-      {list.map((q) => (
-        <QuestCard key={q.id} q={q} />
-      ))}
-    </ul>
+    <section style={section}>
+      <h3 className="window-heading">{title}</h3>
+      {list.length === 0 ? (
+        <span className="window-label">{t('None')}</span>
+      ) : (
+        <ul className="list">
+          {list.map((q) => (
+            <li key={q.id}>
+              <button
+                type="button"
+                className="chip"
+                style={{ width: '100%', textAlign: 'left' }}
+                aria-current={q.id === open.id}
+                onClick={() => pick(q.id)}
+              >
+                {q.name}
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
+    </section>
   );
 }
 
-function QuestCard({ q }) {
+function Detail({ q }) {
   const t = engine.useT();
   const done = q.status === 'completed';
-  const pct = q.target > 0 ? Math.round((q.progress / q.target) * 100) : 100;
+  const reward = q.reward;
   return (
-    <li
-      style={{
-        padding: '6px 8px',
-        borderRadius: 'var(--radius-control)',
-        border: `1px solid ${done ? '#2a4a2a' : 'var(--color-border)'}`,
-        background: done
-          ? 'var(--color-selected)'
-          : 'var(--color-surface-muted)',
-        marginBottom: 4,
-      }}
-    >
-      <div
-        style={{
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          fontSize: 13,
-        }}
-      >
-        <span
-          style={{
-            fontWeight: 'bold',
-            color: done ? 'var(--color-success)' : 'var(--color-text)',
-          }}
-        >
-          {q.name}
+    <article className="window-aside" style={section} aria-label={q.name}>
+      <h3 className="window-heading" style={{ fontSize: 16 }}>
+        {q.name}
+      </h3>
+      {q.from && (
+        <span className="window-label">
+          {t('From {giver}', { giver: q.from })}
         </span>
-        <span
-          style={{
-            fontSize: 11,
-            color: done ? 'var(--color-success)' : 'var(--color-text-muted)',
-          }}
-        >
-          {done ? t('✓ Done') : `${q.progress}/${q.target}`}
+      )}
+      {q.description && <p>{q.description}</p>}
+      {done ? (
+        <span className="window-label">
+          {t('Completed - rewards claimed.')}
         </span>
-      </div>
-      {q.description && (
-        <div
-          style={{
-            fontSize: 11,
-            color: 'var(--color-text-muted)',
-            marginTop: 2,
-          }}
-        >
-          {q.description}
+      ) : (
+        <div style={{ display: 'grid', gap: 3 }}>
+          <span style={{ display: 'flex', justifyContent: 'space-between' }}>
+            <span className="window-label">{t('Progress')}</span>
+            <b className="stack-count">
+              {q.progress}/{q.target}
+            </b>
+          </span>
+          <span
+            className="meter"
+            role="meter"
+            aria-label={t('{quest} progress', { quest: q.name })}
+            aria-valuemin={0}
+            aria-valuemax={q.target}
+            aria-valuenow={q.progress}
+          >
+            <span
+              style={{
+                width: `${q.target > 0 ? (q.progress / q.target) * 100 : 100}%`,
+              }}
+            />
+          </span>
         </div>
       )}
-      {!done && (
-        <div
-          style={{
-            width: '100%',
-            height: 6,
-            background: 'var(--color-surface-muted)',
-            borderRadius: 3,
-            overflow: 'hidden',
-            marginTop: 3,
-          }}
-        >
+      {reward && (reward.experience > 0 || reward.items.length > 0) && (
+        <>
+          <span className="window-label">{t('Rewards')}</span>
           <div
             style={{
-              height: '100%',
-              width: `${pct}%`,
-              background: 'var(--color-warning)',
-              borderRadius: 3,
-              transition: 'width .3s',
+              display: 'flex',
+              flexWrap: 'wrap',
+              alignItems: 'center',
+              gap: 8,
             }}
-          />
-        </div>
+          >
+            {reward.items.map((item) => {
+              const label = `${item.name} x${item.quantity}`;
+              return (
+                <span
+                  key={item.name}
+                  role="img"
+                  title={label}
+                  aria-label={label}
+                  style={{ display: 'inline-flex', alignItems: 'center' }}
+                >
+                  <ui.ItemIcon spriteId={item.sprite ?? 0} size={32} />
+                  <b className="stack-count">x{item.quantity}</b>
+                </span>
+              );
+            })}
+            {reward.experience > 0 && (
+              <span>
+                <b className="stack-count">+{reward.experience}</b> XP
+              </span>
+            )}
+          </div>
+        </>
       )}
-    </li>
+    </article>
   );
 }
 

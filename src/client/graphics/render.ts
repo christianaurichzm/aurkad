@@ -220,8 +220,12 @@ export const render = () => {
     fringeCtx.translate(-cam.x, -cam.y);
     runOverlays(fringeCtx, cam, OverlayLayer.scene);
     renderEntityHuds(hudEntries, fringeCtx);
-    // Asked of the player where the server has them, drawn where they are seen.
-    const prompt = rawPlayer ? findInteractPrompt(rawPlayer, map) : null;
+    // Asked where the server has the player, drawn where they are seen, and not
+    // while a modal holds the keys.
+    const prompt =
+      rawPlayer && !document.querySelector('[aria-modal="true"]')
+        ? findInteractPrompt(rawPlayer, map)
+        : null;
     if (prompt && currentPlayer) {
       const { x, y } = currentPlayer.position;
       renderInteractPrompt(

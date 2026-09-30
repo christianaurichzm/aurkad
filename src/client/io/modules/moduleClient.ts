@@ -13,6 +13,10 @@ import {
 } from '../../i18n';
 import { ModuleWindow } from '../../components/common/Modal';
 import { SpellIcon } from '../../components/HUD/Hotbar';
+import { Sprite } from '../../components/common/SpritePreview';
+import { ItemIcon, ItemSlot } from '../../components/Inventory/ItemIcon';
+import { Stepper } from '../../components/common/Stepper';
+import { EmptyState } from '../../components/common/EmptyState';
 import {
   registerModuleAction,
   setHotbar,
@@ -23,6 +27,7 @@ import { enqueueChatMessage } from '../network/sync/chatSync';
 import { TILE_SIZE } from '../../../shared/constants';
 import { getCamera, screenToWorld, worldToScreen } from '../../graphics/camera';
 import { OverlayLayer, registerOverlay } from '../../graphics/overlayRegistry';
+import { worldText } from '../../graphics/canvas';
 
 // Loads the module browser entries the server serves and runs them with an
 // `engine` API. Like server scripts, this is the server owner's code, so it
@@ -405,6 +410,15 @@ function makeUi(id: string, container: HTMLElement) {
     Window: ModuleWindow,
     // A spell's picture as the hotbar draws it, for a module's own windows.
     SpellIcon,
+    // A character's sprite standing still, for a portrait.
+    Sprite,
+    // What the engine's own windows are built from, so a module's window is
+    // one of them: an item in a box with its tooltip, its picture alone, a
+    // quantity picker, and what a list shows when it is empty.
+    ItemSlot,
+    ItemIcon,
+    Stepper,
+    EmptyState,
   };
 }
 
@@ -513,6 +527,19 @@ function makeEngineApi(id: string) {
      * `hud` sits above both and the names, so a tint never dims a minimap.
      */
     OverlayLayer,
+    /**
+     * Text an overlay writes in the world, at a size a phone can read. The
+     * world is drawn 1280 wide on any screen, so `12px` is 4 on a phone;
+     * inside `draw` the context is scaled up (twice at most) around (x, y),
+     * the point the label hangs from, which is how the engine's own names and
+     * damage numbers are drawn.
+     *
+     * @example
+     * engine.registerOverlay((ctx) => {
+     *   engine.worldText(ctx, x, y, () => ctx.fillText('Boss', x, y));
+     * });
+     */
+    worldText,
   };
 }
 

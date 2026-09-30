@@ -1,3 +1,4 @@
+import { worldText } from './canvas';
 import { ObjectPool } from './objectPool';
 
 interface FloatingText {
@@ -82,8 +83,10 @@ export function renderFloatingTexts(ctx: CanvasRenderingContext2D): void {
     ctx.lineJoin = 'round';
     ctx.strokeStyle = 'rgba(0,0,0,0.85)';
     ctx.fillStyle = ft.color;
-    ctx.strokeText(ft.text, baseX, baseY + offsetY);
-    ctx.fillText(ft.text, baseX, baseY + offsetY);
+    worldText(ctx, baseX, baseY + offsetY, () => {
+      ctx.strokeText(ft.text, baseX, baseY + offsetY);
+      ctx.fillText(ft.text, baseX, baseY + offsetY);
+    });
     ctx.restore();
   });
 }

@@ -10,7 +10,7 @@ import { TILE_SIZE } from '../../shared/constants';
 import { canInteract } from '../../shared/utils';
 import { t } from '../i18n';
 import { themeToken } from './floatingText';
-import { playerCtx } from './canvas';
+import { playerCtx, worldText } from './canvas';
 import {
   playerNameColorRecord,
   npcBehaviorColorRecord,
@@ -96,26 +96,28 @@ export const renderHUD = (
   const cx = x + TILE_SIZE / 2; // sprite center: names are centered over it
   const { world } = hudTheme();
 
-  if (nameTag) {
+  worldText(ctx, cx, y, () => {
+    if (nameTag) {
+      outlinedText(
+        ctx,
+        nameTag,
+        cx,
+        y - 16,
+        `bold 12px ${world}`,
+        nameTagColor ?? '#ffd24d',
+      );
+    }
     outlinedText(
       ctx,
-      nameTag,
+      getPlayerHudText(name, level, getGameBrand()?.levels !== false),
       cx,
-      y - 16,
-      `bold 12px ${world}`,
-      nameTagColor ?? '#ffd24d',
+      y,
+      `bold 15px ${world}`,
+      nameColor ?? playerNameColorRecord[access],
     );
-  }
-  outlinedText(
-    ctx,
-    getPlayerHudText(name, level, getGameBrand()?.levels !== false),
-    cx,
-    y,
-    `bold 15px ${world}`,
-    nameColor ?? playerNameColorRecord[access],
-  );
 
-  renderSpeechBubble(ctx, name, cx, y - 2);
+    renderSpeechBubble(ctx, name, cx, y - 2);
+  });
 };
 
 export function getHealthBarInfo(current: number, max: number) {
@@ -152,22 +154,23 @@ export const renderNpcLabel = (
   if (!npc.name) return;
   const { world, muted } = hudTheme();
   const cx = npc.position.x + TILE_SIZE / 2; // centered over the sprite
-  let y = hasHealthBar ? npc.position.y - HEALTH_BAR_CLEARANCE : npc.position.y;
+  const y = hasHealthBar
+    ? npc.position.y - HEALTH_BAR_CLEARANCE
+    : npc.position.y;
   const comma = npc.name.indexOf(',');
   const role = comma > 0 ? npc.name.slice(comma + 1).trim() : '';
-  if (role) {
-    outlinedText(ctx, role, cx, y, `bold 12px ${world}`, muted);
-    y -= 14;
-  }
 
-  outlinedText(
-    ctx,
-    role ? npc.name.slice(0, comma) : npc.name,
-    cx,
-    y,
-    `bold 14px ${world}`,
-    npcBehaviorColorRecord[npc.behavior] ?? '#e5e7eb',
-  );
+  worldText(ctx, cx, y, () => {
+    if (role) outlinedText(ctx, role, cx, y, `bold 12px ${world}`, muted);
+    outlinedText(
+      ctx,
+      role ? npc.name.slice(0, comma) : npc.name,
+      cx,
+      role ? y - 14 : y,
+      `bold 14px ${world}`,
+      npcBehaviorColorRecord[npc.behavior] ?? '#e5e7eb',
+    );
+  });
 };
 
 const HEALTH_BAR_HEIGHT = 5;
@@ -254,6 +257,15 @@ const coarsePointer =
 
 /** The prompt as a plate centred on `cx`, its top edge at `top`. */
 export function renderInteractPrompt(
+  ctx: CanvasRenderingContext2D,
+  prompt: InteractPrompt,
+  cx: number,
+  top: number,
+) {
+  worldText(ctx, cx, top, () => drawInteractPrompt(ctx, prompt, cx, top));
+}
+
+function drawInteractPrompt(
   ctx: CanvasRenderingContext2D,
   prompt: InteractPrompt,
   cx: number,

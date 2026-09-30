@@ -12,9 +12,11 @@ import { ShopModal } from './components/Shop/ShopModal';
 import { QuestTracker } from './components/Quest/QuestTracker';
 import { TilesetEditor } from './components/Tileset/TilesetEditor';
 import { GMPanel } from './components/GMPanel';
-import { ChatPanel } from './components/ChatPanel';
+import { ChatPanel, ChatPeek } from './components/ChatPanel';
 import { ActionPanel, CreatorTools } from './components/ActionPanel';
 import { useGame } from './context/GameContext';
+import { useGameBrand } from './components/common/AuthLayout';
+import { useMediaQuery } from './hooks/useMediaQuery';
 import { useT } from './i18n';
 import { AttributeDistributorModal } from './components/AttributeDistributorModal';
 import { GameCanvas } from './components/GameCanvas';
@@ -23,9 +25,17 @@ import { OnlinePlayersModal } from './components/OnlinePlayersModal';
 import { SettingsModal } from './components/SettingsModal';
 import { PasswordReset } from './pages/PasswordReset';
 
+// Screens with room for the menu beside or under the world; smaller ones
+// keep their own arrangement whatever layout the game picked (styles.css).
+const ARRANGEABLE = '(min-width: 901px) and (min-height: 501px)';
+
 function App() {
   const t = useT();
   const { isLoggedIn } = useGame();
+  const layout = useGameBrand()?.layout ?? 'right';
+  // In the bar under the world the hotbar is one of its blocks. Anywhere else
+  // it stays over the world, inside the frame.
+  const docked = useMediaQuery(ARRANGEABLE) && layout === 'bottom';
   const [showRegister, setShowRegister] = useState(false);
   // Only a small screen collapses the panel, opening it over the world, so
   // it starts closed.
@@ -48,6 +58,7 @@ function App() {
         <div id="ui">
           <div
             id="gameShell"
+            data-layout={layout}
             className={panelCollapsed ? 'panel-collapsed' : ''}
           >
             <header id="playerBar">
@@ -89,14 +100,16 @@ function App() {
                   <LowHealthVignette />
                   <MapName />
                   <QuestTracker />
-                  <Hotbar />
+                  {!docked && <Hotbar />}
                 </div>
+                <ChatPeek onOpen={() => setPanelCollapsed(false)} />
               </div>
               <TouchControls />
             </main>
+            {docked && <Hotbar />}
             <aside id="sidePanel" aria-label={t('app.gameControls')}>
               <ActionPanel />
-              <ChatPanel />
+              <ChatPanel shown={!panelCollapsed} />
               <CreatorTools />
             </aside>
           </div>

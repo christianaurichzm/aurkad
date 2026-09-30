@@ -70,13 +70,13 @@ describe('the window', () => {
     );
   });
 
-  it('counts the earned ones in the title', () => {
+  it('counts the earned ones beside the title', () => {
     update(STATE);
     openWindow();
 
     expect(
-      screen.getByRole('dialog', { name: 'Achievements (1/2)' }),
-    ).toBeTruthy();
+      screen.getByRole('dialog', { name: 'Achievements' }).textContent,
+    ).toContain('1/2');
   });
 
   it('puts the earned ones first: a trophy case before a to-do list', () => {
@@ -84,8 +84,22 @@ describe('the window', () => {
     openWindow();
 
     const rows = screen.getAllByRole('listitem');
-    expect(rows.map((row) => row.textContent?.[0])).toEqual(['★', '☆']);
+    expect(rows.map((row) => row.hasAttribute('data-dim'))).toEqual([
+      false,
+      true,
+    ]);
     expect(within(rows[0]).getByText('First Blood')).toBeTruthy();
+    expect(within(rows[0]).getByText('Unlocked')).toBeTruthy();
+  });
+
+  it('says when one was earned, once the server kept the day', () => {
+    const at = new Date(2026, 8, 30).getTime();
+    update({ ...STATE, at: { first_blood: at } });
+    openWindow();
+
+    expect(screen.getAllByRole('listitem')[0].textContent).toContain(
+      `Unlocked ${new Date(at).toLocaleDateString(undefined, { dateStyle: 'medium' })}`,
+    );
   });
 
   it('shows progress on a locked one and nothing on an earned one', () => {
@@ -95,6 +109,9 @@ describe('the window', () => {
     const dialog = screen.getByRole('dialog');
     expect(dialog.textContent).toContain('5/50');
     expect(dialog.textContent).not.toContain('1/1');
+    expect(
+      screen.getByRole('meter', { name: 'Slayer progress' }),
+    ).toHaveProperty('ariaValueNow', '5');
   });
 });
 

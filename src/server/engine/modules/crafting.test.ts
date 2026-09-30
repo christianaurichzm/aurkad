@@ -10,6 +10,7 @@ import { useApi, clearProvides } from './registry.js';
 import { clearCommands } from '../commands.js';
 import { clearAll } from '../hooks.js';
 import { drainGameEvents } from '../eventBus.js';
+import { handleCustomAction } from '../../services/comms/customEventService.js';
 import { createFixture } from '../../sim/simFixture.js';
 import type { Item, PlayerServer, Recipe } from '../../../shared/types.js';
 
@@ -155,6 +156,52 @@ describe('crafting module', () => {
       'You are missing materials.',
     );
     expect(held(player, 3)).toBe(60);
+  });
+
+  // The window draws a recipe from this alone: what each line is called and
+  // looks like, how much of it the player holds, and why a craft was refused.
+  it('tells the window what each material is and how much of it is held', async () => {
+    await bootWith(sword);
+    const player = smith();
+    player.inventory.items = [{ item: 3, quantity: 60 }];
+    const ask = (channel: string, payload?: unknown) => {
+      drainGameEvents();
+      handleCustomAction({
+        type: 'custom',
+        username: 'Alice',
+        channel,
+        payload,
+      });
+      return drainGameEvents().filter((e) => e.type === 'customPlayer') as {
+        channel: string;
+        payload: unknown;
+      }[];
+    };
+
+    expect(ask('crafting:request')[0]?.payload).toEqual([
+      {
+        id: 'steel-sword',
+        name: 'Steel Sword',
+        inputs: [
+          { itemId: 2, quantity: 1, held: 0, name: 'Hilt', sprite: 0 },
+          { itemId: 3, quantity: 50, held: 60, name: 'Iron Ore', sprite: 0 },
+        ],
+        output: {
+          itemId: 8,
+          quantity: 1,
+          name: 'Steel Sword',
+          sprite: 0,
+          description: '',
+        },
+        missing: [{ itemId: 2, quantity: 1, held: 0, name: 'Hilt', sprite: 0 }],
+      },
+    ]);
+    expect(ask('crafting:craft', { recipeId: 'steel-sword' })).toEqual([
+      expect.objectContaining({
+        channel: 'crafting:result',
+        payload: { message: 'You are missing materials.' },
+      }),
+    ]);
   });
 
   it('refuses an id no recipe defines', async () => {

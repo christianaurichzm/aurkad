@@ -50,11 +50,21 @@ function choose(player: PlayerServer, id: number, index: number) {
   });
 }
 
+interface Shown {
+  id: number;
+  text: string;
+  choices: string[];
+  speaker?: string;
+  sprite?: number;
+  npcId?: string;
+  read?: number[];
+}
+
 /** The last box the server told the client to draw. */
-function lastShow(): { id: number; text: string; choices: string[] } {
+function lastShow(): Shown {
   const shown = drainGameEvents().filter(
     (e) => e.type === 'customPlayer' && e.channel === 'dialog:show',
-  ) as Array<{ payload: { id: number; text: string; choices: string[] } }>;
+  ) as Array<{ payload: Shown }>;
   const last = shown[shown.length - 1];
   if (!last) throw new Error('no dialog:show event');
   return last.payload;
@@ -112,6 +122,28 @@ describe('dialog module', () => {
     choose(alice, id, 0); // valid
     expect(called).toBe(true);
   });
+
+  // Leaving is not an answer: nothing runs, and the box that was left cannot
+  // be answered afterwards.
+  it('runs nothing for a player who walks away from the box', () => {
+    const sim = createFixture(0);
+    const alice = sim.addPlayer({ name: 'Alice' });
+    const dialog = useApi<DialogApi>('dialog')!;
+
+    let called = false;
+    dialog.show(alice, { text: 'x', choices: ['A'] }, () => (called = true));
+    const id = dialogId();
+
+    handleCustomAction({
+      type: 'custom',
+      username: alice.name,
+      channel: 'dialog:close',
+      payload: { id },
+    });
+    choose(alice, id, 0);
+
+    expect(called).toBe(false);
+  });
 });
 
 /**
@@ -145,7 +177,7 @@ describe('dialog module walking an authored conversation', () => {
     const alice = sim.addPlayer({ name: 'Alice' });
     const npc = sim.addNpc({ dialogId: 'elder', ...npcOverrides });
     emit('npcInteract', { player: alice, npc });
-    return { alice };
+    return { alice, npc };
   }
 
   it('opens the first node when a player talks to the npc', async () => {
@@ -154,6 +186,42 @@ describe('dialog module walking an authored conversation', () => {
 
     const shown = lastShow();
     expect(shown.text).toBe('You again.');
+  });
+
+  it('tells the box who is talking, to draw and to light', async () => {
+    const { npc } = await talk();
+
+    expect(lastShow()).toMatchObject({
+      speaker: npc.name,
+      sprite: npc.sprite,
+      npcId: npc.id,
+    });
+  });
+
+  it('marks the choice that leads back to something already said', async () => {
+    await createOrUpdateDialog({
+      id: 'loop',
+      name: 'Loop',
+      nodes: [
+        { id: 'a', text: 'A', choices: [{ label: 'On', next: 'b' }] },
+        {
+          id: 'b',
+          text: 'B',
+          choices: [
+            { label: 'Back', next: 'a' },
+            { label: 'Further', next: 'c' },
+          ],
+        },
+        { id: 'c', text: 'C' },
+      ],
+    });
+    const { alice } = await talk({ dialogId: 'loop' });
+    const first = lastShow();
+    expect(first.read).toEqual([]);
+
+    choose(alice, first.id, 0);
+
+    expect(lastShow().read).toEqual([0]);
   });
 
   it('follows the choice to the node it names', async () => {

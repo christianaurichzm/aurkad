@@ -96,13 +96,46 @@ const isOwner = (g, name) => roleOf(g, name) === 'owner';
 const isMod = (g, name) => roleOf(g, name) === 'moderator';
 const canManage = (g, name) => isOwner(g, name) || isMod(g, name);
 
-function pushGuild(name) {
+/**
+ * The guild as the window shows it to `self`: who is in the game now, and at
+ * what level, beside the roles that are stored.
+ *
+ * @param gone a player who is leaving, still registered when playerLeave runs
+ *   and so still "online" to getPlayer.
+ */
+function guildFor(g, self, gone) {
+  return {
+    ...g,
+    self,
+    maxMembers,
+    members: g.members.map((m) => {
+      const p = m.name === gone ? undefined : getPlayer(m.name);
+      return { ...m, online: !!p, level: p ? p.level : undefined };
+    }),
+  };
+}
+
+function pushGuild(name, gone) {
   const g = getGuild(name);
   if (!g) return;
   for (const { name: mName } of g.members) {
-    const p = getPlayer(mName);
-    if (p) sendEvent(p, 'guild:update', { ...g, self: mName });
+    const p = mName === gone ? undefined : getPlayer(mName);
+    if (p) sendEvent(p, 'guild:update', guildFor(g, mName, gone));
   }
+}
+
+// The guilds anyone may walk into, largest first, for a player who is in none.
+// Reads every guild per request; keep a list of the public ones if a
+// game grows past a few hundred guilds.
+function pushOpenGuilds(player) {
+  const guilds = store
+    .keys('guild')
+    .map(getGuild)
+    .filter((g) => g && g.privacy === 'public' && g.members.length < maxMembers)
+    .map((g) => ({ name: g.name, members: g.members.length }))
+    .sort((a, b) => b.members - a.members || a.name.localeCompare(b.name))
+    .slice(0, 20);
+  sendEvent(player, 'guild:list', { guilds, maxMembers });
 }
 
 function onlineMemberCount(g) {
@@ -126,7 +159,7 @@ function createGuild(player, name, privacy) {
   saveGuild(g);
   setPlayerData(player, 'guild', name);
   setNameTag(player, name);
-  sendEvent(player, 'guild:update', { ...g, self: player.name });
+  sendEvent(player, 'guild:update', guildFor(g, player.name));
   return t(player, 'Guild "{name}" created ({privacy}).', {
     name,
     privacy: p,
@@ -326,35 +359,48 @@ command(
 
 // ---------- UI surface -------------------------------------------------------
 
+// A chat command is answered in the chat; what the window asked for is
+// answered to the window, which has no other way to say why nothing changed.
 on('customAction', ({ player, channel, payload }) => {
   const data = /** @type {any} */ (payload);
+  let said;
   if (channel === 'guild:create')
-    createGuild(player, String(data?.name || '').trim(), data?.privacy);
+    said = createGuild(player, String(data?.name || '').trim(), data?.privacy);
   else if (channel === 'guild:join')
-    joinGuild(player, String(data?.name || '').trim());
+    said = joinGuild(player, String(data?.name || '').trim());
   else if (channel === 'guild:invite')
-    inviteToGuild(player, String(data?.target || '').trim());
+    said = inviteToGuild(player, String(data?.target || '').trim());
   else if (channel === 'guild:accept')
-    acceptInvite(player, String(data?.guildName || '').trim());
-  else if (channel === 'guild:leave') leaveGuild(player);
+    said = acceptInvite(player, String(data?.guildName || '').trim());
+  else if (channel === 'guild:leave') said = leaveGuild(player);
   else if (channel === 'guild:promote')
-    promote(player, String(data?.target || ''));
+    said = promote(player, String(data?.target || ''));
   else if (channel === 'guild:demote')
-    demote(player, String(data?.target || ''));
-  else if (channel === 'guild:kick') kick(player, String(data?.target || ''));
+    said = demote(player, String(data?.target || ''));
+  else if (channel === 'guild:kick')
+    said = kick(player, String(data?.target || ''));
   else if (channel === 'guild:privacy')
-    setPrivacy(player, String(data?.privacy || 'public'));
+    said = setPrivacy(player, String(data?.privacy || 'public'));
+  else if (channel === 'guild:list') pushOpenGuilds(player);
   else if (channel === 'guild:request') {
     const g = getGuild(myGuildName(player));
-    sendEvent(player, 'guild:update', g ? { ...g, self: player.name } : null);
+    sendEvent(player, 'guild:update', g ? guildFor(g, player.name) : null);
   }
+  if (said) sendEvent(player, 'guild:result', { message: t(player, said) });
 });
 
 // ---------- hooks ------------------------------------------------------------
 
 on('playerJoin', ({ player }) => {
   const gn = myGuildName(player);
-  if (gn) setNameTag(player, gn);
+  if (!gn) return;
+  setNameTag(player, gn);
+  pushGuild(gn);
+});
+
+on('playerLeave', ({ player }) => {
+  const gn = myGuildName(player);
+  if (gn) pushGuild(gn, player.name);
 });
 
 if (xpBonus > 0) {

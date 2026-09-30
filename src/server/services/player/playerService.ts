@@ -397,6 +397,7 @@ export function toPlayerCold(player: PlayerServer): PlayerCold {
     experience: player.experience,
     experienceToNextLevel: player.experienceToNextLevel,
     inventory,
+    inventoryCapacity: player.inventory?.maxCapacity ?? 0,
     equipped,
     access: player.access,
     strength: player.strength,

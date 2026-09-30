@@ -8,14 +8,19 @@
 engine.i18n({
   pt: {
     Achievements: 'Conquistas',
-    'Achievements ({earned}/{total})': 'Conquistas ({earned}/{total})',
     'Nothing defined yet.': 'Nada definido ainda.',
+    'This game has no achievements to earn.':
+      'Este jogo não tem conquistas para ganhar.',
+    'Unlocked {date}': 'Desbloqueada em {date}',
+    Unlocked: 'Desbloqueada',
+    '{achievement} progress': 'Progresso de {achievement}',
     'Achievement unlocked': 'Conquista desbloqueada',
   },
 });
 
 const ui = engine.ui;
 
+// { earned: [id], at: { id: epoch ms }, all: [{ id, name, description, progress, target }] }
 let state = { earned: [], all: [] };
 let shown = false;
 
@@ -38,37 +43,28 @@ function AchievementsWindow({ state }) {
   });
   return (
     <ui.Window
-      title={t('Achievements ({earned}/{total})', {
-        earned: state.earned.length,
-        total: state.all.length,
-      })}
+      title={t('Achievements')}
+      counter={
+        rows.length ? `${state.earned.length}/${rows.length}` : undefined
+      }
+      width="regular"
+      anchor="right"
       onClose={toggle}
     >
       {rows.length === 0 ? (
-        <div
-          style={{
-            fontSize: 12,
-            color: 'var(--color-text-muted)',
-            padding: '8px 0',
-          }}
-        >
-          {t('Nothing defined yet.')}
-        </div>
+        <ui.EmptyState
+          icon="trophy"
+          title={t('Nothing defined yet.')}
+          hint={t('This game has no achievements to earn.')}
+        />
       ) : (
-        <ul
-          style={{
-            listStyle: 'none',
-            margin: 0,
-            padding: 0,
-            maxHeight: 280,
-            overflowY: 'auto',
-          }}
-        >
+        <ul className="list">
           {rows.map((entry) => (
             <AchievementRow
               key={entry.id}
               entry={entry}
               earned={state.earned.includes(entry.id)}
+              at={state.at?.[entry.id]}
             />
           ))}
         </ul>
@@ -77,81 +73,69 @@ function AchievementsWindow({ state }) {
   );
 }
 
-function AchievementRow({ entry, earned }) {
+function AchievementRow({ entry, earned, at }) {
   const t = engine.useT();
+  const name = t(entry.name);
   return (
-    <li
-      style={{
-        padding: '6px 0',
-        borderBottom: '1px solid var(--color-border)',
-        opacity: earned ? 1 : 0.65,
-      }}
-    >
-      <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+    <li className="list-row" data-dim={earned ? undefined : true}>
+      <span
+        className="avatar"
+        data-earned={earned || undefined}
+        aria-hidden="true"
+      >
         <span
-          style={{
-            color: earned ? 'var(--color-warning)' : 'var(--color-text-muted)',
-            fontSize: 14,
-          }}
-        >
-          {earned ? '★' : '☆'}
-        </span>
-        <span
-          style={{
-            flex: 1,
-            fontSize: 13,
-            fontWeight: 'bold',
-            color: 'var(--color-text)',
-          }}
-        >
-          {t(entry.name)}
-        </span>
-      </div>
-      {entry.description && (
-        <div
-          style={{
-            fontSize: 11,
-            color: 'var(--color-text-muted)',
-            marginLeft: 20,
-          }}
-        >
-          {t(entry.description)}
-        </div>
-      )}
-      {/* A locked one shows how far along it is; an earned one has nothing
-          left to say, and a full bar under a star reads as a second,
-          contradictory state. */}
-      {!earned && entry.target > 1 && (
-        <>
-          <div
+          className="icon"
+          style={
+            /** @type {React.CSSProperties} */ ({
+              '--icon': 'var(--icon-trophy)',
+            })
+          }
+        />
+      </span>
+      <span className="list-row-text">
+        <b>{name}</b>
+        {entry.description && <small>{t(entry.description)}</small>}
+        {earned && (
+          <small>
+            {at
+              ? t('Unlocked {date}', {
+                  date: new Date(at).toLocaleDateString(undefined, {
+                    dateStyle: 'medium',
+                  }),
+                })
+              : t('Unlocked')}
+          </small>
+        )}
+        {/* A locked one shows how far along it is; an earned one has nothing
+            left to say, and a full bar under it reads as a second,
+            contradictory state. */}
+        {!earned && entry.target > 1 && (
+          <span
             style={{
-              height: 4,
-              background: 'var(--color-border)',
-              borderRadius: 2,
-              margin: '4px 0 0 20px',
+              display: 'grid',
+              gridTemplateColumns: '1fr auto',
+              alignItems: 'center',
+              gap: 6,
             }}
           >
-            <div
-              style={{
-                height: '100%',
-                width: `${Math.round((entry.progress / entry.target) * 100)}%`,
-                background: 'var(--color-success)',
-                borderRadius: 2,
-              }}
-            />
-          </div>
-          <div
-            style={{
-              fontSize: 10,
-              color: 'var(--color-text-muted)',
-              marginLeft: 20,
-              textAlign: 'right',
-            }}
-          >
-            {entry.progress}/{entry.target}
-          </div>
-        </>
-      )}
+            <span
+              className="meter"
+              role="meter"
+              aria-label={t('{achievement} progress', { achievement: name })}
+              aria-valuemin={0}
+              aria-valuemax={entry.target}
+              aria-valuenow={entry.progress}
+            >
+              <span
+                style={{ width: `${(entry.progress / entry.target) * 100}%` }}
+              />
+            </span>
+            <b className="stack-count">
+              {entry.progress}/{entry.target}
+            </b>
+          </span>
+        )}
+      </span>
     </li>
   );
 }

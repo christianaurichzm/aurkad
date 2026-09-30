@@ -15,6 +15,26 @@ interface SpritePreviewProps {
   frameMs?: number;
 }
 
+/**
+ * A character's sprite with no frame, for a box the stylesheet draws, where
+ * a theme can swap it for a picture.
+ */
+export const Sprite = ({
+  spriteId,
+  size,
+}: Pick<SpritePreviewProps, 'spriteId' | 'size'>) => (
+  <SpritePreview
+    spriteId={spriteId}
+    size={size}
+    style={{
+      display: 'block',
+      border: 'none',
+      borderRadius: 0,
+      background: 'none',
+    }}
+  />
+);
+
 export const SpritePreview: React.FC<SpritePreviewProps> = ({
   spriteId,
   size = 64,

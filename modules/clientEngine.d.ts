@@ -54,6 +54,11 @@ interface HotbarSlot {
   onUse(): void;
 }
 
+/** What the engine's item components draw an item from. */
+type ItemLook = Pick<ItemData, 'name' | 'sprite' | 'type'> & {
+  effects?: ItemData['effects'];
+};
+
 interface ModuleUi {
   /** Focus and contain Tab within a dialog; cleanup restores the opener. */
   focusDialog(element: HTMLElement): () => void;
@@ -117,6 +122,45 @@ interface ModuleUi {
   /** A spell's picture: a tile of the spell sheet, or `name`'s initial. */
   SpellIcon: (props: { icon?: number; name: string }) => React.ReactElement;
   /**
+   * A character's sprite standing still, with no frame: put it in a box of the
+   * module's own. `size` is its side in pixels (64 without it).
+   *
+   * @example <span className="dialog-portrait"><ui.Sprite spriteId={npc.sprite} /></span>
+   */
+  Sprite: (props: { spriteId: number; size?: number }) => React.ReactElement;
+  /**
+   * An item in a 64px box the player can pick, as the inventory draws it: the
+   * quantity in the corner, what the item is on hover and on focus. `note` is
+   * said after the name ("on offer").
+   *
+   * @example <ui.ItemSlot item={item} quantity={3} selected={picked === item.id} onSelect={() => pick(item.id)} />
+   */
+  ItemSlot: (props: {
+    item: ItemLook;
+    quantity?: number;
+    selected: boolean;
+    note?: string;
+    onSelect(): void;
+  }) => React.ReactElement;
+  /** An item's picture alone; `size` is its side in pixels (64 without it). */
+  ItemIcon: (props: { spriteId: number; size?: number }) => React.ReactElement;
+  /**
+   * How many, from 1 to `max`, with − and + and Max buttons. `label` names it
+   * for a screen reader.
+   */
+  Stepper: (props: {
+    value: number;
+    max: number;
+    onChange(value: number): void;
+    label: string;
+  }) => React.ReactElement;
+  /** What an empty list shows: what is missing and how to get one. */
+  EmptyState: (props: {
+    icon: ActionIcon;
+    title: string;
+    hint: string;
+  }) => React.ReactElement;
+  /**
    * The window of `panel()` for a module drawn with `engine.render`: open
    * while rendered, so the module keeps whether it is open and renders it or
    * not. Translate the title with `engine.useT()`.
@@ -125,8 +169,19 @@ interface ModuleUi {
    */
   Window: (props: {
     title: string;
-    /** In pixels; without it the window fits what it holds. */
-    width?: number;
+    /**
+     * `'narrow'` (280px), `'regular'` (380) or `'wide'` (560): the sizes of a
+     * window the player uses, which also takes the engine's window look. A
+     * number is a width in pixels for a tool of your own; without either the
+     * window fits what it holds.
+     */
+    width?: 'narrow' | 'regular' | 'wide' | number;
+    /** Beside the title, for what the window holds (`'14/24'`). */
+    counter?: string;
+    /** The side a window with a width name opens on; left by default. */
+    anchor?: 'left' | 'right';
+    /** Under the body, out of its scroll: the window's actions. */
+    footer?: React.ReactNode;
     onClose(): void;
     children?: React.ReactNode;
   }) => React.ReactElement;
@@ -150,6 +205,14 @@ interface ClientPlayer {
   nameTagColor?: string;
   kind: 'player';
 }
+
+/** The player this client is, with the items spelled out. */
+type LocalPlayer = Omit<PlayerServer, 'inventory' | 'equipped'> & {
+  inventory: { item: ItemData; quantity: number }[];
+  /** How many different items the bag holds. */
+  inventoryCapacity: number;
+  equipped: Partial<Record<keyof PlayerServer['equipped'], ItemData>>;
+};
 
 /** The client's map, composed from static tiles and the per-tick update. */
 interface ClientMapState {
@@ -207,8 +270,11 @@ declare const engine: {
   log(...args: unknown[]): void;
   warn(...args: unknown[]): void;
   error(...args: unknown[]): void;
-  /** Current local player state (position, health, stats). */
-  getPlayer(): PlayerServer | undefined;
+  /**
+   * Current local player state (position, health, stats). The bag and what is
+   * worn come as the items themselves, not as ids.
+   */
+  getPlayer(): LocalPlayer | null;
   /**
    * Visible map + entity state (players, npcs, droppedItems, tiles). Null
    * before the first world update arrives.
@@ -245,4 +311,22 @@ declare const engine: {
    * `hud` sits above both and the names, for a minimap a tint must not dim.
    */
   OverlayLayer: { world: number; scene: number; hud: number };
+  /**
+   * Text an overlay writes in the world, at a size a phone can read. The
+   * world is drawn 1280 wide on any screen, so `12px` is 4 on a phone; inside
+   * `draw` the context is scaled up (twice at most) around (x, y), the point
+   * the label hangs from, which is how the engine's own names and damage
+   * numbers are drawn.
+   *
+   * @example
+   * engine.registerOverlay((ctx) => {
+   *   engine.worldText(ctx, x, y, () => ctx.fillText('Boss', x, y));
+   * });
+   */
+  worldText(
+    ctx: CanvasRenderingContext2D,
+    x: number,
+    y: number,
+    draw: () => void,
+  ): void;
 };

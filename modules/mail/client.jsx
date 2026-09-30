@@ -1,6 +1,6 @@
 // @ts-check
 // Mail module, client entry: a window (M) with waiting letters to collect
-// and a form to send an item to another player. The server decides whether
+// and a tab to send an item to another player. The server decides whether
 // a send or a claim goes through.
 
 // Translations keyed by the English text. `ui` helpers translate on their
@@ -8,194 +8,327 @@
 engine.i18n({
   pt: {
     Mail: 'Correio',
+    'Mail sections': 'Seções do correio',
+    Inbox: 'Entrada',
+    Send: 'Enviar',
+    '{count} waiting': '{count} esperando',
     'From {player}': 'De {player}',
     Collect: 'Receber',
+    'Collect mail from {player}': 'Receber correio de {player}',
     'Collect all': 'Receber tudo',
-    'Nothing waiting.': 'Nada esperando.',
-    'To (player)': 'Para (jogador)',
-    'Item ID': 'ID do item',
-    Qty: 'Qtd',
+    'Collect all ({count})': 'Receber tudo ({count})',
+    'Your inbox is empty.': 'Sua caixa está vazia.',
+    'Items other players send you arrive here.':
+      'Os itens que outros jogadores enviam chegam aqui.',
+    Recipient: 'Destinatário',
+    'Player name': 'Nome do jogador',
+    Item: 'Item',
+    pick: 'escolha',
+    'Pick from the bag': 'Escolha na bolsa',
+    '{slot}: {item} x{count}': '{slot}: {item} x{count}',
+    '{slot}: empty': '{slot}: vazio',
     'Note (optional)': 'Recado (opcional)',
-    Send: 'Enviar',
-    'Send an item': 'Enviar um item',
+    'Your bag - click to attach': 'Sua bolsa - clique para anexar',
+    '{count} in bag': '{count} na bolsa',
+    'Nothing to send.': 'Nada para enviar.',
+    'Items you can mail show up here.':
+      'Os itens que você pode enviar aparecem aqui.',
+    'Add a recipient': 'Informe o destinatário',
+    'Pick an item': 'Escolha um item',
+    'Send to {player}': 'Enviar para {player}',
+    'Postage: {cost} {item}': 'Postagem: {cost} {item}',
   },
 });
 
-const { useState } = React;
+const { useEffect, useState } = React;
 const ui = engine.ui;
-const send = engine.sendServerEvent;
 
-const row = { display: 'flex', gap: 6 };
-const small = { padding: '3px 7px', fontSize: 11 };
+const field = { display: 'grid', gap: 3 };
 
 // The module's state lives here, outside React: the server and the Actions
 // menu change it, and every change redraws.
-let letters = []; // [{ id, itemId, itemName, quantity, from, message, sentAt }]
+// { letters: [{ id, itemId, itemName, sprite, quantity, from, message, sentAt }],
+//   maxMessageLength, postage?: { cost, item } }
+let mail = { letters: [] };
 let shown = false;
+let tab = 'inbox';
+// What the server answered the last thing the window asked for.
+let said = '';
 
 function draw() {
-  engine.render(shown && <MailWindow />);
+  engine.render(shown && <MailWindow mail={mail} />);
+}
+
+function send(channel, payload) {
+  said = '';
+  engine.sendServerEvent(channel, payload);
 }
 
 function toggle() {
   shown = !shown;
+  said = '';
   draw();
-  if (shown) send('mail:request');
+  if (shown) engine.sendServerEvent('mail:request');
 }
 
-function MailWindow() {
+function pick(id) {
+  tab = id;
+  said = '';
+  draw();
+}
+
+/** The bag as it is now, without what may not change hands. */
+function useBag() {
+  const [, tick] = useState(0);
+  // The bag changes without this module being told: a pickup, a drop, a
+  // potion drunk. Looking again is cheap and the window is rarely open.
+  useEffect(() => {
+    const timer = setInterval(() => tick((n) => n + 1), 500);
+    return () => clearInterval(timer);
+  }, []);
+  return (engine.getPlayer()?.inventory ?? []).filter(
+    (entry) => !entry.item.bound,
+  );
+}
+
+function MailWindow({ mail }) {
   const t = engine.useT();
+  const bag = useBag();
+  // The letter being written, held here so it outlives a tab switch and every
+  // redraw the server causes.
+  const [to, setTo] = useState('');
+  const [attached, setAttached] = useState(null); // { id, quantity }
+  const [note, setNote] = useState('');
+
+  const { letters } = mail;
+  // An item that left the bag since it was picked is no longer attached.
+  const held = attached && bag.find((e) => e.item.id === attached.id);
+  const recipient = to.trim();
+  const post = () => {
+    send('mail:send', {
+      to: recipient,
+      itemId: attached.id,
+      quantity: attached.quantity,
+      message: note,
+    });
+    setAttached(null);
+    setNote('');
+  };
+
   return (
-    <ui.Window title={t('Mail')} onClose={toggle}>
-      <div style={{ maxHeight: 200, overflowY: 'auto', marginBottom: 8 }}>
-        {letters.length === 0 ? (
-          <div
-            style={{
-              color: 'var(--color-text-muted)',
-              fontSize: 12,
-              padding: '4px 0',
-            }}
-          >
-            {t('Nothing waiting.')}
-          </div>
-        ) : (
-          <ul style={{ listStyle: 'none', margin: 0, padding: 0 }}>
-            {letters.map((letter) => (
-              <Letter key={letter.id} letter={letter} />
-            ))}
-          </ul>
-        )}
-      </div>
-      <button
-        type="button"
-        style={small}
-        onClick={() => send('mail:claim', {})}
+    <ui.Window
+      title={t('Mail')}
+      counter={
+        letters.length
+          ? t('{count} waiting', { count: letters.length })
+          : undefined
+      }
+      width="regular"
+      onClose={toggle}
+      footer={
+        <div className="window-actions">
+          {tab === 'inbox' ? (
+            <button
+              type="button"
+              className="button-primary"
+              disabled={letters.length === 0}
+              onClick={() => send('mail:claim', {})}
+            >
+              {letters.length
+                ? t('Collect all ({count})', { count: letters.length })
+                : t('Collect all')}
+            </button>
+          ) : (
+            <button
+              type="button"
+              className="button-primary"
+              disabled={!recipient || !held}
+              onClick={post}
+            >
+              {!recipient
+                ? t('Add a recipient')
+                : !held
+                  ? t('Pick an item')
+                  : t('Send to {player}', { player: recipient })}
+            </button>
+          )}
+        </div>
+      }
+    >
+      <div
+        className="window-tabs"
+        role="tablist"
+        aria-label={t('Mail sections')}
       >
-        {t('Collect all')}
-      </button>
-      <SendForm />
+        {['inbox', 'send'].map((id) => (
+          <button
+            key={id}
+            type="button"
+            role="tab"
+            aria-selected={tab === id}
+            onClick={() => pick(id)}
+          >
+            {t(id === 'inbox' ? 'Inbox' : 'Send')}
+          </button>
+        ))}
+      </div>
+      {tab === 'inbox' ? (
+        <Inbox letters={letters} />
+      ) : (
+        <>
+          <label style={field}>
+            <span className="window-label">{t('Recipient')}</span>
+            <input
+              type="text"
+              value={to}
+              onChange={(e) => setTo(e.target.value)}
+              placeholder={t('Player name')}
+            />
+          </label>
+          <div style={{ display: 'flex', gap: 8 }}>
+            <Attached
+              stack={held ? attached : null}
+              item={held?.item}
+              max={held?.quantity ?? 1}
+              onChange={setAttached}
+            />
+            <label style={{ ...field, flex: 1, minWidth: 0 }}>
+              <span className="window-label">{t('Note (optional)')}</span>
+              <textarea
+                rows={3}
+                value={note}
+                maxLength={mail.maxMessageLength}
+                style={{ resize: 'none' }}
+                onChange={(e) => setNote(e.target.value)}
+              />
+            </label>
+          </div>
+          <span className="window-label">
+            {t('Your bag - click to attach')}
+          </span>
+          {bag.length === 0 ? (
+            <ui.EmptyState
+              icon="bag"
+              title={t('Nothing to send.')}
+              hint={t('Items you can mail show up here.')}
+            />
+          ) : (
+            <div className="bag-grid">
+              {bag.map(({ item, quantity }) => (
+                <ui.ItemSlot
+                  key={item.id}
+                  item={item}
+                  quantity={quantity}
+                  selected={attached?.id === item.id}
+                  note={
+                    quantity > 1
+                      ? t('{count} in bag', { count: quantity })
+                      : undefined
+                  }
+                  onSelect={() => setAttached({ id: item.id, quantity: 1 })}
+                />
+              ))}
+            </div>
+          )}
+          {mail.postage && (
+            <span className="window-label">
+              {t('Postage: {cost} {item}', mail.postage)}
+            </span>
+          )}
+        </>
+      )}
+      {said && (
+        <p className="window-label" role="status">
+          {said}
+        </p>
+      )}
     </ui.Window>
   );
 }
 
-function Letter({ letter }) {
+function Inbox({ letters }) {
   const t = engine.useT();
+  if (letters.length === 0)
+    return (
+      <ui.EmptyState
+        icon="mail"
+        title={t('Your inbox is empty.')}
+        hint={t('Items other players send you arrive here.')}
+      />
+    );
   return (
-    <li
-      style={{
-        padding: '6px 8px',
-        borderRadius: 'var(--radius-control)',
-        border: '1px solid var(--color-border)',
-        background: 'var(--color-surface-muted)',
-        marginBottom: 4,
-      }}
-    >
-      <div
-        style={{
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          gap: 8,
-          fontSize: 13,
-        }}
-      >
-        <span style={{ fontWeight: 'bold', color: 'var(--color-text)' }}>
-          {t('From {player}', { player: letter.from })}
-        </span>
-        <button
-          type="button"
-          style={small}
-          onClick={() => send('mail:claim', { ids: [letter.id] })}
-        >
-          {t('Collect')}
-        </button>
-      </div>
-      <div
-        style={{ fontSize: 12, color: 'var(--color-warning)', marginTop: 2 }}
-      >
-        {letter.quantity}× {letter.itemName}
-      </div>
-      {letter.message && (
-        <div
-          style={{
-            fontSize: 12,
-            color: 'var(--color-text-muted)',
-            marginTop: 3,
-            fontStyle: 'italic',
-          }}
-        >
-          {letter.message}
-        </div>
-      )}
-    </li>
+    <ul className="list">
+      {letters.map((letter) => (
+        <li key={letter.id} className="list-row">
+          <ui.ItemIcon spriteId={letter.sprite ?? 0} size={32} />
+          <span className="list-row-text">
+            <b>{t('From {player}', { player: letter.from })}</b>
+            <small>
+              {letter.itemName}{' '}
+              <b className="stack-count">x{letter.quantity}</b>
+              {letter.message && ` · “${letter.message}”`}
+            </small>
+          </span>
+          <span className="list-row-actions">
+            <button
+              type="button"
+              aria-label={t('Collect mail from {player}', {
+                player: letter.from,
+              })}
+              onClick={() => send('mail:claim', { ids: [letter.id] })}
+            >
+              {t('Collect')}
+            </button>
+          </span>
+        </li>
+      ))}
+    </ul>
   );
 }
 
-function SendForm() {
+// What goes with the letter: nothing until an item is picked in the bag under
+// it, then the item and how many of it.
+function Attached({ stack, item, max, onChange }) {
   const t = engine.useT();
-  const [to, setTo] = useState('');
-  const [itemId, setItemId] = useState('');
-  const [quantity, setQuantity] = useState('1');
-  const [message, setMessage] = useState('');
-  const submit = () => {
-    const recipient = to.trim();
-    const item = Number(itemId);
-    if (!recipient || !(item > 0)) return;
-    send('mail:send', {
-      to: recipient,
-      itemId: item,
-      quantity: Number(quantity) || 1,
-      message,
-    });
-    setItemId('');
-    setMessage('');
-  };
+  const label = t('Item');
   return (
-    <div style={{ borderTop: '1px solid var(--color-border)', paddingTop: 8 }}>
-      <div
-        style={{
-          fontSize: 11,
-          color: 'var(--color-text-muted)',
-          marginBottom: 4,
-        }}
+    <div style={{ display: 'grid', gap: 3, justifyItems: 'start' }}>
+      <span className="window-label">{label}</span>
+      <span
+        className="item-slot"
+        data-empty={item ? undefined : true}
+        role="img"
+        aria-label={
+          item
+            ? t('{slot}: {item} x{count}', {
+                slot: label,
+                item: item.name,
+                count: stack.quantity,
+              })
+            : t('{slot}: empty', { slot: label })
+        }
       >
-        {t('Send an item')}
-      </div>
-      <div style={row}>
-        <input
-          value={to}
-          onChange={(e) => setTo(e.target.value)}
-          placeholder={t('To (player)')}
-          style={{ flex: 1 }}
-        />
-        <input
-          type="number"
-          min="1"
-          value={itemId}
-          onChange={(e) => setItemId(e.target.value)}
-          placeholder={t('Item ID')}
-          style={{ width: 80 }}
-        />
-        <input
-          type="number"
-          min="1"
-          value={quantity}
-          onChange={(e) => setQuantity(e.target.value)}
-          placeholder={t('Qty')}
-          style={{ width: 60 }}
-        />
-      </div>
-      <div style={{ ...row, marginTop: 6 }}>
-        <input
-          value={message}
-          onChange={(e) => setMessage(e.target.value)}
-          placeholder={t('Note (optional)')}
-          style={{ flex: 1 }}
-        />
-        <button type="button" className="button-primary" onClick={submit}>
-          {t('Send')}
-        </button>
-      </div>
+        {item ? (
+          <ui.ItemIcon spriteId={item.sprite} />
+        ) : (
+          <span className="window-label" aria-hidden="true">
+            {t('pick')} ↓
+          </span>
+        )}
+      </span>
+      {item ? (
+        <>
+          <b>{item.name}</b>
+          <ui.Stepper
+            value={stack.quantity}
+            max={max}
+            onChange={(quantity) => onChange({ ...stack, quantity })}
+            label={label}
+          />
+        </>
+      ) : (
+        <span className="window-label">{t('Pick from the bag')}</span>
+      )}
     </div>
   );
 }
@@ -204,6 +337,11 @@ ui.actionButton('Mail', toggle, 'm', 'mail', 80);
 
 engine.onServerEvent('mail:update', (data) => {
   const payload = /** @type {any} */ (data);
-  letters = payload && Array.isArray(payload.letters) ? payload.letters : [];
+  mail = payload && Array.isArray(payload.letters) ? payload : { letters: [] };
+  draw();
+});
+
+engine.onServerEvent('mail:result', (result) => {
+  said = String(result?.message ?? '');
   draw();
 });

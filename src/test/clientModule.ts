@@ -2,6 +2,10 @@ import { isInputActive } from '../client/utils/domHelpers';
 import { focusDialog } from '../client/hooks/useDialogFocus';
 import { ModuleWindow } from '../client/components/common/Modal';
 import { SpellIcon } from '../client/components/HUD/Hotbar';
+import { Sprite } from '../client/components/common/SpritePreview';
+import { ItemIcon, ItemSlot } from '../client/components/Inventory/ItemIcon';
+import { Stepper } from '../client/components/common/Stepper';
+import { EmptyState } from '../client/components/common/EmptyState';
 import type { HotbarSlot } from '../client/io/modules/moduleActions';
 import { readClientSource } from '../server/engine/modules/moduleLoader.js';
 import { initTsSupport } from '../server/engine/scripting/loader.js';
@@ -109,7 +113,8 @@ export type OverlayFn = (
 
 export type FakeEngine = {
   registerOverlay: (fn: OverlayFn, order?: number) => () => void;
-  OverlayLayer: { world: number; hud: number };
+  OverlayLayer: { world: number; scene: number; hud: number };
+  worldText: (ctx: unknown, x: number, y: number, draw: () => void) => void;
   TILE_SIZE: number;
   getGameState: () => unknown;
   getPlayer: () => unknown;
@@ -241,6 +246,11 @@ function fakeUi(
     hotbar: (slots: HotbarSlot[]) => hotbar.splice(0, hotbar.length, ...slots),
     Window: ModuleWindow,
     SpellIcon,
+    Sprite,
+    ItemSlot,
+    ItemIcon,
+    Stepper,
+    EmptyState,
   };
 }
 
@@ -275,7 +285,8 @@ export function loadClientModule(
         if (i >= 0) overlays.splice(i, 1);
       };
     },
-    OverlayLayer: { world: 0, hud: 100 },
+    OverlayLayer: { world: 0, scene: 50, hud: 100 },
+    worldText: (_ctx, _x, _y, draw) => draw(),
     TILE_SIZE: 64,
     getGameState: () => null,
     getPlayer: () => undefined,

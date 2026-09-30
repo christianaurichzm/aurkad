@@ -34,9 +34,9 @@ afterEach(() => {
 });
 
 describe('weather overlay', () => {
-  it('draws on the world layer, under the hud', () => {
+  it('draws on the scene layer, under the hud', () => {
     expect(mod.overlays).toHaveLength(1);
-    expect(mod.overlays[0].order).toBe(0);
+    expect(mod.overlays[0].order).toBe(50);
   });
 
   it('draws nothing while the sky is clear', () => {

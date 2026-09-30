@@ -36,7 +36,20 @@ export const useDraggable = (initialX = 0, initialY = 0) => {
   // element appears when it opens, which is when its size can be checked.
   const ref = useCallback((el: HTMLDivElement | null) => {
     node.current = el;
-    if (el) setPos((current) => clampToViewport(current.x, current.y, el));
+    if (!el) return;
+    const fit = () =>
+      setPos((current) => {
+        const next = clampToViewport(current.x, current.y, el);
+        return next.x === current.x && next.y === current.y ? current : next;
+      });
+    fit();
+    // Content often arrives after the window opens and grows it past the edge.
+    const grown = new ResizeObserver(fit);
+    grown.observe(el);
+    return () => {
+      grown.disconnect();
+      node.current = null;
+    };
   }, []);
 
   const startDrag = (

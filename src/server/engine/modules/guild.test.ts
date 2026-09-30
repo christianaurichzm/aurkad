@@ -157,6 +157,60 @@ describe('guild module', () => {
     expect(kvGet('guild', 'Dragons')).toBeUndefined();
   });
 
+  it('tells the window who is in the game, which guilds are open, and why not', () => {
+    const sim = createFixture(0);
+    const alice = sim.addPlayer({ name: 'Alice', level: 4 });
+    sim.addPlayer({ name: 'Bob' });
+    sim.addPlayer({ name: 'Carol' });
+    handleChatCommand(alice, '/guild create Dragons');
+    handleChatCommand(alice, '/guild create Hidden private');
+    const ask = (username: string, channel: string, payload?: unknown) => {
+      drainGameEvents();
+      handleCustomAction({ type: 'custom', username, channel, payload });
+      return drainGameEvents().filter((e) => e.type === 'customPlayer') as {
+        username: string;
+        channel: string;
+        payload: Record<string, unknown>;
+      }[];
+    };
+
+    expect(ask('Bob', 'guild:list')[0]?.payload).toEqual({
+      guilds: [{ name: 'Dragons', members: 1 }],
+      maxMembers: 50,
+    });
+
+    const joined = ask('Bob', 'guild:join', { name: 'Dragons' });
+    expect(joined.find((e) => e.username === 'Alice')?.payload.members).toEqual(
+      [
+        { name: 'Alice', role: 'owner', online: true, level: 4 },
+        { name: 'Bob', role: 'member', online: true, level: 1 },
+      ],
+    );
+    expect(joined.find((e) => e.channel === 'guild:result')?.payload).toEqual({
+      message: 'Joined "Dragons".',
+    });
+
+    expect(ask('Carol', 'guild:create', { name: 'Dragons' })).toEqual([
+      expect.objectContaining({
+        channel: 'guild:result',
+        payload: { message: 'That guild name is taken.' },
+      }),
+    ]);
+
+    // Bob logs out: the ones who stay see him go offline.
+    drainGameEvents();
+    emit('playerLeave', { player: sim.getPlayer('Bob') });
+    const left = drainGameEvents().filter((e) => e.type === 'customPlayer') as {
+      username: string;
+      payload: { members: { online: boolean }[] };
+    }[];
+    expect(left.map((e) => e.username)).toEqual(['Alice']);
+    expect(left[0]?.payload.members.map((m) => m.online)).toEqual([
+      true,
+      false,
+    ]);
+  });
+
   it('exposes a guild API via use("guild")', () => {
     const sim = createFixture(0);
     const alice = sim.addPlayer({ name: 'Alice' });

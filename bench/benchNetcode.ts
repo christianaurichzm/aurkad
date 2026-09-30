@@ -87,6 +87,7 @@ function toPlayerCold(player: PlayerServer): PlayerCold {
     experience: player.experience,
     experienceToNextLevel: player.experienceToNextLevel,
     inventory,
+    inventoryCapacity: player.inventory.maxCapacity,
     equipped,
     access: player.access,
     strength: player.strength,

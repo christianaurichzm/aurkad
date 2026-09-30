@@ -22,8 +22,8 @@ const update = (payload: unknown) =>
 const toggle = () => act(() => mod.actions.get('Leaderboard')!.click());
 // The window's own content, so the title bar's close button is not counted.
 const body = () => screen.getByRole('dialog').querySelector('.window-content')!;
-const texts = () =>
-  [...body().querySelectorAll('span')].map((s) => s.textContent);
+const rows = () =>
+  [...body().querySelectorAll('li')].map((li) => li.textContent);
 const sent = () =>
   (
     mod.engine.sendServerEvent as unknown as {
@@ -47,9 +47,7 @@ describe('the table', () => {
 
   it('opens from the Actions menu and closes on Escape', () => {
     toggle();
-    expect(
-      screen.getByRole('dialog', { name: 'Leaderboard - level' }),
-    ).toBeTruthy();
+    expect(screen.getByRole('dialog', { name: 'Leaderboard' })).toBeTruthy();
 
     fireEvent.keyDown(window, { key: 'Escape' });
     expect(screen.queryByRole('dialog')).toBeNull();
@@ -59,41 +57,51 @@ describe('the table', () => {
     toggle();
 
     expect(body().textContent).toContain('Nobody has ranked yet.');
-    expect(texts()).not.toContain('Rank');
+    expect(body().textContent).not.toContain('Rank');
   });
 
   it('draws a header and one row per entry once there is something', () => {
     update(LEVEL_BOARD);
     toggle();
 
-    expect(texts()).toEqual([
-      'Rank',
-      'Player',
-      'Score',
-      '#1',
-      'Bo',
-      'level 13',
-      '#2',
-      'Ana',
-      'level 12',
-    ]);
-  });
-
-  it('names the board in the title', () => {
-    update(LEVEL_BOARD);
-    toggle();
-
-    expect(
-      screen.getByRole('dialog', { name: 'Leaderboard - level' }),
-    ).toBeTruthy();
+    expect(body().textContent).toContain('RankPlayerLevel');
+    expect(rows()).toEqual(['1Bo13', '2Ana (you)12']);
   });
 
   it('picks out the row the player opened the window to find', () => {
     update(LEVEL_BOARD);
     toggle();
 
-    expect(screen.getByText('Ana').style.fontWeight).toBe('bold');
-    expect(screen.getByText('Bo').style.fontWeight).not.toBe('bold');
+    const [bo, ana] = body().querySelectorAll('li');
+    expect(ana.hasAttribute('data-self')).toBe(true);
+    expect(bo.hasAttribute('data-self')).toBe(false);
+    expect(screen.queryByRole('list', { name: 'Your rank' })).toBeNull();
+  });
+
+  it('pins that row under the list when it is too far down to be in view', () => {
+    const others = Array.from({ length: 11 }, (_, i) => ({
+      rank: i + 1,
+      name: `P${i}`,
+      score: 100 - i,
+    }));
+    update({
+      ...LEVEL_BOARD,
+      rows: [...others, { rank: 12, name: 'Ana', score: 1 }],
+    });
+    toggle();
+
+    expect(screen.getByRole('list', { name: 'Your rank' }).textContent).toBe(
+      '12Ana (you)1',
+    );
+  });
+
+  it('says so when the player is not on the board', () => {
+    update({ ...LEVEL_BOARD, rows: LEVEL_BOARD.rows.slice(0, 1) });
+    toggle();
+
+    expect(screen.getByRole('dialog').textContent).toContain(
+      'You are not on this board yet.',
+    );
   });
 
   it('shows a plain score for a board with no levels in it', () => {
@@ -104,7 +112,8 @@ describe('the table', () => {
     });
     toggle();
 
-    expect(texts()).toContain('9000');
+    expect(body().textContent).toContain('RankPlayerScore');
+    expect(rows()).toEqual([`1Ana (you)${(9000).toLocaleString()}`]);
   });
 });
 
@@ -144,8 +153,9 @@ describe('choosing a board', () => {
     update({ ...LEVEL_BOARD, boards: ['level', 'richest'] });
     toggle();
 
-    const tabs = [...body().querySelectorAll('button')];
+    const tabs = screen.getAllByRole('tab');
     expect(tabs.map((b) => b.textContent)).toEqual(['level', 'richest']);
+    expect(tabs[0].getAttribute('aria-selected')).toBe('true');
     fireEvent.click(tabs[1]);
 
     expect(sent()).toContainEqual([
@@ -160,6 +170,6 @@ describe('a payload that is not there', () => {
     update(LEVEL_BOARD);
     toggle();
     expect(() => update(null)).not.toThrow();
-    expect(texts()).toContain('Bo');
+    expect(rows()[0]).toContain('Bo');
   });
 });

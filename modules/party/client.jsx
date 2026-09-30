@@ -7,14 +7,18 @@
 engine.i18n({
   pt: {
     Party: 'Grupo',
-    'Party ready. Stay together to share experience.':
-      'Grupo pronto. Fiquem próximos para compartilhar experiência.',
-    'Party ({size}/{max})': 'Grupo ({size}/{max})',
-    'Player name to invite': 'Nome do jogador a convidar',
-    'Create Party': 'Criar grupo',
-    'Invite player': 'Convidar jogador',
+    "You're not in a party.": 'Você não está em um grupo.',
+    'Fight together and share experience.':
+      'Lutem juntos e compartilhem experiência.',
+    'Stay together to share experience.':
+      'Fiquem próximos para compartilhar experiência.',
+    'Create party': 'Criar grupo',
+    'Invite a player': 'Convide um jogador',
     Invite: 'Convidar',
-    Leave: 'Sair',
+    'Party is full.': 'O grupo está cheio.',
+    'Only the leader can invite.': 'Só o líder pode convidar.',
+    'Party members': 'Membros do grupo',
+    'Leave party': 'Sair do grupo',
     Accept: 'Aceitar',
     Decline: 'Recusar',
     'Invite to Party': 'Convidar para o grupo',
@@ -22,22 +26,23 @@ engine.i18n({
     'Join to fight together and share experience.':
       'Entre para lutar junto e compartilhar experiência.',
     Leader: 'Líder',
-    'Level {level}': 'Nível {level}',
+    'Lv {level}': 'Nv {level}',
+    '{health}/{max} HP': '{health}/{max} PV',
     'Out of sight': 'Fora de vista',
+    "{player}'s health": 'Vida de {player}',
   },
 });
 
 const { useEffect, useState } = React;
 const ui = engine.ui;
-const send = engine.sendServerEvent;
-
-const row = { display: 'flex', gap: 6 };
 
 // The module's state lives here, outside React: the server and the Actions
 // menu change it, and every change redraws.
 let state = null; // null = solo, { leader, members, maxMembers } = in party
 let shown = false;
 let invites = []; // { from }, waiting for an answer
+// What the server answered the last thing the window asked for.
+let said = '';
 
 function draw() {
   engine.render(
@@ -50,8 +55,14 @@ function draw() {
   );
 }
 
+function send(channel, payload) {
+  said = '';
+  engine.sendServerEvent(channel, payload);
+}
+
 function toggle() {
   shown = !shown;
+  said = '';
   draw();
 }
 
@@ -61,7 +72,7 @@ function dismiss(invite) {
 }
 
 // The party sends names only; health and level come from the world this
-// client sees, so a member out of view has an empty bar until back in it.
+// client sees, so a member out of view has no bar until back in it.
 function seen(name) {
   const me = engine.getPlayer();
   if (me && me.name === name) return me;
@@ -69,29 +80,38 @@ function seen(name) {
   return Object.values(players).find((p) => p.name === name);
 }
 
-const healthColor = (share) =>
-  share > 0.5
-    ? 'var(--color-success)'
-    : share > 0.2
-      ? 'var(--color-warning)'
-      : 'var(--color-danger)';
-
 function PartyWindow({ party }) {
   const t = engine.useT();
   return (
     <ui.Window
-      title={
-        party
-          ? t('Party ({size}/{max})', {
-              size: party.members.length,
-              max: party.maxMembers,
-            })
-          : t('Party')
+      title={t('Party')}
+      counter={
+        party ? `${party.members.length}/${party.maxMembers}` : undefined
       }
-      width={320}
+      width="narrow"
+      anchor="right"
       onClose={toggle}
+      footer={
+        party && (
+          <div className="window-actions">
+            <button
+              type="button"
+              className="button-danger"
+              style={{ flex: 1 }}
+              onClick={() => send('party:leave')}
+            >
+              {t('Leave party')}
+            </button>
+          </div>
+        )
+      }
     >
       {party ? <Members party={party} /> : <Solo />}
+      {said && (
+        <p className="window-label" role="status">
+          {said}
+        </p>
+      )}
     </ui.Window>
   );
 }
@@ -100,38 +120,46 @@ function Solo() {
   const t = engine.useT();
   return (
     <>
+      <ui.EmptyState
+        icon="party"
+        title={t("You're not in a party.")}
+        hint={t('Fight together and share experience.')}
+      />
       <button
         type="button"
         className="button-primary"
         onClick={() => send('party:create')}
       >
-        {t('Create Party')}
+        {t('Create party')}
       </button>
-      <InviteRow placeholder={t('Player name to invite')} />
+      <InviteRow />
     </>
   );
 }
 
-function InviteRow({ placeholder, clear = false }) {
+function InviteRow() {
   const t = engine.useT();
   const [name, setName] = useState('');
-  const invite = () => {
+  const invite = (e) => {
+    e.preventDefault();
     const target = name.trim();
-    if (target) send('party:invite', { name: target });
-    if (clear) setName('');
+    if (!target) return;
+    send('party:invite', { name: target });
+    setName('');
   };
   return (
-    <div style={row}>
+    <form className="window-field" onSubmit={invite}>
       <input
-        style={{ flex: 1, minWidth: 0 }}
+        type="text"
         value={name}
         onChange={(e) => setName(e.target.value)}
-        placeholder={placeholder}
+        placeholder={t('Invite a player')}
+        aria-label={t('Invite a player')}
       />
-      <button type="button" onClick={invite}>
+      <button type="submit" disabled={!name.trim()}>
         {t('Invite')}
       </button>
-    </div>
+    </form>
   );
 }
 
@@ -144,6 +172,7 @@ function Members({ party }) {
     const timer = setInterval(() => look((n) => n + 1), 250);
     return () => clearInterval(timer);
   }, []);
+  const me = engine.getPlayer()?.name;
   // The leader first: the one the party is named after, and who invites.
   const order = [
     party.leader,
@@ -151,118 +180,72 @@ function Members({ party }) {
   ];
   return (
     <>
-      <p
-        role="status"
-        style={{
-          margin: '0 0 4px',
-          lineHeight: 1.4,
-          fontSize: 14,
-          color: 'var(--color-success)',
-        }}
-      >
-        {party.members.length > 1
-          ? t('Party ready. Stay together to share experience.')
-          : ''}
-      </p>
-      <ul
-        style={{
-          listStyle: 'none',
-          margin: 0,
-          padding: 0,
-          display: 'flex',
-          flexDirection: 'column',
-          gap: 6,
-        }}
-      >
+      <ul className="list" aria-label={t('Party members')}>
         {order.map((name) => (
-          <MemberCard key={name} name={name} isLeader={name === party.leader} />
+          <MemberRow
+            key={name}
+            name={name}
+            self={name === me}
+            isLeader={name === party.leader}
+          />
         ))}
       </ul>
-      <InviteRow placeholder={t('Invite player')} clear />
-      <button
-        type="button"
-        className="button-danger"
-        onClick={() => send('party:leave')}
-      >
-        {t('Leave')}
-      </button>
+      {party.members.length >= party.maxMembers ? (
+        <span className="window-label">{t('Party is full.')}</span>
+      ) : me === party.leader ? (
+        <InviteRow />
+      ) : (
+        <span className="window-label">{t('Only the leader can invite.')}</span>
+      )}
+      {party.members.length > 1 && (
+        <span className="window-label">
+          {t('Stay together to share experience.')}
+        </span>
+      )}
     </>
   );
 }
 
-function MemberCard({ name, isLeader }) {
+function MemberRow({ name, self, isLeader }) {
   const t = engine.useT();
   const p = seen(name);
   const share = p ? Math.max(0, Math.min(1, p.health / p.maxHealth)) : 0;
   return (
     <li
-      style={{
-        display: 'flex',
-        flexDirection: 'column',
-        gap: 6,
-        padding: '8px 10px',
-        borderRadius: 'var(--radius-control)',
-        background: 'var(--color-surface-muted)',
-        border: '1px solid var(--color-border)',
-      }}
+      className="list-row"
+      data-self={self || undefined}
+      data-dim={p ? undefined : true}
     >
-      <div style={{ display: 'flex', alignItems: 'baseline', gap: 8 }}>
-        <span style={{ fontWeight: 700, fontSize: 17 }}>{name}</span>
-        <span style={{ fontSize: 13, color: 'var(--color-text-muted)' }}>
-          {p ? t('Level {level}', { level: p.level }) : ''}
-        </span>
-        {isLeader && (
+      <span className="avatar" aria-hidden="true">
+        {name[0]}
+      </span>
+      <span className="list-row-text">
+        <b>
+          {name}
+          {isLeader && <span className="tag">{t('Leader')}</span>}
+        </b>
+        <small>
+          {p
+            ? `${t('Lv {level}', { level: p.level })} · ${t(
+                '{health}/{max} HP',
+                { health: Math.round(p.health), max: p.maxHealth },
+              )}`
+            : t('Out of sight')}
+        </small>
+        {p && (
           <span
-            style={{
-              marginLeft: 'auto',
-              fontSize: 12,
-              fontWeight: 700,
-              letterSpacing: '.06em',
-              textTransform: 'uppercase',
-              color: 'var(--color-warning)',
-            }}
+            className="meter"
+            data-tone={share < 0.35 ? 'low' : 'health'}
+            role="meter"
+            aria-label={t("{player}'s health", { player: name })}
+            aria-valuemin={0}
+            aria-valuemax={p.maxHealth}
+            aria-valuenow={Math.round(p.health)}
           >
-            {`★ ${t('Leader')}`}
+            <span style={{ width: `${share * 100}%` }} />
           </span>
         )}
-      </div>
-      <div
-        role="meter"
-        aria-label={name}
-        aria-valuenow={p ? Math.round(share * 100) : undefined}
-        style={{
-          position: 'relative',
-          height: 16,
-          borderRadius: 8,
-          overflow: 'hidden',
-          background: 'rgba(0,0,0,.4)',
-          opacity: p ? 1 : 0.5,
-        }}
-      >
-        <div
-          style={{
-            height: '100%',
-            width: `${share * 100}%`,
-            transition: 'width .25s',
-            background: healthColor(share),
-          }}
-        />
-        <span
-          style={{
-            position: 'absolute',
-            inset: 0,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            fontSize: 12,
-            fontWeight: 600,
-            color: '#fff',
-            textShadow: '0 1px 2px #000',
-          }}
-        >
-          {p ? `${Math.round(p.health)} / ${p.maxHealth}` : t('Out of sight')}
-        </span>
-      </div>
+      </span>
     </li>
   );
 }
@@ -270,32 +253,30 @@ function MemberCard({ name, isLeader }) {
 function InviteWindow({ invite }) {
   const t = engine.useT();
   const { from } = invite;
-  const grow = { flex: 1, padding: '10px 12px', fontSize: 15, fontWeight: 600 };
   return (
     <ui.Window
       title={t('Party invite from {player}', { player: from })}
-      width={300}
+      width="narrow"
       onClose={() => dismiss(invite)}
+      footer={
+        <div className="window-actions">
+          <button
+            type="button"
+            className="button-primary"
+            onClick={() => {
+              send('party:accept', { leader: from });
+              dismiss(invite);
+            }}
+          >
+            {t('Accept')}
+          </button>
+          <button type="button" onClick={() => dismiss(invite)}>
+            {t('Decline')}
+          </button>
+        </div>
+      }
     >
-      <p style={{ margin: '0 0 4px', lineHeight: 1.4 }}>
-        {t('Join to fight together and share experience.')}
-      </p>
-      <div style={row}>
-        <button
-          type="button"
-          className="button-primary"
-          style={grow}
-          onClick={() => {
-            send('party:accept', { leader: from });
-            dismiss(invite);
-          }}
-        >
-          {t('Accept')}
-        </button>
-        <button type="button" style={grow} onClick={() => dismiss(invite)}>
-          {t('Decline')}
-        </button>
-      </div>
+      <p>{t('Join to fight together and share experience.')}</p>
     </ui.Window>
   );
 }
@@ -311,6 +292,11 @@ engine.onServerEvent('party:update', (data) => {
   draw();
 });
 
+engine.onServerEvent('party:result', (result) => {
+  said = String(result?.message ?? '');
+  draw();
+});
+
 engine.onServerEvent('party:invite', ({ from }) => {
   // A second invite from the same player replaces the first, timer and all.
   const invite = { from };
@@ -323,4 +309,4 @@ engine.registerPlayerAction('Invite to Party', (name) => {
   send('party:invite', { name });
 });
 
-send('party:request');
+engine.sendServerEvent('party:request');

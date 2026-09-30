@@ -1,11 +1,9 @@
-import { useRef, useState, useEffect } from 'react';
-import { ITEM_SIZE } from '../../../shared/constants';
-import { ProductDetailed } from '../../../shared/types';
+import { useState } from 'react';
+import type { Item, ProductDetailed } from '../../../shared/types';
 import { updatePlayerInventory } from '../../core/gameState';
-import { drawItemGeneric } from '../../graphics/render';
 import { buyShopItem, httpError } from '../../io/network';
 import { useUIStore } from '../../stores/uiStore';
-import { colors, radius } from '../../theme';
+import { ItemComparison, ItemIcon, itemEffects } from '../Inventory/ItemIcon';
 import { useT } from '../../i18n';
 
 interface ShopRowProps {
@@ -14,6 +12,10 @@ interface ShopRowProps {
   onBought?: () => void;
   balance: number;
   owned: number;
+  /** No slot left for this item: the bag is full and holds none of it. */
+  bagFull?: boolean;
+  /** What the player wears where this would go. */
+  inPlace?: Pick<Item, 'name' | 'effects'>;
 }
 
 export const ShopRow: React.FC<ShopRowProps> = ({
@@ -22,48 +24,29 @@ export const ShopRow: React.FC<ShopRowProps> = ({
   onBought,
   balance,
   owned,
+  bagFull = false,
+  inPlace,
 }) => {
   const t = useT();
-  const itemCanvas = useRef<HTMLCanvasElement>(null);
-  const coinCanvas = useRef<HTMLCanvasElement>(null);
+  const { item, currency, price } = product;
   const [buying, setBuying] = useState(false);
   const [notice, setNotice] = useState('');
   const [failed, setFailed] = useState(false);
-  const affordable = balance >= product.price;
-
-  useEffect(() => {
-    const c = itemCanvas.current;
-    if (c)
-      drawItemGeneric(
-        c.getContext('2d')!,
-        product.item.sprite,
-        0,
-        0,
-        c.width,
-        c.height,
-      );
-  }, [product.item.sprite]);
-
-  useEffect(() => {
-    const c = coinCanvas.current;
-    if (c)
-      drawItemGeneric(
-        c.getContext('2d')!,
-        product.currency.sprite,
-        0,
-        0,
-        c.width,
-        c.height,
-      );
-  }, [product.currency.sprite]);
+  // The button says what is in the way instead of going grey without a word.
+  const reason = bagFull
+    ? t('shop.bagFull')
+    : balance < price
+      ? t('shop.need', { count: price - balance })
+      : '';
+  const effects = itemEffects(t, item);
 
   const handleBuy = async () => {
-    if (buying || !affordable) return;
+    if (buying || reason) return;
     setBuying(true);
     setNotice('');
     setFailed(false);
     try {
-      const res = await buyShopItem(shopId, product.item.id);
+      const res = await buyShopItem(shopId, item.id);
       if (!res?.success) {
         throw new Error(res?.message || 'Error purchasing.');
       }
@@ -72,12 +55,11 @@ export const ShopRow: React.FC<ShopRowProps> = ({
         updatePlayerInventory(res.inventory);
       }
 
-      useUIStore.getState().addChatMessage({
-        message: res.message || `${product.item.name} purchased.`,
-        scope: 'player',
-        type: 'chat',
-      });
-      setNotice(t('shop.purchased', { item: product.item.name }));
+      const said = t('shop.purchased', { item: item.name });
+      useUIStore
+        .getState()
+        .addChatMessage({ message: said, scope: 'player', type: 'chat' });
+      setNotice(said);
       onBought?.();
     } catch (error) {
       setFailed(true);
@@ -88,65 +70,60 @@ export const ShopRow: React.FC<ShopRowProps> = ({
   };
 
   return (
-    <div
-      data-shop-item={product.item.id}
-      style={{
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        background: colors.surfaceMuted,
-        border: `1px solid ${colors.border}`,
-        padding: 8,
-        borderRadius: radius.panel,
-      }}
-    >
-      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-        <canvas ref={itemCanvas} width={ITEM_SIZE} height={ITEM_SIZE} />
-        <div style={{ display: 'flex', flexDirection: 'column' }}>
-          <strong>{product.item.name}</strong>
-          <span style={{ fontSize: 14, lineHeight: 1.5 }}>
-            {product.item.description}
-          </span>
-          <span style={{ fontSize: 13, color: colors.textMuted }}>
-            {t('shop.owned', { count: owned })}
-          </span>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-            <canvas ref={coinCanvas} width={ITEM_SIZE} height={ITEM_SIZE} />
-            <span>
-              {product.price} × {product.currency.name}
-            </span>
-          </div>
+    <li className="list-row shop-row" data-shop-item={item.id}>
+      <div className="item-detail-head">
+        <span className="item-slot">
+          <ItemIcon spriteId={item.sprite} />
+        </span>
+        <div>
+          <h3>{item.name}</h3>
+          {item.description && (
+            <p className="item-detail-type">{item.description}</p>
+          )}
+          {effects && <p className="item-detail-effect">{effects}</p>}
+          {inPlace && <ItemComparison item={item} inPlace={inPlace} />}
+          {/* The answer to a purchase shares the line that counts them: a
+              line of its own would push every row below it down the list. */}
+          <p className="item-detail-note">
+            {t('shop.owned', { count: owned })}{' '}
+            {notice && (
+              <span
+                role={failed ? 'alert' : 'status'}
+                className="item-compare"
+                data-change={failed ? 'down' : 'up'}
+              >
+                {failed ? notice : `✓ ${notice}`}
+              </span>
+            )}
+          </p>
         </div>
       </div>
-      {/* The notice hangs under the button, out of the flow: a line added to
-          the row would push every row below it down the list. */}
-      <div style={{ position: 'relative' }}>
+      <div className="shop-buy">
+        <span className="stack-count">
+          <ItemIcon spriteId={currency.sprite} size={24} />
+          {price}
+        </span>
+        {/* aria-disabled, not disabled: the button keeps its place in the
+            arrow and Tab order, so the reason on it can be reached and read. */}
         <button
-          onClick={handleBuy}
-          disabled={buying || !affordable}
-          title={!affordable ? t('shop.insufficient') : undefined}
+          type="button"
           className="button-primary"
-          style={{ padding: '10px 14px' }}
+          aria-disabled={buying || !!reason}
+          aria-label={[
+            t('shop.buyFor', {
+              item: item.name,
+              count: price,
+              currency: currency.name,
+            }),
+            reason,
+          ]
+            .filter(Boolean)
+            .join('. ')}
+          onClick={() => void handleBuy()}
         >
-          {buying ? '…' : t(affordable ? 'shop.buy' : 'shop.insufficient')}
+          {buying ? '…' : reason || t('shop.buy')}
         </button>
-        {notice && (
-          <span
-            role={failed ? 'alert' : 'status'}
-            style={{
-              position: 'absolute',
-              top: '100%',
-              right: 0,
-              marginTop: 6,
-              whiteSpace: 'nowrap',
-              color: failed ? colors.dangerText : colors.success,
-              fontWeight: 600,
-            }}
-          >
-            {failed ? notice : `✓ ${notice}`}
-          </span>
-        )}
       </div>
-    </div>
+    </li>
   );
 };

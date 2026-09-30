@@ -2,8 +2,8 @@ import React, { useEffect, useState } from 'react';
 import { usePlayerForceUpdate } from '../hooks/usePlayerForceUpdate';
 import { assignPointsPlayer, httpError } from '../io/network';
 import { Modal } from './common/Modal';
-import { colors, radius } from '../theme';
-import { useT } from '../i18n';
+import { EmptyState } from './common/EmptyState';
+import { useT, type TranslationKey } from '../i18n';
 import { useGameBrand } from './common/AuthLayout';
 
 type AttributeKey = 'strength' | 'defense' | 'vitality' | 'agility';
@@ -15,6 +15,34 @@ const emptyQueued: QueuedAttributes = {
   vitality: 0,
   agility: 0,
 };
+
+// Keys spelled out: the table's own test looks each one up in the source.
+const ATTRIBUTES: {
+  key: AttributeKey;
+  label: TranslationKey;
+  hint: TranslationKey;
+}[] = [
+  {
+    key: 'strength',
+    label: 'attributes.strength',
+    hint: 'attributes.strengthHint',
+  },
+  {
+    key: 'defense',
+    label: 'attributes.defense',
+    hint: 'attributes.defenseHint',
+  },
+  {
+    key: 'vitality',
+    label: 'attributes.vitality',
+    hint: 'attributes.vitalityHint',
+  },
+  {
+    key: 'agility',
+    label: 'attributes.agility',
+    hint: 'attributes.agilityHint',
+  },
+];
 
 export const AttributeDistributorModal: React.FC = () => {
   const t = useT();
@@ -39,31 +67,10 @@ export const AttributeDistributorModal: React.FC = () => {
   const assigned = Object.values(queued).reduce((sum, value) => sum + value, 0);
   const remaining = player.unspentPoints - assigned;
 
-  const setAttribute = (key: AttributeKey, value: number) =>
-    setQueued((prev) => {
-      const otherAssigned = Object.entries(prev).reduce(
-        (sum, [entryKey, entryValue]) => {
-          return entryKey === key ? sum : sum + entryValue;
-        },
-        0,
-      );
-      return {
-        ...prev,
-        [key]: Math.max(
-          0,
-          Math.min(value, player.unspentPoints - otherAssigned),
-        ),
-      };
-    });
-
-  const adjustAttribute = (key: AttributeKey, delta: number) =>
-    setAttribute(key, queued[key] + delta);
+  const adjust = (key: AttributeKey, delta: number) =>
+    setQueued((prev) => ({ ...prev, [key]: prev[key] + delta }));
 
   const handleConfirm = async () => {
-    if (remaining < 0) {
-      setError('Too many points assigned');
-      return;
-    }
     setLoading(true);
     setError('');
     try {
@@ -76,239 +83,128 @@ export const AttributeDistributorModal: React.FC = () => {
     }
   };
 
-  const stats = [
-    { key: 'strength' as const, label: t('attributes.strength') },
-    { key: 'defense' as const, label: t('attributes.defense') },
-    { key: 'vitality' as const, label: t('attributes.vitality') },
-    { key: 'agility' as const, label: t('attributes.agility') },
-  ];
+  // Two keys rather than a plural rule, since the table has none.
+  const count = (one: TranslationKey, many: TranslationKey, n: number) =>
+    t(n === 1 ? one : many, { count: n });
+
+  const readOnly = player.unspentPoints === 0;
 
   return (
     <Modal
+      floating
+      size="regular"
+      anchor="right"
       title={t('attributes.title')}
       onClose={() => setVisible(false)}
-      width={460}
+      footer={
+        readOnly ? (
+          <EmptyState
+            icon="stats"
+            title={t('attributes.noPoints')}
+            hint={t('attributes.levelUp')}
+          />
+        ) : (
+          <div className="window-actions">
+            <button
+              type="button"
+              disabled={assigned === 0 || loading}
+              onClick={() => setQueued({ ...emptyQueued })}
+            >
+              {t('attributes.reset')}
+            </button>
+            <button
+              type="button"
+              className="button-primary"
+              onClick={handleConfirm}
+              disabled={loading || assigned === 0}
+            >
+              {loading
+                ? t('attributes.saving')
+                : assigned === 0
+                  ? t('attributes.confirm')
+                  : count(
+                      'attributes.confirmPoint',
+                      'attributes.confirmPoints',
+                      assigned,
+                    )}
+            </button>
+          </div>
+        )
+      }
     >
-      <div style={layout}>
-        <div style={summaryGrid}>
-          <div style={summaryCard(player.unspentPoints > 0)}>
-            <span style={summaryLabel}>{t('attributes.available')}</span>
-            <strong style={summaryValue(player.unspentPoints > 0)}>
-              {player.unspentPoints}
-            </strong>
-          </div>
-          <div style={summaryCard(assigned > 0)}>
-            <span style={summaryLabel}>{t('attributes.queued')}</span>
-            <strong style={summaryValue(assigned > 0)}>{assigned}</strong>
-          </div>
-        </div>
-
-        <div style={statsList}>
-          {stats.map(({ key, label }) => {
-            const base = player[key];
-            const delta = queued[key];
-            return (
-              <div key={label} style={statRow}>
-                <span style={statLabel}>{label}</span>
-                <span style={statBase}>{base}</span>
-                <div style={stepper}>
+      <div className="attr-points" aria-live="polite">
+        <span className="attr-points-number">{remaining}</span>
+        <span className="attr-points-label">
+          {count('attributes.unspentOne', 'attributes.unspent', remaining)}
+        </span>
+      </div>
+      <ul className="attr-list">
+        {ATTRIBUTES.map(({ key, label: labelKey, hint }) => {
+          const label = t(labelKey);
+          const base = player[key];
+          const delta = queued[key];
+          return (
+            <li
+              key={key}
+              className="attr-row"
+              data-pending={delta > 0 || undefined}
+            >
+              <div>
+                <h3>{label}</h3>
+                <p>{t(hint)}</p>
+              </div>
+              <div
+                className="attr-value"
+                aria-label={t(
+                  delta ? 'attributes.change' : 'attributes.value',
+                  {
+                    stat: label,
+                    from: base,
+                    to: base + delta,
+                  },
+                )}
+              >
+                {delta > 0 ? (
+                  <>
+                    <span className="attr-value-old">{base}</span>
+                    <span aria-hidden="true">→</span>
+                    <b>{base + delta}</b>
+                  </>
+                ) : (
+                  <b>{base}</b>
+                )}
+              </div>
+              {!readOnly && (
+                <div className="attr-buttons">
                   <button
-                    style={{ ...stepBtn, opacity: delta === 0 ? 0.4 : 1 }}
-                    onClick={() => adjustAttribute(key, -1)}
+                    type="button"
+                    className="step-button"
+                    onClick={() => adjust(key, -1)}
                     disabled={delta === 0}
-                    title={t('attributes.decrease', { stat: label })}
+                    aria-label={t('attributes.decrease', { stat: label })}
                   >
                     −
                   </button>
-                  <input
-                    style={stepInput}
-                    type="number"
-                    min={0}
-                    value={delta}
-                    aria-label={t('attributes.pointsFor', { stat: label })}
-                    onChange={(e) => {
-                      const v = Math.max(0, parseInt(e.target.value || '0'));
-                      setAttribute(key, v);
-                    }}
-                  />
                   <button
-                    style={{ ...stepBtn, opacity: remaining <= 0 ? 0.4 : 1 }}
-                    onClick={() => adjustAttribute(key, 1)}
-                    disabled={remaining <= 0}
-                    title={t('attributes.increase', { stat: label })}
+                    type="button"
+                    className="step-button"
+                    onClick={() => adjust(key, 1)}
+                    disabled={remaining === 0}
+                    aria-label={t('attributes.increase', { stat: label })}
                   >
                     +
                   </button>
                 </div>
-                <span style={arrow}>→</span>
-                <span style={result(delta > 0)}>{base + delta}</span>
-              </div>
-            );
-          })}
-        </div>
-
-        <div style={remainingText(remaining)}>
-          {/* Two keys rather than a plural rule: the table has none, and one
-              sentence per case is what a translator can actually answer. */}
-          {remaining >= 0
-            ? t(
-                remaining === 1
-                  ? 'attributes.remainingOne'
-                  : 'attributes.remaining',
-                { count: remaining },
-              )
-            : t(
-                Math.abs(remaining) === 1
-                  ? 'attributes.overBudgetOne'
-                  : 'attributes.overBudget',
-                { count: Math.abs(remaining) },
               )}
-        </div>
-
-        {error && <p style={errorStyle}>{error}</p>}
-
-        <button
-          className="button-primary"
-          style={confirmBtn}
-          onClick={handleConfirm}
-          disabled={loading || assigned === 0 || remaining < 0}
-        >
-          {loading ? t('attributes.saving') : t('attributes.confirm')}
-        </button>
-      </div>
+            </li>
+          );
+        })}
+      </ul>
+      {error && (
+        <p className="window-error" role="alert">
+          {error}
+        </p>
+      )}
     </Modal>
   );
-};
-
-const layout: React.CSSProperties = {
-  display: 'flex',
-  flexDirection: 'column',
-  gap: 16,
-};
-
-const summaryGrid: React.CSSProperties = {
-  display: 'grid',
-  gridTemplateColumns: 'repeat(2, minmax(0, 1fr))',
-  gap: 10,
-};
-
-const summaryCard = (active: boolean): React.CSSProperties => ({
-  background: active ? colors.selected : colors.surfaceMuted,
-  border: `1px solid ${active ? colors.success : colors.border}`,
-  borderRadius: radius.panel,
-  padding: '10px 12px',
-  minHeight: 54,
-  display: 'flex',
-  alignItems: 'center',
-  justifyContent: 'space-between',
-});
-
-const summaryLabel: React.CSSProperties = {
-  color: colors.textMuted,
-  fontSize: 12,
-  fontWeight: 700,
-  textTransform: 'uppercase',
-};
-
-const summaryValue = (active: boolean): React.CSSProperties => ({
-  color: active ? colors.success : colors.textMuted,
-  fontSize: 22,
-  lineHeight: 1,
-});
-
-const statsList: React.CSSProperties = {
-  display: 'flex',
-  flexDirection: 'column',
-  gap: 10,
-};
-
-const statRow: React.CSSProperties = {
-  display: 'grid',
-  gridTemplateColumns: 'minmax(58px, 76px) 30px minmax(84px, 1fr) 14px 34px',
-  alignItems: 'center',
-  gap: 8,
-  padding: '2px 0',
-};
-
-const statLabel: React.CSSProperties = {
-  fontWeight: 600,
-  fontSize: 14,
-  color: colors.text,
-};
-
-const statBase: React.CSSProperties = {
-  textAlign: 'right',
-  fontWeight: 700,
-  fontSize: 18,
-  color: colors.textMuted,
-};
-
-const stepper: React.CSSProperties = {
-  display: 'flex',
-  alignItems: 'center',
-  gap: 4,
-  minWidth: 0,
-};
-
-const stepBtn: React.CSSProperties = {
-  width: 28,
-  height: 28,
-  border: `1px solid ${colors.border}`,
-  background: colors.surface,
-  borderRadius: radius.control,
-  cursor: 'pointer',
-  fontSize: 16,
-  fontWeight: 700,
-  color: colors.text,
-  display: 'flex',
-  alignItems: 'center',
-  justifyContent: 'center',
-  padding: 0,
-  lineHeight: 1,
-  flexShrink: 0,
-};
-
-const stepInput: React.CSSProperties = {
-  flex: 1,
-  textAlign: 'center',
-  padding: '4px 0',
-  border: `1px solid ${colors.border}`,
-  borderRadius: radius.control,
-  fontSize: 14,
-  fontWeight: 600,
-  minWidth: 0,
-};
-
-const arrow: React.CSSProperties = {
-  color: colors.textMuted,
-  fontSize: 16,
-  flexShrink: 0,
-};
-
-const result = (hasBonus: boolean): React.CSSProperties => ({
-  width: 36,
-  textAlign: 'right',
-  fontWeight: 700,
-  fontSize: 18,
-  color: hasBonus ? colors.success : colors.text,
-});
-
-const remainingText = (n: number): React.CSSProperties => ({
-  fontSize: 13,
-  fontWeight: 600,
-  color: n < 0 ? colors.danger : colors.textMuted,
-  textAlign: 'center',
-  padding: '2px 0',
-});
-
-const errorStyle: React.CSSProperties = {
-  color: colors.dangerText,
-  fontSize: 13,
-  margin: 0,
-};
-
-const confirmBtn: React.CSSProperties = {
-  padding: '10px 16px',
-  fontSize: 14,
-  width: '100%',
 };

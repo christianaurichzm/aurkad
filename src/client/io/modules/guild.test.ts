@@ -21,18 +21,21 @@ const sent = () =>
     }
   ).mock.calls;
 const openWindow = () => act(() => mod.actions.get('Guild')!.click());
+const click = (name: string) =>
+  fireEvent.click(screen.getByRole('button', { name }));
 
 const GUILD = {
   name: 'Wolves',
   privacy: 'public',
   self: 'Ana',
+  maxMembers: 50,
   members: [
-    { name: 'Ana', role: 'owner' },
-    { name: 'Bo', role: 'member' },
+    { name: 'Bo', role: 'member', online: false },
+    { name: 'Ana', role: 'owner', online: true, level: 7 },
   ],
 };
 
-describe('guild window', () => {
+describe('in no guild', () => {
   it('opens from the Actions menu and closes on Escape', () => {
     openWindow();
     expect(screen.getByRole('dialog', { name: 'Guild' })).toBeTruthy();
@@ -42,14 +45,12 @@ describe('guild window', () => {
 
   it('creates a guild with the name and privacy chosen', () => {
     openWindow();
-    const create = screen.getByRole('button', { name: 'Create Guild' });
+    const create = screen.getByRole('button', { name: 'Create guild' });
     expect(create).toHaveProperty('disabled', true);
     fireEvent.change(screen.getByPlaceholderText('Guild name'), {
       target: { value: '  Wolves ' },
     });
-    fireEvent.change(screen.getByRole('combobox', { name: 'Privacy' }), {
-      target: { value: 'private' },
-    });
+    fireEvent.click(screen.getByRole('radio', { name: /Private/ }));
     fireEvent.click(create);
     expect(sent()).toContainEqual([
       'guild:create',
@@ -57,29 +58,88 @@ describe('guild window', () => {
     ]);
   });
 
-  it('keeps a half-typed invite through an update from the server', () => {
+  it('lists the public guilds it asked for, each a click to join', () => {
+    openWindow();
+    expect(sent()).toContainEqual(['guild:list']);
+    expect(screen.getByText('No public guilds yet.')).toBeTruthy();
+
+    emit('guild:list', {
+      guilds: [{ name: 'Wolves', members: 3 }],
+      maxMembers: 50,
+    });
+    expect(screen.getByText('3 of 50 members')).toBeTruthy();
+    click('Join');
+    expect(sent()).toContainEqual(['guild:join', { name: 'Wolves' }]);
+  });
+
+  it('says in the window why the server refused', () => {
+    openWindow();
+    emit('guild:result', { message: 'That guild name is taken.' });
+    expect(screen.getByRole('status').textContent).toBe(
+      'That guild name is taken.',
+    );
+  });
+});
+
+describe('in a guild', () => {
+  beforeEach(() => {
     emit('guild:update', GUILD);
     openWindow();
-    const invitee = screen.getByPlaceholderText('Invite player name');
+  });
+
+  it('counts the members beside the name and lists the owner first', () => {
+    const dialog = screen.getByRole('dialog', { name: 'Wolves' });
+    expect(dialog.textContent).toContain('2/50');
+    expect(dialog.textContent).toContain('Public guild · 1 online');
+    const [ana, bo] = screen.getAllByRole('listitem');
+    expect(ana.textContent).toBe('AAna (you)Owner · Lv 7 · Online');
+    expect(bo.textContent).toContain('Member · Offline');
+  });
+
+  it('keeps a half-typed invite through an update from the server', () => {
+    const invitee = screen.getByPlaceholderText('Invite a player by name');
     fireEvent.change(invitee, { target: { value: 'Ca' } });
     emit('guild:update', {
       ...GUILD,
       members: [...GUILD.members, { name: 'Di', role: 'member' }],
     });
-    expect(screen.getByRole('dialog', { name: 'Wolves (3)' })).toBeTruthy();
-    expect(screen.getByPlaceholderText('Invite player name')).toHaveProperty(
-      'value',
-      'Ca',
-    );
+    expect(screen.getByRole('dialog').textContent).toContain('3/50');
+    expect(
+      screen.getByPlaceholderText('Invite a player by name'),
+    ).toHaveProperty('value', 'Ca');
   });
 
   it('gives the owner rank and kick controls on others, not on itself', () => {
-    emit('guild:update', GUILD);
-    openWindow();
     const [ana, bo] = screen.getAllByRole('listitem');
     expect(within(ana).queryAllByRole('button')).toHaveLength(0);
-    fireEvent.click(within(bo).getByRole('button', { name: 'Kick' }));
+    fireEvent.click(within(bo).getByRole('button', { name: 'Promote Bo' }));
+    fireEvent.click(within(bo).getByRole('button', { name: 'Kick Bo' }));
+    expect(sent()).toContainEqual(['guild:promote', { target: 'Bo' }]);
     expect(sent()).toContainEqual(['guild:kick', { target: 'Bo' }]);
+  });
+
+  it('lets an officer remove a member and nothing else', () => {
+    emit('guild:update', {
+      ...GUILD,
+      self: 'Cy',
+      members: [...GUILD.members, { name: 'Cy', role: 'moderator' }],
+    });
+    const names = screen
+      .getAllByRole('button')
+      .map((b) => b.getAttribute('aria-label'))
+      .filter(Boolean);
+    expect(names).toEqual(['Close', 'Kick Bo']);
+  });
+
+  it('asks before leaving, then lists the guilds to join', () => {
+    click('Leave guild');
+    expect(sent()).not.toContainEqual(['guild:leave', undefined]);
+    click('Leave');
+    expect(sent()).toContainEqual(['guild:leave', undefined]);
+
+    emit('guild:update', null);
+    expect(screen.getByRole('dialog', { name: 'Guild' })).toBeTruthy();
+    expect(sent()).toContainEqual(['guild:list']);
   });
 });
 

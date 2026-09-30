@@ -26,12 +26,12 @@ afterEach(() => {
 });
 
 describe('daynight overlay', () => {
-  it('draws on the world layer, so the hud stays above it', () => {
+  it('draws on the scene layer, so the hud stays above it', () => {
     atPhase(0);
     const mod = loadClientModule('daynight');
 
     expect(mod.overlays).toHaveLength(1);
-    expect(mod.overlays[0].order).toBe(0);
+    expect(mod.overlays[0].order).toBe(50);
   });
 
   it('covers the whole screen, in screen space', () => {

@@ -6,28 +6,40 @@ import { ShopModal } from './ShopModal';
 const mocks = vi.hoisted(() => ({
   fetchShop: vi.fn(),
   inventory: [] as { item: { id: number }; quantity: number }[],
+  equipped: {},
 }));
+
+vi.mock('../../graphics/render', () => ({ renderItemIcon: vi.fn() }));
+vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockReturnValue(null);
 
 vi.mock('../../io/network', () => ({
   fetchShop: mocks.fetchShop,
 }));
 
 vi.mock('../../hooks/usePlayerForceUpdate', () => ({
-  usePlayerForceUpdate: () => ({ inventory: mocks.inventory }),
+  usePlayerForceUpdate: () => ({
+    inventory: mocks.inventory,
+    inventoryCapacity: 2,
+    equipped: mocks.equipped,
+  }),
 }));
 
 vi.mock('./ShopRow', () => ({
   ShopRow: ({
     product,
+    bagFull,
+    inPlace,
     onBought,
   }: {
     product: { item: { name: string } };
+    bagFull: boolean;
+    inPlace?: { name: string };
     onBought?: () => void;
   }) => (
-    <div data-testid="shop-row">
+    <li data-full={bagFull} data-in-place={inPlace?.name}>
       {product.item.name}
       <button onClick={onBought}>buy {product.item.name}</button>
-    </div>
+    </li>
   ),
 }));
 
@@ -52,14 +64,39 @@ const mockShop = {
       },
       price: 10,
     },
+    {
+      item: {
+        id: 2,
+        name: 'Iron Sword',
+        sprite: 2,
+        description: 'A sturdy blade.',
+        type: 'weapon' as const,
+      },
+      currency: {
+        id: 3,
+        name: 'Gold',
+        sprite: 3,
+        description: 'Gold coin.',
+        type: 'currency' as const,
+      },
+      price: 30,
+    },
   ],
 };
+
+const open = () =>
+  act(() => {
+    window.dispatchEvent(
+      new CustomEvent('open-shop', { detail: 'aurora-general' }),
+    );
+  });
 
 describe('ShopModal', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mocks.fetchShop.mockResolvedValue(mockShop);
     mocks.inventory = [];
+    mocks.equipped = {};
   });
 
   it('stays closed until the open-shop event fires', () => {
@@ -107,19 +144,51 @@ describe('ShopModal', () => {
     expect(mocks.fetchShop).toHaveBeenCalledTimes(2);
   });
 
-  it('redraws the balance as soon as a row reports a purchase', async () => {
+  it('redraws the wallet as soon as a row reports a purchase', async () => {
     mocks.inventory = [{ item: { id: 3 }, quantity: 40 }];
     render(<ShopModal />);
-    act(() => {
-      window.dispatchEvent(
-        new CustomEvent('open-shop', { detail: 'aurora-general' }),
-      );
-    });
-    expect(await screen.findByText('Balance: 40 Gold')).toBeInTheDocument();
+    open();
+    const wallet = (await screen.findByText('Gold')).closest('p');
+    expect(wallet).toHaveTextContent('40 Gold');
+    expect(wallet).toHaveTextContent('Bag 1/2');
 
     mocks.inventory = [{ item: { id: 3 }, quantity: 30 }];
     await userEvent.click(screen.getByRole('button', { name: 'buy Apple' }));
 
-    expect(screen.getByText('Balance: 30 Gold')).toBeInTheDocument();
+    expect(wallet).toHaveTextContent('30 Gold');
+  });
+
+  it('tells a row the bag is full only for what would need a new slot', async () => {
+    mocks.inventory = [
+      { item: { id: 3 }, quantity: 40 },
+      { item: { id: 1 }, quantity: 2 },
+    ];
+    render(<ShopModal />);
+    open();
+    expect((await screen.findByText('Apple')).dataset.full).toBe('false');
+    expect(screen.getByText('Iron Sword').dataset.full).toBe('true');
+  });
+
+  it('hands a row what is worn where its item would go', async () => {
+    mocks.equipped = { weapon: { name: 'Hunting Bow' } };
+    render(<ShopModal />);
+    open();
+    expect((await screen.findByText('Iron Sword')).dataset.inPlace).toBe(
+      'Hunting Bow',
+    );
+    expect(screen.getByText('Apple').dataset.inPlace).toBeUndefined();
+  });
+
+  it('walks the buy buttons with the arrows', async () => {
+    render(<ShopModal />);
+    open();
+    const first = await screen.findByRole('button', { name: 'buy Apple' });
+    first.focus();
+    await userEvent.keyboard('{ArrowDown}');
+    expect(
+      screen.getByRole('button', { name: 'buy Iron Sword' }),
+    ).toHaveFocus();
+    await userEvent.keyboard('{ArrowUp}');
+    expect(first).toHaveFocus();
   });
 });

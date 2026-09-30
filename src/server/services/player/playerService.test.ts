@@ -59,6 +59,14 @@ describe('toPlayerCold', () => {
     expect(cold.inventory).toEqual([]);
   });
 
+  it('says how much the bag holds', () => {
+    const cold = toPlayerCold(
+      mkPlayer({ inventory: { items: [], maxCapacity: 24 } }),
+    );
+
+    expect(cold.inventoryCapacity).toBe(24);
+  });
+
   it('carries nameColor, nameTag and its colour through serialization', () => {
     const cold = toPlayerCold(
       mkPlayer({

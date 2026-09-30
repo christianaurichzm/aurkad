@@ -70,7 +70,12 @@ function stateOf(player) {
     stored && stored.counters && typeof stored.counters === 'object'
       ? { ...stored.counters }
       : {};
-  return { earned, counters };
+  // id -> epoch ms. An achievement stored without a date shows none.
+  const at =
+    stored && stored.at && typeof stored.at === 'object'
+      ? { ...stored.at }
+      : {};
+  return { earned, counters, at };
 }
 
 const save = (player, state) => setPlayerData(player, KEY, state);
@@ -79,6 +84,7 @@ function push(player, state) {
   const current = state || stateOf(player);
   sendEvent(player, 'achievements:update', {
     earned: current.earned,
+    at: current.at,
     all: defs.map((def) => ({
       id: def.id,
       name: def.name,
@@ -102,6 +108,7 @@ function award(player, id, state) {
   if (current.earned.includes(id)) return false;
 
   current.earned.push(id);
+  current.at[id] = Date.now();
   if (!save(player, current)) return false;
 
   sendMessage(

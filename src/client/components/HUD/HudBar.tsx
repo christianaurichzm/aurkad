@@ -2,22 +2,12 @@ import { useEffect, useState } from 'react';
 import { useUIStore } from '../../stores/uiStore';
 import { useGame } from '../../context/GameContext';
 import { usePlayerForceUpdate } from '../../hooks/usePlayerForceUpdate';
-import { SpritePreview } from '../common/SpritePreview';
+import { Sprite } from '../common/SpritePreview';
 import { getHealthBarInfo } from '../../graphics/hud';
 import { useT } from '../../i18n';
 import { onServerEvent } from '../../io/network/customEvents';
 import { mapAllowsPvp } from '../../../shared/utils';
 import { useGameBrand } from '../common/AuthLayout';
-
-// SpritePreview frames itself inline, where no theme could reach it; the
-// card's frame is #hud-portrait in styles.css instead, which is also where a
-// theme swaps the sprite for a picture chosen by data-sprite.
-const portraitCanvas = {
-  display: 'block',
-  border: 'none',
-  borderRadius: 0,
-  background: 'none',
-};
 
 // The same three bands the world paints over a hurt NPC, named by the colour
 // token each one reads in styles.css so a theme can recolour them.
@@ -69,11 +59,7 @@ export const HudBar = () => {
   return (
     <div id="hud" className="panel">
       <div id="hud-portrait" data-sprite={identity?.sprite ?? 0}>
-        <SpritePreview
-          spriteId={identity?.sprite ?? 0}
-          size={48}
-          style={portraitCanvas}
-        />
+        <Sprite spriteId={identity?.sprite ?? 0} size={48} />
       </div>
       <div className="hud-stats">
         <div id="hud-who">

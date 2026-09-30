@@ -23,4 +23,12 @@ if (typeof window !== 'undefined') {
       dispatchEvent: () => true,
     }),
   });
+
+  // jsdom lays nothing out, so nothing ever resizes; a test about a resize
+  // stubs one it can fire.
+  window.ResizeObserver ??= class {
+    observe() {}
+    unobserve() {}
+    disconnect() {}
+  };
 }

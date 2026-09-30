@@ -1,104 +1,79 @@
 import React from 'react';
-import { Item, Player } from '../../../shared/types';
-import { ItemIcon } from './ItemIcon';
-import { useStyles } from './styles';
-import { useT } from '../../i18n';
+import { EQUIPMENT_SLOTS } from '../../../shared/constants';
+import type { EquipmentSlot, Player } from '../../../shared/types';
+import { SpritePreview } from '../common/SpritePreview';
+import { ItemSlot } from './ItemIcon';
+import { useT, type TranslationKey } from '../../i18n';
 
-type Selection = { item: Item; quantity: number };
+const SLOT_LABELS: Record<EquipmentSlot, TranslationKey> = {
+  weapon: 'item.typeWeapon',
+  helmet: 'item.typeHelmet',
+  chestplate: 'item.typeChestplate',
+  gloves: 'item.typeGloves',
+  boots: 'item.typeBoots',
+};
+
+// SpritePreview frames itself inline; here the character stands bare between
+// the slots.
+const bare = {
+  display: 'block',
+  border: 'none',
+  borderRadius: 0,
+  background: 'none',
+};
 
 export const EquipmentPanel: React.FC<{
   player: Player;
-  selectItem: (sel: Selection) => void;
-  onItemHover: (item: Item, qty: number, x: number, y: number) => void;
-  onItemHoverMove: (x: number, y: number) => void;
-  onItemHoverLeave: () => void;
-}> = ({
-  player,
-  selectItem,
-  onItemHover,
-  onItemHoverMove,
-  onItemHoverLeave,
-}) => {
+  selected: number | null;
+  onSelect: (itemId: number) => void;
+}> = ({ player, selected, onSelect }) => {
   const t = useT();
-  const styles = useStyles();
-
-  const slots: {
-    key: keyof Player['equipped'];
-    area: string;
-    label: string;
-  }[] = [
-    { key: 'helmet', area: 'helmet', label: t('item.typeHelmet') },
-    { key: 'chestplate', area: 'chestplate', label: t('item.typeChestplate') },
-    { key: 'weapon', area: 'weapon', label: t('item.typeWeapon') },
-    { key: 'gloves', area: 'gloves', label: t('item.typeGloves') },
-    { key: 'boots', area: 'boots', label: t('item.typeBoots') },
-  ];
 
   return (
-    <div style={styles.equipmentContent}>
-      <div style={styles.equipPanel}>
-        {slots.map(({ key, area, label }) => {
-          const item = player.equipped[key];
+    <>
+      <div className="equip-doll">
+        <span className="equip-body" aria-hidden="true">
+          <SpritePreview spriteId={player.sprite} size={96} style={bare} />
+        </span>
+        {EQUIPMENT_SLOTS.map((slot) => {
+          const item = player.equipped[slot];
+          const label = t(SLOT_LABELS[slot]);
           return (
-            <div
-              key={key}
-              style={{ ...styles.slotWrap, ...styles.slotArea(area) }}
-            >
-              <div
-                style={styles.slot}
-                onClick={() => item && selectItem({ item, quantity: 1 })}
-                onMouseEnter={(e) =>
-                  item && onItemHover(item, 1, e.clientX, e.clientY)
-                }
-                onMouseMove={(e) =>
-                  item && onItemHoverMove(e.clientX, e.clientY)
-                }
-                onMouseLeave={onItemHoverLeave}
-                title={item ? item.name : label}
-              >
-                {item && <ItemIcon spriteId={item.sprite} />}
-              </div>
-              <span style={styles.slotLabel}>{item?.name || label}</span>
+            <div key={slot} className="equip-slot" style={{ gridArea: slot }}>
+              {item ? (
+                <ItemSlot
+                  item={item}
+                  selected={selected === item.id}
+                  note={label}
+                  onSelect={() => onSelect(item.id)}
+                />
+              ) : (
+                <span
+                  className="item-slot"
+                  data-empty
+                  role="img"
+                  aria-label={t('inventory.slotEmpty', { slot: label })}
+                />
+              )}
+              <span className="equip-label">{label}</span>
             </div>
           );
         })}
       </div>
-      <div style={styles.equipmentStats}>
-        <div style={styles.statLine}>
-          <span>{t('stats.level')}</span>
-          <strong>{player.level}</strong>
+      <dl className="equip-totals">
+        <div>
+          <dt>{t('stats.attack')}</dt>
+          <dd>{player.attack}</dd>
         </div>
-        <div style={styles.statLine}>
-          <span>{t('stats.attack')}</span>
-          <strong>{player.attack}</strong>
+        <div>
+          <dt>{t('stats.defense')}</dt>
+          <dd>{player.defense}</dd>
         </div>
-        <div style={styles.statLine}>
-          <span>{t('stats.strength')}</span>
-          <strong>{player.strength}</strong>
+        <div>
+          <dt>{t('stats.speed')}</dt>
+          <dd>{player.speed}</dd>
         </div>
-        <div style={styles.statLine}>
-          <span>{t('stats.defense')}</span>
-          <strong>{player.defense}</strong>
-        </div>
-        <div style={styles.statLine}>
-          <span>{t('stats.agility')}</span>
-          <strong>{player.agility}</strong>
-        </div>
-        <div style={styles.statLine}>
-          <span>{t('stats.vitality')}</span>
-          <strong>{player.vitality}</strong>
-        </div>
-        <div style={styles.statLine}>
-          <span>{t('stats.health')}</span>
-          <strong>
-            {player.health}/{player.maxHealth}
-          </strong>
-        </div>
-        <div style={styles.statLine}>
-          <span>{t('stats.speed')}</span>
-          <strong>{player.speed}</strong>
-        </div>
-      </div>
-    </div>
+      </dl>
+    </>
   );
 };

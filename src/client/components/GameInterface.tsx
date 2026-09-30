@@ -38,6 +38,7 @@ export const GameInterface = () => {
         experience: player.experience,
         experienceToNextLevel: player.experienceToNextLevel,
         inventory: player.inventory,
+        inventoryCapacity: player.inventoryCapacity,
         equipped: player.equipped,
         access: player.access,
         strength: player.strength,

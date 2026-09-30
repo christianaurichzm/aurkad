@@ -1,7 +1,7 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { ChatPanel } from './ChatPanel';
+import { ChatPanel, ChatPeek } from './ChatPanel';
 import { useUIStore } from '../stores/uiStore';
 
 describe('ChatPanel Component', () => {
@@ -25,6 +25,21 @@ describe('ChatPanel Component', () => {
     expect(
       chatBox?.querySelectorAll('.chat-global, .chat-map, .chat-player'),
     ).toHaveLength(0);
+  });
+
+  it('unfolds and folds back through its button, which says which it will do', async () => {
+    render(<ChatPanel />);
+    const chat = screen.getByRole('region', { name: 'Chat' });
+
+    const expand = screen.getByRole('button', { name: 'Expand chat' });
+    expect(expand).toHaveAttribute('aria-expanded', 'false');
+    await userEvent.click(expand);
+
+    expect(chat).toHaveClass('is-expanded');
+    await userEvent.click(
+      screen.getByRole('button', { name: 'Collapse chat' }),
+    );
+    expect(chat).not.toHaveClass('is-expanded');
   });
 
   it('should render input and scope selector', () => {
@@ -284,5 +299,29 @@ describe('ChatPanel Component', () => {
 
     rerender(<ChatPanel />);
     expect(screen.getByText(/Second message/)).toBeInTheDocument();
+  });
+
+  it('peeks at the last lines and opens the menu when touched', async () => {
+    useUIStore.setState({
+      chat: {
+        messages: Array.from({ length: 20 }, (_, i) => ({
+          username: 'Vesper',
+          message: `line ${i}`,
+          scope: 'map' as const,
+          type: 'chat' as const,
+        })),
+        inputValue: '',
+        scope: 'map',
+      },
+    });
+    const onOpen = vi.fn();
+    render(<ChatPeek onOpen={onOpen} />);
+
+    const peek = screen.getByRole('button', { name: 'Chat' });
+    expect(peek).toHaveTextContent('line 19');
+    expect(peek).not.toHaveTextContent('line 0');
+    await userEvent.click(peek);
+
+    expect(onOpen).toHaveBeenCalledOnce();
   });
 });

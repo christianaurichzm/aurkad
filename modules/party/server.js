@@ -179,13 +179,18 @@ command(
   },
 );
 
+// A chat command is answered in the chat; what the window asked for is
+// answered to the window, which has no other way to say why nothing changed.
 on('customAction', ({ player, channel, payload }) => {
   const data = /** @type {any} */ (payload);
+  let said;
   if (channel === 'party:create') createParty(player);
-  else if (channel === 'party:invite') invite(player, data && data.name);
-  else if (channel === 'party:accept') accept(player, data && data.leader);
-  else if (channel === 'party:leave') leave(player);
+  else if (channel === 'party:invite') said = invite(player, data && data.name);
+  else if (channel === 'party:accept')
+    said = accept(player, data && data.leader);
+  else if (channel === 'party:leave') said = leave(player);
   else if (channel === 'party:request') pushPlayer(player);
+  if (said) sendEvent(player, 'party:result', { message: t(player, said) });
 });
 
 on('beforeXpGain', (ctx) => {

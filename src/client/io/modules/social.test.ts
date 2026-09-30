@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { act, fireEvent, screen, within } from '@testing-library/react';
+import { act, fireEvent, screen } from '@testing-library/react';
 import { loadClientModule } from '../../../test/clientModule';
 
 // The shipped modules/social/client.jsx, compiled and loaded the way the
@@ -23,8 +23,9 @@ const sent = () =>
 const openWindow = () => act(() => mod.actions.get('Social')!.click());
 const click = (name: string) =>
   fireEvent.click(screen.getByRole('button', { name }));
-const nameField = () =>
-  screen.getByPlaceholderText<HTMLInputElement>('Player name');
+const tab = (name: string) =>
+  fireEvent.click(screen.getByRole('tab', { name }));
+const nameField = () => screen.getByRole<HTMLInputElement>('textbox');
 const type = (value: string) =>
   fireEvent.change(nameField(), { target: { value } });
 const text = () => screen.getByRole('dialog').textContent;
@@ -32,8 +33,8 @@ const entries = () => screen.getAllByRole('listitem');
 
 const LISTS = {
   friends: [
-    { name: 'Bo', online: true },
     { name: 'Cy', online: false },
+    { name: 'Bo', online: true, level: 5 },
   ],
   ignored: ['Troll'],
   maxFriends: 100,
@@ -47,9 +48,7 @@ describe('on load', () => {
 
   it('opens from the Actions menu and closes on Escape', () => {
     openWindow();
-    expect(
-      screen.getByRole('dialog', { name: 'Friends (0/0 online)' }),
-    ).toBeTruthy();
+    expect(screen.getByRole('dialog', { name: 'Friends' })).toBeTruthy();
 
     fireEvent.keyDown(window, { key: 'Escape' });
     expect(screen.queryByRole('dialog')).toBeNull();
@@ -85,22 +84,16 @@ describe('the friends tab', () => {
   it('lists each friend with whether they are online', () => {
     const [bo, cy] = entries();
 
-    expect(within(bo).getByText('Bo')).toBeTruthy();
-    expect(within(bo).getByText('online')).toBeTruthy();
-    expect(within(cy).getByText('Cy')).toBeTruthy();
-    expect(within(cy).getByText('offline')).toBeTruthy();
+    expect(bo.textContent).toBe('BBoOnline · Lv 5Remove');
+    expect(cy.textContent).toBe('CCyOfflineRemove');
   });
 
-  it('counts the online ones in the title', () => {
-    expect(
-      screen.getByRole('dialog', { name: 'Friends (1/2 online)' }),
-    ).toBeTruthy();
+  it('counts the online ones beside the title', () => {
+    expect(text()).toContain('1/2 online');
   });
 
   it('removes the friend whose row was clicked', () => {
-    fireEvent.click(
-      within(entries()[0]).getByRole('button', { name: 'Remove' }),
-    );
+    click('Remove Bo');
 
     expect(sent()).toContainEqual(['social:friendRemove', { name: 'Bo' }]);
   });
@@ -117,7 +110,7 @@ describe('the friends tab', () => {
   it('adds on Enter too', () => {
     type('Dee');
 
-    fireEvent.keyDown(nameField(), { key: 'Enter' });
+    fireEvent.submit(nameField());
 
     expect(sent()).toContainEqual(['social:friendAdd', { name: 'Dee' }]);
   });
@@ -128,7 +121,7 @@ describe('the friends tab', () => {
     expect(add).toHaveProperty('disabled', true);
 
     fireEvent.click(add);
-    fireEvent.keyDown(nameField(), { key: 'Enter' });
+    fireEvent.submit(nameField());
 
     expect(sent()).toHaveLength(before);
   });
@@ -141,9 +134,7 @@ describe('the friends tab', () => {
       friends: [...LISTS.friends, { name: 'Ed', online: true }],
     });
 
-    expect(
-      screen.getByRole('dialog', { name: 'Friends (2/3 online)' }),
-    ).toBeTruthy();
+    expect(text()).toContain('2/3 online');
     expect(nameField().value).toBe('De');
   });
 });
@@ -152,27 +143,25 @@ describe('the ignored tab', () => {
   beforeEach(() => {
     openWindow();
     update(LISTS);
-    click('Ignored');
+    tab('Ignored');
   });
 
-  it('switches to the other list, and says so in the title', () => {
-    expect(screen.getByRole('dialog', { name: 'Ignored' })).toBeTruthy();
-    expect(text()).toContain('Troll');
-    expect(text()).not.toContain('Bo');
+  it('switches to the other list', () => {
+    expect(entries().map((li) => li.textContent)).toEqual([
+      'TTrollMessages hiddenRemove',
+    ]);
   });
 
   it('sends the add on the ignore channel, not the friend one', () => {
     type('Spammer');
 
-    click('Add');
+    click('Ignore');
 
     expect(sent()).toContainEqual(['social:ignoreAdd', { name: 'Spammer' }]);
   });
 
   it('removes from the ignore list', () => {
-    fireEvent.click(
-      within(entries()[0]).getByRole('button', { name: 'Remove' }),
-    );
+    click('Stop ignoring Troll');
 
     expect(sent()).toContainEqual(['social:ignoreRemove', { name: 'Troll' }]);
   });
@@ -180,14 +169,14 @@ describe('the ignored tab', () => {
   it('says so when nobody is ignored', () => {
     update({ ...LISTS, ignored: [] });
 
-    expect(text()).toContain('Nobody ignored.');
+    expect(text()).toContain('Nobody is ignored.');
   });
 
   it('keeps a half-typed name through a tab switch', () => {
     type('Sp');
 
-    click('Friends');
-    click('Ignored');
+    tab('Friends');
+    tab('Ignored');
 
     expect(nameField().value).toBe('Sp');
   });
@@ -196,7 +185,21 @@ describe('the ignored tab', () => {
     fireEvent.keyDown(window, { key: 'Escape' });
     openWindow();
 
-    expect(screen.getByRole('dialog', { name: 'Ignored' })).toBeTruthy();
+    expect(
+      screen
+        .getByRole('tab', { name: 'Ignored' })
+        .getAttribute('aria-selected'),
+    ).toBe('true');
+  });
+
+  it('says in the window what the server answered, until the next thing asked', () => {
+    act(() =>
+      mod.handlers.get('social:result')!({ message: 'Player not found.' }),
+    );
+    expect(screen.getByRole('status').textContent).toBe('Player not found.');
+
+    tab('Friends');
+    expect(screen.queryByRole('status')).toBeNull();
   });
 });
 

@@ -10,11 +10,13 @@
                    .engine-brand .password-toggle
      game screen   #ui #canvasFrame #sidePanel #map-name .player-controls
                    .zone-banner .low-health-vignette
+                   #gameShell[data-layout="right|left|bottom"]
      player card   #hud #hud-portrait[data-sprite] #hud-name #hud-level
                    #hud-row[data-tone] #xp-bar-container
-     side panel    .panel .action-button
-     windows       .editor-window .module-panel .window-titlebar
-                   .window-content .inventory-panel
+     side panel    .panel .action-button .chat-expand
+     windows       .editor-window .module-panel .game-window
+                   .window-titlebar .window-counter .window-content
+                   .window-footer .inventory-panel .empty-state
      buttons       .button-primary .button-danger
      notices       .module-toasts .notice[data-tone] .notice-label
                    .notice-detail
@@ -83,8 +85,13 @@
   --color-text-muted: #94a3b0;
   --color-border: #34424f;
   --color-overlay: rgba(6, 9, 12, 0.72);
+  /* What the world darkens to behind a conversation, around whoever is
+     talking; transparent leaves it lit. */
+  --dialog-dim: rgba(0, 0, 0, 0.6);
   --color-selected: #1e3a4f;
   --color-app-bg: #0c1014;
+  /* A picture behind the login card, as background layers. */
+  --auth-backdrop: none;
   /* ui is everything read at a glance; display names a thing (a panel, a
      window, the player); world is the game's own numbers and keys (levels,
      bars, hotkeys), drawn in the art's pixel style. */
@@ -116,6 +123,7 @@
   --z-hud: 100;
   --z-panel: 150;
   --z-editor: 500;
+  --z-dialog: 2000;
   --z-toast: 10000;
 }
 
@@ -645,7 +653,8 @@ body {
 /* A line someone said reads in the text colour with their name in the
    channel's; a line nobody signed (a command's reply, a death) is the
    channel's colour throughout. */
-#chatBox > div {
+#chatBox > div,
+.chat-peek > span {
   margin-bottom: 2px;
   word-break: break-word;
 }
@@ -665,7 +674,7 @@ body {
   font-weight: 700;
 }
 .chat-who,
-#chatBox > .chat-notice {
+.chat-box > .chat-notice {
   color: var(--chat-tone);
 }
 
@@ -1105,6 +1114,645 @@ body {
   flex-direction: column;
   gap: 6px;
 }
+/* A window the player uses (size="narrow|regular|wide" on Modal, or a width
+   name on engine.ui.Window): the same bar on every one, its title in the
+   accent, and a body set to be read at 14px. */
+.game-window {
+  font-size: 14px;
+}
+.game-window .window-titlebar {
+  min-height: 38px;
+  padding: 4px 4px 4px 12px;
+  gap: 8px;
+  border-bottom-width: 2px;
+}
+.game-window .window-titlebar h2 {
+  flex: 1;
+  font-size: 16px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: var(--color-accent);
+}
+.window-counter {
+  font-family: var(--font-ui);
+  font-size: 15px;
+  font-variant-numeric: tabular-nums;
+}
+.game-window .window-close {
+  width: 30px;
+  height: 30px;
+  background: var(--color-surface);
+  border: 2px solid var(--color-border);
+}
+.game-window .window-close:hover,
+.game-window .window-close:focus-visible {
+  border-color: var(--color-accent);
+  background: var(--color-surface);
+}
+.game-window .window-content {
+  padding: 10px;
+  gap: 10px;
+}
+
+.empty-state {
+  display: grid;
+  justify-items: center;
+  gap: 2px;
+  padding: 14px 10px;
+  text-align: center;
+  border: 2px dashed var(--color-border);
+  background: var(--color-surface-muted);
+}
+.empty-state .icon {
+  width: 28px;
+  height: 28px;
+  margin-bottom: 4px;
+  color: var(--color-text-muted);
+}
+.empty-state-title {
+  font-size: 14px;
+  font-weight: 700;
+}
+.empty-state-hint {
+  font-size: 12px;
+  color: var(--color-text-muted);
+}
+/* Under the body and out of its scroll, so what the window does stays in
+   reach however long the list above it grows. */
+.window-footer {
+  flex-shrink: 0;
+  padding: 8px 10px;
+  border-top: 2px solid var(--color-border);
+  background: var(--color-surface-muted);
+}
+.window-footer .empty-state {
+  padding: 8px;
+  border: 0;
+}
+.window-actions {
+  display: flex;
+  gap: 8px;
+}
+.window-actions .button-primary {
+  flex: 1;
+}
+.window-error {
+  color: var(--color-danger-text);
+  font-size: 13px;
+}
+/* :where keeps these under .button-primary and whatever a module gives its
+   own buttons. */
+:where(.game-window .window-content, .window-footer) :where(button) {
+  min-height: 32px;
+  padding: 4px 12px;
+  border-width: 2px;
+  font-weight: 700;
+}
+.step-button {
+  width: 32px;
+  padding: 0;
+  font-size: 18px;
+  line-height: 1;
+}
+/* What a window's body is written in, the engine's and a module's alike: a
+   heading over a section, a small line that labels or explains, a list of
+   rows with what can be done to each at its end, and a side column. */
+.window-heading {
+  font-family: var(--font-display);
+  font-size: 14px;
+  letter-spacing: 0.04em;
+  color: var(--color-accent);
+}
+.window-label {
+  font-size: 12px;
+  color: var(--color-text-muted);
+}
+.window-aside {
+  padding-left: 10px;
+  border-left: 2px solid var(--color-border);
+}
+/* A list beside what is picked in it. */
+.window-split {
+  display: flex;
+  gap: 10px;
+}
+.window-split > :first-child {
+  flex: 0 0 200px;
+}
+.window-split > .window-aside {
+  flex: 1;
+  min-width: 0;
+}
+/* Too narrow for both: what was beside goes under, ruled off above. */
+@media (max-width: 480px) {
+  .window-split {
+    flex-direction: column;
+  }
+  .window-split > :first-child {
+    flex: none;
+  }
+  .window-aside {
+    min-width: 100%;
+    padding: 10px 0 0;
+    border-left: 0;
+    border-top: 2px solid var(--color-border);
+  }
+}
+.list {
+  display: grid;
+  gap: 3px;
+  list-style: none;
+}
+.list-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  min-height: 40px;
+  padding: 4px 6px;
+  border: 2px solid var(--color-border);
+  background: var(--color-surface-muted);
+}
+.list-row-actions {
+  display: flex;
+  gap: 4px;
+  margin-left: auto;
+}
+.list-row-actions > button {
+  min-height: 28px;
+  padding: 2px 8px;
+}
+/* A row's name over the line that says more about it. */
+.list-row-text {
+  display: grid;
+  flex: 1;
+  gap: 1px;
+  min-width: 0;
+}
+.list-row-text small {
+  font-size: 12px;
+  font-weight: 400;
+  color: var(--color-text-muted);
+}
+.list-row[data-self] {
+  border-color: var(--color-accent);
+}
+/* There, and not to be acted on: a party member out of sight, an achievement
+   still locked. */
+.list-row[data-dim] {
+  opacity: 0.7;
+}
+/* Who a row is: an initial or an icon in a box, with a corner that says
+   whether they are in the game when the list knows (data-online). */
+.avatar {
+  position: relative;
+  display: grid;
+  flex: 0 0 auto;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border: 2px solid var(--color-border);
+  background: var(--color-surface);
+  font: 700 16px/1 var(--font-display);
+  text-transform: uppercase;
+}
+.avatar[data-online]::after {
+  content: '';
+  position: absolute;
+  right: -4px;
+  bottom: -4px;
+  width: 10px;
+  height: 10px;
+  border: 2px solid var(--color-app-bg);
+  background: var(--color-text-muted);
+}
+.avatar[data-online='true']::after {
+  background: var(--color-success);
+}
+.avatar[data-earned] {
+  border-color: var(--color-accent);
+  color: var(--color-accent);
+}
+/* How far along, as a thin bar: its fill is the child's width. */
+.meter {
+  display: block;
+  height: 6px;
+  border: 1px solid var(--color-border);
+  background: var(--color-app-bg);
+}
+.meter > span {
+  display: block;
+  height: 100%;
+  background: var(--color-accent);
+}
+.meter[data-tone='health'] > span {
+  background: var(--color-success);
+}
+.meter[data-tone='low'] > span {
+  background: var(--color-danger);
+}
+/* A field with the button that sends it. */
+.window-field {
+  display: flex;
+  gap: 6px;
+}
+.window-field > input {
+  flex: 1;
+  min-width: 0;
+}
+.tag {
+  margin-left: 6px;
+  padding: 0 4px;
+  font-size: 12px;
+  color: var(--color-app-bg);
+  background: var(--color-accent);
+}
+/* First, second and third on a board. */
+.medal {
+  display: inline-grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  border: 2px solid #1a1206;
+  color: #1a1206;
+  background: #e8c24a;
+}
+.medal[data-place='2'] {
+  background: #c9d1d8;
+}
+.medal[data-place='3'] {
+  background: #c98a4a;
+}
+.stack-count {
+  font-family: var(--font-world);
+  font-size: 16px;
+  font-variant-numeric: tabular-nums;
+}
+/* One of a few to choose between, where a list of tabs would be too much. */
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+.chip {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 4px;
+  min-height: 0;
+  padding: 4px 8px;
+  background: var(--color-surface-muted);
+}
+.chip > small {
+  font-size: 12px;
+  font-weight: 400;
+  color: var(--color-text-muted);
+}
+.chip[aria-checked='true'],
+.chip[aria-current='true'] {
+  border-color: var(--color-accent);
+  background: var(--color-surface);
+}
+.link-button {
+  min-height: 0;
+  padding: 0;
+  border: 0;
+  background: none;
+  font-size: 12px;
+  font-weight: 400;
+  color: var(--color-text-muted);
+  text-decoration: underline;
+}
+/* The slot the next picked item goes to. */
+.offer-slot {
+  padding: 6px;
+  border: 2px solid transparent;
+}
+.offer-slot[data-active] {
+  border-color: var(--color-accent);
+  background: var(--color-surface-muted);
+}
+/* A window's sections, as tabs standing on the rule over what they show. */
+.window-tabs {
+  display: flex;
+  gap: 4px;
+  border-bottom: 2px solid var(--color-border);
+}
+.window-tabs > button {
+  min-height: 0;
+  margin-bottom: -2px;
+  padding: 6px 14px;
+  border-color: transparent;
+  border-radius: 0;
+  background: transparent;
+  color: var(--color-text-muted);
+}
+.window-tabs > [aria-selected='true'] {
+  border-color: var(--color-border) var(--color-border) var(--color-surface);
+  background: var(--color-surface);
+  color: var(--color-text);
+}
+.stepper {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+}
+.stepper > button {
+  min-height: 26px;
+  padding: 0 6px;
+  font-size: 12px;
+}
+.stepper > .step-button {
+  width: 26px;
+  font-size: 16px;
+}
+.stepper > output {
+  min-width: 34px;
+  text-align: center;
+  font-family: var(--font-world);
+  font-size: 16px;
+  font-variant-numeric: tabular-nums;
+}
+
+/* An item in a box: the bag, what is worn, an offer. The frame is drawn over
+   the picture, so the box is the 64px its art is and five of them fit a
+   window whatever frame a theme puts round it. */
+.item-slot {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 64px;
+  height: 64px;
+  min-height: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: var(--color-surface-muted);
+}
+.item-slot::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border: 2px solid var(--color-border);
+  pointer-events: none;
+}
+button.item-slot:hover::after {
+  border-color: color-mix(
+    in srgb,
+    var(--color-accent) 60%,
+    var(--color-border)
+  );
+}
+.item-slot[aria-pressed='true'] {
+  background: var(--color-surface);
+}
+.item-slot[aria-pressed='true']::after {
+  border-color: var(--color-accent);
+  box-shadow: inset 0 0 0 2px var(--color-app-bg);
+}
+.item-slot[data-empty] {
+  background: color-mix(in srgb, var(--color-surface-muted) 70%, transparent);
+}
+.item-slot[data-empty]::after {
+  border-style: dashed;
+}
+.item-slot-quantity {
+  position: absolute;
+  right: 4px;
+  bottom: 2px;
+  font-family: var(--font-world);
+  font-size: 16px;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+  color: #fff;
+  text-shadow:
+    1px 0 #000,
+    -1px 0 #000,
+    0 1px #000,
+    0 -1px #000;
+}
+/* The hotbar's tooltip, placed on the screen by the slot it is about: a
+   window clips what is inside it. */
+.hotbar-tooltip.item-tooltip {
+  position: fixed;
+  bottom: auto;
+  display: flex;
+  transform: translate(-50%, -100%);
+  z-index: 1;
+}
+@media (hover: none) {
+  .hotbar-tooltip.item-tooltip {
+    display: none;
+  }
+}
+.bag-grid {
+  display: grid;
+  grid-template-columns: repeat(5, 64px);
+  gap: 3px;
+  justify-content: center;
+}
+.item-detail {
+  display: grid;
+  gap: 8px;
+}
+.item-detail-hint {
+  color: var(--color-text-muted);
+  text-align: center;
+}
+.item-detail-head {
+  display: grid;
+  grid-template-columns: 64px 1fr;
+  gap: 10px;
+  align-items: start;
+}
+.item-detail-head h3 {
+  font-family: var(--font-display);
+  font-size: 16px;
+}
+.item-detail-quantity {
+  font-family: var(--font-world);
+  color: var(--color-text-muted);
+}
+.item-detail-type,
+.item-detail-note {
+  font-size: 12px;
+  color: var(--color-text-muted);
+}
+.item-detail-effect,
+.item-compare {
+  font-weight: 700;
+}
+.item-compare {
+  color: var(--color-text-muted);
+}
+.item-compare[data-change='up'] {
+  color: var(--color-success);
+}
+.item-compare[data-change='down'] {
+  color: var(--color-danger-text);
+}
+/* A thing for sale: what it is, as the bag's detail pane says it, and what
+   it costs over the button that buys it. */
+.shop-row {
+  flex-wrap: nowrap;
+  align-items: start;
+  gap: 10px;
+}
+.shop-row > .item-detail-head {
+  flex: 1;
+  min-width: 0;
+}
+.shop-buy {
+  display: grid;
+  flex: 0 0 132px;
+  gap: 4px;
+  justify-items: end;
+}
+.shop-buy > button {
+  width: 100%;
+}
+.shop-buy > [aria-disabled='true'] {
+  opacity: 0.5;
+  filter: none;
+  cursor: not-allowed;
+}
+.shop-buy > .stack-count,
+.shop-wallet,
+.shop-wallet > span {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.shop-wallet {
+  gap: 14px;
+}
+.shop-wallet > .window-label {
+  margin-left: auto;
+}
+.item-drop {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+.item-drop > span:first-child {
+  flex-basis: 100%;
+}
+/* What is worn, laid out round the character it is worn by. */
+.equip-doll {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  grid-template-areas:
+    '. helmet .'
+    'weapon body chestplate'
+    'gloves body .'
+    '. boots .';
+  justify-items: center;
+  gap: 4px 0;
+}
+.equip-body {
+  grid-area: body;
+  align-self: center;
+}
+.equip-slot {
+  display: grid;
+  justify-items: center;
+  gap: 2px;
+}
+.equip-label {
+  font-size: 12px;
+  color: var(--color-text-muted);
+}
+.equip-totals {
+  display: flex;
+  justify-content: center;
+  gap: 24px;
+  padding-top: 6px;
+  border-top: 2px solid var(--color-border);
+}
+.equip-totals > div {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+}
+.equip-totals dt {
+  font-size: 12px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--color-text-muted);
+}
+.equip-totals dd {
+  font-family: var(--font-world);
+  font-size: 20px;
+  font-variant-numeric: tabular-nums;
+}
+
+.attr-points {
+  display: flex;
+  align-items: baseline;
+  justify-content: center;
+  gap: 8px;
+  padding: 4px 0;
+}
+.attr-points-number {
+  font-family: var(--font-world);
+  font-size: 40px;
+  line-height: 1;
+  color: var(--color-accent);
+  font-variant-numeric: tabular-nums;
+}
+.attr-points-label {
+  color: var(--color-text-muted);
+}
+.attr-list {
+  display: grid;
+  gap: 4px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.attr-row {
+  display: grid;
+  grid-template-columns: 1fr auto auto;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 8px;
+  border: 2px solid var(--color-border);
+  background: var(--color-surface-muted);
+}
+.attr-row[data-pending] {
+  border-color: var(--color-accent);
+}
+.attr-row h3 {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 15px;
+}
+.attr-row p {
+  margin: 0;
+  font-size: 12px;
+  color: var(--color-text-muted);
+}
+.attr-value {
+  display: flex;
+  align-items: baseline;
+  justify-content: flex-end;
+  gap: 4px;
+  min-width: 40px;
+  font-family: var(--font-world);
+  font-size: 20px;
+  font-variant-numeric: tabular-nums;
+}
+.attr-value span {
+  font-size: 16px;
+  color: var(--color-text-muted);
+}
+.attr-row[data-pending] .attr-value b {
+  color: var(--color-success);
+}
+.attr-buttons {
+  display: flex;
+  gap: 4px;
+}
 /* Notices over the world, stacked under the map name. .notice is the look
    engine.ui.notice gives them; a module that styles its own (ui.toast) only
    borrows the stack and the fade. */
@@ -1238,15 +1886,6 @@ body {
 .player-menu button:hover {
   background: var(--color-surface-muted);
 }
-/* The inventory is its own draggable box, not an .editor-window, but it is
-   painted like one. */
-.inventory-panel {
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-panel);
-  background: var(--color-surface);
-  color: var(--color-text);
-  box-shadow: var(--shadow-panel);
-}
 .content-workspace {
   display: grid;
   grid-template-columns: 148px minmax(0, 1fr);
@@ -1292,6 +1931,7 @@ body {
   padding: 32px 16px;
   background:
     radial-gradient(ellipse at 50% 20%, var(--color-selected), transparent 65%),
+    var(--auth-backdrop),
     var(--color-app-bg);
 }
 .auth-card {
@@ -1633,6 +2273,122 @@ body {
 .hotbar-tip:has(> :focus-visible) > .hotbar-tooltip {
   display: flex;
 }
+/* A conversation. It holds the page while it is open, so .dialog-screen takes
+   every click. .dialog-layer is laid over the world from outside - the frame's
+   size containment lets nothing out of it - and the box stands at its foot,
+   over the hotbar, which takes no key while someone is talking. */
+.dialog-screen {
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-dialog);
+}
+.dialog-layer {
+  position: absolute;
+}
+.npc-dialog {
+  position: absolute;
+  left: 50%;
+  bottom: 8px;
+  transform: translateX(-50%);
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 12px;
+  width: min(680px, 96%);
+  max-height: 80%;
+  padding: 10px 12px;
+  overflow: auto;
+  box-shadow: var(--shadow-panel);
+  font-size: 15px;
+  line-height: 1.35;
+}
+/* Where the bar is docked outside the world, and so still in sight. */
+body:has(.npc-dialog) .hotbar {
+  opacity: 0.45;
+  filter: saturate(0.5);
+}
+/* data-sprite is the speaker's sprite id, as on #hud-portrait, and a theme
+   puts a drawn portrait in its place the same way:
+     .dialog-portrait[data-sprite="7"] { background-image: url(portraits/smith.png); }
+     .dialog-portrait[data-sprite="7"] > canvas { visibility: hidden; } */
+.dialog-portrait {
+  display: grid;
+  place-items: center;
+  width: 72px;
+  height: 72px;
+  border: 2px solid var(--color-accent);
+  background: var(--color-surface-muted) center / cover no-repeat;
+}
+.dialog-body {
+  grid-column: 2;
+  display: grid;
+  gap: 6px;
+  align-content: start;
+  min-width: 0;
+  /* Clear of the button that leaves the conversation. */
+  padding-right: 28px;
+}
+.npc-dialog > .window-close {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+}
+.dialog-line {
+  white-space: pre-wrap;
+}
+/* What has not been said yet, holding the room it will take so the box does
+   not grow under the reader. */
+.dialog-line > span {
+  opacity: 0;
+}
+.dialog-choices {
+  display: grid;
+  gap: 2px;
+  list-style: none;
+}
+.dialog-choices[data-waiting] {
+  visibility: hidden;
+}
+.dialog-choice {
+  display: grid;
+  grid-template-columns: 20px minmax(0, 1fr);
+  gap: 8px;
+  align-items: start;
+  width: 100%;
+  min-height: 0;
+  padding: 3px 6px;
+  border: 0;
+  background: transparent;
+  font-weight: 400;
+  text-align: left;
+}
+.dialog-choice:hover,
+.dialog-choice:focus-visible {
+  background: var(--color-surface);
+}
+/* It leads somewhere this conversation has already been. */
+.dialog-choice[data-read] {
+  color: var(--color-text-muted);
+}
+.dialog-choice > b {
+  display: grid;
+  place-items: center;
+  height: 18px;
+  margin-top: 1px;
+  font-family: var(--font-world);
+  font-size: 12px;
+  color: var(--color-app-bg);
+  background: var(--color-accent);
+}
+/* Upright on a phone the world is a strip at the top, and a box inside it
+   would cover all of it: the conversation goes under the world, over the pad
+   it holds still anyway. */
+@media (max-width: 700px) and (orientation: portrait) {
+  .npc-dialog {
+    top: calc(100% + 8px);
+    bottom: auto;
+    max-height: 55dvh;
+  }
+}
 .player-controls {
   display: flex;
   gap: 8px;
@@ -1802,6 +2558,27 @@ body {
   .panel-toggle > span:last-child {
     display: none;
   }
+  /* No height for the chat under the menu, where it would be a scroll away
+     with nothing to say so: they go side by side, in a sheet beside the
+     buttons that open it. */
+  #sidePanel {
+    top: max(10px, env(safe-area-inset-top));
+    right: calc(max(10px, env(safe-area-inset-right)) + 52px);
+    width: min(580px, calc(100vw - 84px));
+    flex-flow: row wrap;
+    align-content: flex-start;
+  }
+  #actionPanel {
+    flex: 0 0 300px;
+  }
+  #chatContainer {
+    flex: 1 1 160px;
+    min-width: 0;
+    min-height: 0;
+  }
+  .creator-tools {
+    flex: 0 0 100%;
+  }
 }
 @media (pointer: coarse) and (orientation: portrait) {
   #touchControls {
@@ -1811,10 +2588,235 @@ body {
     padding: 12px;
   }
 }
+/* The last lines said (ChatPeek), in what an upright phone has left between
+   the world and the thumb pad. Anywhere else the chat itself is on screen, or
+   there is no such gap. */
+.chat-peek {
+  display: none;
+}
+@media (pointer: coarse) and (orientation: portrait) and (max-width: 900px) {
+  .viewport-stage {
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 6px;
+  }
+  #canvasFrame {
+    flex: none;
+  }
+  .chat-peek {
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+    width: 100%;
+    overflow: hidden;
+    font-family: var(--font-ui);
+    text-align: left;
+    cursor: pointer;
+  }
+  .chat-peek > span {
+    flex: none;
+  }
+  /* A conversation is laid over the same gap. */
+  body:has(.npc-dialog) .chat-peek {
+    visibility: hidden;
+  }
+}
+/* Where the menu sits is the game's choice (theme/theme.json, sent by /game as
+   data-layout on the shell). The column on the right is the base above; these
+   are the others, for a screen with room for them. A phone keeps the
+   arrangements above whichever the game picked. */
+@media (min-width: 901px) and (min-height: 501px) {
+  #gameShell[data-layout='left'] {
+    grid-template-columns: 320px minmax(0, 1fr);
+    grid-template-areas:
+      'bar main'
+      'panel main';
+  }
+
+  /* One bar under the world: the card, the hotbar and the menu side by side,
+     and the chat above them folded to its last two lines. #sidePanel gives up
+     its own box so the menu and the chat are placed on the shell's grid. */
+  #gameShell[data-layout='bottom'] {
+    grid-template-columns: minmax(230px, 290px) minmax(0, 1fr) auto auto;
+    grid-template-rows: minmax(0, 1fr) 58px auto;
+    grid-template-areas:
+      'main main main main'
+      'chat chat chat chat'
+      'bar hotbar menu tools';
+    align-items: stretch;
+  }
+  [data-layout='bottom'] #sidePanel {
+    display: contents;
+  }
+  [data-layout='bottom'] #playerBar {
+    align-items: stretch;
+  }
+  [data-layout='bottom'] .player-controls {
+    align-self: center;
+  }
+  [data-layout='bottom'] #hud {
+    flex-wrap: nowrap;
+    align-items: center;
+    gap: 8px;
+    padding: 6px;
+  }
+  [data-layout='bottom'] #hud-portrait {
+    width: 44px;
+    height: 44px;
+  }
+  [data-layout='bottom'] .hud-stats {
+    gap: 3px 6px;
+  }
+  [data-layout='bottom'] #xp-bar-text {
+    display: none;
+  }
+
+  /* The hotbar is a block of the bar here, not an overlay of the world. It
+     keeps a z-index of its own for its tooltips, which open upward over the
+     chat. */
+  #gameShell > .hotbar {
+    --slot: 46px;
+    grid-area: hotbar;
+    position: relative;
+    left: auto;
+    bottom: auto;
+    transform: none;
+    align-self: stretch;
+    justify-self: center;
+    align-items: center;
+    z-index: var(--z-hud);
+  }
+
+  /* Two rows of icons, as many columns as the modules add. The label stays for
+     a screen reader and for the tooltip; the icon and the key carry the tile. */
+  [data-layout='bottom'] #actionPanel {
+    grid-area: menu;
+    align-self: stretch;
+    padding: 4px;
+  }
+  [data-layout='bottom'] .action-grid {
+    grid-auto-flow: column;
+    grid-template-columns: none;
+    grid-template-rows: repeat(2, 44px);
+    grid-auto-columns: 40px;
+    gap: 2px;
+  }
+  [data-layout='bottom'] .action-button {
+    min-height: 0;
+    padding: 4px 0 0;
+  }
+  [data-layout='bottom'] .action-label {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+  }
+
+  [data-layout='bottom'] .creator-tools {
+    grid-area: tools;
+    position: relative;
+    align-self: end;
+  }
+  [data-layout='bottom'] .creator-tools-body {
+    position: absolute;
+    right: 0;
+    bottom: 100%;
+    z-index: var(--z-panel);
+    width: max-content;
+    max-width: 320px;
+    padding: 8px;
+    background: var(--color-panel-bg);
+    border: 2px solid var(--color-border);
+    border-radius: var(--radius-panel);
+  }
+
+  /* Folded: the tabs are gone and the log shows the last two lines, the input
+     and the button beside it. Unfolded, the panel rises out of its row over the
+     world - an absolutely placed box on a grid takes the grid area as its
+     containing block - so the bar does not change height. */
+  [data-layout='bottom'] #chatContainer {
+    grid-area: chat;
+    min-height: 0;
+    flex-direction: row;
+    align-items: stretch;
+    padding: 4px;
+  }
+  [data-layout='bottom'] .chat-tabs {
+    display: none;
+  }
+  [data-layout='bottom'] .chat-box {
+    overflow-y: hidden;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+    padding: 2px 6px;
+    line-height: 18px;
+  }
+  [data-layout='bottom'] #chatBox > div {
+    flex: none;
+    margin: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  [data-layout='bottom'] #chatInputContainer {
+    flex: 0 0 300px;
+    align-self: center;
+  }
+  [data-layout='bottom'] .chat-expand {
+    display: block;
+  }
+  [data-layout='bottom'] #chatContainer.is-expanded {
+    position: absolute;
+    inset: auto 0 0;
+    z-index: var(--z-panel);
+    height: 340px;
+    flex-direction: column;
+    gap: 4px;
+    padding: 8px;
+    border-color: var(--color-accent);
+  }
+  [data-layout='bottom'] .is-expanded .chat-tabs {
+    display: flex;
+  }
+  [data-layout='bottom'] .is-expanded .chat-box {
+    overflow-y: auto;
+    justify-content: flex-start;
+  }
+  [data-layout='bottom'] .is-expanded #chatBox > div {
+    overflow: visible;
+    white-space: normal;
+  }
+  [data-layout='bottom'] .is-expanded #chatInputContainer {
+    flex: none;
+    align-self: stretch;
+  }
+  [data-layout='bottom'] .is-expanded .chat-expand {
+    align-self: flex-end;
+  }
+}
+.chat-expand {
+  display: none;
+  flex: none;
+  padding: 0 12px;
+  color: var(--color-text);
+  background: var(--color-surface);
+  border: 2px solid var(--color-border);
+  border-radius: var(--radius-control);
+  font-family: var(--font-ui);
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.chat-expand:hover {
+  border-color: var(--color-accent);
+}
+
 /* Inline geometry belongs to desktop dragging; mobile surfaces are anchored. */
 @media (max-width: 700px), (pointer: coarse) and (max-height: 600px) {
-  .editor-window,
-  .inventory-window {
+  .editor-window {
     inset: 0 !important;
     width: 100% !important;
     max-width: none !important;
@@ -1825,30 +2827,29 @@ body {
       env(safe-area-inset-bottom) env(safe-area-inset-left);
     background: var(--color-surface);
   }
-  .inventory-panel {
-    width: 100% !important;
-    max-width: none !important;
-    flex: 1;
-    min-height: 0;
-    max-height: none !important;
-    border-radius: 0 !important;
-  }
-  /* The two rows the grid keeps free on a desktop window are, on a phone
-     held sideways, what pushes Use and Drop off the bottom once an item is
-     picked and its details open. */
-  .inventory-grid {
-    min-height: 0 !important;
-  }
   .window-titlebar {
     cursor: default !important;
     touch-action: auto !important;
+  }
+  /* Over a window that is the whole screen a notice lands on its title bar,
+     short of the close button: the one strip the player is not reading. A
+     module's panel stays in the document while shut, hidden inline. */
+  body:has(.editor-window:not([style*='display: none'])) .module-toasts {
+    top: calc(env(safe-area-inset-top) + 2px) !important;
+    left: 8px !important;
+    right: 56px;
+    transform: none;
+    align-items: stretch;
   }
   .window-close {
     min-width: 44px;
     min-height: 44px;
     flex-shrink: 0;
   }
+  /* The window is the whole screen: what it holds takes the height, and its
+     actions stay at the foot, where the thumb is. */
   .window-content {
+    flex: 1;
     padding: 16px;
   }
   .editor-window input,
@@ -1871,15 +2872,37 @@ body {
   #ui-dialog button {
     min-height: 44px;
   }
-  .inventory-drop-backdrop {
-    position: fixed !important;
-    align-items: flex-end !important;
-    padding: 0 !important;
+}
+
+/* A finger needs more to hit than a cursor does. */
+@media (pointer: coarse) {
+  :where(.game-window .window-content, .window-footer)
+    :where(button, select, input:not([type='checkbox'], [type='radio'])),
+  .list-row-actions > button,
+  .window-tabs > button,
+  .stepper > button,
+  .chip,
+  .dialog-choice {
+    min-height: 40px;
   }
-  .inventory-drop-sheet {
-    width: 100% !important;
-    border-radius: 16px 16px 0 0 !important;
-    padding-bottom: max(16px, env(safe-area-inset-bottom)) !important;
+  .step-button {
+    width: 40px;
+  }
+  .window-close {
+    min-width: 40px;
+    min-height: 40px;
+  }
+  .dialog-body {
+    padding-right: 40px;
+  }
+  .chip,
+  .dialog-choice {
+    align-items: center;
+  }
+  /* The key that does the same, which a touch screen does not have. */
+  .action-key,
+  .hotbar-key {
+    display: none;
   }
 }
 

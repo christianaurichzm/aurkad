@@ -85,6 +85,7 @@ async function inbox(name) {
       id: row.id,
       itemId: row.itemId,
       itemName: item ? item.name : `#${row.itemId}`,
+      sprite: item ? item.sprite : 0,
       quantity: row.quantity,
       from: String(meta.from || 'someone'),
       message: String(meta.message || ''),
@@ -93,9 +94,26 @@ async function inbox(name) {
   });
 }
 
+// With the queue goes what a letter may carry and cost, so the form can say
+// both before the send is refused for them.
 async function push(player) {
-  sendEvent(player, 'mail:update', { letters: await inbox(player.name) });
+  sendEvent(player, 'mail:update', {
+    letters: await inbox(player.name),
+    maxMessageLength,
+    postage:
+      costPerLetter > 0
+        ? {
+            cost: costPerLetter,
+            item: getItem(currencyItemId)?.name ?? `#${currencyItemId}`,
+          }
+        : undefined,
+  });
 }
+
+// A chat command is answered in the chat; what the window asked for is
+// answered to the window.
+const answer = (player) => (text) =>
+  sendEvent(player, 'mail:result', { message: t(player, text) });
 
 /**
  * Hands the item to the engine, which debits and queues it as one commit.
@@ -230,10 +248,10 @@ on('customAction', ({ player, channel, payload }) => {
   if (channel === 'mail:request') void push(player);
   else if (channel === 'mail:claim') {
     const ids = Array.isArray(data.ids) ? data.ids.map(String) : undefined;
-    void claim(player, ids).then((text) => sendMessage(player, text));
+    void claim(player, ids).then(answer(player));
   } else if (channel === 'mail:send') {
     void send(player, data.to, data.itemId, data.quantity, data.message).then(
-      (text) => sendMessage(player, text),
+      answer(player),
     );
   }
 });

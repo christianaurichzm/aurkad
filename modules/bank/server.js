@@ -68,6 +68,28 @@ function getBank(player) {
   return emptyBank();
 }
 
+/**
+ * The bank as the window draws it: each stack with its item, the shape a bag
+ * entry has on the client, so one slot draws both sides.
+ */
+function view(bank) {
+  return {
+    maxCapacity: bank.maxCapacity,
+    items: bank.items.map((entry) => ({
+      // A stack whose item left the content still takes a slot and must show
+      // so it can be taken out.
+      item: getItem(entry.item) || {
+        id: entry.item,
+        name: '#' + entry.item,
+        sprite: 0,
+        type: 'consumable',
+        effects: [],
+      },
+      quantity: entry.quantity,
+    })),
+  };
+}
+
 function saveBank(player, bank) {
   const normalized = {
     maxCapacity: bank.maxCapacity || maxSlots,
@@ -75,7 +97,7 @@ function saveBank(player, bank) {
   };
   setPlayerData(player, 'bank', normalized);
   persistNow(player);
-  sendEvent(player, 'bank:update', normalized);
+  sendEvent(player, 'bank:update', view(normalized));
   return normalized;
 }
 
@@ -117,7 +139,7 @@ function withdraw(player, itemIdValue, amountValue) {
 }
 
 function push(player) {
-  sendEvent(player, 'bank:update', getBank(player));
+  sendEvent(player, 'bank:update', view(getBank(player)));
 }
 
 command(
@@ -142,11 +164,14 @@ command(
 
 on('customAction', ({ player, channel, payload }) => {
   const data = /** @type {any} */ (payload);
+  let said;
   if (channel === 'bank:deposit')
-    deposit(player, data && data.itemId, data && data.quantity);
+    said = deposit(player, data && data.itemId, data && data.quantity);
   else if (channel === 'bank:withdraw')
-    withdraw(player, data && data.itemId, data && data.quantity);
+    said = withdraw(player, data && data.itemId, data && data.quantity);
   else if (channel === 'bank:request') push(player);
+  // The answer goes to the window, beside the slot that was clicked.
+  if (said) sendEvent(player, 'bank:result', { message: t(player, said) });
 });
 
 on('tileEnter', ({ player, tile }) => {

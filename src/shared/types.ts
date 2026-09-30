@@ -346,6 +346,8 @@ export interface PlayerPublic {
 
 export interface Player extends Omit<PlayerServer, 'inventory' | 'equipped'> {
   inventory: InventoryItemDetailed[];
+  /** How many different items the bag holds, to set beside how many it has. */
+  inventoryCapacity: number;
   equipped: EquippedItemsDetailed;
 }
 
@@ -375,6 +377,7 @@ export interface PlayerCold {
   experience: number;
   experienceToNextLevel: number;
   inventory: InventoryItemDetailed[];
+  inventoryCapacity: number;
   equipped: EquippedItemsDetailed;
   access: Access;
   strength: number;

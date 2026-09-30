@@ -77,22 +77,50 @@ describe('the tracker window', () => {
     expect(screen.getByRole('dialog').textContent).toContain('No quests yet.');
   });
 
-  it('counts the active quests and tucks the finished ones away', () => {
-    update([
-      {
-        ...quest('orcs', 'Orcs at the gate', 'active'),
-        progress: 2,
-        target: 5,
+  const LOG = [
+    quest('crypt', 'Clear the Crypt', 'completed'),
+    {
+      ...quest('orcs', 'Orcs at the gate', 'active'),
+      description: 'Drive them off.',
+      from: 'Thomas',
+      progress: 2,
+      target: 5,
+      reward: {
+        experience: 50,
+        items: [{ name: 'Gold Coin', sprite: 3, quantity: 25 }],
       },
-      quest('crypt', 'Clear the Crypt', 'completed'),
-    ]);
+    },
+  ];
+
+  it('counts the active quests and opens on the first of them', () => {
+    update(LOG);
     openWindow();
 
-    const dialog = screen.getByRole('dialog', { name: 'Quests (1 active)' });
-    expect(within(dialog).getByText('2/5')).toBeTruthy();
-    const finished = dialog.querySelector('details')!;
-    expect(within(finished).getByText('Completed (1)')).toBeTruthy();
-    expect(within(finished).getByText('Clear the Crypt')).toBeTruthy();
-    expect(within(finished).getByText('✓ Done')).toBeTruthy();
+    const dialog = screen.getByRole('dialog', { name: 'Quests' });
+    expect(dialog.textContent).toContain('1 active');
+    const detail = within(dialog).getByRole('article', {
+      name: 'Orcs at the gate',
+    });
+    expect(detail.textContent).toContain('From Thomas');
+    expect(detail.textContent).toContain('Drive them off.');
+    expect(detail.textContent).toContain('2/5');
+    expect(
+      within(detail).getByRole('meter').getAttribute('aria-valuenow'),
+    ).toBe('2');
+    expect(
+      within(detail).getByRole('img', { name: 'Gold Coin x25' }),
+    ).toBeTruthy();
+    expect(detail.textContent).toContain('+50 XP');
+  });
+
+  it('shows the quest that is picked, and keeps it picked through an update', () => {
+    update(LOG);
+    openWindow();
+    fireEvent.click(screen.getByRole('button', { name: 'Clear the Crypt' }));
+
+    const detail = () => screen.getByRole('article').textContent;
+    expect(detail()).toContain('Completed - rewards claimed.');
+    update(LOG);
+    expect(detail()).toContain('Clear the Crypt');
   });
 });

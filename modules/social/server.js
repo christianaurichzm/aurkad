@@ -68,10 +68,10 @@ const indexOfName = (list, name) =>
  *   runs and so still "online" to getPlayer.
  */
 function push(player, gone) {
-  const friends = friendsOf(player).map((name) => ({
-    name,
-    online: name !== gone && !!getPlayer(name),
-  }));
+  const friends = friendsOf(player).map((name) => {
+    const friend = name === gone ? undefined : getPlayer(name);
+    return { name, online: !!friend, level: friend ? friend.level : undefined };
+  });
   sendEvent(player, 'social:update', {
     friends,
     ignored: ignoredBy(player),
@@ -205,14 +205,19 @@ command(
   },
 );
 
+// A chat command is answered in the chat; what the window asked for is
+// answered to the window, which has no other way to say why nothing changed.
 on('customAction', ({ player, channel, payload }) => {
   const data = /** @type {any} */ (payload);
   const name = data && data.name;
-  if (channel === 'social:friendAdd') addFriend(player, name);
-  else if (channel === 'social:friendRemove') removeFriend(player, name);
-  else if (channel === 'social:ignoreAdd') addIgnored(player, name);
-  else if (channel === 'social:ignoreRemove') removeIgnored(player, name);
+  let said;
+  if (channel === 'social:friendAdd') said = addFriend(player, name);
+  else if (channel === 'social:friendRemove') said = removeFriend(player, name);
+  else if (channel === 'social:ignoreAdd') said = addIgnored(player, name);
+  else if (channel === 'social:ignoreRemove')
+    said = removeIgnored(player, name);
   else if (channel === 'social:request') push(player);
+  if (said) sendEvent(player, 'social:result', { message: t(player, said) });
 });
 
 on('playerJoin', ({ player }) => {

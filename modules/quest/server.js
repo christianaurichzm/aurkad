@@ -49,10 +49,14 @@ function rewardOf(id) {
   if (!reward || typeof reward !== 'object') return undefined;
   return {
     experience: reward.experience || 0,
-    items: (reward.items || []).map((entry) => ({
-      name: getItem(entry.itemId)?.name ?? `#${entry.itemId}`,
-      quantity: entry.quantity || 1,
-    })),
+    items: (reward.items || []).map((entry) => {
+      const item = getItem(entry.itemId);
+      return {
+        name: item?.name ?? `#${entry.itemId}`,
+        sprite: item?.sprite ?? 0,
+        quantity: entry.quantity || 1,
+      };
+    }),
   };
 }
 
@@ -117,7 +121,8 @@ function define(def) {
 }
 
 // Returns false if the quest is undefined or the player already has it.
-function start(player, id) {
+// `from` is who gave it, for the quest log to say; a script may leave it out.
+function start(player, id, from) {
   const def = defOf(id);
   if (!def) return false;
   const bag = bagOf(player);
@@ -128,6 +133,7 @@ function start(player, id) {
     progress: 0,
     target: def.target || 1,
     status: 'active',
+    from: typeof from === 'string' ? from : undefined,
   };
   save(player, bag);
   return true;
@@ -230,13 +236,13 @@ on('npcInteract', ({ player, npc }) => {
   for (const { id, objective } of activeObjectives(player, 'talk')) {
     if (objective.npcId === target) complete(player, id);
   }
-  if (npc.questId) start(player, npc.questId);
+  if (npc.questId) start(player, npc.questId, npc.name);
 });
 
 // A dialog choice with the action `questStart:<id>` starts a quest; the
 // dialog module splits the id off and hands it over.
-provide('dialogAction.questStart', ({ player, arg }) => {
-  if (arg) start(player, arg);
+provide('dialogAction.questStart', ({ player, arg, npc }) => {
+  if (arg) start(player, arg, npc?.name);
 });
 
 log(`Quest module ready (${getQuests().length} authored).`);

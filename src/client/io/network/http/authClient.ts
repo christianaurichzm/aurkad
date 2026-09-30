@@ -88,6 +88,8 @@ export interface GameBrand {
   levels: boolean;
   /** Whether levels hand out attribute points (`leveling.pointsPerLevel`). */
   attributes: boolean;
+  /** Where the menu sits (`layout` in theme/theme.json). */
+  layout: 'right' | 'left' | 'bottom';
 }
 
 let gameBrand: Promise<GameBrand | null> | undefined;

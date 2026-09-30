@@ -3,8 +3,9 @@ import { unloadAllModules } from './moduleLoader.js';
 import { loadModulesForTest } from '../../../test/modules.js';
 import { useApi, clearProvides } from './registry.js';
 import { handleChatCommand, clearCommands } from '../commands.js';
-import { clearAll } from '../hooks.js';
+import { clearAll, emit } from '../hooks.js';
 import { drainGameEvents } from '../eventBus.js';
+import { handleCustomAction } from '../../services/comms/customEventService.js';
 import { clearKvStoreMemory, kvGet, kvSet } from '../../persistence/kvStore.js';
 import { createFixture, tile } from '../../sim/simFixture.js';
 import { awardExperience } from '../../services/player/playerService.js';
@@ -168,6 +169,53 @@ describe('gameplay modules', () => {
     expect(kvGet('bank', 'Alice')).toBeUndefined();
   });
 
+  // The window draws a stack from what the server says it is, and a refusal
+  // has to reach the window that asked rather than the chat behind it.
+  it('bank tells its window what each stack is, and why a move did not happen', () => {
+    const sim = createFixture(0);
+    const potion = {
+      id: 30,
+      name: 'Potion',
+      description: '',
+      sprite: 4,
+      type: 'consumable' as const,
+    };
+    sim.addItem(potion);
+    sim.addPlayer({
+      name: 'Alice',
+      inventory: { items: [{ item: 30, quantity: 5 }], maxCapacity: 10 },
+    });
+    const ask = (channel: string, payload?: unknown) => {
+      drainGameEvents();
+      handleCustomAction({
+        type: 'custom',
+        username: 'Alice',
+        channel,
+        payload,
+      });
+      return drainGameEvents().filter((e) => e.type === 'customPlayer') as {
+        channel: string;
+        payload: Record<string, unknown>;
+      }[];
+    };
+
+    const stored = ask('bank:deposit', { itemId: 30, quantity: 3 });
+    expect(stored.find((e) => e.channel === 'bank:update')?.payload).toEqual({
+      maxCapacity: 50,
+      items: [{ item: expect.objectContaining(potion), quantity: 3 }],
+    });
+    expect(stored.find((e) => e.channel === 'bank:result')?.payload).toEqual({
+      message: 'Deposited.',
+    });
+
+    expect(ask('bank:withdraw', { itemId: 99, quantity: 1 })).toEqual([
+      expect.objectContaining({
+        channel: 'bank:result',
+        payload: { message: 'That item is not in your bank.' },
+      }),
+    ]);
+  });
+
   it('bank conserves the total item count across any deposit/withdraw sequence', () => {
     const sim = createFixture(0);
     const alice = sim.addPlayer({
@@ -195,6 +243,81 @@ describe('gameplay modules', () => {
       handleChatCommand(alice, op);
       expect(total()).toBe(10);
     }
+  });
+
+  it('trade answers the window with whether it happened and why not', () => {
+    const sim = createFixture(0);
+    sim.addItem({
+      id: 30,
+      name: 'Potion',
+      description: '',
+      sprite: 7,
+      type: 'consumable',
+    });
+    const alice = sim.addPlayer({
+      name: 'Alice',
+      inventory: { items: [{ item: 30, quantity: 3 }], maxCapacity: 10 },
+    });
+    sim.addPlayer({ name: 'Bob' });
+    const offer = (to: string) => {
+      drainGameEvents();
+      emit('customAction', {
+        player: alice,
+        channel: 'trade:offer',
+        payload: { to, giveItemId: 30, giveQty: 2 },
+      });
+      const sent = drainGameEvents().filter((e) => e.type === 'customPlayer');
+      const of = (channel: string) =>
+        sent.find((e) => e.channel === channel && e.username === 'Alice')
+          ?.payload as Record<string, unknown> | undefined;
+      return { result: of('trade:result'), update: of('trade:update') };
+    };
+
+    expect(offer('Nobody').result).toEqual({
+      ok: false,
+      message: 'Player not found.',
+    });
+
+    const { result, update } = offer('Bob');
+    expect(result).toEqual({ ok: true, message: 'Trade offered to Bob.' });
+    // The picture comes with the offer: the other side may not own the item.
+    expect(update?.['offers']).toMatchObject([
+      { from: 'Alice', to: 'Bob', give: { name: 'Potion', sprite: 7 } },
+    ]);
+  });
+
+  it('trade lists what can be asked for, without what is bound', () => {
+    const sim = createFixture(0);
+    const base = { description: '', sprite: 2, type: 'weapon' as const };
+    sim.addItem({ ...base, id: 70, name: 'Axe' });
+    sim.addItem({ ...base, id: 71, name: 'Oath', bound: true });
+    sim.addItem({ ...base, id: 72, name: 'Silver', type: 'money' });
+    const alice = sim.addPlayer({ name: 'Alice' });
+    drainGameEvents();
+
+    emit('customAction', {
+      player: alice,
+      channel: 'trade:items',
+      payload: null,
+    });
+
+    const items = (
+      drainGameEvents().find(
+        (e) => e.type === 'customPlayer' && e.channel === 'trade:items',
+      ) as { payload: { items: { id: number; name: string }[] } } | undefined
+    )?.payload.items;
+    expect(items).toContainEqual({
+      id: 70,
+      name: 'Axe',
+      sprite: 2,
+      type: 'weapon',
+      effects: [],
+    });
+    expect(items?.some((item) => item.id === 71)).toBe(false);
+    // Money first, then by name.
+    expect(items?.[0]?.id).toBe(72);
+    const rest = items?.slice(1).map((item) => item.name) ?? [];
+    expect(rest).toEqual([...rest].sort((a, b) => a.localeCompare(b)));
   });
 
   it('bound items cannot be traded or banked', () => {

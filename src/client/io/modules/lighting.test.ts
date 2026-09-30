@@ -38,10 +38,10 @@ function draw(
 }
 
 describe('lighting overlay', () => {
-  it('draws on the world layer, so the hud stays lit', () => {
+  it('draws on the scene layer, so the hud stays lit', () => {
     const mod = loadClientModule('lighting');
     expect(mod.overlays).toHaveLength(1);
-    expect(mod.overlays[0].order).toBe(0);
+    expect(mod.overlays[0].order).toBe(50);
   });
 
   it('covers the view in screen space and blits the buffer over it', () => {

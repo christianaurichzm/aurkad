@@ -8,12 +8,18 @@
 engine.i18n({
   pt: {
     Leaderboard: 'Placar',
-    'Leaderboard - {board}': 'Placar - {board}',
+    Boards: 'Placares',
     level: 'nível',
     'Nobody has ranked yet.': 'Ninguém no placar ainda.',
+    'Standings appear as players earn them.':
+      'As posições aparecem conforme os jogadores as conquistam.',
     Rank: 'Pos.',
     Player: 'Jogador',
     Score: 'Pontos',
+    Level: 'Nível',
+    you: 'você',
+    'Your rank': 'Sua posição',
+    'You are not on this board yet.': 'Você ainda não está neste placar.',
   },
 });
 
@@ -34,40 +40,54 @@ function toggle() {
     engine.sendServerEvent('leaderboard:request', { board: state.board });
 }
 
-const myName = () => {
-  const me = engine.getPlayer();
-  return me ? me.name : null;
-};
+// How many rows a window shows before it scrolls.
+const IN_VIEW = 10;
 
-const line = { display: 'flex', gap: 8, padding: '3px 0', fontSize: 12 };
-const rankCol = { flex: '0 0 34px' };
-const nameCol = { flex: 1 };
-const scoreCol = {
-  flex: '0 0 70px',
-  textAlign: /** @type {const} */ ('right'),
+const columns = {
+  display: 'grid',
+  gridTemplateColumns: '44px 1fr auto',
+  alignItems: 'center',
+  gap: 8,
 };
 
 function LeaderboardWindow({ state }) {
   const t = engine.useT();
-  const me = myName();
+  const me = engine.getPlayer()?.name;
+  const mine = state.rows.find((row) => row.name === me);
+  // The level board carries a level; anything a script submits has a score.
+  const levels = state.rows.some((row) => row.level !== undefined);
   return (
     <ui.Window
-      title={t('Leaderboard - {board}', { board: state.board })}
+      title={t('Leaderboard')}
+      width="regular"
+      anchor="right"
       onClose={toggle}
+      footer={
+        // The player's own row stays in reach below the visible rows.
+        state.rows.length > 0 &&
+        (!mine ? (
+          <span className="window-label">
+            {t('You are not on this board yet.')}
+          </span>
+        ) : (
+          mine.rank > IN_VIEW && (
+            <ol className="list" aria-label={t('Your rank')}>
+              <Row row={mine} self />
+            </ol>
+          )
+        ))
+      }
     >
       {/* Only worth a row of tabs when there is a choice to make. */}
       {state.boards.length > 1 && (
-        <div style={{ display: 'flex', gap: 6 }}>
+        <div className="window-tabs" role="tablist" aria-label={t('Boards')}>
           {state.boards.map((name) => (
             <button
               key={name}
               type="button"
-              aria-pressed={name === state.board}
-              style={
-                name === state.board
-                  ? { outline: '2px solid var(--color-text)' }
-                  : undefined
-              }
+              role="tab"
+              style={{ textTransform: 'capitalize' }}
+              aria-selected={name === state.board}
               onClick={() =>
                 engine.sendServerEvent('leaderboard:request', { board: name })
               }
@@ -77,69 +97,55 @@ function LeaderboardWindow({ state }) {
           ))}
         </div>
       )}
-      <div style={{ maxHeight: 280, overflowY: 'auto' }}>
-        {state.rows.length === 0 ? (
+      {state.rows.length === 0 ? (
+        <ui.EmptyState
+          icon="ranking"
+          title={t('Nobody has ranked yet.')}
+          hint={t('Standings appear as players earn them.')}
+        />
+      ) : (
+        <>
           <div
-            style={{
-              fontSize: 12,
-              color: 'var(--color-text-muted)',
-              padding: '8px 0',
-            }}
+            className="window-label"
+            style={{ ...columns, padding: '0 8px' }}
+            aria-hidden="true"
           >
-            {t('Nobody has ranked yet.')}
+            <span>{t('Rank')}</span>
+            <span>{t('Player')}</span>
+            <span>{t(levels ? 'Level' : 'Score')}</span>
           </div>
-        ) : (
-          <>
-            <div
-              style={{
-                ...line,
-                color: 'var(--color-text-muted)',
-                borderBottom: '1px solid var(--color-border)',
-              }}
-            >
-              <span style={rankCol}>{t('Rank')}</span>
-              <span style={nameCol}>{t('Player')}</span>
-              <span style={scoreCol}>{t('Score')}</span>
-            </div>
-            <ol style={{ listStyle: 'none', margin: 0, padding: 0 }}>
-              {state.rows.map((row) => {
-                // The player's own row, the one they opened the window to find.
-                const mine = row.name === me;
-                return (
-                  <li key={row.name} style={line}>
-                    <span
-                      style={{ ...rankCol, color: 'var(--color-text-muted)' }}
-                    >
-                      #{row.rank}
-                    </span>
-                    <span
-                      style={{
-                        ...nameCol,
-                        color: mine
-                          ? 'var(--color-success)'
-                          : 'var(--color-text)',
-                        fontWeight: mine ? 'bold' : undefined,
-                      }}
-                    >
-                      {row.name}
-                    </span>
-                    <span
-                      style={{ ...scoreCol, color: 'var(--color-text-muted)' }}
-                    >
-                      {/* The level board carries a level; anything a script
-                          submits has a score. */}
-                      {row.level === undefined
-                        ? String(row.score)
-                        : `${t('level')} ${row.level}`}
-                    </span>
-                  </li>
-                );
-              })}
-            </ol>
-          </>
-        )}
-      </div>
+          <ol className="list">
+            {state.rows.map((row) => (
+              <Row key={row.name} row={row} self={row.name === me} />
+            ))}
+          </ol>
+        </>
+      )}
     </ui.Window>
+  );
+}
+
+function Row({ row, self }) {
+  const t = engine.useT();
+  return (
+    <li className="list-row" style={columns} data-self={self || undefined}>
+      <span className="stack-count">
+        {row.rank <= 3 ? (
+          <span className="medal" data-place={row.rank}>
+            {row.rank}
+          </span>
+        ) : (
+          row.rank
+        )}
+      </span>
+      <b>
+        {row.name}
+        {self && <small className="window-label"> ({t('you')})</small>}
+      </b>
+      <span className="stack-count">
+        {row.level === undefined ? row.score.toLocaleString() : row.level}
+      </span>
+    </li>
   );
 }
 

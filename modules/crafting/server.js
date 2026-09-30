@@ -123,17 +123,40 @@ function define(recipe) {
   defs.set(recipe.id, recipe);
 }
 
+/** A line of a recipe, with what the window draws it from. */
+function look(entry) {
+  const info = getItem(entry.itemId);
+  return {
+    itemId: entry.itemId,
+    quantity: entry.quantity,
+    name: info ? info.name : '#' + entry.itemId,
+    sprite: info ? info.sprite : 0,
+  };
+}
+
 function push(player) {
   sendEvent(
     player,
     'crafting:update',
-    available(player).map((recipe) => ({
-      id: recipe.id,
-      name: recipe.name,
-      inputs: recipe.inputs,
-      output: recipe.output,
-      missing: missing(player, recipe),
-    })),
+    available(player).map((recipe) => {
+      const made = getItem(recipe.output.itemId);
+      return {
+        id: recipe.id,
+        name: recipe.name,
+        inputs: recipe.inputs.map((input) => ({
+          ...look(input),
+          held: countItem(player, input.itemId),
+        })),
+        output: {
+          ...look(recipe.output),
+          description: made ? made.description : '',
+        },
+        missing: missing(player, recipe).map((short) => ({
+          ...look(short),
+          held: short.held,
+        })),
+      };
+    }),
   );
 }
 
@@ -158,8 +181,12 @@ command(
 
 on('customAction', ({ player, channel, payload }) => {
   const data = /** @type {any} */ (payload);
-  if (channel === 'crafting:craft') craft(player, data && data.recipeId);
-  else if (channel === 'crafting:request') push(player);
+  if (channel === 'crafting:craft') {
+    const said = craft(player, data && data.recipeId);
+    // The refusal goes to the window, since a full bag is not something the
+    // materials list shows.
+    sendEvent(player, 'crafting:result', { message: t(player, said) });
+  } else if (channel === 'crafting:request') push(player);
 });
 
 // A workbench is a behaviour attached to a tile trigger or an npc, so the

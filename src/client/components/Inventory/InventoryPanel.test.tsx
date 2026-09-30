@@ -1,4 +1,4 @@
-import { act, render, screen, within } from '@testing-library/react';
+import { act, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
@@ -23,11 +23,10 @@ vi.mock('../../io/network', () => ({
   sendAction: mocks.sendAction,
 }));
 
-vi.mock('./ItemIcon', () => ({
-  ItemIcon: ({ spriteId }: { spriteId: number }) => (
-    <span data-testid={`item-icon-${spriteId}`} />
-  ),
-}));
+// Both draw from the atlas onto a canvas, which jsdom has neither of.
+vi.mock('../../graphics/render', () => ({ renderItemIcon: vi.fn() }));
+vi.mock('../common/SpritePreview', () => ({ SpritePreview: () => null }));
+vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockReturnValue(null);
 
 const potion = {
   id: 30,
@@ -35,6 +34,7 @@ const potion = {
   description: 'Restores health.',
   sprite: 3,
   type: 'consumable' as const,
+  effects: [{ attribute: 'health' as const, type: 'add' as const, value: 50 }],
 };
 
 const sword = {
@@ -43,6 +43,19 @@ const sword = {
   description: 'Very sharp.',
   sprite: 2,
   type: 'weapon' as const,
+  effects: [{ attribute: 'attack' as const, type: 'add' as const, value: 5 }],
+};
+
+const axe = {
+  id: 21,
+  name: 'Axe',
+  description: 'Heavy.',
+  sprite: 4,
+  type: 'weapon' as const,
+  effects: [
+    { attribute: 'attack' as const, type: 'add' as const, value: 8 },
+    { attribute: 'speed' as const, type: 'add' as const, value: -1 },
+  ],
 };
 
 const makePlayer = (overrides: Partial<Player> = {}): Player => ({
@@ -58,6 +71,7 @@ const makePlayer = (overrides: Partial<Player> = {}): Player => ({
   experience: 0,
   experienceToNextLevel: 100,
   inventory: [{ item: potion, quantity: 5 }],
+  inventoryCapacity: 10,
   equipped: { weapon: sword },
   access: Access.USER,
   strength: 0,
@@ -81,68 +95,119 @@ const openInventory = () => {
   });
 };
 
+const button = (name: string | RegExp) => screen.getByRole('button', { name });
+
 describe('InventoryPanel', () => {
   beforeEach(() => {
-    vi.clearAllMocks();
+    mocks.sendAction.mockClear();
     mocks.usePlayerForceUpdate.mockReturnValue(makePlayer());
   });
 
-  it('opens from the inventory toggle and switches between bag and equipment', async () => {
-    const user = userEvent.setup();
-    render(<InventoryPanel />);
+  it('opens from the inventory toggle, with how full the bag is', () => {
+    const { container } = render(<InventoryPanel />);
 
-    expect(screen.queryByText('Inventory')).not.toBeInTheDocument();
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
 
     openInventory();
 
-    expect(screen.getByText('Inventory')).toBeInTheDocument();
-    expect(screen.getByTitle('Potion')).toBeInTheDocument();
+    expect(screen.getByRole('dialog', { name: 'Inventory' })).toHaveClass(
+      'inventory-panel',
+    );
+    expect(screen.getByText('1/10')).toBeInTheDocument();
+    expect(button('Potion, 5')).toBeInTheDocument();
+    // One box per slot of the bag, taken or free.
+    expect(container.querySelectorAll('.bag-grid > .item-slot')).toHaveLength(
+      10,
+    );
+  });
 
-    await user.click(screen.getByRole('button', { name: /equipment/i }));
+  it('says so when the bag holds nothing', () => {
+    mocks.usePlayerForceUpdate.mockReturnValue(makePlayer({ inventory: [] }));
+    render(<InventoryPanel />);
+    openInventory();
 
-    expect(screen.getByTitle('Sword')).toBeInTheDocument();
+    expect(screen.getByText('Your bag is empty.')).toBeInTheDocument();
+    expect(screen.getByText('0/10')).toBeInTheDocument();
+  });
+
+  it('shows what is worn, slot by slot, on the equipment tab', async () => {
+    const user = userEvent.setup();
+    render(<InventoryPanel />);
+    openInventory();
+
+    await user.click(screen.getByRole('tab', { name: 'Equipment' }));
+
+    expect(button('Sword, Weapon')).toBeInTheDocument();
+    expect(screen.getByRole('img', { name: 'Helmet: empty' })).toBeVisible();
     expect(screen.getByText('Attack')).toBeInTheDocument();
+
+    await user.click(button('Sword, Weapon'));
+    expect(screen.getByText('Weapon · Equipped')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Drop' })).toBeNull();
+
+    await user.click(button('Unequip'));
+    expect(sendAction).toHaveBeenCalledWith({
+      type: 'item',
+      action: 'use',
+      item: 20,
+    });
   });
 
-  it('does not show equipped item descriptions until hover', async () => {
+  it('says what an item is on hover, and the rest once it is picked', async () => {
     const user = userEvent.setup();
     render(<InventoryPanel />);
     openInventory();
 
-    await user.click(screen.getByRole('button', { name: /equipment/i }));
+    expect(screen.queryByRole('tooltip')).not.toBeInTheDocument();
+    await user.hover(button('Potion, 5'));
+    expect(screen.getByRole('tooltip')).toHaveTextContent(
+      'PotionConsumable · +50 Health · x5',
+    );
+    expect(screen.queryByText('Restores health.')).not.toBeInTheDocument();
 
-    expect(screen.queryByText('Very sharp.')).not.toBeInTheDocument();
+    await user.click(button('Potion, 5'));
+    expect(screen.getByText('Restores health.')).toBeInTheDocument();
 
-    await user.hover(screen.getByTitle('Sword'));
-
-    expect(screen.getByText('Very sharp.')).toBeInTheDocument();
+    await user.click(button('Use'));
+    expect(sendAction).toHaveBeenCalledWith({
+      type: 'item',
+      action: 'use',
+      item: 30,
+    });
   });
 
-  it('asks for quantity before dropping a stacked item', async () => {
+  it('sets a weapon in the bag against the one in hand', async () => {
+    mocks.usePlayerForceUpdate.mockReturnValue(
+      makePlayer({ inventory: [{ item: axe, quantity: 1 }] }),
+    );
     const user = userEvent.setup();
     render(<InventoryPanel />);
     openInventory();
 
-    await user.click(screen.getByTitle('Potion'));
-    await user.click(screen.getByRole('button', { name: /^drop$/i }));
+    await user.click(button('Axe'));
 
-    expect(screen.getByText('Drop quantity')).toBeInTheDocument();
-    expect(screen.getByText('Potion (5 available)')).toBeInTheDocument();
+    expect(screen.getByText('+3 Attack vs Sword')).toHaveAttribute(
+      'data-change',
+      'up',
+    );
+    expect(screen.getByText('−1 Speed vs Sword')).toHaveAttribute(
+      'data-change',
+      'down',
+    );
   });
 
-  it('sends selected drop quantity for stacked items', async () => {
+  it('asks how many of a stack to drop, and drops that many', async () => {
     const user = userEvent.setup();
     render(<InventoryPanel />);
     openInventory();
 
-    await user.click(screen.getByTitle('Potion'));
-    await user.click(screen.getByRole('button', { name: /^drop$/i }));
+    await user.click(button('Potion, 5'));
+    await user.click(button('Drop'));
 
-    const prompt = screen.getByText('Drop quantity').closest('div')!;
-    const input = within(prompt).getByRole('spinbutton');
-    await user.clear(input);
-    await user.type(input, '3');
-    await user.click(within(prompt).getByRole('button', { name: /^drop$/i }));
+    expect(screen.getAllByText('Drop how many?')[0]).toBeInTheDocument();
+    await user.click(button('One more'));
+    await user.click(button('One more'));
+    await user.click(button('Drop 3'));
 
     expect(sendAction).toHaveBeenCalledWith({
       type: 'item',
@@ -152,23 +217,98 @@ describe('InventoryPanel', () => {
     });
   });
 
-  it('shuts with the trade window only when that window opened it', () => {
+  it('asks before dropping the only one, and takes no for an answer', async () => {
+    mocks.usePlayerForceUpdate.mockReturnValue(
+      makePlayer({ inventory: [{ item: axe, quantity: 1 }] }),
+    );
+    const user = userEvent.setup();
+    render(<InventoryPanel />);
+    openInventory();
+
+    await user.click(button('Axe'));
+    await user.click(button('Drop'));
+    expect(screen.getByText('Drop Axe?')).toBeInTheDocument();
+    await user.click(button('Cancel'));
+
+    expect(sendAction).not.toHaveBeenCalled();
+    expect(button('Equip')).toBeInTheDocument();
+  });
+
+  it('offers no way to drop what is bound', async () => {
+    mocks.usePlayerForceUpdate.mockReturnValue(
+      makePlayer({
+        inventory: [{ item: { ...axe, bound: true }, quantity: 1 }],
+      }),
+    );
+    const user = userEvent.setup();
+    render(<InventoryPanel />);
+    openInventory();
+
+    await user.click(button('Axe'));
+
+    expect(screen.getByText(/^Bound:/)).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Drop' })).toBeNull();
+  });
+
+  it('warns that a full bag sends what is taken off to the ground', async () => {
+    mocks.usePlayerForceUpdate.mockReturnValue(
+      makePlayer({ inventoryCapacity: 1 }),
+    );
+    const user = userEvent.setup();
+    render(<InventoryPanel />);
+    openInventory();
+
+    await user.click(screen.getByRole('tab', { name: 'Equipment' }));
+    await user.click(button('Sword, Weapon'));
+
+    expect(screen.getByText(/^Your bag is full/)).toBeInTheDocument();
+  });
+
+  it('walks the bag with the arrow keys', async () => {
+    mocks.usePlayerForceUpdate.mockReturnValue(
+      makePlayer({
+        inventory: [
+          { item: potion, quantity: 5 },
+          { item: axe, quantity: 1 },
+        ],
+      }),
+    );
+    const user = userEvent.setup();
+    render(<InventoryPanel />);
+    openInventory();
+
+    button('Potion, 5').focus();
+    await user.keyboard('{ArrowRight}');
+
+    expect(button('Axe')).toHaveFocus();
+  });
+
+  it('hands the picked item to an open trade, and only while it is open', async () => {
+    const offered = vi.fn();
+    window.addEventListener('inventory:item-for-trade', offered);
     const trade = (open: boolean) =>
       act(() => {
         window.dispatchEvent(
           new Event(open ? 'trade:active' : 'trade:inactive'),
         );
       });
+    const user = userEvent.setup();
     render(<InventoryPanel />);
 
+    // The trade window has the bag in it: it does not open this one.
     trade(true);
-    expect(screen.getByText('Inventory')).toBeInTheDocument();
-    trade(false);
-    expect(screen.queryByText('Inventory')).not.toBeInTheDocument();
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
 
     openInventory();
-    trade(true);
+    await user.click(button('Potion, 5'));
+    await user.click(button('Offer in trade'));
+
+    expect(offered.mock.calls[0]?.[0]).toMatchObject({
+      detail: { itemId: 30, quantity: 5 },
+    });
+
     trade(false);
-    expect(screen.getByText('Inventory')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Offer in trade' })).toBeNull();
+    window.removeEventListener('inventory:item-for-trade', offered);
   });
 });

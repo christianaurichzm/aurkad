@@ -70,6 +70,7 @@ beforeEach(() => {
     experience: 0,
     experienceToNextLevel: 100,
     inventory: [],
+    inventoryCapacity: 10,
     equipped: {},
     access: 0,
     strength: 0,

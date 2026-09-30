@@ -208,7 +208,7 @@ describe('quest module with authored quests', () => {
     expect(alice.experience).toBe(50);
   });
 
-  it('tells the client what a quest pays, items by name', async () => {
+  it('tells the client what a quest pays, items by name and picture', async () => {
     const quest = await bootWith({
       ...killOrcs,
       reward: { experience: 50, items: [{ itemId: 3, quantity: 25 }] },
@@ -218,7 +218,7 @@ describe('quest module with authored quests', () => {
       id: 3,
       name: 'Gold Coin',
       type: 'money',
-      sprite: 0,
+      sprite: 7,
     } as Parameters<typeof sim.addItem>[0]);
     const alice = sim.addPlayer({ name: 'Alice' });
     drainGameEvents();
@@ -229,7 +229,7 @@ describe('quest module with authored quests', () => {
     ) as { payload: { id: string; reward: unknown }[] } | undefined;
     expect(pushed?.payload.find((q) => q.id === 'orcs')?.reward).toEqual({
       experience: 50,
-      items: [{ name: 'Gold Coin', quantity: 25 }],
+      items: [{ name: 'Gold Coin', sprite: 7, quantity: 25 }],
     });
   });
 
@@ -298,10 +298,17 @@ describe('quest module with authored quests', () => {
     const sim = createFixture(0);
     const alice = sim.addPlayer({ name: 'Alice' });
 
-    const giver = sim.addNpc({ id: 'guard:1:1', questId: 'orcs' });
+    const giver = sim.addNpc({
+      id: 'guard:1:1',
+      name: 'Thomas',
+      questId: 'orcs',
+    });
     emit('npcInteract', { player: alice, npc: giver });
 
-    expect(quest.get(alice, 'orcs')?.status).toBe('active');
+    expect(quest.get(alice, 'orcs')).toMatchObject({
+      status: 'active',
+      from: 'Thomas',
+    });
   });
 
   it('completes a reach objective on the named tile only', async () => {

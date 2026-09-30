@@ -5,6 +5,7 @@
 //   const dialog = use('dialog');
 //   dialog.show(player, { text, choices: ['Yes', 'No'] }, (i) => { ... });
 //
+// A player may close a box without answering, and onChoice then never runs.
 // An npc with a `dialogId` opens the conversation authored in the editor,
 // whose `condition` and `action` on a choice name scripts.
 
@@ -13,6 +14,7 @@ let nextId = 1;
 
 function show(player, options, onChoice) {
   const choices = (options && options.choices) || [];
+  const npc = options && options.npc;
   const id = nextId++;
   pending.set(player.name, {
     id,
@@ -21,19 +23,29 @@ function show(player, options, onChoice) {
   });
   sendEvent(player, 'dialog:show', {
     id,
-    speaker: options.speaker,
+    speaker: options.speaker || (npc ? npc.name : undefined),
     text: options.text,
     choices,
+    // Who is talking, for the box to draw a portrait from and the world to
+    // light up behind it.
+    sprite: npc ? npc.sprite : undefined,
+    npcId: npc ? npc.id : undefined,
+    read: options.read,
   });
 }
 
 // Untrusted client input: onChoice fires only if the id matches the
 // player's open dialog and the index is in range.
 on('customAction', ({ player, channel, payload }) => {
-  if (channel !== 'dialog:choose') return;
+  if (channel !== 'dialog:choose' && channel !== 'dialog:close') return;
   const open = pending.get(player.name);
   const data = /** @type {any} */ (payload);
   if (!open || !data || data.id !== open.id) return;
+
+  if (channel === 'dialog:close') {
+    pending.delete(player.name);
+    return;
+  }
 
   const index = data.index;
   if (typeof index !== 'number' || !Number.isInteger(index)) return;
@@ -93,12 +105,15 @@ function runAction(choice, ctx) {
   }
 }
 
-function openNode(player, dialog, nodeId, npc) {
+// `seen` is the nodes this conversation has been through, so the box can mark
+// a choice that leads back to something already said.
+function openNode(player, dialog, nodeId, npc, seen) {
   const node = dialog.nodes.find((n) => n.id === nodeId);
   if (!node) {
     error('dialog ' + dialog.id + ' has no node ' + nodeId);
     return;
   }
+  seen.add(nodeId);
 
   const base = { player, npc, dialog, node };
   // Filtered before the box is built, so a locked choice is absent and the
@@ -109,15 +124,17 @@ function openNode(player, dialog, nodeId, npc) {
     player,
     {
       speaker: npc?.name || dialog.name,
+      npc,
       text: node.text,
       choices: choices.map((c) => c.label),
+      read: choices.flatMap((c, i) => (c.next && seen.has(c.next) ? [i] : [])),
     },
     (index) => {
       // No choices means a single "Continue": nothing to run and nowhere to go.
       const choice = choices[index];
       if (!choice) return;
       if (!runAction(choice, Object.assign({ choice }, base))) return;
-      if (choice.next) openNode(player, dialog, choice.next, npc);
+      if (choice.next) openNode(player, dialog, choice.next, npc, seen);
     },
   );
 }
@@ -130,7 +147,7 @@ function start(player, dialogId, npc) {
     error('dialog ' + dialogId + ' is missing or empty');
     return false;
   }
-  openNode(player, dialog, dialog.start || dialog.nodes[0].id, npc);
+  openNode(player, dialog, dialog.start || dialog.nodes[0].id, npc, new Set());
   return true;
 }
 

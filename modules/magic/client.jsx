@@ -70,7 +70,7 @@ function SpellsWindow({ s }) {
 
   const now = Date.now();
   return (
-    <ui.Window title={t('Spells')} width={380} onClose={toggle}>
+    <ui.Window title={t('Spells')} width="regular" onClose={toggle}>
       {s ? (
         <>
           <div>

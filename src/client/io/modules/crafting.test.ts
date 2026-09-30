@@ -20,24 +20,42 @@ const sent = () =>
       mock: { calls: [string, unknown?][] };
     }
   ).mock.calls;
+const click = (name: string) =>
+  fireEvent.click(screen.getByRole('button', { name }));
+const materials = () =>
+  within(screen.getByRole('article'))
+    .getAllByRole('listitem')
+    .map((li) => li.textContent);
 
 const RECIPES = [
-  {
-    id: 'plank',
-    name: 'Plank',
-    inputs: [{ itemId: 2, quantity: 2 }],
-    output: { itemId: 4, quantity: 4 },
-    missing: [],
-  },
   {
     id: 'sword',
     name: 'Sword',
     inputs: [
-      { itemId: 6, quantity: 3 },
-      { itemId: 4, quantity: 1 },
+      { itemId: 6, quantity: 3, held: 1, name: 'Iron Ore', sprite: 6 },
+      { itemId: 4, quantity: 1, held: 4, name: 'Plank', sprite: 4 },
     ],
-    output: { itemId: 9, quantity: 1 },
-    missing: [{ itemId: 6, held: 1, quantity: 3 }],
+    output: {
+      itemId: 9,
+      quantity: 1,
+      name: 'Steel Sword',
+      sprite: 9,
+      description: 'Holds an edge.',
+    },
+    missing: [{ itemId: 6, held: 1, quantity: 3, name: 'Iron Ore', sprite: 6 }],
+  },
+  {
+    id: 'plank',
+    name: 'Plank',
+    inputs: [{ itemId: 2, quantity: 2, held: 8, name: 'Log', sprite: 2 }],
+    output: {
+      itemId: 4,
+      quantity: 4,
+      name: 'Plank',
+      sprite: 4,
+      description: '',
+    },
+    missing: [],
   },
 ];
 
@@ -53,24 +71,48 @@ describe('crafting window', () => {
     expect(screen.queryByRole('dialog')).toBeNull();
   });
 
-  it('crafts a recipe the player can afford', () => {
+  it('opens on the first recipe the player can afford, and crafts it', () => {
     emit('crafting:open');
     emit('crafting:update', RECIPES);
-    const [plank] = screen.getAllByRole('listitem');
-    expect(plank.textContent).toContain('Plank ×4');
-    expect(plank.textContent).toContain('#2 ×2');
-    fireEvent.click(within(plank).getByRole('button', { name: 'Craft' }));
+    expect(screen.getByRole('article', { name: 'Plank' })).toBeTruthy();
+    expect(materials()).toEqual(['Log8/2 ✓']);
+    click('Craft Plank ×4');
     expect(sent()).toContainEqual(['crafting:craft', { recipeId: 'plank' }]);
   });
 
-  it('keeps a recipe with missing materials visible but greyed, saying what is short', () => {
+  it('keeps a recipe with missing materials in the list, saying what is short', () => {
     emit('crafting:open');
     emit('crafting:update', RECIPES);
-    const sword = within(screen.getAllByRole('listitem')[1]).getByRole(
-      'button',
-      { name: 'Craft' },
+    click('Sword');
+    expect(
+      screen.getByRole('article', { name: 'Sword' }).textContent,
+    ).toContain('Holds an edge.');
+    expect(materials()).toEqual(['Iron Ore1/3 ✕', 'Plank4/1 ✓']);
+    const craft = screen.getByRole('button', { name: 'Missing 2 Iron Ore' });
+    expect(craft).toHaveProperty('disabled', true);
+  });
+
+  // Crafting the last affordable recipe must not slide the window on to
+  // whichever recipe is affordable next.
+  it('stays on the recipe that was crafted once its materials are spent', () => {
+    emit('crafting:open');
+    emit('crafting:update', RECIPES);
+    click('Craft Plank ×4');
+    emit('crafting:update', [
+      { ...RECIPES[1], missing: RECIPES[0].missing },
+      { ...RECIPES[0], missing: [] },
+    ]);
+    expect(screen.getByRole('article', { name: 'Plank' })).toBeTruthy();
+  });
+
+  it('says in the window what the server answered', () => {
+    emit('crafting:open');
+    emit('crafting:update', RECIPES);
+    emit('crafting:result', { message: 'Your bag is too full to hold that.' });
+    expect(screen.getByRole('status').textContent).toBe(
+      'Your bag is too full to hold that.',
     );
-    expect(sword).toHaveProperty('disabled', true);
-    expect(sword.title).toBe('Missing #6 (1/3)');
+    click('Sword');
+    expect(screen.queryByRole('status')).toBeNull();
   });
 });
