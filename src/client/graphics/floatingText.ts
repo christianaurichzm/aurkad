@@ -7,6 +7,7 @@ interface FloatingText {
   y: number;
   getPos?: () => { x: number; y: number } | null;
   color: string;
+  font: string;
   size: number;
   startTime: number;
   duration: number;
@@ -18,10 +19,19 @@ const pool = new ObjectPool<FloatingText>(64, () => ({
   x: 0,
   y: 0,
   color: '',
+  font: '',
   size: 0,
   startTime: 0,
   duration: 0,
 }));
+
+/** A theme token (styles.css), resolved: the canvas cannot read var(). */
+export function themeToken(name: string, fallback: string): string {
+  return (
+    getComputedStyle(document.documentElement).getPropertyValue(name).trim() ||
+    fallback
+  );
+}
 
 export function spawnFloatingText(
   x: number,
@@ -39,6 +49,7 @@ export function spawnFloatingText(
   ft.y = y;
   ft.text = text;
   ft.color = color;
+  ft.font = themeToken('--font-world', 'sans-serif');
   ft.size = size;
   ft.startTime = performance.now();
   ft.duration = duration;
@@ -59,13 +70,17 @@ export function renderFloatingTexts(ctx: CanvasRenderingContext2D): void {
     const progress = elapsed / ft.duration;
     const alpha = progress < 0.6 ? 1 : (1 - progress) / 0.4;
     const offsetY = -progress * 50;
+    // A beat larger as it appears, so a number lands like the hit it stands
+    // for instead of fading in like a label.
+    const pop = 1 + 0.35 * Math.max(0, 1 - elapsed / 140);
 
     ctx.save();
     ctx.globalAlpha = Math.max(0, alpha);
-    ctx.font = `bold ${ft.size}px Arial`;
+    ctx.font = `bold ${Math.round(ft.size * pop)}px ${ft.font}`;
     ctx.textAlign = 'center';
-    ctx.lineWidth = 3;
-    ctx.strokeStyle = 'rgba(0,0,0,0.55)';
+    ctx.lineWidth = 4;
+    ctx.lineJoin = 'round';
+    ctx.strokeStyle = 'rgba(0,0,0,0.85)';
     ctx.fillStyle = ft.color;
     ctx.strokeText(ft.text, baseX, baseY + offsetY);
     ctx.fillText(ft.text, baseX, baseY + offsetY);

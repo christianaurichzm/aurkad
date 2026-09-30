@@ -1,5 +1,6 @@
 import type { MapStateClient, Position } from '../../../../shared/types';
 import type {
+  HealthChange,
   WsServerMapChunkMessage,
   WsServerMapMetaMessage,
   WsServerPlayerStatsMessage,
@@ -28,6 +29,9 @@ import {
 import { onServerEvent } from '../customEvents';
 import { spawnAttackEffect } from '../../../graphics/attackEffect';
 import { spawnSpellEffect } from '../../../graphics/spellEffect';
+import { spawnFloatingText, themeToken } from '../../../graphics/floatingText';
+import { getAnimatedPos } from '../../../graphics/entityRendering';
+import { TILE_SIZE } from '../../../../shared/constants';
 import { CharacterAction, Direction } from '../../../../shared/types';
 
 type GameStateMessage =
@@ -37,6 +41,38 @@ type GameStateMessage =
   | WsServerWorldUpdateMessage;
 
 const gameStateQueue: Array<GameStateMessage> = [];
+
+// A number per hit or heal, rising over the entity and following it if it
+// walks on. Hits taken are in the danger colour so they read apart from hits
+// dealt; several on one entity in the same update stack instead of overlapping.
+function showHealthChanges(changes: HealthChange[] | undefined): void {
+  if (!changes) return;
+  const selfId = getPlayer()?.id;
+  const stacked = new Map<string, number>();
+  for (const change of changes) {
+    const n = stacked.get(change.id) ?? 0;
+    stacked.set(change.id, n + 1);
+    const lift = 4 + n * 18;
+    const color =
+      change.delta > 0
+        ? themeToken('--color-success', '#5fbf6a')
+        : change.id === selfId
+          ? themeToken('--color-danger-text', '#ff8b86')
+          : '#ffffff';
+    spawnFloatingText(
+      change.x + TILE_SIZE / 2,
+      change.y - lift,
+      change.delta > 0 ? `+${change.delta}` : String(-change.delta),
+      color,
+      1000,
+      20,
+      () => {
+        const pos = getAnimatedPos(change.id);
+        return pos ? { x: pos.x + TILE_SIZE / 2, y: pos.y - lift } : null;
+      },
+    );
+  }
+}
 
 // `x`/`y` are optional and place the sound: a tile trigger fires under the
 // player and sends none, while a script placing a sound on an npc, a door or
@@ -184,6 +220,7 @@ export function updateWebSocket(): void {
       setPlayerStats(message.payload);
     } else if (message.type === 'worldUpdate') {
       applyWorldUpdate(message.payload);
+      showHealthChanges(message.payload.healthChanges);
     }
 
     const currentPlayer = getPlayer();

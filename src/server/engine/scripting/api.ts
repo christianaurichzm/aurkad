@@ -124,6 +124,7 @@ import {
 } from './entityScripts.js';
 import type { HookMap } from '../hooks.js';
 import type { InventoryLike, PlayerServer } from '../../../shared/types.js';
+import { recordHealthChange } from '../../net/snapshot.js';
 
 // Mutations go through updatePlayer so state is marked dirty (persisted by the
 // snapshot loop) and broadcast to clients on the next tick. No DB write happens
@@ -550,10 +551,12 @@ export function buildApi(
     // Health
     // Without an amount, to full.
     healPlayer: (player: PlayerServer, amount?: number): void => {
+      const before = player.health;
       player.health =
         amount === undefined
           ? player.maxHealth
           : Math.min(player.maxHealth, player.health + Math.max(0, amount));
+      recordHealthChange(player, player.health - before);
       persist(scriptName, player);
     },
     killPlayer: (player: PlayerServer): void => {

@@ -8,7 +8,11 @@
  */
 import { describe, it, expect, afterEach, vi } from 'vitest';
 import WebSocket from 'ws';
-import { broadcastGameState, resetPlayerNetState } from './snapshot.js';
+import {
+  broadcastGameState,
+  recordHealthChange,
+  resetPlayerNetState,
+} from './snapshot.js';
 import { resetEntityReplication } from './entityReplication.js';
 import { playersWsMap } from './connections.js';
 import { createFixture, tile, makeTiles } from '../sim/simFixture.js';
@@ -91,6 +95,11 @@ function replayScenario(): Array<{ label: string; messages: string[] }> {
   capture('bob clears its targetPosition', () => {
     bob.targetPosition = undefined;
     bob.position = { x: 64, y: 64 };
+  });
+  capture('the goblin is hit', () => {
+    const goblin = sim.map.npcs['npc1']!;
+    goblin.health -= 7;
+    recordHealthChange(goblin, -7);
   });
   capture('bob and the npc leave', () => {
     delete sim.map.players['bob'];

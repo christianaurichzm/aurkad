@@ -90,20 +90,33 @@ export interface WsServerPlayerStatsMessage {
 /**
  * Per-tick world update.
  *
- * `entities` carries only what changed, keyed by entity id. The server
- * guarantees an entity ENTERING the viewport is sent complete, so the client
- * can simply merge when it already knows the id and insert when it does not -
- * no full-vs-partial marker on the wire. `kind` (present on both PlayerPublic
- * and RuntimeNpc) routes an incoming entity to the players or npcs bucket.
+ * `entities` carries only what changed, keyed by entity id. An entity
+ * entering the viewport is always sent complete, so the client merges when
+ * it knows the id and inserts when it does not, with no full or partial
+ * marker. `kind` routes an incoming entity to players or npcs.
  *
  * `droppedItems` is sent whole, and only when the viewer's filtered list
  * changed: drops have no stable id to diff against, and the list is small.
+ *
+ * `healthChanges` are events, not state: hits and heals in the viewer's
+ * view since the last update, each drawn once as a number. The health they
+ * changed travels in `entities`/`self` as usual.
  */
 export interface WorldUpdatePayload {
   entities: Record<string, Partial<PlayerPublic> | Partial<RuntimeNpc>>;
   leave: string[];
   self: PlayerHot;
   droppedItems?: DroppedItem[];
+  healthChanges?: HealthChange[];
+}
+
+/** One hit or heal, where the entity stood when it landed. */
+export interface HealthChange {
+  id: string;
+  x: number;
+  y: number;
+  /** Whole hit points, negative for damage. */
+  delta: number;
 }
 
 export interface WsServerWorldUpdateMessage {

@@ -33,6 +33,7 @@ import { emit } from '../../engine/hooks.js';
 import { dispatchEntityScript } from '../../engine/scripting/entityScripts.js';
 import { sendCustomEvent } from '../comms/customEventService.js';
 import { useApi } from '../../engine/modules/registry.js';
+import { recordHealthChange } from '../../net/snapshot.js';
 
 export type ResolveDamageOptions = {
   attacker?: CombatTarget;
@@ -265,6 +266,7 @@ export const resolveDamage = (
   }
 
   target.health -= damage;
+  recordHealthChange(target, -damage);
 
   const lethal = target.health <= 0;
   emit('afterDamage', { attacker, target, damage, lethal });

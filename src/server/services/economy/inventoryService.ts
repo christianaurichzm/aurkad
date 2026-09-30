@@ -16,7 +16,7 @@ import { emit } from '../../engine/hooks.js';
 import { dispatchEntityScript } from '../../engine/scripting/entityScripts.js';
 import { addItem, canFit, removeItem } from './economyService.js';
 import { sweepUnclaimableDeliveries } from './deliveryService.js';
-import { forgetSentItem } from '../../net/snapshot.js';
+import { forgetSentItem, recordHealthChange } from '../../net/snapshot.js';
 
 export function getItemById(id: number): Item | null {
   return items.get(id) ?? null;
@@ -164,7 +164,9 @@ export function useItem(username: string, itemId: number): boolean {
       { player, item, itemId },
       item.scriptParams,
     );
+    const before = player.health;
     applyItemEffects(player, item.effects);
+    recordHealthChange(player, player.health - before);
     removeItem(player.inventory, itemId, 1);
   } else {
     const slot = item.type as EquipmentSlot;

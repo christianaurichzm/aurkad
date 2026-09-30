@@ -16,6 +16,13 @@ import {
   resetInterpolation,
 } from './gameStateSync';
 import { clearMovementQueues } from '../../../graphics/movementAnimation';
+import { TILE_SIZE } from '../../../../shared/constants';
+
+const spawnFloatingText = vi.hoisted(() => vi.fn());
+vi.mock('../../../graphics/floatingText', async (original) => ({
+  ...(await original<object>()),
+  spawnFloatingText,
+}));
 
 vi.mock('../../../audio', () => ({
   playMusic: vi.fn(),
@@ -132,6 +139,18 @@ describe('decoding the golden session', () => {
     // renderer keeps interpolating toward a destination that no longer exists.
     expect('targetPosition' in bob).toBe(false);
     expect(bob.position).toEqual({ x: 64, y: 64 });
+  });
+
+  it('draws a hit once, as a number over the entity, beside the health it took', () => {
+    replayThrough('bob clears its targetPosition');
+    spawnFloatingText.mockClear();
+
+    applyStep(stepNamed('the goblin is hit'));
+
+    expect(getGameState()!.npcs['npc1'].health).toBe(23);
+    expect(spawnFloatingText).toHaveBeenCalledOnce();
+    const [x, y, text] = spawnFloatingText.mock.calls[0];
+    expect([x, y, text]).toEqual([64 + TILE_SIZE / 2, 60, '7']);
   });
 
   it('removes entities listed in leave, players and npcs alike', () => {

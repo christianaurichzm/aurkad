@@ -3,8 +3,12 @@ import {
   MapStateServer,
   PlayerServer,
   type DroppedItem,
+  type Position,
 } from '../../shared/types.js';
-import { PROTOCOL_VERSION } from '../../shared/wsProtocol.js';
+import {
+  PROTOCOL_VERSION,
+  type HealthChange,
+} from '../../shared/wsProtocol.js';
 import { config } from '../config.js';
 import { logger } from '../logger.js';
 import { getRuntimeState } from '../services/world/gameData.js';
@@ -98,6 +102,30 @@ const playerInterestSets = new Map<string, InterestState>();
 let nextPhase = 0;
 
 const MAX_CHUNKS_PER_TICK = 8;
+
+// Hits and heals since the last broadcast, per map. They ride the world update
+// of each viewer that has the spot in view instead of a message of their own
+// to the whole map, and are dropped once broadcast: a viewer skipped that tick
+// (backpressure, cadence) loses the numbers, never any state.
+const pendingHealthChanges = new Map<string, HealthChange[]>();
+const NO_HEALTH_CHANGES: HealthChange[] = [];
+
+/** A number to draw over `entity`: what it just lost (negative) or gained. */
+export function recordHealthChange(
+  entity: { id: string; mapId: string; position: Position },
+  delta: number,
+): void {
+  const whole = Math.round(delta);
+  if (!whole) return;
+  let changes = pendingHealthChanges.get(entity.mapId);
+  if (!changes) pendingHealthChanges.set(entity.mapId, (changes = []));
+  changes.push({
+    id: entity.id,
+    x: entity.position.x,
+    y: entity.position.y,
+    delta: whole,
+  });
+}
 
 let lastCongestionLogMs = 0;
 
@@ -266,6 +294,7 @@ function sendWorldUpdate(
   ws: WebSocket,
   viewport: Viewport,
   known: InterestState,
+  mapHealthChanges: HealthChange[],
 ) {
   const nearby = queryEntitiesInRect(map.id, {
     x: viewport.left,
@@ -365,21 +394,30 @@ function sendWorldUpdate(
   const selfJson = JSON.stringify(toPlayerHot(player));
   const selfChanged = lastSentSelf.get(player.name) !== selfJson;
 
+  const healthChanges = mapHealthChanges.filter((c) =>
+    withinViewport(c, viewport),
+  );
+
   if (
     parts.length === 0 &&
     leaving.length === 0 &&
     !dropsChanged &&
-    !selfChanged
+    !selfChanged &&
+    healthChanges.length === 0
   ) {
     return;
   }
 
   const drops = dropsChanged ? `,"droppedItems":${dropsJson}` : '';
+  const hits =
+    healthChanges.length > 0
+      ? `,"healthChanges":${JSON.stringify(healthChanges)}`
+      : '';
   const data =
     `{"v":${PROTOCOL_VERSION},"type":"worldUpdate","payload":{` +
     `"entities":{${parts.join(',')}},` +
     `"leave":${JSON.stringify(leaving)},` +
-    `"self":${selfJson}${drops}}}`;
+    `"self":${selfJson}${drops}${hits}}}`;
 
   ws.send(data);
   lastSentDroppedItems.set(player.name, dropsJson);
@@ -497,7 +535,14 @@ export function broadcastGameState() {
           nsCountDeferred();
           continue;
         }
-        sendWorldUpdate(player, map, ws, viewport, known);
+        sendWorldUpdate(
+          player,
+          map,
+          ws,
+          viewport,
+          known,
+          pendingHealthChanges.get(map.id) ?? NO_HEALTH_CHANGES,
+        );
       } catch (error) {
         logger.error('Error broadcasting to player', {
           player: player.name,
@@ -506,6 +551,7 @@ export function broadcastGameState() {
       }
     }
   }
+  pendingHealthChanges.clear();
   nsFlushTick();
 }
 

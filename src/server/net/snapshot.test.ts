@@ -1,6 +1,10 @@
 import { describe, it, expect, afterEach, vi } from 'vitest';
 import WebSocket from 'ws';
-import { broadcastGameState, resetPlayerNetState } from './snapshot.js';
+import {
+  broadcastGameState,
+  recordHealthChange,
+  resetPlayerNetState,
+} from './snapshot.js';
 import { resetEntityReplication } from './entityReplication.js';
 import { playersWsMap } from './connections.js';
 import { config } from '../config.js';
@@ -52,6 +56,27 @@ describe('broadcast backpressure', () => {
     playersWsMap.set('Alice', healthy as unknown as WebSocket);
     broadcastGameState();
     expect(healthy.send).toHaveBeenCalled();
+  });
+});
+
+describe('health changes', () => {
+  it('reach the viewers that have the spot in view, once', () => {
+    const sim = createFixture(0);
+    const alice = sim.addPlayer({ name: 'Alice', position: tile(1, 1) });
+    rebuildQuadtree(sim.mapId, sim.map);
+    const ws = fakeWs(0);
+    playersWsMap.set('Alice', ws as unknown as WebSocket);
+    broadcastGameState();
+
+    recordHealthChange(alice, -5);
+    recordHealthChange({ ...alice, id: 'far', position: tile(500, 500) }, -9);
+    broadcastGameState();
+    broadcastGameState();
+
+    const changes = ws.send.mock.calls
+      .map((c) => JSON.parse(String(c[0])).payload.healthChanges)
+      .filter(Boolean);
+    expect(changes).toEqual([[{ id: alice.id, ...tile(1, 1), delta: -5 }]]);
   });
 });
 

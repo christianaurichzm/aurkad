@@ -69,6 +69,14 @@ export const PROTOCOL_GOLDEN_STEPS: ProtocolGoldenStep[] = [
     ],
   },
   {
+    // A hit is an event beside the health it changed: drawn once as a number,
+    // while the health itself rides the entity diff as usual.
+    label: 'the goblin is hit',
+    messages: [
+      '{"v":2,"type":"worldUpdate","payload":{"entities":{"npc1":{"health":23}},"leave":[],"self":{"id":"alice","position":{"x":0,"y":64},"direction":0,"action":"Walk","health":100},"healthChanges":[{"id":"npc1","x":64,"y":64,"delta":-7}]}}',
+    ],
+  },
+  {
     // Departures are ids in `leave`, players and npcs in one flat list.
     label: 'bob and the npc leave',
     messages: [
