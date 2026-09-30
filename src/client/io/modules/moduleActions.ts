@@ -11,6 +11,7 @@ export interface ModuleAction {
   onClick: () => void;
   key?: string; // lowercase single char, shown as a badge and bound as a hotkey
   icon?: IconName;
+  order?: number;
 }
 
 const actions: ModuleAction[] = [];
@@ -22,6 +23,7 @@ export function registerModuleAction(
   onClick: () => void,
   key?: string,
   icon?: string,
+  order?: number,
 ): void {
   actions.push({
     id: `module-action-${seq++}`,
@@ -31,6 +33,7 @@ export function registerModuleAction(
     // A name the stylesheet has no --icon-<name> for would paint a solid
     // square, so it gets the tile's lettered fallback instead.
     icon: ICON_NAMES.find((name) => name === icon),
+    order,
   });
   ensureHotkeyListener();
   listeners.forEach((l) => l());

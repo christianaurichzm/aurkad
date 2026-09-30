@@ -389,14 +389,15 @@ function makeUi(id: string, container: HTMLElement) {
       toast(el, opts.ms, container);
     },
     // A tile in the in-game Actions menu, e.g. to toggle a panel. A one-char
-    // hotkey adds a key badge and global shortcut like the built-ins, and an
-    // icon name draws on the tile.
+    // hotkey adds a key badge and global shortcut like the built-ins; an icon
+    // name draws on the tile; an order places it among the others.
     actionButton: (
       label: string,
       onClick: () => void,
       key?: string,
       icon?: string,
-    ) => registerModuleAction(label, onClick, key, icon),
+      order?: number,
+    ) => registerModuleAction(label, onClick, key, icon, order),
     // This module's slots on the bar along the bottom of the world, replacing
     // the ones it set before; [] takes them off.
     hotbar: (slots: HotbarSlot[]) => setHotbar(id, slots),

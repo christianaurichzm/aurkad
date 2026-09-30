@@ -300,7 +300,7 @@ function InviteWindow({ invite }) {
   );
 }
 
-ui.actionButton('Party', toggle, 'p', 'party');
+ui.actionButton('Party', toggle, 'p', 'party', 50);
 
 engine.onServerEvent('party:update', (data) => {
   const joined =

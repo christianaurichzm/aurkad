@@ -187,7 +187,7 @@ function toast(text, detail) {
   ui.notice(text, { tone: 'warning', detail, ms: 3500 });
 }
 
-ui.actionButton('Quests', toggle, 'q', 'quest');
+ui.actionButton('Quests', toggle, 'q', 'quest', 40);
 
 engine.onServerEvent('quest:update', (list) => {
   if (!Array.isArray(list)) return;

@@ -25,6 +25,7 @@ type PlayerAction = {
   keyLabel: string;
   eventName: string;
   icon: IconName;
+  order: number;
 };
 
 type CreatorAction = {
@@ -43,6 +44,7 @@ const playerActions: PlayerAction[] = [
     keyLabel: 'I',
     eventName: 'toggleInventory',
     icon: 'bag',
+    order: 10,
   },
   {
     id: 'attributes',
@@ -50,6 +52,7 @@ const playerActions: PlayerAction[] = [
     keyLabel: 'V',
     eventName: 'toggleAttributeDistributor',
     icon: 'stats',
+    order: 20,
   },
   {
     id: 'onlinePlayers',
@@ -57,6 +60,7 @@ const playerActions: PlayerAction[] = [
     keyLabel: 'O',
     eventName: 'toggleOnlinePlayers',
     icon: 'players',
+    order: 120,
   },
 ];
 
@@ -87,6 +91,8 @@ const creatorActions: CreatorAction[] = [
   },
 ];
 
+const UNORDERED = Number.MAX_SAFE_INTEGER;
+
 const togglePanel = (eventName: string) => {
   window.dispatchEvent(new Event(eventName));
 };
@@ -96,6 +102,7 @@ type Tile = {
   label: string;
   keyLabel?: string;
   icon?: IconName;
+  order?: number;
   onClick: () => void;
 };
 
@@ -124,6 +131,7 @@ export const ActionPanel: React.FC = () => {
         label: t(action.label),
         keyLabel: action.keyLabel,
         icon: action.icon,
+        order: action.order,
         onClick: () => togglePanel(action.eventName),
       })),
     // A module label is its own English, translated by the module's table, so
@@ -133,9 +141,12 @@ export const ActionPanel: React.FC = () => {
       label: moduleText(action.label),
       keyLabel: action.key?.toUpperCase(),
       icon: action.icon,
+      order: action.order,
       onClick: action.onClick,
     })),
-  ];
+    // Ordered from the player's own panels, to what is done with others, to
+    // the records (numbers in clientEngine.d.ts); unordered tiles go last.
+  ].sort((a, b) => (a.order ?? UNORDERED) - (b.order ?? UNORDERED));
 
   return (
     <section id="actionPanel" className="panel" aria-label={t('actions.title')}>

@@ -143,7 +143,7 @@ function LeaderboardWindow({ state }) {
   );
 }
 
-ui.actionButton('Leaderboard', toggle, 'l', 'ranking');
+ui.actionButton('Leaderboard', toggle, 'l', 'ranking', 110);
 
 engine.onServerEvent('leaderboard:update', (payload) => {
   if (!payload) return;

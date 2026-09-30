@@ -48,7 +48,7 @@ function toggle() {
   draw();
 }
 
-ui.actionButton('Spells', toggle, 's', 'spellbook'); // S opens/closes
+ui.actionButton('Spells', toggle, 's', 'spellbook', 30); // S opens/closes
 
 // Casts only when off cooldown and affordable; the spellbook and the
 // hotbar share this gate.

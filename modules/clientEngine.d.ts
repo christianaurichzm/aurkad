@@ -89,11 +89,22 @@ interface ModuleUi {
   /**
    * A tile in the Actions menu. `hotkey` is one character, shown on the tile
    * and bound while no field has focus; `icon` names one of the engine's
-   * pictures (an unknown name shows the label's first letter).
+   * pictures (an unknown name shows the label's first letter). `order` places
+   * the tile: lower comes first, and the engine's own menu runs from what is
+   * the player's (Inventory 10, Attributes 20, Spells 30, Quests 40) through
+   * what is done with others (Party 50, Guild 60, Trade 70, Mail 80, Social
+   * 90) to the records (Achievements 100, Leaderboard 110, Online players
+   * 120). A tile with no order goes after all of them, in module load order.
    *
-   * @example ui.actionButton('Guild', toggle, 'g', 'guild')
+   * @example ui.actionButton('Guild', toggle, 'g', 'guild', 60)
    */
-  actionButton(label: string, onClick: () => void, hotkey?: string, icon?: ActionIcon): void;
+  actionButton(
+    label: string,
+    onClick: () => void,
+    hotkey?: string,
+    icon?: ActionIcon,
+    order?: number,
+  ): void;
   /**
    * This module's slots on the bar along the bottom of the world, replacing
    * the ones it set before (`[]` takes them off). A slot's `key` is shown on

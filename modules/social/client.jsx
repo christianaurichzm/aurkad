@@ -188,7 +188,7 @@ function Entry({ label, status, onRemove }) {
   );
 }
 
-ui.actionButton('Social', toggle, 'n', 'friends');
+ui.actionButton('Social', toggle, 'n', 'friends', 90);
 
 engine.onServerEvent('social:update', (payload) => {
   if (!payload) return;

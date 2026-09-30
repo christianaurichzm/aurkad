@@ -174,4 +174,22 @@ describe('ActionPanel', () => {
     expect(bestiary.querySelector('.icon')).not.toBeInTheDocument();
     expect(bestiary.querySelector('.action-monogram')).toHaveTextContent('B');
   });
+
+  it('places tiles by their order, and one without it after the rest', () => {
+    registerModuleAction('Bazaar', vi.fn());
+    registerModuleAction('Trade', vi.fn(), 't', 'trade', 70);
+    registerModuleAction('Spells', vi.fn(), 's', 'spellbook', 30);
+
+    render(<ActionPanel />);
+
+    const labels = screen
+      .getAllByRole('button')
+      .map((button) => button.querySelector('.action-label')?.textContent);
+    const at = (label: string) => labels.indexOf(label);
+    expect(at('Inventory')).toBe(0);
+    expect(at('Attributes')).toBeLessThan(at('Spells'));
+    expect(at('Spells')).toBeLessThan(at('Trade'));
+    expect(at('Trade')).toBeLessThan(at('Online players'));
+    expect(at('Online players')).toBeLessThan(at('Bazaar'));
+  });
 });

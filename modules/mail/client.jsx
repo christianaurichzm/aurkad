@@ -200,7 +200,7 @@ function SendForm() {
   );
 }
 
-ui.actionButton('Mail', toggle, 'm', 'mail');
+ui.actionButton('Mail', toggle, 'm', 'mail', 80);
 
 engine.onServerEvent('mail:update', (data) => {
   const payload = /** @type {any} */ (data);
