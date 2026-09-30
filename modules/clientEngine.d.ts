@@ -1,5 +1,26 @@
 // Types for the client-side `engine` object given to module scripts.
 
+/** The pictures the engine draws; a theme repaints one with `--icon-<name>`. */
+type ActionIcon =
+  | 'bag'
+  | 'stats'
+  | 'players'
+  | 'quest'
+  | 'friends'
+  | 'trade'
+  | 'guild'
+  | 'trophy'
+  | 'mail'
+  | 'ranking'
+  | 'spellbook'
+  | 'party'
+  | 'auction'
+  | 'attack'
+  | 'interact'
+  | 'pickup'
+  | 'run'
+  | 'settings';
+
 interface PanelApi {
   el: HTMLElement;
   body: HTMLElement;
@@ -44,7 +65,14 @@ interface ModuleUi {
       ms?: number;
     },
   ): void;
-  actionButton(label: string, onClick: () => void, hotkey?: string): HTMLButtonElement;
+  /**
+   * A tile in the Actions menu. `hotkey` is one character, shown on the tile
+   * and bound while no field has focus; `icon` names one of the engine's
+   * pictures (an unknown name shows the label's first letter).
+   *
+   * @example ui.actionButton('Guild', toggle, 'g', 'guild')
+   */
+  actionButton(label: string, onClick: () => void, hotkey?: string, icon?: ActionIcon): void;
   /**
    * The window of `panel()` for a module drawn with `engine.render`: open
    * while rendered, so the module keeps whether it is open and renders it or

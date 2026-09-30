@@ -164,7 +164,7 @@ function toast(entry) {
   });
 }
 
-ui.actionButton('Achievements', toggle, 'k');
+ui.actionButton('Achievements', toggle, 'k', 'trophy');
 
 engine.onServerEvent('achievements:update', (payload) => {
   if (!payload) return;

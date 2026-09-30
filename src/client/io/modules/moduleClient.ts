@@ -376,11 +376,15 @@ function makeUi(container: HTMLElement) {
       if (opts.detail) el.append(line('notice-detail', opts.detail));
       toast(el, opts.ms, container);
     },
-    // A button in the in-game Actions menu, e.g. to toggle a panel. A
-    // one-char hotkey adds a key badge and global shortcut like the built-ins
-    // ("I" for Inventory).
-    actionButton: (label: string, onClick: () => void, key?: string) =>
-      registerModuleAction(label, onClick, key),
+    // A tile in the in-game Actions menu, e.g. to toggle a panel. A one-char
+    // hotkey adds a key badge and global shortcut like the built-ins, and an
+    // icon name draws on the tile.
+    actionButton: (
+      label: string,
+      onClick: () => void,
+      key?: string,
+      icon?: string,
+    ) => registerModuleAction(label, onClick, key, icon),
     // The window panel() builds, as a component for engine.render.
     Window: ModuleWindow,
   };

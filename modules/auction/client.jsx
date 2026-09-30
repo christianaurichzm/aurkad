@@ -239,7 +239,7 @@ function SellForm({ s, form, setForm }) {
   );
 }
 
-ui.actionButton('Auction', toggle, 'u');
+ui.actionButton('Auction', toggle, 'u', 'auction');
 
 engine.onServerEvent('auction:update', (payload) => {
   if (!payload) return;

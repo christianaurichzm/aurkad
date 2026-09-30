@@ -96,6 +96,8 @@ export const pt: Record<keyof typeof en, string> = {
   'chat.scopeMap': 'Mapa',
   'chat.title': 'Chat',
   'chat.empty': 'Ninguém disse nada ainda.',
+  'chat.tabAll': 'Tudo',
+  'chat.tabSystem': 'Sistema',
 
   'settings.title': 'Configurações',
   'settings.music': 'Música',
@@ -587,7 +589,6 @@ export const pt: Record<keyof typeof en, string> = {
     'Perdeu o telefone e os códigos? Outro admin roda: twofactor <nome> off',
 
   'app.poweredBy': 'Feito com Aurkad {version}',
-  'actions.modules': 'Aventuras e social',
   'actions.tools': 'Ferramentas de criação',
   'common.select': 'Selecionar…',
   'common.close': 'Fechar',

@@ -30,7 +30,7 @@ function toggle() {
   draw();
 }
 
-ui.actionButton('Spells', toggle, 's'); // S opens/closes
+ui.actionButton('Spells', toggle, 's', 'spellbook'); // S opens/closes
 
 // Cast only when off cooldown and affordable: the one gate the window
 // buttons and the F-key hotkeys share.

@@ -12,7 +12,7 @@ import { QuestTracker } from './components/Quest/QuestTracker';
 import { TilesetEditor } from './components/Tileset/TilesetEditor';
 import { GMPanel } from './components/GMPanel';
 import { ChatPanel } from './components/ChatPanel';
-import { ActionPanel } from './components/ActionPanel';
+import { ActionPanel, CreatorTools } from './components/ActionPanel';
 import { useGame } from './context/GameContext';
 import { useT } from './i18n';
 import { AttributeDistributorModal } from './components/AttributeDistributorModal';
@@ -94,6 +94,7 @@ function App() {
             <aside id="sidePanel" aria-label={t('app.gameControls')}>
               <ActionPanel />
               <ChatPanel />
+              <CreatorTools />
             </aside>
           </div>
           <ShopModal />

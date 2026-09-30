@@ -18,6 +18,14 @@ const portraitCanvas = {
   background: 'none',
 };
 
+// The same three bands the world paints over a hurt NPC, named by the colour
+// token each one reads in styles.css so a theme can recolour them.
+const healthTone: Record<string, string> = {
+  green: 'success',
+  yellow: 'warning',
+  red: 'danger',
+};
+
 export const HudBar = () => {
   const t = useT();
   // The live player's name and sprite when there is one, so a GM change
@@ -27,7 +35,7 @@ export const HudBar = () => {
   const identity = livePlayer ?? sessionPlayer;
   const { current, max, level = 1 } = useUIStore((state) => state.playerHealth);
   const xp = useUIStore((state) => state.playerXp);
-  const { percentage, color, text } = getHealthBarInfo(current, max);
+  const { percentage, color } = getHealthBarInfo(current, max);
   const xpPercentage =
     xp.max > 0 ? Math.max(0, Math.min(xp.current / xp.max, 1)) : 0;
 
@@ -57,64 +65,63 @@ export const HudBar = () => {
   );
 
   return (
-    <div id="hud">
-      <div id="hud-identity">
-        <div id="hud-portrait" data-sprite={identity?.sprite ?? 0}>
-          <SpritePreview
-            spriteId={identity?.sprite ?? 0}
-            size={38}
-            style={portraitCanvas}
-          />
-        </div>
+    <div id="hud" className="panel">
+      <div id="hud-portrait" data-sprite={identity?.sprite ?? 0}>
+        <SpritePreview
+          spriteId={identity?.sprite ?? 0}
+          size={48}
+          style={portraitCanvas}
+        />
+      </div>
+      <div className="hud-stats">
         <div id="hud-who">
           <span id="hud-name">{identity?.name}</span>
           <span id="hud-level">{t('hud.level', { level })}</span>
         </div>
-      </div>
-      <div id="hud-row">
-        <span id="hud-hp-label">{t('hud.hp')}</span>
-        <div id="health-bar-container">
+        <div id="hud-row" data-tone={healthTone[color]}>
+          <span id="hud-hp-label">{t('hud.hp')}</span>
           <div
-            id="health-bar"
-            style={{
-              width: `${percentage * 100}%`,
-              backgroundColor: color,
-            }}
-          />
-          <div id="health-bar-text">{text}</div>
-        </div>
-        <span id="hud-hp-values">
-          {current}/{max}
-        </span>
-      </div>
-      {mana && (
-        <div className="hud-resource-row">
-          <span className="hud-resource-label">{t('hud.mp')}</span>
-          <div
-            className="mana-track"
+            id="health-bar-container"
             role="progressbar"
-            aria-label={t('hud.mana')}
+            aria-label={t('hud.hp')}
             aria-valuemin={0}
-            aria-valuemax={mana.max}
-            aria-valuenow={mana.current}
+            aria-valuemax={max}
+            aria-valuenow={current}
           >
-            <div
-              className="mana-fill"
-              style={{ width: `${(mana.current / mana.max) * 100}%` }}
-            />
-            <div className="mana-text">
-              {getHealthBarInfo(mana.current, mana.max).text}
-            </div>
+            <div id="health-bar" style={{ width: `${percentage * 100}%` }} />
           </div>
-          <span className="hud-resource-values">
-            {Math.floor(mana.current)}/{mana.max}
+          <span id="hud-hp-values">
+            {current}/{max}
           </span>
         </div>
-      )}
-      <div id="xp-bar-container" title={`${xp.current}/${xp.max} XP`}>
-        <div id="xp-bar" style={{ width: `${xpPercentage * 100}%` }} />
-        <div id="xp-bar-text">
-          {t('hud.xp', { current: xp.current, max: xp.max })}
+        {mana && (
+          <div className="hud-resource-row">
+            <span className="hud-resource-label">{t('hud.mp')}</span>
+            <div
+              className="mana-track"
+              role="progressbar"
+              aria-label={t('hud.mana')}
+              aria-valuemin={0}
+              aria-valuemax={mana.max}
+              aria-valuenow={mana.current}
+            >
+              <div
+                className="mana-fill"
+                style={{ width: `${(mana.current / mana.max) * 100}%` }}
+              />
+            </div>
+            <span className="hud-resource-values">
+              {Math.floor(mana.current)}/{mana.max}
+            </span>
+          </div>
+        )}
+        <div id="xp-bar-container" title={`${xp.current}/${xp.max} XP`}>
+          <div className="xp-track">
+            <div id="xp-bar" style={{ width: `${xpPercentage * 100}%` }} />
+          </div>
+          <span id="xp-bar-text">
+            {t('hud.xp', { current: xp.current, max: xp.max })}
+          </span>
         </div>
       </div>
     </div>

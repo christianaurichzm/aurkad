@@ -14,44 +14,52 @@ import {
 } from '../io/modules/moduleActions';
 import { useUIStore } from '../stores/uiStore';
 import { moduleText, useT, type TranslationKey } from '../i18n';
+import { Icon, type IconName } from './common/Icon';
 
-type QuickAction = {
+type PlayerAction = {
   id: string;
   label: TranslationKey;
-  // Optional: a hotkey has to be a member of the shared `Key` enum, which the
-  // server validates on the wire. Panels that are not worth that go without.
-  keyLabel?: string;
+  // A hotkey has to be a member of the shared `Key` enum, which the server
+  // validates on the wire.
+  keyLabel: string;
   eventName: string;
-  minAccess: Access;
-  className?: string;
-  authorize?: () => Promise<boolean>;
+  icon: IconName;
 };
 
-const quickActions: QuickAction[] = [
+type CreatorAction = {
+  id: string;
+  label: TranslationKey;
+  keyLabel: string;
+  eventName: string;
+  minAccess: Access;
+  authorize: () => Promise<boolean>;
+};
+
+const playerActions: PlayerAction[] = [
   {
     id: 'inventory',
     label: 'actions.inventory',
     keyLabel: 'I',
     eventName: 'toggleInventory',
-    minAccess: Access.USER,
-    className: 'action-button-primary',
+    icon: 'bag',
   },
   {
     id: 'attributes',
     label: 'actions.attributes',
     keyLabel: 'V',
     eventName: 'toggleAttributeDistributor',
-    minAccess: Access.USER,
-    className: 'action-button-primary',
+    icon: 'stats',
   },
   {
     id: 'onlinePlayers',
     label: 'actions.onlinePlayers',
     keyLabel: 'O',
     eventName: 'toggleOnlinePlayers',
-    minAccess: Access.USER,
-    className: 'action-button-primary',
+    icon: 'players',
   },
+];
+
+const creatorActions: CreatorAction[] = [
   {
     id: 'map',
     label: 'actions.mapEditor',
@@ -78,32 +86,92 @@ const quickActions: QuickAction[] = [
   },
 ];
 
+const togglePanel = (eventName: string) => {
+  window.dispatchEvent(new Event(eventName));
+};
+
+type Tile = {
+  id: string;
+  label: string;
+  keyLabel?: string;
+  icon?: IconName;
+  onClick: () => void;
+};
+
+// The key is named once, by aria-keyshortcuts, so the chip is hidden from the
+// accessible name, which stays the panel's.
+const KeyChip = ({ keyLabel }: { keyLabel: string }) => (
+  <span className="action-key" aria-hidden="true">
+    {keyLabel}
+  </span>
+);
+
+/** The panels every player opens, the engine's and the modules', as tiles. */
 export const ActionPanel: React.FC = () => {
+  const t = useT();
+
+  // Buttons contributed by client modules (engine.ui.actionButton).
+  const [, forceUpdate] = useReducer((n: number) => n + 1, 0);
+  useEffect(() => subscribeModuleActions(forceUpdate), []);
+
+  const tiles: Tile[] = [
+    ...playerActions.map((action) => ({
+      id: action.id,
+      label: t(action.label),
+      keyLabel: action.keyLabel,
+      icon: action.icon,
+      onClick: () => togglePanel(action.eventName),
+    })),
+    // A module label is its own English, translated by the module's table, so
+    // it follows a language switch.
+    ...getModuleActions().map((action) => ({
+      id: action.id,
+      label: moduleText(action.label),
+      keyLabel: action.key?.toUpperCase(),
+      icon: action.icon,
+      onClick: action.onClick,
+    })),
+  ];
+
+  return (
+    <section id="actionPanel" className="panel" aria-label={t('actions.title')}>
+      <div className="action-grid">
+        {tiles.map((tile) => (
+          <button
+            key={tile.id}
+            type="button"
+            className="action-button"
+            onClick={tile.onClick}
+            title={t('actions.open', { panel: tile.label })}
+            aria-keyshortcuts={tile.keyLabel}
+          >
+            {tile.icon ? (
+              <Icon name={tile.icon} />
+            ) : (
+              <span className="action-monogram" aria-hidden="true">
+                {tile.label.charAt(0)}
+              </span>
+            )}
+            <span className="action-label">{tile.label}</span>
+            {tile.keyLabel && <KeyChip keyLabel={tile.keyLabel} />}
+          </button>
+        ))}
+      </div>
+    </section>
+  );
+};
+
+/** The editors and the GM panel, folded away at the foot of the column. */
+export const CreatorTools: React.FC = () => {
   const t = useT();
   const [loadingPanel, setLoadingPanel] = useState<string | null>(null);
   const { player: sessionPlayer } = useGame();
   const livePlayer = usePlayerForceUpdate(true);
   const showDialog = useUIStore((state) => state.showDialog);
   const access = livePlayer?.access ?? sessionPlayer?.access ?? Access.USER;
-  const visibleActions = quickActions.filter(
-    (action) => access >= action.minAccess,
-  );
+  if (access < Access.MOD) return null;
 
-  // Buttons contributed by client modules (engine.ui.actionButton).
-  const [, forceUpdate] = useReducer((n: number) => n + 1, 0);
-  useEffect(() => subscribeModuleActions(forceUpdate), []);
-  const moduleActions = getModuleActions();
-
-  const togglePanel = (eventName: string) => {
-    window.dispatchEvent(new Event(eventName));
-  };
-
-  const openAction = async (action: QuickAction) => {
-    if (!action.authorize) {
-      togglePanel(action.eventName);
-      return;
-    }
-
+  const openAction = async (action: CreatorAction) => {
     setLoadingPanel(action.id);
     try {
       if (await action.authorize()) {
@@ -128,65 +196,31 @@ export const ActionPanel: React.FC = () => {
     }
   };
 
-  const renderAction = (action: QuickAction) => (
-    <button
-      key={action.id}
-      type="button"
-      className={['action-button', action.className].filter(Boolean).join(' ')}
-      disabled={loadingPanel === action.id}
-      onClick={() => void openAction(action)}
-      title={t('actions.open', { panel: t(action.label) })}
-    >
-      {action.keyLabel && <span className="action-key">{action.keyLabel}</span>}
-      <span>
-        {loadingPanel === action.id ? t('actions.opening') : t(action.label)}
-      </span>
-    </button>
-  );
-
   return (
-    <section id="actionPanel" aria-label={t('actions.title')}>
-      <div className="panel-title">{t('actions.title')}</div>
-      <div className="action-grid">
-        {visibleActions
-          .filter((action) => action.minAccess === Access.USER)
-          .map(renderAction)}
-        {/* A module label is its own English, translated by the table its
-            module declared (engine.i18n), so it follows a switch like the
-            built-ins above rather than staying in the language it registered. */}
-        {moduleActions.length > 0 && (
-          <div
-            className="panel-title"
-            style={{ gridColumn: '1 / -1', marginTop: 8 }}
-          >
-            {t('actions.modules')}
-          </div>
-        )}
-        {moduleActions.map((action) => (
-          <button
-            key={action.id}
-            type="button"
-            className="action-button action-button-primary"
-            onClick={action.onClick}
-            title={t('actions.open', { panel: moduleText(action.label) })}
-          >
-            {action.key && (
-              <span className="action-key">{action.key.toUpperCase()}</span>
-            )}
-            <span>{moduleText(action.label)}</span>
-          </button>
-        ))}
+    <details className="creator-tools panel">
+      <summary>{t('actions.tools')}</summary>
+      <div className="creator-tools-body">
+        {creatorActions
+          .filter((action) => access >= action.minAccess)
+          .map((action) => (
+            <button
+              key={action.id}
+              type="button"
+              className="action-button"
+              disabled={loadingPanel === action.id}
+              onClick={() => void openAction(action)}
+              title={t('actions.open', { panel: t(action.label) })}
+              aria-keyshortcuts={action.keyLabel}
+            >
+              <KeyChip keyLabel={action.keyLabel} />
+              <span>
+                {loadingPanel === action.id
+                  ? t('actions.opening')
+                  : t(action.label)}
+              </span>
+            </button>
+          ))}
       </div>
-      {access >= Access.MOD && (
-        <details className="creator-tools">
-          <summary>{t('actions.tools')}</summary>
-          <div className="action-grid">
-            {visibleActions
-              .filter((action) => action.minAccess > Access.USER)
-              .map(renderAction)}
-          </div>
-        </details>
-      )}
-    </section>
+    </details>
   );
 };

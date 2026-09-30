@@ -188,7 +188,38 @@ describe('ChatPanel Component', () => {
 
     render(<ChatPanel />);
 
-    expect(screen.getByText('[map] TestUser: Hello')).toBeInTheDocument();
+    expect(screen.getByText('TestUser')).toHaveClass('chat-who');
+    expect(screen.getByText('TestUser').parentElement).toHaveTextContent(
+      'TestUser: Hello',
+    );
+  });
+
+  it('shows one channel under its tab and all of them under All', async () => {
+    const user = userEvent.setup();
+    useUIStore.setState({
+      chat: {
+        messages: [
+          { type: 'chat', scope: 'map', message: 'nearby', username: 'A' },
+          { type: 'chat', scope: 'global', message: 'everyone', username: 'B' },
+          { type: 'chat', scope: 'player', message: 'Unknown command: /x' },
+        ],
+        inputValue: '',
+        scope: 'map',
+      },
+    });
+    render(<ChatPanel />);
+
+    await user.click(screen.getByRole('tab', { name: 'System' }));
+    expect(screen.getByText('Unknown command: /x')).toBeInTheDocument();
+    expect(screen.queryByText(/nearby|everyone/)).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole('tab', { name: 'Global' }));
+    expect(screen.getByText(/everyone/)).toBeInTheDocument();
+    expect(screen.queryByText(/nearby/)).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole('tab', { name: 'All' }));
+    expect(screen.getByText(/nearby/)).toBeInTheDocument();
+    expect(screen.getByText(/everyone/)).toBeInTheDocument();
   });
 
   it('should format messages without username', () => {

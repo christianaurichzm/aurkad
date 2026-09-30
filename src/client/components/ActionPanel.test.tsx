@@ -2,7 +2,8 @@ import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { Access } from '../../shared/types';
-import { ActionPanel } from './ActionPanel';
+import { ActionPanel, CreatorTools } from './ActionPanel';
+import { registerModuleAction } from '../io/modules/moduleActions';
 
 const mocks = vi.hoisted(() => ({
   openContentEditor: vi.fn(),
@@ -41,7 +42,12 @@ describe('ActionPanel', () => {
   });
 
   it('shows only user actions for regular users', () => {
-    render(<ActionPanel />);
+    render(
+      <>
+        <ActionPanel />
+        <CreatorTools />
+      </>,
+    );
 
     expect(
       screen.getByRole('button', { name: /inventory/i }),
@@ -61,12 +67,22 @@ describe('ActionPanel', () => {
     expect(
       screen.queryByRole('button', { name: /content/i }),
     ).not.toBeInTheDocument();
+    expect(screen.queryByText('Creator tools')).not.toBeInTheDocument();
+  });
+
+  it('names a tile by its panel and its hotkey apart', () => {
+    render(<ActionPanel />);
+
+    expect(screen.getByRole('button', { name: 'Inventory' })).toHaveAttribute(
+      'aria-keyshortcuts',
+      'I',
+    );
   });
 
   it('keeps moderation collapsed until requested, without admin editors', async () => {
     setAccess(Access.MOD);
 
-    render(<ActionPanel />);
+    render(<CreatorTools />);
 
     expect(screen.getByRole('button', { name: /gm/i })).not.toBeVisible();
     await userEvent.click(screen.getByText('Creator tools'));
@@ -82,7 +98,7 @@ describe('ActionPanel', () => {
   it('keeps creator tools collapsed even for admins', async () => {
     setAccess(Access.ADMIN);
 
-    render(<ActionPanel />);
+    render(<CreatorTools />);
 
     expect(
       screen.getByRole('button', { name: /map editor/i }),
@@ -105,7 +121,7 @@ describe('ActionPanel', () => {
     mocks.openMapEditor.mockResolvedValue(true);
     window.addEventListener('toggleTilesetEditor', onToggle);
 
-    render(<ActionPanel />);
+    render(<CreatorTools />);
 
     await user.click(screen.getByText('Creator tools'));
     await user.click(screen.getByRole('button', { name: /map editor/i }));
@@ -128,5 +144,19 @@ describe('ActionPanel', () => {
     expect(onToggle).toHaveBeenCalledTimes(1);
 
     window.removeEventListener('toggleOnlinePlayers', onToggle);
+  });
+
+  it('draws a module tile with its icon, or its initial for a name it lacks', () => {
+    registerModuleAction('Guild', vi.fn(), 'g', 'guild');
+    registerModuleAction('Bestiary', vi.fn(), undefined, 'dragon');
+
+    render(<ActionPanel />);
+
+    const guild = screen.getByRole('button', { name: 'Guild' });
+    expect(guild.querySelector('.icon-guild')).toBeInTheDocument();
+    expect(guild).toHaveAttribute('aria-keyshortcuts', 'G');
+    const bestiary = screen.getByRole('button', { name: 'Bestiary' });
+    expect(bestiary.querySelector('.icon')).not.toBeInTheDocument();
+    expect(bestiary.querySelector('.action-monogram')).toHaveTextContent('B');
   });
 });

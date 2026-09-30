@@ -12,6 +12,19 @@ export const ICON_NAMES = [
   'settings',
   'menu',
   'close',
+  'bag',
+  'stats',
+  'players',
+  'quest',
+  'friends',
+  'trade',
+  'guild',
+  'trophy',
+  'mail',
+  'ranking',
+  'spellbook',
+  'party',
+  'auction',
 ] as const;
 export type IconName = (typeof ICON_NAMES)[number];
 

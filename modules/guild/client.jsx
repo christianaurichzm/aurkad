@@ -269,7 +269,7 @@ function InviteWindow({ invite }) {
   );
 }
 
-ui.actionButton('Guild', toggle, 'g');
+ui.actionButton('Guild', toggle, 'g', 'guild');
 
 engine.onServerEvent('guild:update', (g) => {
   guild = g;

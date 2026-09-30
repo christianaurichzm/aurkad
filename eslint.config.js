@@ -229,6 +229,7 @@ export default tseslint.config(
             '/',
             ',',
             '.',
+            ':',
             '-',
             '*',
             'x',

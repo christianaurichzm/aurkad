@@ -226,7 +226,7 @@ function OfferForm({ form }) {
   );
 }
 
-ui.actionButton('Trade', () => show(!shown), 't');
+ui.actionButton('Trade', () => show(!shown), 't', 'trade');
 
 window.addEventListener('inventory:item-for-trade', function (e) {
   const detail = /** @type {CustomEvent} */ (e).detail;

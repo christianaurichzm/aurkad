@@ -98,6 +98,8 @@ export const en = {
   'chat.scopeMap': 'Map',
   'chat.title': 'Chat',
   'chat.empty': 'Nothing said here yet.',
+  'chat.tabAll': 'All',
+  'chat.tabSystem': 'System',
 
   // Settings
   'settings.title': 'Settings',
@@ -588,7 +590,6 @@ export const en = {
     'Lost the phone and the codes? Another admin runs: twofactor <name> off',
 
   'app.poweredBy': 'Powered by Aurkad {version}',
-  'actions.modules': 'Adventures & social',
   'actions.tools': 'Creator tools',
   'common.select': 'Select…',
   'common.close': 'Close',

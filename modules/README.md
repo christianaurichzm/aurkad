@@ -189,7 +189,7 @@ function GuildWindow({ g }) {
   );
 }
 
-ui.actionButton('Guild', toggle, 'g');
+ui.actionButton('Guild', toggle, 'g', 'guild');
 engine.onServerEvent('guild:update', (g) => {
   guild = g;
   draw();

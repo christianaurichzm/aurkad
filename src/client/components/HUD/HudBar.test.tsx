@@ -15,6 +15,10 @@ vi.mock('../../hooks/usePlayerForceUpdate', () => ({
   usePlayerForceUpdate: () => null,
 }));
 
+const healthBar = () => document.getElementById('health-bar');
+const healthTone = () =>
+  document.getElementById('hud-row')?.getAttribute('data-tone');
+
 describe('HudBar Component', () => {
   it('marks the portrait with the sprite id, for a theme to pick a picture by', () => {
     const { container } = render(<HudBar />);
@@ -60,8 +64,8 @@ describe('HudBar Component', () => {
   it('should render health bar with 100% health', () => {
     render(<HudBar />);
 
-    const text = screen.getByText('100%');
-    expect(text).toBeInTheDocument();
+    expect(healthBar()).toHaveStyle({ width: '100%' });
+    expect(healthTone()).toBe('success');
   });
 
   it('should render level with hp label', () => {
@@ -103,8 +107,8 @@ describe('HudBar Component', () => {
 
     render(<HudBar />);
 
-    const text = screen.getByText('75%');
-    expect(text).toBeInTheDocument();
+    expect(healthBar()).toHaveStyle({ width: '75%' });
+    expect(healthTone()).toBe('success');
   });
 
   it('should render health bar with 50% health (yellow)', () => {
@@ -117,8 +121,8 @@ describe('HudBar Component', () => {
 
     render(<HudBar />);
 
-    const text = screen.getByText('50%');
-    expect(text).toBeInTheDocument();
+    expect(healthBar()).toHaveStyle({ width: '50%' });
+    expect(healthTone()).toBe('warning');
   });
 
   it('should render health bar with 20% health (red)', () => {
@@ -131,8 +135,8 @@ describe('HudBar Component', () => {
 
     render(<HudBar />);
 
-    const text = screen.getByText('20%');
-    expect(text).toBeInTheDocument();
+    expect(healthBar()).toHaveStyle({ width: '20%' });
+    expect(healthTone()).toBe('danger');
   });
 
   it('should render health bar with 0% health', () => {
@@ -145,8 +149,8 @@ describe('HudBar Component', () => {
 
     render(<HudBar />);
 
-    const text = screen.getByText('0%');
-    expect(text).toBeInTheDocument();
+    expect(healthBar()).toHaveStyle({ width: '0%' });
+    expect(healthTone()).toBe('danger');
   });
 
   it('should handle different max health values', () => {
@@ -159,8 +163,7 @@ describe('HudBar Component', () => {
 
     render(<HudBar />);
 
-    const text = screen.getByText('50%');
-    expect(text).toBeInTheDocument();
+    expect(healthBar()).toHaveStyle({ width: '50%' });
   });
 
   it('should render the xp bar with current/max experience', () => {
@@ -184,16 +187,18 @@ describe('HudBar Component', () => {
     expect(healthBar).toBeInTheDocument();
   });
 
-  it('should render health bar text element with correct id', () => {
+  it('exposes health as a progressbar named by its label', () => {
     render(<HudBar />);
 
-    const healthBarText = document.getElementById('health-bar-text');
-    expect(healthBarText).toBeInTheDocument();
+    expect(screen.getByRole('progressbar', { name: 'HP' })).toHaveAttribute(
+      'aria-valuenow',
+      '100',
+    );
   });
 
   it('should update when health changes', () => {
     const { rerender } = render(<HudBar />);
-    expect(screen.getByText('100%')).toBeInTheDocument();
+    expect(healthBar()).toHaveStyle({ width: '100%' });
 
     useUIStore.setState({
       playerHealth: {
@@ -203,7 +208,7 @@ describe('HudBar Component', () => {
     });
 
     rerender(<HudBar />);
-    expect(screen.getByText('50%')).toBeInTheDocument();
+    expect(healthBar()).toHaveStyle({ width: '50%' });
   });
 });
 

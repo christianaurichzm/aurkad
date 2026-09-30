@@ -1,8 +1,17 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { ChatMessagePayload, ChatScope } from '../../shared/types';
 import { updateChat, sendChatMessage } from '../io/network';
 import { useUIStore } from '../stores/uiStore';
-import { useT } from '../i18n';
+import { useT, type TranslationKey } from '../i18n';
+
+// Which lines the log shows. 'player' is what was said to this player alone:
+// command replies, script messages, an operator's whisper.
+const tabs: { id: ChatScope | 'all'; label: TranslationKey }[] = [
+  { id: 'all', label: 'chat.tabAll' },
+  { id: 'map', label: 'chat.scopeMap' },
+  { id: 'global', label: 'chat.scopeGlobal' },
+  { id: 'player', label: 'chat.tabSystem' },
+];
 
 export const ChatPanel: React.FC = () => {
   const t = useT();
@@ -12,6 +21,9 @@ export const ChatPanel: React.FC = () => {
   const scope = useUIStore((state) => state.chat.scope);
   const setChatInput = useUIStore((state) => state.setChatInput);
   const setChatScope = useUIStore((state) => state.setChatScope);
+  const [tab, setTab] = useState<ChatScope | 'all'>('all');
+  const shown =
+    tab === 'all' ? messages : messages.filter((msg) => msg.scope === tab);
 
   useEffect(() => {
     const onMessage = () => updateChat();
@@ -23,7 +35,7 @@ export const ChatPanel: React.FC = () => {
     if (chatBoxRef.current) {
       chatBoxRef.current.scrollTop = chatBoxRef.current.scrollHeight;
     }
-  }, [messages]);
+  }, [messages, tab]);
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter') {
@@ -33,28 +45,41 @@ export const ChatPanel: React.FC = () => {
   };
 
   const getChatMessageClassName = (msg: ChatMessagePayload) => {
-    if (msg.subtype === 'death') return 'chat-death';
-    if (msg.scope === 'player') return 'chat-player';
-    if (msg.scope === 'global') return 'chat-global';
-    if (msg.scope === 'map') return 'chat-map';
-    return '';
-  };
-
-  const formatChatMessage = (msg: ChatMessagePayload) => {
-    if (!msg.username) return msg.message;
-    return `[${msg.scope}] ${msg.username}: ${msg.message}`;
+    const channel =
+      msg.subtype === 'death' ? 'chat-death' : `chat-${msg.scope}`;
+    return msg.username ? channel : `${channel} chat-notice`;
   };
 
   return (
-    <div id="chatContainer">
-      <div className="panel-title">{t('chat.title')}</div>
+    <section id="chatContainer" className="panel" aria-label={t('chat.title')}>
+      <div className="chat-tabs" role="tablist">
+        {tabs.map(({ id, label }) => (
+          <button
+            key={id}
+            type="button"
+            role="tab"
+            className="chat-tab"
+            aria-selected={tab === id}
+            aria-controls="chatBox"
+            onClick={() => setTab(id)}
+          >
+            {t(label)}
+          </button>
+        ))}
+      </div>
       <div id="chatBox" className="chat-box" ref={chatBoxRef}>
-        {messages.length === 0 && (
-          <p className="chat-empty">{t('chat.empty')}</p>
-        )}
-        {messages.map((msg, index) => (
+        {shown.length === 0 && <p className="chat-empty">{t('chat.empty')}</p>}
+        {shown.map((msg, index) => (
           <div key={index} className={getChatMessageClassName(msg)}>
-            {formatChatMessage(msg)}
+            {msg.username ? (
+              <>
+                <span className="chat-who">{msg.username}</span>
+                {': '}
+                {msg.message}
+              </>
+            ) : (
+              msg.message
+            )}
           </div>
         ))}
       </div>
@@ -78,7 +103,7 @@ export const ChatPanel: React.FC = () => {
           onKeyDown={handleKeyDown}
         />
       </div>
-    </div>
+    </section>
   );
 };
 

@@ -1,4 +1,5 @@
 import { isInputActive } from '../../utils/domHelpers';
+import { ICON_NAMES, type IconName } from '../../components/common/Icon';
 
 // Action-menu buttons added by client modules (engine.ui.actionButton). The
 // core ActionPanel renders one button each, so module panels open like the
@@ -9,6 +10,7 @@ export interface ModuleAction {
   label: string;
   onClick: () => void;
   key?: string; // lowercase single char, shown as a badge and bound as a hotkey
+  icon?: IconName;
 }
 
 const actions: ModuleAction[] = [];
@@ -19,12 +21,16 @@ export function registerModuleAction(
   label: string,
   onClick: () => void,
   key?: string,
+  icon?: string,
 ): void {
   actions.push({
     id: `module-action-${seq++}`,
     label,
     onClick,
     key: key?.toLowerCase(),
+    // A name the stylesheet has no --icon-<name> for would paint a solid
+    // square, so it gets the tile's lettered fallback instead.
+    icon: ICON_NAMES.find((name) => name === icon),
   });
   ensureHotkeyListener();
   listeners.forEach((l) => l());
