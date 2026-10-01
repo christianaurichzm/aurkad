@@ -51,6 +51,7 @@ function draw(
   const mod = loadClientModule('minimap', {
     getGameState: () => state,
     getPlayer: () => player,
+    screenToWorld: (x: number, y: number) => ({ x: x + cam.x, y: y + cam.y }),
   });
   const rec = recordingContext(canvas[0], canvas[1]);
   mod.overlays.forEach((o) => o.fn(rec.ctx, cam));
@@ -130,7 +131,8 @@ describe('minimap overlay', () => {
   it('draws the viewport rectangle when the map is bigger than the screen', () => {
     const { rec } = draw(mapOf(60, 40), undefined, { x: 0, y: 0 }, [800, 600]);
 
-    expect(rec.of('strokeRect')).toHaveLength(1);
+    expect(rec.of('stroke')).toHaveLength(1);
+    expect(rec.of('lineTo')).toHaveLength(3);
   });
 
   it('sits in screen space, not at a place in the world', () => {

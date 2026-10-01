@@ -25,7 +25,12 @@ import {
 import { getGameState, getPlayer } from '../../core/gameState';
 import { enqueueChatMessage } from '../network/sync/chatSync';
 import { TILE_SIZE } from '../../../shared/constants';
-import { getCamera, screenToWorld, worldToScreen } from '../../graphics/camera';
+import {
+  getCamera,
+  screenToWorld,
+  worldToScreen,
+  spritePosition,
+} from '../../graphics/camera';
 import { OverlayLayer, registerOverlay } from '../../graphics/overlayRegistry';
 import { worldText } from '../../graphics/canvas';
 
@@ -135,13 +140,14 @@ function installCanvasClickDetection() {
       const scaleY = refCanvas.height / rect.height;
       const sx = (e.clientX - rect.left) * scaleX;
       const sy = (e.clientY - rect.top) * scaleY;
-      const { x: cx, y: cy } = screenToWorld(sx, sy);
+      const cam = getCamera();
+      const cx = sx + cam.x;
+      const cy = sy + cam.y;
       const state = getGameState();
       if (!state) return;
       let hit: string | null = null;
       for (const p of Object.values(state.players)) {
-        const px = p.position.x;
-        const py = p.position.y;
+        const { x: px, y: py } = spritePosition(p.position.x, p.position.y);
         if (
           cx >= px &&
           cx <= px + TILE_SIZE &&

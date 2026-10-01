@@ -8,10 +8,12 @@ import {
   RuntimeNpc,
   RuntimeNpcsMap,
 } from '../../shared/types';
-import { playerActionToActionColumnRecord } from '../../shared/mappings';
 import { drawSprite } from './spriteDrawing';
+import { getSpriteLayout } from './sprite';
 import { renderItemIcon } from './itemDrawing';
 import { renderHUD, renderHealthBar, renderNpcLabel } from './hud';
+import { worldToView, spritePosition } from './camera';
+import { TILE_SIZE } from '../../shared/constants';
 import { itemCtx } from './canvas';
 import { getAnimatedState } from './movementAnimation';
 
@@ -54,7 +56,10 @@ const WALK_CYCLE_LENGTH = 4;
 const animationColumn = (id: string, action: CharacterAction): number => {
   if (action !== CharacterAction.Walk && action !== CharacterAction.Run) {
     slideTById.delete(id);
-    return playerActionToActionColumnRecord[action];
+    const layout = getSpriteLayout();
+    return action === CharacterAction.Attack
+      ? layout.attackColumn
+      : layout.idleColumn;
   }
   const slideT = slideTById.get(id) ?? 0;
   return Math.floor(slideT * WALK_CYCLE_LENGTH) % WALK_CYCLE_LENGTH;
@@ -90,27 +95,38 @@ export type EntityHudEntry = PlayerEntry | NpcEntry;
 export function renderEntitiesSorted(
   players: PlayersMap,
   npcs: RuntimeNpcsMap,
+  props: { y: number; draw: () => void }[] = [],
 ): EntityHudEntry[] {
   const buf: EntityHudEntry[] = [];
 
   for (const player of Object.values(players)) {
     const s = animate(player);
-    buf.push({ kind: 'player', y: s.position.y, entity: s });
+    buf.push({
+      kind: 'player',
+      y: worldToView(s.position.x + TILE_SIZE / 2, s.position.y + TILE_SIZE / 2)
+        .y,
+      entity: s,
+    });
   }
   for (const npc of Object.values(npcs)) {
     if (npc.health <= 0) continue;
     const s = animate(npc);
     buf.push({
       kind: 'npc',
-      y: s.position.y,
+      y: worldToView(s.position.x + TILE_SIZE / 2, s.position.y + TILE_SIZE / 2)
+        .y,
       entity: s,
       hasHealthBar: fightable(npc),
     });
   }
 
   buf.sort((a, b) => a.y - b.y);
-
-  for (const e of buf) renderEntity(e.entity);
+  const draws = [
+    ...props,
+    ...buf.map((e) => ({ y: e.y, draw: () => renderEntity(e.entity) })),
+  ];
+  draws.sort((a, b) => a.y - b.y);
+  for (const entry of draws) entry.draw();
 
   return buf;
 }
@@ -140,7 +156,8 @@ export const renderPlayers = (players: PlayersMap) => {
 
 export const renderDroppedItems = (droppedItems: DroppedItem[]) => {
   droppedItems.forEach((item) => {
-    renderItemIcon(itemCtx, item.sprite, item.position.x, item.position.y);
+    const at = spritePosition(item.position.x, item.position.y);
+    renderItemIcon(itemCtx, item.sprite, at.x, at.y, false);
   });
 };
 

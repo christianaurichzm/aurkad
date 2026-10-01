@@ -31,6 +31,7 @@ import { spawnAttackEffect } from '../../../graphics/attackEffect';
 import { spawnSpellEffect } from '../../../graphics/spellEffect';
 import { spawnFloatingText, themeToken } from '../../../graphics/floatingText';
 import { getAnimatedPos } from '../../../graphics/entityRendering';
+import { spritePosition } from '../../../graphics/camera';
 import { TILE_SIZE } from '../../../../shared/constants';
 import { CharacterAction, Direction } from '../../../../shared/types';
 
@@ -59,16 +60,19 @@ function showHealthChanges(changes: HealthChange[] | undefined): void {
         : change.id === selfId
           ? themeToken('--color-danger-text', '#ff8b86')
           : '#ffffff';
+    const at = spritePosition(change.x, change.y);
     spawnFloatingText(
-      change.x + TILE_SIZE / 2,
-      change.y - lift,
+      at.x + TILE_SIZE / 2,
+      at.y - lift,
       change.delta > 0 ? `+${change.delta}` : String(-change.delta),
       color,
       1000,
       20,
       () => {
         const pos = getAnimatedPos(change.id);
-        return pos ? { x: pos.x + TILE_SIZE / 2, y: pos.y - lift } : null;
+        if (!pos) return null;
+        const to = spritePosition(pos.x, pos.y);
+        return { x: to.x + TILE_SIZE / 2, y: to.y - lift };
       },
     );
   }

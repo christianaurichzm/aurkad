@@ -1,6 +1,11 @@
 import React, { useEffect, useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
-import { MapStateClient, MapType, type Warp } from '../../../shared/types';
+import {
+  MapStateClient,
+  MapType,
+  MapOrientation,
+  type Warp,
+} from '../../../shared/types';
 import { AsyncSelect } from '../common/Select/AsyncSelect';
 import { chatResultMsg } from '../ChatPanel';
 import { updateMap, createMap, resizeMap } from '../../io/network';
@@ -20,6 +25,7 @@ type BorderLinkForm = { mapId: string; tileX: number; tileY: number };
 type MapFormValues = {
   name: string;
   type: MapType;
+  orientation: MapOrientation;
   cols: number;
   rows: number;
   music: string;
@@ -42,6 +48,7 @@ const BORDER_LABEL: Record<string, TranslationKey> = {
 const defaultValues: MapFormValues = {
   name: '',
   type: 'normal',
+  orientation: 'orthogonal',
   cols: 20,
   rows: 14,
   music: '',
@@ -64,6 +71,7 @@ function warpToForm(w?: Warp): BorderLinkForm {
 const mapToFormValues = (map: MapStateClient): MapFormValues => ({
   name: map.name ?? '',
   type: map.type ?? 'normal',
+  orientation: map.orientation ?? 'orthogonal',
   cols: map.tiles?.[0]?.length ?? 20,
   rows: map.tiles?.length ?? 14,
   music: map.music ?? '',
@@ -135,6 +143,7 @@ export const MapEditor: React.FC<MapEditorProps> = ({
   const handleSave = async ({
     name,
     type,
+    orientation,
     cols,
     rows,
     music,
@@ -154,11 +163,12 @@ export const MapEditor: React.FC<MapEditorProps> = ({
       ? await updateMap(selectedId, {
           name,
           type,
+          orientation,
           music: music || undefined,
           instanced,
           borderLinks,
         })
-      : await createMap({ name, type, cols, rows });
+      : await createMap({ name, type, orientation, cols, rows });
     chatResultMsg(!!result, t('map.saved'), t('map.saveError'));
     refreshData();
     setSelectedId('');
@@ -218,6 +228,16 @@ export const MapEditor: React.FC<MapEditorProps> = ({
             />
           )}
         />
+      </div>
+
+      <div style={field}>
+        <label style={label} htmlFor="mapOrientation">
+          {t('map.orientation')}
+        </label>
+        <select id="mapOrientation" style={input} {...register('orientation')}>
+          <option value="orthogonal">{t('map.orthogonal')}</option>
+          <option value="isometric">{t('map.isometric')}</option>
+        </select>
       </div>
 
       {selectedId && (

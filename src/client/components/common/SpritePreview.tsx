@@ -1,6 +1,7 @@
 import React, { useEffect, useRef } from 'react';
 import { drawSpriteGeneric } from '../../graphics/render';
 import { entityAtlas } from '../../graphics/atlas';
+import { getSpriteLayout } from '../../graphics/sprite';
 import { colors, radius } from '../../theme';
 import { TILE_SIZE } from '../../../shared/constants';
 
@@ -69,7 +70,20 @@ export const SpritePreview: React.FC<SpritePreviewProps> = ({
         if (frames > 1) frame = requestAnimationFrame(draw);
         return;
       }
-      drawSpriteGeneric(ctx, spriteId, 0, 0, 0, 0, size, size);
+      // The figure's tile-sized box fills the preview; a frame larger than
+      // the figure spills past the edges rather than shrinking it.
+      const k = size / TILE_SIZE;
+      const { width, height, anchorX, anchorY } = getSpriteLayout();
+      drawSpriteGeneric(
+        ctx,
+        spriteId,
+        0,
+        0,
+        size / 2 - anchorX * k,
+        size - anchorY * k,
+        width * k,
+        height * k,
+      );
       // The atlas may load after this mounts and nothing re-renders when it
       // does, so the draw retries until it is there.
       if (!entityAtlas) frame = requestAnimationFrame(draw);

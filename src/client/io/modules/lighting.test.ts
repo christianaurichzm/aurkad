@@ -29,6 +29,7 @@ function draw(
 ) {
   const mod = loadClientModule('lighting', {
     getPlayer: () => player,
+    worldToScreen: (x: number, y: number) => ({ x: x - cam.x, y: y - cam.y }),
     ...overrides,
   });
   if (payload !== undefined) mod.handlers.get('lighting')!(payload);
@@ -55,14 +56,34 @@ describe('lighting overlay', () => {
   it('punches a hole where the player stands, in screen coordinates', () => {
     const rec = draw({}, { x: 100, y: 100 });
 
-    // the darkness rect first, then one rect per light
+    // the darkness rect first, then one rect per light, on the light's own axes
+    const [a, b, c, d, x, y] = offscreen.of('setTransform')[0].args as number[];
+    [a, b, c, d].forEach((v, i) => expect(v).toBeCloseTo([1, 0, 0, 1][i], 6));
+    expect(x).toBeCloseTo(320 + 32 - 100, 0); // centre of the tile
+    expect(y).toBeCloseTo(320 + 32 - 100, 0);
     const hole = offscreen.of('fillRect')[1].args as number[];
-    const r = hole[2] / 2;
-    expect(hole[0] + r).toBeCloseTo(320 + 32 - 100, 0); // centre of the tile
-    expect(hole[1] + r).toBeCloseTo(320 + 32 - 100, 0);
+    expect(hole[0]).toBe(-hole[2] / 2);
     // Nothing is painted onto the game canvas but the buffer: a light
     // reveals the world, it does not tint it.
     expect(rec.of('fillRect')).toHaveLength(0);
+  });
+
+  it('lights an ellipse on an isometric map, the ground circle as the screen sees it', () => {
+    const cam = { x: 0, y: 0 };
+    draw(
+      {
+        worldToScreen: (x: number, y: number) => ({
+          x: (x - y) * 0.5 - cam.x,
+          y: ((x + y) * 0.5) / 2 - cam.y,
+        }),
+      },
+      cam,
+    );
+
+    const [a, b, c, d] = offscreen.of('setTransform')[0].args as number[];
+    [a, b, c, d].forEach((v, i) =>
+      expect(v).toBeCloseTo([0.5, 0.25, -0.5, 0.25][i], 6),
+    );
   });
 
   it('draws nothing at all once a script sets ambient to zero', () => {

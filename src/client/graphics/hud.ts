@@ -10,6 +10,7 @@ import { TILE_SIZE } from '../../shared/constants';
 import { canInteract } from '../../shared/utils';
 import { t } from '../i18n';
 import { themeToken } from './floatingText';
+import { spritePosition } from './camera';
 import { playerCtx, worldText } from './canvas';
 import {
   playerNameColorRecord,
@@ -92,7 +93,7 @@ export const renderHUD = (
 ) => {
   const { name, level, position, access, nameColor, nameTag, nameTagColor } =
     player;
-  const { x, y } = position;
+  const { x, y } = spritePosition(position.x, position.y);
   const cx = x + TILE_SIZE / 2; // sprite center: names are centered over it
   const { world } = hudTheme();
 
@@ -153,10 +154,9 @@ export const renderNpcLabel = (
 ) => {
   if (!npc.name) return;
   const { world, muted } = hudTheme();
-  const cx = npc.position.x + TILE_SIZE / 2; // centered over the sprite
-  const y = hasHealthBar
-    ? npc.position.y - HEALTH_BAR_CLEARANCE
-    : npc.position.y;
+  const at = spritePosition(npc.position.x, npc.position.y);
+  const cx = at.x + TILE_SIZE / 2; // centered over the sprite
+  const y = hasHealthBar ? at.y - HEALTH_BAR_CLEARANCE : at.y;
   const comma = npc.name.indexOf(',');
   const role = comma > 0 ? npc.name.slice(comma + 1).trim() : '';
 
@@ -186,8 +186,9 @@ export const renderHealthBar = (
   const { danger, dangerTrack } = hudTheme();
   const width = npc.width;
   const height = HEALTH_BAR_HEIGHT;
-  const x = npc.position.x;
-  const y = npc.position.y - height - 4;
+  const at = spritePosition(npc.position.x, npc.position.y);
+  const x = at.x;
+  const y = at.y - height - 4;
   const { percentage } = getHealthBarInfo(npc.health, npc.maxHealth);
 
   ctx.fillStyle = 'black';

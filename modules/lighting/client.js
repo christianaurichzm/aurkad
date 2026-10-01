@@ -100,14 +100,26 @@ engine.registerOverlay((ctx, cam) => {
   b.globalCompositeOperation = 'destination-out';
   for (const light of visible) {
     const r = (light.radius || 140) * flickerScale(light, now);
-    const sx = light.x - cam.x;
-    const sy = light.y - cam.y;
-    const g = b.createRadialGradient(sx, sy, 0, sx, sy, r);
+    // A pool of light is a circle on the ground, so the gradient follows the
+    // ground's axes as the map's projection shows them.
+    const o = engine.worldToScreen(light.x, light.y);
+    const ex = engine.worldToScreen(light.x + r, light.y);
+    const ey = engine.worldToScreen(light.x, light.y + r);
+    b.setTransform(
+      (ex.x - o.x) / r,
+      (ex.y - o.y) / r,
+      (ey.x - o.x) / r,
+      (ey.y - o.y) / r,
+      o.x,
+      o.y,
+    );
+    const g = b.createRadialGradient(0, 0, 0, 0, 0, r);
     g.addColorStop(0, 'rgba(255,255,255,1)');
     g.addColorStop(0.55, 'rgba(255,255,255,0.82)');
     g.addColorStop(1, 'rgba(255,255,255,0)');
     b.fillStyle = g;
-    b.fillRect(sx - r, sy - r, r * 2, r * 2);
+    b.fillRect(-r, -r, r * 2, r * 2);
+    b.setTransform(1, 0, 0, 1, 0, 0);
   }
   b.globalCompositeOperation = 'source-over';
 

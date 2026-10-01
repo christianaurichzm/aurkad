@@ -1,3 +1,4 @@
+import { spritePosition } from '../graphics/camera';
 import { render } from '../graphics/render';
 import { updateChat, updateWebSocket } from '../io/network';
 import { getPlayer } from './gameState';
@@ -26,16 +27,19 @@ export const gameLoop = () => {
       prevLevel = player.level;
     } else if (player.level > prevLevel) {
       const pid = player.id;
+      const at = spritePosition(player.position.x, player.position.y);
       spawnFloatingText(
-        player.position.x + TILE_SIZE / 2,
-        player.position.y - 10,
+        at.x + TILE_SIZE / 2,
+        at.y - 10,
         'LEVEL UP!',
         '#ffd700',
         2400,
         22,
         () => {
           const pos = getAnimatedPos(pid);
-          return pos ? { x: pos.x + TILE_SIZE / 2, y: pos.y - 10 } : null;
+          if (!pos) return null;
+          const at = spritePosition(pos.x, pos.y);
+          return { x: at.x + TILE_SIZE / 2, y: at.y - 10 };
         },
       );
       prevLevel = player.level;

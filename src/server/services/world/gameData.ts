@@ -64,6 +64,7 @@ export const updateMapById = async (
     name: mapState.name,
     type: mapState.type,
     pvp: mapState.pvp,
+    orientation: mapState.orientation,
     tiles: mapState.tiles,
     music: mapState.music,
     instanced: mapState.instanced,

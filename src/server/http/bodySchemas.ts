@@ -237,6 +237,7 @@ export const SaveMapBodySchema = z.object({
   tiles: z.array(z.array(TileSchema)),
   name: z.string().min(1),
   type: MapTypeSchema,
+  orientation: z.enum(['orthogonal', 'isometric']).optional(),
   pvp: PvpMoraleSchema.optional(),
   music: z.string().optional(),
 });
@@ -297,6 +298,7 @@ export const ClientErrorBodySchema = z.object({
 export const CreateMapBodySchema = z.object({
   name: z.string().min(1),
   type: MapTypeSchema,
+  orientation: z.enum(['orthogonal', 'isometric']).optional(),
   cols: z.number().int().min(1).max(200).optional(),
   rows: z.number().int().min(1).max(200).optional(),
 });
@@ -304,6 +306,7 @@ export const CreateMapBodySchema = z.object({
 export const UpdateMapBodySchema = z.object({
   name: z.string().min(1).optional(),
   type: MapTypeSchema.optional(),
+  orientation: z.enum(['orthogonal', 'isometric']).optional(),
   pvp: PvpMoraleSchema.optional(),
   music: z.string().optional(),
   instanced: z.boolean().optional(),

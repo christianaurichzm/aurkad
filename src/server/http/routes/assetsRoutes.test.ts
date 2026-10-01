@@ -92,3 +92,38 @@ describe('GET /assets/:name.bin', () => {
     expect(res.status).toBe(404);
   });
 });
+
+describe('optional isometric atlas metadata', () => {
+  it('requires a session, defaults to an empty atlas and serves configured frames', async () => {
+    session = {};
+    expect((await request(app).get('/assets/tiles.json')).status).toBe(401);
+    session = { username: 'Alice' };
+    expect((await request(app).get('/assets/tiles.json')).body).toEqual({});
+    const frames = {
+      0: {
+        x: 0,
+        y: 64,
+        width: 128,
+        height: 256,
+        drawWidth: 128,
+        drawHeight: 256,
+        anchorX: 64,
+        anchorY: 224,
+      },
+    };
+    fs.writeFileSync(path.join(dir, 'tiles.json'), JSON.stringify(frames));
+    expect((await request(app).get('/assets/tiles.json')).body).toEqual(frames);
+  });
+
+  it('serves the sprite frame metadata the same way', async () => {
+    session = {};
+    expect((await request(app).get('/assets/sprites.json')).status).toBe(401);
+    session = { username: 'Alice' };
+    expect((await request(app).get('/assets/sprites.json')).body).toEqual({});
+    const sprites = { width: 96, height: 96, anchorX: 48, anchorY: 84 };
+    fs.writeFileSync(path.join(dir, 'sprites.json'), JSON.stringify(sprites));
+    expect((await request(app).get('/assets/sprites.json')).body).toEqual(
+      sprites,
+    );
+  });
+});

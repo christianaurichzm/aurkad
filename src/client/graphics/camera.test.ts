@@ -29,3 +29,25 @@ describe('calcCamera', () => {
     });
   });
 });
+
+describe('isometric camera', () => {
+  it('picks the same tile after projection and camera translation, then switches back', async () => {
+    const { setStaticMap } = await import('../core/gameState');
+    const { setCamera, screenToWorld, worldToScreen, spritePosition } =
+      await import('./camera');
+    setStaticMap({
+      id: 'iso',
+      name: 'iso',
+      type: 'normal',
+      orientation: 'isometric',
+      tiles,
+    });
+    setCamera(calcCamera(1400, 600, tiles));
+    const screen = worldToScreen(8 * 64 + 32, 3 * 64 + 32);
+    expect(screenToWorld(screen.x, screen.y)).toEqual({ x: 544, y: 224 });
+    expect(spritePosition(8 * 64, 3 * 64)).toEqual({ x: 128, y: 128 });
+    setStaticMap({ id: 'ortho', name: 'ortho', type: 'normal', tiles });
+    setCamera({ x: 0, y: 0 });
+    expect(worldToScreen(100, 200)).toEqual({ x: 100, y: 200 });
+  });
+});

@@ -44,6 +44,7 @@ export function toMapMeta(map: MapStateServer): MapMetaClient {
     name: map.name,
     type: map.type,
     pvp: map.pvp,
+    orientation: map.orientation,
     cols: mapTileWidth(map.tiles),
     rows: mapTileHeight(map.tiles),
     revision: map.tilesRevision ?? 0,

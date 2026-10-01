@@ -99,12 +99,21 @@ engine.registerOverlay((ctx, cam) => {
   if (viewW < w - 1 || viewH < h - 1) {
     ctx.strokeStyle = COLORS.viewport;
     ctx.lineWidth = 1;
-    ctx.strokeRect(
-      x + (cam.x / engine.TILE_SIZE) * scale,
-      y + (cam.y / engine.TILE_SIZE) * scale,
-      viewW,
-      viewH,
-    );
+    ctx.beginPath();
+    for (const [sx, sy] of [
+      [0, 0],
+      [ctx.canvas.width, 0],
+      [ctx.canvas.width, ctx.canvas.height],
+      [0, ctx.canvas.height],
+    ]) {
+      const point = engine.screenToWorld(sx, sy);
+      const px = x + (point.x / engine.TILE_SIZE) * scale;
+      const py = y + (point.y / engine.TILE_SIZE) * scale;
+      if (sx === 0 && sy === 0) ctx.moveTo(px, py);
+      else ctx.lineTo(px, py);
+    }
+    ctx.closePath();
+    ctx.stroke();
   }
 
   ctx.restore();

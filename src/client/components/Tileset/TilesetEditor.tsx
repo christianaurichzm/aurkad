@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useReducer, useRef, useState } from 'react';
 import {
   toggleTilesetEditor,
   tilesetEditorInitialized,
@@ -8,8 +8,43 @@ import { useUIStore } from '../../stores/uiStore';
 import { TilesetModeControls } from './TilesetModeControls';
 import { useDraggable } from '../../hooks/useDraggable';
 import { useEscapeClose } from '../../hooks/useEscapeClose';
+import { useMediaQuery } from '../../hooks/useMediaQuery';
 import { colors, radius, shadow, zIndex } from '../../theme';
 import { useT } from '../../i18n';
+
+// Where useDraggable stops dragging: a phone, upright or on its side.
+const PHONE = '(max-width: 700px), (pointer: coarse) and (max-height: 600px)';
+const MARGIN = 8;
+const NARROWEST = 160;
+
+/**
+ * The largest strip of screen the world leaves free, under or beside it, or
+ * null when none fits the palette. An undraggable panel sits there so the
+ * map stays in sight.
+ */
+export const freeOfTheWorld = (world: DOMRect, width: number, height: number) =>
+  [
+    {
+      top: world.bottom + MARGIN,
+      left: MARGIN,
+      width: width - 2 * MARGIN,
+      height: height - world.bottom - 2 * MARGIN,
+    },
+    {
+      top: MARGIN,
+      left: world.right + MARGIN,
+      width: width - world.right - 2 * MARGIN,
+      height: height - 2 * MARGIN,
+    },
+    {
+      top: MARGIN,
+      left: MARGIN,
+      width: world.left - 2 * MARGIN,
+      height: height - 2 * MARGIN,
+    },
+  ]
+    .filter((strip) => Math.min(strip.width, strip.height) >= NARROWEST)
+    .sort((a, b) => b.width * b.height - a.width * a.height)[0] ?? null;
 
 export const TilesetEditor: React.FC = () => {
   const t = useT();
@@ -17,6 +52,22 @@ export const TilesetEditor: React.FC = () => {
   const visibleRef = useRef(false);
 
   const { ref, pos, onPointerDown } = useDraggable(100, 80);
+  const phone = useMediaQuery(PHONE);
+  // Turning the phone moves the world, and the strip it leaves with it.
+  const [, relayout] = useReducer((n: number) => n + 1, 0);
+  useEffect(() => {
+    window.addEventListener('resize', relayout);
+    return () => window.removeEventListener('resize', relayout);
+  }, []);
+  const world = document.getElementById('canvasFrame');
+  const strip =
+    phone && world
+      ? freeOfTheWorld(
+          world.getBoundingClientRect(),
+          window.innerWidth,
+          window.innerHeight,
+        )
+      : null;
 
   useEffect(() => {
     visibleRef.current = visible;
@@ -80,6 +131,7 @@ export const TilesetEditor: React.FC = () => {
         display: 'flex',
         flexDirection: 'column',
         maxHeight: 'calc(100dvh - 96px)',
+        ...(strip && { ...strip, maxHeight: 'none' }),
       }}
     >
       <div
@@ -122,7 +174,13 @@ export const TilesetEditor: React.FC = () => {
       </div>
 
       <div
-        style={{ flexShrink: 0, borderBottom: `1px solid ${colors.border}` }}
+        style={{
+          flexShrink: 0,
+          borderBottom: `1px solid ${colors.border}`,
+          // Docked on a phone the controls would take the whole strip and
+          // push the palette out of it.
+          ...(strip && { maxHeight: '45%', overflowY: 'auto' }),
+        }}
       >
         <TilesetModeControls />
       </div>

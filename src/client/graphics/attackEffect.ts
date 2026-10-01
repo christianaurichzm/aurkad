@@ -1,3 +1,4 @@
+import { spritePosition } from './camera';
 import { attackEffectSheet } from '../io/assets';
 import { entityAtlas, entityAtlasOffsets } from './atlas';
 import { Direction } from '../../shared/types';
@@ -49,14 +50,15 @@ export function renderAttackEffects(ctx: CanvasRenderingContext2D): void {
     );
     const sx = (frame % FRAMES_PER_ROW) * FRAME_W;
     const sy = Math.floor(frame / FRAMES_PER_ROW) * FRAME_H;
+    const at = spritePosition(eff.x, eff.y);
     ctx.drawImage(
       entityAtlas,
       off.x + sx,
       off.y + sy,
       FRAME_W,
       FRAME_H,
-      eff.x,
-      eff.y,
+      at.x,
+      at.y,
       FRAME_W,
       FRAME_H,
     );

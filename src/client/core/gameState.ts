@@ -17,6 +17,7 @@ import type {
 import { CHUNK_SIZE, TILE_SIZE } from '../../shared/constants';
 
 let staticMap: MapStaticClient | null = null;
+export const getMapOrientation = () => staticMap?.orientation ?? 'orthogonal';
 let staticMapRevision: number | null = null;
 let dynamic: FullGameStatePayload | null = null;
 let playerCold: PlayerCold | null = null;
@@ -65,6 +66,7 @@ export const getGameState = (): MapStateClient | null => {
     name: staticMap.name,
     type: staticMap.type,
     pvp: staticMap.pvp,
+    orientation: staticMap.orientation,
     tiles: staticMap.tiles,
     droppedItems: dynMap.droppedItems,
     npcs: dynMap.npcs,
@@ -114,6 +116,7 @@ export const setMapMeta = (meta: MapMetaClient) => {
       name: meta.name,
       type: meta.type,
       pvp: meta.pvp,
+      orientation: meta.orientation,
     };
     return;
   }
@@ -134,6 +137,7 @@ export const setMapMeta = (meta: MapMetaClient) => {
     name: meta.name,
     type: meta.type,
     pvp: meta.pvp,
+    orientation: meta.orientation,
     tiles: known ?? createEmptyGrid(meta.cols, meta.rows),
   };
   staticMapRevision = meta.revision;

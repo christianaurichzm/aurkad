@@ -3,6 +3,7 @@ import {
   Tile,
   MapStateServer,
   MapType,
+  MapOrientation,
   DroppedItem,
   PlayerServer,
   RuntimeNpc,
@@ -41,7 +42,10 @@ export async function createOrUpdateMap(
   const merged = { ...previous, ...map } as MapStateServer;
 
   const staticChanged =
-    map.tiles !== undefined || map.name !== undefined || map.type !== undefined;
+    map.tiles !== undefined ||
+    map.name !== undefined ||
+    map.type !== undefined ||
+    map.orientation !== undefined;
   if (staticChanged) {
     merged.tilesRevision = (previous?.tilesRevision ?? 0) + 1;
   }
@@ -98,9 +102,16 @@ export const mapSave = async (
   name: string,
   type: MapType,
   music?: string,
+  orientation?: MapOrientation,
 ) => {
   const newMap = await insertModeCell(mapId, tiles);
-  await updateMapById({ ...newMap, name, type, music } as MapStateServer);
+  await updateMapById({
+    ...newMap,
+    name,
+    type,
+    music,
+    ...(orientation && { orientation }),
+  } as MapStateServer);
 };
 
 export const insertItems = (

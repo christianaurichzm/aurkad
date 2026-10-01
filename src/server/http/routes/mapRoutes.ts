@@ -36,7 +36,7 @@ export function createMapRouter() {
   router.post('/saveMap', checkAccess(Access.ADMIN), async (req, res) => {
     const body = parseBody(SaveMapBodySchema, req.body, res);
     if (!body) return;
-    const { mapId, tiles, name, type, music } = body;
+    const { mapId, tiles, name, type, music, orientation } = body;
     try {
       const validation = await validateMapTiles(tiles);
       if (validation.errors.length > 0) {
@@ -48,7 +48,7 @@ export function createMapRouter() {
         { maps: [{ id: mapId, name, tiles }] },
         registeredBehaviors(),
       );
-      await mapSave(mapId, tiles, name, type, music);
+      await mapSave(mapId, tiles, name, type, music, orientation);
       res.status(200).json({
         success: true,
         warnings: [...validation.warnings, ...scriptRefs.warnings],
@@ -89,6 +89,7 @@ export function createMapRouter() {
         name: map.name,
         tiles: map.tiles,
         type: map.type,
+        orientation: map.orientation,
         music: map.music,
         borderLinks: map.borderLinks,
       });
@@ -101,7 +102,7 @@ export function createMapRouter() {
   router.post('/maps', checkAccess(Access.ADMIN), async (req, res) => {
     const body = parseBody(CreateMapBodySchema, req.body, res);
     if (!body) return;
-    const { name, type, cols, rows } = body;
+    const { name, type, cols, rows, orientation } = body;
 
     const defaultMap = {
       players: {},
@@ -113,6 +114,7 @@ export function createMapRouter() {
     const mapData = {
       name,
       type,
+      orientation,
     };
 
     try {
@@ -128,13 +130,14 @@ export function createMapRouter() {
     const body = parseBody(UpdateMapBodySchema, req.body, res);
     if (!body) return;
     const id = req.params['id'];
-    const { name, type, music, instanced, borderLinks } = body;
+    const { name, type, music, instanced, borderLinks, orientation } = body;
 
     try {
       await createOrUpdateMap({
         id,
         ...(name && { name }),
         ...(type && { type }),
+        ...(orientation && { orientation }),
         ...(music !== undefined && { music }),
         ...(instanced !== undefined && { instanced }),
         ...(borderLinks !== undefined && { borderLinks }),

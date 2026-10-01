@@ -1,6 +1,9 @@
+import { z } from 'zod';
+import { MAX_ISOMETRIC_OVERHANG, TILE_SIZE } from '../../shared/constants';
 import { loadImageFromBin } from './network';
 import { imageMap } from '../../shared/mappings';
 import { buildEntityAtlas } from '../graphics/atlas';
+import { parseSpriteLayout, setSpriteLayout } from '../graphics/sprite';
 
 export let tileset: ImageBitmap;
 export let tilesetAlpha: HTMLCanvasElement;
@@ -10,6 +13,47 @@ export let spellSheet: HTMLCanvasElement;
 export let arrowSheet: HTMLCanvasElement;
 export let attackEffectSheet: HTMLCanvasElement;
 
+const cellIndex = z.number().int().min(0).max(63);
+
+/**
+ * What a kit atlas says about a frame, so the map editor offers pieces to
+ * place instead of raw cells. Frames sharing `name` are one piece; those
+ * sharing `variant` are placed together, each `at` cells from the drop point.
+ *
+ * - `ground` goes on tileIndex and repeats with the map: cell (c, r) takes
+ *   frame (c mod width, r mod height), so a seamless texture covers any area.
+ * - `object` goes on maskIndex, all its cells at once.
+ * - `connect` joins a piece to its own kind on the next cells, like a fence.
+ *   The frame drawn is the one whose bits name the matching neighbours: 1
+ *   above, 2 right, 4 below, 8 left.
+ */
+const PieceSchema = z.object({
+  name: z.string().min(1).max(64),
+  group: z.string().max(64).optional(),
+  layer: z.enum(['ground', 'object']).default('object'),
+  at: z.tuple([cellIndex, cellIndex]).default([0, 0]),
+  variant: z.number().int().min(0).max(255).default(0),
+  connect: z.number().int().min(0).max(15).optional(),
+  blocks: z.boolean().default(false),
+});
+export type PieceFrame = z.infer<typeof PieceSchema>;
+
+// Frames are in tiles.png; anchors are offsets from the projected cell center.
+const FrameSchema = z.object({
+  x: z.number().int().nonnegative(),
+  y: z.number().int().nonnegative(),
+  width: z.number().int().positive(),
+  height: z.number().int().positive(),
+  drawWidth: z.number().positive().max(MAX_ISOMETRIC_OVERHANG),
+  drawHeight: z.number().positive().max(MAX_ISOMETRIC_OVERHANG),
+  anchorX: z.number().min(0).max(MAX_ISOMETRIC_OVERHANG),
+  anchorY: z.number().min(0).max(MAX_ISOMETRIC_OVERHANG),
+  piece: PieceSchema.optional(),
+});
+export let isometricFrames: Record<string, z.infer<typeof FrameSchema>> = {};
+// How far from its cell's center a frame can be drawn. The renderer scans
+// this far past the screen, so a tall prop with its cell off screen shows.
+export let isometricReach = TILE_SIZE;
 let _assetKey = '';
 
 export function setAssetKey(hexKey: string): void {
@@ -46,11 +90,37 @@ function makeColorKeyCanvas(bitmap: ImageBitmap): HTMLCanvasElement {
 export const initTileset = async () => {
   tileset = await loadImageFromBin(getUrl('tiles'), _assetKey);
   tilesetAlpha = makeColorKeyCanvas(tileset);
+  const response = await fetch('/assets/tiles.json');
+  if (!response.ok) throw new Error(`Atlas metadata: HTTP ${response.status}`);
+  isometricFrames = z
+    .record(z.string().regex(/^\d+$/), FrameSchema)
+    .parse(await response.json());
+  for (const frame of Object.values(isometricFrames)) {
+    if (
+      frame.x + frame.width > tileset.width ||
+      frame.y + frame.height > tileset.height
+    )
+      throw new Error('Isometric frame outside tiles.png');
+  }
+  isometricReach = Math.max(
+    TILE_SIZE,
+    ...Object.values(isometricFrames).map((f) =>
+      Math.max(
+        f.anchorX,
+        f.drawWidth - f.anchorX,
+        f.anchorY,
+        f.drawHeight - f.anchorY,
+      ),
+    ),
+  );
   return tileset;
 };
 
 export const initSpriteSheet = async () => {
   spriteSheet = await loadImageFromBin(getUrl('sprites'), _assetKey);
+  const response = await fetch('/assets/sprites.json');
+  if (!response.ok) throw new Error(`Sprite metadata: HTTP ${response.status}`);
+  setSpriteLayout(parseSpriteLayout(await response.json()));
   return spriteSheet;
 };
 

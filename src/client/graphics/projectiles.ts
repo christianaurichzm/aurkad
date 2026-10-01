@@ -1,3 +1,4 @@
+import { worldToView } from './camera';
 import { entityAtlas, entityAtlasOffsets } from './atlas';
 import { onServerEvent } from '../io/network/customEvents';
 import { ObjectPool } from './objectPool';
@@ -74,7 +75,14 @@ export function renderProjectiles(ctx: CanvasRenderingContext2D): void {
 
     const off = entityAtlasOffsets.arrows;
     ctx.save();
-    ctx.translate(x, y);
+    const at = worldToView(x, y);
+    const from = worldToView(pr.fromX, pr.fromY);
+    const to = worldToView(pr.toX, pr.toY);
+    ctx.translate(at.x, at.y);
+    ctx.rotate(
+      Math.atan2(to.y - from.y, to.x - from.x) -
+        Math.atan2(pr.toY - pr.fromY, pr.toX - pr.fromX),
+    );
     if (entityAtlas && off) {
       const half = ARROW_TILE / 2;
       const tilesPerRow = Math.max(1, Math.floor(off.width / ARROW_TILE));

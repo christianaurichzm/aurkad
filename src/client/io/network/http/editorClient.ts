@@ -1,4 +1,8 @@
-import type { MapStateClient, MapType } from '../../../../shared/types';
+import type {
+  MapStateClient,
+  MapType,
+  MapOrientation,
+} from '../../../../shared/types';
 import { httpClient } from './httpClient';
 import { silentAction } from './authClient';
 import { getGameState } from '../../../core/gameState';
@@ -79,6 +83,7 @@ export const updateMap = async (
 export const createMap = async (data: {
   name: string;
   type: MapType;
+  orientation?: MapOrientation;
   cols?: number;
   rows?: number;
 }): Promise<MapStateClient | null> => {

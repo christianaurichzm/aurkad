@@ -28,6 +28,7 @@ import {
   renderMapMask,
   renderMapFringe,
   getEditorTiles,
+  isometricMapObjects,
 } from './tileset';
 import {
   renderEntitiesSorted,
@@ -40,11 +41,12 @@ import { renderProjectiles } from './projectiles';
 import { renderAttackEffects } from './attackEffect';
 import { renderSpellEffects } from './spellEffect';
 import { useUIStore } from '../stores/uiStore';
-import { calcCamera, setCamera } from './camera';
+import { calcCamera, setCamera, worldToView } from './camera';
 import { OverlayLayer, runOverlays } from './overlayRegistry';
 
 let lastDrawnTiles: Tile[][] | null = null;
 let lastEditorTiles: Tile[][] | null = null;
+let lastOrientation: string | undefined;
 let lastCamX = 0;
 let lastCamY = 0;
 
@@ -107,6 +109,7 @@ export const render = () => {
     const editorTiles = getEditorTiles();
     const ground = mapEdited ? editorTiles : map.tiles;
     const tilesDirty =
+      map.orientation !== lastOrientation ||
       ground !== lastDrawnTiles ||
       editorTiles !== lastEditorTiles ||
       cam.x !== lastCamX ||
@@ -124,6 +127,7 @@ export const render = () => {
 
     // Mask and fringe caches, rerendered only when tiles or camera change.
     const overlayDirty =
+      map.orientation !== lastOrientation ||
       map.tiles !== lastFringeTiles ||
       cam.x !== lastFringeCamX ||
       cam.y !== lastFringeCamY;
@@ -174,6 +178,8 @@ export const render = () => {
       lastFringeCamY = cam.y;
     }
 
+    lastOrientation = map.orientation;
+
     // Mask canvas (above ground, below entities).
     maskCtx.clearRect(0, 0, maskCanvas.width, maskCanvas.height);
     if (maskOffscreen && !mapEdited) {
@@ -195,7 +201,11 @@ export const render = () => {
     const playersWithSelf = currentPlayer
       ? { ...map.players, [currentPlayer.id]: currentPlayer }
       : map.players;
-    const hudEntries = renderEntitiesSorted(playersWithSelf, map.npcs);
+    const hudEntries = renderEntitiesSorted(
+      playersWithSelf,
+      map.npcs,
+      isometricMapObjects(ground, playerCtx, currentPlayer?.position),
+    );
     renderProjectiles(playerCtx);
     renderAttackEffects(playerCtx);
     renderSpellEffects(playerCtx);
@@ -227,13 +237,11 @@ export const render = () => {
         ? findInteractPrompt(rawPlayer, map)
         : null;
     if (prompt && currentPlayer) {
+      // Under the player's cell, wherever the projection puts it.
       const { x, y } = currentPlayer.position;
-      renderInteractPrompt(
-        fringeCtx,
-        prompt,
-        x + TILE_SIZE / 2,
-        y + TILE_SIZE + 2,
-      );
+      const center = worldToView(x + TILE_SIZE / 2, y + TILE_SIZE / 2);
+      const bottom = worldToView(x + TILE_SIZE, y + TILE_SIZE);
+      renderInteractPrompt(fringeCtx, prompt, center.x, bottom.y + 2);
     }
     const ui = useUIStore.getState();
     if (ui.promptKey !== (prompt?.key ?? null))

@@ -41,6 +41,7 @@ vi.mock('./tileset', () => ({
   renderGameMap: mocks.renderGameMap,
   renderEditorLayer: mocks.renderEditorLayer,
   renderMapMask: vi.fn(),
+  isometricMapObjects: () => [],
   renderMapFringe: vi.fn(),
   getEditorTiles: () => mocks.editorTiles,
 }));

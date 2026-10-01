@@ -1,7 +1,8 @@
-import { TILE_SIZE } from '../../shared/constants';
+import { spritePosition } from './camera';
 import { entityAtlas, entityAtlasOffsets } from './atlas';
-import { getCharacterSpriteCoordinates, getSpriteSize } from './sprite';
+import { getCharacterSpriteCoordinates, getSpriteLayout } from './sprite';
 import { playerCtx } from './canvas';
+import { TILE_SIZE } from '../../shared/constants';
 
 export function drawSpriteGeneric(
   ctx: CanvasRenderingContext2D,
@@ -22,14 +23,14 @@ export function drawSpriteGeneric(
     row,
     off.width,
   );
-  const { SPRITE_WIDTH, SPRITE_HEIGHT } = getSpriteSize();
+  const { width, height } = getSpriteLayout();
 
   ctx.drawImage(
     entityAtlas,
     off.x + x,
     off.y + y,
-    SPRITE_WIDTH,
-    SPRITE_HEIGHT,
+    width,
+    height,
     destX,
     destY,
     destW,
@@ -37,6 +38,8 @@ export function drawSpriteGeneric(
   );
 }
 
+// The frame hangs from its anchor at the foot of the tile-sized box the rest
+// of the client (names, effects, hit flashes) places a character by.
 export function drawSprite(
   characterIndex: number,
   column: number,
@@ -44,19 +47,17 @@ export function drawSprite(
   posX: number,
   posY: number,
 ) {
-  const ctx = playerCtx;
-  const { SPRITE_WIDTH, SPRITE_HEIGHT } = getSpriteSize();
-  const offsetX = (TILE_SIZE - SPRITE_WIDTH) / 2;
-  const offsetY = (TILE_SIZE - SPRITE_HEIGHT) / 2;
+  const { width, height, anchorX, anchorY } = getSpriteLayout();
+  const box = spritePosition(posX, posY);
 
   drawSpriteGeneric(
-    ctx,
+    playerCtx,
     characterIndex,
     column,
     row,
-    posX + offsetX,
-    posY + offsetY,
-    SPRITE_WIDTH,
-    SPRITE_HEIGHT,
+    box.x + TILE_SIZE / 2 - anchorX,
+    box.y + TILE_SIZE - anchorY,
+    width,
+    height,
   );
 }

@@ -1,3 +1,4 @@
+import { spritePosition } from './camera';
 import { spellSheet } from '../io/assets';
 import { entityAtlas, entityAtlasOffsets } from './atlas';
 import { ObjectPool } from './objectPool';
@@ -65,14 +66,15 @@ export function renderSpellEffects(ctx: CanvasRenderingContext2D): void {
     const sy = Math.floor(sprite / tilesPerRow) * TILE;
     ctx.save();
     ctx.globalAlpha = animated ? 1 : 1 - elapsed / DURATION;
+    const at = spritePosition(fx.x, fx.y);
     ctx.drawImage(
       entityAtlas!,
       off.x + sx,
       off.y + sy,
       TILE,
       TILE,
-      fx.x,
-      fx.y,
+      at.x,
+      at.y,
       DISPLAY,
       DISPLAY,
     );

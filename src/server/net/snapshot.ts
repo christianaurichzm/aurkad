@@ -524,6 +524,7 @@ export function broadcastGameState() {
           player.position.y,
           map.tiles,
           marginPx,
+          map.orientation,
         );
         sendViewportChunks(player, map, ws, viewport);
         sendPlayerStatsIfNeeded(player, ws);

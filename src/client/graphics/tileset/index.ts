@@ -8,7 +8,7 @@ import {
   withLoading,
   removeEvent,
 } from '../../utils/domHelpers';
-import { TILE_SIZE } from '../../../shared/constants';
+import { TILE_SIZE, ISO_SCALE } from '../../../shared/constants';
 import {
   MapType,
   Tile,
@@ -17,11 +17,24 @@ import {
   TilePublic,
 } from '../../../shared/types';
 import type { ScriptParams } from '../../../shared/scriptParams';
-import { tileset, tilesetAlpha } from '../../io/assets';
+import {
+  tileset,
+  tilesetAlpha,
+  isometricFrames,
+  isometricReach,
+} from '../../io/assets';
 import { saveMap, type SaveMapResponse, fetchNpcs } from '../../io/network';
 import { foregroundCanvas, foregroundCtx, maskCtx, fringeCtx } from '../canvas';
 import { useUIStore } from '../../stores/uiStore';
-import { getCamera } from '../camera';
+import {
+  getCamera,
+  screenToWorld,
+  worldToScreen,
+  spritePosition,
+  worldToView,
+} from '../camera';
+import { getMapOrientation } from '../../core/gameState';
+import { viewBounds } from '../../../shared/mapGeometry';
 import { isInputActive } from '../../utils/domHelpers';
 
 type ModeConfig = {
@@ -84,14 +97,301 @@ export const initTilesetEditor = () => {
   }
   gridCanvas = getEl<HTMLCanvasElement>('gridCanvas')!;
   gridCtx = gridCanvas.getContext('2d')!;
-  tilesetCanvas.width = tileset.width;
-  tilesetCanvas.height = tileset.height;
   tilesetCtx = tilesetCanvas.getContext('2d')!;
-  tilesetCtx.drawImage(tilesetAlpha, 0, 0);
+  paintPalette();
   setupEventListeners();
   initializeGrid();
   void loadEditorNpcNames();
   tilesetEditorInitialized = true;
+};
+
+/**
+ * The atlas as the palette: a grid of TILE_SIZE cells, a tile's id being its
+ * cell's index. An isometric frame is larger than a cell and sits wherever
+ * the atlas has room, so its cell shows the frame scaled to fit, and on
+ * such a map the palette ends at the last id rather than showing the frames
+ * stacked below it.
+ */
+const paintPalette = () => {
+  if (activeKit()) return paintKitPalette();
+  const perRow = Math.floor(tileset.width / TILE_SIZE);
+  const frames = getMapOrientation() === 'isometric' ? isometricFrames : {};
+  const ids = Object.keys(frames).map(Number);
+  // Frames are packed, cells are not: an atlas of many small frames has more
+  // ids than its own height holds in cells.
+  const height = ids.length
+    ? Math.ceil((Math.max(...ids) + 1) / perRow) * TILE_SIZE
+    : tileset.height;
+  // Assigning a canvas size clears it and its state, so only on change.
+  if (tilesetCanvas.width !== tileset.width)
+    tilesetCanvas.width = tileset.width;
+  if (tilesetCanvas.height !== height) tilesetCanvas.height = height;
+  tilesetCtx.clearRect(0, 0, tilesetCanvas.width, tilesetCanvas.height);
+  tilesetCtx.drawImage(
+    tilesetAlpha,
+    0,
+    0,
+    tileset.width,
+    height,
+    0,
+    0,
+    tileset.width,
+    height,
+  );
+  for (const id of ids) {
+    const f = frames[id];
+    const cellX = (id % perRow) * TILE_SIZE;
+    const cellY = Math.floor(id / perRow) * TILE_SIZE;
+    const k = Math.min(TILE_SIZE / f.width, TILE_SIZE / f.height);
+    tilesetCtx.clearRect(cellX, cellY, TILE_SIZE, TILE_SIZE);
+    tilesetCtx.drawImage(
+      tilesetAlpha,
+      f.x,
+      f.y,
+      f.width,
+      f.height,
+      cellX + (TILE_SIZE - f.width * k) / 2,
+      cellY + TILE_SIZE - f.height * k,
+      f.width * k,
+      f.height * k,
+    );
+  }
+};
+
+type PieceCell = { col: number; row: number; id: number; blocks: boolean };
+export type Piece = {
+  name: string;
+  group: string;
+  layer: 'ground' | 'object';
+  cols: number;
+  rows: number;
+  /** Each the cells one placement lays down. */
+  variants: PieceCell[][];
+  /** The frame for each set of joined neighbours (PieceSchema's `connect`). */
+  joins?: Map<number, PieceCell>;
+};
+export type Kit = { pieces: Piece[]; pieceOf: Map<number, Piece> };
+
+/** The pieces of a kit atlas, in the order of their first frame. */
+export const readKit = (frames: typeof isometricFrames): Kit => {
+  const byName = new Map<string, Piece>();
+  const pieceOf = new Map<number, Piece>();
+  for (const [key, frame] of Object.entries(frames)) {
+    const p = frame.piece;
+    if (!p) continue;
+    let piece = byName.get(p.name);
+    if (!piece) {
+      piece = {
+        name: p.name,
+        group: p.group ?? '',
+        layer: p.layer,
+        cols: 1,
+        rows: 1,
+        variants: [],
+      };
+      byName.set(p.name, piece);
+    }
+    const cell = {
+      col: p.at[0],
+      row: p.at[1],
+      id: Number(key),
+      blocks: p.blocks,
+    };
+    if (p.connect !== undefined)
+      (piece.joins ??= new Map()).set(p.connect, cell);
+    else (piece.variants[p.variant] ??= []).push(cell);
+    piece.cols = Math.max(piece.cols, cell.col + 1);
+    piece.rows = Math.max(piece.rows, cell.row + 1);
+    pieceOf.set(cell.id, piece);
+  }
+  const pieces = [...byName.values()];
+  for (const piece of pieces) piece.variants = piece.variants.filter(Boolean);
+  return { pieces, pieceOf };
+};
+
+// The cell each bit of `connect` names: above, right, below, left.
+const JOINS = [
+  [0, -1, 1],
+  [1, 0, 2],
+  [0, 1, 4],
+  [-1, 0, 8],
+] as const;
+
+const rejoin = (tiles: Tile[][], kit: Kit, row: number, col: number) => {
+  const tile = tiles[row]?.[col];
+  const piece =
+    tile?.maskIndex === undefined ? undefined : kit.pieceOf.get(tile.maskIndex);
+  if (!tile || !piece?.joins) return;
+  let mask = 0;
+  for (const [dc, dr, bit] of JOINS) {
+    const next = tiles[row + dr]?.[col + dc]?.maskIndex;
+    if (next !== undefined && kit.pieceOf.get(next) === piece) mask |= bit;
+  }
+  const cell = piece.joins.get(mask);
+  if (cell) tile.maskIndex = cell.id;
+};
+
+const randomIndex = (n: number) => Math.floor(Math.random() * n);
+
+// The cells one placement of an object lays down: a joined piece starts
+// alone and is rejoined to whatever is around it.
+const pieceCells = (piece: Piece, pick: (n: number) => number) =>
+  piece.joins
+    ? [piece.joins.get(0) ?? piece.joins.values().next().value!]
+    : (piece.variants[pick(piece.variants.length)] ?? []);
+
+/**
+ * Puts `piece` down with its first cell at (row, col), or with `null` takes
+ * the object there away. An object decides whether its cells are walkable:
+ * a grave put over a bone blocks, a bone put over a grave no longer does.
+ */
+export const placePiece = (
+  tiles: Tile[][],
+  kit: Kit,
+  piece: Piece | null,
+  row: number,
+  col: number,
+  pick = randomIndex,
+) => {
+  if (piece?.layer === 'ground') {
+    const variant = piece.variants[pick(piece.variants.length)] ?? [];
+    const cell = variant.find(
+      (c) => c.col === col % piece.cols && c.row === row % piece.rows,
+    );
+    if (cell && tiles[row]?.[col]) tiles[row][col].tileIndex = cell.id;
+    return;
+  }
+  const cells: { col: number; row: number; id?: number; blocks: boolean }[] =
+    piece ? pieceCells(piece, pick) : [{ col: 0, row: 0, blocks: false }];
+  for (const cell of cells) {
+    const r = row + cell.row;
+    const c = col + cell.col;
+    const tile = tiles[r]?.[c];
+    if (!tile) continue;
+    tile.maskIndex = cell.id;
+    tile.blocked = cell.blocks;
+    rejoin(tiles, kit, r, c);
+    for (const [dc, dr] of JOINS) rejoin(tiles, kit, r + dr, c + dc);
+  }
+};
+
+let kitMemo: { frames: typeof isometricFrames; kit: Kit } | null = null;
+const activeKit = (): Kit | null => {
+  if (getMapOrientation() !== 'isometric') return null;
+  if (kitMemo?.frames !== isometricFrames)
+    kitMemo = { frames: isometricFrames, kit: readKit(isometricFrames) };
+  return kitMemo.kit.pieces.length ? kitMemo.kit : null;
+};
+
+let selectedPiece: Piece | 'erase' | null = null;
+
+// The kit palette: an eraser, then each group under its name, a box a piece.
+const PALETTE_WIDTH = 512;
+const BOX = 128;
+const HEADING = 22;
+let paletteBoxes: { x: number; y: number; piece: Piece | 'erase' }[] = [];
+
+const pieceAt = (x: number, y: number) =>
+  paletteBoxes.find(
+    (b) => x >= b.x && x < b.x + BOX && y >= b.y && y < b.y + BOX,
+  )?.piece;
+
+// What a box shows: the whole repeat of a ground, a short run of a fence,
+// every cell of anything else.
+const thumbnailCells = (piece: Piece): PieceCell[] => {
+  if (!piece.joins) return piece.variants[0] ?? [];
+  const any = piece.joins.values().next().value!;
+  return [2, 10, 8].map((mask, col) => ({
+    ...(piece.joins!.get(mask) ?? any),
+    col,
+    row: 0,
+  }));
+};
+
+const drawThumbnail = (piece: Piece, x: number, y: number) => {
+  const placed = thumbnailCells(piece).flatMap((cell) => {
+    const f = isometricFrames[cell.id];
+    if (!f) return [];
+    const cx = (cell.col - cell.row) * (TILE_SIZE / 2);
+    const cy = (cell.col + cell.row + 1) * (TILE_SIZE / 4);
+    return [
+      { f, x: cx - f.anchorX, y: cy - f.anchorY, depth: cell.col + cell.row },
+    ];
+  });
+  if (!placed.length) return;
+  const left = Math.min(...placed.map((p) => p.x));
+  const top = Math.min(...placed.map((p) => p.y));
+  const width = Math.max(...placed.map((p) => p.x + p.f.drawWidth)) - left;
+  const height = Math.max(...placed.map((p) => p.y + p.f.drawHeight)) - top;
+  const k = Math.min((BOX - 12) / width, (BOX - 12) / height, 2);
+  const ox = x + (BOX - width * k) / 2 - left * k;
+  const oy = y + (BOX - height * k) / 2 - top * k;
+  for (const p of placed.sort((a, b) => a.depth - b.depth)) {
+    tilesetCtx.drawImage(
+      tilesetAlpha,
+      p.f.x,
+      p.f.y,
+      p.f.width,
+      p.f.height,
+      ox + p.x * k,
+      oy + p.y * k,
+      p.f.drawWidth * k,
+      p.f.drawHeight * k,
+    );
+  }
+};
+
+const paintKitPalette = () => {
+  const kit = activeKit()!;
+  const boxes: typeof paletteBoxes = [{ x: 0, y: 0, piece: 'erase' }];
+  const headings: { y: number; text: string }[] = [];
+  let x = BOX;
+  let y = 0;
+  let group: string | undefined;
+  for (const piece of kit.pieces) {
+    if (piece.group !== group) {
+      group = piece.group;
+      if (x > 0) y += BOX;
+      x = 0;
+      if (group) {
+        headings.push({ y, text: group });
+        y += HEADING;
+      }
+    }
+    boxes.push({ x, y, piece });
+    x += BOX;
+    if (x >= PALETTE_WIDTH) {
+      x = 0;
+      y += BOX;
+    }
+  }
+  paletteBoxes = boxes;
+  const height = y + (x > 0 ? BOX : 0);
+  if (tilesetCanvas.width !== PALETTE_WIDTH)
+    tilesetCanvas.width = PALETTE_WIDTH;
+  if (tilesetCanvas.height !== height) tilesetCanvas.height = height;
+  tilesetCtx.clearRect(0, 0, PALETTE_WIDTH, height);
+  tilesetCtx.imageSmoothingEnabled = false;
+  tilesetCtx.font = 'bold 13px system-ui, sans-serif';
+  tilesetCtx.textBaseline = 'middle';
+  tilesetCtx.fillStyle = '#222';
+  for (const h of headings) tilesetCtx.fillText(h.text, 8, h.y + HEADING / 2);
+  for (const box of boxes) {
+    if (box.piece === 'erase') {
+      tilesetCtx.font = '48px system-ui, sans-serif';
+      tilesetCtx.textAlign = 'center';
+      tilesetCtx.fillText('✕', box.x + BOX / 2, box.y + BOX / 2);
+      tilesetCtx.textAlign = 'start';
+      tilesetCtx.font = 'bold 13px system-ui, sans-serif';
+    } else {
+      drawThumbnail(box.piece, box.x, box.y);
+    }
+    if (box.piece === selectedPiece) {
+      tilesetCtx.strokeStyle = 'red';
+      tilesetCtx.lineWidth = 3;
+      tilesetCtx.strokeRect(box.x + 2, box.y + 2, BOX - 4, BOX - 4);
+    }
+  }
 };
 
 const selectedTile = { startX: 0, startY: 0, endX: 0, endY: 0 };
@@ -175,9 +475,9 @@ const handleHover = (event: MouseEvent) => {
 // a step with the mouse parked slides a different tile under it.
 const updateHoveredCell = (): boolean => {
   if (!hoverAt) return false;
-  const cam = getCamera();
-  const col = Math.floor((hoverAt.x + cam.x) / TILE_SIZE);
-  const row = Math.floor((hoverAt.y + cam.y) / TILE_SIZE);
+  const p = screenToWorld(hoverAt.x, hoverAt.y);
+  const col = Math.floor(p.x / TILE_SIZE);
+  const row = Math.floor(p.y / TILE_SIZE);
   if (hoveredCell && hoveredCell.row === row && hoveredCell.col === col)
     return false;
   hoveredCell = { row, col };
@@ -375,6 +675,11 @@ const getMousePosition = (event: MouseEvent, canvas: HTMLCanvasElement) => {
 const startSelecting = (event: MouseEvent) => {
   event.stopPropagation();
   const { x, y } = getMousePosition(event, tilesetCanvas);
+  if (activeKit()) {
+    selectedPiece = pieceAt(x, y) ?? selectedPiece;
+    paintKitPalette();
+    return;
+  }
   selectedTile.startX = Math.floor(x / TILE_SIZE);
   selectedTile.startY = Math.floor(y / TILE_SIZE);
   selectedTile.endX = selectedTile.startX;
@@ -383,6 +688,12 @@ const startSelecting = (event: MouseEvent) => {
 };
 
 const updateSelection = (event: MouseEvent) => {
+  if (activeKit()) {
+    const { x, y } = getMousePosition(event, tilesetCanvas);
+    const piece = pieceAt(x, y);
+    tilesetCanvas.title = piece === 'erase' ? 'Erase' : (piece?.name ?? '');
+    return;
+  }
   if (!isSelecting) return;
   const { x, y } = getMousePosition(event, tilesetCanvas);
   selectedTile.endX = Math.floor(x / TILE_SIZE);
@@ -396,8 +707,7 @@ const endSelecting = () => {
 };
 
 const highlightSelectedTile = () => {
-  tilesetCtx.clearRect(0, 0, tilesetCanvas.width, tilesetCanvas.height);
-  tilesetCtx.drawImage(tilesetAlpha, 0, 0);
+  paintPalette();
   tilesetCtx.strokeStyle = 'red';
   tilesetCtx.lineWidth = 2;
   const startX = Math.min(selectedTile.startX, selectedTile.endX) * TILE_SIZE;
@@ -427,9 +737,10 @@ const stopPlacing = () => {
 };
 const placeTile = (event: MouseEvent) => {
   const { x, y } = getMousePosition(event, foregroundCanvas);
-  const cam = getCamera();
-  const col = Math.floor((x + cam.x) / TILE_SIZE);
-  const row = Math.floor((y + cam.y) / TILE_SIZE);
+  const p = screenToWorld(x, y);
+  const col = Math.floor(p.x / TILE_SIZE);
+  const row = Math.floor(p.y / TILE_SIZE);
+  if (!map[row]?.[col]) return;
   const key = `${row},${col}`;
   if (strokeTiles.has(key)) return;
   strokeTiles.add(key);
@@ -448,11 +759,23 @@ const forEachSelectedTile = (
   col: number,
   fn: (row: number, col: number, tileIndex: number) => void,
 ) => {
+  if (activeKit()) {
+    if (!selectedPiece || selectedPiece === 'erase') return;
+    for (const cell of pieceCells(selectedPiece, () => 0))
+      if (map[row + cell.row]?.[col + cell.col])
+        fn(row + cell.row, col + cell.col, cell.id);
+    return;
+  }
   const { startX, startY, width, height } = calculateSelectionBounds();
   const tilesPerRow = Math.floor(tilesetCanvas.width / TILE_SIZE);
   for (let i = 0; i < width; i++) {
     for (let j = 0; j < height; j++) {
-      if (row + j < mapHeight && col + i < mapWidth) {
+      if (
+        row + j >= 0 &&
+        col + i >= 0 &&
+        row + j < mapHeight &&
+        col + i < mapWidth
+      ) {
         fn(row + j, col + i, (startY + j) * tilesPerRow + (startX + i));
       }
     }
@@ -460,11 +783,26 @@ const forEachSelectedTile = (
 };
 
 const placeSelectedTile = (row: number, col: number) => {
+  const kit = activeKit();
+  if (kit) {
+    if (!selectedPiece) return;
+    placePiece(
+      map,
+      kit,
+      selectedPiece === 'erase' ? null : selectedPiece,
+      row,
+      col,
+    );
+    setMapEdited(true);
+    renderMap();
+    return;
+  }
   forEachSelectedTile(row, col, (r, c, tileIndex) => {
     map[r][c] = { ...map[r][c], tileIndex };
     drawTileOnCanvas(c, r, tileIndex);
   });
   setMapEdited(true);
+  if (getMapOrientation() === 'isometric') renderMap();
 };
 
 const toggleLayerTiles = (
@@ -494,36 +832,34 @@ const drawTileOnCanvas = (
   clear = true,
 ) => {
   const cam = getCamera();
-  const sx = col * TILE_SIZE - cam.x;
-  const sy = row * TILE_SIZE - cam.y;
+  const r = groundRect(col, row, tileIndex);
   if (
-    sx + TILE_SIZE <= 0 ||
-    sx >= foregroundCanvas.width ||
-    sy + TILE_SIZE <= 0 ||
-    sy >= foregroundCanvas.height
+    r.x - cam.x >= foregroundCanvas.width ||
+    r.x + r.width - cam.x <= 0 ||
+    r.y - cam.y >= foregroundCanvas.height ||
+    r.y + r.height - cam.y <= 0
   )
     return;
-  const tilesPerRow = tileset.width / TILE_SIZE;
-  const tileX = (tileIndex % tilesPerRow) * TILE_SIZE;
-  const tileY = Math.floor(tileIndex / tilesPerRow) * TILE_SIZE;
-  // One tile placed by hand lands on top of the tile that was there, so its
-  // pixels have to go first. A full pass has already cleared the canvas.
-  if (clear) foregroundCtx.clearRect(sx, sy, TILE_SIZE, TILE_SIZE);
-  foregroundCtx.drawImage(
-    tileset,
-    tileX,
-    tileY,
-    TILE_SIZE,
-    TILE_SIZE,
-    sx,
-    sy,
-    TILE_SIZE,
-    TILE_SIZE,
-  );
+  foregroundCtx.save();
+  foregroundCtx.translate(-cam.x, -cam.y);
+  drawGroundTile(foregroundCtx, col, row, tileIndex, clear);
+  foregroundCtx.restore();
 };
 
 export const fillMap = () => {
   if (!tilesetCanvas) return;
+  const kit = activeKit();
+  if (kit) {
+    const piece = selectedPiece;
+    if (piece === 'erase' || piece?.layer !== 'ground') return;
+    snapshotForUndo();
+    map.forEach((tiles, row) =>
+      tiles.forEach((_, col) => placePiece(map, kit, piece, row, col)),
+    );
+    setMapEdited(true);
+    renderMap();
+    return;
+  }
   snapshotForUndo();
   const { startX, startY } = calculateSelectionBounds();
   const tilesPerRow = Math.floor(tilesetCanvas.width / TILE_SIZE);
@@ -592,54 +928,225 @@ const removeEventListeners = () => {
 
 // The rows and columns the camera can see, so a pass costs the viewport
 // rather than the whole map.
-const visibleRange = <T>(tiles: T[][], width: number, height: number) => {
+const visibleRange = <T>(
+  tiles: T[][],
+  width: number,
+  height: number,
+  reach = getMapOrientation() === 'isometric' ? isometricReach : TILE_SIZE,
+) => {
   const cam = getCamera();
+  const bounds = viewBounds(
+    cam.x,
+    cam.y,
+    width,
+    height,
+    getMapOrientation(),
+    reach,
+  );
   return {
-    startCol: Math.max(0, Math.floor(cam.x / TILE_SIZE)),
+    startCol: Math.max(0, Math.floor(bounds.left / TILE_SIZE)),
     endCol: Math.min(
       (tiles[0]?.length ?? 0) - 1,
-      Math.ceil((cam.x + width) / TILE_SIZE),
+      Math.ceil(bounds.right / TILE_SIZE),
     ),
-    startRow: Math.max(0, Math.floor(cam.y / TILE_SIZE)),
-    endRow: Math.min(tiles.length - 1, Math.ceil((cam.y + height) / TILE_SIZE)),
+    startRow: Math.max(0, Math.floor(bounds.top / TILE_SIZE)),
+    endRow: Math.min(tiles.length - 1, Math.ceil(bounds.bottom / TILE_SIZE)),
   };
 };
 
+type Rect = { x: number; y: number; width: number; height: number };
+
+// The view pixels a ground tile covers: its frame on an isometric atlas, else
+// its square, or the diamond that square is sheared into.
+const groundRect = (col: number, row: number, tileIndex: number): Rect => {
+  if (frameOf(tileIndex)) return objectRect(col, row, tileIndex);
+  const at = worldToView(col * TILE_SIZE, row * TILE_SIZE);
+  return getMapOrientation() === 'isometric'
+    ? { x: at.x - TILE_SIZE, y: at.y, width: 2 * TILE_SIZE, height: TILE_SIZE }
+    : { x: at.x, y: at.y, width: TILE_SIZE, height: TILE_SIZE };
+};
+
+/**
+ * One ground tile, in view pixels: the caller translates for the camera.
+ * `clear` first erases the cell it covers - a square or its diamond; a frame
+ * overlaps its neighbours, which a clear would cut into.
+ */
+const drawGroundTile = (
+  ctx: CanvasRenderingContext2D | OffscreenCanvasRenderingContext2D,
+  col: number,
+  row: number,
+  tileIndex: number,
+  clear = false,
+) => {
+  if (frameOf(tileIndex)) {
+    drawMapObject(ctx, col, row, tileIndex);
+    return;
+  }
+  const at = worldToView(col * TILE_SIZE, row * TILE_SIZE);
+  const tilesPerRow = tileset.width / TILE_SIZE;
+  ctx.save();
+  ctx.translate(at.x, at.y);
+  if (getMapOrientation() === 'isometric')
+    ctx.transform(ISO_SCALE, ISO_SCALE / 2, -ISO_SCALE, ISO_SCALE / 2, 0, 0);
+  if (clear) ctx.clearRect(0, 0, TILE_SIZE, TILE_SIZE);
+  ctx.drawImage(
+    tileset,
+    (tileIndex % tilesPerRow) * TILE_SIZE,
+    Math.floor(tileIndex / tilesPerRow) * TILE_SIZE,
+    TILE_SIZE,
+    TILE_SIZE,
+    0,
+    0,
+    TILE_SIZE,
+    TILE_SIZE,
+  );
+  ctx.restore();
+};
+
+/** Every ground tile that shows inside `area` (view pixels). */
+const drawGround = (
+  ctx: CanvasRenderingContext2D | OffscreenCanvasRenderingContext2D,
+  tiles: TilePublic[][],
+  area: Rect,
+) => {
+  const reach =
+    getMapOrientation() === 'isometric' ? isometricReach : TILE_SIZE;
+  const bounds = viewBounds(
+    area.x,
+    area.y,
+    area.width,
+    area.height,
+    getMapOrientation(),
+    reach,
+  );
+  const startRow = Math.max(0, Math.floor(bounds.top / TILE_SIZE));
+  const endRow = Math.min(
+    tiles.length - 1,
+    Math.ceil(bounds.bottom / TILE_SIZE),
+  );
+  const startCol = Math.max(0, Math.floor(bounds.left / TILE_SIZE));
+  const endCol = Math.min(
+    (tiles[0]?.length ?? 0) - 1,
+    Math.ceil(bounds.right / TILE_SIZE),
+  );
+  for (let row = startRow; row <= endRow; row++) {
+    for (let col = startCol; col <= endCol; col++) {
+      const tileIndex = tiles[row]?.[col]?.tileIndex;
+      if (tileIndex === undefined || tileIndex === -1) continue;
+      const r = groundRect(col, row, tileIndex);
+      if (
+        r.x >= area.x + area.width ||
+        r.x + r.width <= area.x ||
+        r.y >= area.y + area.height ||
+        r.y + r.height <= area.y
+      )
+        continue;
+      drawGroundTile(ctx, col, row, tileIndex);
+    }
+  }
+};
+
+// The editor's copy, painted straight onto the screen: edits change it in
+// place, so nothing about it says when a copy of it has gone stale.
 const drawTiles = (tiles: TilePublic[][]) => {
   // The editor's copy is empty until fetched, and the loop repaints only on
   // camera or map change, so clearing here would leave the world blank.
   if (!tiles.length) return;
-  foregroundCtx.clearRect(
-    0,
-    0,
-    foregroundCanvas.width,
-    foregroundCanvas.height,
-  );
-  const { startCol, endCol, startRow, endRow } = visibleRange(
-    tiles,
-    foregroundCanvas.width,
-    foregroundCanvas.height,
-  );
-  for (let rowIndex = startRow; rowIndex <= endRow; rowIndex++) {
-    const row = tiles[rowIndex];
-    if (!row) continue;
-    for (let colIndex = startCol; colIndex <= endCol; colIndex++) {
-      const tile = row[colIndex];
-      if (tile && tile.tileIndex !== -1) {
-        drawTileOnCanvas(colIndex, rowIndex, tile.tileIndex, false);
-      }
-    }
+  const cam = getCamera();
+  const { width, height } = foregroundCanvas;
+  foregroundCtx.clearRect(0, 0, width, height);
+  foregroundCtx.save();
+  foregroundCtx.translate(-cam.x, -cam.y);
+  drawGround(foregroundCtx, tiles, { x: cam.x, y: cam.y, width, height });
+  foregroundCtx.restore();
+};
+
+/**
+ * The ground around the camera, painted once and copied from while the
+ * camera stays inside it: one draw a frame instead of one per tile. The
+ * margin is how far the camera goes before the next repaint.
+ */
+const GROUND_MARGIN = 256;
+let groundCache: {
+  canvas: OffscreenCanvas;
+  tiles: TilePublic[][];
+  atlas: ImageBitmap;
+  frames: typeof isometricFrames;
+  orientation: string | undefined;
+  x: number;
+  y: number;
+} | null = null;
+
+const drawCachedTiles = (tiles: TilePublic[][]) => {
+  if (!tiles.length) return;
+  const cam = getCamera();
+  const { width, height } = foregroundCanvas;
+  let cache = groundCache;
+  if (
+    !cache ||
+    cache.tiles !== tiles ||
+    cache.atlas !== tileset ||
+    cache.frames !== isometricFrames ||
+    cache.orientation !== getMapOrientation() ||
+    cam.x < cache.x ||
+    cam.y < cache.y ||
+    cam.x + width > cache.x + cache.canvas.width ||
+    cam.y + height > cache.y + cache.canvas.height
+  ) {
+    const w = width + 2 * GROUND_MARGIN;
+    const h = height + 2 * GROUND_MARGIN;
+    const canvas =
+      cache?.canvas.width === w && cache.canvas.height === h
+        ? cache.canvas
+        : new OffscreenCanvas(w, h);
+    const ctx = canvas.getContext('2d')!;
+    ctx.imageSmoothingEnabled = false;
+    ctx.clearRect(0, 0, w, h);
+    const area = {
+      x: cam.x - GROUND_MARGIN,
+      y: cam.y - GROUND_MARGIN,
+      width: w,
+      height: h,
+    };
+    ctx.save();
+    ctx.translate(-area.x, -area.y);
+    drawGround(ctx, tiles, area);
+    ctx.restore();
+    cache = groundCache = {
+      canvas,
+      tiles,
+      atlas: tileset,
+      frames: isometricFrames,
+      orientation: getMapOrientation(),
+      x: area.x,
+      y: area.y,
+    };
   }
+  foregroundCtx.clearRect(0, 0, width, height);
+  foregroundCtx.drawImage(
+    cache.canvas,
+    cam.x - cache.x,
+    cam.y - cache.y,
+    width,
+    height,
+    0,
+    0,
+    width,
+    height,
+  );
 };
 
 /**
  * The map as the game draws it: the tiles, and nothing the editor needs.
  * It runs on every frame the camera crosses a whole pixel, so it must not
  * copy the map, which renderMap below does and why the editor cannot call
- * that per frame.
+ * that per frame. The game's grid is replaced, never changed in place, when
+ * a chunk or revision lands, so its identity keeps the cache honest; the
+ * editor's copy has no such guarantee.
  */
 export const renderGameMap = (tiles: TilePublic[][]) => {
-  drawTiles(tiles);
+  if (tiles === map) drawTiles(tiles);
+  else drawCachedTiles(tiles);
 };
 
 // Paints what the editor holds. Only `setEditorTiles` seeds that copy and
@@ -661,39 +1168,52 @@ export const renderEditorLayer = () => {
   drawHoverCell();
 };
 
+// A cell's outline as a subpath: a square on a flat map, a diamond on an
+// isometric one. The caller begins the path, so a whole grid strokes at once.
+const traceCell = (col: number, row: number) => {
+  for (const [dx, dy] of [
+    [0, 0],
+    [1, 0],
+    [1, 1],
+    [0, 1],
+  ]) {
+    const p = worldToScreen((col + dx) * TILE_SIZE, (row + dy) * TILE_SIZE);
+    if (!dx && !dy) gridCtx.moveTo(p.x, p.y);
+    else gridCtx.lineTo(p.x, p.y);
+  }
+  gridCtx.closePath();
+};
+
 const drawHoverCell = () => {
   if (!hoveredCell || !gridCtx) return;
-  const cam = getCamera();
   const { row, col } = hoveredCell;
-  const sx = col * TILE_SIZE - cam.x;
-  const sy = row * TILE_SIZE - cam.y;
+  if (!map[row]?.[col]) return;
+  gridCtx.beginPath();
+  traceCell(col, row);
   gridCtx.fillStyle = 'rgba(255, 255, 255, 0.4)';
-  gridCtx.fillRect(sx, sy, TILE_SIZE, TILE_SIZE);
+  gridCtx.fill();
+  const p = worldToScreen((col + 0.5) * TILE_SIZE, (row + 0.5) * TILE_SIZE);
   gridCtx.fillStyle = 'black';
   gridCtx.font = '12px Arial';
-  gridCtx.fillText(`(${col}, ${row})`, sx + 4, sy + 24);
+  gridCtx.fillText(`(${col}, ${row})`, p.x - 20, p.y);
 };
 
 const drawGrid = () => {
-  const cam = getCamera();
-  const width = gridCanvas.width;
-  const height = gridCanvas.height;
+  const range = visibleRange(
+    map,
+    gridCanvas.width,
+    gridCanvas.height,
+    TILE_SIZE,
+  );
   gridCtx.strokeStyle = '#ddd';
   gridCtx.lineWidth = 1;
-  const startX = -(cam.x % TILE_SIZE);
-  const startY = -(cam.y % TILE_SIZE);
-  for (let x = startX; x <= width; x += TILE_SIZE) {
-    gridCtx.beginPath();
-    gridCtx.moveTo(x, 0);
-    gridCtx.lineTo(x, height);
-    gridCtx.stroke();
+  gridCtx.beginPath();
+  for (let row = range.startRow; row <= range.endRow; row++) {
+    for (let col = range.startCol; col <= range.endCol; col++) {
+      traceCell(col, row);
+    }
   }
-  for (let y = startY; y <= height; y += TILE_SIZE) {
-    gridCtx.beginPath();
-    gridCtx.moveTo(0, y);
-    gridCtx.lineTo(width, y);
-    gridCtx.stroke();
-  }
+  gridCtx.stroke();
 };
 
 export const setMapEdited = (edited: boolean) => {
@@ -718,6 +1238,7 @@ const drawMarkers = (tiles: Tile[][]) => {
     tiles,
     gridCanvas.width,
     gridCanvas.height,
+    TILE_SIZE,
   );
   for (let rowIndex = startRow; rowIndex <= endRow; rowIndex++) {
     const row = tiles[rowIndex];
@@ -758,15 +1279,20 @@ const drawMarkers = (tiles: Tile[][]) => {
 };
 
 const tileOnScreen = (col: number, row: number) => {
-  const cam = getCamera();
-  const sx = col * TILE_SIZE - cam.x;
-  const sy = row * TILE_SIZE - cam.y;
+  const center = worldToScreen(
+    (col + 0.5) * TILE_SIZE,
+    (row + 0.5) * TILE_SIZE,
+  );
+  const height =
+    getMapOrientation() === 'isometric' ? TILE_SIZE / 2 : TILE_SIZE;
+  const sx = center.x - TILE_SIZE / 2;
+  const sy = center.y - height / 2;
   const on =
     sx + TILE_SIZE > 0 &&
     sx < gridCanvas.width &&
     sy + TILE_SIZE > 0 &&
     sy < gridCanvas.height;
-  return on ? { sx, sy } : null;
+  return on ? { sx, sy, height } : null;
 };
 
 // Small letters side by side in the tile's top-left corner: the tile under
@@ -803,7 +1329,7 @@ const drawLayerCorner = (
   if (!gridCtx || !at) return;
   const x = side === 'left' ? at.sx : at.sx + TILE_SIZE;
   const inward = side === 'left' ? LAYER_CORNER : -LAYER_CORNER;
-  const y = at.sy + TILE_SIZE;
+  const y = at.sy + at.height;
   gridCtx.globalAlpha = 0.7;
   gridCtx.fillStyle = color;
   gridCtx.beginPath();
@@ -819,16 +1345,9 @@ const drawLayerCorner = (
 // you can tell which NPC the "N" marker places.
 const drawNpcSpawnName = (col: number, row: number, npcId: string) => {
   if (!gridCtx) return;
-  const cam = getCamera();
-  const sx = col * TILE_SIZE - cam.x;
-  const sy = row * TILE_SIZE - cam.y;
-  if (
-    sx + TILE_SIZE <= 0 ||
-    sx >= gridCanvas.width ||
-    sy + TILE_SIZE <= 0 ||
-    sy >= gridCanvas.height
-  )
-    return;
+  const at = tileOnScreen(col, row);
+  if (!at) return;
+  const { sx, sy, height } = at;
   const label = npcNameById[npcId] ?? `#${npcId}`;
   gridCtx.font = 'bold 12px Arial';
   gridCtx.textAlign = 'center';
@@ -837,8 +1356,8 @@ const drawNpcSpawnName = (col: number, row: number, npcId: string) => {
   gridCtx.lineJoin = 'round';
   gridCtx.strokeStyle = 'black';
   gridCtx.fillStyle = 'yellow';
-  gridCtx.strokeText(label, sx + TILE_SIZE / 2, sy + TILE_SIZE - 6);
-  gridCtx.fillText(label, sx + TILE_SIZE / 2, sy + TILE_SIZE - 6);
+  gridCtx.strokeText(label, sx + TILE_SIZE / 2, sy + height - 6);
+  gridCtx.fillText(label, sx + TILE_SIZE / 2, sy + height - 6);
   gridCtx.textAlign = 'left';
   gridCtx.lineWidth = 1;
   gridCtx.lineJoin = 'miter';
@@ -878,8 +1397,7 @@ export const toggleTilesetEditor = (shouldShow: boolean) => {
     if (!tilesetEditorInitialized) {
       initTilesetEditor();
     } else {
-      tilesetCtx.clearRect(0, 0, tileset.width, tileset.height);
-      tilesetCtx.drawImage(tilesetAlpha, 0, 0);
+      paintPalette();
       setupEventListeners();
       initializeGrid();
     }
@@ -915,84 +1433,143 @@ const updateEditorMap = (tiles: Tile[][], music?: string) => {
   editorMusic = music ?? '';
 };
 
+const frameOf = (index: number) =>
+  getMapOrientation() === 'isometric' ? isometricFrames[index] : undefined;
+
+// Where an object lands in view pixels: an isometric frame hangs from its
+// anchor at the cell's centre, anything else fills its cell.
+function objectRect(col: number, row: number, index: number) {
+  const frame = frameOf(index);
+  if (frame) {
+    const foot = worldToView((col + 0.5) * TILE_SIZE, (row + 0.5) * TILE_SIZE);
+    return {
+      x: foot.x - frame.anchorX,
+      y: foot.y - frame.anchorY,
+      width: frame.drawWidth,
+      height: frame.drawHeight,
+    };
+  }
+  const at = spritePosition(col * TILE_SIZE, row * TILE_SIZE);
+  return { x: at.x, y: at.y, width: TILE_SIZE, height: TILE_SIZE };
+}
+
+function drawMapObject(
+  ctx: CanvasRenderingContext2D | OffscreenCanvasRenderingContext2D,
+  col: number,
+  row: number,
+  index: number,
+) {
+  const frame = frameOf(index);
+  const perRow = tileset.width / TILE_SIZE;
+  const to = objectRect(col, row, index);
+  ctx.drawImage(
+    tilesetAlpha,
+    frame ? frame.x : (index % perRow) * TILE_SIZE,
+    frame ? frame.y : Math.floor(index / perRow) * TILE_SIZE,
+    frame ? frame.width : TILE_SIZE,
+    frame ? frame.height : TILE_SIZE,
+    to.x,
+    to.y,
+    to.width,
+    to.height,
+  );
+}
+
+type MapObject = {
+  y: number;
+  col: number;
+  row: number;
+  index: number;
+  draw: () => void;
+};
+
+function mapObjects(
+  tiles: TilePublic[][],
+  layer: 'maskIndex' | 'fringeIndex',
+  ctx: CanvasRenderingContext2D | OffscreenCanvasRenderingContext2D,
+) {
+  const range = visibleRange(tiles, ctx.canvas.width, ctx.canvas.height);
+  const objects: MapObject[] = [];
+  for (let row = range.startRow; row <= range.endRow; row++) {
+    for (let col = range.startCol; col <= range.endCol; col++) {
+      const index = tiles[row]?.[col]?.[layer];
+      if (index === undefined) continue;
+      objects.push({
+        y: worldToView((col + 0.5) * TILE_SIZE, (row + 0.5) * TILE_SIZE).y,
+        col,
+        row,
+        index,
+        draw: () => drawMapObject(ctx, col, row, index),
+      });
+    }
+  }
+  return objects;
+}
+
+// Transparency of a prop standing between the camera and the player.
+const SEE_THROUGH_ALPHA = 0.45;
+// The part of a sprite frame the character fills: a prop grazing the frame's
+// empty corners hides nothing.
+const FIGURE_INSET = { x: 16, top: 12, bottom: 4 };
+
+/**
+ * The mask layer of an isometric map, to be sorted in with the actors: on such
+ * a map a wall or a tree is in front of whoever stands behind it and behind
+ * whoever stands in front, which one layer above or below everyone cannot be.
+ *
+ * `seen` is the player the camera follows. A prop in front of them that covers
+ * their figure is drawn faint, or walking behind a wall loses the character
+ * the player is steering.
+ */
+export const isometricMapObjects = (
+  tiles: TilePublic[][],
+  ctx: CanvasRenderingContext2D,
+  seen?: { x: number; y: number },
+): MapObject[] => {
+  if (getMapOrientation() !== 'isometric') return [];
+  const objects = mapObjects(tiles, 'maskIndex', ctx);
+  if (!seen) return objects;
+  const depth = worldToView(seen.x + TILE_SIZE / 2, seen.y + TILE_SIZE / 2).y;
+  const at = spritePosition(seen.x, seen.y);
+  const left = at.x + FIGURE_INSET.x;
+  const right = at.x + TILE_SIZE - FIGURE_INSET.x;
+  const top = at.y + FIGURE_INSET.top;
+  const bottom = at.y + TILE_SIZE - FIGURE_INSET.bottom;
+  return objects.map((object) => {
+    if (object.y <= depth) return object;
+    const r = objectRect(object.col, object.row, object.index);
+    if (
+      r.x >= right ||
+      r.x + r.width <= left ||
+      r.y >= bottom ||
+      r.y + r.height <= top
+    )
+      return object;
+    return {
+      ...object,
+      draw: () => {
+        ctx.save();
+        ctx.globalAlpha = SEE_THROUGH_ALPHA;
+        object.draw();
+        ctx.restore();
+      },
+    };
+  });
+};
+
 export const renderMapMask = (
   tiles: TilePublic[][],
   ctx: CanvasRenderingContext2D | OffscreenCanvasRenderingContext2D = maskCtx,
 ) => {
-  if (!ctx || !tiles) return;
-  const tilesPerRow = tileset.width / TILE_SIZE;
-  const cam = getCamera();
-  const startCol = Math.max(0, Math.floor(cam.x / TILE_SIZE));
-  const endCol = Math.min(
-    (tiles[0]?.length ?? 0) - 1,
-    Math.ceil((cam.x + ctx.canvas.width) / TILE_SIZE),
-  );
-  const startRow = Math.max(0, Math.floor(cam.y / TILE_SIZE));
-  const endRow = Math.min(
-    tiles.length - 1,
-    Math.ceil((cam.y + ctx.canvas.height) / TILE_SIZE),
-  );
-  for (let rowIndex = startRow; rowIndex <= endRow; rowIndex++) {
-    const row = tiles[rowIndex];
-    if (!row) continue;
-    for (let colIndex = startCol; colIndex <= endCol; colIndex++) {
-      const tile = row[colIndex];
-      if (tile?.maskIndex !== undefined) {
-        const tileX = (tile.maskIndex % tilesPerRow) * TILE_SIZE;
-        const tileY = Math.floor(tile.maskIndex / tilesPerRow) * TILE_SIZE;
-        ctx.drawImage(
-          tilesetAlpha,
-          tileX,
-          tileY,
-          TILE_SIZE,
-          TILE_SIZE,
-          colIndex * TILE_SIZE,
-          rowIndex * TILE_SIZE,
-          TILE_SIZE,
-          TILE_SIZE,
-        );
-      }
-    }
-  }
+  if (getMapOrientation() === 'isometric') return;
+  for (const object of mapObjects(tiles, 'maskIndex', ctx)) object.draw();
 };
 
 export const renderMapFringe = (
   tiles: TilePublic[][],
   ctx: CanvasRenderingContext2D | OffscreenCanvasRenderingContext2D = fringeCtx,
 ) => {
-  if (!ctx || !tiles) return;
-  const tilesPerRow = tileset.width / TILE_SIZE;
-  const cam = getCamera();
-  const startCol = Math.max(0, Math.floor(cam.x / TILE_SIZE));
-  const endCol = Math.min(
-    (tiles[0]?.length ?? 0) - 1,
-    Math.ceil((cam.x + ctx.canvas.width) / TILE_SIZE),
-  );
-  const startRow = Math.max(0, Math.floor(cam.y / TILE_SIZE));
-  const endRow = Math.min(
-    tiles.length - 1,
-    Math.ceil((cam.y + ctx.canvas.height) / TILE_SIZE),
-  );
-  for (let rowIndex = startRow; rowIndex <= endRow; rowIndex++) {
-    const row = tiles[rowIndex];
-    if (!row) continue;
-    for (let colIndex = startCol; colIndex <= endCol; colIndex++) {
-      const tile = row[colIndex];
-      if (tile?.fringeIndex !== undefined) {
-        const tileX = (tile.fringeIndex % tilesPerRow) * TILE_SIZE;
-        const tileY = Math.floor(tile.fringeIndex / tilesPerRow) * TILE_SIZE;
-        ctx.drawImage(
-          tilesetAlpha,
-          tileX,
-          tileY,
-          TILE_SIZE,
-          TILE_SIZE,
-          colIndex * TILE_SIZE,
-          rowIndex * TILE_SIZE,
-          TILE_SIZE,
-          TILE_SIZE,
-        );
-      }
-    }
-  }
+  const objects = mapObjects(tiles, 'fringeIndex', ctx);
+  objects.sort((a, b) => a.y - b.y);
+  for (const object of objects) object.draw();
 };

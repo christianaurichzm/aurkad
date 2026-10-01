@@ -589,14 +589,15 @@ declare function getMapSize(
 
 /**
  * Returns tile info at (col, row), or null if out of bounds. `tileIndex` is the
- * picture painted on the ground layer, so a script can give a rule to whatever
- * the map editor paints with it (a plate, a hole, a patch of crops).
+ * picture painted on the ground layer and `maskIndex` the object standing on
+ * it, so a script can give a rule to whatever the map editor paints (a plate,
+ * a hole, a patch of crops) or puts there (a lantern that gives light).
  */
 declare function getMapTile(
   mapId: string,
   col: number,
   row: number,
-): { blocked: boolean; tileIndex: number } | null;
+): { blocked: boolean; tileIndex: number; maskIndex?: number } | null;
 
 type PvpMorale = 'safe' | 'normal' | 'no-penalty';
 

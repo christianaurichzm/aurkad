@@ -2,7 +2,12 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { SPRITE_HEIGHT, SPRITE_WIDTH, TILE_SIZE } from '../../shared/constants';
 import { recordingContext } from '../../test/clientModule';
 import { buildEntityAtlas } from './atlas';
-import { getCharacterSpriteCoordinates, getSpriteSize } from './sprite';
+import {
+  DEFAULT_SPRITE_LAYOUT,
+  getCharacterSpriteCoordinates,
+  parseSpriteLayout,
+  setSpriteLayout,
+} from './sprite';
 import { drawSprite, drawSpriteGeneric } from './spriteDrawing';
 
 const mocks = vi.hoisted(() => ({ playerCtx: {} as CanvasRenderingContext2D }));
@@ -74,16 +79,63 @@ describe('drawSpriteGeneric', () => {
 });
 
 describe('drawSprite', () => {
-  it('centres the sprite in its tile', () => {
+  it('fills the tile with a frame of the default size', () => {
     buildAtlas();
     const rec = recordingContext();
     mocks.playerCtx.drawImage = rec.ctx.drawImage;
-    const { SPRITE_WIDTH: w, SPRITE_HEIGHT: h } = getSpriteSize();
 
     drawSprite(0, 0, 0, 640, 320);
 
     const args = rec.of('drawImage')[0].args as number[];
-    expect(args[5]).toBe(640 + (TILE_SIZE - w) / 2);
-    expect(args[6]).toBe(320 + (TILE_SIZE - h) / 2);
+    expect(args.slice(5)).toEqual([640, 320, SPRITE_WIDTH, SPRITE_HEIGHT]);
+  });
+
+  it('hangs a larger frame from its anchor at the foot of the tile', () => {
+    buildAtlas();
+    setSpriteLayout(parseSpriteLayout({ width: 96, height: 96, anchorY: 84 }));
+    const rec = recordingContext();
+    mocks.playerCtx.drawImage = rec.ctx.drawImage;
+
+    drawSprite(0, 0, 0, 640, 320);
+
+    const args = rec.of('drawImage')[0].args as number[];
+    expect(args.slice(3)).toEqual([
+      96,
+      96,
+      640 + TILE_SIZE / 2 - 48,
+      320 + TILE_SIZE - 84,
+      96,
+      96,
+    ]);
+    setSpriteLayout(DEFAULT_SPRITE_LAYOUT);
+  });
+});
+
+describe('parseSpriteLayout', () => {
+  it('is the 64 px grid when the game has no sprites.json', () => {
+    expect(parseSpriteLayout({})).toEqual(DEFAULT_SPRITE_LAYOUT);
+  });
+
+  it('anchors a frame of another size at its bottom centre unless told', () => {
+    expect(parseSpriteLayout({ width: 96, height: 80 })).toMatchObject({
+      anchorX: 48,
+      anchorY: 80,
+      columns: 4,
+    });
+  });
+
+  it('rejects an action frame outside the block', () => {
+    expect(() => parseSpriteLayout({ columns: 6, attackColumn: 6 })).toThrow();
+    expect(() => parseSpriteLayout({ idleColumn: 4 })).toThrow();
+  });
+
+  it('lays blocks out by the frames a character has', () => {
+    setSpriteLayout(parseSpriteLayout({ width: 96, height: 96, columns: 6 }));
+    // two blocks of 6 x 96 fit a 1200 px sheet: character 2 opens row two
+    expect(getCharacterSpriteCoordinates(2, 5, 3, 1200)).toEqual({
+      x: 5 * 96,
+      y: 4 * 96 + 3 * 96,
+    });
+    setSpriteLayout(DEFAULT_SPRITE_LAYOUT);
   });
 });

@@ -237,6 +237,7 @@ const MapSchema = z.object({
   id: z.string().min(1),
   name: z.string().min(1),
   type: z.enum(['pvp', 'normal']),
+  orientation: z.enum(['orthogonal', 'isometric']).optional(),
   pvp: z.enum(['safe', 'normal', 'no-penalty']).optional(),
   instanced: z.boolean().optional(),
   // What joins one map to the next. Undeclared here, `z.object` would drop it

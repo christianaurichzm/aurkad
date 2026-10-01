@@ -1,18 +1,4 @@
-import {
-  CharacterAction,
-  Access,
-  Key,
-  Protocol,
-  NpcBehavior,
-} from './types.js';
-
-export const playerActionToActionColumnRecord: Record<CharacterAction, number> =
-  {
-    [CharacterAction.Idle]: 0,
-    [CharacterAction.Walk]: 2,
-    [CharacterAction.Attack]: 2,
-    [CharacterAction.Run]: 2,
-  };
+import { Access, Key, Protocol, NpcBehavior } from './types.js';
 
 // Hex rather than css names so the hud can weigh the colour: a dark name is
 // drawn with a halo instead of the outline a light one gets, and a browser is

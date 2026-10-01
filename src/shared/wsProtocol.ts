@@ -16,7 +16,7 @@ import type {
 // game-state messages: the client compares it and reloads instead of
 // applying a payload it cannot read, where a stale tab after a deploy
 // would corrupt its state silently.
-export const PROTOCOL_VERSION = 2;
+export const PROTOCOL_VERSION = 3;
 
 export interface WsClientKeyboardMessage {
   type: 'keyboard';

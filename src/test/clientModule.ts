@@ -50,6 +50,7 @@ const RECORDED = [
   'restore',
   'translate',
   'scale',
+  'rotate',
   'setTransform',
   'fillRect',
   'strokeRect',

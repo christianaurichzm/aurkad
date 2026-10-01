@@ -49,6 +49,7 @@ describe('renderDroppedItems', () => {
       7,
       64,
       128,
+      false,
     );
     expect(renderItemIcon).toHaveBeenNthCalledWith(
       2,
@@ -56,6 +57,7 @@ describe('renderDroppedItems', () => {
       8,
       192,
       256,
+      false,
     );
   });
 });
@@ -87,4 +89,37 @@ describe('renderEntitiesSorted', () => {
       s: false,
     });
   });
+});
+
+it('interleaves isometric props with actors by projected feet instead of logical y', async () => {
+  const { setStaticMap } = await import('../core/gameState');
+  const { drawSprite } = await import('./spriteDrawing');
+  const order: string[] = [];
+  vi.mocked(drawSprite).mockImplementation((index) => {
+    order.push(`actor${index}`);
+  });
+  setStaticMap({
+    id: 'iso',
+    name: 'iso',
+    type: 'normal',
+    orientation: 'isometric',
+    tiles: [],
+  });
+  renderEntitiesSorted(
+    {
+      front: { id: 'front', sprite: 1, position: { x: 192, y: 0 } },
+      back: { id: 'back', sprite: 2, position: { x: 0, y: 64 } },
+    } as never,
+    {},
+    [
+      {
+        y: 48,
+        draw: () => {
+          order.push('prop');
+        },
+      },
+    ],
+  );
+  expect(order).toEqual(['actor2', 'prop', 'actor1']);
+  setStaticMap({ id: 'ortho', name: 'ortho', type: 'normal', tiles: [] });
 });

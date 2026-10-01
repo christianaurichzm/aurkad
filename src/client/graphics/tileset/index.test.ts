@@ -1,9 +1,14 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { setStaticMap } from '../../core/gameState';
+import { setCamera } from '../camera';
 import type { Tile } from '../../../shared/types';
 import {
   fillMap,
   getEditorTiles,
   initTilesetEditor,
+  isometricMapObjects,
+  placePiece,
+  readKit,
   renderEditorLayer,
   renderGameMap,
   resetToOriginalMap,
@@ -33,6 +38,10 @@ const mocks = vi.hoisted(() => {
       }),
     },
     ctx: {
+      save: record('save'),
+      restore: record('restore'),
+      translate: record('translate'),
+      transform: record('transform'),
       clearRect: record('clearRect'),
       drawImage: record('drawImage'),
       fillRect: record('fillRect'),
@@ -59,9 +68,14 @@ vi.mock('../canvas', () => ({
 vi.mock('../../io/assets', () => ({
   tileset: { width: 256, height: 256 },
   tilesetAlpha: { width: 256, height: 256 },
+  isometricFrames: {},
+  isometricReach: 64,
 }));
 
-vi.mock('../camera', () => ({ getCamera: () => mocks.cam }));
+beforeEach(() => {
+  setStaticMap({ id: 'test', name: 'test', type: 'normal', tiles: [] });
+  setCamera(mocks.cam);
+});
 
 vi.mock('../../io/network', () => ({
   saveMap: vi.fn(),
@@ -80,15 +94,77 @@ const counts = () => ({
 });
 
 describe('the map the game draws', () => {
+  // The ground is painted onto a canvas of its own around the camera; the
+  // tiles that land there are counted apart from the screen's draws.
+  let painted = 0;
   beforeEach(() => {
     mocks.calls.length = 0;
+    painted = 0;
+    vi.stubGlobal(
+      'OffscreenCanvas',
+      class {
+        constructor(
+          public width: number,
+          public height: number,
+        ) {}
+        getContext() {
+          return {
+            ...mocks.ctx,
+            clearRect: () => {},
+            drawImage: () => {
+              painted++;
+            },
+          };
+        }
+      },
+    );
+  });
+  afterEach(() => {
+    vi.unstubAllGlobals();
   });
 
-  it('clears once and draws only what the viewport covers', () => {
+  it('paints the ground around the camera once and copies the screen out of it', () => {
+    const tiles = mapOf(1);
+    renderGameMap(tiles);
+    // The whole 4x4 map fits inside the viewport and its margin.
+    expect(painted).toBe(16);
+    expect(counts()).toEqual({ clears: 1, draws: 1 });
+
+    setCamera({ x: 40, y: 20 });
+    mocks.calls.length = 0;
+    renderGameMap(tiles);
+
+    expect(painted).toBe(16);
+    expect(counts()).toEqual({ clears: 1, draws: 1 });
+  });
+
+  it('paints again for a new grid, or a camera past the margin', () => {
+    const tiles = mapOf(1);
+    renderGameMap(tiles);
     renderGameMap(mapOf(1));
+    expect(painted).toBe(32);
+
+    const wide = Array.from({ length: 4 }, () =>
+      Array.from({ length: 40 }, () => ({ tileIndex: 1 })),
+    );
+    renderGameMap(wide);
+    const before = painted;
+    setCamera({ x: 1000, y: 0 });
+    renderGameMap(wide);
+    expect(painted).toBeGreaterThan(before);
+  });
+
+  it('draws the editor copy straight onto the screen', () => {
+    // Edits change that grid in place, so a painted copy of it would go stale
+    // with nothing to say so.
+    setEditorTiles(mapOf(1));
+    mocks.calls.length = 0;
+
+    renderGameMap(getEditorTiles());
 
     // Two tiles: the loop walks one past the canvas edge and the draw culls
     // it, so a 128x64 viewport is 2x1 tiles, after one full-canvas clear.
+    expect(painted).toBe(0);
     expect(counts()).toEqual({ clears: 1, draws: 2 });
   });
 
@@ -322,5 +398,181 @@ describe('a mask placed from a selection of several tiles', () => {
         .flat()
         .every((index) => index === undefined),
     ).toBe(true);
+  });
+});
+
+describe('isometric editing', () => {
+  it('paints the diamond under the pointer and ignores clicks outside the map', () => {
+    setStaticMap({
+      id: 'iso',
+      name: 'iso',
+      type: 'normal',
+      orientation: 'isometric',
+      tiles: mapOf(0),
+    });
+    mocks.cam.x = -128;
+    mocks.cam.y = 0;
+    document.body.innerHTML =
+      '<canvas id="tilesetCanvas"></canvas><canvas id="gridCanvas"></canvas><canvas id="foregroundCanvas"></canvas>';
+    vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockReturnValue(
+      mocks.ctx,
+    );
+    initTilesetEditor();
+    setEditorTiles(mapOf(0));
+    toggleBlocking();
+    const canvas = document.getElementById('foregroundCanvas')!;
+    const click = (clientX: number, clientY: number) => {
+      canvas.dispatchEvent(new MouseEvent('mousedown', { clientX, clientY }));
+      canvas.dispatchEvent(new MouseEvent('mouseup', { clientX, clientY }));
+    };
+    // Cell (1,0) center is (32,32) once projected, (160,32) with this camera.
+    click(160, 32);
+    click(0, 0);
+    expect(getEditorTiles()[0][1].blocked).toBe(true);
+    expect(
+      getEditorTiles()
+        .flat()
+        .filter((t) => t.blocked),
+    ).toHaveLength(1);
+    toggleBlocking();
+  });
+});
+
+describe('the props an isometric map sorts with its actors', () => {
+  it('fades a prop in front of the player that covers them, and no other', () => {
+    const tiles = mapOf(0);
+    for (const [col, row] of [
+      [0, 0],
+      [2, 2],
+      [3, 3],
+    ] as const)
+      tiles[row][col].maskIndex = 5;
+    setStaticMap({
+      id: 'iso',
+      name: 'iso',
+      type: 'normal',
+      orientation: 'isometric',
+      tiles,
+    });
+    mocks.cam.x = -256;
+    mocks.cam.y = -128;
+    const saved: number[] = [];
+    const drawnAt: number[] = [];
+    const ctx = {
+      canvas: { width: 512, height: 512 },
+      globalAlpha: 1,
+      save() {
+        saved.push(this.globalAlpha);
+      },
+      restore() {
+        this.globalAlpha = saved.pop() ?? 1;
+      },
+      drawImage() {
+        drawnAt.push(this.globalAlpha);
+      },
+    };
+
+    const alphaOf = Object.fromEntries(
+      isometricMapObjects(tiles, ctx as unknown as CanvasRenderingContext2D, {
+        x: 64,
+        y: 64,
+      }).map((object) => {
+        drawnAt.length = 0;
+        object.draw();
+        return [`${object.col},${object.row}`, drawnAt[0]];
+      }),
+    );
+
+    // The player stands on (1,1): (0,0) is behind them, (3,3) in front but
+    // below their feet, (2,2) in front and over their body.
+    expect(alphaOf).toEqual({ '0,0': 1, '2,2': 0.45, '3,3': 1 });
+    expect(ctx.globalAlpha).toBe(1);
+  });
+});
+
+describe('a kit atlas', () => {
+  const frame = (piece: object) => ({
+    x: 0,
+    y: 0,
+    width: 64,
+    height: 32,
+    drawWidth: 64,
+    drawHeight: 32,
+    anchorX: 32,
+    anchorY: 16,
+    piece: { layer: 'object', at: [0, 0], variant: 0, blocks: false, ...piece },
+  });
+  // A 2x1 ground in two variants, a grave with its mound, and a fence whose
+  // frame ids are 10 plus the neighbours it joins.
+  const frames = {
+    1: frame({ name: 'grass', layer: 'ground', at: [0, 0] }),
+    2: frame({ name: 'grass', layer: 'ground', at: [1, 0] }),
+    3: frame({ name: 'grass', layer: 'ground', at: [0, 0], variant: 1 }),
+    4: frame({ name: 'grass', layer: 'ground', at: [1, 0], variant: 1 }),
+    5: frame({ name: 'grave', group: 'graves', blocks: true }),
+    6: frame({ name: 'grave', group: 'graves', at: [0, 1] }),
+    ...Object.fromEntries(
+      Array.from({ length: 16 }, (_, mask) => [
+        10 + mask,
+        frame({ name: 'fence', group: 'walls', connect: mask, blocks: true }),
+      ]),
+    ),
+  } as unknown as Parameters<typeof readKit>[0];
+  const kit = readKit(frames);
+  const piece = (name: string) => kit.pieces.find((p) => p.name === name)!;
+  const first = () => 0;
+
+  it('groups the frames into pieces in atlas order', () => {
+    expect(kit.pieces.map((p) => [p.name, p.group, p.cols, p.rows])).toEqual([
+      ['grass', '', 2, 1],
+      ['grave', 'graves', 1, 2],
+      ['fence', 'walls', 1, 1],
+    ]);
+    expect(piece('grass').variants).toHaveLength(2);
+  });
+
+  it('repeats a ground with the map, whatever cell the stroke starts on', () => {
+    const tiles = mapOf(0);
+    for (let col = 0; col < 4; col++)
+      placePiece(tiles, kit, piece('grass'), 1, col, first);
+    expect(tiles[1].map((t) => t.tileIndex)).toEqual([1, 2, 1, 2]);
+    placePiece(tiles, kit, piece('grass'), 1, 3, () => 1);
+    expect(tiles[1][3].tileIndex).toBe(4);
+  });
+
+  it('lays every cell of an object, each blocking or not as its frame says', () => {
+    const tiles = mapOf(0);
+    placePiece(tiles, kit, piece('grave'), 0, 2, first);
+    expect([tiles[0][2], tiles[1][2]]).toEqual([
+      { tileIndex: 0, maskIndex: 5, blocked: true },
+      { tileIndex: 0, maskIndex: 6, blocked: false },
+    ]);
+    placePiece(tiles, kit, null, 0, 2);
+    expect(tiles[0][2]).toEqual({
+      tileIndex: 0,
+      maskIndex: undefined,
+      blocked: false,
+    });
+  });
+
+  it('joins a fence to the fence around it, and lets go when a post goes', () => {
+    const tiles = mapOf(0);
+    const fence = piece('fence');
+    for (const [row, col] of [
+      [1, 0],
+      [1, 1],
+      [1, 2],
+      [0, 1],
+    ])
+      placePiece(tiles, kit, fence, row, col);
+    const joined = () =>
+      tiles.map((r) => r.map((t) => (t.maskIndex ?? 10) - 10));
+    // Right; left, right and up; left; down.
+    expect(joined()[1].slice(0, 3)).toEqual([2, 2 | 8 | 1, 8]);
+    expect(joined()[0][1]).toBe(4);
+
+    placePiece(tiles, kit, null, 1, 1);
+    expect(joined()[1].slice(0, 3)).toEqual([0, 0, 0]);
+    expect(joined()[0][1]).toBe(0);
   });
 });
