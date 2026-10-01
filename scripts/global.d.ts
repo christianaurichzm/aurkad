@@ -271,7 +271,9 @@ declare function on<E extends HookEvent>(
  *
  *     attach('phase-two-boss', {
  *       onDeath({ npc, killer }) {
- *         spawnNpc({ npcId: Npcs.BossPhaseTwo, mapId: npc.mapId, ...npc.position });
+ *         const col = npc.position.x / TILE_SIZE;
+ *         const row = npc.position.y / TILE_SIZE;
+ *         spawnNpc({ mapId: npc.mapId, col, row, name: 'Lich, risen', maxHealth: 400, behavior: 'aggressive' });
  *       },
  *     });
  *
@@ -611,6 +613,12 @@ interface SpawnNpcOptions {
   attack?: number;
   attackRange?: number;
   behavior?: NpcBehavior;
+  /** Tiles it notices a player from; absent is its behaviour's default. */
+  sight?: number;
+  /** Tiles it follows a target from where it appeared; 0 is no rope at all. */
+  leash?: number;
+  /** What its killer earns. */
+  experienceValue?: number;
 }
 
 /**

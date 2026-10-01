@@ -96,6 +96,29 @@ describe('spawnNpc', () => {
     expect(npc.attackRange).toBe(TILE_SIZE);
   });
 
+  it('takes the tuning a horde needs and ignores what it cannot use', () => {
+    const sim = createFixture(0);
+    const npc = spawnNpc({
+      mapId: sim.mapId,
+      col: 5,
+      row: 5,
+      sight: 30,
+      leash: 0,
+      experienceValue: 12,
+    })!;
+    expect(npc).toMatchObject({ sight: 30, leash: 0, experienceValue: 12 });
+
+    const odd = spawnNpc({
+      mapId: sim.mapId,
+      col: 5,
+      row: 5,
+      sight: -1,
+      leash: NaN,
+    })!;
+    expect(odd.sight).toBeUndefined();
+    expect(odd.leash).toBeUndefined();
+  });
+
   it('gives each spawn a unique id', () => {
     const sim = createFixture(0);
     const a = spawnNpc({ mapId: sim.mapId, col: 0, row: 0 })!;

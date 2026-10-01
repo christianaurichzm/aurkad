@@ -27,6 +27,12 @@ export interface SpawnNpcOptions {
   attack?: number;
   attackRange?: number;
   behavior?: NpcBehavior;
+  /** Tiles it notices a player from; absent is its behaviour's default. */
+  sight?: number;
+  /** Tiles it follows a target from where it appeared; 0 is no rope at all. */
+  leash?: number;
+  /** What its killer earns. */
+  experienceValue?: number;
 }
 
 let spawnSeq = 0;
@@ -39,6 +45,11 @@ let spawnSeq = 0;
  */
 const num = (value: number | undefined, fallback: number): number =>
   Number.isFinite(value) ? (value as number) : fallback;
+
+// The tuning a content npc can leave out, left out the same way when it is
+// not a number the npc can use.
+const tuning = (value: number | undefined): number | undefined =>
+  Number.isFinite(value) && (value as number) >= 0 ? value : undefined;
 
 export function spawnNpc(opts: SpawnNpcOptions): RuntimeNpc | undefined {
   const map = getMap(opts.mapId);
@@ -91,6 +102,9 @@ export function spawnNpc(opts: SpawnNpcOptions): RuntimeNpc | undefined {
     attack: Math.max(0, num(opts.attack, 0)),
     attackRange: Math.max(0, num(opts.attackRange, TILE_SIZE)),
     behavior: opts.behavior ?? 'neutral',
+    sight: tuning(opts.sight),
+    leash: tuning(opts.leash),
+    experienceValue: tuning(opts.experienceValue),
     mapId: opts.mapId,
     position: { x: col * TILE_SIZE, y: row * TILE_SIZE },
     direction: Direction.Down,
