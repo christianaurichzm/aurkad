@@ -16,7 +16,10 @@ import {
   MapStateServer,
   Position,
 } from '../../../shared/types.js';
-import type { ClientKeyboardAction } from '../../engine/actions.js';
+import type {
+  ClientKeyboardAction,
+  ClientMoveToAction,
+} from '../../engine/actions.js';
 import { useApi } from '../../engine/modules/registry.js';
 import { getMap, updatePlayer } from './gameData.js';
 import { getAllPlayers } from '../../sim/world.js';
@@ -27,6 +30,7 @@ import { removeItem } from '../economy/economyService.js';
 import { handleAttack } from '../combat/index.js';
 import { pickUpItem } from '../economy/inventoryService.js';
 import { handleInteract } from './interactionService.js';
+import { bfsNextStep } from '../npc/behaviors.js';
 import { updatePlayerMap, createOrUpdateMap } from './mapService.js';
 import { findPlacement, hasCollision, hasWarp } from './physicsService.js';
 import {
@@ -55,12 +59,34 @@ import { playersWsMap } from '../../net/connections.js';
 // processMovementIntent and handleKeyAction below.
 export const pressedKeysMap = new Map<string, Set<Key>>();
 
+// Per-player cell a click asked to walk to, followed a step a tick by
+// processMovementIntent until the player is there, an arrow key takes over or
+// the way is shut. Input state like the held keys: never saved, gone with the
+// socket or the next warp. `avoid` collects the cells someone was found
+// standing on, so the way round them is kept rather than retried every step.
+const pathGoals = new Map<
+  string,
+  { col: number; row: number; avoid: Position[] }
+>();
+
+// How far round a clicked cell is looked for. Wider than an npc's hunt
+// (DEFAULT_PATH_DEPTH): a click lands anywhere on the screen, and the way
+// there can bend round a wall.
+const CLICK_PATH_DEPTH = 64;
+
+/** Forgets every walk in progress: a fresh simulation starts with none. */
+export function clearAllPathGoals(): void {
+  pathGoals.clear();
+}
+
 /** Drops held-key state for a player leaving, so a disconnect leaks none. */
 export function clearPressedKeys(username: string): void {
   pressedKeysMap.delete(username);
+  pathGoals.delete(username);
 }
 
 function resetMovement(player: PlayerServer): void {
+  pathGoals.delete(player.name);
   player.targetPosition = undefined;
   player.moving = false;
   player.action = CharacterAction.Idle;
@@ -403,6 +429,95 @@ export const processMovementIntent = () => {
       }
     }
   });
+
+  pathGoals.forEach((goal, username) => {
+    const player = getPlayerByName(username);
+    if (!player) pathGoals.delete(username);
+    else if (!player.moving) followPath(player, goal);
+  });
+};
+
+const isArrow = (key: Key) =>
+  key === Key.ArrowUp ||
+  key === Key.ArrowDown ||
+  key === Key.ArrowLeft ||
+  key === Key.ArrowRight;
+
+/**
+ * One step on the shortest way to the clicked cell. Someone standing on
+ * that step is walked round when another way exists. Otherwise (the goal
+ * is a clicked npc, door or wall, or someone stands in a gate) the walk
+ * ends there, turned toward it, so the next attack or F lands on it.
+ */
+function followPath(
+  player: PlayerServer,
+  goal: { col: number; row: number; avoid: Position[] },
+) {
+  const map = getMap(player.mapId);
+  if (!map) {
+    pathGoals.delete(player.name);
+    return;
+  }
+  const goalAt = { x: goal.col * TILE_SIZE, y: goal.row * TILE_SIZE };
+  const occupied = (position: { x: number; y: number }) =>
+    hasCollision({
+      id: player.id,
+      kind: player.kind,
+      mapId: player.mapId,
+      width: player.width,
+      height: player.height,
+      position,
+    } as CombatTarget);
+  const plan = () =>
+    bfsNextStep(player.position, goalAt, map, CLICK_PATH_DEPTH, goal.avoid);
+  let step = plan();
+  if (step && occupied(step)) {
+    goal.avoid.push(step);
+    step = plan() ?? step;
+  }
+  if (!step) {
+    // There, or no way there within reach.
+    pathGoals.delete(player.name);
+    return;
+  }
+  player.direction = step.dir;
+  const target = { x: step.x, y: step.y };
+  if (occupied(target)) {
+    // Something stands on the way, or on the goal itself: stop, facing it.
+    // An attack queued behind the click keeps its pose until Control is let go.
+    pathGoals.delete(player.name);
+    if (player.action !== CharacterAction.Attack) {
+      player.action = CharacterAction.Idle;
+    }
+    updatePlayerMap(player.id, player);
+    return;
+  }
+  applyMovement(player, target, false);
+}
+
+/**
+ * Walk to a cell. The walk itself happens in the tick (processMovementIntent);
+ * a cell right beside the player is turned to here, at once, so an attack or
+ * an F queued behind the click is aimed at it.
+ */
+export const handleMoveTo = ({ username, col, row }: ClientMoveToAction) => {
+  const player = getPlayerByName(username);
+  const map = player && getMap(player.mapId);
+  if (!player || !map?.tiles[row]?.[col]) return;
+  pathGoals.set(username, { col, row, avoid: [] });
+  if (player.moving) return;
+  const dc = col - Math.round(player.position.x / TILE_SIZE);
+  const dr = row - Math.round(player.position.y / TILE_SIZE);
+  if (Math.abs(dc) + Math.abs(dr) !== 1) return;
+  player.direction =
+    dc > 0
+      ? Direction.Right
+      : dc < 0
+        ? Direction.Left
+        : dr > 0
+          ? Direction.Down
+          : Direction.Up;
+  updatePlayerMap(player.id, player);
 };
 
 export const processMovementCompletion = (): void => {
@@ -458,6 +573,7 @@ export const handleKeyAction = (action: ClientKeyboardAction) => {
     case 'press': {
       if (keys.has(key)) return;
       keys.add(key);
+      if (isArrow(key)) pathGoals.delete(username);
 
       if (key === Key.Control) {
         if (player.action !== CharacterAction.Attack) {

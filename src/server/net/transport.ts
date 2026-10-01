@@ -17,7 +17,10 @@ import {
   getPlayerByName,
   resumePlayer,
 } from '../services/player/playerService.js';
-import { handleKeyAction } from '../services/world/movementService.js';
+import {
+  handleKeyAction,
+  handleMoveTo,
+} from '../services/world/movementService.js';
 import { getRuntimeState } from '../services/world/gameData.js';
 import { handleItemAction } from '../services/economy/inventoryService.js';
 import { handleCustomAction } from '../services/comms/customEventService.js';
@@ -204,6 +207,8 @@ function dispatchClientAction(action: ClientAction): void {
     // must not read one language for its first line and another for its next.
     const player = getPlayerByName(action.username);
     if (player) player.language = action.language;
+  } else if (action.type === 'moveTo') {
+    handleMoveTo(action);
   }
 }
 

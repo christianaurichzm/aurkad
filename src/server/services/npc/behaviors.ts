@@ -58,15 +58,17 @@ const BFS_DIRS = [
   { dc: 0, dr: -1, dir: Direction.Up },
 ] as const;
 
-// BFS on the tile grid returning the first pixel step on the shortest path to
-// targetPos. Only static tile blocking is checked here; dynamic entity
-// positions are handled by hasCollision at move time.
-// Returns null when already at the goal or no reachable path within maxDepth.
-function bfsNextStep(
+// BFS on the tile grid returning the first pixel step on the shortest path
+// to targetPos, or null at the goal or with no path within maxDepth. Only
+// static tiles block here; entities are checked by hasCollision at move
+// time. A player walking to a clicked cell takes the same path, passing in
+// `avoid` the cells it found occupied.
+export function bfsNextStep(
   npcPos: Position,
   targetPos: Position,
   map: MapStateServer,
   maxDepth: number,
+  avoid: readonly Position[] = [],
 ): { x: number; y: number; dir: Direction } | null {
   const sc = Math.floor(npcPos.x / TILE_SIZE);
   const sr = Math.floor(npcPos.y / TILE_SIZE);
@@ -84,6 +86,11 @@ function bfsNextStep(
 
   const visited = new Set<number>();
   visited.add(sr * 10000 + sc);
+  for (const { x, y } of avoid) {
+    const ac = Math.floor(x / TILE_SIZE);
+    const ar = Math.floor(y / TILE_SIZE);
+    if (ac !== gc || ar !== gr) visited.add(ar * 10000 + ac);
+  }
 
   // A read index rather than shift(): an unreachable target floods the whole
   // depth, and shifting that frontier makes the search quadratic.

@@ -1,6 +1,7 @@
 import { useLayoutEffect, useRef } from 'react';
 import { initializeAssets } from '../io/assets';
 import { handleInput } from '../io/keyboard';
+import { handlePointer } from '../io/pointer';
 import { initializeWebSocket } from '../io/network';
 import { loadClientModules } from '../io/modules/moduleClient';
 import { gameLoop } from '../core/game';
@@ -72,6 +73,7 @@ export const GameInterface = () => {
       });
       useUIStore.getState().setCurrentMap(initialMap);
       handleInput();
+      handlePointer();
       initDebugOverlay();
       // A missing sprite sheet must not keep the socket from opening; only the
       // drawing is lost, and the frame loop reports it. Modules load alongside

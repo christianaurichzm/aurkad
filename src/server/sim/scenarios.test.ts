@@ -83,6 +83,99 @@ describe('player movement', () => {
   });
 });
 
+describe('walking to a clicked cell', () => {
+  const at = (name: string) => {
+    const { x, y } = sim.getPlayer(name).position;
+    return [x / TILE_SIZE, y / TILE_SIZE];
+  };
+
+  it('goes round a wall to the cell and stops there', () => {
+    sim.addPlayer({ name: 'Alice', position: { x: TILE_SIZE, y: TILE_SIZE } });
+    for (let row = 0; row < 4; row++) sim.map.tiles[row]![3]!.blocked = true;
+
+    sim.moveTo('Alice', 5, 1);
+    sim.step(80);
+
+    expect(at('Alice')).toEqual([5, 1]);
+    expect(sim.getPlayer('Alice').moving).toBe(false);
+  });
+
+  it('gives way to an arrow key', () => {
+    sim.addPlayer({ name: 'Alice', position: { x: TILE_SIZE, y: TILE_SIZE } });
+
+    sim.moveTo('Alice', 8, 1);
+    sim.step(6);
+    sim.press('Alice', Key.ArrowDown);
+    sim.release('Alice', Key.ArrowDown);
+    sim.step(40);
+
+    // One step toward the click, perhaps one down; nowhere near column 8.
+    expect(at('Alice')[0]).toBeLessThan(4);
+  });
+
+  it('walks up to a clicked npc and faces it rather than into it', () => {
+    sim.addPlayer({ name: 'Alice', position: { x: TILE_SIZE, y: TILE_SIZE } });
+    sim.addNpc({
+      behavior: 'friendly',
+      position: { x: 5 * TILE_SIZE, y: TILE_SIZE },
+    });
+
+    sim.moveTo('Alice', 5, 1);
+    sim.step(40);
+
+    expect(at('Alice')).toEqual([4, 1]);
+    expect(sim.getPlayer('Alice').direction).toBe(Direction.Right);
+  });
+
+  it('goes round someone standing on the way, through the other gap', () => {
+    sim.addPlayer({ name: 'Alice', position: { x: TILE_SIZE, y: TILE_SIZE } });
+    // Wall on column 3 with two gaps; an npc blocks the near one, so the path
+    // takes the far one.
+    for (let row = 0; row < 8; row++) {
+      if (row !== 1 && row !== 5) sim.map.tiles[row]![3]!.blocked = true;
+    }
+    sim.addNpc({
+      behavior: 'friendly',
+      position: { x: 3 * TILE_SIZE, y: TILE_SIZE },
+    });
+
+    sim.moveTo('Alice', 5, 1);
+    sim.step(120);
+
+    expect(at('Alice')).toEqual([5, 1]);
+  });
+
+  it('turns at once to a click beside the player, so the attack behind it lands', () => {
+    sim.addPlayer({
+      name: 'Alice',
+      position: { x: 3 * TILE_SIZE, y: 3 * TILE_SIZE },
+      direction: Direction.Down,
+    });
+    const npc = sim.addNpc({
+      behavior: 'hostile',
+      position: { x: 2 * TILE_SIZE, y: 3 * TILE_SIZE },
+      health: 30,
+      maxHealth: 30,
+    });
+
+    sim.moveTo('Alice', 2, 3);
+    sim.press('Alice', Key.Control);
+    sim.step(1);
+
+    expect(sim.getPlayer('Alice').direction).toBe(Direction.Left);
+    expect(npc.health).toBeLessThan(30);
+  });
+
+  it('ignores a cell off the map', () => {
+    sim.addPlayer({ name: 'Alice', position: { x: TILE_SIZE, y: TILE_SIZE } });
+
+    sim.moveTo('Alice', 400, 1);
+    sim.step(20);
+
+    expect(at('Alice')).toEqual([1, 1]);
+  });
+});
+
 // NPC behaviour
 
 describe('npc behaviour', () => {

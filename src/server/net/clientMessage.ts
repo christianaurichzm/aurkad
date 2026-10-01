@@ -45,12 +45,22 @@ const LanguageMessageSchema = z.object({
   language: z.string().min(2).max(8),
 });
 
+// A cell to walk to, clicked or tapped. Past the map's edge is the handler's
+// to refuse: the bound here only keeps the number a cell index.
+const MAX_CELL = 4095;
+const MoveToMessageSchema = z.object({
+  type: z.literal('moveTo'),
+  col: z.number().int().min(0).max(MAX_CELL),
+  row: z.number().int().min(0).max(MAX_CELL),
+});
+
 export const ClientMessageSchema = z.discriminatedUnion('type', [
   KeyboardMessageSchema,
   ItemMessageSchema,
   ChatMessageSchema,
   CustomMessageSchema,
   LanguageMessageSchema,
+  MoveToMessageSchema,
 ]);
 
 export type ClientMessage = z.infer<typeof ClientMessageSchema>;

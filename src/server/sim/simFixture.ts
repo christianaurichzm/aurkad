@@ -7,7 +7,9 @@ import { registerPlayer, getPlayerByName } from './world.js';
 import { items } from '../services/world/gameData.js';
 import {
   pressedKeysMap,
+  clearAllPathGoals,
   handleKeyAction,
+  handleMoveTo,
   processMovementIntent,
   processMovementCompletion,
 } from '../services/world/movementService.js';
@@ -41,7 +43,9 @@ export function makeTiles(rows: number, cols: number): Tile[][] {
   );
 }
 
-type KeyEvent = { username: string; key: Key; type: 'press' | 'release' };
+type InputEvent =
+  | { username: string; key: Key; type: 'press' | 'release' }
+  | { username: string; type: 'moveTo'; col: number; row: number };
 
 export function createFixture(seed = 0) {
   resetClock();
@@ -53,6 +57,7 @@ export function createFixture(seed = 0) {
   for (const k of Object.keys(players)) delete players[k];
   playersByName.clear();
   pressedKeysMap.clear();
+  clearAllPathGoals();
   items.clear();
   clearAllAttackCooldowns();
   clearAllNpcAiState();
@@ -69,7 +74,7 @@ export function createFixture(seed = 0) {
   };
   runtimeState.maps[mapId] = map;
 
-  const pendingKeys: KeyEvent[] = [];
+  const pendingKeys: InputEvent[] = [];
 
   function addPlayer(overrides: Partial<PlayerServer> = {}): PlayerServer {
     const id = overrides.id ?? uid();
@@ -164,6 +169,11 @@ export function createFixture(seed = 0) {
     pendingKeys.push({ username, key, type: 'release' });
   }
 
+  // Clicks share the key queue, so their order is kept as from a real client.
+  function moveTo(username: string, col: number, row: number) {
+    pendingKeys.push({ username, type: 'moveTo', col, row });
+  }
+
   function step(ticks = 1) {
     for (let i = 0; i < ticks; i++) {
       advanceTick();
@@ -179,11 +189,13 @@ export function createFixture(seed = 0) {
 
       // Flush key events now that the spatial index is up to date
       for (const ev of pendingKeys) {
-        handleKeyAction({
-          username: ev.username,
-          type: 'keyboard',
-          keyboardAction: { key: ev.key, type: ev.type },
-        });
+        if (ev.type === 'moveTo') handleMoveTo(ev);
+        else
+          handleKeyAction({
+            username: ev.username,
+            type: 'keyboard',
+            keyboardAction: { key: ev.key, type: ev.type },
+          });
       }
       pendingKeys.length = 0;
 
@@ -209,6 +221,7 @@ export function createFixture(seed = 0) {
     addMap,
     press,
     release,
+    moveTo,
     step,
     getPlayer,
   };

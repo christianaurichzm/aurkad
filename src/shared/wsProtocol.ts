@@ -53,12 +53,22 @@ export interface WsClientLanguageMessage {
   language: string;
 }
 
+// Walk to a cell by the shortest way round, one step a tick, until there or
+// an arrow key takes over. A cell something stands on is walked up to and
+// faced, so the next attack or F lands on it.
+export interface WsClientMoveToMessage {
+  type: 'moveTo';
+  col: number;
+  row: number;
+}
+
 export type WsClientMessage =
   | WsClientKeyboardMessage
   | WsClientItemMessage
   | WsClientChatMessage
   | WsClientCustomMessage
-  | WsClientLanguageMessage;
+  | WsClientLanguageMessage
+  | WsClientMoveToMessage;
 
 // Client-side shape of the dynamic world: what the client assembles and
 // renders from the wire format (see WorldUpdatePayload).

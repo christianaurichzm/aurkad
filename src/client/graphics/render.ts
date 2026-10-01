@@ -39,6 +39,7 @@ import {
 import { renderFloatingTexts } from './floatingText';
 import { renderProjectiles } from './projectiles';
 import { renderAttackEffects } from './attackEffect';
+import { renderClickMark } from '../io/pointer';
 import { renderSpellEffects } from './spellEffect';
 import { useUIStore } from '../stores/uiStore';
 import { calcCamera, setCamera, worldToView } from './camera';
@@ -201,6 +202,7 @@ export const render = () => {
     const playersWithSelf = currentPlayer
       ? { ...map.players, [currentPlayer.id]: currentPlayer }
       : map.players;
+    renderClickMark(playerCtx);
     const hudEntries = renderEntitiesSorted(
       playersWithSelf,
       map.npcs,
