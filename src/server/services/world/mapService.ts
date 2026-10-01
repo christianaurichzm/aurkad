@@ -13,6 +13,7 @@ import {
 import { getMap, getPlayer, runtimeState, updateMapById } from './gameData.js';
 import { placePlayerOnMap, detachFromMap } from '../../sim/world.js';
 
+import { emit } from '../../engine/hooks.js';
 import { mapRepository } from '../../persistence/mapRepository.js';
 import { dropQuadtree } from '../../spatial/spatialManager.js';
 import { forgetReplicatedEntity } from '../../net/snapshot.js';
@@ -51,6 +52,7 @@ export async function createOrUpdateMap(
   }
 
   runtimeState.maps[map.id] = merged;
+  if (map.tiles !== undefined) emit('mapChange', { mapId: map.id });
 
   await mapRepository.upsert(map.id, map);
 

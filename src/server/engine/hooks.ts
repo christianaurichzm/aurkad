@@ -69,6 +69,12 @@ export type HookMap = {
    * Everybody who answers the same string walks into the same copy.
    */
   instanceOwner: { player: PlayerServer; mapId: string; owner: string };
+  /**
+   * A map's tiles changed while the server runs: saved from the map editor, a
+   * door opened, a content pack imported. Fired once the live map holds the
+   * new tiles, so what reads the map (getMapTile) sees them.
+   */
+  mapChange: { mapId: string };
   tick: { tick: number };
 };
 

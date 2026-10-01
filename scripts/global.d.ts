@@ -247,6 +247,11 @@ interface HookPayloads {
    * arrives as their own name; players answering the same string share a copy.
    */
   instanceOwner: { player: PlayerServer; mapId: string; owner: string };
+  /**
+   * A map's tiles changed while running: an editor save, a door opened, a pack
+   * imported. `getMapTile` already reads the new tiles.
+   */
+  mapChange: { mapId: string };
   /** Fires every game tick (~20/sec). Throttle with `if (tick % n === 0)`. */
   tick: { tick: number };
 }

@@ -11,7 +11,13 @@ vi.mock('../npc/index.js', () => ({
   getNpcById: (id: string) => getNpcById(id),
 }));
 
-const { insertNpcs } = await import('./mapService.js');
+vi.mock('../../persistence/mapRepository.js', () => ({
+  mapRepository: { upsert: vi.fn() },
+}));
+
+const { insertNpcs, createOrUpdateMap } = await import('./mapService.js');
+const { on } = await import('../../engine/hooks.js');
+const { runtimeState } = await import('./gameData.js');
 
 const tiles = (npcId: string): Tile[][] => [
   [{ tileIndex: 0 }, { tileIndex: 0, npcSpawn: npcId }],
@@ -71,5 +77,22 @@ describe('insertNpcs geometry', () => {
     const npc = await runtime({});
 
     expect(npc.position).toEqual({ x: TILE_SIZE, y: 0 });
+  });
+});
+
+describe('the mapChange hook', () => {
+  it('fires when the tiles change, with the live map already holding them', async () => {
+    const seen: (number | undefined)[] = [];
+    const stop = on('mapChange', ({ mapId }) =>
+      seen.push(runtimeState.maps[mapId]?.tiles[0]?.[0]?.maskIndex),
+    );
+    await createOrUpdateMap({
+      id: 'yard',
+      tiles: [[{ tileIndex: 0, maskIndex: 7 }]],
+    });
+    await createOrUpdateMap({ id: 'yard', name: 'The yard' });
+    stop();
+
+    expect(seen).toEqual([7]);
   });
 });
