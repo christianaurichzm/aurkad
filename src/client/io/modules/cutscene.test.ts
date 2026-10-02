@@ -21,7 +21,7 @@ function load() {
   const mod = loadClientModule('cutscene');
   const play = (payload: unknown) => mod.handlers.get('cutscene')!(payload);
   const draw = (cam = { x: 0, y: 0 }) => {
-    const rec = recordingContext(800, 600);
+    const rec = recordingContext();
     mod.overlays.forEach((o) => o.fn(rec.ctx, cam));
     return rec;
   };
@@ -59,7 +59,7 @@ describe('cutscene overlay', () => {
 
     advanceTime(320);
     const open = draw();
-    expect((open.of('fillRect')[0].args as number[])[3]).toBeCloseTo(72, 0);
+    expect((open.of('fillRect')[0].args as number[])[3]).toBeCloseTo(107.5, 0);
   });
 
   it('shows the speaker and the line, and the hint when it waits on input', () => {

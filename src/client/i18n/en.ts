@@ -632,6 +632,13 @@ export const en = {
   'appearance.layout.bottom': 'In a bar under the world',
   'appearance.layoutCost':
     'The bar takes its height from the world, which is drawn smaller on a wide screen. Phones keep their own arrangement.',
+  'appearance.layout.overlay': 'Over the world, which fills the window',
+  'appearance.layoutCrop':
+    'The world is cut at its edges to fill the window: a wide window shows less of it above and below, never less than three quarters, and bars fill the rest. Phones keep their own arrangement.',
+  'appearance.art': "The world's art",
+  'appearance.art.pixel': 'Pixel art: square pixels, scaled without blur',
+  'appearance.art.smooth':
+    "Painted or rendered: drawn at the screen's resolution",
   'appearance.dialogDim': 'Darken the world behind a conversation',
   'appearance.image.logo': 'Logo',
   'appearance.image.background': 'Login background',

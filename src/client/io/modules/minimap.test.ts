@@ -51,6 +51,13 @@ function draw(
   const mod = loadClientModule('minimap', {
     getGameState: () => state,
     getPlayer: () => player,
+    getVisibleView: () => ({
+      x: 0,
+      y: 0,
+      width: canvas[0],
+      height: canvas[1],
+      scale: 1,
+    }),
     screenToWorld: (x: number, y: number) => ({ x: x + cam.x, y: y + cam.y }),
   });
   const rec = recordingContext(canvas[0], canvas[1]);
@@ -59,6 +66,45 @@ function draw(
 }
 
 describe('minimap overlay', () => {
+  it('pins itself and the viewport polygon to the visible crop of a scaled canvas', () => {
+    const mod = loadClientModule('minimap', {
+      getGameState: () => mapOf(60, 40),
+      getVisibleView: () => ({
+        x: 0,
+        y: 100,
+        width: 1280,
+        height: 700,
+        scale: 1,
+      }),
+    });
+    const rec = recordingContext(2560, 1792);
+    mod.overlays[0].fn(rec.ctx, { x: 0, y: 0 });
+    expect(rec.of('drawImage')[0].args.slice(1, 3)).toEqual([1112, 108]);
+    expect(rec.of('moveTo')[0].args).toEqual([
+      1112,
+      108 + (100 / 64) * (160 / 60),
+    ]);
+  });
+
+  it('keeps its size on screen when the world is drawn larger than its view', () => {
+    const mod = loadClientModule('minimap', {
+      getGameState: () => mapOf(60, 40),
+      getVisibleView: () => ({
+        x: 0,
+        y: 0,
+        width: 1280,
+        height: 896,
+        scale: 2,
+      }),
+    });
+    const rec = recordingContext();
+    mod.overlays[0].fn(rec.ctx, { x: 0, y: 0 });
+    // 80 view px wide is 160 on screen; the 8 px margin is 4.
+    const [x, y, w, h] = rec.of('drawImage')[0].args.slice(1, 5) as number[];
+    expect([x, y, w]).toEqual([1196, 4, 80]);
+    expect(h).toBeCloseTo((40 * 80) / 60);
+  });
+
   it('draws on the hud layer, so a night tint cannot dim it', () => {
     const { mod } = draw(mapOf(20, 14));
 

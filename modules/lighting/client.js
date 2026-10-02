@@ -83,14 +83,16 @@ function visibleLights() {
 engine.registerOverlay((ctx, cam) => {
   if (ambient <= 0.001) return;
 
-  const width = ctx.canvas.width;
-  const height = ctx.canvas.height;
-  const b = bufferFor(width, height);
+  const width = engine.GAME_WIDTH;
+  const height = engine.GAME_HEIGHT;
+  const scale = ctx.canvas.width / width;
+  const b = bufferFor(ctx.canvas.width, ctx.canvas.height);
   if (!b) return; // no 2d context: better unlit than half-drawn
 
   const now = Date.now();
   const visible = visibleLights();
 
+  b.setTransform(scale, 0, 0, scale, 0, 0);
   b.clearRect(0, 0, width, height);
   b.globalCompositeOperation = 'source-over';
   b.fillStyle = `rgba(${DARK[0]},${DARK[1]},${DARK[2]},${ambient})`;
@@ -106,12 +108,12 @@ engine.registerOverlay((ctx, cam) => {
     const ex = engine.worldToScreen(light.x + r, light.y);
     const ey = engine.worldToScreen(light.x, light.y + r);
     b.setTransform(
-      (ex.x - o.x) / r,
-      (ex.y - o.y) / r,
-      (ey.x - o.x) / r,
-      (ey.y - o.y) / r,
-      o.x,
-      o.y,
+      ((ex.x - o.x) / r) * scale,
+      ((ex.y - o.y) / r) * scale,
+      ((ey.x - o.x) / r) * scale,
+      ((ey.y - o.y) / r) * scale,
+      o.x * scale,
+      o.y * scale,
     );
     const g = b.createRadialGradient(0, 0, 0, 0, 0, r);
     g.addColorStop(0, 'rgba(255,255,255,1)');
@@ -126,6 +128,6 @@ engine.registerOverlay((ctx, cam) => {
   ctx.save();
   // Screen space: darkness covers the view, not a rectangle of the world.
   ctx.translate(cam.x, cam.y);
-  ctx.drawImage(buffer, 0, 0);
+  ctx.drawImage(buffer, 0, 0, width, height);
   ctx.restore();
 }, engine.OverlayLayer.scene);

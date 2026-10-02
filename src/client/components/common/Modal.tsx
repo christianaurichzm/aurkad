@@ -120,13 +120,25 @@ export const Modal = ({
   );
 };
 
-// Under the map's name and a step in from the frame. useDraggable pulls it
-// back in when the world is narrower than the window.
-const besideTheWorld = (world: DOMRect, width: number, anchor: string) =>
-  [
-    anchor === 'right' ? world.right - width - 12 : world.left + 12,
-    world.top + 44,
-  ] as const;
+// Under the map's name, a step in from the frame, and under the card and
+// creator tools in the overlay layout. useDraggable pulls the window back in
+// when the world is narrower.
+const besideTheWorld = (world: DOMRect, width: number, anchor: string) => {
+  const left = anchor === 'right' ? world.right - width - 12 : world.left + 12;
+  let top = world.top + 44;
+  for (const hud of document.querySelectorAll(
+    '#hud, .player-controls, .creator-tools',
+  )) {
+    const box = hud.getBoundingClientRect();
+    const over =
+      box.left < left + width &&
+      box.right > left &&
+      box.top < world.bottom &&
+      box.bottom > world.top;
+    if (over) top = Math.max(top, box.bottom + 8);
+  }
+  return [left, top] as const;
+};
 
 function raise(window: HTMLElement | null) {
   if (window) window.style.zIndex = String(++front);

@@ -1,4 +1,4 @@
-import { TILE_SIZE } from '../../shared/constants';
+import { GAME_WIDTH, GAME_HEIGHT, TILE_SIZE } from '../../shared/constants';
 import { Key, type NpcBehavior } from '../../shared/types';
 import { getGameState, getPlayer } from '../core/gameState';
 import {
@@ -108,7 +108,7 @@ export const renderClickMark = (ctx: CanvasRenderingContext2D) => {
   ctx.restore();
 };
 
-/** Clicks on the world canvas, in its 1280x896 buffer's pixels. */
+/** Clicks on the world canvas, in logical view pixels. */
 export const handlePointer = () => {
   const canvas = document.getElementById(
     'foregroundCanvas',
@@ -116,8 +116,8 @@ export const handlePointer = () => {
   canvas?.addEventListener('click', (e) => {
     const rect = canvas.getBoundingClientRect();
     clickWorld(
-      ((e.clientX - rect.left) * canvas.width) / rect.width,
-      ((e.clientY - rect.top) * canvas.height) / rect.height,
+      ((e.clientX - rect.left) * GAME_WIDTH) / rect.width,
+      ((e.clientY - rect.top) * GAME_HEIGHT) / rect.height,
     );
   });
 };

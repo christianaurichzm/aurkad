@@ -629,6 +629,13 @@ export const pt: Record<keyof typeof en, string> = {
   'appearance.layout.bottom': 'Numa barra sob o mundo',
   'appearance.layoutCost':
     'A barra tira altura do mundo, que fica menor numa tela larga. Celulares mantêm o arranjo próprio.',
+  'appearance.layout.overlay': 'Sobre o mundo, que ocupa a janela',
+  'appearance.layoutCrop':
+    'O mundo é cortado nas bordas para preencher a janela: numa janela larga, mostra menos acima e abaixo, nunca menos de três quartos, e faixas preenchem o resto. Celulares mantêm o arranjo próprio.',
+  'appearance.art': 'A arte do mundo',
+  'appearance.art.pixel': 'Pixel art: pixels quadrados, ampliados sem borrar',
+  'appearance.art.smooth':
+    'Pintada ou renderizada: desenhada na resolução da tela',
   'appearance.dialogDim': 'Escurecer o mundo atrás de uma conversa',
   'appearance.image.logo': 'Logo',
   'appearance.image.background': 'Fundo do login',

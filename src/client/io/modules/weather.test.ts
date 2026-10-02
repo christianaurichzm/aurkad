@@ -18,7 +18,7 @@ function atPhase(phase: number) {
 let mod: LoadedClientModule;
 
 function frame(cam = { x: 0, y: 0 }) {
-  const rec = recordingContext(800, 600);
+  const rec = recordingContext();
   mod.overlays[0].fn(rec.ctx, cam);
   return rec;
 }

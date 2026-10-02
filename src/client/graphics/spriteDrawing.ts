@@ -47,7 +47,7 @@ export function drawSprite(
   posX: number,
   posY: number,
 ) {
-  const { width, height, anchorX, anchorY } = getSpriteLayout();
+  const { width, height, anchorX, anchorY, scale } = getSpriteLayout();
   const box = spritePosition(posX, posY);
 
   drawSpriteGeneric(
@@ -55,9 +55,9 @@ export function drawSprite(
     characterIndex,
     column,
     row,
-    box.x + TILE_SIZE / 2 - anchorX,
-    box.y + TILE_SIZE - anchorY,
-    width,
-    height,
+    box.x + TILE_SIZE / 2 - anchorX * scale,
+    box.y + TILE_SIZE - anchorY * scale,
+    width * scale,
+    height * scale,
   );
 }

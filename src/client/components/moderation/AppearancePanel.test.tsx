@@ -13,7 +13,7 @@ let sent: Sent[];
 let handwritten: boolean;
 
 beforeEach(() => {
-  stored = { colors: {}, layout: 'right', dialogDim: true };
+  stored = { colors: {}, layout: 'right', art: 'pixel', dialogDim: true };
   sent = [];
   handwritten = false;
   vi.stubGlobal(

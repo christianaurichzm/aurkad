@@ -57,12 +57,12 @@ engine.onServerEvent('weather', (payload) => {
 // Particles live in world space, so they do not slide with the camera.
 const drops = [];
 
-function reseed(count, cam, ctx) {
+function reseed(count, cam) {
   while (drops.length > count) drops.pop();
   while (drops.length < count) {
     drops.push({
-      x: cam.x + Math.random() * ctx.canvas.width,
-      y: cam.y + Math.random() * ctx.canvas.height,
+      x: cam.x + Math.random() * engine.GAME_WIDTH,
+      y: cam.y + Math.random() * engine.GAME_HEIGHT,
       // A little spread, so a sheet of rain is not one rigid comb.
       jitter: 0.7 + Math.random() * 0.6,
     });
@@ -84,15 +84,15 @@ engine.registerOverlay((ctx, cam) => {
   const dt = Math.min(0.05, lastFrame ? (now - lastFrame) / 1000 : 0.016);
   lastFrame = now;
 
-  reseed(Math.round(spec.count * weather.intensity), cam, ctx);
+  reseed(Math.round(spec.count * weather.intensity), cam);
 
   ctx.save();
   ctx.strokeStyle = spec.color;
   ctx.fillStyle = spec.color;
   ctx.lineWidth = spec.width;
 
-  const bottom = cam.y + ctx.canvas.height;
-  const right = cam.x + ctx.canvas.width;
+  const bottom = cam.y + engine.GAME_HEIGHT;
+  const right = cam.x + engine.GAME_WIDTH;
 
   for (const drop of drops) {
     drop.y += spec.speed * drop.jitter * dt;
@@ -102,7 +102,7 @@ engine.registerOverlay((ctx, cam) => {
     // sweep the weather off the screen.
     if (drop.y > bottom) {
       drop.y = cam.y - 10;
-      drop.x = cam.x + Math.random() * ctx.canvas.width;
+      drop.x = cam.x + Math.random() * engine.GAME_WIDTH;
     }
     if (drop.x > right) drop.x = cam.x;
     if (drop.x < cam.x) drop.x = right;

@@ -59,16 +59,19 @@ engine.registerOverlay((ctx, cam) => {
   const tiles = tileLayerFor(map);
   if (!tiles) return;
 
+  // SIZE and MARGIN stay in CSS pixels however large the world is drawn.
+  const view = engine.getVisibleView();
+  const shown = Math.max(1, view.scale);
   // The map is rarely square; keep its shape and fit the long side to SIZE.
-  const scale = SIZE / Math.max(tiles.cols, tiles.rows);
+  const scale = SIZE / shown / Math.max(tiles.cols, tiles.rows);
   const w = tiles.cols * scale;
   const h = tiles.rows * scale;
 
   ctx.save();
   // Undo the camera to draw in screen space, in the corner of the screen.
   ctx.translate(cam.x, cam.y);
-  const x = ctx.canvas.width - w - MARGIN;
-  const y = MARGIN;
+  const x = view.x + view.width - w - MARGIN / shown;
+  const y = view.y + MARGIN / shown;
 
   ctx.fillStyle = COLORS.frame;
   ctx.fillRect(x - 2, y - 2, w + 4, h + 4);
@@ -94,22 +97,22 @@ engine.registerOverlay((ctx, cam) => {
 
   // The rectangle the screen shows, skipped when the map fits on one screen
   // and it would only trace the border.
-  const viewW = (ctx.canvas.width / engine.TILE_SIZE) * scale;
-  const viewH = (ctx.canvas.height / engine.TILE_SIZE) * scale;
+  const viewW = (view.width / engine.TILE_SIZE) * scale;
+  const viewH = (view.height / engine.TILE_SIZE) * scale;
   if (viewW < w - 1 || viewH < h - 1) {
     ctx.strokeStyle = COLORS.viewport;
     ctx.lineWidth = 1;
     ctx.beginPath();
     for (const [sx, sy] of [
-      [0, 0],
-      [ctx.canvas.width, 0],
-      [ctx.canvas.width, ctx.canvas.height],
-      [0, ctx.canvas.height],
+      [view.x, view.y],
+      [view.x + view.width, view.y],
+      [view.x + view.width, view.y + view.height],
+      [view.x, view.y + view.height],
     ]) {
       const point = engine.screenToWorld(sx, sy);
       const px = x + (point.x / engine.TILE_SIZE) * scale;
       const py = y + (point.y / engine.TILE_SIZE) * scale;
-      if (sx === 0 && sy === 0) ctx.moveTo(px, py);
+      if (sx === view.x && sy === view.y) ctx.moveTo(px, py);
       else ctx.lineTo(px, py);
     }
     ctx.closePath();

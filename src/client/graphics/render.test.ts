@@ -21,6 +21,7 @@ const mocks = vi.hoisted(() => {
     state: null as ReturnType<typeof gameStateWith> | null,
     renderGameMap: vi.fn(),
     renderEditorLayer: vi.fn(),
+    canvasGeneration: 0,
   };
 });
 
@@ -35,6 +36,10 @@ vi.mock('./canvas', () => ({
   playerCtx: mocks.ctx,
   fringeCanvas: canvas,
   fringeCtx: mocks.ctx,
+  prepareWorldContext: vi.fn(),
+  get worldCanvasGeneration() {
+    return mocks.canvasGeneration;
+  },
 }));
 
 vi.mock('./tileset', () => ({
@@ -203,5 +208,23 @@ describe('the ground pass', () => {
 
     expect(mocks.renderGameMap).not.toHaveBeenCalled();
     expect(mocks.groundCtx.clearRect).not.toHaveBeenCalled();
+  });
+
+  it('repaints cleared layers after the canvas is reallocated', async () => {
+    const render = await freshRender();
+    render();
+    vi.clearAllMocks();
+    mocks.canvasGeneration++;
+    render();
+
+    expect(mocks.renderGameMap).toHaveBeenCalledOnce();
+    expect(mocks.renderEditorLayer).toHaveBeenCalledOnce();
+    expect(mocks.ctx.drawImage).toHaveBeenCalledWith(
+      expect.anything(),
+      0,
+      0,
+      1280,
+      896,
+    );
   });
 });

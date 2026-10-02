@@ -105,14 +105,14 @@ engine.registerOverlay((ctx, cam) => {
     if (!scene) return;
   }
 
-  const width = ctx.canvas.width;
-  const height = ctx.canvas.height;
+  const view = engine.getVisibleView();
+  const { width, height } = view;
   const slide = Math.min(1, (now - scene.startedAt) / SLIDE_MS);
   const bar = height * BAR_FRACTION * slide;
 
   ctx.save();
   // Screen space: the frame belongs to the view, not to a piece of the world.
-  ctx.translate(cam.x, cam.y);
+  ctx.translate(cam.x + view.x, cam.y + view.y);
 
   ctx.fillStyle = '#000';
   ctx.fillRect(0, 0, width, bar);

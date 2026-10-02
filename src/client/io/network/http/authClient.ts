@@ -1,4 +1,5 @@
 import type { Player, MapMetaClient } from '../../../../shared/types';
+import type { Theme } from '../../../../shared/theme';
 import { httpClient, httpError } from './httpClient';
 
 export const login = async (
@@ -89,7 +90,9 @@ export interface GameBrand {
   /** Whether levels hand out attribute points (`leveling.pointsPerLevel`). */
   attributes: boolean;
   /** Where the menu sits (`layout` in theme/theme.json). */
-  layout: 'right' | 'left' | 'bottom';
+  layout: Theme['layout'];
+  /** How the world's canvases are drawn (`art` in theme/theme.json). */
+  art: Theme['art'];
 }
 
 let gameBrand: Promise<GameBrand | null> | undefined;

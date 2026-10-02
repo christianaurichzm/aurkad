@@ -72,7 +72,7 @@ describe('themeRoutes', () => {
 
   it('answers the defaults for a game with no theme, and says when a theme.css is there', async () => {
     expect((await request(appAs()).get('/admin/theme')).body).toEqual({
-      theme: { colors: {}, layout: 'right', dialogDim: true },
+      theme: { colors: {}, layout: 'right', art: 'pixel', dialogDim: true },
       handwritten: false,
     });
 
@@ -89,6 +89,7 @@ describe('themeRoutes', () => {
     expect(saved.status).toBe(200);
     expect((await request(appAs()).get('/admin/theme')).body.theme).toEqual({
       ...CHOICES,
+      art: 'pixel',
       dialogDim: true,
     });
   });

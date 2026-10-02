@@ -4,8 +4,9 @@ import { initTilesetEditor } from '../graphics/tileset';
 
 export const GameCanvas = () => {
   useEffect(() => {
-    initGameCanvas();
+    const stopObserving = initGameCanvas();
     initTilesetEditor();
+    return stopObserving;
   }, []);
 
   return (

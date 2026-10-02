@@ -36,18 +36,19 @@ describe('gameRoutes', () => {
       levels: true,
       attributes: true,
       layout: 'right',
+      art: 'pixel',
     });
   });
 
   it('says where the menu sits, once theme.json says', async () => {
     fs.writeFileSync(
       path.join(themeDir, 'theme.json'),
-      JSON.stringify({ layout: 'bottom' }),
+      JSON.stringify({ layout: 'overlay', art: 'smooth' }),
     );
 
     const res = await request(appFor({ name: 'Tandem' })).get('/game');
 
-    expect(res.body.layout).toBe('bottom');
+    expect(res.body).toMatchObject({ layout: 'overlay', art: 'smooth' });
   });
 
   it('shows a logo uploaded from the Appearance page over the one game.json names', async () => {

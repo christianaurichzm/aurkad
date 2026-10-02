@@ -32,10 +32,12 @@ const ARRANGEABLE = '(min-width: 901px) and (min-height: 501px)';
 function App() {
   const t = useT();
   const { isLoggedIn } = useGame();
-  const layout = useGameBrand()?.layout ?? 'right';
-  // In the bar under the world the hotbar is one of its blocks. Anywhere else
-  // it stays over the world, inside the frame.
-  const docked = useMediaQuery(ARRANGEABLE) && layout === 'bottom';
+  const brand = useGameBrand();
+  const layout = brand?.layout ?? 'right';
+  // In the bottom and overlay layouts the hotbar is one of the shell's
+  // blocks; otherwise it stays over the world, inside the frame.
+  const docked =
+    useMediaQuery(ARRANGEABLE) && (layout === 'bottom' || layout === 'overlay');
   const [showRegister, setShowRegister] = useState(false);
   // Only a small screen collapses the panel, opening it over the world, so
   // it starts closed.
@@ -59,6 +61,7 @@ function App() {
           <div
             id="gameShell"
             data-layout={layout}
+            data-art={brand?.art ?? 'pixel'}
             className={panelCollapsed ? 'panel-collapsed' : ''}
           >
             <header id="playerBar">

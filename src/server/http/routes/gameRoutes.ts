@@ -36,6 +36,7 @@ export function createGameRouter({
       levels,
       attributes,
       layout: theme.layout,
+      art: theme.art,
     });
   });
 

@@ -24,7 +24,7 @@ import {
 } from './moduleActions';
 import { getGameState, getPlayer } from '../../core/gameState';
 import { enqueueChatMessage } from '../network/sync/chatSync';
-import { TILE_SIZE } from '../../../shared/constants';
+import { GAME_WIDTH, GAME_HEIGHT, TILE_SIZE } from '../../../shared/constants';
 import {
   getCamera,
   screenToWorld,
@@ -32,7 +32,7 @@ import {
   spritePosition,
 } from '../../graphics/camera';
 import { OverlayLayer, registerOverlay } from '../../graphics/overlayRegistry';
-import { worldText } from '../../graphics/canvas';
+import { visibleView, worldText } from '../../graphics/canvas';
 
 // Loads the module browser entries the server serves and runs them with an
 // `engine` API. Like server scripts, this is the server owner's code, so it
@@ -134,10 +134,9 @@ function installCanvasClickDetection() {
     }
     stack.addEventListener('click', (e: MouseEvent) => {
       if (!playerActions.length) return;
-      const rect = stack.getBoundingClientRect();
-      // refCanvas gives the logical canvas dimensions (1280×896)
-      const scaleX = refCanvas.width / rect.width;
-      const scaleY = refCanvas.height / rect.height;
+      const rect = refCanvas.getBoundingClientRect();
+      const scaleX = GAME_WIDTH / rect.width;
+      const scaleY = GAME_HEIGHT / rect.height;
       const sx = (e.clientX - rect.left) * scaleX;
       const sy = (e.clientY - rect.top) * scaleY;
       const cam = getCamera();
@@ -508,6 +507,10 @@ function makeEngineApi(id: string) {
     worldToScreen: (wx: number, wy: number) => worldToScreen(wx, wy),
     /** Tile size in pixels, for coordinate math and hit-testing. */
     TILE_SIZE,
+    GAME_WIDTH,
+    GAME_HEIGHT,
+    /** Visible rectangle in logical view pixels, after layout cropping. */
+    getVisibleView: () => ({ ...visibleView }),
     /**
      * Register a per-frame draw callback that runs in world-space on the
      * player canvas (above entities, below fringe tiles). The context

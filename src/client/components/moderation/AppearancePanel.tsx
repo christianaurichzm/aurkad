@@ -7,6 +7,7 @@ import {
   uploadThemeImage,
 } from '../../io/network';
 import {
+  THEME_ART,
   THEME_CORNERS,
   THEME_FONTS,
   THEME_IMAGES,
@@ -53,6 +54,11 @@ const LAYOUTS: Record<Theme['layout'], TranslationKey> = {
   right: 'appearance.layout.right',
   left: 'appearance.layout.left',
   bottom: 'appearance.layout.bottom',
+  overlay: 'appearance.layout.overlay',
+};
+const ART: Record<Theme['art'], TranslationKey> = {
+  pixel: 'appearance.art.pixel',
+  smooth: 'appearance.art.smooth',
 };
 const IMAGES: Record<ThemeImage, TranslationKey> = {
   logo: 'appearance.image.logo',
@@ -376,6 +382,9 @@ export const AppearancePanel: React.FC = () => {
           {draft.layout === 'bottom' && (
             <p className="appearance-note">{t('appearance.layoutCost')}</p>
           )}
+          {draft.layout === 'overlay' && (
+            <p className="appearance-note">{t('appearance.layoutCrop')}</p>
+          )}
           <label className="appearance-check">
             <input
               type="checkbox"
@@ -384,6 +393,21 @@ export const AppearancePanel: React.FC = () => {
             />
             {t('appearance.dialogDim')}
           </label>
+        </fieldset>
+
+        <fieldset>
+          <legend>{t('appearance.art')}</legend>
+          {THEME_ART.map((art) => (
+            <label key={art} className="appearance-check">
+              <input
+                type="radio"
+                name="appearance-art"
+                checked={draft.art === art}
+                onChange={() => change({ art })}
+              />
+              {t(ART[art])}
+            </label>
+          ))}
         </fieldset>
 
         <fieldset disabled={busy}>

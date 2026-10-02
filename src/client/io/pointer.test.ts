@@ -1,7 +1,7 @@
 import { beforeEach, expect, it, vi } from 'vitest';
 import { TILE_SIZE } from '../../shared/constants';
 import { Key } from '../../shared/types';
-import { clickWorld, renderClickMark } from './pointer';
+import { clickWorld, handlePointer, renderClickMark } from './pointer';
 import { pressKey } from './keyboard';
 import { sendAction } from './network';
 
@@ -88,4 +88,15 @@ it('outlines the clicked cell, and lets the outline fade', () => {
   renderClickMark(ctx);
   expect(ctx.stroke).toHaveBeenCalledTimes(1);
   now.mockRestore();
+});
+
+it('maps a pointer through the logical view even with a double-sized buffer', () => {
+  document.body.innerHTML =
+    '<canvas id="foregroundCanvas" width="2560" height="1792"></canvas>';
+  const canvas = document.querySelector('canvas')!;
+  canvas.getBoundingClientRect = () =>
+    ({ left: 0, top: -100, width: 1280, height: 896 }) as DOMRect;
+  handlePointer();
+  canvas.dispatchEvent(new MouseEvent('click', { clientX: 480, clientY: 60 }));
+  expect(sendAction).toHaveBeenCalledWith({ type: 'moveTo', col: 7, row: 2 });
 });

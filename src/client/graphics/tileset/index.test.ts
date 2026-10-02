@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { setStaticMap } from '../../core/gameState';
 import { setCamera } from '../camera';
+import { isometricFrames, tileset } from '../../io/assets';
 import type { Tile } from '../../../shared/types';
 import {
   fillMap,
@@ -63,6 +64,9 @@ vi.mock('../canvas', () => ({
   foregroundCtx: mocks.ctx,
   maskCtx: mocks.ctx,
   fringeCtx: mocks.ctx,
+  worldScale: 1,
+  worldCanvasGeneration: 0,
+  prepareWorldContext: vi.fn(),
 }));
 
 vi.mock('../../io/assets', () => ({
@@ -152,6 +156,29 @@ describe('the map the game draws', () => {
     setCamera({ x: 1000, y: 0 });
     renderGameMap(wide);
     expect(painted).toBeGreaterThan(before);
+  });
+
+  it('uses explicit atlas frames on a flat map, keeping ground pixels opaque', () => {
+    isometricFrames['0'] = {
+      x: 128,
+      y: 0,
+      width: 128,
+      height: 128,
+      drawWidth: 64,
+      drawHeight: 64,
+      anchorX: 32,
+      anchorY: 32,
+    };
+    try {
+      setEditorTiles([[{ tileIndex: 0 }]]);
+      mocks.calls.length = 0;
+      renderGameMap(getEditorTiles());
+      expect(mocks.calls.find((call) => call.fn === 'drawImage')?.args).toEqual(
+        [tileset, 128, 0, 128, 128, 0, 0, 64, 64],
+      );
+    } finally {
+      delete isometricFrames['0'];
+    }
   });
 
   it('draws the editor copy straight onto the screen', () => {

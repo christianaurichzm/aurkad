@@ -16,7 +16,7 @@ function atPhase(phase: number) {
 function drawAt(phase: number, cam = { x: 0, y: 0 }) {
   atPhase(phase);
   const mod = loadClientModule('daynight');
-  const rec = recordingContext(800, 600);
+  const rec = recordingContext();
   mod.overlays.forEach((o) => o.fn(rec.ctx, cam));
   return rec;
 }
@@ -40,7 +40,7 @@ describe('daynight overlay', () => {
     // Undoes the camera before filling: the sky belongs to the view, not to a
     // rectangle of the world.
     expect(rec.of('translate')[0].args).toEqual([640, 480]);
-    expect(rec.of('fillRect')[0].args).toEqual([0, 0, 800, 600]);
+    expect(rec.of('fillRect')[0].args).toEqual([0, 0, 1280, 896]);
   });
 
   it('paints nothing at noon', () => {

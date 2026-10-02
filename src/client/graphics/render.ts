@@ -13,14 +13,14 @@ import {
   updatePlayerHealthBar,
 } from './hud';
 import {
-  foregroundCanvas,
   maskCanvas,
   maskCtx,
-  itemCanvas,
   itemCtx,
   playerCtx,
   fringeCanvas,
   fringeCtx,
+  prepareWorldContext,
+  worldCanvasGeneration,
 } from './canvas';
 import {
   renderGameMap,
@@ -50,6 +50,7 @@ let lastEditorTiles: Tile[][] | null = null;
 let lastOrientation: string | undefined;
 let lastCamX = 0;
 let lastCamY = 0;
+let lastCanvasGeneration = -1;
 
 let maskOffscreen: OffscreenCanvas | null = null;
 let fringeOffscreen: OffscreenCanvas | null = null;
@@ -100,8 +101,8 @@ export const render = () => {
       : { x: 0, y: 0 };
     setCamera(cam);
 
-    playerCtx.clearRect(0, 0, foregroundCanvas.width, foregroundCanvas.height);
-    itemCtx.clearRect(0, 0, itemCanvas.width, itemCanvas.height);
+    playerCtx.clearRect(0, 0, GAME_WIDTH, GAME_HEIGHT);
+    itemCtx.clearRect(0, 0, GAME_WIDTH, GAME_HEIGHT);
 
     // The ground and the editor's overlay are drawn in camera space, so both go
     // stale when the camera moves; unsaved edits draw from the editor's copy.
@@ -109,7 +110,9 @@ export const render = () => {
     // border crossed with the editor open) also repaints.
     const editorTiles = getEditorTiles();
     const ground = mapEdited ? editorTiles : map.tiles;
+    const canvasDirty = worldCanvasGeneration !== lastCanvasGeneration;
     const tilesDirty =
+      canvasDirty ||
       map.orientation !== lastOrientation ||
       ground !== lastDrawnTiles ||
       editorTiles !== lastEditorTiles ||
@@ -128,6 +131,7 @@ export const render = () => {
 
     // Mask and fringe caches, rerendered only when tiles or camera change.
     const overlayDirty =
+      canvasDirty ||
       map.orientation !== lastOrientation ||
       map.tiles !== lastFringeTiles ||
       cam.x !== lastFringeCamX ||
@@ -147,8 +151,8 @@ export const render = () => {
       const offMask = maskOffscreen.getContext(
         '2d',
       ) as OffscreenCanvasRenderingContext2D;
-      offMask.imageSmoothingEnabled = false;
-      offMask.clearRect(0, 0, maskOffscreen.width, maskOffscreen.height);
+      prepareWorldContext(offMask);
+      offMask.clearRect(0, 0, GAME_WIDTH, GAME_HEIGHT);
       offMask.save();
       offMask.translate(-cam.x, -cam.y);
       renderMapMask(map.tiles, offMask);
@@ -167,8 +171,8 @@ export const render = () => {
       const offFringe = fringeOffscreen.getContext(
         '2d',
       ) as OffscreenCanvasRenderingContext2D;
-      offFringe.imageSmoothingEnabled = false;
-      offFringe.clearRect(0, 0, fringeOffscreen.width, fringeOffscreen.height);
+      prepareWorldContext(offFringe);
+      offFringe.clearRect(0, 0, GAME_WIDTH, GAME_HEIGHT);
       offFringe.save();
       offFringe.translate(-cam.x, -cam.y);
       renderMapFringe(map.tiles, offFringe);
@@ -180,11 +184,12 @@ export const render = () => {
     }
 
     lastOrientation = map.orientation;
+    lastCanvasGeneration = worldCanvasGeneration;
 
     // Mask canvas (above ground, below entities).
-    maskCtx.clearRect(0, 0, maskCanvas.width, maskCanvas.height);
+    maskCtx.clearRect(0, 0, GAME_WIDTH, GAME_HEIGHT);
     if (maskOffscreen && !mapEdited) {
-      maskCtx.drawImage(maskOffscreen, 0, 0);
+      maskCtx.drawImage(maskOffscreen, 0, 0, GAME_WIDTH, GAME_HEIGHT);
     } else if (mapEdited) {
       maskCtx.save();
       maskCtx.translate(-cam.x, -cam.y);
@@ -219,9 +224,9 @@ export const render = () => {
     }
 
     // Fringe canvas (above entities).
-    fringeCtx.clearRect(0, 0, fringeCanvas.width, fringeCanvas.height);
+    fringeCtx.clearRect(0, 0, GAME_WIDTH, GAME_HEIGHT);
     if (fringeOffscreen && !mapEdited) {
-      fringeCtx.drawImage(fringeOffscreen, 0, 0);
+      fringeCtx.drawImage(fringeOffscreen, 0, 0, GAME_WIDTH, GAME_HEIGHT);
     } else if (mapEdited) {
       fringeCtx.save();
       fringeCtx.translate(-cam.x, -cam.y);

@@ -13,6 +13,7 @@ import { z } from 'zod';
 import {
   THEME_CORNERS,
   THEME_FONTS,
+  THEME_ART,
   THEME_LAYOUTS,
   themeTokens,
   type ThemeImage,
@@ -49,9 +50,11 @@ const ThemeSchema = z.strictObject({
     .default({}),
   corners: z.enum(keys(THEME_CORNERS)).optional(),
   font: z.enum(keys(THEME_FONTS)).optional(),
-  // Beside the world on the right or the left, or in a bar under it. A phone
-  // has its own arrangement (styles.css) whichever is picked.
+  // Beside the world on the right or the left, in a bar under it, or floating
+  // over a world that fills the window. A phone has its own arrangement
+  // (styles.css) whichever is picked.
   layout: z.enum(THEME_LAYOUTS).default('right'),
+  art: z.enum(THEME_ART).default('pixel'),
   // Whether the world darkens behind a conversation. Off for a game where
   // what goes on behind the box is part of the scene.
   dialogDim: z.boolean().default(true),

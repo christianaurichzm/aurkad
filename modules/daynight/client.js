@@ -57,6 +57,6 @@ engine.registerOverlay((ctx, cam) => {
   // Screen space: the sky covers the view, not a rectangle of the world.
   ctx.translate(cam.x, cam.y);
   ctx.fillStyle = `rgba(${tint.r},${tint.g},${tint.b},${tint.a})`;
-  ctx.fillRect(0, 0, ctx.canvas.width, ctx.canvas.height);
+  ctx.fillRect(0, 0, engine.GAME_WIDTH, engine.GAME_HEIGHT);
   ctx.restore();
 }, engine.OverlayLayer.scene);

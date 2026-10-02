@@ -1,7 +1,13 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { describe, it, expect, vi } from 'vitest';
-import { initGameCanvas, worldText } from './canvas';
+import { initGameCanvas, visibleView, worldScale, worldText } from './canvas';
+
+const brand = vi.hoisted(() => ({ art: 'pixel' }));
+vi.mock('../io/network/http/authClient', () => ({
+  getGameBrand: () => brand,
+  fetchGameBrand: () => Promise.resolve(brand),
+}));
 
 // The layer stack spans the contexts here, the <canvas> elements in
 // GameCanvas.tsx and the z-index tokens in styles.css; this pins the order.
@@ -40,13 +46,13 @@ describe('canvas stacking order', () => {
 });
 
 describe('world text', () => {
-  it('is drawn larger where the world is shown smaller, twice at most', () => {
+  it('is drawn larger where the world is shown smaller, twice at most', async () => {
     document.body.innerHTML = ['foreground', 'mask', 'player', 'item', 'fringe']
       .map((name) => `<canvas id="${name}Canvas" width="1280"></canvas>`)
       .join('');
-    vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockReturnValue(
-      {} as never,
-    );
+    vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockReturnValue({
+      setTransform: vi.fn(),
+    } as never);
     const shown = vi.spyOn(Element.prototype, 'clientWidth', 'get');
     const ctx = {
       save: vi.fn(),
@@ -79,6 +85,64 @@ describe('world text', () => {
     expect(ctx.scale).toHaveBeenLastCalledWith(2, 2);
     expect(draw).toHaveBeenCalledTimes(3);
     expect(ctx.restore).toHaveBeenCalledTimes(2);
+    await Promise.resolve();
     vi.restoreAllMocks();
   });
+});
+
+it('uses device pixels for smooth art while keeping the visible view logical', async () => {
+  document.body.innerHTML = `<div id="canvasFrame">${[
+    'foreground',
+    'mask',
+    'player',
+    'item',
+    'grid',
+    'fringe',
+  ]
+    .map(
+      (name) =>
+        `<canvas id="${name}Canvas" width="1280" height="896"></canvas>`,
+    )
+    .join('')}</div>`;
+  const ctx = { setTransform: vi.fn(), imageSmoothingEnabled: false };
+  vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockReturnValue(
+    ctx as never,
+  );
+  vi.spyOn(Element.prototype, 'clientWidth', 'get').mockReturnValue(1600);
+  vi.stubGlobal('devicePixelRatio', 2);
+  const rect = (x: number, y: number, width: number, height: number) =>
+    ({
+      left: x,
+      top: y,
+      right: x + width,
+      bottom: y + height,
+      width,
+      height,
+    }) as DOMRect;
+  document.getElementById('playerCanvas')!.getBoundingClientRect = () =>
+    rect(0, -110, 1600, 1120);
+  document.getElementById('canvasFrame')!.getBoundingClientRect = () =>
+    rect(0, 0, 1600, 900);
+  brand.art = 'smooth';
+
+  const stop = initGameCanvas();
+  expect(worldScale).toBe(2);
+  expect(document.querySelector('canvas')!.width).toBe(2560);
+  expect(ctx.setTransform).toHaveBeenLastCalledWith(2, 0, 0, 2, 0, 0);
+  expect(ctx.imageSmoothingEnabled).toBe(true);
+  expect(visibleView).toEqual({
+    x: 0,
+    y: 88,
+    width: 1280,
+    height: 720,
+    scale: 1.25,
+  });
+  stop();
+  brand.art = 'pixel';
+  initGameCanvas()();
+  expect(worldScale).toBe(1);
+  expect(ctx.imageSmoothingEnabled).toBe(false);
+  await Promise.resolve();
+  vi.restoreAllMocks();
+  vi.unstubAllGlobals();
 });

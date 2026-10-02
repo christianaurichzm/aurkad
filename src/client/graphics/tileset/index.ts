@@ -24,7 +24,15 @@ import {
   isometricReach,
 } from '../../io/assets';
 import { saveMap, type SaveMapResponse, fetchNpcs } from '../../io/network';
-import { foregroundCanvas, foregroundCtx, maskCtx, fringeCtx } from '../canvas';
+import {
+  foregroundCanvas,
+  foregroundCtx,
+  maskCtx,
+  fringeCtx,
+  prepareWorldContext,
+  worldScale,
+  worldCanvasGeneration,
+} from '../canvas';
 import { useUIStore } from '../../stores/uiStore';
 import {
   getCamera,
@@ -107,15 +115,13 @@ export const initTilesetEditor = () => {
 
 /**
  * The atlas as the palette: a grid of TILE_SIZE cells, a tile's id being its
- * cell's index. An isometric frame is larger than a cell and sits wherever
- * the atlas has room, so its cell shows the frame scaled to fit, and on
- * such a map the palette ends at the last id rather than showing the frames
- * stacked below it.
+ * cell's index. A tiles.json frame shows scaled to fit its cell, and the
+ * palette ends at the last id.
  */
 const paintPalette = () => {
   if (activeKit()) return paintKitPalette();
   const perRow = Math.floor(tileset.width / TILE_SIZE);
-  const frames = getMapOrientation() === 'isometric' ? isometricFrames : {};
+  const frames = isometricFrames;
   const ids = Object.keys(frames).map(Number);
   // Frames are packed, cells are not: an atlas of many small frames has more
   // ids than its own height holds in cells.
@@ -662,9 +668,9 @@ const toggleMode = (mode: TileEditMode) => {
 
 const getMousePosition = (event: MouseEvent, canvas: HTMLCanvasElement) => {
   const rect = canvas.getBoundingClientRect();
-
-  const scaleX = canvas.width / rect.width;
-  const scaleY = canvas.height / rect.height;
+  const scale = canvas === foregroundCanvas ? worldScale : 1;
+  const scaleX = canvas.width / scale / rect.width;
+  const scaleY = canvas.height / scale / rect.height;
 
   const x = (event.clientX - rect.left) * scaleX;
   const y = (event.clientY - rect.top) * scaleY;
@@ -834,9 +840,9 @@ const drawTileOnCanvas = (
   const cam = getCamera();
   const r = groundRect(col, row, tileIndex);
   if (
-    r.x - cam.x >= foregroundCanvas.width ||
+    r.x - cam.x >= foregroundCanvas.width / worldScale ||
     r.x + r.width - cam.x <= 0 ||
-    r.y - cam.y >= foregroundCanvas.height ||
+    r.y - cam.y >= foregroundCanvas.height / worldScale ||
     r.y + r.height - cam.y <= 0
   )
     return;
@@ -979,7 +985,7 @@ const drawGroundTile = (
   clear = false,
 ) => {
   if (frameOf(tileIndex)) {
-    drawMapObject(ctx, col, row, tileIndex);
+    drawMapObject(ctx, col, row, tileIndex, tileset);
     return;
   }
   const at = worldToView(col * TILE_SIZE, row * TILE_SIZE);
@@ -1053,7 +1059,8 @@ const drawTiles = (tiles: TilePublic[][]) => {
   // camera or map change, so clearing here would leave the world blank.
   if (!tiles.length) return;
   const cam = getCamera();
-  const { width, height } = foregroundCanvas;
+  const width = foregroundCanvas.width / worldScale;
+  const height = foregroundCanvas.height / worldScale;
   foregroundCtx.clearRect(0, 0, width, height);
   foregroundCtx.save();
   foregroundCtx.translate(-cam.x, -cam.y);
@@ -1073,6 +1080,7 @@ let groundCache: {
   atlas: ImageBitmap;
   frames: typeof isometricFrames;
   orientation: string | undefined;
+  generation: number;
   x: number;
   y: number;
 } | null = null;
@@ -1080,7 +1088,8 @@ let groundCache: {
 const drawCachedTiles = (tiles: TilePublic[][]) => {
   if (!tiles.length) return;
   const cam = getCamera();
-  const { width, height } = foregroundCanvas;
+  const width = foregroundCanvas.width / worldScale;
+  const height = foregroundCanvas.height / worldScale;
   let cache = groundCache;
   if (
     !cache ||
@@ -1088,25 +1097,26 @@ const drawCachedTiles = (tiles: TilePublic[][]) => {
     cache.atlas !== tileset ||
     cache.frames !== isometricFrames ||
     cache.orientation !== getMapOrientation() ||
+    cache.generation !== worldCanvasGeneration ||
     cam.x < cache.x ||
     cam.y < cache.y ||
-    cam.x + width > cache.x + cache.canvas.width ||
-    cam.y + height > cache.y + cache.canvas.height
+    cam.x + width > cache.x + cache.canvas.width / worldScale ||
+    cam.y + height > cache.y + cache.canvas.height / worldScale
   ) {
-    const w = width + 2 * GROUND_MARGIN;
-    const h = height + 2 * GROUND_MARGIN;
+    const w = Math.ceil((width + 2 * GROUND_MARGIN) * worldScale);
+    const h = Math.ceil((height + 2 * GROUND_MARGIN) * worldScale);
     const canvas =
       cache?.canvas.width === w && cache.canvas.height === h
         ? cache.canvas
         : new OffscreenCanvas(w, h);
     const ctx = canvas.getContext('2d')!;
-    ctx.imageSmoothingEnabled = false;
-    ctx.clearRect(0, 0, w, h);
+    prepareWorldContext(ctx);
+    ctx.clearRect(0, 0, w / worldScale, h / worldScale);
     const area = {
       x: cam.x - GROUND_MARGIN,
       y: cam.y - GROUND_MARGIN,
-      width: w,
-      height: h,
+      width: w / worldScale,
+      height: h / worldScale,
     };
     ctx.save();
     ctx.translate(-area.x, -area.y);
@@ -1118,6 +1128,7 @@ const drawCachedTiles = (tiles: TilePublic[][]) => {
       atlas: tileset,
       frames: isometricFrames,
       orientation: getMapOrientation(),
+      generation: worldCanvasGeneration,
       x: area.x,
       y: area.y,
     };
@@ -1125,10 +1136,10 @@ const drawCachedTiles = (tiles: TilePublic[][]) => {
   foregroundCtx.clearRect(0, 0, width, height);
   foregroundCtx.drawImage(
     cache.canvas,
-    cam.x - cache.x,
-    cam.y - cache.y,
-    width,
-    height,
+    (cam.x - cache.x) * worldScale,
+    (cam.y - cache.y) * worldScale,
+    width * worldScale,
+    height * worldScale,
     0,
     0,
     width,
@@ -1201,8 +1212,8 @@ const drawHoverCell = () => {
 const drawGrid = () => {
   const range = visibleRange(
     map,
-    gridCanvas.width,
-    gridCanvas.height,
+    gridCanvas.width / worldScale,
+    gridCanvas.height / worldScale,
     TILE_SIZE,
   );
   gridCtx.strokeStyle = '#ddd';
@@ -1224,11 +1235,17 @@ const initializeGrid = () => {
   if (!gridCtx || !gridCanvas) return;
   gridCanvas.width = foregroundCanvas.width;
   gridCanvas.height = foregroundCanvas.height;
+  prepareWorldContext(gridCtx);
   drawGrid();
 };
 const clearAndDrawGrid = () => {
   if (!gridCtx || !gridCanvas) return;
-  gridCtx.clearRect(0, 0, gridCanvas.width, gridCanvas.height);
+  gridCtx.clearRect(
+    0,
+    0,
+    gridCanvas.width / worldScale,
+    gridCanvas.height / worldScale,
+  );
   drawGrid();
 };
 
@@ -1236,8 +1253,8 @@ const drawMarkers = (tiles: Tile[][]) => {
   if (!gridCtx) return;
   const { startCol, endCol, startRow, endRow } = visibleRange(
     tiles,
-    gridCanvas.width,
-    gridCanvas.height,
+    gridCanvas.width / worldScale,
+    gridCanvas.height / worldScale,
     TILE_SIZE,
   );
   for (let rowIndex = startRow; rowIndex <= endRow; rowIndex++) {
@@ -1289,9 +1306,9 @@ const tileOnScreen = (col: number, row: number) => {
   const sy = center.y - height / 2;
   const on =
     sx + TILE_SIZE > 0 &&
-    sx < gridCanvas.width &&
+    sx < gridCanvas.width / worldScale &&
     sy + TILE_SIZE > 0 &&
-    sy < gridCanvas.height;
+    sy < gridCanvas.height / worldScale;
   return on ? { sx, sy, height } : null;
 };
 
@@ -1433,8 +1450,7 @@ const updateEditorMap = (tiles: Tile[][], music?: string) => {
   editorMusic = music ?? '';
 };
 
-const frameOf = (index: number) =>
-  getMapOrientation() === 'isometric' ? isometricFrames[index] : undefined;
+const frameOf = (index: number) => isometricFrames[index];
 
 // Where an object lands in view pixels: an isometric frame hangs from its
 // anchor at the cell's centre, anything else fills its cell.
@@ -1458,12 +1474,13 @@ function drawMapObject(
   col: number,
   row: number,
   index: number,
+  source: ImageBitmap | HTMLCanvasElement = tilesetAlpha,
 ) {
   const frame = frameOf(index);
   const perRow = tileset.width / TILE_SIZE;
   const to = objectRect(col, row, index);
   ctx.drawImage(
-    tilesetAlpha,
+    source,
     frame ? frame.x : (index % perRow) * TILE_SIZE,
     frame ? frame.y : Math.floor(index / perRow) * TILE_SIZE,
     frame ? frame.width : TILE_SIZE,
@@ -1488,7 +1505,11 @@ function mapObjects(
   layer: 'maskIndex' | 'fringeIndex',
   ctx: CanvasRenderingContext2D | OffscreenCanvasRenderingContext2D,
 ) {
-  const range = visibleRange(tiles, ctx.canvas.width, ctx.canvas.height);
+  const range = visibleRange(
+    tiles,
+    ctx.canvas.width / worldScale,
+    ctx.canvas.height / worldScale,
+  );
   const objects: MapObject[] = [];
   for (let row = range.startRow; row <= range.endRow; row++) {
     for (let col = range.startCol; col <= range.endCol; col++) {

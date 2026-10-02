@@ -30,7 +30,10 @@ export const THEME_FONTS = {
   mono: "ui-monospace, 'Cascadia Code', monospace",
 } as const;
 
-export const THEME_LAYOUTS = ['right', 'left', 'bottom'] as const;
+export const THEME_LAYOUTS = ['right', 'left', 'bottom', 'overlay'] as const;
+
+/** Pixel art keeps square pixels; smooth art a filtered device-sized buffer. */
+export const THEME_ART = ['pixel', 'smooth'] as const;
 
 /** Pictures a game can upload, each a file in theme/ named by its slot. */
 export const THEME_IMAGES = ['logo', 'background'] as const;
@@ -41,6 +44,7 @@ export type Theme = {
   corners?: keyof typeof THEME_CORNERS;
   font?: keyof typeof THEME_FONTS;
   layout: (typeof THEME_LAYOUTS)[number];
+  art: (typeof THEME_ART)[number];
   dialogDim: boolean;
   logo?: string;
   background?: string;

@@ -8,7 +8,7 @@ import { loadClientModule, recordingContext } from '../../../test/clientModule';
 let offscreen: ReturnType<typeof recordingContext>;
 
 beforeEach(() => {
-  offscreen = recordingContext(800, 600);
+  offscreen = recordingContext();
   vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockReturnValue(
     offscreen.ctx,
   );
@@ -33,7 +33,7 @@ function draw(
     ...overrides,
   });
   if (payload !== undefined) mod.handlers.get('lighting')!(payload);
-  const rec = recordingContext(800, 600);
+  const rec = recordingContext();
   mod.overlays.forEach((o) => o.fn(rec.ctx, cam));
   return rec;
 }
@@ -49,7 +49,7 @@ describe('lighting overlay', () => {
     const rec = draw({}, { x: 640, y: 480 });
 
     expect(rec.of('translate')[0].args).toEqual([640, 480]);
-    expect(offscreen.of('fillRect')[0].args).toEqual([0, 0, 800, 600]);
+    expect(offscreen.of('fillRect')[0].args).toEqual([0, 0, 1280, 896]);
     expect(rec.of('drawImage')).toHaveLength(1);
   });
 
@@ -57,7 +57,7 @@ describe('lighting overlay', () => {
     const rec = draw({}, { x: 100, y: 100 });
 
     // the darkness rect first, then one rect per light, on the light's own axes
-    const [a, b, c, d, x, y] = offscreen.of('setTransform')[0].args as number[];
+    const [a, b, c, d, x, y] = offscreen.of('setTransform')[1].args as number[];
     [a, b, c, d].forEach((v, i) => expect(v).toBeCloseTo([1, 0, 0, 1][i], 6));
     expect(x).toBeCloseTo(320 + 32 - 100, 0); // centre of the tile
     expect(y).toBeCloseTo(320 + 32 - 100, 0);
@@ -80,7 +80,7 @@ describe('lighting overlay', () => {
       cam,
     );
 
-    const [a, b, c, d] = offscreen.of('setTransform')[0].args as number[];
+    const [a, b, c, d] = offscreen.of('setTransform')[1].args as number[];
     [a, b, c, d].forEach((v, i) =>
       expect(v).toBeCloseTo([0.5, 0.25, -0.5, 0.25][i], 6),
     );

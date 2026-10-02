@@ -21,6 +21,7 @@ export type SpriteLayout = {
   columns: number;
   idleColumn: number;
   attackColumn: number;
+  scale: number;
 };
 
 export const DEFAULT_SPRITE_LAYOUT: SpriteLayout = {
@@ -31,6 +32,7 @@ export const DEFAULT_SPRITE_LAYOUT: SpriteLayout = {
   columns: 4,
   idleColumn: 0,
   attackColumn: 2,
+  scale: 1,
 };
 
 const frameSide = z.number().int().positive().max(MAX_ISOMETRIC_OVERHANG);
@@ -44,6 +46,7 @@ const SpriteLayoutSchema = z
     columns: z.number().int().min(4).max(32),
     idleColumn: column,
     attackColumn: column,
+    scale: z.number().positive().max(4),
   })
   .partial()
   .refine(

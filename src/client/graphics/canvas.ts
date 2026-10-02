@@ -1,3 +1,5 @@
+import { GAME_HEIGHT, GAME_WIDTH } from '../../shared/constants';
+import { fetchGameBrand, getGameBrand } from '../io/network/http/authClient';
 import { getEl } from '../utils/domHelpers';
 
 export let foregroundCanvas: HTMLCanvasElement;
@@ -20,9 +22,93 @@ export let fringeCtx: CanvasRenderingContext2D;
 const READABLE = 0.73;
 let worldTextScale = 1;
 
-const fitWorldText = () => {
-  const shown = playerCanvas.clientWidth / playerCanvas.width;
+// Pixel art keeps the logical buffer; smooth art uses device pixels so the
+// sheet is filtered directly to screen resolution. Six layers grow with the
+// square of this scale, so allocation stops at twice the logical view.
+const MAX_WORLD_SCALE = 2;
+export let worldScale = 1;
+/** Moves whenever the world's canvases are reallocated, which clears them. */
+export let worldCanvasGeneration = 0;
+
+/**
+ * The part of the world view the player sees, in view pixels: all of it
+ * unless the overlay layout crops it. A minimap pins to this; `scale` is
+ * CSS pixels per view pixel.
+ */
+export let visibleView = {
+  x: 0,
+  y: 0,
+  width: GAME_WIDTH,
+  height: GAME_HEIGHT,
+  scale: 1,
+};
+
+const smoothArt = () => getGameBrand()?.art === 'smooth';
+
+/** World coordinates on a device-sized buffer, with the game's filtering. */
+export const prepareWorldContext = (
+  ctx: CanvasRenderingContext2D | OffscreenCanvasRenderingContext2D,
+  scale = worldScale,
+) => {
+  ctx.setTransform(scale, 0, 0, scale, 0, 0);
+  ctx.imageSmoothingEnabled = smoothArt();
+  ctx.imageSmoothingQuality = 'high';
+};
+
+const worldCanvases = () =>
+  [
+    foregroundCanvas,
+    maskCanvas,
+    itemCanvas,
+    getEl<HTMLCanvasElement>('gridCanvas'),
+    playerCanvas,
+    fringeCanvas,
+  ].filter((canvas): canvas is HTMLCanvasElement => !!canvas);
+
+// Where the frame crops the world (the overlay layout makes it cover the
+// window), in the view's pixels; the whole view where it does not.
+const visiblePart = (): typeof visibleView => {
+  const box = playerCanvas.getBoundingClientRect();
+  const frame = playerCanvas.closest('#canvasFrame')?.getBoundingClientRect();
+  if (!frame || !box.width || !box.height)
+    return { x: 0, y: 0, width: GAME_WIDTH, height: GAME_HEIGHT, scale: 1 };
+  const perX = GAME_WIDTH / box.width;
+  const perY = GAME_HEIGHT / box.height;
+  const left = Math.max(box.left, frame.left);
+  const top = Math.max(box.top, frame.top);
+  return {
+    x: (left - box.left) * perX,
+    y: (top - box.top) * perY,
+    width: Math.max(0, Math.min(box.right, frame.right) - left) * perX,
+    height: Math.max(0, Math.min(box.bottom, frame.bottom) - top) * perY,
+    scale: 1 / perX,
+  };
+};
+
+const fitWorld = (prepare = false) => {
+  const shown = playerCanvas.clientWidth / GAME_WIDTH;
   worldTextScale = shown > 0 ? Math.min(2, Math.max(1, READABLE / shown)) : 1;
+  visibleView = visiblePart();
+
+  const scale = smoothArt()
+    ? Math.min(MAX_WORLD_SCALE, Math.max(1, shown * devicePixelRatio))
+    : 1;
+  const width = Math.round(GAME_WIDTH * scale);
+  const height = Math.round(GAME_HEIGHT * (width / GAME_WIDTH));
+  const canvases = worldCanvases();
+  const resized = canvases.some(
+    (canvas) => canvas.width !== width || canvas.height !== height,
+  );
+  if (!resized && !prepare) return;
+  worldScale = width / GAME_WIDTH;
+  for (const canvas of canvases) {
+    if (resized) {
+      canvas.width = width;
+      canvas.height = height;
+    }
+    prepareWorldContext(canvas.getContext('2d')!);
+  }
+  worldCanvasGeneration++;
 };
 
 /**
@@ -66,14 +152,17 @@ export const initGameCanvas = () => {
   itemCtx = itemCanvas.getContext('2d')!;
   fringeCtx = fringeCanvas.getContext('2d')!;
 
-  // Nearest neighbour on every layer. The art is pixel art and the browser
-  // resamples bilinearly by default, so a tile or sprite between two pixels
-  // comes out soft. The camera and the slide snap to whole pixels
-  // (camera.ts, movementAnimation.ts); this stops the resampling itself.
-  for (const ctx of [foregroundCtx, maskCtx, playerCtx, itemCtx, fringeCtx]) {
-    ctx.imageSmoothingEnabled = false;
-  }
-
-  fitWorldText();
-  new ResizeObserver(fitWorldText).observe(playerCanvas);
+  fitWorld(true);
+  let active = true;
+  // The game's art is known from /game, asked at boot; if it lands after the
+  // canvases, it can change both their size and their filtering.
+  void fetchGameBrand().then(() => active && fitWorld(true));
+  const observer = new ResizeObserver(() => fitWorld());
+  observer.observe(playerCanvas);
+  const frame = playerCanvas.closest('#canvasFrame');
+  if (frame) observer.observe(frame);
+  return () => {
+    active = false;
+    observer.disconnect();
+  };
 };

@@ -109,6 +109,18 @@ describe('drawSprite', () => {
     ]);
     setSpriteLayout(DEFAULT_SPRITE_LAYOUT);
   });
+
+  it('draws a double-resolution frame in one logical tile', () => {
+    buildAtlas();
+    setSpriteLayout(parseSpriteLayout({ width: 128, height: 128, scale: 0.5 }));
+    const rec = recordingContext();
+    mocks.playerCtx.drawImage = rec.ctx.drawImage;
+    drawSprite(0, 0, 0, 640, 320);
+    expect(rec.of('drawImage')[0].args.slice(3)).toEqual([
+      128, 128, 640, 320, 64, 64,
+    ]);
+    setSpriteLayout(DEFAULT_SPRITE_LAYOUT);
+  });
 });
 
 describe('parseSpriteLayout', () => {
@@ -127,6 +139,7 @@ describe('parseSpriteLayout', () => {
   it('rejects an action frame outside the block', () => {
     expect(() => parseSpriteLayout({ columns: 6, attackColumn: 6 })).toThrow();
     expect(() => parseSpriteLayout({ idleColumn: 4 })).toThrow();
+    expect(() => parseSpriteLayout({ scale: 0 })).toThrow();
   });
 
   it('lays blocks out by the frames a character has', () => {

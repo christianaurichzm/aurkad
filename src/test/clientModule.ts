@@ -7,6 +7,7 @@ import { ItemIcon, ItemSlot } from '../client/components/Inventory/ItemIcon';
 import { Stepper } from '../client/components/common/Stepper';
 import { EmptyState } from '../client/components/common/EmptyState';
 import type { HotbarSlot } from '../client/io/modules/moduleActions';
+import { GAME_HEIGHT, GAME_WIDTH } from '../shared/constants';
 import { readClientSource } from '../server/engine/modules/moduleLoader.js';
 import { initTsSupport } from '../server/engine/scripting/loader.js';
 import fs from 'node:fs';
@@ -72,7 +73,10 @@ const RECORDED = [
   'quadraticCurveTo',
 ] as const;
 
-export function recordingContext(width = 800, height = 600): RecordingContext {
+export function recordingContext(
+  width = GAME_WIDTH,
+  height = GAME_HEIGHT,
+): RecordingContext {
   const calls: DrawCall[] = [];
   const target: Record<string, unknown> = {
     canvas: { width, height },
@@ -289,6 +293,15 @@ export function loadClientModule(
     OverlayLayer: { world: 0, scene: 50, hud: 100 },
     worldText: (_ctx, _x, _y, draw) => draw(),
     TILE_SIZE: 64,
+    GAME_WIDTH,
+    GAME_HEIGHT,
+    getVisibleView: () => ({
+      x: 0,
+      y: 0,
+      width: GAME_WIDTH,
+      height: GAME_HEIGHT,
+      scale: 1,
+    }),
     getGameState: () => null,
     getPlayer: () => undefined,
     getCamera: () => ({ x: 0, y: 0 }),

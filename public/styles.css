@@ -10,7 +10,7 @@
                    .engine-brand .password-toggle
      game screen   #ui #canvasFrame #sidePanel #map-name .player-controls
                    .zone-banner .low-health-vignette
-                   #gameShell[data-layout="right|left|bottom"]
+                   #gameShell[data-layout="right|left|bottom|overlay"]
      player card   #hud #hud-portrait[data-sprite] #hud-name #hud-level
                    #hud-row[data-tone] #xp-bar-container
      side panel    .panel .action-button .chat-expand
@@ -2089,7 +2089,8 @@ button.item-slot:hover::after {
   color: var(--color-text);
   background: var(--color-app-bg);
 }
-/* As tall as its card, where the real one fills the screen. */
+/* As tall as its card, where the real one fills the screen. The card keeps
+   its real width: a theme sizes the name and the logo for it. */
 .appearance-login > .auth-layout {
   position: static;
   padding: 24px 16px;
@@ -2097,8 +2098,6 @@ button.item-slot:hover::after {
 .appearance-login .auth-card {
   display: grid;
   gap: 16px;
-  width: 240px;
-  padding: 20px;
 }
 .appearance-game {
   display: flex;
@@ -2118,6 +2117,18 @@ button.item-slot:hover::after {
 }
 .appearance-game[data-layout='bottom'] > .panel {
   flex: none;
+}
+.appearance-game[data-layout='overlay'] {
+  position: relative;
+}
+.appearance-game[data-layout='overlay'] > .panel {
+  position: absolute;
+  inset: 8px auto auto 8px;
+  width: 220px;
+  opacity: 0.9;
+}
+.appearance-game[data-layout='overlay'] > .appearance-world {
+  min-height: 240px;
 }
 .appearance-world {
   flex: 1;
@@ -2798,36 +2809,36 @@ body:has(.npc-dialog) .hotbar {
       'bar hotbar menu tools';
     align-items: stretch;
   }
-  [data-layout='bottom'] #sidePanel {
+  :is([data-layout='bottom'], [data-layout='overlay']) #sidePanel {
     display: contents;
   }
-  [data-layout='bottom'] #playerBar {
+  :is([data-layout='bottom'], [data-layout='overlay']) #playerBar {
     align-items: stretch;
   }
-  [data-layout='bottom'] .player-controls {
+  :is([data-layout='bottom'], [data-layout='overlay']) .player-controls {
     align-self: center;
   }
-  [data-layout='bottom'] #hud {
+  :is([data-layout='bottom'], [data-layout='overlay']) #hud {
     flex-wrap: nowrap;
     align-items: center;
     gap: 8px;
     padding: 6px;
   }
-  [data-layout='bottom'] #hud-portrait {
+  :is([data-layout='bottom'], [data-layout='overlay']) #hud-portrait {
     width: 44px;
     height: 44px;
   }
-  [data-layout='bottom'] .hud-stats {
+  :is([data-layout='bottom'], [data-layout='overlay']) .hud-stats {
     gap: 3px 6px;
   }
-  [data-layout='bottom'] #xp-bar-text {
+  :is([data-layout='bottom'], [data-layout='overlay']) #xp-bar-text {
     display: none;
   }
 
   /* The hotbar is a block of the bar here, not an overlay of the world. It
      keeps a z-index of its own for its tooltips, which open upward over the
      chat. */
-  #gameShell > .hotbar {
+  #gameShell:is([data-layout='bottom'], [data-layout='overlay']) > .hotbar {
     --slot: 46px;
     grid-area: hotbar;
     position: relative;
@@ -2842,23 +2853,23 @@ body:has(.npc-dialog) .hotbar {
 
   /* Two rows of icons, as many columns as the modules add. The label stays for
      a screen reader and for the tooltip; the icon and the key carry the tile. */
-  [data-layout='bottom'] #actionPanel {
+  :is([data-layout='bottom'], [data-layout='overlay']) #actionPanel {
     grid-area: menu;
     align-self: stretch;
     padding: 4px;
   }
-  [data-layout='bottom'] .action-grid {
+  :is([data-layout='bottom'], [data-layout='overlay']) .action-grid {
     grid-auto-flow: column;
     grid-template-columns: none;
     grid-template-rows: repeat(2, 44px);
     grid-auto-columns: 40px;
     gap: 2px;
   }
-  [data-layout='bottom'] .action-button {
+  :is([data-layout='bottom'], [data-layout='overlay']) .action-grid .action-button {
     min-height: 0;
     padding: 4px 0 0;
   }
-  [data-layout='bottom'] .action-label {
+  :is([data-layout='bottom'], [data-layout='overlay']) .action-label {
     position: absolute;
     width: 1px;
     height: 1px;
@@ -2866,12 +2877,12 @@ body:has(.npc-dialog) .hotbar {
     clip-path: inset(50%);
   }
 
-  [data-layout='bottom'] .creator-tools {
+  :is([data-layout='bottom'], [data-layout='overlay']) .creator-tools {
     grid-area: tools;
     position: relative;
     align-self: end;
   }
-  [data-layout='bottom'] .creator-tools-body {
+  :is([data-layout='bottom'], [data-layout='overlay']) .creator-tools-body {
     position: absolute;
     right: 0;
     bottom: 100%;
@@ -2888,17 +2899,17 @@ body:has(.npc-dialog) .hotbar {
      and the button beside it. Unfolded, the panel rises out of its row over the
      world - an absolutely placed box on a grid takes the grid area as its
      containing block - so the bar does not change height. */
-  [data-layout='bottom'] #chatContainer {
+  :is([data-layout='bottom'], [data-layout='overlay']) #chatContainer {
     grid-area: chat;
     min-height: 0;
     flex-direction: row;
     align-items: stretch;
     padding: 4px;
   }
-  [data-layout='bottom'] .chat-tabs {
+  :is([data-layout='bottom'], [data-layout='overlay']) .chat-tabs {
     display: none;
   }
-  [data-layout='bottom'] .chat-box {
+  :is([data-layout='bottom'], [data-layout='overlay']) #chatContainer .chat-box {
     overflow-y: hidden;
     display: flex;
     flex-direction: column;
@@ -2906,21 +2917,21 @@ body:has(.npc-dialog) .hotbar {
     padding: 2px 6px;
     line-height: 18px;
   }
-  [data-layout='bottom'] #chatBox > div {
+  :is([data-layout='bottom'], [data-layout='overlay']) #chatBox > div {
     flex: none;
     margin: 0;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
   }
-  [data-layout='bottom'] #chatInputContainer {
+  :is([data-layout='bottom'], [data-layout='overlay']) #chatInputContainer {
     flex: 0 0 300px;
     align-self: center;
   }
-  [data-layout='bottom'] .chat-expand {
+  :is([data-layout='bottom'], [data-layout='overlay']) .chat-expand {
     display: block;
   }
-  [data-layout='bottom'] #chatContainer.is-expanded {
+  :is([data-layout='bottom'], [data-layout='overlay']) #chatContainer.is-expanded {
     position: absolute;
     inset: auto 0 0;
     z-index: var(--z-panel);
@@ -2930,25 +2941,104 @@ body:has(.npc-dialog) .hotbar {
     padding: 8px;
     border-color: var(--color-accent);
   }
-  [data-layout='bottom'] .is-expanded .chat-tabs {
+  :is([data-layout='bottom'], [data-layout='overlay']) .is-expanded .chat-tabs {
     display: flex;
   }
-  [data-layout='bottom'] .is-expanded .chat-box {
+  :is([data-layout='bottom'], [data-layout='overlay']) .is-expanded .chat-box {
     overflow-y: auto;
     justify-content: flex-start;
   }
-  [data-layout='bottom'] .is-expanded #chatBox > div {
+  :is([data-layout='bottom'], [data-layout='overlay']) .is-expanded #chatBox > div {
     overflow: visible;
     white-space: normal;
   }
-  [data-layout='bottom'] .is-expanded #chatInputContainer {
+  :is([data-layout='bottom'], [data-layout='overlay']) .is-expanded #chatInputContainer {
     flex: none;
     align-self: stretch;
   }
-  [data-layout='bottom'] .is-expanded .chat-expand {
+  :is([data-layout='bottom'], [data-layout='overlay']) .is-expanded .chat-expand {
     align-self: flex-end;
   }
+  /* The world covers the window and the controls float over it, on a grid of
+     their own: the card and the creator tools under it at the top left, the
+     chat, the hotbar and the menu along the bottom. */
+  #gameShell[data-layout='overlay'] {
+    grid-template-columns: min(420px, 40%) minmax(0, 1fr) auto;
+    grid-template-rows: auto auto minmax(0, 1fr) auto;
+    grid-template-areas:
+      'bar . .'
+      'tools . .'
+      '. . .'
+      'chat hotbar menu';
+    gap: 8px;
+  }
+  [data-layout='overlay'] #gameMain {
+    position: absolute;
+    inset: 0;
+  }
+  [data-layout='overlay'] #canvasFrame {
+    width: 100%;
+    height: 100%;
+    aspect-ratio: auto;
+    border: 0;
+    border-radius: 0;
+    background: var(--color-app-bg);
+  }
+  /* Its logical aspect ratio is kept and the frame clips the spare edges, but
+     never past a quarter of the world either way: an ultrawide or a tall
+     window gets bars at its sides rather than a strip of the map. */
+  [data-layout='overlay'] #canvasStack {
+    inset: auto;
+    left: 50%;
+    top: 50%;
+    width: min(
+      max(100cqw, calc(100cqh * 1280 / 896)),
+      calc(100cqw * 4 / 3),
+      calc(100cqh * 1280 / 896 * 4 / 3)
+    );
+    height: auto;
+    aspect-ratio: 1280 / 896;
+    transform: translate(-50%, -50%);
+  }
+  [data-layout='overlay'] :is(#playerBar, #actionPanel, #chatContainer, .creator-tools) {
+    position: relative;
+    z-index: var(--z-hud);
+  }
+  [data-layout='overlay'] #playerBar {
+    justify-self: start;
+    width: 320px;
+  }
+  [data-layout='overlay'] :is(#actionPanel, #gameShell > .hotbar) {
+    align-self: end;
+  }
+  [data-layout='overlay'] .creator-tools {
+    justify-self: start;
+    align-self: start;
+    background: var(--color-panel-bg);
+  }
+  [data-layout='overlay'] .creator-tools-body {
+    right: auto;
+    bottom: auto;
+    top: 100%;
+  }
+  [data-layout='overlay'] #chatContainer {
+    height: 100px;
+    flex-wrap: wrap;
+  }
+  [data-layout='overlay'] #chatContainer .chat-box {
+    flex: 1 1 100%;
+    min-height: 0;
+  }
+  [data-layout='overlay'] #chatInputContainer {
+    flex: 1 1 0;
+    min-width: 0;
+  }
+  [data-layout='overlay'] #chatContainer.is-expanded {
+    height: min(340px, calc(100cqh - 150px));
+    flex-wrap: nowrap;
+  }
 }
+
 .chat-expand {
   display: none;
   flex: none;
@@ -3065,4 +3155,8 @@ body:has(.npc-dialog) .hotbar {
     scroll-behavior: auto !important;
     transition: none !important;
   }
+}
+
+#gameShell[data-art='smooth'] #canvasStack > canvas {
+  image-rendering: auto;
 }

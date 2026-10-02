@@ -72,8 +72,8 @@ export const SpritePreview: React.FC<SpritePreviewProps> = ({
       }
       // The figure's tile-sized box fills the preview; a frame larger than
       // the figure spills past the edges rather than shrinking it.
-      const k = size / TILE_SIZE;
-      const { width, height, anchorX, anchorY } = getSpriteLayout();
+      const { width, height, anchorX, anchorY, scale } = getSpriteLayout();
+      const k = (size / TILE_SIZE) * scale;
       drawSpriteGeneric(
         ctx,
         spriteId,

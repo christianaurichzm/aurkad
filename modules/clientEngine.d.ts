@@ -295,6 +295,21 @@ declare const engine: {
   worldToScreen(wx: number, wy: number): { x: number; y: number };
   /** Tile size in pixels, for coordinate math and hit-testing. */
   TILE_SIZE: number;
+  /** Logical view size, independent of the canvas's device pixel buffer. */
+  GAME_WIDTH: number;
+  GAME_HEIGHT: number;
+  /**
+   * Visible rectangle in logical view pixels, after layout cropping, and the
+   * CSS pixels one view pixel is shown at (`scale`): what keeps a corner
+   * widget the same size on screen however large the world is drawn.
+   */
+  getVisibleView(): {
+    x: number;
+    y: number;
+    width: number;
+    height: number;
+    scale: number;
+  };
   /**
    * Register a per-frame draw callback that runs in world-space on the
    * player canvas (above entities, below fringe tiles). The context

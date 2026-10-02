@@ -70,8 +70,20 @@ describe('themeVariables', () => {
 });
 
 describe('readTheme', () => {
-  it('defaults to the menu on the right', async () => {
-    expect((await readTheme(dir)).layout).toBe('right');
+  it('defaults to the menu on the right, over pixel art', async () => {
+    expect(await readTheme(dir)).toMatchObject({
+      layout: 'right',
+      art: 'pixel',
+    });
+  });
+
+  it('takes a world that fills the window, drawn smooth', async () => {
+    write({ layout: 'overlay', art: 'smooth' });
+
+    expect(await readTheme(dir)).toMatchObject({
+      layout: 'overlay',
+      art: 'smooth',
+    });
   });
 
   it.each([
@@ -79,6 +91,7 @@ describe('readTheme', () => {
     ['CSS where a colour goes', { colors: { primary: '#fff; } body { x: y' } }],
     ['a name it does not know', { corner: 'soft' }],
     ['a layout it does not have', { layout: 'top' }],
+    ['art it does not know', { art: 'vector' }],
     ['a picture no upload named', { logo: '../game.json' }],
   ])('ignores the whole file for %s', async (_, value) => {
     write({ ...value, layout: 'layout' in value ? value.layout : 'bottom' });
@@ -115,17 +128,32 @@ describe('writeTheme', () => {
   it('is read back at once, in a folder that was not there', async () => {
     const nested = path.join(dir, 'theme');
 
-    await writeTheme(nested, { colors: {}, layout: 'left', dialogDim: true });
+    await writeTheme(nested, {
+      colors: {},
+      layout: 'left',
+      art: 'pixel',
+      dialogDim: true,
+    });
     expect((await readTheme(nested)).layout).toBe('left');
 
-    await writeTheme(nested, { colors: {}, layout: 'bottom', dialogDim: true });
+    await writeTheme(nested, {
+      colors: {},
+      layout: 'bottom',
+      art: 'pixel',
+      dialogDim: true,
+    });
     expect((await readTheme(nested)).layout).toBe('bottom');
   });
 
   it('keeps the pictures, which it is not told about', async () => {
     const { logo } = (await saveThemeImage(dir, 'logo', PNG))!;
 
-    await writeTheme(dir, { colors: {}, layout: 'left', dialogDim: false });
+    await writeTheme(dir, {
+      colors: {},
+      layout: 'left',
+      art: 'pixel',
+      dialogDim: false,
+    });
 
     expect(await readTheme(dir)).toMatchObject({ logo, layout: 'left' });
   });

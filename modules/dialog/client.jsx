@@ -41,7 +41,7 @@ function drawDim(ctx, cam) {
   } else {
     ctx.fillStyle = dimColour;
   }
-  ctx.fillRect(cam.x, cam.y, ctx.canvas.width, ctx.canvas.height);
+  ctx.fillRect(cam.x, cam.y, engine.GAME_WIDTH, engine.GAME_HEIGHT);
 }
 
 function draw() {
