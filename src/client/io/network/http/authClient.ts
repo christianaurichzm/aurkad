@@ -89,6 +89,8 @@ export interface GameBrand {
   levels: boolean;
   /** Whether levels hand out attribute points (`leveling.pointsPerLevel`). */
   attributes: boolean;
+  /** Whether players carry a bag (`player.startingInventoryCapacity` > 0). */
+  inventory: boolean;
   /** Where the menu sits (`layout` in theme/theme.json). */
   layout: Theme['layout'];
   /** How the world's canvases are drawn (`art` in theme/theme.json). */

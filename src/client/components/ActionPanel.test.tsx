@@ -85,6 +85,20 @@ describe('ActionPanel', () => {
     expect(screen.getByRole('button', { name: /inventory/i })).toBeVisible();
   });
 
+  it('has no Inventory tile in a game with no bag', async () => {
+    mocks.fetchGameBrand.mockResolvedValue({ inventory: false });
+    render(<ActionPanel />);
+
+    await waitFor(() =>
+      expect(
+        screen.queryByRole('button', { name: /inventory/i }),
+      ).not.toBeInTheDocument(),
+    );
+    expect(
+      screen.getByRole('button', { name: /online players/i }),
+    ).toBeVisible();
+  });
+
   it('names a tile by its panel and its hotkey apart', () => {
     render(<ActionPanel />);
 

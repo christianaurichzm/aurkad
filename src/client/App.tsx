@@ -121,7 +121,7 @@ function App() {
           <OnlinePlayersModal />
           <SettingsModal />
           <GMPanel />
-          <InventoryPanel />
+          {brand?.inventory !== false && <InventoryPanel />}
           <TilesetEditor />
           <ContentEditor />
           <div id="module-ui" />

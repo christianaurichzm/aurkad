@@ -31,7 +31,9 @@ const PlayerSchema = z
     // Zero max health means a character that is dead the moment it is created.
     startingMaxHealth: z.number().positive().default(100),
     startingSpeed: z.number().positive().default(DEFAULT_PLAYER_SPEED),
-    startingInventoryCapacity: z.number().int().positive().default(10),
+    // Zero is a game with no bag: nothing can be picked up, and the client
+    // shows no inventory.
+    startingInventoryCapacity: z.number().int().nonnegative().default(10),
   })
   .prefault({});
 

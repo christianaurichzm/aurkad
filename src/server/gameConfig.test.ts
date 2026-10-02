@@ -89,6 +89,13 @@ describe('a file that cannot be trusted', () => {
     expect(() => loadGameConfig(dir)).toThrow(/startingMaxHealth/);
   });
 
+  it('takes a bag of zero, a game with no inventory, but not less', () => {
+    write({ player: { startingInventoryCapacity: 0 } });
+    expect(loadGameConfig(dir).player.startingInventoryCapacity).toBe(0);
+    write({ player: { startingInventoryCapacity: -1 } });
+    expect(() => loadGameConfig(dir)).toThrow(/startingInventoryCapacity/);
+  });
+
   it('refuses a growth rate that never grows', () => {
     write({ leveling: { xpGrowthRate: 1 } });
 

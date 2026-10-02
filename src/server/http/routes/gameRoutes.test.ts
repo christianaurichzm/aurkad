@@ -21,8 +21,12 @@ const appFor = (
   {
     levels = true,
     attributes = levels,
-  }: { levels?: boolean; attributes?: boolean } = {},
-) => express().use(createGameRouter({ brand, levels, attributes, themeDir }));
+    inventory = true,
+  }: { levels?: boolean; attributes?: boolean; inventory?: boolean } = {},
+) =>
+  express().use(
+    createGameRouter({ brand, levels, attributes, inventory, themeDir }),
+  );
 
 describe('gameRoutes', () => {
   it('names the game and points at its logo in theme/', async () => {
@@ -35,6 +39,7 @@ describe('gameRoutes', () => {
       logo: '/theme/logo.png',
       levels: true,
       attributes: true,
+      inventory: true,
       layout: 'right',
       art: 'pixel',
     });
@@ -70,6 +75,14 @@ describe('gameRoutes', () => {
     ).get('/game');
 
     expect(res.body).toMatchObject({ levels: true, attributes: false });
+  });
+
+  it('says so when the game has no bag', async () => {
+    const res = await request(
+      appFor({ name: 'Tandem' }, { inventory: false }),
+    ).get('/game');
+
+    expect(res.body).toMatchObject({ inventory: false });
   });
 
   it('says so when the game has no levels at all', async () => {

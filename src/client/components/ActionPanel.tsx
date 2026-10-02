@@ -126,6 +126,7 @@ export const ActionPanel: React.FC = () => {
   const tiles: Tile[] = [
     ...playerActions
       .filter((a) => a.id !== 'attributes' || game?.attributes !== false)
+      .filter((a) => a.id !== 'inventory' || game?.inventory !== false)
       .map((action) => ({
         id: action.id,
         label: t(action.label),

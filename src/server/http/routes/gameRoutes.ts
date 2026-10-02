@@ -7,10 +7,10 @@ import { createRouter } from '../../app.js';
 import { readTheme, themeVariables } from '../../theme.js';
 import { ENGINE_MARK } from '../../../shared/constants.js';
 
-// What a game looks like before anyone logs in: its name and logo, whether it
-// has levels and attribute points to spend, where the menu sits, and the
+// What a game looks like before anyone logs in: its name and logo, whether
+// it has levels, attribute points and a bag, where the menu sits, and the
 // stylesheet and pictures in theme/, next to game.json. Mounted before the
-// session, as the probes are: every login screen asks for all of it, and a
+// session, like the probes: every login screen asks for all of it, and a
 // page load is not worth a rate-limit bucket.
 export function createGameRouter({
   brand = gameConfig.brand,
@@ -18,11 +18,13 @@ export function createGameRouter({
   // A game that hands out no points has nothing to spend them on, and so
   // no Attributes window.
   attributes = levels && gameConfig.leveling.pointsPerLevel > 0,
+  inventory = gameConfig.player.startingInventoryCapacity > 0,
   themeDir = gamePath('theme'),
 }: {
   brand?: GameConfig['brand'];
   levels?: boolean;
   attributes?: boolean;
+  inventory?: boolean;
   themeDir?: string;
 } = {}) {
   const router = createRouter();
@@ -36,6 +38,7 @@ export function createGameRouter({
       logo: logo ? `/theme/${encodeURI(logo)}` : ENGINE_MARK,
       levels,
       attributes,
+      inventory,
       layout: theme.layout,
       art: theme.art,
     });

@@ -12,7 +12,7 @@ const InventoryItemSchema = new mongoose.Schema(
 const InventorySchema = new mongoose.Schema(
   {
     items: [InventoryItemSchema],
-    maxCapacity: { type: Number, min: 1 },
+    maxCapacity: { type: Number, min: 0 },
   },
   { _id: false },
 );
