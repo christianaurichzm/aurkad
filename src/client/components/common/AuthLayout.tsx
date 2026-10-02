@@ -2,6 +2,7 @@ import { useT } from '../../i18n';
 import { useEffect, useState, type ReactNode } from 'react';
 import { fetchGameBrand, type GameBrand } from '../../io/network';
 import { version } from '../../../../package.json';
+import { ENGINE_MARK } from '../../../shared/constants';
 
 export function useGameBrand() {
   const [brand, setBrand] = useState<GameBrand | null>(null);
@@ -28,7 +29,10 @@ export function AuthLayout({
     <main className="auth-layout">
       <section className="auth-card">
         <header className="auth-heading">
-          <div className="engine-brand">
+          <div
+            className="engine-brand"
+            data-engine-mark={brand?.logo === ENGINE_MARK || undefined}
+          >
             {brand && (
               <>
                 <img src={brand.logo} alt="" aria-hidden="true" />

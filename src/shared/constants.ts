@@ -1,6 +1,8 @@
 export const SPRITE_WIDTH = 64;
 export const SPRITE_HEIGHT = 64;
 export const TILE_SIZE = 64;
+// The engine's mark: the logo of a game that names none of its own.
+export const ENGINE_MARK = '/favicon.svg';
 // An isometric map draws its square cell as a 2:1 diamond: the grid turned 45
 // degrees and squashed. At 0.5 the diamond is TILE_SIZE wide, so an actor drawn
 // one tile wide is as wide as the cell it stands on.

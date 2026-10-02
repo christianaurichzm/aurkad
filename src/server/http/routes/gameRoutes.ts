@@ -5,6 +5,7 @@ import { gamePath } from '../../config.js';
 import { gameConfig, type GameConfig } from '../../gameConfig.js';
 import { createRouter } from '../../app.js';
 import { readTheme, themeVariables } from '../../theme.js';
+import { ENGINE_MARK } from '../../../shared/constants.js';
 
 // What a game looks like before anyone logs in: its name and logo, whether it
 // has levels and attribute points to spend, where the menu sits, and the
@@ -32,7 +33,7 @@ export function createGameRouter({
     const logo = theme.logo ?? brand.logo;
     res.json({
       name: brand.name,
-      logo: logo ? `/theme/${encodeURI(logo)}` : '/favicon.svg',
+      logo: logo ? `/theme/${encodeURI(logo)}` : ENGINE_MARK,
       levels,
       attributes,
       layout: theme.layout,

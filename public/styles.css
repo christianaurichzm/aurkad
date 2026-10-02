@@ -7,7 +7,8 @@
 
    Theme contract:
      login screen  .auth-layout .auth-card .auth-heading .auth-form
-                   .engine-brand .password-toggle
+                   .engine-brand .engine-brand[data-engine-mark]
+                   .password-toggle
      game screen   #ui #canvasFrame #sidePanel #map-name .player-controls
                    .zone-banner .low-health-vignette
                    #gameShell[data-layout="right|left|bottom|overlay"]
@@ -1010,6 +1011,17 @@ body {
   display: block;
   width: auto;
   height: 24px;
+}
+/* A game with no logo of its own shows the engine's mark as the emblem over
+   its name, not as an icon beside it. */
+.engine-brand[data-engine-mark] {
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 14px;
+  min-height: 72px;
+}
+.engine-brand[data-engine-mark] > img {
+  height: 56px;
 }
 /* What the page shows until the server behind it answers (main.tsx). */
 .server-wait {
