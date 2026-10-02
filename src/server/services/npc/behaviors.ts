@@ -9,7 +9,7 @@ import {
   MapStateServer,
 } from '../../../shared/types.js';
 import { hasCollision } from '../world/physicsService.js';
-import { resolveDamage } from '../combat/index.js';
+import { resolveDamage, swing } from '../combat/index.js';
 import { queryEntitiesInRadius } from '../../spatial/spatialManager.js';
 import { randomInt } from '../../sim/rng.js';
 
@@ -250,7 +250,7 @@ export function isPlayerInAttackRange(
 
 export function attackPlayer(npc: RuntimeNpc, player: PlayerServer) {
   resolveDamage(player, npc.attack, { attacker: npc });
-  npc.action = CharacterAction.Attack;
+  swing(npc);
 }
 
 export function findClosestPlayer(

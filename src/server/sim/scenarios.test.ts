@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { Direction, Key } from '../../shared/types.js';
+import { CharacterAction, Direction, Key } from '../../shared/types.js';
 import { TILE_SIZE } from '../../shared/constants.js';
 import { createFixture } from './simFixture.js';
 import {
@@ -229,6 +229,22 @@ describe('combat', () => {
     sim.step(1);
 
     expect(npc.health).toBeLessThan(30);
+  });
+
+  it('a swing shows for a quarter second, even with the key still held', () => {
+    sim.addPlayer({ name: 'Alice', position: { x: TILE_SIZE, y: TILE_SIZE } });
+
+    sim.press('Alice', Key.Control);
+    sim.step(1);
+    expect(sim.getPlayer('Alice').action).toBe(CharacterAction.Attack);
+
+    sim.step(5);
+    expect(sim.getPlayer('Alice').action).toBe(CharacterAction.Idle);
+
+    sim.release('Alice', Key.Control);
+    sim.press('Alice', Key.Control);
+    sim.step(1);
+    expect(sim.getPlayer('Alice').action).toBe(CharacterAction.Attack);
   });
 
   it('npc dies, drops its item, and respawns at its spawn tile', () => {

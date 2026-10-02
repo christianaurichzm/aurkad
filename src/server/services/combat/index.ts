@@ -7,10 +7,12 @@ import {
   LootEntry,
   LootTable,
   DamageContributor,
+  CharacterAction,
 } from '../../../shared/types.js';
 import { getMap, updatePlayer } from '../world/gameData.js';
 import { logger } from '../../logger.js';
-import { getTick } from '../../sim/clock.js';
+import { getTick, msToTicks } from '../../sim/clock.js';
+import { cancelScheduled, scheduleAfter } from '../../sim/scheduler.js';
 import { queryEntitiesInRadius } from '../../spatial/spatialManager.js';
 import { gameConfig } from '../../gameConfig.js';
 import { isFacing, mapAllowsPvp } from '../../../shared/utils.js';
@@ -318,6 +320,28 @@ export const resolveDamage = (
   }
 
   return damage;
+};
+
+// How long the attack pose shows. It ends on its own, held key or not: a
+// sprite has one attack frame, and held it reads as a frozen blow. Ending it
+// also means the next swing is an edge into Attack again, which is what a
+// viewer's client plays the swing sound on.
+const SWING_MS = 250;
+const swingEnds = new WeakMap<{ action: CharacterAction }, number>();
+
+export const swing = (entity: { action: CharacterAction }): void => {
+  const pending = swingEnds.get(entity);
+  if (pending !== undefined) cancelScheduled(pending);
+  entity.action = CharacterAction.Attack;
+  swingEnds.set(
+    entity,
+    scheduleAfter(msToTicks(SWING_MS), () => {
+      swingEnds.delete(entity);
+      if (entity.action === CharacterAction.Attack) {
+        entity.action = CharacterAction.Idle;
+      }
+    }),
+  );
 };
 
 export const handleAttack = (attacker: PlayerServer): void => {

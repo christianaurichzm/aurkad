@@ -27,7 +27,7 @@ import { emitGameEvent } from '../../engine/eventBus.js';
 import { emit } from '../../engine/hooks.js';
 import { dispatchEntityScript } from '../../engine/scripting/entityScripts.js';
 import { removeItem } from '../economy/economyService.js';
-import { handleAttack } from '../combat/index.js';
+import { handleAttack, swing } from '../combat/index.js';
 import { pickUpItem } from '../economy/inventoryService.js';
 import { handleInteract } from './interactionService.js';
 import { bfsNextStep } from '../npc/behaviors.js';
@@ -576,19 +576,17 @@ export const handleKeyAction = (action: ClientKeyboardAction) => {
       if (isArrow(key)) pathGoals.delete(username);
 
       if (key === Key.Control) {
-        if (player.action !== CharacterAction.Attack) {
-          player.action = CharacterAction.Attack;
-          // Emitted before the melee runs, because the cooldown and the target
-          // rule inside it are the policy a replacement wants to own. The pose
-          // is set first so a handler reads the state it is being told about,
-          // the same order the equip hooks use.
-          const attack = { player, handled: false };
-          emit('playerAttack', attack);
-          if (!attack.handled) {
-            handleAttack(player);
-          }
-          updatePlayerMap(player.id, player);
+        swing(player);
+        // Emitted before the melee runs, because the cooldown and the target
+        // rule inside it are the policy a replacement wants to own. The pose
+        // is set first so a handler reads the state it is being told about,
+        // the same order the equip hooks use.
+        const attack = { player, handled: false };
+        emit('playerAttack', attack);
+        if (!attack.handled) {
+          handleAttack(player);
         }
+        updatePlayerMap(player.id, player);
       } else if (key === Key.e) {
         pickUpItem(getMap(player.mapId)!, player);
         updatePlayerMap(player.id, player);
@@ -601,12 +599,6 @@ export const handleKeyAction = (action: ClientKeyboardAction) => {
     case 'release': {
       keys.delete(key);
 
-      if (key === Key.Control) {
-        if (player.action === CharacterAction.Attack) {
-          player.action = CharacterAction.Idle;
-          updatePlayerMap(player.id, player);
-        }
-      }
       if (key === Key.Shift) {
         if (
           !keys.has(Key.ArrowUp) &&
