@@ -15,6 +15,7 @@ import { gameConfig } from '../../gameConfig.js';
 import { useItem } from '../../services/economy/inventoryService.js';
 import { items } from '../../services/world/gameData.js';
 import type { PlayerServer, Spell } from '../../../shared/types.js';
+import { TILE_SIZE } from '../../../shared/constants.js';
 
 // What the module reads back as the database's spells. Empty, it seeds and
 // casts its built-ins.
@@ -77,6 +78,28 @@ describe('magic module', () => {
 
     expect(goblin.health).toBeLessThan(30); // took blast damage
     expect(caster.data?.mana).toBe(70); // 100 - 30 cost
+  });
+
+  it('bursts over the middle of an npc three tiles wide', () => {
+    const sim = createFixture(0);
+    sim.addPlayer({ name: 'Alice', position: tile(5, 5) });
+    sim.addNpc({
+      behavior: 'aggressive',
+      position: tile(6, 4),
+      width: 3 * TILE_SIZE,
+      height: 3 * TILE_SIZE,
+    });
+    sim.step(1);
+    drainGameEvents();
+
+    castVia('spell:cast', 'Alice', 'blast');
+
+    const visual = drainGameEvents().find(
+      (e) => e.type === 'customMap' && e.channel === 'spell:visual',
+    );
+    expect(visual?.type === 'customMap' && visual.payload).toMatchObject(
+      tile(7, 5),
+    );
   });
 
   it('heal restores the caster and spends mana', () => {

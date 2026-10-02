@@ -13,7 +13,7 @@ const TOTAL_CHARACTER_ROWS = 4;
  * and idle and attack name the frames those actions hold. The anchor is the
  * frame pixel on the foot point, so a frame can be larger than the figure.
  */
-export type SpriteLayout = {
+type Frames = {
   width: number;
   height: number;
   anchorX: number;
@@ -22,6 +22,23 @@ export type SpriteLayout = {
   idleColumn: number;
   attackColumn: number;
   scale: number;
+};
+
+/**
+ * A character the grid cannot hold, like a boss three tiles wide, is placed
+ * under `characters` by sprite id: `x`/`y` is its block's corner and its
+ * frame fields override the sheet's. `rows: 1` faces one way only; `loop`
+ * plays the walk cycle while standing too.
+ */
+export type CharacterBlock = Frames & {
+  x: number;
+  y: number;
+  rows: number;
+  loop: boolean;
+};
+
+export type SpriteLayout = Frames & {
+  characters: Record<string, CharacterBlock>;
 };
 
 export const DEFAULT_SPRITE_LAYOUT: SpriteLayout = {
@@ -33,11 +50,12 @@ export const DEFAULT_SPRITE_LAYOUT: SpriteLayout = {
   idleColumn: 0,
   attackColumn: 2,
   scale: 1,
+  characters: {},
 };
 
 const frameSide = z.number().int().positive().max(MAX_ISOMETRIC_OVERHANG);
 const column = z.number().int().nonnegative();
-const SpriteLayoutSchema = z
+const FramesSchema = z
   .object({
     width: frameSide,
     height: frameSide,
@@ -48,26 +66,55 @@ const SpriteLayoutSchema = z
     attackColumn: column,
     scale: z.number().positive().max(4),
   })
-  .partial()
-  .refine(
-    (l) =>
-      (l.idleColumn ?? 0) < (l.columns ?? 4) &&
-      (l.attackColumn ?? 2) < (l.columns ?? 4),
-    'idleColumn and attackColumn must be frames of the block',
-  );
+  .partial();
+const SpriteSheetSchema = FramesSchema.extend({
+  characters: z
+    .record(
+      z.string().regex(/^\d+$/),
+      FramesSchema.extend({
+        x: z.number().int().nonnegative(),
+        y: z.number().int().nonnegative(),
+        rows: z.union([z.literal(1), z.literal(4)]).optional(),
+        loop: z.boolean().optional(),
+      }),
+    )
+    .optional(),
+});
 
-/** sprites.json over the defaults; `{}`, no file, is the 64 px grid. */
-export function parseSpriteLayout(json: unknown): SpriteLayout {
-  const given = SpriteLayoutSchema.parse(json);
-  const width = given.width ?? DEFAULT_SPRITE_LAYOUT.width;
-  const height = given.height ?? DEFAULT_SPRITE_LAYOUT.height;
-  return {
-    ...DEFAULT_SPRITE_LAYOUT,
-    anchorX: width / 2,
-    anchorY: height,
+// A frame of another size is anchored at its own bottom centre unless told.
+function withFrames(base: Frames, given: Partial<Frames>): Frames {
+  const width = given.width ?? base.width;
+  const height = given.height ?? base.height;
+  const resized = width !== base.width || height !== base.height;
+  const frames = {
+    ...base,
+    ...(resized && { anchorX: width / 2, anchorY: height }),
     ...given,
     width,
     height,
+  };
+  if (
+    frames.idleColumn >= frames.columns ||
+    frames.attackColumn >= frames.columns
+  )
+    throw new Error('idleColumn and attackColumn must be frames of the block');
+  return frames;
+}
+
+/** sprites.json over the defaults; `{}`, no file, is the 64 px grid. */
+export function parseSpriteLayout(json: unknown): SpriteLayout {
+  const { characters = {}, ...sheet } = SpriteSheetSchema.parse(json);
+  const frames = withFrames(DEFAULT_SPRITE_LAYOUT, sheet);
+  return {
+    ...frames,
+    characters: Object.fromEntries(
+      Object.entries(characters).map(
+        ([id, { x, y, rows = 4, loop = false, ...own }]) => [
+          id,
+          { ...withFrames(frames, own), x, y, rows, loop },
+        ],
+      ),
+    ),
   };
 }
 
@@ -79,12 +126,24 @@ export const setSpriteLayout = (next: SpriteLayout) => {
 
 export const getSpriteLayout = () => layout;
 
+/** The frames `characterIndex` draws with: its own block's or the sheet's. */
+export const characterLayout = (characterIndex: number): Frames =>
+  layout.characters[characterIndex] ?? layout;
+
 export function getCharacterSpriteCoordinates(
   characterIndex: number,
   column: number,
   row: number,
   imageWidth: number,
 ) {
+  const own = layout.characters[characterIndex];
+  if (own) {
+    return {
+      x: own.x + column * own.width,
+      y: own.y + (own.rows === 1 ? 0 : row) * own.height,
+    };
+  }
+
   const blockWidth = layout.width * layout.columns;
   const blockHeight = layout.height * TOTAL_CHARACTER_ROWS;
 

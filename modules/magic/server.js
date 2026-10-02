@@ -172,9 +172,13 @@ function makeCast(s) {
       // 0 heals to full.
       for (const p of affected) healPlayer(p, s.heal || undefined);
     }
+    // A target's middle tile, which is its position unless it is a big npc.
     const visualPositions =
       visualTarget === 'targets' && affected.length > 0
-        ? affected.map((t) => t.position)
+        ? affected.map((t) => ({
+            x: t.position.x + Math.floor(t.width / 2 / TILE_SIZE) * TILE_SIZE,
+            y: t.position.y + Math.floor(t.height / 2 / TILE_SIZE) * TILE_SIZE,
+          }))
         : [caster.position];
     for (const pos of visualPositions) {
       sendMapEvent(caster.mapId, 'spell:visual', {

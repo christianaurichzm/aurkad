@@ -231,6 +231,50 @@ describe('combat', () => {
     expect(npc.health).toBeLessThan(30);
   });
 
+  it('player hits an npc three tiles wide from any tile along its side', () => {
+    // Footprint cols 5-7, rows 5-7. Neither attacker is on its corner tile.
+    const npc = sim.addNpc({
+      position: { x: 5 * TILE_SIZE, y: 5 * TILE_SIZE },
+      width: 3 * TILE_SIZE,
+      height: 3 * TILE_SIZE,
+      health: 100,
+      maxHealth: 100,
+    });
+    sim.addPlayer({
+      name: 'Below',
+      position: { x: 7 * TILE_SIZE, y: 8 * TILE_SIZE },
+      direction: Direction.Up,
+    });
+    sim.addPlayer({
+      name: 'Beside',
+      position: { x: 8 * TILE_SIZE, y: 6 * TILE_SIZE },
+      direction: Direction.Left,
+    });
+
+    sim.press('Below', Key.Control);
+    sim.press('Beside', Key.Control);
+    sim.step(1);
+
+    expect(npc.health).toBe(80);
+  });
+
+  it('an npc three tiles wide turns and hits a player beside its lower row', () => {
+    sim.addNpc({
+      position: { x: 5 * TILE_SIZE, y: 5 * TILE_SIZE },
+      width: 3 * TILE_SIZE,
+      height: 3 * TILE_SIZE,
+      attack: 7,
+    });
+    const alice = sim.addPlayer({
+      name: 'Alice',
+      position: { x: 4 * TILE_SIZE, y: 7 * TILE_SIZE },
+    });
+
+    sim.step(40);
+
+    expect(alice.health).toBeLessThan(100);
+  });
+
   it('a swing shows for a quarter second, even with the key still held', () => {
     sim.addPlayer({ name: 'Alice', position: { x: TILE_SIZE, y: TILE_SIZE } });
 
@@ -287,6 +331,36 @@ describe('combat', () => {
     expect(drop?.quantity).toBe(1);
     expect(npc.health).toBe(npc.maxHealth);
     expect(npc.position).toEqual({ x: 10 * TILE_SIZE, y: 10 * TILE_SIZE });
+  });
+
+  it('an npc three tiles wide drops its loot in the middle of where it stood', () => {
+    sim.addItem({
+      id: 1,
+      name: 'Herb',
+      description: '',
+      sprite: 0,
+      type: 'consumable',
+    });
+    sim.addPlayer({
+      name: 'Alice',
+      position: { x: 6 * TILE_SIZE, y: 4 * TILE_SIZE },
+      direction: Direction.Down,
+      attack: 999,
+    });
+    sim.addNpc({
+      position: { x: 5 * TILE_SIZE, y: 5 * TILE_SIZE },
+      width: 3 * TILE_SIZE,
+      height: 3 * TILE_SIZE,
+      health: 1,
+      lootTableId: 'always-a-coin',
+    });
+
+    sim.press('Alice', Key.Control);
+    sim.step(1);
+
+    expect(sim.map.droppedItems.map((d) => d.position)).toEqual([
+      { x: 6 * TILE_SIZE, y: 6 * TILE_SIZE },
+    ]);
   });
 
   it('npc drops the configured quantity of an item', () => {

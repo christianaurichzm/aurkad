@@ -49,6 +49,7 @@ const gameStateQueue: Array<GameStateMessage> = [];
 function showHealthChanges(changes: HealthChange[] | undefined): void {
   if (!changes) return;
   const selfId = getPlayer()?.id;
+  const npcs = getGameState()?.npcs;
   const stacked = new Map<string, number>();
   for (const change of changes) {
     const n = stacked.get(change.id) ?? 0;
@@ -60,9 +61,11 @@ function showHealthChanges(changes: HealthChange[] | undefined): void {
         : change.id === selfId
           ? themeToken('--color-danger-text', '#ff8b86')
           : '#ffffff';
+    // Over the middle of a big npc, not the corner its position names.
+    const half = (npcs?.[change.id]?.width ?? TILE_SIZE) / 2;
     const at = spritePosition(change.x, change.y);
     spawnFloatingText(
-      at.x + TILE_SIZE / 2,
+      at.x + half,
       at.y - lift,
       change.delta > 0 ? `+${change.delta}` : String(-change.delta),
       color,
@@ -72,7 +75,7 @@ function showHealthChanges(changes: HealthChange[] | undefined): void {
         const pos = getAnimatedPos(change.id);
         if (!pos) return null;
         const to = spritePosition(pos.x, pos.y);
-        return { x: to.x + TILE_SIZE / 2, y: to.y - lift };
+        return { x: to.x + half, y: to.y - lift };
       },
     );
   }

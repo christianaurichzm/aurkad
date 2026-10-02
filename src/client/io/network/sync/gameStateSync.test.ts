@@ -16,6 +16,12 @@ import {
   resetInterpolation,
 } from './gameStateSync';
 import { playSound } from '../../../audio';
+import { spawnFloatingText } from '../../../graphics/floatingText';
+
+vi.mock('../../../graphics/floatingText', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('../../../graphics/floatingText')>()),
+  spawnFloatingText: vi.fn(),
+}));
 
 vi.mock('../../../audio', async (importOriginal) => ({
   ...(await importOriginal<typeof import('../../../audio')>()),
@@ -194,5 +200,38 @@ describe('attack sounds from other entities', () => {
     updateWebSocket();
 
     expect(playSound).not.toHaveBeenCalled();
+  });
+});
+
+describe('floating numbers', () => {
+  it('rise over the middle of a big npc, not the corner its position names', () => {
+    enqueueGameStateMessage({
+      v: 1,
+      type: 'worldUpdate',
+      payload: {
+        entities: {
+          boss: {
+            id: 'boss',
+            kind: 'npc',
+            position: { x: 640, y: 320 },
+            width: 192,
+            height: 192,
+            direction: Direction.Down,
+            action: CharacterAction.Idle,
+            health: 280,
+          },
+        },
+        leave: [],
+        self: hotPlayer({ x: 0, y: 0 }),
+        healthChanges: [{ id: 'boss', x: 640, y: 320, delta: -17 }],
+      },
+    } as never);
+    updateWebSocket();
+
+    expect(vi.mocked(spawnFloatingText).mock.calls[0]?.slice(0, 3)).toEqual([
+      640 + 96,
+      320 - 4,
+      '17',
+    ]);
   });
 });

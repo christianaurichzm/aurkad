@@ -79,13 +79,18 @@ export const hasCollision = (character: CombatTarget): boolean => {
 
   const isNpc = character.kind === 'npc';
 
-  const tileCollision =
-    isTileBlocked(map, x, y, isNpc) ||
-    isTileBlocked(map, x + width - 1, y, isNpc) ||
-    isTileBlocked(map, x, y + height - 1, isNpc) ||
-    isTileBlocked(map, x + width - 1, y + height - 1, isNpc);
-
-  if (tileCollision) return true;
+  // Every tile under the box, not just its corners: one three tiles wide has
+  // a middle row and column the corners never land on. Steps a tile at a time
+  // and always ends on the last pixel, so an unaligned box is covered too.
+  const lastX = x + width - 1;
+  const lastY = y + height - 1;
+  for (let py = y; ; py = Math.min(py + TILE_SIZE, lastY)) {
+    for (let px = x; ; px = Math.min(px + TILE_SIZE, lastX)) {
+      if (isTileBlocked(map, px, py, isNpc)) return true;
+      if (px >= lastX) break;
+    }
+    if (py >= lastY) break;
+  }
 
   return (
     x < 0 ||

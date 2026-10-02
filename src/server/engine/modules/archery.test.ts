@@ -11,6 +11,7 @@ import { drainGameEvents } from '../eventBus.js';
 import { handleCustomAction } from '../../services/comms/customEventService.js';
 import { createFixture, tile } from '../../sim/simFixture.js';
 import { Direction } from '../../../shared/types.js';
+import { TILE_SIZE } from '../../../shared/constants.js';
 import { items } from '../../services/world/gameData.js';
 import {
   registerArrow,
@@ -113,6 +114,41 @@ describe('archery module', () => {
     sim.step(10); // let projectile travel (3 tiles at 8t/s ≈ 7 ticks at 20Hz)
 
     expect(enemy.health).toBeLessThan(30);
+  });
+
+  it('lands in the middle of an npc three tiles wide, where the arrow is drawn landing', () => {
+    const sim = createFixture(0);
+    const alice = sim.addPlayer({
+      name: 'Alice',
+      position: tile(13, 8),
+      direction: Direction.Left,
+    });
+    // Footprint cols 8-10, rows 7-9: its middle is (9,8), its near side x=704.
+    const boss = sim.addNpc({
+      behavior: 'aggressive',
+      sight: 0,
+      position: tile(8, 7),
+      width: 3 * TILE_SIZE,
+      height: 3 * TILE_SIZE,
+      maxHealth: 30,
+      health: 30,
+    });
+    equipTestArrow(alice);
+    sim.step(1);
+    drainGameEvents();
+
+    shoot('Alice');
+    const fired = firedProjectile();
+    expect(fired?.type === 'customMap' && fired.payload).toMatchObject({
+      toX: 9 * TILE_SIZE + TILE_SIZE / 2,
+      toY: 8 * TILE_SIZE + TILE_SIZE / 2,
+    });
+
+    // 8 tiles a second: past its near side in 7 ticks, in its middle in 10.
+    sim.step(7);
+    expect(boss.health).toBe(30);
+    sim.step(3);
+    expect(boss.health).toBeLessThan(30);
   });
 
   it('a miss fires the arrow visual and causes no damage', () => {

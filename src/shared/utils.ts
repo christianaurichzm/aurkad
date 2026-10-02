@@ -37,6 +37,49 @@ export const isFacing = (
   }
 };
 
+type Boxed = Placed & { width: number; height: number };
+
+// Edge to edge along one axis; negative while the two overlap on it.
+const gap = (a: number, aSize: number, b: number, bSize: number): number =>
+  Math.max(b - (a + aSize), a - (b + bSize));
+
+/**
+ * Straight-line distance between two boxes, from tile to nearest tile: for two
+ * single tiles, the distance between their positions.
+ */
+export const reachDistance = (a: Boxed, b: Boxed): number =>
+  Math.hypot(
+    Math.max(0, gap(a.position.x, a.width, b.position.x, b.width) + TILE_SIZE),
+    Math.max(
+      0,
+      gap(a.position.y, a.height, b.position.y, b.height) + TILE_SIZE,
+    ),
+  );
+
+/**
+ * Whether `to` is straight ahead of `from` within `range`: a melee swing,
+ * either way between a player and an npc. Measured box to box, so an npc
+ * bigger than a tile is hit from any tile along its near side and hits
+ * anyone along it. Neighbours are TILE_SIZE apart, and `range` counts
+ * from one tile to the next.
+ */
+export const inReach = (
+  from: Boxed & { direction: Direction },
+  to: Boxed,
+  range: number,
+): boolean => {
+  const gapX = gap(from.position.x, from.width, to.position.x, to.width);
+  const gapY = gap(from.position.y, from.height, to.position.y, to.height);
+  const vertical =
+    from.direction === Direction.Up || from.direction === Direction.Down;
+  return (
+    isFacing(from, to) &&
+    (vertical
+      ? gapX < 0 && gapY + TILE_SIZE <= range
+      : gapY < 0 && gapX + TILE_SIZE <= range)
+  );
+};
+
 /**
  * Whether pressing interact reaches `npc`: alive, at most a tile away on
  * each axis (diagonals too) and on the side the player faces. The client

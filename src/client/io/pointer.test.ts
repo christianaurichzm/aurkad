@@ -24,8 +24,10 @@ vi.mock('../core/gameState', () => ({
   getMapPixelSize: () => ({ w: 0, h: 0 }),
 }));
 
-const npcAt = (col: number, row: number, behavior: string) => ({
+const npcAt = (col: number, row: number, behavior: string, tiles = 1) => ({
   position: { x: col * TILE_SIZE, y: row * TILE_SIZE },
+  width: tiles * TILE_SIZE,
+  height: tiles * TILE_SIZE,
   behavior,
 });
 // The middle of a cell, with the camera at the origin of a flat map.
@@ -49,6 +51,14 @@ it('attacks a hostile npc beside the player and talks to a friendly one', () => 
   click(2, 3);
   click(3, 4);
   expect(vi.mocked(pressKey).mock.calls).toEqual([[Key.Control], [Key.f]]);
+});
+
+it('attacks a big npc clicked anywhere on its body, aiming at its near side', () => {
+  // Cols 4-6, rows 1-3: the player at (3, 3) is beside its lower row.
+  state.npcs = { a: npcAt(4, 1, 'hostile', 3) };
+  click(6, 1);
+  expect(sendAction).toHaveBeenCalledWith({ type: 'moveTo', col: 4, row: 3 });
+  expect(pressKey).toHaveBeenCalledWith(Key.Control);
 });
 
 it('only walks up to an npc further off', () => {

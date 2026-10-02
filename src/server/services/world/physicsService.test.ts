@@ -6,7 +6,7 @@
  */
 import { describe, it, expect } from 'vitest';
 import { createFixture, tile } from '../../sim/simFixture.js';
-import { findPlacement } from './physicsService.js';
+import { findPlacement, hasCollision } from './physicsService.js';
 import { respawnPlayer } from '../player/playerService.js';
 import { rebuildQuadtree } from '../../spatial/spatialManager.js';
 import { gameConfig, respawnPosition } from '../../gameConfig.js';
@@ -107,6 +107,24 @@ describe('findPlacement', () => {
     const second = findPlacement(probe(sim), sim.mapId, tile(5, 5));
 
     expect(first).toEqual(second);
+  });
+});
+
+describe('hasCollision', () => {
+  it('stops a box three tiles wide on a wall under its middle', () => {
+    const sim = createFixture(0);
+    rebuildQuadtree(sim.mapId, sim.map);
+    // Only the middle of the bottom row: none of the four corners touch it.
+    sim.map.tiles[7]![6]!.blocked = true;
+    const big = {
+      ...probe(sim),
+      width: 192,
+      height: 192,
+      position: tile(5, 5),
+    };
+
+    expect(hasCollision(big)).toBe(true);
+    expect(hasCollision({ ...big, position: tile(5, 2) })).toBe(false);
   });
 });
 

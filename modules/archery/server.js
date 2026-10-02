@@ -37,13 +37,17 @@ function aimEndpoint(player, rangePx) {
     rangePx,
   )) {
     if (!isEnemy(e)) continue;
-    const dx = e.position.x - player.position.x;
-    const dy = e.position.y - player.position.y;
+    // Centre to centre and as wide as the npc, so a large npc is in the line
+    // of fire from any tile along its side.
+    const dx = e.position.x + e.width / 2 - (player.position.x + HALF);
+    const dy = e.position.y + e.height / 2 - (player.position.y + HALF);
+    const halfW = e.width / 2;
+    const halfH = e.height / 2;
     let inFront = false;
-    if (player.direction === 2) inFront = dx > 0 && Math.abs(dy) <= HALF;
-    else if (player.direction === 1) inFront = dx < 0 && Math.abs(dy) <= HALF;
-    else if (player.direction === 0) inFront = dy > 0 && Math.abs(dx) <= HALF;
-    else if (player.direction === 3) inFront = dy < 0 && Math.abs(dx) <= HALF;
+    if (player.direction === 2) inFront = dx > 0 && Math.abs(dy) <= halfH;
+    else if (player.direction === 1) inFront = dx < 0 && Math.abs(dy) <= halfH;
+    else if (player.direction === 0) inFront = dy > 0 && Math.abs(dx) <= halfW;
+    else if (player.direction === 3) inFront = dy < 0 && Math.abs(dx) <= halfW;
     if (!inFront) continue;
     const dist = Math.abs(dx) + Math.abs(dy);
     if (dist < bestDist) {
@@ -51,7 +55,12 @@ function aimEndpoint(player, rangePx) {
       best = e;
     }
   }
-  if (best) return { toX: best.position.x + HALF, toY: best.position.y + HALF };
+  if (best) {
+    return {
+      toX: best.position.x + best.width / 2,
+      toY: best.position.y + best.height / 2,
+    };
+  }
   const d = player.direction;
   return clampEndpoint(
     player.mapId,
@@ -126,14 +135,17 @@ on('tick', () => {
     let hit = false;
     for (const e of nearby) {
       if (!isEnemy(e)) continue;
-      const ecx = e.position.x + HALF;
-      const ecy = e.position.y + HALF;
+      const ecx = e.position.x + e.width / 2;
+      const ecy = e.position.y + e.height / 2;
       const relX = ecx - p.cx;
       const relY = ecy - p.cy;
       const along = relX * p.dirX + relY * p.dirY;
       const perp = Math.abs(relX * p.dirY - relY * p.dirX);
-      if (along < -p.speedPxPerTick) continue;
-      if (perp > HALF) continue;
+      const half = Math.max(e.width, e.height) / 2;
+      // It lands in the middle, where the client draws it landing. Up to a step
+      // past the far side counts too, since an npc moves a tile between ticks.
+      if (along > 0 || along < -(half + TILE_SIZE)) continue;
+      if (perp > half) continue;
       dealDamage(e, p.damage, p.attacker);
       hit = true;
       break;

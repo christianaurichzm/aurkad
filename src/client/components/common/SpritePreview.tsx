@@ -1,7 +1,7 @@
 import React, { useEffect, useRef } from 'react';
 import { drawSpriteGeneric } from '../../graphics/render';
 import { entityAtlas } from '../../graphics/atlas';
-import { getSpriteLayout } from '../../graphics/sprite';
+import { characterLayout } from '../../graphics/sprite';
 import { colors, radius } from '../../theme';
 import { TILE_SIZE } from '../../../shared/constants';
 
@@ -70,10 +70,12 @@ export const SpritePreview: React.FC<SpritePreviewProps> = ({
         if (frames > 1) frame = requestAnimationFrame(draw);
         return;
       }
-      // The figure's tile-sized box fills the preview; a frame larger than
-      // the figure spills past the edges rather than shrinking it.
-      const { width, height, anchorX, anchorY, scale } = getSpriteLayout();
-      const k = (size / TILE_SIZE) * scale;
+      // The figure's tile-sized box fills the preview, grown upwards to the
+      // top of a frame taller than a tile so the head stays in. A frame wider
+      // than that spills past the sides rather than shrinking the figure.
+      const { width, height, anchorX, anchorY, scale } =
+        characterLayout(spriteId);
+      const k = (size / Math.max(TILE_SIZE, anchorY * scale)) * scale;
       drawSpriteGeneric(
         ctx,
         spriteId,

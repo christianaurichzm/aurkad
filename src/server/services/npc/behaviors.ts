@@ -12,6 +12,7 @@ import { hasCollision } from '../world/physicsService.js';
 import { resolveDamage, swing } from '../combat/index.js';
 import { queryEntitiesInRadius } from '../../spatial/spatialManager.js';
 import { randomInt } from '../../sim/rng.js';
+import { inReach } from '../../../shared/utils.js';
 
 // Hoisted, since these objects are never mutated.
 const WANDER_DIRECTIONS = [
@@ -179,14 +180,14 @@ export function stepNpcToward(
   }
 }
 
-// Orient the NPC to face the target based on dominant axis. Called before the
-// attack-range check each tick so the direction is always current.
-export function faceToward(
-  npc: RuntimeNpc,
-  target: { position: Position },
-): void {
-  const dx = target.position.x - npc.position.x;
-  const dy = target.position.y - npc.position.y;
+// Faces the NPC toward the target along the dominant axis, before the
+// attack-range check each tick. Centre to centre, so an npc bigger than a
+// tile turns to whichever side the target is on.
+export function faceToward(npc: RuntimeNpc, target: CombatTarget): void {
+  const dx =
+    target.position.x + target.width / 2 - (npc.position.x + npc.width / 2);
+  const dy =
+    target.position.y + target.height / 2 - (npc.position.y + npc.height / 2);
   if (Math.abs(dx) >= Math.abs(dy)) {
     npc.direction = dx >= 0 ? Direction.Right : Direction.Left;
   } else {
@@ -229,23 +230,7 @@ export function isPlayerInAttackRange(
   npc: RuntimeNpc,
   player: PlayerServer,
 ): boolean {
-  const { dx, dy, distanceSq } = calculateDirection(npc, player);
-
-  const attackRangeSq = npc.attackRange * npc.attackRange;
-  if (distanceSq > attackRangeSq) return false;
-
-  switch (npc.direction) {
-    case Direction.Up:
-      return dy < 0 && Math.abs(dx) < player.width;
-    case Direction.Down:
-      return dy > 0 && Math.abs(dx) < player.width;
-    case Direction.Left:
-      return dx < 0 && Math.abs(dy) < player.height;
-    case Direction.Right:
-      return dx > 0 && Math.abs(dy) < player.height;
-    default:
-      return false;
-  }
+  return inReach(npc, player, npc.attackRange);
 }
 
 export function attackPlayer(npc: RuntimeNpc, player: PlayerServer) {

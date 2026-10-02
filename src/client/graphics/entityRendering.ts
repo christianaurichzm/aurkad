@@ -9,7 +9,7 @@ import {
   RuntimeNpcsMap,
 } from '../../shared/types';
 import { drawSprite } from './spriteDrawing';
-import { getSpriteLayout } from './sprite';
+import { characterLayout, getSpriteLayout } from './sprite';
 import { renderItemIcon } from './itemDrawing';
 import { renderHUD, renderHealthBar, renderNpcLabel } from './hud';
 import { worldToView, spritePosition } from './camera';
@@ -29,6 +29,8 @@ type SpriteEntity = {
   position: Position;
   direction: Direction;
   sprite: number;
+  width: number;
+  height: number;
   action: CharacterAction;
 };
 
@@ -52,13 +54,21 @@ export function getAnimatedPos(entityId: string): Position | undefined {
 }
 
 const WALK_CYCLE_LENGTH = 4;
+// A frame of a looping figure at rest (sprites.json `loop`): one cycle in about
+// the time a step takes.
+const IDLE_FRAME_MS = 180;
 
-const animationColumn = (id: string, action: CharacterAction): number => {
+const animationColumn = (
+  id: string,
+  sprite: number,
+  action: CharacterAction,
+): number => {
   if (action !== CharacterAction.Walk && action !== CharacterAction.Run) {
     slideTById.delete(id);
-    const layout = getSpriteLayout();
-    return action === CharacterAction.Attack
-      ? layout.attackColumn
+    const layout = characterLayout(sprite);
+    if (action === CharacterAction.Attack) return layout.attackColumn;
+    return getSpriteLayout().characters[sprite]?.loop
+      ? Math.floor(performance.now() / IDLE_FRAME_MS) % WALK_CYCLE_LENGTH
       : layout.idleColumn;
   }
   const slideT = slideTById.get(id) ?? 0;
@@ -68,10 +78,12 @@ const animationColumn = (id: string, action: CharacterAction): number => {
 const renderEntity = (entity: SpriteEntity) => {
   drawSprite(
     entity.sprite,
-    animationColumn(entity.id, entity.action),
+    animationColumn(entity.id, entity.sprite, entity.action),
     entity.direction,
     entity.position.x,
     entity.position.y,
+    entity.width,
+    entity.height,
   );
 };
 
@@ -111,10 +123,13 @@ export function renderEntitiesSorted(
   for (const npc of Object.values(npcs)) {
     if (npc.health <= 0) continue;
     const s = animate(npc);
+    // A big npc is in front of what stands above its bottom row, not its top.
     buf.push({
       kind: 'npc',
-      y: worldToView(s.position.x + TILE_SIZE / 2, s.position.y + TILE_SIZE / 2)
-        .y,
+      y: worldToView(
+        s.position.x + npc.width / 2,
+        s.position.y + npc.height - TILE_SIZE / 2,
+      ).y,
       entity: s,
       hasHealthBar: fightable(npc),
     });

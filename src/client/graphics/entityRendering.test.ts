@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { CharacterAction } from '../../shared/types';
 import { renderDroppedItems, renderEntitiesSorted } from './entityRendering';
 import { renderItemIcon } from './itemDrawing';
 
@@ -122,4 +123,36 @@ it('interleaves isometric props with actors by projected feet instead of logical
   );
   expect(order).toEqual(['actor2', 'prop', 'actor1']);
   setStaticMap({ id: 'ortho', name: 'ortho', type: 'normal', tiles: [] });
+});
+
+it('plays the walk cycle of a figure that loops, even standing still', async () => {
+  const { setSpriteLayout, parseSpriteLayout, DEFAULT_SPRITE_LAYOUT } =
+    await import('./sprite');
+  const { drawSprite } = await import('./spriteDrawing');
+  setSpriteLayout(
+    parseSpriteLayout({ characters: { 7: { x: 0, y: 0, loop: true } } }),
+  );
+  const columns: number[] = [];
+  vi.mocked(drawSprite).mockImplementation((_, column) => {
+    columns.push(column);
+  });
+  const boss = {
+    id: 'b',
+    sprite: 7,
+    behavior: 'aggressive',
+    health: 1,
+    maxHealth: 1,
+    width: 64,
+    height: 64,
+    action: CharacterAction.Idle,
+    position: { x: 0, y: 0 },
+  } as never;
+  const now = vi.spyOn(performance, 'now');
+  for (const t of [0, 180, 360, 540, 720]) {
+    now.mockReturnValue(t);
+    renderEntitiesSorted({}, { b: boss });
+  }
+  expect(columns).toEqual([0, 1, 2, 3, 0]);
+  now.mockRestore();
+  setSpriteLayout(DEFAULT_SPRITE_LAYOUT);
 });

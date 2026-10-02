@@ -123,6 +123,41 @@ describe('drawSprite', () => {
   });
 });
 
+describe('a character with its own block', () => {
+  const BOSS = 7;
+  const layout = parseSpriteLayout({
+    characters: { [BOSS]: { x: 0, y: 512, width: 192, height: 192, rows: 1 } },
+  });
+
+  it('is cut from its block, the same row whatever its direction', () => {
+    setSpriteLayout(layout);
+    expect(getCharacterSpriteCoordinates(BOSS, 2, 3, SHEET)).toEqual({
+      x: 2 * 192,
+      y: 512,
+    });
+    // Everyone else is still on the grid.
+    expect(getCharacterSpriteCoordinates(1, 0, 0, SHEET)).toEqual({
+      x: SPRITE_WIDTH * 4,
+      y: 0,
+    });
+    setSpriteLayout(DEFAULT_SPRITE_LAYOUT);
+  });
+
+  it('fills a footprint three tiles wide with its frame', () => {
+    buildAtlas();
+    setSpriteLayout(layout);
+    const rec = recordingContext();
+    mocks.playerCtx.drawImage = rec.ctx.drawImage;
+
+    drawSprite(BOSS, 0, 0, 640, 320, 192, 192);
+
+    expect(rec.of('drawImage')[0].args.slice(3)).toEqual([
+      192, 192, 640, 320, 192, 192,
+    ]);
+    setSpriteLayout(DEFAULT_SPRITE_LAYOUT);
+  });
+});
+
 describe('parseSpriteLayout', () => {
   it('is the 64 px grid when the game has no sprites.json', () => {
     expect(parseSpriteLayout({})).toEqual(DEFAULT_SPRITE_LAYOUT);

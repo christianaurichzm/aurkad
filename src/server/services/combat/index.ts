@@ -9,13 +9,14 @@ import {
   DamageContributor,
   CharacterAction,
 } from '../../../shared/types.js';
+import { TILE_SIZE } from '../../../shared/constants.js';
 import { getMap, updatePlayer } from '../world/gameData.js';
 import { logger } from '../../logger.js';
 import { getTick, msToTicks } from '../../sim/clock.js';
 import { cancelScheduled, scheduleAfter } from '../../sim/scheduler.js';
 import { queryEntitiesInRadius } from '../../spatial/spatialManager.js';
 import { gameConfig } from '../../gameConfig.js';
-import { isFacing, mapAllowsPvp } from '../../../shared/utils.js';
+import { inReach, mapAllowsPvp } from '../../../shared/utils.js';
 import { tryConsumeAttackCooldown } from './attackCooldown.js';
 import {
   clampDamage,
@@ -68,20 +69,6 @@ const resolveBaseDamage = (
   return Math.max(minimumDamage, value);
 };
 
-const isInAttackRange = (
-  attacker: PlayerServer,
-  target: CombatTarget,
-): boolean => {
-  const dx = Math.abs(attacker.position.x - target.position.x);
-  const dy = Math.abs(attacker.position.y - target.position.y);
-
-  const inLine =
-    (dx === 0 && dy <= attacker.attackRange) ||
-    (dy === 0 && dx <= attacker.attackRange);
-
-  return inLine;
-};
-
 const findAttackTarget = (
   attacker: PlayerServer,
   map: MapStateServer,
@@ -107,8 +94,7 @@ const findAttackTarget = (
       target.behavior !== 'hostile'
     )
       continue;
-    if (!isInAttackRange(attacker, target)) continue;
-    if (!isFacing(attacker, target)) continue;
+    if (!inReach(attacker, target, attacker.attackRange)) continue;
 
     return target;
   }
@@ -220,7 +206,11 @@ function rollNpcLoot(
     dropped.push({
       itemId: drop.itemId,
       sprite: item.sprite,
-      position: { x: npc.position.x, y: npc.position.y },
+      // The middle of a big npc's footprint, not the corner its position names.
+      position: {
+        x: npc.position.x + Math.floor(npc.width / 2 / TILE_SIZE) * TILE_SIZE,
+        y: npc.position.y + Math.floor(npc.height / 2 / TILE_SIZE) * TILE_SIZE,
+      },
       quantity: drop.quantity,
     });
   }

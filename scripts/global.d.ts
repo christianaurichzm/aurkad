@@ -110,6 +110,12 @@ interface RuntimeNpc {
   id: string;
   name: string;
   sprite: number;
+  /**
+   * Pixels of ground it stands on, from `position` right and down: one tile,
+   * or more for a big npc that is hit, and hits, along all of it.
+   */
+  width: number;
+  height: number;
   health: number;
   maxHealth: number;
   attack: number;

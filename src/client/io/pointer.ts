@@ -1,5 +1,10 @@
 import { GAME_WIDTH, GAME_HEIGHT, TILE_SIZE } from '../../shared/constants';
-import { Key, type NpcBehavior } from '../../shared/types';
+import {
+  Key,
+  type NpcBehavior,
+  type Position,
+  type RuntimeNpc,
+} from '../../shared/types';
 import { getGameState, getPlayer } from '../core/gameState';
 import {
   getCamera,
@@ -43,9 +48,25 @@ const npcUnder = (vx: number, vy: number) =>
   Object.values(getGameState()?.npcs ?? {}).find((npc) => {
     const at = spritePosition(npc.position.x, npc.position.y);
     return (
-      vx >= at.x && vx < at.x + TILE_SIZE && vy >= at.y && vy < at.y + TILE_SIZE
+      vx >= at.x &&
+      vx < at.x + npc.width &&
+      vy >= at.y &&
+      vy < at.y + npc.height
     );
   });
+
+const clamp = (v: number, lo: number, hi: number) =>
+  Math.min(Math.max(v, lo), hi);
+
+// The cell of an npc's footprint closest to the player: one tile for most, the
+// near side of a big one, which is the cell a swing from here would land on.
+const nearestCellOf = (npc: RuntimeNpc, from: Position) =>
+  cellOf(
+    clamp(from.x, npc.position.x, npc.position.x + npc.width - TILE_SIZE) +
+      TILE_SIZE / 2,
+    clamp(from.y, npc.position.y, npc.position.y + npc.height - TILE_SIZE) +
+      TILE_SIZE / 2,
+  );
 
 /**
  * A click or tap on the world walks there. On an npc right beside the player
@@ -59,7 +80,7 @@ export const clickWorld = (sx: number, sy: number) => {
   const npc = npcUnder(sx + cam.x, sy + cam.y);
   const world = screenToWorld(sx, sy);
   const { col, row } = npc
-    ? cellOf(npc.position.x + TILE_SIZE / 2, npc.position.y + TILE_SIZE / 2)
+    ? nearestCellOf(npc, player.position)
     : cellOf(world.x, world.y);
   sendAction({ type: 'moveTo', col, row });
   mark = { col, row, at: performance.now() };

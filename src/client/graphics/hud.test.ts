@@ -10,6 +10,11 @@ import {
   renderNpcLabel,
 } from './hud';
 import { Access } from '../../shared/types';
+import {
+  DEFAULT_SPRITE_LAYOUT,
+  parseSpriteLayout,
+  setSpriteLayout,
+} from './sprite';
 
 const fontSize = (font: string) => Number(/(\d+)px/.exec(font)?.[1] ?? 0);
 
@@ -202,6 +207,25 @@ describe('renderNpcLabel', () => {
     renderNpcLabel(npc(''), false, rec.ctx);
 
     expect(rec.calls).toEqual([]);
+  });
+
+  // A figure two tiles tall stands its frame above its box; the name goes
+  // over the frame, not over the box, which is the figure's middle.
+  it('stands over a frame taller than the tile', () => {
+    const nameY = () => {
+      const rec = recordingContext();
+      renderNpcLabel(npc('Lia'), false, rec.ctx);
+      return rec.of('fillText')[0]?.args[2];
+    };
+    expect(nameY()).toBe(64);
+    try {
+      setSpriteLayout(
+        parseSpriteLayout({ width: 128, height: 128, anchorY: 120 }),
+      );
+      expect(nameY()).toBe(64 + TILE_SIZE - 120);
+    } finally {
+      setSpriteLayout(DEFAULT_SPRITE_LAYOUT);
+    }
   });
 });
 

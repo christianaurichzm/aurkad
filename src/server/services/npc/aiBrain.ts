@@ -2,6 +2,7 @@ import type { RuntimeNpc } from '../../../shared/types.js';
 import { isHunter, type NpcAiState, type NpcAiStateName } from './types.js';
 import { getTick } from '../../sim/clock.js';
 import { getPlayerById } from '../../sim/world.js';
+import { reachDistance } from '../../../shared/utils.js';
 
 const npcAiState = new Map<string, NpcAiState>();
 
@@ -54,10 +55,7 @@ function withinReach(npc: RuntimeNpc, playerId: string | undefined): boolean {
     !!player &&
     player.health > 0 &&
     player.mapId === npc.mapId &&
-    Math.hypot(
-      player.position.x - npc.position.x,
-      player.position.y - npc.position.y,
-    ) <= npc.attackRange
+    reachDistance(npc, player) <= npc.attackRange
   );
 }
 

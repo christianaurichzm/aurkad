@@ -422,6 +422,22 @@ describe('aggro and leash', () => {
     expect(npc.position).toEqual(tile(5, 5));
   });
 
+  it('an npc three tiles wide keeps the player beside its far side', () => {
+    const npc = sim.addNpc({
+      behavior: 'hostile',
+      position: tile(5, 5),
+      width: 3 * TILE_SIZE,
+      height: 3 * TILE_SIZE,
+    });
+    const tank = sim.addPlayer({ name: 'Tank', position: tile(7, 8) });
+    const archer = sim.addPlayer({ name: 'Archer', position: tile(10, 6) });
+
+    resolveDamage(npc, 1, { attacker: tank });
+    resolveDamage(npc, 1, { attacker: archer });
+
+    expect(getOrInitNpcAi(npc).aggroPlayerId).toBe(tank.id);
+  });
+
   it('turns on the next hitter once its target is out of reach', () => {
     const npc = sim.addNpc({ behavior: 'hostile', position: tile(5, 5) });
     const tank = sim.addPlayer({ name: 'Tank', position: tile(4, 5) });
