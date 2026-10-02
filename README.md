@@ -25,8 +25,10 @@ signs `localhost` itself. On a server, point a domain at it, add
 again; Caddy fetches a real certificate.
 
 `new-game` writes a small playable game into `game/`: a map, a few monsters and
-items, a `game.json` with the name the login screen shows, and placeholder art
-drawn in code. The folder is yours to edit on the host - scripts hot-reload,
+items, a `game.json` with the name the login screen shows and every official
+module switched off, and placeholder art drawn in code. Add `--isometric` after
+the name for a map drawn in 2:1 diamonds; the map editor then starts new maps
+the same way. The folder is yours to edit on the host - scripts hot-reload,
 the rest applies on `docker compose restart app` - and the world (maps,
 players, items) lives in MongoDB. Upgrading the engine is changing the version on the `image:` lines of
 `compose.yml` and `docker compose up -d`; `game/` is never touched.
@@ -50,7 +52,7 @@ To work on the engine itself, clone it and run from source:
 ```bash
 npm install
 npm run db:up                        # MongoDB only, in Docker
-npm run new-game -- games/my-game    # named after the folder, or pass "A Name"
+npm run new-game -- games/my-game    # named after the folder, or pass "A Name"; --isometric
 GAME_DIR=games/my-game npm run dev   # server (8080) + client dev server with HMR
 ```
 

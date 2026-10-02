@@ -13,6 +13,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
+import { parseArgs } from 'node:util';
 import { deflateSync } from 'node:zlib';
 import {
   ITEM_SIZE,
@@ -20,7 +21,11 @@ import {
   SPRITE_WIDTH,
   TILE_SIZE,
 } from '../../shared/constants.js';
-import { Direction, type Tile } from '../../shared/types.js';
+import {
+  Direction,
+  type MapOrientation,
+  type Tile,
+} from '../../shared/types.js';
 
 // --- PNG, from the standard library ----------------------------------------
 
@@ -595,7 +600,7 @@ const NPC_SPAWNS: [string, number, number][] = [
   ['villager', 12, 4],
 ];
 
-export function buildMap() {
+export function buildMap(orientation: MapOrientation = 'orthogonal') {
   const r = seeded(7);
   const tiles: Tile[][] = [];
   for (let row = 0; row < MAP_ROWS; row++) {
@@ -607,7 +612,11 @@ export function buildMap() {
       const onPath = row === 11 || (col === RESPAWN.col && row < 11);
       line.push(
         edge
-          ? { tileIndex: TILE.wall, blocked: true }
+          ? // Ground is sheared flat on an isometric map, where the wall
+            // would read as paving; a tree stands up off its cell.
+            orientation === 'isometric'
+            ? { tileIndex: TILE.grass, maskIndex: TILE.tree, blocked: true }
+            : { tileIndex: TILE.wall, blocked: true }
           : pond <= 1
             ? { tileIndex: TILE.water, blocked: true }
             : pond <= 1.6
@@ -640,7 +649,7 @@ export function buildMap() {
     else if (roll < 0.7) tile.maskIndex = TILE.bush;
     else tile.maskIndex = TILE.flowers;
   }
-  return { id: '1', name: 'Meadow', type: 'normal', tiles };
+  return { id: '1', name: 'Meadow', type: 'normal', orientation, tiles };
 }
 
 export const ITEMS = [
@@ -747,17 +756,33 @@ const titleCase = (folder: string) =>
     .trim()
     .slice(0, 40);
 
+// Every official module, switched off: the game starts as the engine alone,
+// and its game.json lists what there is to turn on. Read from the engine's
+// modules/ as the loader finds it, so a module added later is listed too.
+function modulesOff(): Record<string, { enabled: false }> {
+  const dir = process.env.MODULES_PATH ?? 'modules';
+  if (!fs.existsSync(dir)) return {};
+  return Object.fromEntries(
+    fs
+      .readdirSync(dir)
+      .filter((id) => fs.existsSync(path.join(dir, id, 'module.json')))
+      .map((id) => [id, { enabled: false }]),
+  );
+}
+
 export function writeGame(
   dir: string,
   name = titleCase(path.basename(dir)) || 'New Game',
+  orientation: MapOrientation = 'orthogonal',
 ): void {
   const json = (value: unknown) => `${JSON.stringify(value, null, 2)}\n`;
   const files: Record<string, string | Buffer> = {
     'game.json': json({
       brand: { name },
       world: { startMapId: '1', respawnTile: RESPAWN },
+      modules: modulesOff(),
     }),
-    'content/maps.json': `${JSON.stringify([buildMap()])}\n`,
+    'content/maps.json': `${JSON.stringify([buildMap(orientation)])}\n`,
     'content/npcs.json': json(NPCS),
     'content/items.json': json(ITEMS),
     'assets/tiles.png': encodePng(drawTiles()),
@@ -775,9 +800,15 @@ export function writeGame(
 }
 
 function main(): void {
-  const arg = process.argv[2];
+  const { values, positionals } = parseArgs({
+    allowPositionals: true,
+    options: { isometric: { type: 'boolean' } },
+  });
+  const [arg, name] = positionals;
   if (!arg) {
-    console.error('Usage: npm run new-game -- <folder> ["Game Name"]');
+    console.error(
+      'Usage: npm run new-game -- <folder> ["Game Name"] [--isometric]',
+    );
     process.exit(1);
   }
   const dir = path.resolve(arg);
@@ -785,7 +816,7 @@ function main(): void {
     console.error(`${arg} already has files in it; pick a new folder.`);
     process.exit(1);
   }
-  writeGame(dir, process.argv[3]);
+  writeGame(dir, name, values.isometric ? 'isometric' : 'orthogonal');
   console.log(
     `Created ${arg}: one map, four kinds of npc, five items, and placeholder art to paint over.\n` +
       `Run the engine with GAME_DIR pointing at it; its name and logo are brand in game.json.\n` +

@@ -50,56 +50,59 @@ describe('encodePng', () => {
   });
 });
 
-describe('the generated content', () => {
-  const map = buildMap();
-  const tiles = drawTiles();
-  const tileCells = (tiles.width / TILE_SIZE) * (tiles.height / TILE_SIZE);
-  const characters = drawSprites().width / (4 * SPRITE_WIDTH);
-  const itemCells = drawItems().width / ITEM_SIZE;
+describe.each(['orthogonal', 'isometric'] as const)(
+  'the generated %s content',
+  (orientation) => {
+    const map = buildMap(orientation);
+    const tiles = drawTiles();
+    const tileCells = (tiles.width / TILE_SIZE) * (tiles.height / TILE_SIZE);
+    const characters = drawSprites().width / (4 * SPRITE_WIDTH);
+    const itemCells = drawItems().width / ITEM_SIZE;
 
-  it('only points at cells the sheets have', () => {
-    for (const tile of map.tiles.flat()) {
-      expect(tile.tileIndex).toBeLessThan(tileCells);
-      expect(tile.maskIndex ?? 0).toBeLessThan(tileCells);
-    }
-    for (const npc of NPCS) expect(npc.sprite).toBeLessThan(characters);
-    for (const item of ITEMS) expect(item.sprite).toBeLessThan(itemCells);
-  });
+    it('only points at cells the sheets have', () => {
+      for (const tile of map.tiles.flat()) {
+        expect(tile.tileIndex).toBeLessThan(tileCells);
+        expect(tile.maskIndex ?? 0).toBeLessThan(tileCells);
+      }
+      for (const npc of NPCS) expect(npc.sprite).toBeLessThan(characters);
+      for (const item of ITEMS) expect(item.sprite).toBeLessThan(itemCells);
+    });
 
-  it('only refers to npcs and items it defines', () => {
-    const npcIds = new Set(NPCS.map((n) => n.id));
-    const itemIds = new Set(ITEMS.map((i) => i.id));
-    for (const tile of map.tiles.flat())
-      if (tile.npcSpawn) expect(npcIds).toContain(tile.npcSpawn);
-    for (const drop of NPCS.flatMap((n) => n.itemsToDrop ?? []))
-      expect(itemIds).toContain(drop.itemId);
-  });
+    it('only refers to npcs and items it defines', () => {
+      const npcIds = new Set(NPCS.map((n) => n.id));
+      const itemIds = new Set(ITEMS.map((i) => i.id));
+      for (const tile of map.tiles.flat())
+        if (tile.npcSpawn) expect(npcIds).toContain(tile.npcSpawn);
+      for (const drop of NPCS.flatMap((n) => n.itemsToDrop ?? []))
+        expect(itemIds).toContain(drop.itemId);
+    });
 
-  // Props are scattered by a seeded roll, so a change to the seed or the
-  // layout could wall a spawn in without anyone looking at the map.
-  it('lets a player walk from the respawn point to every npc', () => {
-    const seen = new Set<string>();
-    const queue = [[RESPAWN.col, RESPAWN.row]];
-    while (queue.length) {
-      const [col, row] = queue.pop()!;
-      const key = `${col},${row}`;
-      const tile = map.tiles[row!]?.[col!];
-      if (!tile || tile.blocked || seen.has(key)) continue;
-      seen.add(key);
-      queue.push(
-        [col! + 1, row!],
-        [col! - 1, row!],
-        [col!, row! + 1],
-        [col!, row! - 1],
+    // Props are scattered by a seeded roll, so a change to the seed or the
+    // layout could wall a spawn in without anyone looking at the map.
+    it('lets a player walk from the respawn point to every npc', () => {
+      const seen = new Set<string>();
+      const queue = [[RESPAWN.col, RESPAWN.row]];
+      while (queue.length) {
+        const [col, row] = queue.pop()!;
+        const key = `${col},${row}`;
+        const tile = map.tiles[row!]?.[col!];
+        if (!tile || tile.blocked || seen.has(key)) continue;
+        seen.add(key);
+        queue.push(
+          [col! + 1, row!],
+          [col! - 1, row!],
+          [col!, row! + 1],
+          [col!, row! - 1],
+        );
+      }
+      map.tiles.forEach((line, row) =>
+        line.forEach((tile, col) => {
+          if (tile.npcSpawn) expect(seen).toContain(`${col},${row}`);
+        }),
       );
-    }
-    map.tiles.forEach((line, row) =>
-      line.forEach((tile, col) => {
-        if (tile.npcSpawn) expect(seen).toContain(`${col},${row}`);
-      }),
-    );
-  });
-});
+    });
+  },
+);
 
 describe('writeGame', () => {
   let dir: string | undefined;
@@ -127,9 +130,27 @@ describe('writeGame', () => {
       );
   });
 
+  it('switches every official module off', () => {
+    dir = fs.mkdtempSync(path.join(os.tmpdir(), 'new-game-'));
+    writeGame(dir);
+    const { modules } = loadGameConfig(dir);
+    expect(Object.keys(modules)).toContain('quest');
+    for (const entry of Object.values(modules))
+      expect(entry.enabled).toBe(false);
+  });
+
   it('takes the name the login screen shows, when given one', () => {
     dir = fs.mkdtempSync(path.join(os.tmpdir(), 'new-game-'));
     writeGame(dir, 'Meadow Quest');
     expect(loadGameConfig(dir).brand.name).toBe('Meadow Quest');
+  });
+
+  it('draws the map isometric when asked', () => {
+    dir = fs.mkdtempSync(path.join(os.tmpdir(), 'new-game-'));
+    writeGame(dir, undefined, 'isometric');
+    const [map] = JSON.parse(
+      fs.readFileSync(path.join(dir, 'content', 'maps.json'), 'utf-8'),
+    );
+    expect(map.orientation).toBe('isometric');
   });
 });

@@ -59,6 +59,15 @@ const defaultValues: MapFormValues = {
   borderRight: emptyBorder,
 };
 
+// A new map takes the orientation most of the game's maps have.
+const newMapValues = (maps: MapStateClient[]): MapFormValues => {
+  const isometric = maps.filter((m) => m.orientation === 'isometric').length;
+  return {
+    ...defaultValues,
+    orientation: isometric * 2 > maps.length ? 'isometric' : 'orthogonal',
+  };
+};
+
 function warpToForm(w?: Warp): BorderLinkForm {
   if (!w) return emptyBorder;
   return {
@@ -101,7 +110,7 @@ export const MapEditor: React.FC<MapEditorProps> = ({
     register,
     reset: resetForm,
     watch,
-  } = useForm<MapFormValues>({ defaultValues });
+  } = useForm<MapFormValues>({ defaultValues: newMapValues(maps) });
 
   const name = watch('name');
 
@@ -129,7 +138,7 @@ export const MapEditor: React.FC<MapEditorProps> = ({
   const reset = async () => {
     if (!(await requestDiscard())) return;
     setSelectedId('');
-    resetForm(defaultValues);
+    resetForm(newMapValues(maps));
   };
 
   const buildWarp = (b: BorderLinkForm): Warp | undefined =>
@@ -173,7 +182,7 @@ export const MapEditor: React.FC<MapEditorProps> = ({
     refreshData();
     setSelectedId('');
     setShowResize(false);
-    resetForm(defaultValues);
+    resetForm(newMapValues(maps));
   };
 
   const handleResize = async () => {
