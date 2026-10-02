@@ -604,6 +604,19 @@ declare function getMapTile(
   row: number,
 ): { blocked: boolean; tileIndex: number; maskIndex?: number } | null;
 
+/**
+ * Changes the tile at (col, row) at runtime: its ground picture
+ * (`tileIndex`), whether it blocks, or both. Never saved, and each instance
+ * copy keeps its own. Fires `mapChange` when something changed; false when
+ * (col, row) is off the map or `tileIndex` is not an integer.
+ */
+declare function setMapTile(
+  mapId: string,
+  col: number,
+  row: number,
+  change: { tileIndex?: number; blocked?: boolean },
+): boolean;
+
 type PvpMorale = 'safe' | 'normal' | 'no-penalty';
 
 /** A map's PvP morale (e.g. a PK module reads this on playerDeath). */

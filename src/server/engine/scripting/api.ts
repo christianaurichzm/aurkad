@@ -16,7 +16,10 @@ import {
 import { getMap, items, updatePlayer } from '../../services/world/gameData.js';
 import { handleChatAction } from '../../services/comms/chatService.js';
 import { setIgnored } from '../../services/world/serverState.js';
-import { updatePlayerMap } from '../../services/world/mapService.js';
+import {
+  updatePlayerMap,
+  setMapTile,
+} from '../../services/world/mapService.js';
 import {
   checkDataWrite,
   copyStoredValue,
@@ -309,6 +312,15 @@ export function buildApi(
           }
         : null;
     },
+
+    // Changes what a tile shows and whether it blocks while the server runs,
+    // like a door a script opens. Not saved; see setMapTile in mapService.
+    setMapTile: (
+      mapId: string,
+      col: number,
+      row: number,
+      change: { tileIndex?: number; blocked?: boolean },
+    ): boolean => setMapTile(String(mapId), col, row, change ?? {}),
 
     getMapSize: (mapId: string): { cols: number; rows: number } | undefined => {
       const map = getMap(String(mapId));

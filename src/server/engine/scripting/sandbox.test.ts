@@ -666,6 +666,41 @@ describe('getMapTile', () => {
   });
 });
 
+describe('setMapTile', () => {
+  it('changes what a tile shows and whether it blocks, and says so once', () => {
+    const sim = createFixture(0);
+    const player = sim.addPlayer({ name: 'Alice', position: tile(2, 2) });
+    const changes: string[] = [];
+    on('mapChange', ({ mapId }) => changes.push(mapId));
+
+    const handle = runInSandbox(
+      `
+      on('playerJoin', ({ player }) => {
+        const door = { tileIndex: 77, blocked: true };
+        setPlayerData(player, 'set', setMapTile(player.mapId, 3, 2, door));
+        setPlayerData(player, 'again', setMapTile(player.mapId, 3, 2, door));
+        setPlayerData(player, 'off', setMapTile(player.mapId, -1, 0, door));
+      });
+    `,
+      'set-map-tile.js',
+    );
+
+    emit('playerJoin', { player });
+
+    expect(sim.map.tiles[2]![3]).toMatchObject({
+      tileIndex: 77,
+      blocked: true,
+    });
+    expect(player.data).toMatchObject({ set: true, again: true, off: false });
+    expect(changes).toEqual([sim.mapId]);
+    sim.press('Alice', Key.ArrowRight);
+    sim.step(10);
+    expect(player.position).toEqual(tile(2, 2));
+
+    handle.cleanup();
+  });
+});
+
 describe('player data bag', () => {
   it('setPlayerData writes a value readable by getPlayerData', () => {
     const sim = createFixture(0);

@@ -16,7 +16,7 @@ import { placePlayerOnMap, detachFromMap } from '../../sim/world.js';
 import { emit } from '../../engine/hooks.js';
 import { mapRepository } from '../../persistence/mapRepository.js';
 import { dropQuadtree } from '../../spatial/spatialManager.js';
-import { forgetReplicatedEntity } from '../../net/snapshot.js';
+import { forgetReplicatedEntity, resendChunkAt } from '../../net/snapshot.js';
 import { getNextMapId } from '../dbService.js';
 import { getItemById } from '../economy/inventoryService.js';
 import { getNpcById } from '../npc/index.js';
@@ -57,6 +57,36 @@ export async function createOrUpdateMap(
   await mapRepository.upsert(map.id, map);
 
   return map.id;
+}
+
+/**
+ * Changes one tile of a live map: the picture on its ground layer, whether
+ * it blocks, or both. Runtime only: a restart, an editor save or a content
+ * import puts back what was painted, and each copy of an instanced map
+ * keeps its own. Everyone on the map gets the tile's chunk again and
+ * `mapChange` fires; changing a tile to what it is does neither. False
+ * when (col, row) is not on the map or the index is not one.
+ */
+export function setMapTile(
+  mapId: string,
+  col: number,
+  row: number,
+  change: { tileIndex?: number; blocked?: boolean },
+): boolean {
+  const r = Math.floor(row);
+  const c = Math.floor(col);
+  const tile = getMap(mapId)?.tiles[r]?.[c];
+  if (!tile) return false;
+  const tileIndex = change.tileIndex ?? tile.tileIndex;
+  if (!Number.isInteger(tileIndex)) return false;
+  const blocked = !!(change.blocked ?? tile.blocked);
+  if (tileIndex === tile.tileIndex && blocked === !!tile.blocked) return true;
+
+  tile.tileIndex = tileIndex;
+  tile.blocked = blocked;
+  resendChunkAt(mapId, c, r);
+  emit('mapChange', { mapId });
+  return true;
 }
 
 /**

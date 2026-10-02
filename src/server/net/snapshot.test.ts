@@ -15,6 +15,7 @@ import {
   deleteItem,
 } from '../services/economy/inventoryService.js';
 import { items } from '../services/world/gameData.js';
+import { setMapTile } from '../services/world/mapService.js';
 import ItemModel from '../model/Item.js';
 import DeliveryModel from '../model/Delivery.js';
 import type { Item, PlayerCold, PlayerServer } from '../../shared/types.js';
@@ -78,6 +79,30 @@ describe('health changes', () => {
       .map((c) => JSON.parse(String(c[0])).payload.healthChanges)
       .filter(Boolean);
     expect(changes).toEqual([[{ id: alice.id, ...tile(1, 1), delta: -5 }]]);
+  });
+});
+
+describe('a tile changed on a live map', () => {
+  it('goes out as its chunk alone, once, not as the whole map again', () => {
+    const sim = createFixture(0);
+    sim.addPlayer({ name: 'Alice', position: tile(1, 1) });
+    rebuildQuadtree(sim.mapId, sim.map);
+    const ws = fakeWs(0);
+    playersWsMap.set('Alice', ws as unknown as WebSocket);
+    broadcastGameState();
+    broadcastGameState();
+    ws.send.mockClear();
+
+    setMapTile(sim.mapId, 3, 2, { tileIndex: 77, blocked: true });
+    broadcastGameState();
+    broadcastGameState();
+
+    const frames = ws.send.mock.calls.map((c) => JSON.parse(String(c[0])));
+    expect(frames.some((f) => f.type === 'mapMeta')).toBe(false);
+    const chunks = frames.filter((f) => f.type === 'mapChunk');
+    expect(chunks).toHaveLength(1);
+    expect(chunks[0].payload).toMatchObject({ chunkX: 0, chunkY: 0 });
+    expect(chunks[0].payload.tiles[2][3]).toEqual({ tileIndex: 77 });
   });
 });
 

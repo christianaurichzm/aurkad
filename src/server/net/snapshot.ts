@@ -177,6 +177,23 @@ export function forgetReplicatedEntity(id: string) {
   forgetEntity(id);
 }
 
+const chunkKey = (cx: number, cy: number) => `${cx}:${cy}`;
+
+/**
+ * Has every viewer on `mapId` receive the chunk holding (col, row) again, for
+ * one tile changed while the map is live. Bumping the map's revision would do
+ * it too, by resending the whole map to everyone on it.
+ */
+export function resendChunkAt(mapId: string, col: number, row: number) {
+  const key = chunkKey(
+    Math.floor(col / CHUNK_SIZE),
+    Math.floor(row / CHUNK_SIZE),
+  );
+  for (const state of playerChunkState.values()) {
+    if (state.mapId === mapId) state.sent.delete(key);
+  }
+}
+
 function sendMapMetaIfNeeded(
   player: PlayerServer,
   map: MapStateServer,
@@ -227,7 +244,7 @@ function sendViewportChunks(
   let sent = 0;
   for (let cy = rowFrom; cy <= rowTo && sent < MAX_CHUNKS_PER_TICK; cy++) {
     for (let cx = colFrom; cx <= colTo && sent < MAX_CHUNKS_PER_TICK; cx++) {
-      const key = `${cx}:${cy}`;
+      const key = chunkKey(cx, cy);
       if (state.sent.has(key)) continue;
       const chunkData = JSON.stringify({
         v: PROTOCOL_VERSION,
