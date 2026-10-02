@@ -678,6 +678,7 @@ export const pt: Record<keyof typeof en, string> = {
     'Perdeu o telefone e os códigos? Outro admin roda: twofactor <nome> off',
 
   'app.poweredBy': 'Feito com Aurkad {version}',
+  'app.serverStarting': 'Aguardando o servidor…',
   'actions.tools': 'Ferramentas de criação',
   'common.select': 'Selecionar…',
   'common.close': 'Fechar',

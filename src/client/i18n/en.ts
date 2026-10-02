@@ -679,6 +679,7 @@ export const en = {
     'Lost the phone and the codes? Another admin runs: twofactor <name> off',
 
   'app.poweredBy': 'Powered by Aurkad {version}',
+  'app.serverStarting': 'Waiting for the server…',
   'actions.tools': 'Creator tools',
   'common.select': 'Select…',
   'common.close': 'Close',

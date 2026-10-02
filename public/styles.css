@@ -1011,6 +1011,15 @@ body {
   width: auto;
   height: 24px;
 }
+/* What the page shows until the server behind it answers (main.tsx). */
+.server-wait {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  font-size: 13px;
+  color: var(--color-text-muted);
+}
 .engine-credit {
   margin-top: 20px;
   font-size: 11px;
