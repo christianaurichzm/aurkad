@@ -24,7 +24,8 @@ import {
 import { getRuntimeState } from '../services/world/gameData.js';
 import { handleItemAction } from '../services/economy/inventoryService.js';
 import { handleCustomAction } from '../services/comms/customEventService.js';
-import { npcMoveTicks, updateNpcs } from '../services/npc/index.js';
+import { updateNpcs } from '../services/npc/index.js';
+import { npcMoveTicks } from '../services/npc/types.js';
 import { gameConfig } from '../gameConfig.js';
 import { playersWsMap } from './connections.js';
 import { resetPlayerNetState } from './snapshot.js';

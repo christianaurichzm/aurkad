@@ -10,6 +10,8 @@ import type {
 } from '../../shared/types.js';
 import { mapTileWidth, mapTileHeight } from '../../shared/mapGeometry.js';
 import { CHUNK_SIZE } from '../../shared/constants.js';
+import { config } from '../config.js';
+import { npcMoveTicks } from '../services/npc/types.js';
 
 // Server -> client shaping for the live wire format: entity public state,
 // map metadata, and tile chunks.
@@ -93,12 +95,15 @@ export function toNpcPublic(npc: RuntimeNpc): RuntimeNpc {
     sight: _sight,
     pathDepth: _pathDepth,
     leash: _leash,
-    moveIntervalMs: _moveIntervalMs,
     respawnMs: _respawnMs,
     ...rest
   } = npc;
   return {
     ...rest,
+    // The time a step actually takes, default and tick rounding applied: the
+    // client slides a step over it, so an npc walks at its own pace instead of
+    // covering the tile at a player's and standing until the next step.
+    moveIntervalMs: npcMoveTicks(npc) * (1000 / config.gameLoop.tickRate),
     position: { ...npc.position },
     targetPosition: npc.targetPosition ? { ...npc.targetPosition } : undefined,
   };

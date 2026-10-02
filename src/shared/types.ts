@@ -252,7 +252,8 @@ export interface PersistentNpc extends CharacterBase {
   /**
    * Milliseconds between this npc's steps, its speed. Absent means the
    * game-wide `combat.npcUpdateIntervalMs` (1250 by default). Rounded up to a
-   * whole tick, so 50 is the floor at 20 Hz.
+   * whole tick, so 50 is the floor at 20 Hz. The client receives that result,
+   * never absent: the time it slides one step over.
    */
   moveIntervalMs?: number;
   /**

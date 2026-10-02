@@ -8,7 +8,8 @@ import {
   isPlayerInAttackRange,
   stepNpcToward,
 } from './behaviors.js';
-import { npcMoveTicks, respawnNpc } from './index.js';
+import { respawnNpc } from './index.js';
+import { npcMoveTicks } from './types.js';
 import { gameConfig } from '../../gameConfig.js';
 import { resolveDamage } from '../combat/index.js';
 import { TILE_SIZE } from '../../../shared/constants.js';

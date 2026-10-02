@@ -31,10 +31,10 @@ export const PROTOCOL_GOLDEN_STEPS: ProtocolGoldenStep[] = [
     // cold stats, and every visible entity in full.
     label: 'first tick',
     messages: [
-      '{"v":3,"type":"mapMeta","payload":{"id":"map1","name":"Test","type":"normal","cols":2,"rows":2,"revision":0}}',
-      '{"v":3,"type":"mapChunk","payload":{"mapId":"map1","revision":0,"chunkX":0,"chunkY":0,"tiles":[[{"tileIndex":0},{"tileIndex":0}],[{"tileIndex":0},{"tileIndex":0}]]}}',
-      '{"v":3,"type":"playerStats","payload":{"id":"alice","name":"Alice","sprite":0,"width":64,"height":64,"maxHealth":100,"attack":10,"attackRange":64,"level":1,"experience":0,"experienceToNextLevel":100,"inventory":[{"item":{"id":1,"name":"Potion","sprite":4,"type":"consumable"},"quantity":3}],"inventoryCapacity":10,"equipped":{},"access":0,"strength":0,"defense":0,"agility":0,"vitality":0,"unspentPoints":0,"speed":1,"mapId":"map1","kind":"player"}}',
-      '{"v":3,"type":"worldUpdate","payload":{"entities":{"bob":{"id":"bob","name":"Bob","sprite":0,"width":64,"height":64,"maxHealth":100,"health":100,"level":1,"access":0,"position":{"x":64,"y":0},"direction":0,"action":"Idle","kind":"player"},"npc1":{"id":"npc1","name":"Goblin","sprite":0,"width":64,"height":64,"maxHealth":30,"attack":5,"attackRange":64,"behavior":"aggressive","mapId":"map1","position":{"x":64,"y":64},"direction":0,"action":"Idle","health":30,"kind":"npc"}},"leave":[],"self":{"id":"alice","position":{"x":0,"y":0},"direction":0,"action":"Idle","health":100},"droppedItems":[]}}',
+      '{"v":4,"type":"mapMeta","payload":{"id":"map1","name":"Test","type":"normal","cols":2,"rows":2,"revision":0}}',
+      '{"v":4,"type":"mapChunk","payload":{"mapId":"map1","revision":0,"chunkX":0,"chunkY":0,"tiles":[[{"tileIndex":0},{"tileIndex":0}],[{"tileIndex":0},{"tileIndex":0}]]}}',
+      '{"v":4,"type":"playerStats","payload":{"id":"alice","name":"Alice","sprite":0,"width":64,"height":64,"maxHealth":100,"attack":10,"attackRange":64,"level":1,"experience":0,"experienceToNextLevel":100,"inventory":[{"item":{"id":1,"name":"Potion","sprite":4,"type":"consumable"},"quantity":3}],"inventoryCapacity":10,"equipped":{},"access":0,"strength":0,"defense":0,"agility":0,"vitality":0,"unspentPoints":0,"speed":1,"mapId":"map1","kind":"player"}}',
+      '{"v":4,"type":"worldUpdate","payload":{"entities":{"bob":{"id":"bob","name":"Bob","sprite":0,"width":64,"height":64,"maxHealth":100,"health":100,"level":1,"access":0,"position":{"x":64,"y":0},"direction":0,"action":"Idle","kind":"player"},"npc1":{"id":"npc1","name":"Goblin","sprite":0,"width":64,"height":64,"maxHealth":30,"attack":5,"attackRange":64,"behavior":"aggressive","mapId":"map1","position":{"x":64,"y":64},"direction":0,"action":"Idle","health":30,"kind":"npc","moveIntervalMs":1250}},"leave":[],"self":{"id":"alice","position":{"x":0,"y":0},"direction":0,"action":"Idle","health":100},"droppedItems":[]}}',
     ],
   },
   {
@@ -42,7 +42,7 @@ export const PROTOCOL_GOLDEN_STEPS: ProtocolGoldenStep[] = [
     // (no cold field changed), and no entity fragments.
     label: 'viewer moves',
     messages: [
-      '{"v":3,"type":"worldUpdate","payload":{"entities":{},"leave":[],"self":{"id":"alice","position":{"x":0,"y":64},"direction":0,"action":"Walk","health":100}}}',
+      '{"v":4,"type":"worldUpdate","payload":{"entities":{},"leave":[],"self":{"id":"alice","position":{"x":0,"y":64},"direction":0,"action":"Walk","health":100}}}',
     ],
   },
   {
@@ -56,7 +56,7 @@ export const PROTOCOL_GOLDEN_STEPS: ProtocolGoldenStep[] = [
     // marker: the client merges because it already tracks the id.
     label: 'bob gains a targetPosition',
     messages: [
-      '{"v":3,"type":"worldUpdate","payload":{"entities":{"bob":{"targetPosition":{"x":64,"y":64}}},"leave":[],"self":{"id":"alice","position":{"x":0,"y":64},"direction":0,"action":"Walk","health":100}}}',
+      '{"v":4,"type":"worldUpdate","payload":{"entities":{"bob":{"targetPosition":{"x":64,"y":64}}},"leave":[],"self":{"id":"alice","position":{"x":0,"y":64},"direction":0,"action":"Walk","health":100}}}',
     ],
   },
   {
@@ -65,7 +65,7 @@ export const PROTOCOL_GOLDEN_STEPS: ProtocolGoldenStep[] = [
     // a stale targetPosition forever. This encoding is load-bearing.
     label: 'bob clears its targetPosition',
     messages: [
-      '{"v":3,"type":"worldUpdate","payload":{"entities":{"bob":{"position":{"x":64,"y":64},"targetPosition":null}},"leave":[],"self":{"id":"alice","position":{"x":0,"y":64},"direction":0,"action":"Walk","health":100}}}',
+      '{"v":4,"type":"worldUpdate","payload":{"entities":{"bob":{"position":{"x":64,"y":64},"targetPosition":null}},"leave":[],"self":{"id":"alice","position":{"x":0,"y":64},"direction":0,"action":"Walk","health":100}}}',
     ],
   },
   {
@@ -73,14 +73,14 @@ export const PROTOCOL_GOLDEN_STEPS: ProtocolGoldenStep[] = [
     // while the health itself rides the entity diff as usual.
     label: 'the goblin is hit',
     messages: [
-      '{"v":3,"type":"worldUpdate","payload":{"entities":{"npc1":{"health":23}},"leave":[],"self":{"id":"alice","position":{"x":0,"y":64},"direction":0,"action":"Walk","health":100},"healthChanges":[{"id":"npc1","x":64,"y":64,"delta":-7}]}}',
+      '{"v":4,"type":"worldUpdate","payload":{"entities":{"npc1":{"health":23}},"leave":[],"self":{"id":"alice","position":{"x":0,"y":64},"direction":0,"action":"Walk","health":100},"healthChanges":[{"id":"npc1","x":64,"y":64,"delta":-7}]}}',
     ],
   },
   {
     // Departures are ids in `leave`, players and npcs in one flat list.
     label: 'bob and the npc leave',
     messages: [
-      '{"v":3,"type":"worldUpdate","payload":{"entities":{},"leave":["bob","npc1"],"self":{"id":"alice","position":{"x":0,"y":64},"direction":0,"action":"Walk","health":100}}}',
+      '{"v":4,"type":"worldUpdate","payload":{"entities":{},"leave":["bob","npc1"],"self":{"id":"alice","position":{"x":0,"y":64},"direction":0,"action":"Walk","health":100}}}',
     ],
   },
 ];

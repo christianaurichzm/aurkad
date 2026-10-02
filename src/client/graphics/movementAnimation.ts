@@ -71,7 +71,15 @@ export function onServerPositionUpdate(
   }
 
   const isRunning = playerState?.action === CharacterAction.Run;
-  const duration = isRunning ? RUN_MOVEMENT_DURATION : MOVEMENT_DURATION;
+  // An npc's slide lasts its step interval, a hair short as a player's is,
+  // so slides never fall behind arriving steps.
+  const npcStep = gameState?.npcs?.[playerId]?.moveIntervalMs;
+  const duration =
+    npcStep !== undefined
+      ? npcStep - 2
+      : isRunning
+        ? RUN_MOVEMENT_DURATION
+        : MOVEMENT_DURATION;
 
   let startTime: number;
   let eased: boolean;

@@ -1,4 +1,10 @@
-import type { NpcBehavior, Position } from '../../../shared/types.js';
+import type {
+  NpcBehavior,
+  Position,
+  RuntimeNpc,
+} from '../../../shared/types.js';
+import { msToTicks } from '../../sim/clock.js';
+import { gameConfig } from '../../gameConfig.js';
 
 export type NpcAiStateName = 'idle' | 'chase' | 'wander' | 'attack' | 'return';
 
@@ -24,3 +30,16 @@ export type NpcAiState = {
 /** Behaviors that acquire and chase a target. The rest stand still. */
 export const isHunter = (behavior: NpcBehavior): boolean =>
   behavior === 'aggressive' || behavior === 'hostile';
+
+/**
+ * Ticks between this npc's steps: how fast it is.
+ *
+ * Content sets it in milliseconds and the engine rounds up to a whole tick, so
+ * the floor is one tick (50 ms at 20 Hz). Absent means the game-wide interval.
+ */
+export function npcMoveTicks(npc: RuntimeNpc): number {
+  return Math.max(
+    1,
+    msToTicks(npc.moveIntervalMs ?? gameConfig.combat.npcUpdateIntervalMs),
+  );
+}

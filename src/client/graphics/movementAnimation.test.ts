@@ -53,6 +53,24 @@ describe('movement interpolation', () => {
     expect(state.moving).toBe(false);
   });
 
+  it('slides an npc over its own step time, not a player step', () => {
+    getGameStateMock.mockReturnValue({
+      players: {},
+      npcs: { skeleton: { moveIntervalMs: 1250 } },
+    });
+    onServerPositionUpdate('skeleton', { x: 0, y: 0 }, { x: TILE_SIZE, y: 0 });
+
+    now = 1000 + D;
+    expect(getAnimatedState('skeleton', { x: TILE_SIZE, y: 0 }).moving).toBe(
+      true,
+    );
+    now = 1000 + 1250;
+    expect(pos('skeleton', { x: TILE_SIZE, y: 0 })).toEqual({
+      x: TILE_SIZE,
+      y: 0,
+    });
+  });
+
   it('drops a queued step when a teleport lands mid-slide', () => {
     onServerPositionUpdate('warped2', { x: 0, y: 0 }, { x: TILE_SIZE, y: 0 });
     now = 1000 + D / 2;
