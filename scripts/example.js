@@ -316,6 +316,45 @@ command(
 //   reply(entries.map(([name, n], i) => `${i + 1}. ${name}: ${n}`).join(' | '));
 // });
 
+// ── Anti-farming: make a bot not worth running, and point staff at it ──────
+//
+// The server already refuses what a bot would do faster than a person: speed,
+// range and cooldowns are authoritative. What it cannot see is a client that
+// plays without tiring for hours. This does not try to tell bot from human:
+// past a kill count per hour, kill XP shrinks, and staff hears about it once.
+// Loot still drops; gate it with a lootCondition if that is what gets farmed.
+// Counts live in memory over a fixed window, so a reload or the top of the
+// hour starts everyone at zero.
+//
+// const KILLS_PER_HOUR = 300; // tune to how fast your respawns allow
+// const ALERT_WEBHOOK = 'https://discord.com/api/webhooks/...';
+// const kills = new Map(); // player name -> kills this hour
+// const flagged = new Set(); // already reported this hour
+//
+// every(msToTicks(60 * 60 * 1000), () => {
+//   kills.clear();
+//   flagged.clear();
+// });
+//
+// on('npcDeath', ({ killer }) => {
+//   const n = (kills.get(killer.name) ?? 0) + 1;
+//   kills.set(killer.name, n);
+//   if (n < KILLS_PER_HOUR || flagged.has(killer.name)) return;
+//   flagged.add(killer.name);
+//   httpRequest(ALERT_WEBHOOK, {
+//     json: { content: `${killer.name}: ${n} kills this hour on ${killer.mapId}` },
+//   });
+// });
+//
+// npcDeath fires before the kill's XP is awarded, so the count already includes
+// this kill. Each kill past the cap pays less, down to a floor of 10%.
+//
+// on('beforeXpGain', (ctx) => {
+//   if (ctx.source !== 'kill') return;
+//   const over = (kills.get(ctx.player.name) ?? 0) - KILLS_PER_HOUR;
+//   if (over > 0) ctx.amount *= Math.max(0.1, 1 - over / KILLS_PER_HOUR);
+// });
+
 // ── Milestone item reward on level up ────────────────────────────────────────
 //
 // on('playerLevelUp', ({ player, level }) => {
@@ -490,7 +529,7 @@ command(
 //   chatMessage                    { player, scope, message }
 //   playerAttack                   { player, handled }     - set handled = true to own the attack
 //   beforeDamage                   { attacker?, target, damage: { value } }  - mutate damage.value
-//   beforeXpGain                   { player, amount }      - mutate amount
+//   beforeXpGain                   { player, amount, source }  - mutate amount; source 'kill' | 'script' | ...
 //   customAction                   { player, channel, payload }  - from client sendServerEvent
 //   tick                           { tick }                - 20/s; throttle with tick % n
 //
