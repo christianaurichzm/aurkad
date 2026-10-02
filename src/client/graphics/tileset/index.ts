@@ -938,7 +938,7 @@ const visibleRange = <T>(
   tiles: T[][],
   width: number,
   height: number,
-  reach = getMapOrientation() === 'isometric' ? isometricReach : TILE_SIZE,
+  reach = isometricReach,
 ) => {
   const cam = getCamera();
   const bounds = viewBounds(
@@ -995,6 +995,10 @@ const drawGroundTile = (
   if (getMapOrientation() === 'isometric')
     ctx.transform(ISO_SCALE, ISO_SCALE / 2, -ISO_SCALE, ISO_SCALE / 2, 0, 0);
   if (clear) ctx.clearRect(0, 0, TILE_SIZE, TILE_SIZE);
+  // Smoothed at a scale that splits a tile's edge across device pixels, edges
+  // show as a dark grid. Each tile bleeds a device pixel into its right and
+  // lower neighbours, which cover it.
+  const bleed = ctx.imageSmoothingEnabled ? 1 / worldScale : 0;
   ctx.drawImage(
     tileset,
     (tileIndex % tilesPerRow) * TILE_SIZE,
@@ -1003,8 +1007,8 @@ const drawGroundTile = (
     TILE_SIZE,
     0,
     0,
-    TILE_SIZE,
-    TILE_SIZE,
+    TILE_SIZE + bleed,
+    TILE_SIZE + bleed,
   );
   ctx.restore();
 };
