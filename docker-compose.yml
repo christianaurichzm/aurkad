@@ -1,30 +1,37 @@
 services:
-  # Standalone by default: one node, no extra step. The cost is that MongoDB
-  # only offers transactions on a replica set, so an economic commit that spans
-  # two documents (a trade, or mailing an item) is written one document at a
-  # time and a crash in between can duplicate or lose the item. The server says
-  # which of the two it got on the boot line "[DB] ...".
+  # A replica set of one node: MongoDB only offers transactions on a replica
+  # set, and an economic commit that spans two documents (a trade, or mailing an
+  # item) needs one, or a crash between the two writes duplicates or loses the
+  # item. One node is still one process and one data directory; an existing
+  # standalone volume converts in place on the next `up`.
   #
-  # To close that window, run this single node as a replica set - same data
-  # directory, one init command, no cluster:
-  #
-  #   command: ['--replSet', 'rs0', '--bind_ip_all']
-  #   docker compose exec mongo mongosh --quiet --eval \
-  #     'rs.initiate({_id:"rs0",members:[{_id:0,host:"127.0.0.1:27017"}]})'
-  #   MONGO_URI: mongodb://mongo:27017/game?replicaSet=rs0
+  # The healthcheck initiates the set the first time and is healthy once the
+  # node is primary. The member is named 127.0.0.1, which is where a server run
+  # on the host (npm run dev) finds it; a container cannot reach it by that
+  # name, so the app below connects with directConnection=true and never asks
+  # the set where its members are. The boot line "[DB] ..." says which of the
+  # two the server got.
   mongo:
     image: mongo:7
     container_name: engine-mongo
     restart: unless-stopped
+    command: ['--replSet', 'rs0', '--bind_ip_all']
     ports:
       - '127.0.0.1:27017:27017'
     volumes:
       - mongo-data:/data/db
     healthcheck:
-      test: ['CMD', 'mongosh', '--quiet', '--eval', "db.adminCommand('ping')"]
+      test:
+        - CMD
+        - mongosh
+        - --quiet
+        - --eval
+        - "try { rs.status() } catch { rs.initiate({ _id: 'rs0', members: [{ _id: 0, host: '127.0.0.1:27017' }] }) }; db.hello().isWritablePrimary || quit(1)"
       interval: 10s
       timeout: 5s
       retries: 5
+      start_period: 20s
+      start_interval: 1s
 
   app:
     build: .
@@ -36,7 +43,7 @@ services:
     environment:
       NODE_ENV: production
       PORT: '8080'
-      MONGO_URI: mongodb://mongo:27017/game
+      MONGO_URI: mongodb://mongo:27017/game?directConnection=true
       SESSION_SECRET: ${SESSION_SECRET:?set SESSION_SECRET in .env}
       BOOTSTRAP_ADMIN_USERNAME: ${BOOTSTRAP_ADMIN_USERNAME:-}
       CORS_ALLOWED_ORIGINS: ${PUBLIC_URL:-https://localhost}
@@ -97,7 +104,7 @@ services:
   #   environment:
   #     NODE_ENV: production
   #     PORT: '8081'
-  #     MONGO_URI: mongodb://mongo:27017/game
+  #     MONGO_URI: mongodb://mongo:27017/game?directConnection=true
   #     SESSION_SECRET: ${SESSION_SECRET:?set SESSION_SECRET in .env}
   #     CORS_ALLOWED_ORIGINS: https://localhost,https://localhost:8444
   #     USE_SECURE_COOKIES: 'true'

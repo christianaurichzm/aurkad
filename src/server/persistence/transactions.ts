@@ -3,11 +3,11 @@ import { logger } from '../logger.js';
 
 /**
  * Multi-document writes, and whether this deployment can do them. MongoDB
- * has transactions only on a replica set or through mongos, and the engine
- * ships a standalone `mongod` in `docker-compose.yml`, the right default for
- * one small server. So this is detected and said at boot: without it, a
- * trade writes two players in turn, and a crash between leaves the item on
- * both sides or neither.
+ * has transactions only on a replica set or through mongos. The compose
+ * files run a one-node replica set, but an operator's Mongo may be
+ * standalone, so this is detected and said at boot: without it, a trade
+ * writes two players in turn, and a crash between leaves the item on both
+ * sides or neither.
  *
  * The probe is the `hello` command, as in the drivers: `setName` means a
  * replica set, `isdbgrid` mongos. A throwaway transaction would write to the

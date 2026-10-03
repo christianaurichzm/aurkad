@@ -169,15 +169,17 @@ The server detects which it is talking to and says so on boot:
 [DB] Standalone MongoDB: no transactions. A trade writes each player separately, ...
 ```
 
-Standalone is a fine default for a small server. To close the window, run the same single node as a replica set - no cluster, no extra host:
+Both compose files run Mongo as a replica set of one node, so a server started with them gets transactions with nothing to set up; a standalone volume from before converts in place on the next `docker compose up`. A Mongo of your own needs the same flag and one init command, with no cluster or extra host:
 
 ```bash
 docker run -d --name engine-mongo -p 127.0.0.1:27017:27017 mongo:7 --replSet rs0 --bind_ip_all
 docker exec engine-mongo mongosh --quiet --eval \
   'rs.initiate({_id:"rs0",members:[{_id:0,host:"127.0.0.1:27017"}]})'
 # then point the server at it
-MONGO_URI='mongodb://127.0.0.1:27017/game?replicaSet=rs0' npm start
+MONGO_URI='mongodb://127.0.0.1:27017/game' npm start
 ```
+
+The member is named after the address the server reaches it on. A server in another container reaches it under another name, so it connects with `?directConnection=true`, as the compose files do.
 
 ## Multi-instance (sharding by map)
 

@@ -93,7 +93,7 @@ async function makePlayer(name: string, capacity = 10): Promise<PlayerServer> {
   return player;
 }
 
-// Standalone MongoDB, which is what `docker-compose.yml` starts: no
+// Standalone MongoDB, an operator's own Mongo that is not a replica set: no
 // transactions, so this is the degraded path. The atomic one is in
 // persistence/transactions.test.ts, against a real replica set.
 describe('sendDelivery without transactions', () => {
