@@ -62,6 +62,7 @@ import { clearDamageContributions } from '../combat/damage.js';
 import { clearPressedKeys } from '../world/movementService.js';
 import { logger } from '../../logger.js';
 import { recordAdminAction } from '../auditService.js';
+import { registerStrings, translate } from '../../engine/i18n.js';
 
 export async function getPlayerById(id: string): Promise<PlayerRecord | null> {
   return playerRepository.findById(id);
@@ -154,6 +155,20 @@ export const createPlayer = async (
   await playerRepository.insert({ ...newPlayer, password });
   return newPlayer;
 };
+
+// Why a login or a returning socket is turned away. The socket has not said
+// its language yet, so only the login reads these in anything but English.
+registerStrings({
+  pt: {
+    'You are banned from this game.': 'Você está banido deste jogo.',
+    'Reason: {reason}': 'Motivo: {reason}',
+    'Until: {until}': 'Até: {until}',
+    'Server is under maintenance. Please try again later.':
+      'O servidor está em manutenção. Tente de novo mais tarde.',
+    'Server is currently restricted to GMs only.':
+      'O servidor está aberto só para GMs no momento.',
+  },
+});
 
 // The access level each player in the world entered with or was given by
 // setAccess. A script holds the live player, so `player.access = 2` there
@@ -725,12 +740,24 @@ export const disconnectPlayer = async (username?: string) => {
  */
 export async function refuseEntry(
   record: PlayerRecord,
+  language?: string,
 ): Promise<{ status: 403 | 503; message: string } | null> {
+  const say = (text: string, params?: Record<string, string>) =>
+    translate({ language }, text, params);
   const ban = await getBan(record.name);
   if (ban && (!ban.until || Date.now() < ban.until)) {
     return {
       status: 403,
-      message: `You are banned from this game.${ban.reason ? ` Reason: ${ban.reason}` : ''}${ban.until ? ` Until: ${new Date(ban.until).toLocaleString()}` : ''}`,
+      message: [
+        say('You are banned from this game.'),
+        ban.reason && say('Reason: {reason}', { reason: ban.reason }),
+        ban.until &&
+          say('Until: {until}', {
+            until: new Date(ban.until).toLocaleString(language),
+          }),
+      ]
+        .filter(Boolean)
+        .join(' '),
     };
   } else if (ban) {
     await unbanPlayer(record.name);
@@ -739,13 +766,13 @@ export async function refuseEntry(
   if (serverState.mode === 'maintenance' && record.access < Access.ADMIN) {
     return {
       status: 503,
-      message: 'Server is under maintenance. Please try again later.',
+      message: say('Server is under maintenance. Please try again later.'),
     };
   }
   if (serverState.mode === 'gm_only' && record.access < Access.MOD) {
     return {
       status: 503,
-      message: 'Server is currently restricted to GMs only.',
+      message: say('Server is currently restricted to GMs only.'),
     };
   }
   return null;

@@ -1,5 +1,5 @@
 import type { HttpRequestOptions } from '../../../../shared/types';
-import { t } from '../../../i18n';
+import { getLanguage, t } from '../../../i18n';
 
 const API_URL = import.meta.env.VITE_APP_API_URL as string | undefined;
 const REST_PROTO = import.meta.env.VITE_REST_PROTOCOL as string | undefined;
@@ -71,6 +71,9 @@ export const httpClient = async <T>(
     method,
     headers: {
       'Content-Type': file ? file.type : 'application/json',
+      // The language the player chose, which the server answers a refusal in;
+      // the browser's own Accept-Language is the system's, not the game's.
+      'Accept-Language': getLanguage(),
       traceparent: traceparent(),
       ...headers,
     },

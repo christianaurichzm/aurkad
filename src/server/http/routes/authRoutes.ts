@@ -30,6 +30,11 @@ import { WebSocket } from 'ws';
 import { createRouter } from '../../app.js';
 import { createAuthLimiter } from '../middleware/rateLimit.js';
 import {
+  registerStrings,
+  requestLanguage,
+  translateFor,
+} from '../../engine/i18n.js';
+import {
   changePassword,
   confirmEmailToken,
   consumeResetToken,
@@ -47,6 +52,27 @@ import {
   acquirePresence,
   releasePresence,
 } from '../../persistence/presence.js';
+
+// What a player reads from these routes, in the language their page asked in.
+registerStrings({
+  pt: {
+    'Invalid username or password': 'Usuário ou senha inválidos',
+    'This account needs its authentication code.':
+      'Esta conta precisa do código de autenticação.',
+    'That code is wrong or already used.':
+      'Esse código está errado ou já foi usado.',
+    'This account is already logged in from another session.':
+      'Esta conta já está conectada em outra sessão.',
+    'Username already taken': 'Esse nome de usuário já está em uso',
+    'Not logged in': 'Você não está conectado',
+    'No such account': 'Essa conta não existe',
+    'Current password is wrong': 'A senha atual está errada',
+    'That link is no longer valid': 'Esse link não vale mais',
+    'That link is no longer valid.': 'Esse link não vale mais.',
+    'Address confirmed. You can close this tab.':
+      'Endereço confirmado. Pode fechar esta aba.',
+  },
+});
 
 /** Matches the session store's TTL in http/session.ts. */
 const REMEMBERED_SESSION_MS = 7 * 24 * 60 * 60 * 1000;
@@ -67,7 +93,7 @@ export function createAuthRouter() {
       if (!playerDoc) {
         return res
           .status(401)
-          .json({ message: 'Invalid username or password' });
+          .json({ message: translateFor(req, 'Invalid username or password') });
       }
 
       const passwordMatches = await bcrypt.compare(
@@ -77,7 +103,7 @@ export function createAuthRouter() {
       if (!passwordMatches) {
         return res
           .status(401)
-          .json({ message: 'Invalid username or password' });
+          .json({ message: translateFor(req, 'Invalid username or password') });
       }
 
       // Before anything about the world: the same password opens a game
@@ -89,12 +115,12 @@ export function createAuthRouter() {
           twoFactorRequired: true,
           message:
             second === 'required'
-              ? 'This account needs its authentication code.'
-              : 'That code is wrong or already used.',
+              ? translateFor(req, 'This account needs its authentication code.')
+              : translateFor(req, 'That code is wrong or already used.'),
         });
       }
 
-      const refused = await refuseEntry(playerDoc);
+      const refused = await refuseEntry(playerDoc, requestLanguage(req));
       if (refused) {
         return res.status(refused.status).json({ message: refused.message });
       }
@@ -113,7 +139,10 @@ export function createAuthRouter() {
       const existingWs = playersWsMap.get(username);
       if (existingWs?.readyState === WebSocket.OPEN) {
         return res.status(409).json({
-          message: 'This account is already logged in from another session.',
+          message: translateFor(
+            req,
+            'This account is already logged in from another session.',
+          ),
         });
       }
 
@@ -127,7 +156,10 @@ export function createAuthRouter() {
           owner: presence.owner,
         });
         return res.status(409).json({
-          message: 'This account is already logged in from another session.',
+          message: translateFor(
+            req,
+            'This account is already logged in from another session.',
+          ),
         });
       }
 
@@ -182,14 +214,16 @@ export function createAuthRouter() {
       // client that does not.
       const parsed = RegisterBodySchema.safeParse(req.body);
       if (!parsed.success) {
-        return res
-          .status(400)
-          .json({ message: parsed.error.issues[0]?.message });
+        return res.status(400).json({
+          message: translateFor(req, parsed.error.issues[0]!.message),
+        });
       }
       const { username, password } = parsed.data;
 
       if (await nameTaken(username))
-        return res.status(409).json({ message: 'Username already taken' });
+        return res
+          .status(409)
+          .json({ message: translateFor(req, 'Username already taken') });
 
       try {
         const saltRounds = 10;
@@ -201,7 +235,9 @@ export function createAuthRouter() {
         // Mongo's duplicate-key code: the unique index caught a racing signup
         // that the existence check above could not see.
         if ((err as { code?: number })?.code === 11000) {
-          return res.status(409).json({ message: 'Username already taken' });
+          return res
+            .status(409)
+            .json({ message: translateFor(req, 'Username already taken') });
         }
         logger.error('Registration failed', { err });
         res
@@ -223,7 +259,10 @@ export function createAuthRouter() {
   // no address, and saying otherwise would promise delivery to a typo.
   router.get('/email', async (req: ExtendedRequest, res: Response) => {
     const username = req.session.username;
-    if (!username) return res.status(401).json({ message: 'Not logged in' });
+    if (!username)
+      return res
+        .status(401)
+        .json({ message: translateFor(req, 'Not logged in') });
 
     const record = await getPlayerByNameFromDb(username);
     res.json({ email: record?.email ?? null });
@@ -237,15 +276,23 @@ export function createAuthRouter() {
     authLimiter,
     async (req: ExtendedRequest, res: Response) => {
       const username = req.session.username;
-      if (!username) return res.status(401).json({ message: 'Not logged in' });
+      if (!username)
+        return res
+          .status(401)
+          .json({ message: translateFor(req, 'Not logged in') });
 
       const body = parseBody(SetEmailBodySchema, req.body, res);
       if (!body) return;
 
       const record = await getPlayerByNameFromDb(username);
-      if (!record) return res.status(404).json({ message: 'No such account' });
+      if (!record)
+        return res
+          .status(404)
+          .json({ message: translateFor(req, 'No such account') });
       if (!(await bcrypt.compare(body.currentPassword, record.password))) {
-        return res.status(403).json({ message: 'Current password is wrong' });
+        return res
+          .status(403)
+          .json({ message: translateFor(req, 'Current password is wrong') });
       }
 
       const { token } = await createEmailToken(record.name, body.email);
@@ -271,16 +318,21 @@ export function createAuthRouter() {
     const result = token ? await confirmEmailToken(token) : 'invalid-token';
     res.type('text/plain');
     if (result === 'invalid-token') {
-      return res.status(400).send('That link is no longer valid.');
+      return res
+        .status(400)
+        .send(translateFor(req, 'That link is no longer valid.'));
     }
-    res.send('Address confirmed. You can close this tab.');
+    res.send(translateFor(req, 'Address confirmed. You can close this tab.'));
   });
 
   // Changing a password you know. The session says who, so there is no username
   // in the body to disagree with it.
   router.post('/password', async (req: ExtendedRequest, res: Response) => {
     const username = req.session.username;
-    if (!username) return res.status(401).json({ message: 'Not logged in' });
+    if (!username)
+      return res
+        .status(401)
+        .json({ message: translateFor(req, 'Not logged in') });
 
     const body = parseBody(ChangePasswordBodySchema, req.body, res);
     if (!body) return;
@@ -291,10 +343,14 @@ export function createAuthRouter() {
       body.newPassword,
     );
     if (result === 'wrong-password') {
-      return res.status(403).json({ message: 'Current password is wrong' });
+      return res
+        .status(403)
+        .json({ message: translateFor(req, 'Current password is wrong') });
     }
     if (result === 'no-account') {
-      return res.status(404).json({ message: 'No such account' });
+      return res
+        .status(404)
+        .json({ message: translateFor(req, 'No such account') });
     }
     res.json({ success: true });
   });
@@ -340,7 +396,7 @@ export function createAuthRouter() {
       if (result === 'invalid-token') {
         return res
           .status(400)
-          .json({ message: 'That link is no longer valid' });
+          .json({ message: translateFor(req, 'That link is no longer valid') });
       }
       res.json({ success: true });
     },

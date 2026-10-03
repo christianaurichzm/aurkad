@@ -1,5 +1,10 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import { clearStrings, registerStrings, translate } from './i18n.js';
+import {
+  clearStrings,
+  registerStrings,
+  translate,
+  translateFor,
+} from './i18n.js';
 import {
   clearCommands,
   handleChatCommand,
@@ -57,6 +62,25 @@ describe('translate', () => {
     expect(translate(speaking('pt'), 'Trades: {count}', { count: 3 })).toBe(
       'Trocas: 3',
     );
+  });
+});
+
+describe('translateFor', () => {
+  const asking = (header?: string) => ({
+    headers: { 'accept-language': header },
+  });
+
+  it('answers in the first language an HTTP request names', () => {
+    expect(translateFor(asking('pt'), 'Pet dismissed.')).toBe(
+      'Bicho dispensado.',
+    );
+    expect(
+      translateFor(asking('pt-BR,pt;q=0.9,en;q=0.8'), 'Pet dismissed.'),
+    ).toBe('Bicho dispensado.');
+    expect(translateFor(asking('en-US,pt;q=0.9'), 'Pet dismissed.')).toBe(
+      'Pet dismissed.',
+    );
+    expect(translateFor(asking(), 'Pet dismissed.')).toBe('Pet dismissed.');
   });
 });
 

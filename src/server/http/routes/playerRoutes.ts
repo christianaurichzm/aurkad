@@ -7,6 +7,14 @@ import { getPlayerById } from '../../services/player/playerService.js';
 import { playersWsMap } from '../../net/connections.js';
 import { listOnlineEverywhere } from '../../persistence/presence.js';
 import { createRouter } from '../../app.js';
+import { registerStrings, translateFor } from '../../engine/i18n.js';
+
+registerStrings({
+  pt: {
+    'No points assigned': 'Nenhum ponto distribuído',
+    'Not enough unspent points': 'Não há pontos livres suficientes',
+  },
+});
 
 // What a player asks about themselves and about who else is here. Gameplay
 // writes, not content: nothing on this router changes a definition, so none of
@@ -40,7 +48,9 @@ export function createPlayerRouter() {
 
       const totalAssigned = vitality + attack + strength + defense + agility;
       if (totalAssigned === 0) {
-        return res.status(400).json({ error: 'No points assigned' });
+        return res
+          .status(400)
+          .json({ error: translateFor(req, 'No points assigned') });
       }
 
       const player = await getPlayerById(req.params['id']);
@@ -56,7 +66,9 @@ export function createPlayerRouter() {
       }
 
       if (totalAssigned > player.unspentPoints) {
-        return res.status(400).json({ error: 'Not enough unspent points' });
+        return res
+          .status(400)
+          .json({ error: translateFor(req, 'Not enough unspent points') });
       }
 
       player.vitality += vitality;

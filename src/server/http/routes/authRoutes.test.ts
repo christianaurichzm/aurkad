@@ -188,6 +188,15 @@ describe('POST /login', () => {
     expect(res.status).toBe(401);
   });
 
+  it('refuses in the language the page asked in', async () => {
+    const res = await request(app)
+      .post('/login')
+      .set('Accept-Language', 'pt')
+      .send({ username: 'Ghost', password: 'whatever' });
+
+    expect(res.body.message).toBe('Usuário ou senha inválidos');
+  });
+
   it('rejects an invalid body with 400', async () => {
     const res = await request(app).post('/login').send({ username: 'x' });
 

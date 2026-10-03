@@ -11,6 +11,7 @@ import {
   USERNAME_MAX_LENGTH,
 } from '../../shared/constants.js';
 import { gameConfig } from '../gameConfig.js';
+import { registerStrings } from '../engine/i18n.js';
 import { SCRIPT_PARAM_LIMITS } from '../../shared/scriptParams.js';
 
 const PositionSchema = z.object({ x: z.number(), y: z.number() });
@@ -168,31 +169,33 @@ export const TwoFactorDisableBodySchema = z.object({
 
 // A new password, wherever it is being set, under the game's rule (game.json
 // `account`). The messages are sentences because the sign-up form shows them
-// as they come.
+// as they come, translated by the route; the numbers are fixed at boot, so the
+// table can hold the sentences whole.
 const { account } = gameConfig;
+const passwordShort = `Passwords are at least ${account.passwordMinLength} characters`;
+const nameShort = `Names are at least ${account.usernameMinLength} characters`;
+const nameLong = `Names are at most ${account.usernameMaxLength} characters`;
+const nameChars = 'That name has characters this game does not allow';
+registerStrings({
+  pt: {
+    [passwordShort]: `Senhas têm pelo menos ${account.passwordMinLength} caracteres`,
+    [nameShort]: `Nomes têm pelo menos ${account.usernameMinLength} caracteres`,
+    [nameLong]: `Nomes têm no máximo ${account.usernameMaxLength} caracteres`,
+    [nameChars]: 'Esse nome tem caracteres que este jogo não aceita',
+  },
+});
+
 const NewPassword = z
   .string()
-  .min(
-    account.passwordMinLength,
-    `Passwords are at least ${account.passwordMinLength} characters`,
-  )
+  .min(account.passwordMinLength, passwordShort)
   .max(200);
 
 export const RegisterBodySchema = z.object({
   username: z
     .string()
-    .min(
-      account.usernameMinLength,
-      `Names are at least ${account.usernameMinLength} characters`,
-    )
-    .max(
-      account.usernameMaxLength,
-      `Names are at most ${account.usernameMaxLength} characters`,
-    )
-    .regex(
-      new RegExp(account.usernamePattern, 'u'),
-      'That name has characters this game does not allow',
-    ),
+    .min(account.usernameMinLength, nameShort)
+    .max(account.usernameMaxLength, nameLong)
+    .regex(new RegExp(account.usernamePattern, 'u'), nameChars),
   password: NewPassword,
 });
 

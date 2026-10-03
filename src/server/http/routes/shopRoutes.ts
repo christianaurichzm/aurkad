@@ -26,6 +26,17 @@ import {
   getPlayerByName,
 } from '../../services/player/playerService.js';
 import { createRouter } from '../../app.js';
+import { registerStrings, translateFor } from '../../engine/i18n.js';
+
+// What a shopper reads, in the language their page asked in.
+registerStrings({
+  pt: {
+    'You are not at this shop.': 'Você não está nesta loja.',
+    'Your bag is full.': 'Sua bolsa está cheia.',
+    'You cannot afford that.': 'Você não tem o suficiente para isso.',
+    'This shop does not sell that.': 'Esta loja não vende isso.',
+  },
+});
 
 /**
  * The player behind this session, if they are standing at `shopId`.
@@ -36,10 +47,11 @@ import { createRouter } from '../../app.js';
  * indistinguishable to an operator reading the log.
  */
 function atShop(
-  username: string | undefined,
+  req: ExtendedRequest,
   shopId: string,
   res: Response,
 ): PlayerServer | undefined {
+  const username = req.session.username;
   if (!username) {
     res.status(401).json({ error: 'Not logged in' });
     return undefined;
@@ -47,7 +59,9 @@ function atShop(
 
   const player = getPlayerByName(username);
   if (!player || !shopOpenFor(player, shopId)) {
-    res.status(403).json({ error: 'You are not at this shop.' });
+    res
+      .status(403)
+      .json({ error: translateFor(req, 'You are not at this shop.') });
     return undefined;
   }
   return player;
@@ -77,7 +91,7 @@ export function createShopRouter() {
   router.get('/shop/:shopId', async (req, res) => {
     try {
       const shopId = req.params['shopId'];
-      if (!atShop(req.session.username, shopId, res)) return;
+      if (!atShop(req, shopId, res)) return;
 
       const shop = await getShopById(shopId);
 
@@ -173,11 +187,7 @@ export function createShopRouter() {
     if (!body) return;
     const { shopId, itemId } = body;
 
-    const player = atShop(
-      (req as ExtendedRequest).session.username,
-      shopId,
-      res,
-    );
+    const player = atShop(req as ExtendedRequest, shopId, res);
     if (!player) return;
 
     // Reachable through a tile naming a shop that content deleted since.
@@ -202,12 +212,14 @@ export function createShopRouter() {
     return res.status(400).json({
       success: false,
       reason: bought.reason,
-      message:
+      message: translateFor(
+        req,
         bought.reason === 'no-space'
           ? 'Your bag is full.'
           : bought.reason === 'not-enough'
             ? 'You cannot afford that.'
             : 'This shop does not sell that.',
+      ),
     });
   });
 
