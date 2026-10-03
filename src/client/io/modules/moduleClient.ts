@@ -23,6 +23,7 @@ import {
   type HotbarSlot,
 } from './moduleActions';
 import { getGameState, getPlayer } from '../../core/gameState';
+import { usePlayerForceUpdate } from '../../hooks/usePlayerForceUpdate';
 import { enqueueChatMessage } from '../network/sync/chatSync';
 import { GAME_WIDTH, GAME_HEIGHT, TILE_SIZE } from '../../../shared/constants';
 import {
@@ -490,6 +491,8 @@ function makeEngineApi(id: string) {
     error: (...args: unknown[]) => console.error(`[module:${id}]`, ...args),
     /** Current local player state (position, health, stats). */
     getPlayer: () => getPlayer(),
+    /** getPlayer as a hook: re-renders while mounted, so the bag is current. */
+    usePlayer: () => usePlayerForceUpdate(),
     /** Visible map + entity state (players, npcs, droppedItems, tiles). */
     getGameState: () => getGameState(),
     /** Current camera offset in world-space pixels. */

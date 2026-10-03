@@ -40,7 +40,7 @@ engine.i18n({
   },
 });
 
-const { useEffect, useState } = React;
+const { useState } = React;
 const ui = engine.ui;
 
 const field = { display: 'grid', gap: 3 };
@@ -77,23 +77,12 @@ function pick(id) {
   draw();
 }
 
-/** The bag as it is now, without what may not change hands. */
-function useBag() {
-  const [, tick] = useState(0);
-  // The bag changes without this module being told: a pickup, a drop, a
-  // potion drunk. Looking again is cheap and the window is rarely open.
-  useEffect(() => {
-    const timer = setInterval(() => tick((n) => n + 1), 500);
-    return () => clearInterval(timer);
-  }, []);
-  return (engine.getPlayer()?.inventory ?? []).filter(
-    (entry) => !entry.item.bound,
-  );
-}
-
 function MailWindow({ mail }) {
   const t = engine.useT();
-  const bag = useBag();
+  // Without what may not change hands.
+  const bag = (engine.usePlayer()?.inventory ?? []).filter(
+    (entry) => !entry.item.bound,
+  );
   // The letter being written, held here so it outlives a tab switch and every
   // redraw the server causes.
   const [to, setTo] = useState('');

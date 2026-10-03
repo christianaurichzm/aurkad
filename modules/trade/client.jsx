@@ -119,20 +119,6 @@ function act(channel, payload) {
   send(channel, payload);
 }
 
-/** The bag as it is now, without what may not change hands. */
-function useBag() {
-  const [, tick] = React.useState(0);
-  // The bag changes without this module being told: a pickup, a drop, a
-  // potion drunk. Looking again is cheap and the window is rarely open.
-  React.useEffect(() => {
-    const timer = setInterval(() => tick((n) => n + 1), 500);
-    return () => clearInterval(timer);
-  }, []);
-  return (engine.getPlayer()?.inventory ?? []).filter(
-    (entry) => !entry.item.bound,
-  );
-}
-
 const section = { display: 'grid', gap: 6, alignContent: 'start' };
 const stackStyle = { display: 'inline-flex', alignItems: 'center', gap: 2 };
 
@@ -233,7 +219,10 @@ function OfferSlot({
 
 function TradeWindow({ me, offers, form, catalogue, result }) {
   const t = engine.useT();
-  const bag = useBag();
+  // Without what may not change hands.
+  const bag = (engine.usePlayer()?.inventory ?? []).filter(
+    (entry) => !entry.item.bound,
+  );
   const [search, setSearch] = React.useState('');
 
   const incoming = offers.filter((o) => o.to === me);

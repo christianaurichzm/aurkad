@@ -304,6 +304,7 @@ export function loadClientModule(
     }),
     getGameState: () => null,
     getPlayer: () => undefined,
+    usePlayer: () => engine.getPlayer(),
     getCamera: () => ({ x: 0, y: 0 }),
     onServerEvent: (channel, handler) => handlers.set(channel, handler),
     sendServerEvent: vi.fn(),

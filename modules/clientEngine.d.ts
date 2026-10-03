@@ -276,6 +276,12 @@ declare const engine: {
    */
   getPlayer(): LocalPlayer | null;
   /**
+   * `getPlayer` as a hook, for a window that shows the bag or the stats: the
+   * component re-renders while it is mounted, because the player changes
+   * without a module being told (a pickup, a potion drunk).
+   */
+  usePlayer(): LocalPlayer | null;
+  /**
    * Visible map + entity state (players, npcs, droppedItems, tiles). Null
    * before the first world update arrives.
    */
