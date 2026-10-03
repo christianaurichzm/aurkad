@@ -1983,6 +1983,55 @@ button.item-slot:hover::after {
 .auth-form button[type='submit'] {
   font-size: 14px;
 }
+/* Between a new account and the login screen it hands over to. */
+.auth-handoff {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 24px 0 12px;
+  text-align: center;
+}
+.auth-handoff .auth-spinner {
+  margin-bottom: 12px;
+}
+.auth-handoff-title {
+  font-family: var(--font-display);
+  font-size: 17px;
+  font-weight: 600;
+  color: var(--color-success);
+}
+.auth-handoff-note {
+  font-size: 13px;
+  color: var(--color-text-muted);
+}
+.auth-spinner {
+  width: 36px;
+  height: 36px;
+  flex: none;
+  border: 3px solid var(--color-border);
+  border-top-color: var(--color-primary);
+  border-radius: 50%;
+  animation: auth-spin 0.8s linear infinite;
+}
+/* On a primary button: the track and the arc in the button's own text color. */
+.auth-spinner.small {
+  width: 14px;
+  height: 14px;
+  border-width: 2px;
+  border-color: color-mix(in srgb, currentColor 35%, transparent);
+  border-top-color: currentColor;
+}
+@keyframes auth-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .auth-spinner {
+    animation-duration: 2.4s;
+  }
+}
 /* The eye sits inside the field. Edge draws its own reveal button there too,
    and two eyes read as a glitch. */
 .password-field {

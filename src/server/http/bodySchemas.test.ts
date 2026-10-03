@@ -38,9 +38,15 @@ describe('LoginBodySchema', () => {
 describe('RegisterBodySchema', () => {
   it('accepts valid registration', () => {
     expect(
-      RegisterBodySchema.safeParse({ username: 'bob', password: 'pass' })
+      RegisterBodySchema.safeParse({ username: 'bob', password: 'password' })
         .success,
     ).toBe(true);
+  });
+  it('rejects a password under the minimum', () => {
+    expect(
+      RegisterBodySchema.safeParse({ username: 'bob', password: 'pass' })
+        .success,
+    ).toBe(false);
   });
   it('rejects username over 24 chars', () => {
     expect(

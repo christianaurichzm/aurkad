@@ -87,6 +87,10 @@ export async function deletePlayer(id: string): Promise<void> {
   await playerRepository.deleteById(id);
 }
 
+export async function nameTaken(name: string): Promise<boolean> {
+  return playerRepository.nameTaken(name);
+}
+
 export async function listPlayers(): Promise<PlayerRecord[]> {
   return playerRepository.list();
 }

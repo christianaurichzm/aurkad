@@ -2,6 +2,12 @@
   "brand": {
     "name": "Aurkad"
   },
+  "account": {
+    "usernameMinLength": 3,
+    "usernameMaxLength": 24,
+    "usernamePattern": "[A-Za-z0-9_-]+",
+    "passwordMinLength": 8
+  },
   "player": {
     "startingAttack": 100,
     "startingStrength": 0,

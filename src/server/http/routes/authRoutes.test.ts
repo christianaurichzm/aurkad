@@ -143,6 +143,30 @@ describe('POST /register', () => {
 
     expect(res.status).toBe(400);
   });
+
+  // The repository game.json sets no `account`, so these are the defaults.
+  it.each([
+    ['a name that is too short', 'Al', 'secret123', /at least 3/],
+    ['a name with a space', 'Sir Al', 'secret123', /characters/],
+    ['a password that is too short', 'Newbie', 'short', /at least 8/],
+  ])('refuses %s with a sentence to show', async (_, username, password, m) => {
+    const res = await request(app)
+      .post('/register')
+      .send({ username, password });
+
+    expect(res.status).toBe(400);
+    expect(res.body.message).toMatch(m);
+  });
+
+  it('refuses a name already taken in another case', async () => {
+    await createPlayer('Admin', await hashPw('secret123'));
+
+    const res = await request(app)
+      .post('/register')
+      .send({ username: 'admin', password: 'secret123' });
+
+    expect(res.status).toBe(409);
+  });
 });
 
 describe('POST /login', () => {

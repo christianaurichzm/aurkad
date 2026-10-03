@@ -10,6 +10,7 @@ const mocks = vi.hoisted(() => ({ confirmPasswordReset: vi.fn() }));
 vi.mock('../io/network', () => ({
   confirmPasswordReset: mocks.confirmPasswordReset,
   fetchGameBrand: () => Promise.resolve(null),
+  passwordMinLength: () => 8,
   httpError: (e: unknown) => (e ?? {}) as { status?: number },
   friendlyHttpError: (e: unknown) => {
     const { status, message } = (e ?? {}) as {

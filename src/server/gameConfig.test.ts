@@ -154,6 +154,38 @@ describe('brand', () => {
   });
 });
 
+describe('account', () => {
+  it('anchors the name pattern, so a substring match is not enough', () => {
+    write({ account: { usernamePattern: '[a-z]+' } });
+
+    const pattern = new RegExp(
+      loadGameConfig(dir).account.usernamePattern,
+      'u',
+    );
+
+    expect(pattern.test('bob')).toBe(true);
+    expect(pattern.test('bob!!')).toBe(false);
+  });
+
+  it('refuses a pattern that does not compile', () => {
+    write({ account: { usernamePattern: '[a-z' } });
+
+    expect(() => loadGameConfig(dir)).toThrow(/usernamePattern/);
+  });
+
+  it('refuses a minimum above the maximum, where no name fits', () => {
+    write({ account: { usernameMinLength: 10, usernameMaxLength: 5 } });
+
+    expect(() => loadGameConfig(dir)).toThrow(/usernameMinLength/);
+  });
+
+  it('refuses a maximum above what the engine takes', () => {
+    write({ account: { usernameMaxLength: 25 } });
+
+    expect(() => loadGameConfig(dir)).toThrow(/usernameMaxLength/);
+  });
+});
+
 describe('modules', () => {
   // Unknown keys here are module ids, not typos, so strictness stops here;
   // the config inside belongs to the module.
@@ -199,6 +231,7 @@ describe('the repository game.json', () => {
     expect(() => loadGameConfig(dir)).not.toThrow();
     // Every section the schema knows about appears in the example.
     expect(Object.keys(example).sort()).toEqual([
+      'account',
       'brand',
       'combat',
       'leveling',

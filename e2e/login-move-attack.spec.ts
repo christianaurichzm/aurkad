@@ -30,13 +30,18 @@ async function registerAndLogin(
   await page
     .getByPlaceholder('Choose a password', { exact: true })
     .fill(password);
+  await page
+    .getByPlaceholder('Repeat the password', { exact: true })
+    .fill(password);
   await page.getByRole('button', { name: 'Register' }).click();
   await expect(page.getByText(/account created/i)).toBeVisible();
 
-  // Register hands over to Login on its own timer (pages/Register.tsx).
+  // Register hands over to Login on a timer with the name filled in.
   // `exact` keeps "Username" from also matching "Choose a username" while
   // both forms are mounted.
-  await page.getByPlaceholder('Username', { exact: true }).fill(username);
+  await expect(page.getByPlaceholder('Username', { exact: true })).toHaveValue(
+    username,
+  );
   await page.getByPlaceholder('Password', { exact: true }).fill(password);
 
   const wsPromise = page.waitForEvent('websocket', (ws) =>

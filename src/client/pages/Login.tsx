@@ -36,7 +36,14 @@ const readRememberedUser = (): string => {
   }
 };
 
-export const Login = ({ onSwitch }: { onSwitch: () => void }) => {
+/** `username` is an account just made on the Register screen. */
+export const Login = ({
+  onSwitch,
+  username: created,
+}: {
+  onSwitch: () => void;
+  username?: string;
+}) => {
   const t = useT();
   const { loginSuccess } = useGame();
   const [serverError, setServerError] = useState('');
@@ -57,10 +64,15 @@ export const Login = ({ onSwitch }: { onSwitch: () => void }) => {
   const {
     register,
     handleSubmit,
+    setFocus,
     formState: { errors, isSubmitting },
   } = useForm<FormValues>({
-    defaultValues: { username: remembered, totpToken: '' },
+    defaultValues: { username: created ?? remembered, totpToken: '' },
   });
+
+  useEffect(() => {
+    if (created) setFocus('password');
+  }, [created, setFocus]);
 
   useEffect(() => {
     fetchAuthCapabilities()

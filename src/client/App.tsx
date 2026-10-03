@@ -39,6 +39,7 @@ function App() {
   const docked =
     useMediaQuery(ARRANGEABLE) && (layout === 'bottom' || layout === 'overlay');
   const [showRegister, setShowRegister] = useState(false);
+  const [registeredName, setRegisteredName] = useState<string>();
   // Only a small screen collapses the panel, opening it over the world, so
   // it starts closed.
   const [panelCollapsed, setPanelCollapsed] = useState(true);
@@ -129,9 +130,17 @@ function App() {
       ) : resetToken ? (
         <PasswordReset token={resetToken} onDone={closeReset} />
       ) : showRegister ? (
-        <Register onSwitch={() => setShowRegister(false)} />
+        <Register
+          onSwitch={(name) => {
+            setRegisteredName(name);
+            setShowRegister(false);
+          }}
+        />
       ) : (
-        <Login onSwitch={() => setShowRegister(true)} />
+        <Login
+          username={registeredName}
+          onSwitch={() => setShowRegister(true)}
+        />
       )}
       <DialogHost />
     </>

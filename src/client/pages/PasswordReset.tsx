@@ -1,11 +1,11 @@
 import { AuthLayout } from '../components/common/AuthLayout';
 import { PasswordInput } from '../components/common/PasswordInput';
 import { useState } from 'react';
-import { PASSWORD_MIN_LENGTH } from '../../shared/constants';
 import {
   confirmPasswordReset,
   friendlyHttpError,
   httpError,
+  passwordMinLength,
 } from '../io/network';
 import { colors, radius } from '../theme';
 import { useT } from '../i18n';
@@ -31,8 +31,9 @@ export const PasswordReset = ({
 
   const submit = async (event: React.FormEvent) => {
     event.preventDefault();
-    if (password.length < PASSWORD_MIN_LENGTH) {
-      return setError(t('auth.passwordTooShort', { min: PASSWORD_MIN_LENGTH }));
+    const min = passwordMinLength();
+    if (password.length < min) {
+      return setError(t('auth.passwordTooShort', { min }));
     }
     if (password !== repeat) return setError(t('auth.passwordMismatch'));
 

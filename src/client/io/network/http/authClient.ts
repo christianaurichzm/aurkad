@@ -1,5 +1,6 @@
 import type { Player, MapMetaClient } from '../../../../shared/types';
 import type { Theme } from '../../../../shared/theme';
+import { PASSWORD_MIN_LENGTH } from '../../../../shared/constants';
 import { httpClient, httpError } from './httpClient';
 
 export const login = async (
@@ -91,6 +92,16 @@ export interface GameBrand {
   attributes: boolean;
   /** Whether players carry a bag (`player.startingInventoryCapacity` > 0). */
   inventory: boolean;
+  /**
+   * What a new account has to look like (game.json `account`). The pattern is
+   * already anchored, for `new RegExp(pattern, 'u')`.
+   */
+  account: {
+    usernameMinLength: number;
+    usernameMaxLength: number;
+    usernamePattern: string;
+    passwordMinLength: number;
+  };
   /** Where the menu sits (`layout` in theme/theme.json). */
   layout: Theme['layout'];
   /** How the world's canvases are drawn (`art` in theme/theme.json). */
@@ -114,6 +125,13 @@ export const fetchGameBrand = () =>
  * cannot await. main.tsx asks at boot, long before a world is drawn.
  */
 export const getGameBrand = () => gameBrandNow;
+
+/**
+ * The game's shortest password, for screens that check before sending. The
+ * engine default stands in until /game answers; the server enforces it.
+ */
+export const passwordMinLength = () =>
+  gameBrandNow?.account.passwordMinLength ?? PASSWORD_MIN_LENGTH;
 
 export async function silentAction<T>(promise: Promise<T>): Promise<T | null> {
   try {

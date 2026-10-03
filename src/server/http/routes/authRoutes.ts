@@ -20,6 +20,7 @@ import {
   enrichPlayer,
   enterWorld,
   getPlayerByNameFromDb,
+  nameTaken,
   refuseEntry,
 } from '../../services/player/playerService.js';
 import { toMapMeta } from '../../net/serialization.js';
@@ -176,12 +177,18 @@ export function createAuthRouter() {
     '/register',
     authLimiter,
     async (req: ExtendedRequest, res: Response) => {
-      const body = parseBody(RegisterBodySchema, req.body, res);
-      if (!body) return;
-      const { username, password } = body;
+      // The first rule broken, as the sentence the form shows. The form checks
+      // the same game.json rules before sending, so this is mostly read by a
+      // client that does not.
+      const parsed = RegisterBodySchema.safeParse(req.body);
+      if (!parsed.success) {
+        return res
+          .status(400)
+          .json({ message: parsed.error.issues[0]?.message });
+      }
+      const { username, password } = parsed.data;
 
-      const existing = await getPlayerByNameFromDb(username);
-      if (existing)
+      if (await nameTaken(username))
         return res.status(409).json({ message: 'Username already taken' });
 
       try {

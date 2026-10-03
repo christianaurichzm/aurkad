@@ -24,6 +24,7 @@ export {
   getGameBrand,
   type GameBrand,
   login,
+  passwordMinLength,
   register,
   requestPasswordReset,
   setEmail,

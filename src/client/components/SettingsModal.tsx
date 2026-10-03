@@ -1,12 +1,12 @@
 import { isInputActive } from '../utils/domHelpers';
 import React, { useEffect, useState } from 'react';
-import { PASSWORD_MIN_LENGTH } from '../../shared/constants';
 import { AudioSettings, getAudioSettings, setAudioSettings } from '../audio';
 import {
   changePassword,
   fetchAuthCapabilities,
   fetchEmail,
   httpError,
+  passwordMinLength,
   setEmail,
 } from '../io/network';
 import { colors, radius } from '../theme';
@@ -82,11 +82,10 @@ export const SettingsModal: React.FC = () => {
   };
 
   const submitPassword = async () => {
-    if (next.length < PASSWORD_MIN_LENGTH) {
+    const min = passwordMinLength();
+    if (next.length < min) {
       setPasswordError(true);
-      return setPasswordNote(
-        t('auth.passwordTooShort', { min: PASSWORD_MIN_LENGTH }),
-      );
+      return setPasswordNote(t('auth.passwordTooShort', { min }));
     }
     setSaving(true);
     try {

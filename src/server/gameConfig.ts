@@ -1,7 +1,12 @@
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import { z } from 'zod';
-import { TILE_SIZE, DEFAULT_PLAYER_SPEED } from '../shared/constants.js';
+import {
+  TILE_SIZE,
+  DEFAULT_PLAYER_SPEED,
+  PASSWORD_MIN_LENGTH,
+  USERNAME_MAX_LENGTH,
+} from '../shared/constants.js';
 import type { Position } from '../shared/types.js';
 import { gamePath } from './config.js';
 
@@ -95,9 +100,61 @@ const BrandSchema = z
   })
   .prefault({});
 
+const isRegex = (pattern: string) => {
+  try {
+    new RegExp(pattern, 'u');
+    return true;
+  } catch {
+    return false;
+  }
+};
+
+// What a new account has to look like. Checked when an account is made,
+// so a name from before a stricter rule still logs in. The password
+// minimum holds wherever a password is set, or the first change after
+// signing up would step around it.
+const AccountSchema = z
+  .strictObject({
+    usernameMinLength: z
+      .number()
+      .int()
+      .min(1)
+      .max(USERNAME_MAX_LENGTH)
+      .default(3),
+    usernameMaxLength: z
+      .number()
+      .int()
+      .min(1)
+      .max(USERNAME_MAX_LENGTH)
+      .default(USERNAME_MAX_LENGTH),
+    // The whole name has to match it (it is anchored here, so `[a-z]+` cannot
+    // pass "bob!!" on a substring). Unicode mode, so `\p{L}` works. The default
+    // keeps names to what a chat command can address: no spaces, and no
+    // letters from other alphabets that look like these.
+    usernamePattern: z
+      .string()
+      .refine(isRegex, 'not a valid regular expression')
+      .transform((pattern) => `^(?:${pattern})$`)
+      .prefault('[A-Za-z0-9_-]+'),
+    // bcrypt reads no further than 72 bytes, so a longer minimum asks for
+    // characters that are never checked.
+    passwordMinLength: z
+      .number()
+      .int()
+      .min(1)
+      .max(72)
+      .default(PASSWORD_MIN_LENGTH),
+  })
+  .refine((a) => a.usernameMinLength <= a.usernameMaxLength, {
+    message: 'is above usernameMaxLength, so no name fits',
+    path: ['usernameMinLength'],
+  })
+  .prefault({});
+
 const GameConfigSchema = z
   .strictObject({
     brand: BrandSchema,
+    account: AccountSchema,
     player: PlayerSchema,
     leveling: LevelingSchema,
     world: WorldSchema,

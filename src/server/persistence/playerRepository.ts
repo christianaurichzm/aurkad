@@ -103,4 +103,17 @@ export const playerRepository = {
   async anyExists(): Promise<boolean> {
     return !!(await PlayerModel.exists({}));
   },
+
+  /**
+   * Whether a name is in use ignoring case, so "admin" cannot sign up beside
+   * "Admin". Lookups by name stay exact; this is only asked before making one.
+   */
+  async nameTaken(name: string): Promise<boolean> {
+    // No index has this collation, so it scans players once per
+    // sign-up; add { name: 1 } with the same collation if that ever shows.
+    return !!(await PlayerModel.exists({ name }).collation({
+      locale: 'en',
+      strength: 2,
+    }));
+  },
 };

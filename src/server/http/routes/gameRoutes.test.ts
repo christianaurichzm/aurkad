@@ -40,9 +40,24 @@ describe('gameRoutes', () => {
       levels: true,
       attributes: true,
       inventory: true,
+      account: expect.any(Object),
       layout: 'right',
       art: 'pixel',
     });
+  });
+
+  it("hands the sign-up form the game's account rules", async () => {
+    const account = {
+      usernameMinLength: 4,
+      usernameMaxLength: 12,
+      usernamePattern: '^(?:[a-z]+)$',
+      passwordMinLength: 10,
+    };
+    const app = express().use(
+      createGameRouter({ brand: { name: 'Tandem' }, account, themeDir }),
+    );
+
+    expect((await request(app).get('/game')).body.account).toEqual(account);
   });
 
   it('says where the menu sits, once theme.json says', async () => {

@@ -8,8 +8,9 @@ import {
 } from '../../shared/types.js';
 import {
   EQUIPMENT_SLOTS,
-  PASSWORD_MIN_LENGTH,
+  USERNAME_MAX_LENGTH,
 } from '../../shared/constants.js';
+import { gameConfig } from '../gameConfig.js';
 import { SCRIPT_PARAM_LIMITS } from '../../shared/scriptParams.js';
 
 const PositionSchema = z.object({ x: z.number(), y: z.number() });
@@ -165,15 +166,35 @@ export const TwoFactorDisableBodySchema = z.object({
   totpToken: TotpToken,
 });
 
-export const RegisterBodySchema = z.object({
-  username: z.string().min(1).max(24),
-  password: z.string().min(1),
-});
+// A new password, wherever it is being set, under the game's rule (game.json
+// `account`). The messages are sentences because the sign-up form shows them
+// as they come.
+const { account } = gameConfig;
+const NewPassword = z
+  .string()
+  .min(
+    account.passwordMinLength,
+    `Passwords are at least ${account.passwordMinLength} characters`,
+  )
+  .max(200);
 
-// A new password, wherever it is being set. Registration keeps its own rule on
-// purpose: raising the bar for existing deployments is a policy decision, not
-// something a reset flow should smuggle in.
-const NewPassword = z.string().min(PASSWORD_MIN_LENGTH).max(200);
+export const RegisterBodySchema = z.object({
+  username: z
+    .string()
+    .min(
+      account.usernameMinLength,
+      `Names are at least ${account.usernameMinLength} characters`,
+    )
+    .max(
+      account.usernameMaxLength,
+      `Names are at most ${account.usernameMaxLength} characters`,
+    )
+    .regex(
+      new RegExp(account.usernamePattern, 'u'),
+      'That name has characters this game does not allow',
+    ),
+  password: NewPassword,
+});
 
 export const ChangePasswordBodySchema = z.object({
   currentPassword: z.string().min(1),
@@ -181,7 +202,7 @@ export const ChangePasswordBodySchema = z.object({
 });
 
 export const ResetRequestBodySchema = z.object({
-  username: z.string().min(1).max(24),
+  username: z.string().min(1).max(USERNAME_MAX_LENGTH),
 });
 
 // Setting the address a reset link goes to. The current password is asked

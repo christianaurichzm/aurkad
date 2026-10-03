@@ -32,7 +32,12 @@ export const EQUIPMENT_SLOTS = [
   'boots',
 ] as const;
 
-// Shortest password the server will store when one is being set or reset. Here
-// rather than in either half because both need the same number: the schema
-// that refuses it, and the screen that says so before the round trip.
+// Shortest password the server will store, until game.json `account` says
+// otherwise. Here rather than in either half because both need it: the config
+// default, and the screen that checks before the game's own rule has arrived.
 export const PASSWORD_MIN_LENGTH = 8;
+
+// Longest account name the engine takes. game.json can lower it but not raise
+// it: the reset request refuses anything longer, so a longer name could sign up
+// and then never ask for its password back.
+export const USERNAME_MAX_LENGTH = 24;
