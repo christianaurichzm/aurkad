@@ -1,6 +1,8 @@
 import React, { useEffect, useRef, useState } from 'react';
 import Editor, { loader, type OnMount } from '@monaco-editor/react';
 import * as monaco from 'monaco-editor';
+import EditorWorker from 'monaco-editor/editor/editor.worker?worker';
+import TsWorker from 'monaco-editor/languages/features/typescript/ts.worker?worker';
 import {
   listScripts,
   getScript,
@@ -15,9 +17,15 @@ import {
 import { colors, radius } from '../../theme';
 import { useT } from '../../i18n';
 
-// Self-hosted Monaco: point the react wrapper at the bundled npm package
-// instead of its default jsdelivr CDN fetch (vite-plugin-monaco-editor-esm
-// bundles the language workers locally too).
+// Self-hosted Monaco: the wrapper loads the bundled package instead of the
+// CDN, with workers Vite bundles. Scripts are JavaScript, so only the
+// TypeScript worker is ever asked for.
+self.MonacoEnvironment = {
+  getWorker: (_id, label) =>
+    label === 'typescript' || label === 'javascript'
+      ? new TsWorker()
+      : new EditorWorker(),
+};
 loader.config({ monaco });
 
 // Language defaults are a global singleton, so they are configured once per
@@ -28,9 +36,9 @@ async function configureJsDefaults(): Promise<void> {
   if (typesConfigured) return;
   typesConfigured = true;
   const { globalDts, contentDts } = await getScriptTypes();
-  const defaults = monaco.languages.typescript.javascriptDefaults;
+  const defaults = monaco.typescript.javascriptDefaults;
   defaults.setCompilerOptions({
-    target: monaco.languages.typescript.ScriptTarget.ESNext,
+    target: monaco.typescript.ScriptTarget.ESNext,
     allowJs: true,
     checkJs: true,
     strict: false,

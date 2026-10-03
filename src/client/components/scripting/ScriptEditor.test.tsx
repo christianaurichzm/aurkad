@@ -61,14 +61,12 @@ const models = vi.hoisted(() => {
 });
 
 vi.mock('monaco-editor', () => ({
-  languages: {
-    typescript: {
-      javascriptDefaults: {
-        setCompilerOptions: vi.fn(),
-        addExtraLib: vi.fn(),
-      },
-      ScriptTarget: { ESNext: 99 },
+  typescript: {
+    javascriptDefaults: {
+      setCompilerOptions: vi.fn(),
+      addExtraLib: vi.fn(),
     },
+    ScriptTarget: { ESNext: 99 },
   },
   editor: {
     getModels: () => [],

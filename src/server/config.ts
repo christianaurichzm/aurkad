@@ -21,6 +21,7 @@ try {
   const dotenv = require('dotenv') as typeof import('dotenv');
   dotenv.config({
     path: nodeEnv === 'production' ? './.env.production' : './.env.development',
+    quiet: true,
   });
 } catch {
   if (nodeEnv !== 'production') {
