@@ -29,9 +29,9 @@ beforeEach(() => {
 
   queued = [];
   vi.spyOn(deliveryService, 'queueDelivery').mockImplementation(
-    async (input: { to: string; itemId: number; quantity?: number }) => {
+    (input: { to: string; itemId: number; quantity?: number }) => {
       queued.push(input);
-      return { ok: true, id: `d${queued.length}` };
+      return Promise.resolve({ ok: true, id: `d${queued.length}` });
     },
   );
 
