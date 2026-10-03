@@ -142,6 +142,28 @@ describe('minimap overlay', () => {
     expect(layer.of('fillRect')).toHaveLength(afterFirst);
   });
 
+  it('repaints only the rows of tiles that changed', () => {
+    let state = mapOf(20, 14);
+    const mod = loadClientModule('minimap', {
+      getGameState: () => state,
+      getPlayer: () => undefined,
+    });
+    const rec = recordingContext();
+    mod.overlays[0].fn(rec.ctx, { x: 0, y: 0 });
+    const afterFirst = layer.of('fillRect').length;
+
+    // How the client applies a chunk, or a tile a script changed: a new grid
+    // sharing every row it did not touch.
+    const tiles = state.tiles.slice();
+    tiles[3] = tiles[3].map((t, col) =>
+      col === 7 ? { ...t, blocked: true } : t,
+    );
+    state = { ...state, tiles };
+    mod.overlays[0].fn(rec.ctx, { x: 0, y: 0 });
+
+    expect(layer.of('fillRect')).toHaveLength(afterFirst + 20);
+  });
+
   it('marks living npcs and the player, and skips the dead', () => {
     const state = mapOf(20, 14);
     state.npcs = {

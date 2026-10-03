@@ -15,38 +15,43 @@ const COLORS = {
   self: '#facc15',
 };
 
-// The tile layer is redrawn only when the map changes, not every frame: a map
+// The tile layer is redrawn only for rows whose array changed, since a map
 // is thousands of rectangles and a frame is 16 ms.
-// Keyed by map id alone, so editing tiles in-place does not refresh
-// the cache until the player changes map. Add the revision when the editor
-// starts mattering at runtime.
 let cache = null;
 
-function buildTileLayer(map) {
+function tileLayerFor(map) {
+  if (cache && cache.tiles === map.tiles) return cache;
   const rows = map.tiles.length;
   const cols = map.tiles[0] ? map.tiles[0].length : 0;
   if (!rows || !cols) return null;
 
-  // One pixel per tile, scaled up when drawn, so the cost follows the map
-  // rather than the display size.
-  const layer = document.createElement('canvas');
-  layer.width = cols;
-  layer.height = rows;
-  const lc = layer.getContext('2d');
-  if (!lc) return null;
+  if (
+    !cache ||
+    cache.mapId !== map.id ||
+    cache.cols !== cols ||
+    cache.rows !== rows
+  ) {
+    // One pixel per tile, scaled up when drawn, so the cost follows the map
+    // rather than the display size.
+    const layer = document.createElement('canvas');
+    layer.width = cols;
+    layer.height = rows;
+    const lc = layer.getContext('2d');
+    if (!lc) return null;
+    cache = { mapId: map.id, cols, rows, layer, lc, drawn: [], tiles: null };
+  }
 
   for (let row = 0; row < rows; row++) {
+    const line = map.tiles[row];
+    if (cache.drawn[row] === line) continue;
     for (let col = 0; col < cols; col++) {
-      const tile = map.tiles[row][col];
-      lc.fillStyle = tile && tile.blocked ? COLORS.wall : COLORS.floor;
-      lc.fillRect(col, row, 1, 1);
+      const tile = line[col];
+      cache.lc.fillStyle = tile && tile.blocked ? COLORS.wall : COLORS.floor;
+      cache.lc.fillRect(col, row, 1, 1);
     }
+    cache.drawn[row] = line;
   }
-  return { mapId: map.id, cols, rows, layer };
-}
-
-function tileLayerFor(map) {
-  if (!cache || cache.mapId !== map.id) cache = buildTileLayer(map);
+  cache.tiles = map.tiles;
   return cache;
 }
 
