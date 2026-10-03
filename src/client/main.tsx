@@ -31,12 +31,10 @@ const serverUp = () =>
     () => false,
   );
 
-// The dev client is up long before the server it proxies to, and nodemon
-// restarts that server on every save. A page loaded in between would show the
-// login without the game's theme, name and logo, and keep it so: theme.css and
-// the brand are each fetched once. It waits instead, and reloads to fetch them
-// once the server answers. A server that is up but failed /game renders as it
-// is, or the reload would never end.
+// The dev client starts before the server it proxies to, and node --watch
+// restarts that server on every save. theme.css and the brand are fetched
+// once, so a page loaded in between waits and reloads when the server
+// answers. A server that is up but failed /game renders as it is.
 async function waitForServer() {
   root.render(<p className="server-wait">{t('app.serverStarting')}</p>);
   let down = false;
