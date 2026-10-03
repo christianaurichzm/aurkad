@@ -12,7 +12,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        node-version: ['20', '22']
+        node-version: ['22', '24']
     steps:
       - uses: actions/checkout@v4
 
@@ -49,8 +49,8 @@ jobs:
 
   # Separate job, single Node version: the smoke suite drives a real browser
   # against a real server, so it is slow and gains nothing from the version
-  # matrix - what it checks (the Vite proxy, the session cookie, the WS
-  # handshake) does not vary between Node 20 and 22. `npm run typecheck` in
+  # matrix, as what it checks (the Vite proxy, the session cookie, the WS
+  # handshake) does not vary between Node 22 and 24. `npm run typecheck` in
   # the job above already type-checks e2e/ on both.
   e2e:
     runs-on: ubuntu-latest
