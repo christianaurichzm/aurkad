@@ -196,6 +196,32 @@ describe('InventoryPanel', () => {
     );
   });
 
+  it('sets a multiplier against the one worn as a ratio, not as the same', async () => {
+    const blessed = {
+      ...axe,
+      id: 9,
+      name: 'Blessed Sword',
+      effects: [
+        { attribute: 'attack' as const, type: 'add' as const, value: 5 },
+        { attribute: 'attack' as const, type: 'multiply' as const, value: 1.5 },
+      ],
+    };
+    mocks.usePlayerForceUpdate.mockReturnValue(
+      makePlayer({ inventory: [{ item: blessed, quantity: 1 }] }),
+    );
+    const user = userEvent.setup();
+    render(<InventoryPanel />);
+    openInventory();
+
+    await user.click(button('Blessed Sword'));
+
+    expect(screen.getByText('×1.5 Attack vs Sword')).toHaveAttribute(
+      'data-change',
+      'up',
+    );
+    expect(screen.queryByText('Same as Sword')).toBeNull();
+  });
+
   it('asks how many of a stack to drop, and drops that many', async () => {
     const user = userEvent.setup();
     render(<InventoryPanel />);

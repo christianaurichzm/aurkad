@@ -96,15 +96,22 @@ export const wornInPlaceOf = (
   item: Pick<Item, 'type'>,
 ) => (isSlot(item.type) ? player.equipped[item.type] : undefined);
 
-// What an item adds, stat by stat. Multipliers are left out, as two of
-// them do not subtract into a number a player can read; compare them as
-// ratios if gear starts to lean on them.
-const added = (item: Pick<Item, 'effects'>) => {
-  const totals = new Map<ModifiablePlayerAttribute, number>();
-  for (const { attribute, type, value } of item.effects ?? [])
-    if (type === 'add')
-      totals.set(attribute, (totals.get(attribute) ?? 0) + value);
-  return totals;
+// What an item adds and what it multiplies, stat by stat, compared each
+// against its own kind: a difference for additions, a ratio for multipliers.
+const totals = (item: Pick<Item, 'effects'>) => {
+  const byStat = new Map<
+    string,
+    { stat: ModifiablePlayerAttribute; value: number }
+  >();
+  for (const { attribute, type, value } of item.effects ?? []) {
+    const key = `${type}:${attribute}`;
+    const was = byStat.get(key)?.value ?? (type === 'multiply' ? 1 : 0);
+    byStat.set(key, {
+      stat: attribute,
+      value: type === 'multiply' ? was * value : was + value,
+    });
+  }
+  return byStat;
 };
 
 /** What wearing `item` would change against `inPlace`, the one it replaces. */
@@ -116,14 +123,32 @@ export const ItemComparison = ({
   inPlace: Pick<Item, 'name' | 'effects'>;
 }) => {
   const t = useT();
-  const mine = added(item);
-  const theirs = added(inPlace);
+  const mine = totals(item);
+  const theirs = totals(inPlace);
   const changes = [...new Set([...mine.keys(), ...theirs.keys()])]
-    .map((stat) => ({
-      stat,
-      change: (mine.get(stat) ?? 0) - (theirs.get(stat) ?? 0),
-    }))
-    .filter(({ change }) => change !== 0);
+    .map((key) => {
+      const stat = (mine.get(key) ?? theirs.get(key))!.stat;
+      if (key.startsWith('multiply:')) {
+        const ratio =
+          (mine.get(key)?.value ?? 1) / (theirs.get(key)?.value ?? 1);
+        const shown = Math.round(ratio * 100) / 100;
+        return {
+          key,
+          stat,
+          up: ratio > 1,
+          change: shown === 1 ? '' : `×${shown}`,
+        };
+      }
+      const change =
+        (mine.get(key)?.value ?? 0) - (theirs.get(key)?.value ?? 0);
+      return {
+        key,
+        stat,
+        up: change > 0,
+        change: change === 0 ? '' : signed(change),
+      };
+    })
+    .filter(({ change }) => change !== '');
 
   if (changes.length === 0)
     return (
@@ -131,15 +156,11 @@ export const ItemComparison = ({
         {t('inventory.same', { item: inPlace.name })}
       </p>
     );
-  return changes.map(({ stat, change }) => (
-    <p
-      key={stat}
-      className="item-compare"
-      data-change={change > 0 ? 'up' : 'down'}
-    >
-      <span aria-hidden="true">{change > 0 ? '▲' : '▼'}</span>{' '}
+  return changes.map(({ key, stat, up, change }) => (
+    <p key={key} className="item-compare" data-change={up ? 'up' : 'down'}>
+      <span aria-hidden="true">{up ? '▲' : '▼'}</span>{' '}
       {t('inventory.versus', {
-        change: `${signed(change)} ${statName(t, stat)}`,
+        change: `${change} ${statName(t, stat)}`,
         item: inPlace.name,
       })}
     </p>
