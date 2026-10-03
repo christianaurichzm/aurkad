@@ -14,6 +14,7 @@ import { createFixture, tile } from '../../sim/simFixture.js';
 import { gameConfig } from '../../gameConfig.js';
 import { useItem } from '../../services/economy/inventoryService.js';
 import { items } from '../../services/world/gameData.js';
+import { registeredBehaviors } from '../scripting/entityScripts.js';
 import type { PlayerServer, Spell } from '../../../shared/types.js';
 import { TILE_SIZE } from '../../../shared/constants.js';
 
@@ -26,6 +27,7 @@ vi.mock('../../services/content/spellService.js', async (importOriginal) => ({
 }));
 
 interface MagicApi {
+  defineSpell: (spell: { id: string; name: string }) => void;
   cast: (player: PlayerServer, spellId: string) => boolean;
   setSpells: (player: PlayerServer, ids?: string[]) => void;
   learn: (player: PlayerServer, spellId: string) => boolean;
@@ -360,6 +362,16 @@ describe('learning spells', () => {
     expect(() =>
       ref('dialogAction.learnSpell')({ player: alice, arg: 'gone' }),
     ).toThrow();
+  });
+
+  it('offers a tome a spell a script defines after the module loaded', () => {
+    useApi<MagicApi>('magic')!.defineSpell({ id: 'ember', name: 'Ember' });
+
+    const [spell] = registeredBehaviors().get('learnSpell')!.params;
+    expect(spell).toMatchObject({
+      options: expect.arrayContaining(['heal', 'ember']),
+      optionLabels: expect.arrayContaining(['Ember']),
+    });
   });
 
   it('teaches from a tome, kept by a reader who knows the spell already', () => {

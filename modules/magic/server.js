@@ -31,6 +31,7 @@ i18n({
 });
 
 const spells = new Map();
+let tomeAttached = false;
 const cooldowns = {}; // playerName -> { spellId: readyAtMs }
 
 const getMana = (p) => {
@@ -77,6 +78,9 @@ function pushState(player) {
 
 function defineSpell(spell) {
   spells.set(spell.id, spell);
+  // The tome's list of spells is fixed when attached, so a spell defined
+  // later attaches it again.
+  if (tomeAttached) attachTome();
 }
 
 function cast(player, spellId) {
@@ -305,32 +309,34 @@ provide('dialogAction.learnSpell', ({ player, arg }) => {
 provide('dialogCondition.knowsSpell', ({ player, arg }) => knows(player, arg));
 provide('dialogCondition.lacksSpell', ({ player, arg }) => !knows(player, arg));
 
-// The editor lists the spells defined by the time this runs; one a
-// script defines later is taught by id from a dialog, or with setSpells.
-const teachable = [...spells.values()];
-attach('learnSpell', {
-  params: {
-    spell: {
-      type: 'select',
-      label: 'Spell',
-      options: teachable.map((s) => s.id),
-      optionLabels: teachable.map((s) => s.name),
+function attachTome() {
+  const teachable = [...spells.values()];
+  attach('learnSpell', {
+    params: {
+      spell: {
+        type: 'select',
+        label: 'Spell',
+        options: teachable.map((s) => s.id),
+        optionLabels: teachable.map((s) => s.name),
+      },
     },
-  },
-  onUse({ player, params, refuse }) {
-    const spell = spells.get(String(params.spell));
-    if (spell && !knows(player, spell.id)) {
-      learn(player, spell.id);
-      return;
-    }
-    refuse();
-    if (!spell) throw new Error('tome names no spell: ' + params.spell);
-    sendMessage(
-      player,
-      t(player, 'You already know {spell}.', { spell: spell.name }),
-    );
-  },
-});
+    onUse({ player, params, refuse }) {
+      const spell = spells.get(String(params.spell));
+      if (spell && !knows(player, spell.id)) {
+        learn(player, spell.id);
+        return;
+      }
+      refuse();
+      if (!spell) throw new Error('tome names no spell: ' + params.spell);
+      sendMessage(
+        player,
+        t(player, 'You already know {spell}.', { spell: spell.name }),
+      );
+    },
+  });
+  tomeAttached = true;
+}
+attachTome();
 
 provide('magic', { defineSpell, cast, setSpells, learn });
 
