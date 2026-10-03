@@ -447,6 +447,12 @@ export interface DroppedItem {
   name?: string;
 }
 
+/** A drop as the server keeps it. */
+export interface GroundItem extends DroppedItem {
+  /** The tick it vanishes on; absent for one that stays (placed by the map). */
+  expiresAtTick?: number;
+}
+
 export type MapType = 'pvp' | 'normal';
 export type MapOrientation = 'orthogonal' | 'isometric';
 
@@ -484,6 +490,7 @@ export interface MapStateBase {
 export interface MapStateServer extends MapStateBase {
   players: Record<string, PlayerServer>;
   tilesRevision?: number;
+  droppedItems: GroundItem[];
 }
 
 export interface MapStateClient extends MapStateBase {

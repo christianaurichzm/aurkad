@@ -4,6 +4,7 @@ import {
   Item,
   EquipmentSlot,
   Effect,
+  DroppedItem,
 } from '../../../shared/types.js';
 import type { ClientItemAction } from '../../engine/actions.js';
 import { getMap, updatePlayer, updateMap, items } from '../world/gameData.js';
@@ -17,6 +18,10 @@ import { dispatchEntityScript } from '../../engine/scripting/entityScripts.js';
 import { addItem, canFit, removeItem } from './economyService.js';
 import { sweepUnclaimableDeliveries } from './deliveryService.js';
 import { forgetSentItem, recordHealthChange } from '../../net/snapshot.js';
+import { gameConfig } from '../../gameConfig.js';
+import { getTick, msToTicks } from '../../sim/clock.js';
+import { scheduleEvery } from '../../sim/scheduler.js';
+import { runtimeState } from '../../sim/state.js';
 
 export function getItemById(id: number): Item | null {
   return items.get(id) ?? null;
@@ -69,6 +74,51 @@ export async function deleteItem(id: number): Promise<void> {
 
 export async function listItems(): Promise<Item[]> {
   return await ItemModel.find().lean<Item[]>().exec();
+}
+
+/**
+ * Puts items on the ground, on top of a pile of the same item on that tile when
+ * there is one, and restarts the pile's lifetime. One entry per drop let a
+ * player who dropped a stack one at a time put thousands of entries on a tile,
+ * each serialized for every player in view, every tick.
+ */
+export function dropOnGround(map: MapStateServer, drop: DroppedItem): void {
+  const lifetimeMs = gameConfig.world.dropLifetimeMs;
+  const expiresAtTick = lifetimeMs
+    ? getTick() + msToTicks(lifetimeMs)
+    : undefined;
+  const pile = map.droppedItems.find(
+    (d) =>
+      d.itemId === drop.itemId &&
+      d.position.x === drop.position.x &&
+      d.position.y === drop.position.y,
+  );
+  if (pile) {
+    pile.quantity += drop.quantity;
+    pile.expiresAtTick = expiresAtTick;
+  } else {
+    map.droppedItems.push({
+      ...drop,
+      position: { ...drop.position },
+      expiresAtTick,
+    });
+  }
+}
+
+export function sweepExpiredDrops(): void {
+  const now = getTick();
+  for (const map of Object.values(runtimeState.maps)) {
+    const drops = map.droppedItems;
+    for (let i = drops.length - 1; i >= 0; i--) {
+      const expiresAt = drops[i]!.expiresAtTick;
+      if (expiresAt !== undefined && expiresAt <= now) drops.splice(i, 1);
+    }
+  }
+}
+
+/** Called at boot. Once a second: a drop outliving its time by that is fine. */
+export function startDropSweep(): void {
+  scheduleEvery(msToTicks(1_000), sweepExpiredDrops, 'drops');
 }
 
 export const pickUpItem = (map: MapStateServer, player: PlayerServer) => {
@@ -133,10 +183,10 @@ export function dropItemFromInventory(
 
   if (!removeItem(player.inventory, itemId, quantity).ok) return false;
 
-  map.droppedItems.push({
+  dropOnGround(map, {
     itemId,
     sprite: item.sprite,
-    position: { ...player.position },
+    position: player.position,
     quantity,
   });
   updateMap(map);
@@ -263,10 +313,10 @@ export function unequipItem(player: PlayerServer, slot: EquipmentSlot): void {
   if (!addItem(player.inventory, itemId, 1).ok) {
     const map = getMap(player.mapId);
     if (unequipped && map) {
-      map.droppedItems.push({
+      dropOnGround(map, {
         itemId,
         sprite: unequipped.sprite,
-        position: { ...player.position },
+        position: player.position,
         quantity: 1,
       });
       updateMap(map);

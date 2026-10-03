@@ -107,7 +107,7 @@ describe('a tile changed on a live map', () => {
 });
 
 describe('dropped items', () => {
-  it('go out named, for a client that holds no item catalog', () => {
+  it('go out named, for a client that holds no item catalog, and with no expiry', () => {
     const sim = createFixture(0);
     sim.addPlayer({ name: 'Alice', position: tile(1, 1) });
     sim.map.droppedItems.push({
@@ -115,6 +115,7 @@ describe('dropped items', () => {
       sprite: 4,
       position: tile(1, 1),
       quantity: 2,
+      expiresAtTick: 600,
     });
     items.set(7, {
       id: 7,

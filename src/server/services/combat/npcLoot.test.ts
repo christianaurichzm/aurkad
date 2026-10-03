@@ -75,7 +75,7 @@ describe('loot table on death', () => {
 
     resolveDamage(npc, 99, { attacker: player, map: sim.map });
 
-    expect(sim.map.droppedItems).toEqual([
+    expect(sim.map.droppedItems).toMatchObject([
       {
         itemId: 1,
         sprite: 3,

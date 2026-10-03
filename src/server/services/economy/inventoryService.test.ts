@@ -9,8 +9,21 @@ import {
   deleteItem,
   dropItemFromInventory,
   equipItem,
+  startDropSweep,
   unequipItem,
 } from './inventoryService.js';
+
+// 40 ticks at 20 Hz.
+vi.mock('../../gameConfig.js', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('../../gameConfig.js')>();
+  return {
+    ...actual,
+    gameConfig: {
+      ...actual.gameConfig,
+      world: { ...actual.gameConfig.world, dropLifetimeMs: 2_000 },
+    },
+  };
+});
 
 const item = (id: number, overrides: Partial<Item> = {}): Item => ({
   id,
@@ -118,6 +131,68 @@ describe('bound items', () => {
   });
 });
 
+describe('items on the ground', () => {
+  it('pile up as one entry per item and tile', () => {
+    const sim = createFixture(0);
+    sim.addItem(item(70, { type: 'consumable' }));
+    sim.addItem(item(71, { type: 'consumable' }));
+    sim.addPlayer({
+      name: 'Alice',
+      inventory: {
+        items: [
+          { item: 70, quantity: 5 },
+          { item: 71, quantity: 1 },
+        ],
+        maxCapacity: 10,
+      },
+    });
+
+    for (let i = 0; i < 5; i++) dropItemFromInventory('Alice', 70);
+    dropItemFromInventory('Alice', 71);
+
+    expect(
+      sim.map.droppedItems.map(({ itemId, quantity }) => [itemId, quantity]),
+    ).toEqual([
+      [70, 5],
+      [71, 1],
+    ]);
+  });
+
+  it('vanish once their time is up, counted from the last drop on the pile', () => {
+    const sim = createFixture(0);
+    sim.addItem(item(70, { type: 'consumable' }));
+    sim.addPlayer({
+      name: 'Alice',
+      inventory: { items: [{ item: 70, quantity: 2 }], maxCapacity: 10 },
+    });
+    startDropSweep();
+
+    dropItemFromInventory('Alice', 70);
+    sim.step(30);
+    dropItemFromInventory('Alice', 70);
+    sim.step(30);
+    expect(sim.map.droppedItems).toHaveLength(1);
+
+    sim.step(20);
+    expect(sim.map.droppedItems).toHaveLength(0);
+  });
+
+  it('stay when the map placed them', () => {
+    const sim = createFixture(0);
+    sim.map.droppedItems.push({
+      itemId: 70,
+      sprite: 0,
+      position: { x: 0, y: 0 },
+      quantity: 1,
+    });
+    startDropSweep();
+
+    sim.step(100);
+
+    expect(sim.map.droppedItems).toHaveLength(1);
+  });
+});
+
 describe('equipping over a worn item with a full bag', () => {
   afterEach(() => clearAll());
 
@@ -192,7 +267,7 @@ describe('equipping over a worn item with a full bag', () => {
     expect(countItem(alice.inventory, 50)).toBe(0);
     expect(countItem(alice.inventory, 60)).toBe(1);
     expect(alice.inventory.items).toHaveLength(10);
-    expect(sim.map.droppedItems).toEqual([
+    expect(sim.map.droppedItems).toMatchObject([
       { itemId: 50, sprite: 0, position: alice.position, quantity: 1 },
     ]);
   });

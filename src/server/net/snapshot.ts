@@ -400,7 +400,13 @@ function sendWorldUpdate(
 
   const visibleDrops = map.droppedItems
     .filter((item: DroppedItem) => withinViewport(item.position, viewport))
-    .map((item) => ({ ...item, name: items.get(item.itemId)?.name }));
+    .map(({ itemId, position, sprite, quantity }) => ({
+      itemId,
+      position,
+      sprite,
+      quantity,
+      name: items.get(itemId)?.name,
+    }));
   const dropsJson = JSON.stringify(visibleDrops);
   const dropsChanged = lastSentDroppedItems.get(player.name) !== dropsJson;
 

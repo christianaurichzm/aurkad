@@ -25,7 +25,7 @@ import {
   recordDamageContribution,
 } from './damage.js';
 import { handleChatAction } from '../comms/chatService.js';
-import { getItemById } from '../economy/inventoryService.js';
+import { dropOnGround, getItemById } from '../economy/inventoryService.js';
 import { rollLootTable } from '../economy/lootService.js';
 import { getLootTable } from '../economy/lootTableService.js';
 import { respawnNpc } from '../npc/index.js';
@@ -292,13 +292,13 @@ export const resolveDamage = (
       }
 
       if (map) {
-        map.droppedItems.push(
-          ...rollNpcLoot(
-            target,
-            attacker?.kind === 'player' ? attacker : undefined,
-            contributors,
-          ),
-        );
+        for (const drop of rollNpcLoot(
+          target,
+          attacker?.kind === 'player' ? attacker : undefined,
+          contributors,
+        )) {
+          dropOnGround(map, drop);
+        }
       }
       respawnNpc(map?.id ?? target.mapId, target);
       // Cleared last, so the loot roll above still sees the fight. A respawn

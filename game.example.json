@@ -29,7 +29,8 @@
       "col": 9,
       "row": 6
     },
-    "instanceGraceMs": 60000
+    "instanceGraceMs": 60000,
+    "dropLifetimeMs": 300000
   },
   "combat": {
     "playerAttackCooldownMs": 250,

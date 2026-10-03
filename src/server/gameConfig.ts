@@ -68,6 +68,10 @@ const WorldSchema = z
     // it is closed; which maps are instanced is set on each map. Not zero, so
     // a dropped connection can walk back into the same run.
     instanceGraceMs: z.number().int().min(0).default(60_000),
+    // How long a dropped item or an npc's loot stays on the ground; 0 keeps it
+    // until someone picks it up. Every drop is serialized for each player who
+    // can see it, every tick, so loot nobody wants piles up into tick time.
+    dropLifetimeMs: z.number().int().min(0).default(300_000),
   })
   .prefault({});
 

@@ -29,6 +29,7 @@ import {
 } from './persistence/instanceBus.js';
 import { receiveGlobalLine } from './services/comms/chatService.js';
 import { startInstances } from './services/world/instanceService.js';
+import { startDropSweep } from './services/economy/inventoryService.js';
 import { kickLocally } from './services/player/playerService.js';
 import {
   applyFlagFromInstance,
@@ -255,6 +256,7 @@ async function startServer() {
     registerServerCommands();
     registerPlayerCommands();
     startInstances();
+    startDropSweep();
     registerInstanceEvents();
     stopBus = startInstanceBus();
     startLiveOps();
