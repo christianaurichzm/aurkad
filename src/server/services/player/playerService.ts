@@ -781,6 +781,18 @@ export async function refuseEntry(
 /** Puts a character loaded from its document into the world, on its map. */
 export function enterWorld(player: PlayerServer) {
   auditedAccess.set(player, player.access);
+  // A slot worn since before equipping kept a record holds only the item's
+  // id, and unequipping takes back what the definition gives, which is
+  // nothing once the item is deleted. The current definition is the best
+  // guess there is, so it is pinned while the item exists.
+  for (const slot of EQUIPMENT_SLOTS) {
+    const itemId = player.equipped?.[slot];
+    if (!itemId || player.equippedEffects?.[slot]) continue;
+    const effects = getItemById(itemId)?.effects;
+    if (effects) {
+      (player.equippedEffects ??= {})[slot] = effects.map((e) => ({ ...e }));
+    }
+  }
   if (!getRegisteredPlayer(player.id)) registerPlayer(player);
   const map = addPlayerOnMap(player.id);
   emit('playerJoin', { player });

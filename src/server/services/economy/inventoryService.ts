@@ -298,10 +298,9 @@ export function unequipItem(player: PlayerServer, slot: EquipmentSlot): void {
   const unequipped = getItemById(itemId);
   if (unequipped?.bound && !canFit(player.inventory, itemId)) return;
 
-  // A slot with no record was filled without equipItem (a save older than the
-  // records, a script, an admin edit), so the definition is all there is.
-  // Such a slot still strands the bonus if its item is deleted
-  // first; record it at login if old saves matter.
+  // A slot with no record was filled without equipItem (a script, an admin
+  // edit) since the player entered the world, which records the rest, so the
+  // definition is all there is.
   applyItemEffects(
     player,
     player.equippedEffects?.[slot] ?? unequipped?.effects,

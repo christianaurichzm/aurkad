@@ -16,6 +16,8 @@ import { on, clearAll } from '../../engine/hooks.js';
 import { createFixture } from '../../sim/simFixture.js';
 import { getPlayerByName } from '../../sim/world.js';
 import { gameConfig } from '../../gameConfig.js';
+import { items } from '../world/gameData.js';
+import { unequipItem } from '../economy/inventoryService.js';
 
 const { recordAdminAction } = vi.hoisted(() => ({
   recordAdminAction: vi.fn(),
@@ -231,5 +233,32 @@ describe('access changed outside setAccess', () => {
     await persistPlayerSessionState(player);
 
     expect(recordAdminAction).not.toHaveBeenCalled();
+  });
+});
+
+describe('entering the world', () => {
+  it('pins what an unrecorded slot gives, so deleting the item cannot strand it', () => {
+    const fx = createFixture();
+    items.set(77, {
+      id: 77,
+      name: 'Old Gloves',
+      description: '',
+      sprite: 0,
+      type: 'gloves',
+      effects: [{ attribute: 'attack', type: 'add', value: 4 }],
+    });
+    // Saved before equipping kept a record: the bonus is in the stats, and
+    // the slot names the item and nothing else.
+    const player = mkPlayer({
+      mapId: fx.mapId,
+      attack: 14,
+      equipped: { gloves: 77 },
+    });
+
+    enterWorld(player);
+    items.delete(77);
+    unequipItem(player, 'gloves');
+
+    expect(player.attack).toBe(10);
   });
 });
