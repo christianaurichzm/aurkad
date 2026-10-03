@@ -194,6 +194,15 @@ function moduleContainer(id: string): HTMLElement {
 // achievement) stack up. It must sit above the dimming of an open window,
 // since a dialog choice starts a quest, so it hangs off the body: inside the
 // frame, size containment makes a stacking context no z-index escapes.
+function placeToasts(): void {
+  const frame = document.getElementById('canvasFrame');
+  const stack = document.querySelector<HTMLElement>('body > .module-toasts');
+  if (!frame || !stack) return;
+  const box = frame.getBoundingClientRect();
+  stack.style.left = `${box.left + box.width / 2}px`;
+  stack.style.top = `${box.top + 44}px`;
+}
+
 function toast(el: HTMLElement, ms = 3000, fallback: HTMLElement): void {
   const frame = document.getElementById('canvasFrame');
   let stack = document.querySelector<HTMLElement>('body > .module-toasts');
@@ -201,14 +210,10 @@ function toast(el: HTMLElement, ms = 3000, fallback: HTMLElement): void {
     stack = document.createElement('div');
     stack.className = 'module-toasts';
     document.body.append(stack);
+    // A phone turned while a notice is up moves the frame under it.
+    window.addEventListener('resize', placeToasts);
   }
-  if (frame && stack) {
-    // Placed as each notice lands, so a resize while one is up
-    // leaves it where the frame was until the next.
-    const box = frame.getBoundingClientRect();
-    stack.style.left = `${box.left + box.width / 2}px`;
-    stack.style.top = `${box.top + 44}px`;
-  }
+  placeToasts();
   (stack ?? fallback).append(el);
   setTimeout(() => (el.style.opacity = '0'), ms);
   setTimeout(() => el.remove(), ms + 400);

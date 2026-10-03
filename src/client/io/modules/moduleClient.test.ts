@@ -99,6 +99,24 @@ describe('module toasts', () => {
     }
   });
 
+  it('follows the frame when the window is resized under a notice', async () => {
+    const frame = document.createElement('div');
+    frame.id = 'canvasFrame';
+    document.body.append(frame);
+    let left = 100;
+    frame.getBoundingClientRect = () =>
+      ({ left, top: 0, width: 400, height: 300 }) as DOMRect;
+    serve(`engine.ui.notice('Quest complete');`);
+    await loadClientModules();
+    const stack = document.querySelector<HTMLElement>('.module-toasts')!;
+    expect(stack.style.left).toBe('300px');
+
+    left = 0;
+    window.dispatchEvent(new Event('resize'));
+
+    expect(stack.style.left).toBe('200px');
+  });
+
   it('draws a notice in the stylesheet look, painted by its tone and translated', async () => {
     const frame = document.createElement('div');
     frame.id = 'canvasFrame';
