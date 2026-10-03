@@ -28,7 +28,14 @@ const { tracing } = vi.hoisted(() => ({
 
 vi.mock('../config.js', async (importOriginal) => {
   const actual = await importOriginal<typeof import('../config.js')>();
-  return { ...actual, config: { ...actual.config, tracing } };
+  return {
+    ...actual,
+    config: {
+      ...actual.config,
+      tracing,
+      cors: { ...actual.config.cors, allowedOrigins: ['https://game.example'] },
+    },
+  };
 });
 
 import { playersWsMap } from './connections.js';
@@ -208,6 +215,50 @@ describe('the warp arrival', () => {
     await connect('?traceparent=nonsense');
 
     expect(pendingSpansForTest()).toEqual([]);
+  });
+});
+
+describe('the handshake origin', () => {
+  let http: HttpServer;
+  let port = 0;
+
+  const asSession = (req: unknown, _res: unknown, next: () => void) => {
+    (req as { session: { username: string } }).session = { username: 'Boss' };
+    next();
+  };
+
+  const opens = (origin: string) =>
+    new Promise<boolean>((resolve) => {
+      const ws = new WebSocket(`ws://127.0.0.1:${port}/ws`, { origin });
+      ws.on('open', () => {
+        ws.close();
+        resolve(true);
+      });
+      ws.on('error', () => resolve(false));
+    });
+
+  beforeEach(async () => {
+    http = createServer();
+    await new Promise<void>((resolve) => http.listen(0, resolve));
+    port = (http.address() as AddressInfo).port;
+    startWebSocketServer(http, asSession as never);
+  });
+
+  afterEach(async () => {
+    await stopWebSocketServer();
+    await new Promise<void>((resolve) => http.close(() => resolve()));
+  });
+
+  it('lets in an origin CORS_ALLOWED_ORIGINS names', async () => {
+    expect(await opens('https://game.example')).toBe(true);
+  });
+
+  it('lets in the page the server itself serves', async () => {
+    expect(await opens(`http://127.0.0.1:${port}`)).toBe(true);
+  });
+
+  it('turns away any other page', async () => {
+    expect(await opens('https://evil.game.example')).toBe(false);
   });
 });
 

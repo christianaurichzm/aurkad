@@ -1,6 +1,6 @@
 import { RequestHandler, Response } from 'express';
 import WebSocket, { WebSocketServer } from 'ws';
-import { Server } from 'node:http';
+import type { IncomingMessage, Server } from 'node:http';
 import { logger } from '../logger.js';
 import {
   ActionQueueItem,
@@ -265,6 +265,25 @@ function inLane(username: string, work: () => Promise<void>): void {
   lanes.set(username, next);
 }
 
+/**
+ * A browser sends the page's origin on every WebSocket handshake, and the
+ * session cookie with it, so without this any page on a sibling subdomain
+ * (SameSite lets those through) could open a socket as the player. The game's
+ * own page passes as same-host whether or not CORS_ALLOWED_ORIGINS names it.
+ * No Origin means no browser, and no cookie it did not mean to send.
+ */
+function originAllowed(request: IncomingMessage): boolean {
+  const origin = request.headers.origin;
+  if (!origin) return true;
+  const allowed = config.cors.allowedOrigins;
+  if (allowed.includes('*') || allowed.includes(origin)) return true;
+  try {
+    return new URL(origin).host === request.headers.host;
+  } catch {
+    return false;
+  }
+}
+
 export const startWebSocketServer = (
   server: Server,
   sessionMiddleware: RequestHandler,
@@ -309,6 +328,15 @@ export const startWebSocketServer = (
     const url = new URL(request.url ?? '', 'http://localhost');
     if (url.pathname !== '/ws') {
       socket.destroy();
+      return;
+    }
+    if (!originAllowed(request)) {
+      // Said out loud: a CORS_ALLOWED_ORIGINS that leaves out where the game is
+      // served from looks, from the browser, like a server that is down.
+      logger.warn('[ws] handshake from an origin not allowed', {
+        origin: request.headers.origin,
+      });
+      socket.end('HTTP/1.1 403 Forbidden\r\n\r\n');
       return;
     }
 
