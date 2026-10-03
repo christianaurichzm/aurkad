@@ -92,17 +92,20 @@ export const TilesetEditor: React.FC = () => {
 
   useEscapeClose(visible, handleClose);
 
+  // The latest one, so the dialog it may open speaks the current language.
+  const closeRef = useRef(handleClose);
+  closeRef.current = handleClose;
   useEffect(() => {
     const onToggle = () => {
       if (visibleRef.current) {
-        void handleClose();
+        void closeRef.current();
       } else {
         setVisible(true);
       }
     };
     window.addEventListener('toggleTilesetEditor', onToggle);
     return () => window.removeEventListener('toggleTilesetEditor', onToggle);
-  }, []); // stable: handleClose reads store/ref directly
+  }, []);
 
   useEffect(() => {
     if (visible) {
