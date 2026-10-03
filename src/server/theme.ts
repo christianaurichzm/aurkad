@@ -117,8 +117,20 @@ export async function readTheme(dir: string): Promise<Theme> {
 
 const themeFile = (dir: string) => path.join(dir, 'theme.json');
 
-// Read, change, write with no lock: two admins saving in the same instant
-// keep the later one's file whole and lose the earlier one's change.
+// Every change below reads theme.json, changes it and writes it back, and
+// an upload also sweeps the slot's earlier files; two interleaved would
+// keep only the later change, or sweep the picture the other just named.
+// So they take turns, per folder.
+const writing = new Map<string, Promise<unknown>>();
+function serially<T>(dir: string, change: () => Promise<T>): Promise<T> {
+  const run = (writing.get(dir) ?? Promise.resolve()).then(change);
+  writing.set(
+    dir,
+    run.catch(() => {}),
+  );
+  return run;
+}
+
 async function store(dir: string, theme: Theme): Promise<Theme> {
   const file = themeFile(dir);
   await mkdir(dir, { recursive: true });
@@ -136,8 +148,10 @@ export async function writeTheme(
   dir: string,
   choices: z.infer<typeof ThemeChoicesSchema>,
 ): Promise<Theme> {
-  const { logo, background } = await readTheme(dir);
-  return store(dir, { ...choices, logo, background });
+  return serially(dir, async () => {
+    const { logo, background } = await readTheme(dir);
+    return store(dir, { ...choices, logo, background });
+  });
 }
 
 const PNG = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
@@ -179,11 +193,13 @@ export async function saveThemeImage(
   if (!extension) return undefined;
   const digest = createHash('sha256').update(bytes).digest('hex').slice(0, 8);
   const name = `${slot}-${digest}.${extension}`;
-  await mkdir(dir, { recursive: true });
-  await writeFile(path.join(dir, name), bytes);
-  const theme = await store(dir, { ...(await readTheme(dir)), [slot]: name });
-  await dropImages(dir, slot, name);
-  return theme;
+  return serially(dir, async () => {
+    await mkdir(dir, { recursive: true });
+    await writeFile(path.join(dir, name), bytes);
+    const theme = await store(dir, { ...(await readTheme(dir)), [slot]: name });
+    await dropImages(dir, slot, name);
+    return theme;
+  });
 }
 
 /** Takes an uploaded picture away; a logo goes back to game.json's. */
@@ -191,10 +207,12 @@ export async function removeThemeImage(
   dir: string,
   slot: ThemeImage,
 ): Promise<Theme> {
-  const theme = await store(dir, {
-    ...(await readTheme(dir)),
-    [slot]: undefined,
+  return serially(dir, async () => {
+    const theme = await store(dir, {
+      ...(await readTheme(dir)),
+      [slot]: undefined,
+    });
+    await dropImages(dir, slot);
+    return theme;
   });
-  await dropImages(dir, slot);
-  return theme;
 }

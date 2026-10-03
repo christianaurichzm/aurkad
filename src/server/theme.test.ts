@@ -160,6 +160,25 @@ describe('writeTheme', () => {
 });
 
 describe('saveThemeImage', () => {
+  it('keeps both of two changes made at the same time', async () => {
+    const [, , saved] = await Promise.all([
+      saveThemeImage(dir, 'logo', PNG),
+      writeTheme(dir, {
+        colors: {},
+        layout: 'left',
+        art: 'pixel',
+        dialogDim: false,
+      }),
+      saveThemeImage(dir, 'background', JPEG),
+    ]);
+
+    expect(await readTheme(dir)).toMatchObject({
+      logo: expect.stringMatching(/^logo-/),
+      background: saved!.background,
+      layout: 'left',
+    });
+  });
+
   it('names the file by what it is, not by what the upload said', async () => {
     const theme = await saveThemeImage(dir, 'background', JPEG);
 
