@@ -29,7 +29,7 @@ export async function createOrUpdateArrow(
   }
   const result = await ArrowModel.findOneAndUpdate({ id: arrow.id }, arrow, {
     upsert: true,
-    new: true,
+    returnDocument: 'after',
   })
     .lean<Arrow>()
     .exec();

@@ -52,7 +52,7 @@ export async function updateNpcAll(
       $set: updates,
       ...(Object.keys(unset).length > 0 && { $unset: unset }),
     },
-    { new: true },
+    { returnDocument: 'after' },
   )
     .lean<PersistentNpc>()
     .exec();

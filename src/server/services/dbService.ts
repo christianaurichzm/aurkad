@@ -126,7 +126,7 @@ export async function getNextItemId(): Promise<number> {
   const result = await Counter.findByIdAndUpdate(
     'item',
     { $inc: { seq: 1 } },
-    { upsert: true, new: true },
+    { upsert: true, returnDocument: 'after' },
   );
 
   return result.seq;
@@ -136,7 +136,7 @@ export async function getNextNpcId(): Promise<number> {
   const result = await Counter.findByIdAndUpdate(
     'npc',
     { $inc: { seq: 1 } },
-    { upsert: true, new: true },
+    { upsert: true, returnDocument: 'after' },
   );
 
   return result.seq;
@@ -146,7 +146,7 @@ export async function getNextMapId(): Promise<number> {
   const result = await Counter.findByIdAndUpdate(
     'map',
     { $inc: { seq: 1 } },
-    { upsert: true, new: true },
+    { upsert: true, returnDocument: 'after' },
   );
 
   return result.seq;

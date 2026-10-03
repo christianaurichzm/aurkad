@@ -9,7 +9,7 @@ export const mapRepository = {
   async upsert(id: string, map: Partial<MapStateServer>): Promise<void> {
     await GameMapModel.findOneAndUpdate({ id }, map, {
       upsert: true,
-      new: true,
+      returnDocument: 'after',
     });
   },
 

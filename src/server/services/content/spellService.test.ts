@@ -50,7 +50,7 @@ describe('createOrUpdateSpell', () => {
         visualTarget: 'self',
         icon: null,
       },
-      { upsert: true, new: true },
+      { upsert: true, returnDocument: 'after' },
     );
     expect(getSpellSync(7)?.damage).toBe(12);
   });

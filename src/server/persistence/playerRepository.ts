@@ -62,7 +62,7 @@ export const playerRepository = {
     const doc = await PlayerModel.findOneAndUpdate(
       { name },
       { $inc: { authEpoch: 1 } },
-      { new: true },
+      { returnDocument: 'after' },
     )
       .select({ authEpoch: 1 })
       .lean<{ authEpoch?: number }>()

@@ -58,7 +58,7 @@
     "express-session": "^1.19.0",
     "helmet": "^8.3.0",
     "monaco-editor": "^0.57.0",
-    "mongoose": "^8.24.4",
+    "mongoose": "^9.10.4",
     "nodemailer": "^10.0.14",
     "react": "^19.2.8",
     "react-dom": "^19.2.8",

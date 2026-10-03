@@ -66,7 +66,7 @@ export async function createOrUpdateSpell(
   const result = await SpellModel.findOneAndUpdate(
     { id },
     { ...parsed.data, id },
-    { upsert: true, new: true },
+    { upsert: true, returnDocument: 'after' },
   )
     .lean<Spell>()
     .exec();
