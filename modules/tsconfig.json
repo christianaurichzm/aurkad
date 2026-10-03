@@ -2,8 +2,8 @@
   "//": "Editor support for module scripts. Not part of the build. server.js gets sandbox types from global.d.ts; client.js gets the engine object from clientEngine.d.ts, and React, which the loader hands it too.",
   "compilerOptions": {
     "target": "ES2022",
-    "module": "None",
-    "moduleResolution": "node10",
+    "module": "ESNext",
+    "moduleResolution": "bundler",
     "moduleDetection": "force",
     "lib": ["ES2022", "DOM"],
     "strict": false,

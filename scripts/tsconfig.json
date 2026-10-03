@@ -2,7 +2,7 @@
   "//": "Editor support for game scripts. Not part of the server build (rootDir is src/). Provides autocomplete from global.d.ts.",
   "compilerOptions": {
     "target": "ES2022",
-    "module": "None",
+    "module": "ESNext",
     "lib": ["ES2022"],
     "strict": false,
     "noEmit": true,

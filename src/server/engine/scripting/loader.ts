@@ -48,7 +48,7 @@ export function transpile(
   const tsc = ts;
   const out = tsc.transpileModule(raw, {
     compilerOptions: {
-      module: tsc.ModuleKind.None,
+      module: tsc.ModuleKind.ESNext,
       target: tsc.ScriptTarget.ES2022,
       strict: false,
       jsx: tsc.JsxEmit.React,
