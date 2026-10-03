@@ -24,7 +24,7 @@ const AuditLogSchema = new mongoose.Schema({
   source: {
     type: String,
     required: true,
-    enum: ['http', 'chat', 'repl', 'web'],
+    enum: ['http', 'chat', 'repl', 'web', 'script'],
   },
   ip: { type: String },
   /** Summarised, redacted request payload (see auditService). */

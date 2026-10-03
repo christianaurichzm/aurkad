@@ -9,7 +9,7 @@ export interface AuditRecord {
   target?: string;
   outcome: 'allowed' | 'denied';
   status?: number;
-  source: 'http' | 'chat' | 'repl' | 'web';
+  source: 'http' | 'chat' | 'repl' | 'web' | 'script';
   ip?: string;
   details?: Record<string, unknown>;
 }

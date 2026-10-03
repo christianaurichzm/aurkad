@@ -7,7 +7,7 @@ import mongoose from 'mongoose';
 import AuditLogModel from '../model/AuditLog.js';
 import { logger } from '../logger.js';
 
-export type AuditSource = 'http' | 'chat' | 'repl' | 'web';
+export type AuditSource = 'http' | 'chat' | 'repl' | 'web' | 'script';
 export type AuditOutcome = 'allowed' | 'denied';
 
 export interface AuditEntry {

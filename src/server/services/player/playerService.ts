@@ -61,6 +61,7 @@ import { clearAttackCooldown } from '../combat/attackCooldown.js';
 import { clearDamageContributions } from '../combat/damage.js';
 import { clearPressedKeys } from '../world/movementService.js';
 import { logger } from '../../logger.js';
+import { recordAdminAction } from '../auditService.js';
 
 export async function getPlayerById(id: string): Promise<PlayerRecord | null> {
   return playerRepository.findById(id);
@@ -154,10 +155,42 @@ export const createPlayer = async (
   return newPlayer;
 };
 
+// The access level each player in the world entered with or was given by
+// setAccess. A script holds the live player, so `player.access = 2` there
+// sticks, opens in-game commands and is saved, all without the audit trail
+// seeing it. The save reports it there; it does not undo it, because a level
+// the engine quietly reverts is a worse surprise than one it reports.
+const auditedAccess = new WeakMap<PlayerServer, Access>();
+
+/** The way to change a player's access, so the trail and the check agree. */
+export function setAccess(player: PlayerServer, level: Access): void {
+  player.access = level;
+  auditedAccess.set(player, level);
+}
+
+function reportAccessDrift(player: PlayerServer): void {
+  const audited = auditedAccess.get(player);
+  if (audited === undefined || audited === player.access) return;
+  auditedAccess.set(player, player.access);
+  logger.warn('[audit] access changed outside setAccess', {
+    player: player.name,
+    from: audited,
+    to: player.access,
+  });
+  recordAdminAction({
+    action: 'access-drift',
+    target: player.name,
+    outcome: 'allowed',
+    source: 'script',
+    details: { from: audited, to: player.access },
+  });
+}
+
 export const persistPlayerSessionState = async (
   player: PlayerServer,
   session?: ClientSession,
 ) => {
+  reportAccessDrift(player);
   const written = await createOrUpdatePlayer(
     {
       ...player,
@@ -720,6 +753,7 @@ export async function refuseEntry(
 
 /** Puts a character loaded from its document into the world, on its map. */
 export function enterWorld(player: PlayerServer) {
+  auditedAccess.set(player, player.access);
   if (!getRegisteredPlayer(player.id)) registerPlayer(player);
   const map = addPlayerOnMap(player.id);
   emit('playerJoin', { player });

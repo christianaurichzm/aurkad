@@ -25,6 +25,7 @@ import {
   handlePlayerUpdates,
   kickPlayer,
   endSessionsFor,
+  setAccess,
 } from '../../services/player/playerService.js';
 import { createRouter } from '../../app.js';
 
@@ -187,7 +188,7 @@ export function createModRouter() {
       const target = getPlayerByName(playerName);
       if (!target) return res.status(404).send('Player not found');
 
-      target.access = accessLevel;
+      setAccess(target, accessLevel);
       handlePlayerUpdates(target);
       // The level the target's sessions carry was copied in at their login, so
       // the demotion has not reached them: without this, the account this route
@@ -226,7 +227,7 @@ export function createModRouter() {
       const me = requireSelfInWorld(req, res);
       if (!me) return;
 
-      me.access = accessLevel;
+      setAccess(me, accessLevel);
       handlePlayerUpdates(me);
       // The operator's other sessions carry the old level and are not the one
       // in hand, so they end like any other; this one is re-stamped rather than

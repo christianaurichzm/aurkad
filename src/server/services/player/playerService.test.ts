@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 import {
   CharacterAction,
   Direction,
@@ -8,11 +8,34 @@ import {
   toPlayerCold,
   awardExperience,
   handlePlayerUpdates,
+  enterWorld,
+  persistPlayerSessionState,
+  setAccess,
 } from './playerService.js';
 import { on, clearAll } from '../../engine/hooks.js';
 import { createFixture } from '../../sim/simFixture.js';
 import { getPlayerByName } from '../../sim/world.js';
 import { gameConfig } from '../../gameConfig.js';
+
+const { recordAdminAction } = vi.hoisted(() => ({
+  recordAdminAction: vi.fn(),
+}));
+vi.mock('../auditService.js', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('../auditService.js')>()),
+  recordAdminAction,
+}));
+vi.mock('../../persistence/playerRepository.js', async (importOriginal) => {
+  const actual =
+    await importOriginal<
+      typeof import('../../persistence/playerRepository.js')
+    >();
+  return {
+    playerRepository: {
+      ...actual.playerRepository,
+      save: () => Promise.resolve(true),
+    },
+  };
+});
 
 function mkPlayer(overrides: Partial<PlayerServer> = {}): PlayerServer {
   return {
@@ -172,5 +195,41 @@ describe('handlePlayerUpdates identity (F-4)', () => {
 
     const byName = getPlayerByName('Alice');
     expect(sim.map.players[alice.id]).toBe(byName);
+  });
+});
+
+describe('access changed outside setAccess', () => {
+  beforeEach(() => recordAdminAction.mockClear());
+
+  it('lands in the audit trail on the next save, once, and stays', async () => {
+    const fx = createFixture();
+    const player = mkPlayer({ mapId: fx.mapId });
+    enterWorld(player);
+
+    player.access = 2;
+    await persistPlayerSessionState(player);
+    await persistPlayerSessionState(player);
+
+    expect(player.access).toBe(2);
+    expect(recordAdminAction).toHaveBeenCalledTimes(1);
+    expect(recordAdminAction).toHaveBeenCalledWith(
+      expect.objectContaining({
+        action: 'access-drift',
+        target: 'P',
+        source: 'script',
+        details: { from: 0, to: 2 },
+      }),
+    );
+  });
+
+  it('is not reported when it went through setAccess', async () => {
+    const fx = createFixture();
+    const player = mkPlayer({ mapId: fx.mapId });
+    enterWorld(player);
+
+    setAccess(player, 2);
+    await persistPlayerSessionState(player);
+
+    expect(recordAdminAction).not.toHaveBeenCalled();
   });
 });
