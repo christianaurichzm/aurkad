@@ -1,3 +1,5 @@
+import { getGameBrand } from '../io/network/http/authClient';
+
 export interface AtlasEntry {
   x: number;
   y: number;
@@ -29,7 +31,12 @@ export function buildEntityAtlas(
   const canvas = document.createElement('canvas');
   canvas.width = atlasWidth;
   canvas.height = atlasHeight;
-  const ctx = canvas.getContext('2d')!;
+  // Chrome rebuilds a GPU canvas's mipmaps on every scaled draw, so smooth
+  // art keeps the atlas in memory, uploaded once. Pixel art draws unfiltered
+  // and keeps it on the GPU alone.
+  const ctx = canvas.getContext('2d', {
+    willReadFrequently: getGameBrand()?.art === 'smooth',
+  })!;
 
   let y = 0;
   for (const [key, img] of entries) {
