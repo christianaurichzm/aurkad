@@ -1,6 +1,12 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { CharacterAction } from '../../shared/types';
-import { renderDroppedItems, renderEntitiesSorted } from './entityRendering';
+import {
+  renderDroppedItems,
+  renderEntitiesSorted,
+  renderEntityHuds,
+  type EntityHudEntry,
+} from './entityRendering';
+import { renderHealthBar, renderNpcLabel } from './hud';
 import { renderItemIcon } from './itemDrawing';
 
 const mocks = vi.hoisted(() => ({
@@ -23,6 +29,7 @@ vi.mock('./spriteDrawing', () => ({
 vi.mock('./hud', () => ({
   renderHUD: vi.fn(),
   renderHealthBar: vi.fn(),
+  renderNpcLabel: vi.fn(),
 }));
 
 vi.mock('./movementAnimation', () => ({
@@ -155,4 +162,29 @@ it('plays the walk cycle of a figure that loops, even standing still', async () 
   expect(columns).toEqual([0, 1, 2, 3, 0]);
   now.mockRestore();
   setSpriteLayout(DEFAULT_SPRITE_LAYOUT);
+});
+
+it('names a monster only once the pointer has found it, and every other npc always', () => {
+  const npc = (id: string, behavior: string): EntityHudEntry =>
+    ({
+      kind: 'npc',
+      y: 0,
+      entity: { id, behavior },
+      hasHealthBar: behavior === 'aggressive',
+    }) as EntityHudEntry;
+  const ctx = {} as CanvasRenderingContext2D;
+  renderEntityHuds(
+    [
+      npc('risen', 'aggressive'),
+      npc('knight', 'aggressive'),
+      npc('brand', 'friendly'),
+    ],
+    ctx,
+    new Set(['knight']),
+  );
+  expect(vi.mocked(renderNpcLabel).mock.calls.map(([n]) => n.id)).toEqual([
+    'knight',
+    'brand',
+  ]);
+  expect(renderHealthBar).toHaveBeenCalledTimes(2);
 });

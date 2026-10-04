@@ -55,6 +55,21 @@ const npcUnder = (vx: number, vy: number) =>
     );
   });
 
+// Where the pointer rests on the world, in view pixels, and the npc the last
+// click aimed at: the two a hostile's name is drawn for (renderEntityHuds).
+let hover: { x: number; y: number } | null = null;
+let clicked: string | undefined;
+
+/**
+ * The npcs the pointer has found, the one under it and the one last clicked:
+ * by the same pick as a click, so the name shown is the npc a click would take.
+ */
+export const namedNpcs = (): ReadonlySet<string> => {
+  const cam = getCamera();
+  const under = hover && npcUnder(hover.x + cam.x, hover.y + cam.y);
+  return new Set([under?.id, clicked].filter((id): id is string => !!id));
+};
+
 const clamp = (v: number, lo: number, hi: number) =>
   Math.min(Math.max(v, lo), hi);
 
@@ -78,6 +93,7 @@ export const clickWorld = (sx: number, sy: number) => {
   if (!player || tilesetEditorInitialized) return;
   const cam = getCamera();
   const npc = npcUnder(sx + cam.x, sy + cam.y);
+  clicked = npc?.id;
   const world = screenToWorld(sx, sy);
   const { col, row } = npc
     ? nearestCellOf(npc, player.position)
@@ -129,16 +145,23 @@ export const renderClickMark = (ctx: CanvasRenderingContext2D) => {
   ctx.restore();
 };
 
-/** Clicks on the world canvas, in logical view pixels. */
+/** Clicks and the resting pointer on the world canvas, in logical pixels. */
 export const handlePointer = () => {
   const canvas = document.getElementById(
     'foregroundCanvas',
   ) as HTMLCanvasElement | null;
-  canvas?.addEventListener('click', (e) => {
+  if (!canvas) return;
+  const view = (e: MouseEvent) => {
     const rect = canvas.getBoundingClientRect();
-    clickWorld(
-      ((e.clientX - rect.left) * GAME_WIDTH) / rect.width,
-      ((e.clientY - rect.top) * GAME_HEIGHT) / rect.height,
-    );
+    return {
+      x: ((e.clientX - rect.left) * GAME_WIDTH) / rect.width,
+      y: ((e.clientY - rect.top) * GAME_HEIGHT) / rect.height,
+    };
+  };
+  canvas.addEventListener('click', (e) => {
+    const { x, y } = view(e);
+    clickWorld(x, y);
   });
+  canvas.addEventListener('mousemove', (e) => (hover = view(e)));
+  canvas.addEventListener('mouseleave', () => (hover = null));
 };

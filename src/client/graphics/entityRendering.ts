@@ -146,17 +146,20 @@ export function renderEntitiesSorted(
   return buf;
 }
 
-// Names, tags, bubbles and NPC health bars, always on top regardless of depth.
+// Names, tags, bubbles and npc health bars, always on top. A monster's
+// name shows only once the pointer has found it (`named`).
 export function renderEntityHuds(
   entries: EntityHudEntry[],
   ctx: CanvasRenderingContext2D,
+  named: ReadonlySet<string> = new Set(),
 ): void {
   for (const e of entries) {
     if (e.kind === 'player') {
       renderHUD(e.entity, ctx);
     } else {
       if (e.hasHealthBar) renderHealthBar(e.entity, ctx);
-      renderNpcLabel(e.entity, e.hasHealthBar, ctx);
+      if (!e.hasHealthBar || named.has(e.entity.id))
+        renderNpcLabel(e.entity, e.hasHealthBar, ctx);
     }
   }
 }

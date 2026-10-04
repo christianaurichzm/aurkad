@@ -1,7 +1,12 @@
 import { beforeEach, expect, it, vi } from 'vitest';
 import { TILE_SIZE } from '../../shared/constants';
 import { Key } from '../../shared/types';
-import { clickWorld, handlePointer, renderClickMark } from './pointer';
+import {
+  clickWorld,
+  handlePointer,
+  namedNpcs,
+  renderClickMark,
+} from './pointer';
 import { pressKey } from './keyboard';
 import { sendAction } from './network';
 
@@ -109,4 +114,29 @@ it('maps a pointer through the logical view even with a double-sized buffer', ()
   handlePointer();
   canvas.dispatchEvent(new MouseEvent('click', { clientX: 480, clientY: 60 }));
   expect(sendAction).toHaveBeenCalledWith({ type: 'moveTo', col: 7, row: 2 });
+});
+
+it('names the npc under the resting pointer and the one last clicked', () => {
+  document.body.innerHTML =
+    '<canvas id="foregroundCanvas" width="1280" height="896"></canvas>';
+  const canvas = document.querySelector('canvas')!;
+  canvas.getBoundingClientRect = () =>
+    ({ left: 0, top: 0, width: 1280, height: 896 }) as DOMRect;
+  handlePointer();
+  state.npcs = {
+    a: { id: 'a', ...npcAt(6, 3, 'aggressive') },
+    b: { id: 'b', ...npcAt(9, 5, 'aggressive') },
+  };
+  click(6, 3);
+  canvas.dispatchEvent(
+    new MouseEvent('mousemove', {
+      clientX: 9.5 * TILE_SIZE,
+      clientY: 5.5 * TILE_SIZE,
+    }),
+  );
+  expect([...namedNpcs()].sort()).toEqual(['a', 'b']);
+
+  canvas.dispatchEvent(new MouseEvent('mouseleave'));
+  click(1, 1);
+  expect(namedNpcs().size).toBe(0);
 });

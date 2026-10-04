@@ -39,7 +39,7 @@ import {
 import { renderFloatingTexts } from './floatingText';
 import { renderProjectiles } from './projectiles';
 import { renderAttackEffects } from './attackEffect';
-import { renderClickMark } from '../io/pointer';
+import { namedNpcs, renderClickMark } from '../io/pointer';
 import { renderSpellEffects } from './spellEffect';
 import { useUIStore } from '../stores/uiStore';
 import { calcCamera, setCamera, worldToView } from './camera';
@@ -236,7 +236,7 @@ export const render = () => {
     fringeCtx.save();
     fringeCtx.translate(-cam.x, -cam.y);
     runOverlays(fringeCtx, cam, OverlayLayer.scene);
-    renderEntityHuds(hudEntries, fringeCtx);
+    renderEntityHuds(hudEntries, fringeCtx, namedNpcs());
     // Asked where the server has the player, drawn where they are seen, and not
     // while a modal holds the keys.
     const prompt =
