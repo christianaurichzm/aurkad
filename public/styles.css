@@ -3091,21 +3091,24 @@ body:has(.npc-dialog) .hotbar {
     bottom: auto;
     top: 100%;
   }
+  /* Folded: the log, its last lines, over a row of the input and the button.
+     A grid: a wrapping flex row sizes each line to its content, so the log
+     would grow a line at a time and push the input out of the window. */
   [data-layout='overlay'] #chatContainer {
     height: 100px;
-    flex-wrap: wrap;
   }
-  [data-layout='overlay'] #chatContainer .chat-box {
-    flex: 1 1 100%;
-    min-height: 0;
+  [data-layout='overlay'] #chatContainer:not(.is-expanded) {
+    display: grid;
+    grid-template: minmax(0, 1fr) auto / minmax(0, 1fr) auto;
+  }
+  [data-layout='overlay'] #chatContainer:not(.is-expanded) .chat-box {
+    grid-column: 1 / -1;
   }
   [data-layout='overlay'] #chatInputContainer {
-    flex: 1 1 0;
     min-width: 0;
   }
   [data-layout='overlay'] #chatContainer.is-expanded {
     height: min(340px, calc(100cqh - 150px));
-    flex-wrap: nowrap;
   }
 }
 
