@@ -86,8 +86,8 @@ function sellable(player) {
   }));
 }
 
-async function push(player) {
-  const listings = await auctions.list();
+async function push(player, listings) {
+  listings ??= await auctions.list();
   sendEvent(player, 'auction:update', {
     listings: listings.map(view),
     mine: listings.filter((l) => l.seller === player.name).map((l) => l.id),
@@ -98,7 +98,8 @@ async function push(player) {
   });
 }
 const pushAll = async () => {
-  for (const player of getPlayers()) await push(player);
+  const listings = await auctions.list();
+  for (const player of getPlayers()) await push(player, listings);
 };
 
 function failure(result, player, price) {

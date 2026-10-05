@@ -341,6 +341,23 @@ describe('what the client is sent', () => {
     expect(update?.payload.listings[0]?.item).toBe('Sword');
     expect(update?.payload.currency).toBe('Gold');
   });
+
+  it('reads the listings once for everybody it tells', async () => {
+    const seller = await playerWith('Ana', [{ item: SWORD, quantity: 1 }]);
+    await playerWith('Bo', []);
+    await playerWith('Cy', []);
+    const find = vi.spyOn(AuctionModel, 'find');
+    drainGameEvents();
+
+    await auction().list(seller, SWORD, 1, 50);
+
+    expect(find).toHaveBeenCalledTimes(1);
+    expect(
+      drainGameEvents().filter(
+        (e) => e.type === 'customPlayer' && e.channel === 'auction:update',
+      ),
+    ).toHaveLength(3);
+  });
 });
 
 describe('durability and recovery', () => {
