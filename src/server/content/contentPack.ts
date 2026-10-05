@@ -237,7 +237,12 @@ const RecipeSchema = z.object({
 });
 
 const MapSchema = z.object({
-  id: z.string().min(1),
+  // createOrUpdateMap refuses a dungeon copy's id, and the import would only
+  // find out after writing everything before the maps.
+  id: z
+    .string()
+    .min(1)
+    .regex(/^[^#]+$/, 'a # marks a dungeon copy, which is never saved'),
   name: z.string().min(1),
   type: z.enum(['pvp', 'normal']),
   orientation: z.enum(['orthogonal', 'isometric']).optional(),
@@ -379,54 +384,63 @@ function readArray(file: string): unknown[] | null {
 }
 
 /**
- * Imports content/*.json into MongoDB. Call it after connectToDatabase
- * and before loadInitialData.
+ * Import content/*.json into MongoDB. Call after connectToDatabase, before
+ * loadInitialData. Returns false, having written nothing, when any file or
+ * entry is invalid.
  */
-export async function importContentPack(): Promise<void> {
+export async function importContentPack(): Promise<boolean> {
   if (!fs.existsSync(contentDir())) {
     logger.info('[content] No content/ directory - skipping import');
-    return;
+    return true;
   }
   // The boot imports before loadInitialData, and the CLI never reaches it: a
   // database from a newer build has to be refused before the first upsert.
   await checkDatabaseSchemaVersion();
 
+  // Every file is read and every entry checked before the first write, since
+  // a pack imported in part is a world nobody authored. A bad pack leaves the
+  // database as it was, and the server still boots on it.
+  const problems: string[] = [];
+  const batches: { key: keyof typeof SPECS; entries: unknown[] }[] = [];
   for (const key of IMPORT_ORDER) {
     const spec = SPECS[key];
     let rows: unknown[] | null;
     try {
       rows = readArray(spec.file);
     } catch (e) {
-      logger.error(`[content] Failed to read ${spec.file}`, { err: e });
+      problems.push(`${spec.file}: ${(e as Error).message}`);
       continue;
     }
     if (rows === null) continue;
 
-    let ok = 0;
-    for (let i = 0; i < rows.length; i++) {
-      const result = spec.schema.safeParse(rows[i]);
-      if (!result.success) {
-        logger.warn(`[content] Invalid entry in ${spec.file}[${i}]`, {
-          issues: result.error.issues.map(
-            (x) => `${x.path.join('.')}: ${x.message}`,
-          ),
-        });
-        continue;
-      }
-      try {
-        await spec.upsert(result.data as never);
-        ok++;
-      } catch (e) {
-        logger.error(`[content] Upsert failed for ${spec.file}[${i}]`, {
-          err: e,
-        });
-      }
-    }
-    logger.info(`[content] Imported ${ok}/${rows.length} from ${spec.file}`);
+    const entries: unknown[] = [];
+    rows.forEach((row, i) => {
+      const result = spec.schema.safeParse(row);
+      if (result.success) entries.push(result.data);
+      else
+        for (const x of result.error.issues)
+          problems.push(`${spec.file}[${i}] ${x.path.join('.')}: ${x.message}`);
+    });
+    batches.push({ key, entries });
+  }
+
+  if (problems.length > 0) {
+    for (const problem of problems) logger.error(`[content] ${problem}`);
+    logger.error(
+      '[content] Nothing imported: the pack has the problems above, and the database keeps the content it had',
+    );
+    return false;
+  }
+
+  for (const { key, entries } of batches) {
+    const spec = SPECS[key];
+    for (const entry of entries) await spec.upsert(entry as never);
+    logger.info(`[content] Imported ${entries.length} from ${spec.file}`);
   }
 
   await syncIdCounters();
   await reportBrokenReferences();
+  return true;
 }
 
 /**

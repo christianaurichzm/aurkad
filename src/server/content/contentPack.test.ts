@@ -258,17 +258,28 @@ describe('importContentPack', () => {
     expect(map!.music).toBe('town-theme');
   });
 
-  it('skips invalid entries but imports the valid ones', async () => {
+  it('writes nothing from a pack with an invalid entry anywhere in it', async () => {
     write('items.json', [
-      { id: 1, name: 'Valid', sprite: 0, type: 'consumable' },
-      { id: 2, name: 'BadType', sprite: 0, type: 'not-a-real-type' },
-      { name: 'NoId', sprite: 0, type: 'money' },
+      { id: 1, name: 'Potion', sprite: 0, type: 'consumable' },
     ]);
-
     await importContentPack();
+    const error = vi.spyOn(logger, 'error').mockImplementation(() => logger);
+    write('items.json', [
+      { id: 1, name: 'Potion v2', sprite: 0, type: 'consumable' },
+      { id: 2, name: 'Elixir', sprite: 0, type: 'consumable' },
+    ]);
+    write('shops.json', [{ id: 'general', name: 'General', products: 'none' }]);
+    fs.writeFileSync(path.join(tmpDir, 'maps.json'), '[{');
 
-    const items = await listItems();
-    expect(items.map((i) => i.id)).toEqual([1]);
+    await expect(importContentPack()).resolves.toBe(false);
+
+    expect(await listItems()).toEqual([
+      expect.objectContaining({ id: 1, name: 'Potion' }),
+    ]);
+    const logged = error.mock.calls.map(([message]) => message).join('\n');
+    expect(logged).toContain('shops.json[0] products');
+    expect(logged).toContain('maps.json');
+    error.mockRestore();
   });
 
   it('is idempotent - re-importing upserts by id, no duplicates', async () => {
@@ -337,7 +348,7 @@ describe('importContentPack', () => {
 
   it('does nothing when content dir is missing', async () => {
     fs.rmSync(tmpDir, { recursive: true, force: true });
-    await expect(importContentPack()).resolves.toBeUndefined();
+    await expect(importContentPack()).resolves.toBe(true);
     expect(await listItems()).toHaveLength(0);
   });
 });

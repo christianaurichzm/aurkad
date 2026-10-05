@@ -16,8 +16,8 @@ async function main(): Promise<void> {
   try {
     if (cmd === 'export') {
       await exportContentPack();
-    } else {
-      await importContentPack();
+    } else if (!(await importContentPack())) {
+      process.exitCode = 1;
     }
   } finally {
     await mongoose.disconnect();

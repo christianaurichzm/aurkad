@@ -128,12 +128,14 @@ above.
 
 ## Content packs
 
-Export and import all game content (maps, NPCs, items, shops, spells, arrows) as a JSON bundle:
+Export and import all game content as one JSON file per collection in `content/`: `maps.json`, `npcs.json`, `items.json`, `shops.json`, `spells.json`, `arrows.json`, `loot.json`, `dialogs.json`, `quests.json` and `recipes.json`.
 
 ```bash
-npm run content:export   # writes content/pack.json
-npm run content:import   # loads content/pack.json into MongoDB
+npm run content:export   # writes the database's content to content/*.json
+npm run content:import   # loads content/*.json into MongoDB
 ```
+
+The server also imports `content/` on every boot, and the files win over the database for the ids they define. A pack goes in whole or not at all: if any file or entry is invalid, nothing is written, the log lists every problem, and the server runs on the content the database already had (`content:import` exits with an error).
 
 ## Replay
 
