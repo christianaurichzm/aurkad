@@ -8,7 +8,11 @@ on:
     tags: ['v*']
 
 jobs:
+  validation:
+    uses: ./.github/workflows/ci.yml
+
   release:
+    needs: validation
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -48,6 +52,7 @@ jobs:
   # Pages has to be set to "GitHub Actions" as its source once, in the
   # repository settings, or this job has nothing to deploy to and fails.
   docs:
+    needs: validation
     runs-on: ubuntu-latest
     permissions:
       pages: write

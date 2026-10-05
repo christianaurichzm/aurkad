@@ -40,6 +40,7 @@
     "typecheck:modules": "tsc -p modules/tsconfig.json --noEmit",
     "typecheck:e2e": "tsc -p e2e/tsconfig.json --noEmit",
     "e2e": "playwright test",
+    "e2e:production": "cross-env E2E_PRODUCTION=true playwright test",
     "lint": "eslint src bench tools e2e modules scripts",
     "format:check": "prettier --check \"{src,bench,tools,e2e}/**/*.{ts,tsx}\" \"modules/**/*.{js,jsx}\" \"scripts/**/*.js\"",
     "format:write": "prettier --write \"{src,bench,tools,e2e}/**/*.{ts,tsx}\" \"modules/**/*.{js,jsx}\" \"scripts/**/*.js\"",

@@ -1,6 +1,7 @@
 name: ci
 
 on:
+  workflow_call:
   push:
     branches: [main, 'feature/**', 'refactor/**', 'fix/**']
   pull_request:
@@ -86,6 +87,9 @@ jobs:
       # itself (reuseExistingServer is off when CI is set).
       - name: e2e
         run: npm run e2e
+
+      - name: production smoke (TLS, secure cookie, built app)
+        run: npm run e2e:production
 
       # The trace is the only way to debug a failure that does not reproduce
       # locally, and it is retained on failure only (see playwright.config.ts).

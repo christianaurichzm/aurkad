@@ -132,11 +132,8 @@ test('register, log in, move, and attack over the real stack', async ({
   const username = uniqueUsername();
   const { ws, self } = await registerAndLogin(page, username, 'e2e-password');
 
-  // The keyboard listener ignores keys while an <input> holds focus
-  // (isInputActive in client/io/keyboard.ts), and a real player's first
-  // click on the map is what makes movement work after typing a password,
-  // so this clicks it too rather than waiting for the form to unmount.
-  await page.locator('#gameMain').click();
+  // Clear the form's focus through the HUD before sending movement keys.
+  await page.locator('#hud-level').click();
 
   const start = await self.current('a starting position');
 
@@ -289,4 +286,143 @@ test.describe('touch layout', () => {
     ).toBe(844);
     expect(errors).toEqual([]);
   });
+});
+
+test('creates a small map, teleports through the GM panel, and saves its tiles', async ({
+  page,
+}) => {
+  test.skip(
+    process.env.E2E_PRODUCTION !== 'true',
+    'Requires the isolated admin fixture',
+  );
+  const errors: string[] = [];
+  page.on('pageerror', (error) => errors.push(error.message));
+  page.on('console', (message) => {
+    if (
+      message.type() === 'error' &&
+      /\[assets\]|\[gameLoop\]/.test(message.text())
+    )
+      errors.push(message.text());
+  });
+  const { self } = await registerAndLogin(
+    page,
+    'e2e-map-admin',
+    'e2e-password',
+  );
+  await page.locator('#hud-level').click();
+  await page.keyboard.press('c');
+  const content = page.getByRole('dialog', { name: 'Content Editor' });
+  await content.getByRole('button', { name: 'Maps', exact: true }).click();
+  await content.getByPlaceholder('Map name', { exact: true }).fill('Small map');
+  await content.locator('input[name="cols"]').fill('8');
+  await content.locator('input[name="rows"]').fill('6');
+  const created = page.waitForResponse(
+    (response) =>
+      response.url().endsWith('/maps') &&
+      response.request().method() === 'POST',
+  );
+  await content.getByRole('button', { name: 'Create Map' }).click();
+  const response = await created;
+  expect(response.status()).toBe(201);
+  const { mapId } = (await response.json()) as { mapId: string };
+  await content.getByRole('button', { name: 'Close', exact: true }).click();
+
+  await page.locator('#hud-level').click();
+  await page.keyboard.press('x');
+  const gm = page.getByRole('dialog', { name: 'GM panel' });
+  await gm
+    .getByPlaceholder('Player name (type or pick below)')
+    .fill('e2e-map-admin');
+  await gm.getByLabel('Map ID', { exact: true }).fill('1');
+  await gm.getByLabel('Col', { exact: true }).fill('19');
+  await gm.getByLabel('Row', { exact: true }).fill('19');
+  const onLargeMap = self.waitUntil(
+    'the far corner of the large map',
+    (s) => s.position.x === 19 * 64 && s.position.y === 19 * 64,
+  );
+  await gm.getByRole('button', { name: 'Warp', exact: true }).click();
+  await onLargeMap;
+
+  await gm.getByLabel('Map ID', { exact: true }).fill(mapId);
+  const onSmallMap = self.waitUntil(
+    'the clamped position on the small map',
+    (s) => s.position.x === 7 * 64 && s.position.y === 5 * 64,
+  );
+  await gm.getByRole('button', { name: 'Warp', exact: true }).click();
+  await onSmallMap;
+  await gm.getByRole('button', { name: 'Close', exact: true }).click();
+  // The cover is drawn on the fringe canvas, above the character and tiles.
+  await expect
+    .poll(() =>
+      page
+        .locator('#fringeCanvas')
+        .evaluate(
+          (canvas) =>
+            (canvas as HTMLCanvasElement)
+              .getContext('2d')!
+              .getImageData(0, 0, 1, 1).data[3],
+        ),
+    )
+    .toBe(0);
+
+  await page.locator('#hud-level').click();
+  await page.keyboard.press('z');
+  await expect(page.locator('#mapName')).toHaveValue('Small map');
+  await page.getByRole('button', { name: 'Fill', exact: true }).click();
+  const saved = page.waitForResponse((response) =>
+    response.url().endsWith('/saveMap'),
+  );
+  await page.locator('#saveButton').click();
+  expect((await saved).ok()).toBe(true);
+  const stored = await page.request.get(`/maps/${mapId}`);
+  const map = (await stored.json()) as { tiles: { tileIndex: number }[][] };
+  expect(map.tiles).toHaveLength(6);
+  expect(
+    map.tiles.every(
+      (row) => row.length === 8 && row.every((tile) => tile.tileIndex === 0),
+    ),
+  ).toBe(true);
+  expect(errors).toEqual([]);
+});
+
+test('production uses a secure session through TLS and revokes a live socket', async ({
+  page,
+  context,
+}) => {
+  test.skip(
+    process.env.E2E_PRODUCTION !== 'true',
+    'Requires the production TLS fixture',
+  );
+  const password = 'e2e-password';
+  const { ws } = await registerAndLogin(page, uniqueUsername(), password);
+  expect(ws.url()).toMatch(/^wss:/);
+  const cookie = (await context.cookies()).find((c) => c.name.endsWith('.sid'));
+  expect(cookie).toMatchObject({
+    secure: true,
+    httpOnly: true,
+    sameSite: 'Lax',
+  });
+
+  const reconnect = page.waitForEvent('websocket', (socket) =>
+    socket.url().includes('/ws'),
+  );
+  await page.evaluate(() => {
+    const socket = new window.WebSocket(`wss://${location.host}/ws`);
+    (window as Window & { smokeSocket?: globalThis.WebSocket }).smokeSocket =
+      socket;
+  });
+  const resumed = await reconnect;
+  const self = trackSelf(resumed);
+  await self.current('the resumed session');
+  const closed = new Promise<void>((resolve) =>
+    resumed.on('close', () => resolve()),
+  );
+  const changed = await page.request.post('/password', {
+    data: { currentPassword: password, newPassword: 'changed-password' },
+  });
+  expect(changed.ok()).toBe(true);
+  await closed;
+  expect(resumed.isClosed()).toBe(true);
+  const account = await page.request.get('/email');
+  expect(account.status()).toBe(401);
 });
