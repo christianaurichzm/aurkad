@@ -23,6 +23,7 @@ import { MapStateServer } from '../shared/types.js';
 import { config } from './config.js';
 import { probeTransactionSupport } from './persistence/transactions.js';
 import { checkDatabaseSchemaVersion } from './services/dbService.js';
+import PlayerModel from './model/Player.js';
 
 export async function connectToDatabase() {
   try {
@@ -32,6 +33,15 @@ export async function connectToDatabase() {
     // Asked once, here, because it is a property of the deployment and not of
     // any write: whether two documents can be committed together.
     await probeTransactionSupport();
+    // Mongoose builds indexes in the background and drops a failure without a
+    // word. The one that fails on real data is name_ci: two names differing
+    // only in case cannot share it, and without it sign-up races go through.
+    await PlayerModel.init().catch((err: unknown) =>
+      logger.error(
+        '[DB] player indexes not built; check for names differing only in case',
+        { err },
+      ),
+    );
   } catch (err) {
     logger.error('[DB] Connection failed', { err });
     process.exit(1);
