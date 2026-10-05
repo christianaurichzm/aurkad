@@ -35,6 +35,12 @@ export function normalizePlayerRecord(record: PlayerRecord): PlayerRecord {
 }
 
 export const playerRepository = {
+  async findForAuthentication(name: string): Promise<PlayerRecord | null> {
+    const doc = await PlayerModel.findOne({ name }).lean<PlayerRecord>().exec();
+    return doc
+      ? { ...normalizePlayerRecord(doc), authEpoch: doc.authEpoch ?? 0 }
+      : null;
+  },
   async findById(id: string): Promise<PlayerRecord | null> {
     const doc = await PlayerModel.findOne({ id }).lean<PlayerRecord>().exec();
     return doc ? normalizePlayerRecord(doc) : null;
@@ -58,10 +64,16 @@ export const playerRepository = {
   },
 
   /** Ends every session minted before now; returns the generation to match. */
-  async bumpAuthEpoch(name: string): Promise<number> {
+  async bumpAuthEpoch(
+    name: string,
+    access?: PlayerServer['access'],
+  ): Promise<number> {
     const doc = await PlayerModel.findOneAndUpdate(
       { name },
-      { $inc: { authEpoch: 1 } },
+      {
+        $inc: { authEpoch: 1 },
+        ...(access !== undefined ? { $set: { access } } : {}),
+      },
       { returnDocument: 'after' },
     )
       .select({ authEpoch: 1 })

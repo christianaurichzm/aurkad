@@ -55,6 +55,7 @@ import { createPlayer } from '../services/player/playerService.js';
 import { banPlayer } from '../services/content/banService.js';
 import { getPlayerByName } from '../sim/world.js';
 import { runtimeState } from '../sim/state.js';
+import { playerRepository } from '../persistence/playerRepository.js';
 
 // An opening socket reads its player's document, so the database is real.
 let mongod: MongoMemoryServer;
@@ -395,6 +396,19 @@ describe('a socket that comes back without a login', () => {
     expect(runtimeState.maps[startMapId]?.players[boss!.id]).toBe(boss);
   });
 
+  it('closes the socket if account validation fails during resume', async () => {
+    const query = vi
+      .spyOn(playerRepository, 'authEpochOf')
+      .mockRejectedValueOnce(new Error('database unavailable'));
+    try {
+      const ws = await open();
+      await vi.waitFor(() => expect(ws.readyState).toBe(WebSocket.CLOSED));
+      expect(playersWsMap.has('Boss')).toBe(false);
+    } finally {
+      query.mockRestore();
+    }
+  });
+
   it('turns a banned account away rather than letting the socket back in', async () => {
     await banPlayer('Boss', 'botting');
     const ws = await open();
@@ -434,5 +448,52 @@ describe('a socket that comes back without a login', () => {
     await settle();
 
     expect(getPlayerByName('Boss')).toBeDefined();
+  });
+});
+
+describe('revoking established sessions', () => {
+  it('closes the old socket and discards its queued actions after password reset', async () => {
+    const { default: bcrypt } = await import('bcrypt');
+    const { default: request } = await import('supertest');
+    const { default: session } = await import('express-session');
+    const { createApp } = await import('../app.js');
+    const { createSessionMiddleware } = await import('../http/session.js');
+    const { createAuthRouter } = await import('../http/routes/authRoutes.js');
+    const { createResetToken, consumeResetToken } =
+      await import('../services/player/passwordService.js');
+    await createPlayer('Online', await bcrypt.hash('old-password', 4));
+    const app = createApp();
+    const middleware = createSessionMiddleware(new session.MemoryStore());
+    app.use(middleware);
+    app.use(createAuthRouter());
+    const login = await request(app)
+      .post('/login')
+      .send({ username: 'Online', password: 'old-password' });
+    expect(login.status).toBe(200);
+    const http = createServer(app);
+    startWebSocketServer(http, middleware);
+    await new Promise<void>((resolve) => http.listen(0, '127.0.0.1', resolve));
+    const port = (http.address() as AddressInfo).port;
+    const cookie = String(login.headers['set-cookie']![0]).split(';')[0];
+    const ws = new WebSocket(`ws://127.0.0.1:${port}/ws`, {
+      headers: { Cookie: cookie! },
+    });
+    try {
+      await new Promise<void>((resolve, reject) => {
+        ws.once('open', resolve);
+        ws.once('error', reject);
+      });
+      ws.send(JSON.stringify({ type: 'language', language: 'pt' }));
+      await vi.waitFor(() => expect(getActionQueueSize()).toBeGreaterThan(0));
+      const token = await createResetToken('Online');
+      expect(await consumeResetToken(token!.token, 'new-password')).toBe('ok');
+      processActions();
+      expect(getPlayerByName('Online')?.language).not.toBe('pt');
+      await vi.waitFor(() => expect(ws.readyState).toBe(WebSocket.CLOSED));
+    } finally {
+      ws.terminate();
+      await stopWebSocketServer();
+      await new Promise<void>((resolve) => http.close(() => resolve()));
+    }
   });
 });

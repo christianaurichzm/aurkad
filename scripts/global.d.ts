@@ -682,7 +682,8 @@ interface ItemContainer {
 interface EconomyResult {
   ok: boolean;
   /** Only set when `ok` is false. */
-  reason?: 'invalid-amount' | 'not-enough' | 'no-space' | 'same-container';
+  reason?:
+    'invalid-amount' | 'not-enough' | 'no-space' | 'same-container' | 'busy';
 }
 
 /**
@@ -1332,3 +1333,43 @@ declare function warn(...args: unknown[]): void;
 
 /** Log an error. */
 declare function error(...args: unknown[]): void;
+
+/** Durable auction escrow. Requires MongoDB transactions. */
+interface AuctionListing {
+  id: string;
+  state: 'active' | 'unpaid';
+  seller: string;
+  itemId: number;
+  quantity: number;
+  price: number;
+  listedAt: number;
+  expiresAt: number;
+  currencyItemId?: number;
+  payout?: number;
+}
+interface AuctionResult {
+  ok: boolean;
+  listing?: AuctionListing;
+  reason?: string;
+}
+declare const auctions: {
+  list(): Promise<AuctionListing[]>;
+  create(
+    player: PlayerServer,
+    input: {
+      itemId: number;
+      quantity: number;
+      price: number;
+      durationMs: number;
+      maxListings: number;
+    },
+  ): Promise<AuctionResult>;
+  buy(
+    player: PlayerServer,
+    id: string,
+    currencyItemId: number,
+    feePercent: number,
+  ): Promise<AuctionResult>;
+  cancel(id: string, seller?: string): Promise<AuctionResult>;
+  sweep(): Promise<void>;
+};

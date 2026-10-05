@@ -102,6 +102,7 @@ above.
   its variables ahead of `theme.css`, so where both set the same thing the
   stylesheet written by hand wins. With more than one instance, `theme/` has to
   be a volume they share.
+
 - **`scripts/`** - server-side game logic in JavaScript (or TypeScript). Files
   are loaded at boot and hot-reloaded on save. See `scripts/example.js` and the
   typed API in `scripts/global.d.ts` - `npm run docs:api` renders it, and the
@@ -161,6 +162,8 @@ npm run replay -- replays/<file>.json --run              # re-simulate the movem
 ## Atomic economy writes (replica set)
 
 A trade moves an item between two player documents, and mailing one moves it from a player into the delivery queue. MongoDB can only write two documents together on a **replica set**; standalone `mongod` cannot, so the engine writes them one at a time and a crash in between duplicates or loses the item.
+
+The auction module requires transactions and refuses operations on standalone MongoDB. Listing commits the seller's inventory and escrow together. Buying commits the buyer's inventory and a durable seller payment; a failed payment is retried by the sweep after a restart. Cancellation and expiry commit the returned item and removal of the listing together. Auction v2's `list` and `listings` module APIs return promises. Old entries in the `auction` KV scope are preserved for reconciliation: their write order cannot prove whether an item or payment already moved, so enabling v2 does not automatically refund them.
 
 The server detects which it is talking to and says so on boot:
 

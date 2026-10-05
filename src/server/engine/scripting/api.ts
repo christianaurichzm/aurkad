@@ -129,6 +129,13 @@ import {
 import type { HookMap } from '../hooks.js';
 import type { InventoryLike, PlayerServer } from '../../../shared/types.js';
 import { recordHealthChange } from '../../net/snapshot.js';
+import {
+  createAuction,
+  listAuctions,
+  buyAuction,
+  returnAuction,
+  sweepAuctions,
+} from '../../services/economy/auctionService.js';
 
 // Mutations go through updatePlayer so state is marked dirty (persisted by the
 // snapshot loop) and broadcast to clients on the next tick. No DB write happens
@@ -195,7 +202,9 @@ export function buildApi(
   ): () => void {
     return () => {
       try {
-        runWithBudget(scriptName, `${source}:${context}`, fn);
+        runWithBudget(scriptName, `${source}:${context}`, () => {
+          observeRejection(fn(), source, context);
+        });
       } catch (e) {
         recordScriptError(scriptName, e, source, context);
         throw e;
@@ -203,12 +212,33 @@ export function buildApi(
     };
   }
 
+  // VM promises belong to another realm, so instanceof Promise misses them.
+  // Observe the value before the synchronous budget wrapper drops it.
+  function observeRejection(
+    result: unknown,
+    source: ScriptErrorSource,
+    context: string,
+  ): void {
+    if (result && typeof (result as PromiseLike<unknown>).then === 'function') {
+      void Promise.resolve(result).catch((err) => {
+        logger.error(`[script:${scriptName}] async handler rejected`, {
+          source,
+          context,
+          err,
+        });
+        recordScriptError(scriptName, err, source, context);
+      });
+    }
+  }
+
   function safeOn(event: keyof HookMap, handler: AnyHandler): Cleanup {
     const wrapped = (payload: unknown) => {
       try {
         // Timed and, if it keeps overrunning, dropped: one slow handler on a
         // hot hook like `tick` costs the whole server its frame.
-        runWithBudget(scriptName, `on:${event}`, () => handler(payload));
+        runWithBudget(scriptName, `on:${event}`, () => {
+          observeRejection(handler(payload), 'hook', event);
+        });
       } catch (e) {
         logger.error(`[script:${scriptName}] hook handler threw`, {
           event,
@@ -537,6 +567,14 @@ export function buildApi(
     persistNow: (...playersToSave: PlayerServer[]): Promise<boolean> =>
       persistPlayersNow(playersToSave.filter((p) => !!p)),
 
+    auctions: {
+      list: listAuctions,
+      create: createAuction,
+      buy: buyAuction,
+      cancel: returnAuction,
+      sweep: sweepAuctions,
+    },
+
     // Items owed to a player who may be offline, which trade cannot cover.
     // These hit the database and return promises. The queue is core because
     // `claim` adds to the inventory and records the claim in one write, so a
@@ -846,7 +884,9 @@ export function buildApi(
         typeof optsOrHandler === 'function' ? optsOrHandler : maybeHandler;
       if (!handler) return;
       const unregister = registerCommand(String(name), opts, (ctx) => {
-        runWithBudget(scriptName, `command:${name}`, () => handler(ctx));
+        runWithBudget(scriptName, `command:${name}`, () => {
+          observeRejection(handler(ctx), 'command', String(name));
+        });
       });
       trackUnsub(unregister);
     },

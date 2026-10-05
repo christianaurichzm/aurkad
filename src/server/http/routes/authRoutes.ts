@@ -20,6 +20,7 @@ import {
   enrichPlayer,
   enterWorld,
   getPlayerByNameFromDb,
+  getPlayerForAuthentication,
   nameTaken,
   refuseEntry,
 } from '../../services/player/playerService.js';
@@ -89,7 +90,7 @@ export function createAuthRouter() {
       if (!body) return;
       const { username, password } = body;
 
-      const playerDoc = await getPlayerByNameFromDb(username);
+      const playerDoc = await getPlayerForAuthentication(username);
       if (!playerDoc) {
         return res
           .status(401)
@@ -133,7 +134,7 @@ export function createAuthRouter() {
         req.session.cookie.maxAge = REMEMBERED_SESSION_MS;
       }
 
-      const { password: _pw, ...runtimePlayer } = playerDoc;
+      const { password: _pw, authEpoch = 0, ...runtimePlayer } = playerDoc;
       const player = enrichPlayer(runtimePlayer);
 
       const existingWs = playersWsMap.get(username);
@@ -163,10 +164,18 @@ export function createAuthRouter() {
         });
       }
 
+      // Credentials and privileges must belong to the generation we read
+      // before bcrypt and the second factor, both of which yield to revocation.
+      if ((await authEpochOf(username)) !== authEpoch) {
+        await releasePresence(player.id);
+        return res
+          .status(401)
+          .json({ message: translateFor(req, 'Invalid username or password') });
+      }
       req.session.username = username;
       req.session.accessLevel = player.access ?? Access.USER;
       req.session.assetKey = crypto.randomBytes(32).toString('hex');
-      req.session.authEpoch = (await authEpochOf(username)) ?? 0;
+      req.session.authEpoch = authEpoch;
 
       const map = enterWorld(runtimePlayer);
 

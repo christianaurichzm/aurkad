@@ -514,3 +514,37 @@ describe('POST /login with a second factor', () => {
     expect(res.status).toBe(200);
   });
 });
+
+describe('authentication changing during login', () => {
+  it.each(['demotion', 'password reset'])(
+    'rejects a concurrent %s',
+    async (change) => {
+      await createPlayer('Racing', await hashPw('pw'));
+      await setAccess('Racing', Access.ADMIN);
+      const compare = vi
+        .spyOn(bcrypt, 'compare')
+        .mockImplementationOnce(async () => {
+          await PlayerModel.updateOne(
+            { name: 'Racing' },
+            {
+              $set:
+                change === 'demotion'
+                  ? { access: Access.USER }
+                  : { password: await hashPw('new-pw') },
+              $inc: { authEpoch: 1 },
+            },
+          );
+          return true;
+        });
+      try {
+        const response = await request(app)
+          .post('/login')
+          .send({ username: 'Racing', password: 'pw' });
+        expect(response.status).toBe(401);
+        expect(response.headers['set-cookie']).toBeUndefined();
+      } finally {
+        compare.mockRestore();
+      }
+    },
+  );
+});

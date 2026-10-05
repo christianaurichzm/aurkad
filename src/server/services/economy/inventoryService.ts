@@ -16,6 +16,7 @@ import { getPlayerByName, levelUpPlayer } from '../player/playerService.js';
 import { emit } from '../../engine/hooks.js';
 import { dispatchEntityScript } from '../../engine/scripting/entityScripts.js';
 import { addItem, canFit, removeItem } from './economyService.js';
+import { isPlayerCommitting } from '../../persistence/dirtyPlayers.js';
 import { sweepUnclaimableDeliveries } from './deliveryService.js';
 import { forgetSentItem, recordHealthChange } from '../../net/snapshot.js';
 import { gameConfig } from '../../gameConfig.js';
@@ -239,6 +240,7 @@ export function useItem(username: string, itemId: number): boolean {
 }
 
 export function equipItem(player: PlayerServer, itemId: number): void {
+  if (isPlayerCommitting(player.id)) return;
   const item = getItemById(itemId);
   if (!item) return;
 
@@ -290,6 +292,7 @@ export function equipItem(player: PlayerServer, itemId: number): void {
 }
 
 export function unequipItem(player: PlayerServer, slot: EquipmentSlot): void {
+  if (isPlayerCommitting(player.id)) return;
   const itemId = player.equipped[slot];
   if (!itemId) return;
 

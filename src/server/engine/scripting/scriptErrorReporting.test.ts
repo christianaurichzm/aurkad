@@ -4,7 +4,7 @@
  * that rots quietly: a wrapper that swallows before recording, or a stack
  * whose frames no longer name the script file.
  */
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { runInSandbox } from './sandbox.js';
 import { getScriptErrors, clearScriptErrors } from './scriptErrors.js';
 import { clearAll, emit } from '../hooks.js';
@@ -23,6 +23,19 @@ beforeEach(() => {
 });
 
 describe('a hook handler that throws', () => {
+  it('records a rejection after an awaited VM promise', async () => {
+    const handle = runInSandbox(
+      `on('tick', async () => { await Promise.resolve(); throw new Error('async hook'); });`,
+      'async-hook.js',
+    );
+    emit('tick', { tick: 1 });
+    await vi.waitFor(() =>
+      expect(getScriptErrors('async-hook.js')).toMatchObject([
+        { source: 'hook', message: 'Error: async hook' },
+      ]),
+    );
+    handle.cleanup();
+  });
   it('is recorded against the script and the line that threw', () => {
     const sim = createFixture(0);
     const player = sim.addPlayer({ name: 'Alice' });
@@ -116,6 +129,21 @@ describe('a script that fails to load', () => {
 });
 
 describe('a scheduled task that throws', () => {
+  it('records an asynchronous scheduled rejection without stopping later tasks', async () => {
+    const handle = runInSandbox(
+      `every(1, async () => { await Promise.resolve(); throw new Error('async task'); });`,
+      'async-task.js',
+    );
+    advanceTick();
+    runScheduledTasks();
+    await vi.waitFor(() =>
+      expect(getScriptErrors('async-task.js')).toMatchObject([
+        { source: 'schedule', message: 'Error: async task' },
+      ]),
+    );
+    expect(scheduledTaskCount()).toBe(1);
+    handle.cleanup();
+  });
   it('is recorded and does not stop the scheduler', () => {
     const handle = runInSandbox(
       [`every(1, () => {`, `  throw new Error('tick task broke');`, `});`].join(

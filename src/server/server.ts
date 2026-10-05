@@ -79,6 +79,7 @@ import { persistPlayersOnShutdown } from './services/player/playerService.js';
 import { startPlayerSnapshotLoop } from './persistence/playerSnapshot.js';
 import { startCensusJob } from './services/economy/economyCensus.js';
 import { logger } from './logger.js';
+import { revokePlayerSessions } from './net/transport.js';
 import { startAdminRepl } from './admin/repl.js';
 import { loadScripts, unloadAllScripts } from './engine/scripting/index.js';
 import {
@@ -178,6 +179,12 @@ let heartbeatTimer: ReturnType<typeof setInterval> | undefined;
  * and combat are absent, since a map lives on one instance.
  */
 function registerInstanceEvents(): void {
+  onInstanceEvent<{ username: string; epoch: number }>(
+    'sessionRevoked',
+    ({ username, epoch }) => {
+      revokePlayerSessions(username, epoch);
+    },
+  );
   onInstanceEvent<ChatMessagePayload>('chat', receiveGlobalLine);
 
   onInstanceEvent<{ text: string }>('motd', ({ text }) => {

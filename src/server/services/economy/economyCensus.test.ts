@@ -11,6 +11,7 @@ import mongoose from 'mongoose';
 import type { MongoMemoryServer } from 'mongodb-memory-server';
 import { startMemoryMongo } from '../../../test/mongo.js';
 import DeliveryModel from '../../model/Delivery.js';
+import AuctionModel from '../../model/Auction.js';
 import EconomyCensusModel from '../../model/EconomyCensus.js';
 import { compareCensus, isSuspicious, takeCensus } from './economyCensus.js';
 import { createFixture } from '../../sim/simFixture.js';
@@ -45,6 +46,39 @@ const totalOf = (census: EconomyCensus, itemId: number) =>
   census.items.find((i) => i.itemId === itemId)?.total ?? 0;
 
 describe('takeCensus', () => {
+  it('counts listed items and seller proceeds held in auction escrow', async () => {
+    await AuctionModel.create([
+      {
+        id: 'active',
+        state: 'active',
+        seller: 'Alice',
+        itemId: SWORD,
+        quantity: 2,
+        price: 50,
+        listedAt: 0,
+        expiresAt: Date.now() + 1000,
+      },
+      {
+        id: 'debt',
+        state: 'unpaid',
+        seller: 'Bob',
+        itemId: SWORD,
+        quantity: 1,
+        price: 50,
+        listedAt: 0,
+        expiresAt: 0,
+        currencyItemId: GOLD,
+        payout: 45,
+      },
+    ]);
+    const census = await takeCensus();
+    expect(totalOf(census, SWORD)).toBe(2);
+    expect(totalOf(census, GOLD)).toBe(45);
+    expect(
+      census.items.find((i) => i.itemId === GOLD)?.byLocation.auction,
+    ).toBe(45);
+  });
+
   it('counts what a logged-out player is holding', async () => {
     const offline = await createPlayer('Alice', 'hash');
     offline.inventory = {
@@ -189,6 +223,7 @@ describe('compareCensus', () => {
         playerData: 0,
         delivery: 0,
         ground: 0,
+        auction: 0,
       },
       topHolders: [],
     })),

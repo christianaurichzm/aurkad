@@ -3,6 +3,9 @@ import {
   markPlayerDirty,
   clearPlayerDirty,
   drainDirtyPlayerIds,
+  beginPlayerCommit,
+  endPlayerCommit,
+  isPlayerCommitting,
 } from './dirtyPlayers.js';
 
 beforeEach(() => {
@@ -10,6 +13,14 @@ beforeEach(() => {
 });
 
 describe('dirty players', () => {
+  it('keeps a player held until every overlapping commit ends', () => {
+    beginPlayerCommit(['overlap']);
+    beginPlayerCommit(['overlap']);
+    endPlayerCommit(['overlap']);
+    expect(isPlayerCommitting('overlap')).toBe(true);
+    endPlayerCommit(['overlap']);
+    expect(isPlayerCommitting('overlap')).toBe(false);
+  });
   it('drains the marked ids and resets the set', () => {
     markPlayerDirty('a');
     markPlayerDirty('b');

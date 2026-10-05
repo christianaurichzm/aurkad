@@ -1,10 +1,10 @@
 {
   "id": "auction",
   "name": "Auction House",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "server": "server.js",
   "client": "client.jsx",
-  "description": "Sell to a player who is not online. Listings hold the item, the buyer pays through the atomic exchange, and the seller is paid through the mail queue.",
+  "description": "Durable auction escrow and recoverable seller payments. Requires MongoDB transactions. The listings and list module APIs return promises.",
   "config": {
     "currencyItemId": 3,
     "durationHours": 48,

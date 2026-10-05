@@ -1,25 +1,5 @@
 // @ts-check
-// Auction house: selling to somebody who is not online. A module, not
-// core, as both halves of a sale are atomic engine operations:
-//
-//   - the buyer pays with `exchangeItems`, coins out and item in as one
-//     economy operation, so a full bag cannot cost the price and a crash
-//     cannot pay twice.
-//   - the seller is paid through the delivery queue, which reaches a
-//     player who is not connected.
-//
-// Listing is not atomic: `removeItem` takes the item and the listing is
-// written, two writes, ordered to lose rather than duplicate. The listing
-// is written `pending`, the item taken, the seller persisted, and only
-// then the listing marked `active`. A crash before the persist leaves the
-// item and a pending listing the next boot drops; one between the persist
-// and the promotion loses the item. A duplicate would be worse, as it
-// defeats the economy census.
-//
-// The sale runs the same way: the buyer gets the item, then the seller's
-// coins are queued, so a crash between costs the seller a payment rather
-// than paying for an item nobody got. A full mailbox costs nothing: the
-// listing stays, as a debt or for sale, until the queue takes it.
+// Gameplay policy and presentation; escrow commits are owned by the engine.
 
 i18n({
   pt: {
@@ -81,24 +61,7 @@ const sweepTicks = msToTicks(
   Math.max(5, num(config && config.sweepSeconds, 60)) * 1000,
 );
 
-const SCOPE = 'auction';
-
-const read = (id) => /** @type {any} */ (store.get(SCOPE, id));
-const write = (listing) => store.set(SCOPE, listing.id, listing);
-const drop = (id) => store.delete(SCOPE, id);
-
-function all() {
-  return store
-    .keys(SCOPE)
-    .map(read)
-    .filter((listing) => listing && listing.state === 'active');
-}
-
-const itemName = (itemId) => {
-  const item = getItem(itemId);
-  return item ? item.name : `#${itemId}`;
-};
-
+const itemName = (itemId) => getItem(itemId)?.name || `#${itemId}`;
 const view = (listing) => ({
   id: listing.id,
   seller: listing.seller,
@@ -109,11 +72,6 @@ const view = (listing) => ({
   expiresAt: listing.expiresAt,
 });
 
-/**
- * What this player could put up. Names travel with it for the same reason the
- * trade module sends them: the client has no item catalogue, and a sell form
- * listing raw ids is a form nobody can use.
- */
 function sellable(player) {
   const totals = new Map();
   for (const entry of player.inventory.items) {
@@ -128,8 +86,8 @@ function sellable(player) {
   }));
 }
 
-function push(player) {
-  const listings = all();
+async function push(player) {
+  const listings = await auctions.list();
   sendEvent(player, 'auction:update', {
     listings: listings.map(view),
     mine: listings.filter((l) => l.seller === player.name).map((l) => l.id),
@@ -139,166 +97,72 @@ function push(player) {
     feePercent,
   });
 }
-
-const pushAll = () => {
-  for (const player of getPlayers()) push(player);
+const pushAll = async () => {
+  for (const player of getPlayers()) await push(player);
 };
 
-/** Whether the queue took it: a full mailbox refuses, a failed write throws. */
-const queued = (input) =>
-  delivery.queue(input).then(
-    (result) => result.ok,
-    () => false,
-  );
-
-/**
- * Back to the seller through the queue, as they may be long gone. Held
- * across the await like a sale, so no buyer takes the listing while the
- * item is on its way back, and dropped only once the queue holds it: a
- * refused delivery leaves the listing up for the expiry sweep to retry.
- */
-async function returnToSeller(listing, reason) {
-  listing.state = 'returning';
-  write(listing);
-  const ok = await queued({
-    to: listing.seller,
-    itemId: listing.itemId,
-    quantity: listing.quantity,
-  });
-  if (!ok) {
-    listing.state = 'active';
-    write(listing);
-    return false;
-  }
-  drop(listing.id);
-  const seller = getPlayer(listing.seller);
-  if (seller && reason)
-    sendMessage(
-      seller,
-      t(seller, reason, {
-        quantity: listing.quantity,
-        item: itemName(listing.itemId),
-      }),
-    );
-  return true;
+function failure(result, player, price) {
+  const messages = {
+    'unknown-item': 'No such item.',
+    bound: 'That item cannot be sold.',
+    'invalid-amount': 'The price has to be at least 1.',
+    'not-enough': price
+      ? t(player, 'You need {price} to buy that.', { price })
+      : 'You do not have that many.',
+    'no-space': 'Your bag is full.',
+    missing: 'No such listing.',
+    'not-yours': 'That listing is not yours.',
+    'own-listing': 'You cannot buy your own listing.',
+    'mailbox-full': 'Your mailbox has no room for it, so the listing stays up.',
+    limit: t(player, 'You already have {count} listings.', {
+      count: maxPerPlayer,
+    }),
+    'transactions-required': 'Auctions require MongoDB transactions.',
+    busy: 'An inventory operation is still being saved. Try again.',
+    'not-committed': 'The operation could not be saved. Try again.',
+  };
+  return messages[result.reason] || messages['not-committed'];
 }
 
-/**
- * The seller's coins. A refused payment keeps the listing as a debt the sweep
- * pays off once the mailbox has room, because the buyer already has the item.
- */
-async function paySeller(listing) {
-  listing.state = 'paying';
-  write(listing);
-  const ok = await queued({
-    to: listing.seller,
-    itemId: currencyItemId,
-    quantity: listing.payout,
-  });
-  if (ok) {
-    drop(listing.id);
-  } else {
-    listing.state = 'unpaid';
-    write(listing);
-  }
-}
-
-let counter = 0;
-const nextId = () => `${Date.now().toString(36)}${(counter++).toString(36)}`;
-
-function list(player, rawItemId, rawQuantity, rawPrice) {
+async function list(player, rawItemId, rawQuantity, rawPrice) {
   const itemId = Math.floor(num(rawItemId, 0));
   const quantity = Math.max(1, Math.floor(num(rawQuantity, 1)));
   const price = Math.floor(num(rawPrice, 0));
-
-  const item = getItem(itemId);
-  if (!item) return 'No such item.';
-  // A bound item is one the game said stays with its owner; an auction is the
-  // longest way around that rule.
-  if (item.bound) return 'That item cannot be sold.';
-  if (price < 1) return 'The price has to be at least 1.';
-  if (!hasItem(player, itemId, quantity)) return 'You do not have that many.';
-
-  const mine = all().filter((l) => l.seller === player.name);
-  if (mine.length >= maxPerPlayer)
-    return t(player, 'You already have {count} listings.', {
-      count: mine.length,
-    });
-
-  // Written before the item moves: a crash here leaves a pending row the boot
-  // sweep drops, and the item never left the seller.
-  const listing = {
-    id: nextId(),
-    state: 'pending',
-    seller: player.name,
+  const result = await auctions.create(player, {
     itemId,
     quantity,
     price,
-    listedAt: Date.now(),
-    expiresAt: Date.now() + durationMs,
-  };
-  if (!write(listing)) return 'Could not take the item, so nothing was listed.';
-
-  if (!removeItem(player, itemId, quantity)) {
-    drop(listing.id);
-    return 'You do not have that many.';
-  }
-  persistNow(player);
-
-  listing.state = 'active';
-  write(listing);
-  pushAll();
+    durationMs,
+    maxListings: maxPerPlayer,
+  });
+  if (!result.ok) return failure(result, player);
+  await pushAll();
   return t(player, 'Listed {quantity}x {item} for {price}.', {
     quantity,
-    item: item.name,
+    item: itemName(itemId),
     price,
   });
 }
 
 async function cancelListing(player, id) {
-  const listing = read(String(id || ''));
-  if (!listing || listing.state !== 'active') return 'No such listing.';
-  if (listing.seller !== player.name) return 'That listing is not yours.';
-
-  if (!(await returnToSeller(listing)))
-    return 'Your mailbox has no room for it, so the listing stays up.';
-  pushAll();
+  const result = await auctions.cancel(String(id || ''), player.name);
+  if (!result.ok) return failure(result, player);
+  await pushAll();
   return 'Cancelled, and the item is in your mailbox.';
 }
 
 async function buy(player, id) {
-  const listing = read(String(id || ''));
-  if (!listing || listing.state !== 'active') return 'No such listing.';
-  if (listing.seller === player.name) return 'You cannot buy your own listing.';
-  if (!hasItem(player, currencyItemId, listing.price))
-    return t(player, 'You need {price} to buy that.', { price: listing.price });
-
-  // Reserved before the money moves, so two buyers in the same tick cannot both
-  // pass the check above and both be charged.
-  listing.state = 'sold';
-  write(listing);
-
-  // The one indivisible step: the coins leave and the item arrives together.
-  const paid = exchangeItems(
-    player,
-    [{ itemId: currencyItemId, quantity: listing.price }],
-    { itemId: listing.itemId, quantity: listing.quantity },
+  const listing = (await auctions.list()).find(
+    (l) => l.id === String(id || ''),
   );
-  if (!paid.ok) {
-    listing.state = 'active';
-    write(listing);
-    return paid.reason === 'no-space'
-      ? 'Your bag is full.'
-      : t(player, 'You need {price} to buy that.', { price: listing.price });
-  }
-  persistNow(player);
-
-  const fee = Math.floor((listing.price * feePercent) / 100);
-  const payout = Math.max(0, listing.price - fee);
-  listing.payout = payout;
-  if (payout > 0) await paySeller(listing);
-  else drop(listing.id);
-
+  if (!listing) return 'No such listing.';
+  const result = await auctions.buy(
+    player,
+    listing.id,
+    currencyItemId,
+    feePercent,
+  );
+  if (!result.ok) return failure(result, player, listing.price);
   const seller = getPlayer(listing.seller);
   if (seller)
     sendMessage(
@@ -307,11 +171,10 @@ async function buy(player, id) {
         buyer: player.name,
         quantity: listing.quantity,
         item: itemName(listing.itemId),
-        price: payout,
+        price: result.listing.payout,
       }),
     );
-
-  pushAll();
+  await pushAll();
   return t(player, 'Bought {quantity}x {item} for {price}.', {
     quantity: listing.quantity,
     item: itemName(listing.itemId),
@@ -319,48 +182,23 @@ async function buy(player, id) {
   });
 }
 
-/** A pending row is a crash between write and debit: the item never left. */
-function dropPending() {
-  for (const id of store.keys(SCOPE)) {
-    const listing = read(id);
-    if (listing && listing.state === 'pending') drop(id);
-  }
-}
-
-every(sweepTicks, () => {
-  const now = Date.now();
-  for (const listing of all()) {
-    if (listing.expiresAt <= now)
-      void returnToSeller(
-        listing,
-        'Your listing of {quantity}x {item} expired.',
-      );
-  }
-  for (const id of store.keys(SCOPE)) {
-    const listing = read(id);
-    if (listing && listing.state === 'unpaid') void paySeller(listing);
-  }
+every(sweepTicks, async () => {
+  await auctions.sweep();
+  await pushAll();
 });
 
-on('customAction', ({ player, channel, payload }) => {
+on('customAction', async ({ player, channel, payload }) => {
   const data = /** @type {any} */ (payload);
-  if (channel === 'auction:request') push(player);
+  if (channel === 'auction:request') await push(player);
   else if (channel === 'auction:list')
     sendMessage(
       player,
-      list(
-        player,
-        data && data.itemId,
-        data && data.quantity,
-        data && data.price,
-      ),
+      await list(player, data?.itemId, data?.quantity, data?.price),
     );
   else if (channel === 'auction:buy')
-    void buy(player, data && data.id).then((msg) => sendMessage(player, msg));
+    sendMessage(player, await buy(player, data?.id));
   else if (channel === 'auction:cancel')
-    void cancelListing(player, data && data.id).then((msg) =>
-      sendMessage(player, msg),
-    );
+    sendMessage(player, await cancelListing(player, data?.id));
 });
 
 command(
@@ -369,19 +207,18 @@ command(
     description:
       'Auction: /auction list <itemId> <qty> <price> | cancel <id> | mine',
   },
-  ({ player, args, reply }) => {
+  async ({ player, args, reply }) => {
     if (!player) return reply('Auction commands must be used in-game.');
     const sub = String(args[0] || '').toLowerCase();
-
-    if (sub === 'list') return reply(list(player, args[1], args[2], args[3]));
-    if (sub === 'cancel')
-      return void cancelListing(player, args[1]).then((msg) => reply(msg));
-    if (sub === 'buy')
-      return void buy(player, args[1]).then((msg) => reply(msg));
+    if (sub === 'list')
+      return reply(await list(player, args[1], args[2], args[3]));
+    if (sub === 'cancel') return reply(await cancelListing(player, args[1]));
+    if (sub === 'buy') return reply(await buy(player, args[1]));
     if (sub === 'mine' || sub === '') {
-      const listings =
-        sub === 'mine' ? all().filter((l) => l.seller === player.name) : all();
-      if (listings.length === 0)
+      const listings = (await auctions.list()).filter(
+        (l) => sub !== 'mine' || l.seller === player.name,
+      );
+      if (!listings.length)
         return reply(
           sub === 'mine'
             ? 'You have no listings.'
@@ -390,11 +227,8 @@ command(
       for (const listing of listings.slice(0, 20))
         reply(
           t(player, '#{id} {quantity}x {item} - {price} (by {seller})', {
-            id: listing.id,
-            quantity: listing.quantity,
+            ...listing,
             item: itemName(listing.itemId),
-            price: listing.price,
-            seller: listing.seller,
           }),
         );
       return;
@@ -406,23 +240,19 @@ command(
 );
 
 provide('auction', {
-  listings: () => all().map(view),
+  listings: async () => (await auctions.list()).map(view),
   list,
   buy,
   cancel: cancelListing,
-  /**
-   * Ends a listing without a sale, the item going back to the seller: a
-   * season reset, moderation.
-   */
-  withdraw: (id) => {
-    const listing = read(String(id));
-    return listing && listing.state === 'active'
-      ? returnToSeller(listing)
-      : Promise.resolve(false);
-  },
+  withdraw: async (id) => (await auctions.cancel(String(id))).ok,
 });
 
-dropPending();
+// The old KV ledger cannot prove whether its debit or delivery was saved.
+// Preserve it for reconciliation instead of guessing and minting a refund.
+if (store.keys('auction').length)
+  log(
+    'Legacy auction entries require reconciliation; preserved in store scope auction.',
+  );
 log(
   `Auction module ready (currency=${currencyItemId}, ${durationMs / 3600_000}h, fee=${feePercent}%).`,
 );

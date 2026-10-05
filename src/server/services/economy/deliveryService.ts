@@ -17,8 +17,14 @@
 // on top (who may send, the message, the expiry) is the module.
 
 import crypto from 'node:crypto';
+import type { ClientSession } from 'mongoose';
 import DeliveryModel from '../../model/Delivery.js';
-import { addItem, removeItem } from './economyService.js';
+import {
+  addItem,
+  removeItem,
+  lockInventory,
+  unlockInventory,
+} from './economyService.js';
 import {
   supportsTransactions,
   withTransaction,
@@ -29,10 +35,17 @@ import { getPlayerByName } from '../../sim/world.js';
 import {
   getPlayerByNameFromDb,
   persistPlayerSessionState,
+  waitForPlayerPersistence,
 } from '../player/playerService.js';
 import { measureValue } from '../../persistence/dataLimits.js';
 import { logger } from '../../logger.js';
+import { updatePlayer } from '../world/gameData.js';
 import type { PlayerServer } from '../../../shared/types.js';
+import {
+  beginPlayerCommit,
+  endPlayerCommit,
+  isPlayerCommitting,
+} from '../../persistence/dirtyPlayers.js';
 
 /**
  * Pending rows one recipient may hold. The cap is the recipient's, so one
@@ -111,6 +124,7 @@ function toRow(doc: PendingDelivery): PendingDelivery {
  */
 async function prepareRow(
   input: DeliveryInput,
+  session?: ClientSession,
 ): Promise<
   { ok: true; row: PendingDelivery } | { ok: false; reason: DeliveryFailure }
 > {
@@ -129,7 +143,9 @@ async function prepareRow(
     return fail('meta-too-large');
   }
 
-  const pending = await DeliveryModel.countDocuments({ to: recipientName });
+  const pending = await DeliveryModel.countDocuments({
+    to: recipientName,
+  }).session(session ?? null);
   if (pending >= MAX_PENDING_PER_PLAYER) return fail('mailbox-full');
 
   return {
@@ -151,11 +167,13 @@ async function prepareRow(
 /** Queues an item for `to`, online or not, out of nowhere (a script grant). */
 export async function queueDelivery(
   input: DeliveryInput,
+  session?: ClientSession,
 ): Promise<QueueResult> {
-  const prepared = await prepareRow(input);
+  const prepared = await prepareRow(input, session);
   if (!prepared.ok) return prepared;
 
-  await DeliveryModel.create(prepared.row);
+  if (session) await DeliveryModel.create([prepared.row], { session });
+  else await DeliveryModel.create(prepared.row);
   return { ok: true, id: prepared.row.id };
 }
 
@@ -174,56 +192,51 @@ export async function sendDelivery(
   const prepared = await prepareRow(input);
   if (!prepared.ok) return prepared;
   const { row } = prepared;
-
-  // Synchronous with the check inside it, and only now: everything above this
-  // line awaited, and an inventory can change across an await.
-  if (!removeItem(from.inventory, row.itemId, row.quantity).ok) {
-    return fail('not-enough');
-  }
-
-  const restore = () => {
-    // Always fits: the slot it came from was freed a moment ago.
-    addItem(from.inventory, row.itemId, row.quantity);
-  };
-
-  if (supportsTransactions()) {
-    const committed = await withTransaction(async (session) => {
-      await persistPlayerSessionState(from, session);
-      await DeliveryModel.create([row], { session });
-    }, `delivery send: ${from.name} -> ${row.to}`);
-    if (!committed) {
-      restore();
-      return fail('not-committed');
+  if (isPlayerCommitting(from.id)) return fail('not-committed');
+  beginPlayerCommit([from.id]);
+  lockInventory(from.inventory);
+  try {
+    // A snapshot started before the hold must finish before the debit, or its
+    // stale inventory can overwrite a transaction that has already committed.
+    await waitForPlayerPersistence(from.id);
+    const inventory = structuredClone(from.inventory);
+    if (!removeItem(inventory, row.itemId, row.quantity).ok)
+      return fail('not-enough');
+    const debited = { ...from, inventory };
+    if (supportsTransactions()) {
+      const committed = await withTransaction(async (session) => {
+        await persistPlayerSessionState(debited, session);
+        await DeliveryModel.create([row], { session });
+      }, `delivery send: ${from.name} -> ${row.to}`);
+      if (!committed) return fail('not-committed');
+    } else {
+      try {
+        await persistPlayerSessionState(debited);
+      } catch (err) {
+        logger.error('[delivery] sender debit not persisted; nothing queued', {
+          player: from.name,
+          err,
+        });
+        return fail('not-committed');
+      }
+      try {
+        await DeliveryModel.create(row);
+      } catch (err) {
+        logger.error(
+          '[delivery] row not created after debit; refunding sender',
+          { player: from.name, err },
+        );
+        await persistPlayerSessionState(from).catch(() => undefined);
+        return fail('not-committed');
+      }
     }
+    from.inventory.items = inventory.items;
+    updatePlayer(from);
     return { ok: true, id: row.id };
+  } finally {
+    unlockInventory(from.inventory);
+    endPlayerCommit([from.id]);
   }
-
-  try {
-    await persistPlayerSessionState(from);
-  } catch (err) {
-    logger.error('[delivery] sender debit not persisted; nothing queued', {
-      player: from.name,
-      err,
-    });
-    restore();
-    return fail('not-committed');
-  }
-
-  try {
-    await DeliveryModel.create(row);
-  } catch (err) {
-    // The window a replica set closes and a standalone one cannot: the debit
-    // is already durable, so the item is gone until the refund below is saved.
-    logger.error('[delivery] row not created after debit; refunding sender', {
-      player: from.name,
-      err,
-    });
-    restore();
-    await persistPlayerSessionState(from).catch(() => undefined);
-    return fail('not-committed');
-  }
-
-  return { ok: true, id: row.id };
 }
 
 /** Everything waiting for a player, oldest first. */

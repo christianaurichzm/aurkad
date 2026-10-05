@@ -62,10 +62,12 @@ export async function withTransaction(
 ): Promise<boolean> {
   if (!supported) return false;
 
-  const session = await mongoose.startSession();
+  let session: mongoose.ClientSession | undefined;
   try {
-    await session.withTransaction(async () => {
-      await work(session);
+    const active = await mongoose.startSession();
+    session = active;
+    await active.withTransaction(async () => {
+      await work(active);
     });
     return true;
   } catch (err) {
@@ -75,6 +77,11 @@ export async function withTransaction(
     });
     return false;
   } finally {
-    await session.endSession();
+    await session?.endSession().catch((err) =>
+      logger.error('[DB] transaction session cleanup failed', {
+        context,
+        err,
+      }),
+    );
   }
 }

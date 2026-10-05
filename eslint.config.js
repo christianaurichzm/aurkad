@@ -55,6 +55,7 @@ const scriptGlobals = [
   'waitFor',
   'persistNow',
   'delivery',
+  'auctions',
   'Items',
   'Npcs',
   'Maps',

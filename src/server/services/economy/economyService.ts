@@ -12,7 +12,15 @@
 import type { InventoryLike } from '../../../shared/types.js';
 
 export type EconomyFailure =
-  'invalid-amount' | 'not-enough' | 'no-space' | 'same-container';
+  'invalid-amount' | 'not-enough' | 'no-space' | 'same-container' | 'busy';
+
+const lockedInventories = new WeakSet<InventoryLike>();
+export function lockInventory(inventory: InventoryLike): void {
+  lockedInventories.add(inventory);
+}
+export function unlockInventory(inventory: InventoryLike): void {
+  lockedInventories.delete(inventory);
+}
 
 export type EconomyResult =
   { ok: true } | { ok: false; reason: EconomyFailure };
@@ -67,6 +75,7 @@ export function addItem(
   itemId: number,
   amount = 1,
 ): EconomyResult {
+  if (lockedInventories.has(container)) return fail('busy');
   if (!isValidAmount(amount)) return fail('invalid-amount');
 
   const slot = findSlot(container, itemId);
@@ -92,6 +101,7 @@ export function removeItem(
   itemId: number,
   amount = 1,
 ): EconomyResult {
+  if (lockedInventories.has(container)) return fail('busy');
   if (!isValidAmount(amount)) return fail('invalid-amount');
 
   const slot = findSlot(container, itemId);
@@ -114,6 +124,8 @@ export function moveItem(
   itemId: number,
   amount = 1,
 ): EconomyResult {
+  if (lockedInventories.has(from) || lockedInventories.has(to))
+    return fail('busy');
   if (!isValidAmount(amount)) return fail('invalid-amount');
   if (from === to) return fail('same-container');
   if (!hasItem(from, itemId, amount)) return fail('not-enough');
@@ -154,6 +166,7 @@ export function exchangeItems(
   inputs: ItemAmount[],
   output: ItemAmount,
 ): EconomyResult {
+  if (lockedInventories.has(container)) return fail('busy');
   if (inputs.length === 0) return fail('invalid-amount');
   if (!isValidAmount(output.quantity)) return fail('invalid-amount');
 

@@ -11,6 +11,8 @@
 
 import mongoose from 'mongoose';
 import DeliveryModel from '../../model/Delivery.js';
+import AuctionModel from '../../model/Auction.js';
+import type { AuctionListing } from './auctionService.js';
 import EconomyCensusModel from '../../model/EconomyCensus.js';
 import { runtimeState } from '../../sim/state.js';
 import { playerRepository } from '../../persistence/playerRepository.js';
@@ -22,7 +24,7 @@ import type { InventoryLike, PlayerServer } from '../../../shared/types.js';
 
 /** Where a total came from, so a spike points somewhere. */
 export type ItemLocation =
-  'inventory' | 'equipped' | 'playerData' | 'delivery' | 'ground';
+  'inventory' | 'equipped' | 'playerData' | 'delivery' | 'ground' | 'auction';
 
 export interface ItemTally {
   itemId: number;
@@ -50,6 +52,7 @@ function emptyByLocation(): Record<ItemLocation, number> {
     playerData: 0,
     delivery: 0,
     ground: 0,
+    auction: 0,
   };
 }
 
@@ -164,6 +167,14 @@ export async function takeCensus(): Promise<EconomyCensus> {
     .exec();
   for (const row of pending) {
     tally.add(Number(row.itemId), row.quantity, 'delivery', row.to);
+  }
+
+  const escrow = await AuctionModel.find().lean<AuctionListing[]>().exec();
+  for (const row of escrow) {
+    if (row.state === 'active')
+      tally.add(row.itemId, row.quantity, 'auction', row.seller);
+    else if (row.currencyItemId !== undefined)
+      tally.add(row.currencyItemId, row.payout ?? 0, 'auction', row.seller);
   }
 
   return {

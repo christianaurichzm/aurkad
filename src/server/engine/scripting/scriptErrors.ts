@@ -8,6 +8,7 @@ export type ScriptErrorSource =
   | 'load'
   | 'typecheck'
   | 'hook'
+  | 'command'
   | 'schedule'
   | 'timer'
   | 'behavior'

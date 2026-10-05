@@ -11,6 +11,7 @@ import {
 } from '../bodySchemas.js';
 import {
   authEpochOf,
+  getPlayerForAuthentication,
   getPlayerByNameFromDb,
 } from '../../services/player/playerService.js';
 import checkAccess from '../middleware/checkAccess.js';
@@ -59,7 +60,7 @@ export function createAdminAuthRouter() {
       if (!body) return;
       const { username, password } = body;
 
-      const doc = await getPlayerByNameFromDb(username);
+      const doc = await getPlayerForAuthentication(username);
       if (!doc || !(await bcrypt.compare(password, doc.password))) {
         return res
           .status(401)
@@ -85,9 +86,15 @@ export function createAdminAuthRouter() {
         });
       }
 
+      const authEpoch = doc.authEpoch ?? 0;
+      if ((await authEpochOf(username)) !== authEpoch) {
+        return res
+          .status(401)
+          .json({ message: 'Invalid username or password' });
+      }
       req.session.username = username;
       req.session.accessLevel = access;
-      req.session.authEpoch = (await authEpochOf(username)) ?? 0;
+      req.session.authEpoch = authEpoch;
       req.session.save((err) => {
         if (err) {
           logger.error('admin session save failed', { err });

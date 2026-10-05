@@ -36,9 +36,14 @@ import {
   persistPlayersNow,
 } from '../services/player/playerService.js';
 import { moveItem } from '../services/economy/economyService.js';
-import { drainDirtyPlayerIds, markPlayerDirty } from './dirtyPlayers.js';
+import {
+  drainDirtyPlayerIds,
+  markPlayerDirty,
+  isPlayerCommitting,
+} from './dirtyPlayers.js';
 import { persistDirtyPlayers } from './playerSnapshot.js';
 import { players } from '../sim/state.js';
+import { registerPlayer, unregisterPlayer } from '../sim/world.js';
 import { sendDelivery } from '../services/economy/deliveryService.js';
 import { items } from '../services/world/gameData.js';
 import DeliveryModel from '../model/Delivery.js';
@@ -79,7 +84,7 @@ const heldBy = async (name: string): Promise<number> => {
 beforeEach(async () => {
   const cols = mongoose.connection.collections;
   await Promise.all(Object.values(cols).map((c) => c.deleteMany({})));
-  for (const id of Object.keys(players)) delete players[id];
+  for (const id of Object.keys(players)) unregisterPlayer(id);
   drainDirtyPlayerIds();
   // Errors are the expected output of the abort tests; asserting on them is the
   // job of the assertions below, not of the console.
@@ -177,6 +182,23 @@ describe('replica set', () => {
     expect(await heldBy('Bob')).toBe(0);
   });
 
+  it('does not let snapshots write half a trade after a presence refusal', async () => {
+    const [from, to] = await tradingPair();
+    registerPlayer(from);
+    registerPlayer(to);
+    moveItem(from.inventory, to.inventory, SWORD, 1);
+    markPlayerDirty(from.id);
+    markPlayerDirty(to.id);
+    const real = playerRepository.save.bind(playerRepository);
+    vi.spyOn(playerRepository, 'save').mockImplementation((player, session) =>
+      player.id === from.id ? Promise.resolve(false) : real(player, session),
+    );
+    expect(await persistPlayersNow([from, to])).toBe(false);
+    await persistDirtyPlayers();
+    expect(await heldBy('Alice')).toBe(1);
+    expect(await heldBy('Bob')).toBe(0);
+  });
+
   // The other way a committed pair comes apart: write-behind writes each
   // dirty player alone, so a sweep during the commit could write one of the
   // two, and a crash there would tear the trade.
@@ -260,6 +282,116 @@ describe('replica set', () => {
     expect(await heldBy('Alice')).toBe(1);
     expect(alice.inventory.items).toEqual([{ item: SWORD, quantity: 1 }]);
     expect(await DeliveryModel.countDocuments({ to: 'Bob' })).toBe(0);
+  });
+
+  it('keeps a delivery debit out of the snapshot until its transaction commits', async () => {
+    const [alice] = await tradingPair();
+    registerPlayer(alice);
+    items.set(SWORD, {
+      id: SWORD,
+      name: 'Sword',
+      description: '',
+      sprite: 0,
+      type: 'weapon',
+    });
+    const real = playerRepository.save.bind(playerRepository);
+    let swept = false;
+    vi.spyOn(playerRepository, 'save').mockImplementation(
+      async (player, session) => {
+        if (session && !swept) {
+          swept = true;
+          markPlayerDirty(player.id);
+          await persistDirtyPlayers();
+        }
+        return real(player, session);
+      },
+    );
+    vi.spyOn(DeliveryModel, 'create').mockRejectedValueOnce(
+      new Error('queue unavailable'),
+    );
+    expect(
+      await sendDelivery(alice, { to: 'Bob', itemId: SWORD, source: 'mail' }),
+    ).toEqual({ ok: false, reason: 'not-committed' });
+    expect(await heldBy('Alice')).toBe(1);
+    expect(alice.inventory.items).toEqual([{ item: SWORD, quantity: 1 }]);
+  });
+
+  it('aborts a delivery when the sender write is refused', async () => {
+    const [alice] = await tradingPair();
+    items.set(SWORD, {
+      id: SWORD,
+      name: 'Sword',
+      description: '',
+      sprite: 0,
+      type: 'weapon',
+    });
+    vi.spyOn(playerRepository, 'save').mockResolvedValueOnce(false);
+    expect(
+      await sendDelivery(alice, { to: 'Bob', itemId: SWORD, source: 'mail' }),
+    ).toEqual({ ok: false, reason: 'not-committed' });
+    expect(await heldBy('Alice')).toBe(1);
+    expect(await DeliveryModel.countDocuments({ to: 'Bob' })).toBe(0);
+  });
+
+  it('waits for an earlier snapshot before committing the sender debit', async () => {
+    const [alice] = await tradingPair();
+    registerPlayer(alice);
+    items.set(SWORD, {
+      id: SWORD,
+      name: 'Sword',
+      description: '',
+      sprite: 0,
+      type: 'weapon',
+    });
+    const real = playerRepository.save.bind(playerRepository);
+    let release!: () => void;
+    const paused = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    const writes: string[] = [];
+    vi.spyOn(playerRepository, 'save')
+      .mockImplementationOnce(async (player, session) => {
+        await paused;
+        writes.push('snapshot');
+        return real(player, session);
+      })
+      .mockImplementation(async (player, session) => {
+        writes.push('commit');
+        return real(player, session);
+      });
+    markPlayerDirty(alice.id);
+    const snapshot = persistDirtyPlayers();
+    const sending = sendDelivery(alice, {
+      to: 'Bob',
+      itemId: SWORD,
+      source: 'mail',
+    });
+    await vi.waitFor(() => expect(isPlayerCommitting(alice.id)).toBe(true));
+    expect(writes).toEqual([]);
+    release();
+    await snapshot;
+    expect((await sending).ok).toBe(true);
+    expect(writes).toEqual(['snapshot', 'commit']);
+    expect(await heldBy('Alice')).toBe(0);
+    expect(await DeliveryModel.countDocuments({ to: 'Bob' })).toBe(1);
+  });
+
+  it('lets only one overlapping delivery debit the sender inventory', async () => {
+    const [alice] = await tradingPair();
+    items.set(SWORD, {
+      id: SWORD,
+      name: 'Sword',
+      description: '',
+      sprite: 0,
+      type: 'weapon',
+    });
+    const results = await Promise.all([
+      sendDelivery(alice, { to: 'Bob', itemId: SWORD, source: 'mail' }),
+      sendDelivery(alice, { to: 'Bob', itemId: SWORD, source: 'mail' }),
+    ]);
+    expect(results.filter((result) => result.ok)).toHaveLength(1);
+    expect(await heldBy('Alice')).toBe(0);
+    expect(await DeliveryModel.countDocuments({ to: 'Bob' })).toBe(1);
   });
 
   it('falls back to independent writes when support is off', async () => {

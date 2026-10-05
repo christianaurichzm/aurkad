@@ -3,7 +3,10 @@ import bcrypt from 'bcrypt';
 import { config } from '../../config.js';
 import PasswordResetModel from '../../model/PasswordReset.js';
 import PlayerModel from '../../model/Player.js';
-import { getPlayerByNameFromDb } from './playerService.js';
+import {
+  getPlayerByNameFromDb,
+  notifySessionRevoked,
+} from './playerService.js';
 
 /**
  * Passwords: setting one, and proving you may without knowing the current
@@ -64,10 +67,15 @@ async function writePassword(username: string, password: string) {
   // One write, because a changed password with the earlier sessions still
   // alive is what an interruption must not leave behind: whoever is being
   // locked out is exactly who those sessions belong to.
-  await PlayerModel.updateOne(
+  const account = await PlayerModel.findOneAndUpdate(
     { name: username },
     { $set: { password: hash }, $inc: { authEpoch: 1 } },
-  ).exec();
+    { returnDocument: 'after' },
+  )
+    .select({ authEpoch: 1 })
+    .lean<{ authEpoch: number }>()
+    .exec();
+  if (account) notifySessionRevoked(username, account.authEpoch);
   // Every link minted before this moment is a way back into an account whose
   // owner just moved it, so all of them die with the change, including the
   // one being spent.

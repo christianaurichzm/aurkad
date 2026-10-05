@@ -14,12 +14,14 @@ import type { ExtendedRequest } from '../http/session.js';
 import { handleChatAction } from '../services/comms/chatService.js';
 import {
   disconnectPlayer,
+  authEpochOf,
   getPlayerByName,
   resumePlayer,
 } from '../services/player/playerService.js';
 import {
   handleKeyAction,
   handleMoveTo,
+  clearPressedKeys,
 } from '../services/world/movementService.js';
 import { getRuntimeState } from '../services/world/gameData.js';
 import { handleItemAction } from '../services/economy/inventoryService.js';
@@ -78,7 +80,19 @@ let wss: WebSocketServer;
 let shuttingDown = false;
 let heartbeatInterval: IntervalHandle | undefined;
 
-const actionQueue = new FastQueue<ActionQueueItem>();
+const actionQueue = new FastQueue<{
+  action: ActionQueueItem;
+  socket?: WebSocket;
+}>();
+const socketEpochs = new WeakMap<WebSocket, number>();
+
+export function revokePlayerSessions(username: string, epoch: number): void {
+  const ws = playersWsMap.get(username);
+  if (ws && (socketEpochs.get(ws) ?? 0) < epoch) {
+    clearPressedKeys(username);
+    ws.close(1008, 'Session revoked');
+  }
+}
 let droppedQueuedActions = 0;
 let lastQueueDropLogTime = 0;
 
@@ -127,10 +141,15 @@ function applyDroppedRelease(action: ActionQueueItem | undefined) {
   }
 }
 
-function enqueueAction(action: ActionQueueItem) {
+function enqueueAction(action: ActionQueueItem, socket?: WebSocket) {
   const maxSize = config.limits.actionQueueMaxSize;
   if (maxSize > 0 && actionQueue.size >= maxSize) {
-    applyDroppedRelease(actionQueue.dequeue());
+    const dropped = actionQueue.dequeue();
+    if (
+      dropped &&
+      (!dropped.socket || dropped.socket.readyState === WebSocket.OPEN)
+    )
+      applyDroppedRelease(dropped.action);
     droppedQueuedActions++;
 
     const now = Date.now();
@@ -143,7 +162,7 @@ function enqueueAction(action: ActionQueueItem) {
     }
   }
 
-  actionQueue.enqueue(action);
+  actionQueue.enqueue({ action, socket });
 }
 
 function isClientAction(action: ActionQueueItem): action is ClientAction {
@@ -216,7 +235,16 @@ function dispatchClientAction(action: ClientAction): void {
 export function processActions() {
   let n = 0;
   while (actionQueue.size > 0) {
-    const action = actionQueue.dequeue();
+    const queued = actionQueue.dequeue();
+    if (!queued) continue;
+    const { action, socket } = queued;
+    if (
+      socket &&
+      (socket.readyState !== WebSocket.OPEN ||
+        (isClientAction(action) &&
+          playersWsMap.get(action.username) !== socket))
+    )
+      continue;
 
     if (action) {
       if (isClientAction(action)) {
@@ -301,6 +329,16 @@ export const startWebSocketServer = (
 
   heartbeatInterval = setInterval(() => {
     for (const [username, ws] of playersWsMap) {
+      // The bus accelerates revocation; this check also covers a lost event.
+      void authEpochOf(username)
+        .then((epoch) => {
+          if (playersWsMap.get(username) !== ws) return;
+          if (epoch !== (socketEpochs.get(ws) ?? 0)) {
+            clearPressedKeys(username);
+            ws.close(1008, 'Session revoked');
+          }
+        })
+        .catch(() => ws.close(1008, 'Session validation failed'));
       const aliveWs = ws as AliveWebSocket;
       if (aliveWs.isAlive === false) {
         try {
@@ -384,6 +422,8 @@ export const startWebSocketServer = (
       }
 
       playersWsMap.set(username, ws);
+      const authEpoch = request.session.authEpoch ?? 0;
+      socketEpochs.set(ws, authEpoch);
       // Whatever the socket it replaces was sent, this one has seen nothing:
       // the client starts its world over on a new socket, so the first frame
       // here has to carry everything in view rather than a delta against a
@@ -400,10 +440,17 @@ export const startWebSocketServer = (
       inLane(username, async () => {
         try {
           const refused = await resumePlayer(username);
+          if ((await authEpochOf(username)) !== authEpoch) {
+            ws.close(1008, 'Session revoked');
+            return;
+          }
           if (refused && ws.readyState === WebSocket.OPEN) {
             ws.send(JSON.stringify({ type: 'kick', message: refused }));
             ws.close();
           }
+        } catch (err) {
+          ws.close(1011, 'Session validation unavailable');
+          throw err;
         } finally {
           // After a close too: a paused socket never reads the other end's
           // half of the closing handshake.
@@ -433,7 +480,7 @@ export const startWebSocketServer = (
         const result = ClientMessageSchema.safeParse(raw);
         if (!result.success) return;
 
-        enqueueAction({ username, ...result.data });
+        enqueueAction({ username, ...result.data }, ws);
       });
 
       // A socket that has already been replaced is not a departure. The

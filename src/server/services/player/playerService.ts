@@ -44,6 +44,8 @@ import {
   beginPlayerCommit,
   clearPlayerDirty,
   endPlayerCommit,
+  waitForPlayerCommit,
+  isPlayerCommitting,
 } from '../../persistence/dirtyPlayers.js';
 import {
   acquirePresence,
@@ -63,6 +65,16 @@ import { clearPressedKeys } from '../world/movementService.js';
 import { logger } from '../../logger.js';
 import { recordAdminAction } from '../auditService.js';
 import { registerStrings, translate } from '../../engine/i18n.js';
+import { revokePlayerSessions } from '../../net/transport.js';
+
+export async function getPlayerForAuthentication(name: string) {
+  return playerRepository.findForAuthentication(name);
+}
+
+export function notifySessionRevoked(username: string, epoch: number): void {
+  revokePlayerSessions(username, epoch);
+  publishToInstances('sessionRevoked', { username, epoch });
+}
 
 export async function getPlayerById(id: string): Promise<PlayerRecord | null> {
   return playerRepository.findById(id);
@@ -82,7 +94,12 @@ export async function authEpochOf(name: string): Promise<number | null> {
 
 /** Ends every session minted before now; returns the generation to match. */
 export async function endSessionsFor(name: string): Promise<number> {
-  return playerRepository.bumpAuthEpoch(name);
+  const epoch = await playerRepository.bumpAuthEpoch(
+    name,
+    getPlayerByName(name)?.access,
+  );
+  notifySessionRevoked(name, epoch);
+  return epoch;
 }
 
 export async function deletePlayer(id: string): Promise<void> {
@@ -201,7 +218,28 @@ function reportAccessDrift(player: PlayerServer): void {
   });
 }
 
-export const persistPlayerSessionState = async (
+class PlayerWriteRefusedError extends Error {}
+const playerWrites = new Map<string, Set<Promise<void>>>();
+
+export async function waitForPlayerPersistence(id: string): Promise<void> {
+  await Promise.allSettled([...(playerWrites.get(id) ?? [])]);
+}
+
+export function persistPlayerSessionState(
+  player: PlayerServer,
+  session?: ClientSession,
+): Promise<void> {
+  const writes = playerWrites.get(player.id) ?? new Set<Promise<void>>();
+  playerWrites.set(player.id, writes);
+  const pending = writePlayerSessionState(player, session).finally(() => {
+    writes.delete(pending);
+    if (!writes.size) playerWrites.delete(player.id);
+  });
+  writes.add(pending);
+  return pending;
+}
+
+const writePlayerSessionState = async (
   player: PlayerServer,
   session?: ClientSession,
 ) => {
@@ -220,7 +258,10 @@ export const persistPlayerSessionState = async (
   );
   // Explicitly false, not merely falsy: this ends with the player's socket
   // closed, and that is not a thing to do on a return value nobody promised.
-  if (written === false) presenceLost(player);
+  if (written === false) {
+    presenceLost(player);
+    throw new PlayerWriteRefusedError(`Player write refused: ${player.name}`);
+  }
 };
 
 /**
@@ -259,6 +300,7 @@ export async function persistPlayersOnShutdown(
       while (cursor < playersToSave.length) {
         const player = playersToSave[cursor++]!;
         try {
+          await waitForPlayerCommit(player.id);
           await persistPlayerSessionState(player);
         } catch (err) {
           failed++;
@@ -295,6 +337,8 @@ export async function persistPlayersNow(
 ): Promise<boolean> {
   if (mongoose.connection.readyState !== mongoose.ConnectionStates.connected)
     return false;
+  if (playersToSave.some((player) => isPlayerCommitting(player.id)))
+    return false;
 
   // Held for the whole call, not just the transaction: until the last await,
   // the write-behind sweep must not write one of these documents alone. A
@@ -310,16 +354,27 @@ export async function persistPlayersNow(
 
 async function commitPlayers(playersToSave: PlayerServer[]): Promise<boolean> {
   if (playersToSave.length > 1 && supportsTransactions()) {
+    let refused = false;
     const committed = await withTransaction(
       async (session) => {
         // Sequential: one session cannot run operations in parallel.
         for (const player of playersToSave) {
-          await persistPlayerSessionState(player, session);
+          try {
+            await persistPlayerSessionState(player, session);
+          } catch (err) {
+            if (err instanceof PlayerWriteRefusedError) refused = true;
+            throw err;
+          }
         }
       },
       `economic commit: ${playersToSave.map((p) => p.name).join(', ')}`,
     );
     if (committed) return true;
+    // No member of a refused pair may later save its half independently.
+    if (refused) {
+      await discardEconomicSessions(playersToSave);
+      return false;
+    }
     logger.error('[economy] atomic commit failed; write-behind retries', {
       players: playersToSave.map((p) => p.name),
     });
@@ -705,22 +760,8 @@ export async function kickLocally(
   return true;
 }
 
-export const disconnectPlayer = async (username?: string) => {
-  // Cleared unconditionally, even when the player isn't found below: stale
-  // held-key state for a name nobody answers to would otherwise sit in
-  // movementService's map until something else happens to overwrite it.
-  if (username) clearPressedKeys(username);
-
-  const player = username ? getPlayerByName(username) : undefined;
-  if (!player) {
-    return;
-  }
-
-  await persistPlayerSessionState(player);
-  // After the last write of this session, never before it: the lease is what
-  // makes that write land, and the instance the player moves to reads the
-  // document as soon as it takes over.
-  await releasePresence(player.id);
+function removePlayerSessionState(player: PlayerServer): void {
+  clearPressedKeys(player.name);
   clearPlayerDirty(player.id);
   clearAttackCooldown(player.id);
   if (getRegisteredPlayer(player.id)) {
@@ -734,6 +775,45 @@ export const disconnectPlayer = async (username?: string) => {
     // the ledger is keyed by the victim.
     clearDamageContributions(player.id);
   }
+}
+
+async function discardEconomicSessions(
+  playersToDiscard: PlayerServer[],
+): Promise<void> {
+  for (const player of playersToDiscard) {
+    playersWsMap.get(player.name)?.close(1008, 'Economic commit refused');
+    removePlayerSessionState(player);
+    await releasePresence(player.id).catch((err) =>
+      logger.error('[presence] release after refused commit failed', {
+        player: player.name,
+        err,
+      }),
+    );
+  }
+}
+
+export const disconnectPlayer = async (username?: string) => {
+  // Cleared unconditionally, even when the player isn't found below: stale
+  // held-key state for a name nobody answers to would otherwise sit in
+  // movementService's map until something else happens to overwrite it.
+  if (username) clearPressedKeys(username);
+
+  const player = username ? getPlayerByName(username) : undefined;
+  if (!player) {
+    return;
+  }
+
+  await waitForPlayerCommit(player.id);
+  try {
+    await persistPlayerSessionState(player);
+  } catch (err) {
+    if (!(err instanceof PlayerWriteRefusedError)) throw err;
+  }
+  // After the last write of this session, never before it: the lease is what
+  // makes that write land, and the instance the player moves to reads the
+  // document as soon as it takes over.
+  await releasePresence(player.id);
+  removePlayerSessionState(player);
 };
 
 /**
