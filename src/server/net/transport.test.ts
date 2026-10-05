@@ -13,6 +13,7 @@ import type { AddressInfo } from 'node:net';
 import WebSocket from 'ws';
 import { ServerActionType } from '../engine/actions.js';
 import { gameConfig } from '../gameConfig.js';
+import { config } from '../config.js';
 import { advanceTick } from '../sim/clock.js';
 import { createFixture, tile } from '../sim/simFixture.js';
 import { rebuildQuadtree } from '../spatial/spatialManager.js';
@@ -406,6 +407,32 @@ describe('a socket that comes back without a login', () => {
       expect(playersWsMap.has('Boss')).toBe(false);
     } finally {
       query.mockRestore();
+    }
+  });
+
+  it('keeps the socket when the heartbeat cannot reach the database', async () => {
+    await stopWebSocketServer();
+    await new Promise<void>((resolve) => http.close(() => resolve()));
+    const interval = config.ws.heartbeatIntervalMs;
+    (config.ws as { heartbeatIntervalMs: number }).heartbeatIntervalMs = 100;
+    http = createServer();
+    await new Promise<void>((resolve) => http.listen(0, resolve));
+    port = (http.address() as AddressInfo).port;
+    startWebSocketServer(http, asSession as never);
+    const query = vi.spyOn(playerRepository, 'authEpochOf');
+    try {
+      const ws = await open();
+      await settle();
+      query.mockRejectedValue(new Error('database unavailable'));
+      const checks = query.mock.calls.length;
+      await vi.waitFor(() =>
+        expect(query.mock.calls.length).toBeGreaterThan(checks + 1),
+      );
+      expect(ws.readyState).toBe(WebSocket.OPEN);
+    } finally {
+      query.mockRestore();
+      (config.ws as { heartbeatIntervalMs: number }).heartbeatIntervalMs =
+        interval;
     }
   });
 

@@ -328,8 +328,12 @@ export const startWebSocketServer = (
   }
 
   heartbeatInterval = setInterval(() => {
+    let checkFailed = false;
     for (const [username, ws] of playersWsMap) {
       // The bus accelerates revocation; this check also covers a lost event.
+      // A database that cannot answer has revoked nothing: closing here would
+      // drop every player on a replica set election, which the write-behind
+      // loop exists to ride out. The next beat checks again.
       void authEpochOf(username)
         .then((epoch) => {
           if (playersWsMap.get(username) !== ws) return;
@@ -338,7 +342,11 @@ export const startWebSocketServer = (
             ws.close(1008, 'Session revoked');
           }
         })
-        .catch(() => ws.close(1008, 'Session validation failed'));
+        .catch((err) => {
+          if (checkFailed) return;
+          checkFailed = true;
+          logger.warn('[ws] session check unavailable; sockets kept', { err });
+        });
       const aliveWs = ws as AliveWebSocket;
       if (aliveWs.isAlive === false) {
         try {
