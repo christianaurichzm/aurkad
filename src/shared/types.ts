@@ -266,6 +266,12 @@ export interface PersistentNpc extends CharacterBase {
 export interface RuntimeNpc extends PersistentNpc, CharacterRuntime {
   kind: 'npc';
   templateId?: string;
+  /**
+   * Does not step onto another npc. Npcs otherwise pass through each other,
+   * which keeps a path full of them moving but leaves a horde chasing one
+   * player stacked on a single tile. Only spawnNpc sets it.
+   */
+  solid?: boolean;
 }
 
 export interface PersistentPlayer

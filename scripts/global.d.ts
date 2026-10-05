@@ -644,6 +644,8 @@ interface SpawnNpcOptions {
   leash?: number;
   /** What its killer earns. */
   experienceValue?: number;
+  /** Does not step onto another npc: a horde crowds round, not onto a tile. */
+  solid?: boolean;
 }
 
 /**

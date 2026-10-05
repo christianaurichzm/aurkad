@@ -96,6 +96,7 @@ export function toNpcPublic(npc: RuntimeNpc): RuntimeNpc {
     pathDepth: _pathDepth,
     leash: _leash,
     respawnMs: _respawnMs,
+    solid: _solid,
     ...rest
   } = npc;
   return {

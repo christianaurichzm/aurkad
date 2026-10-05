@@ -23,12 +23,13 @@ const WANDER_DIRECTIONS = [
 ] as const;
 
 // Minimal projection for collision checks. hasCollision only reads
-// id/kind/mapId/width/height/position, so this avoids cloning the whole
+// id/kind/solid/mapId/width/height/position, so this avoids cloning the whole
 // RuntimeNpc on the hot path (same pattern as processMovementIntent).
 const npcProbe = (npc: RuntimeNpc, x: number, y: number): CombatTarget =>
   ({
     id: npc.id,
     kind: npc.kind,
+    solid: npc.solid,
     mapId: npc.mapId,
     width: npc.width,
     height: npc.height,

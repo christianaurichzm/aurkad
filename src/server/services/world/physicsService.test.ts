@@ -8,6 +8,7 @@ import { describe, it, expect } from 'vitest';
 import { createFixture, tile } from '../../sim/simFixture.js';
 import { findPlacement, hasCollision } from './physicsService.js';
 import { respawnPlayer } from '../player/playerService.js';
+import { spawnNpc } from '../npc/spawn.js';
 import { rebuildQuadtree } from '../../spatial/spatialManager.js';
 import { gameConfig, respawnPosition } from '../../gameConfig.js';
 import { runtimeState } from '../../sim/state.js';
@@ -139,6 +140,16 @@ describe('hasCollision', () => {
 
     expect(hasCollision(big)).toBe(true);
     expect(hasCollision({ ...big, position: tile(5, 2) })).toBe(false);
+  });
+
+  it('lets an npc onto another npc only when it is not solid', () => {
+    const sim = createFixture(0);
+    spawnNpc({ mapId: sim.mapId, col: 5, row: 5 });
+    rebuildQuadtree(sim.mapId, sim.map);
+    const npc = { ...probe(sim), kind: 'npc', position: tile(5, 5) };
+
+    expect(hasCollision(npc as CombatTarget)).toBe(false);
+    expect(hasCollision({ ...npc, solid: true } as CombatTarget)).toBe(true);
   });
 });
 

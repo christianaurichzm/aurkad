@@ -33,6 +33,8 @@ export interface SpawnNpcOptions {
   leash?: number;
   /** What its killer earns. */
   experienceValue?: number;
+  /** Does not step onto another npc: a horde crowds round, not onto a tile. */
+  solid?: boolean;
 }
 
 let spawnSeq = 0;
@@ -105,6 +107,7 @@ export function spawnNpc(opts: SpawnNpcOptions): RuntimeNpc | undefined {
     sight: tuning(opts.sight),
     leash: tuning(opts.leash),
     experienceValue: tuning(opts.experienceValue),
+    solid: opts.solid === true || undefined,
     mapId: opts.mapId,
     position: { x: col * TILE_SIZE, y: row * TILE_SIZE },
     direction: Direction.Down,
@@ -115,8 +118,9 @@ export function spawnNpc(opts: SpawnNpcOptions): RuntimeNpc | undefined {
   // The tile asked for decides where it lands, not what already stands
   // there, as for every arrival that is not a step. Rings outward from that
   // tile, so a blocked spawn point lands beside it, and falls back to the
-  // tile itself when nothing nearby is free. Npcs do not block each other
-  // (see hasCollision), so this is about walls and players, not stacking.
+  // tile itself when nothing nearby is free. Only a solid npc's steps are
+  // blocked by npcs (see hasCollision) and this probe carries no `solid`, so
+  // this is about walls and players, not stacking.
   npc.position = findPlacement(npc, map.id, npc.position);
 
   map.npcs[id] = npc;
