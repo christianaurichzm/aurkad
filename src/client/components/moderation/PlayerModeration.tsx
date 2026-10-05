@@ -182,6 +182,7 @@ export const PlayerModeration: React.FC<{
                 <input
                   style={{ ...input, width: 64 }}
                   type="number"
+                  min={0}
                   value={warpCol}
                   onChange={(e) => setWarpCol(+e.target.value)}
                 />
@@ -190,6 +191,7 @@ export const PlayerModeration: React.FC<{
                 <input
                   style={{ ...input, width: 64 }}
                   type="number"
+                  min={0}
                   value={warpRow}
                   onChange={(e) => setWarpRow(+e.target.value)}
                 />

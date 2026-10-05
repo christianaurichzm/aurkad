@@ -4,7 +4,11 @@ import {
   MOVEMENT_DURATION,
   RUN_MOVEMENT_DURATION,
 } from '../../../shared/constants.js';
-import { tileAt } from '../../../shared/mapGeometry.js';
+import {
+  mapPixelHeight,
+  mapPixelWidth,
+  tileAt,
+} from '../../../shared/mapGeometry.js';
 import { getTick, msToTicks } from '../../sim/clock.js';
 import {
   Key,
@@ -15,6 +19,7 @@ import {
   Tile,
   MapStateServer,
   Position,
+  BorderLink,
 } from '../../../shared/types.js';
 import type {
   ClientKeyboardAction,
@@ -291,6 +296,36 @@ const DIRECTION_BORDER: Record<
   [Direction.Right]: 'right',
 };
 
+/**
+ * Where walking off `map` toward `dir` lands: the opposite edge of the linked
+ * map, level with the tile left from plus the link's offset. findPlacement
+ * pulls it onto a smaller map and off a blocked tile.
+ */
+function borderLanding(
+  map: MapStateServer,
+  dir: Direction,
+  from: Position,
+  link: BorderLink,
+): Position {
+  if (link.position) return link.position;
+  // A map on another instance is not in memory here, so it is taken
+  // to be this map's size. The arrival pulls a landing past a smaller map onto
+  // it, but on a bigger one a left or up crossing stops short of the far edge;
+  // the fix is the instance registry carrying map sizes.
+  const tiles = getMap(link.to)?.tiles ?? map.tiles;
+  const shift = (link.offset ?? 0) * TILE_SIZE;
+  switch (dir) {
+    case Direction.Left:
+      return { x: mapPixelWidth(tiles) - TILE_SIZE, y: from.y + shift };
+    case Direction.Right:
+      return { x: 0, y: from.y + shift };
+    case Direction.Up:
+      return { x: from.x + shift, y: mapPixelHeight(tiles) - TILE_SIZE };
+    case Direction.Down:
+      return { x: from.x + shift, y: 0 };
+  }
+}
+
 const tryOpenDoor = (
   player: PlayerServer,
   map: MapStateServer,
@@ -418,9 +453,13 @@ export const processMovementIntent = () => {
           player.action = CharacterAction.Idle;
         }
       } else if (!tile && map?.borderLinks) {
-        const borderWarp = map.borderLinks[DIRECTION_BORDER[activeMoveDir]];
-        if (borderWarp) {
-          warpToMap(player, borderWarp.to, borderWarp.position);
+        const link = map.borderLinks[DIRECTION_BORDER[activeMoveDir]];
+        if (link) {
+          warpToMap(
+            player,
+            link.to,
+            borderLanding(map, activeMoveDir, player.position, link),
+          );
         } else {
           player.action = CharacterAction.Idle;
         }

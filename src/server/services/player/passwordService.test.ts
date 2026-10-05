@@ -4,7 +4,14 @@ import bcrypt from 'bcrypt';
 import type { MongoMemoryServer } from 'mongodb-memory-server';
 import { startMemoryMongo } from '../../../test/mongo.js';
 import PasswordResetModel from '../../model/PasswordReset.js';
-import { createPlayer, getPlayerByNameFromDb } from './playerService.js';
+import {
+  createPlayer,
+  enterWorld,
+  getPlayerByName,
+  getPlayerByNameFromDb,
+  persistPlayerSessionState,
+} from './playerService.js';
+import { createFixture } from '../../sim/simFixture.js';
 import {
   changePassword,
   confirmEmailToken,
@@ -191,6 +198,24 @@ describe('address tokens', () => {
 
     expect(await confirmEmailToken(forPassword!.token)).toBe('invalid-token');
     expect(await address()).toBeUndefined();
+  });
+
+  // The snapshot loop writes an online character back over its document, so
+  // an address carried in from login would undo the confirmation.
+  it('survives the online character being saved', async () => {
+    const fx = createFixture();
+    await confirmEmailToken(
+      (await createEmailToken('Alice', 'old@example.com')).token,
+    );
+    const record = await getPlayerByNameFromDb('Alice');
+    enterWorld({ ...record!, mapId: fx.mapId });
+
+    await confirmEmailToken(
+      (await createEmailToken('Alice', 'new@example.com')).token,
+    );
+    await persistPlayerSessionState(getPlayerByName('Alice')!);
+
+    expect(await address()).toBe('new@example.com');
   });
 
   // Somebody who had the account long enough to point it at their own inbox

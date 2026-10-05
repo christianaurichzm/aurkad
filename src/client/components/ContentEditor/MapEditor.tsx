@@ -4,7 +4,8 @@ import {
   MapStateClient,
   MapType,
   MapOrientation,
-  type Warp,
+  type BorderLink,
+  type Position,
 } from '../../../shared/types';
 import { AsyncSelect } from '../common/Select/AsyncSelect';
 import { chatResultMsg } from '../ChatPanel';
@@ -21,7 +22,9 @@ interface MapEditorProps {
   requestDiscard: () => Promise<boolean>;
 }
 
-type BorderLinkForm = { mapId: string; tileX: number; tileY: number };
+// `position` sends the whole edge to one tile. The editor makes none but
+// keeps a loaded one until it is cleared.
+type BorderLinkForm = { mapId: string; offset: number; position?: Position };
 type MapFormValues = {
   name: string;
   type: MapType;
@@ -36,7 +39,7 @@ type MapFormValues = {
   borderRight: BorderLinkForm;
 };
 
-const emptyBorder: BorderLinkForm = { mapId: '', tileX: 0, tileY: 0 };
+const emptyBorder: BorderLinkForm = { mapId: '', offset: 0 };
 
 const BORDER_LABEL: Record<string, TranslationKey> = {
   borderUp: 'map.borderUp',
@@ -68,12 +71,12 @@ const newMapValues = (maps: MapStateClient[]): MapFormValues => {
   };
 };
 
-function warpToForm(w?: Warp): BorderLinkForm {
-  if (!w) return emptyBorder;
+function linkToForm(link?: BorderLink): BorderLinkForm {
+  if (!link) return emptyBorder;
   return {
-    mapId: w.to,
-    tileX: Math.round(w.position.x / TILE_SIZE),
-    tileY: Math.round(w.position.y / TILE_SIZE),
+    mapId: link.to,
+    offset: link.offset ?? 0,
+    ...(link.position && { position: link.position }),
   };
 }
 
@@ -85,10 +88,10 @@ const mapToFormValues = (map: MapStateClient): MapFormValues => ({
   rows: map.tiles?.length ?? 14,
   music: map.music ?? '',
   instanced: map.instanced ?? false,
-  borderUp: warpToForm(map.borderLinks?.up),
-  borderDown: warpToForm(map.borderLinks?.down),
-  borderLeft: warpToForm(map.borderLinks?.left),
-  borderRight: warpToForm(map.borderLinks?.right),
+  borderUp: linkToForm(map.borderLinks?.up),
+  borderDown: linkToForm(map.borderLinks?.down),
+  borderLeft: linkToForm(map.borderLinks?.left),
+  borderRight: linkToForm(map.borderLinks?.right),
 });
 
 export const MapEditor: React.FC<MapEditorProps> = ({
@@ -109,6 +112,7 @@ export const MapEditor: React.FC<MapEditorProps> = ({
     handleSubmit,
     register,
     reset: resetForm,
+    setValue,
     watch,
   } = useForm<MapFormValues>({ defaultValues: newMapValues(maps) });
 
@@ -141,13 +145,15 @@ export const MapEditor: React.FC<MapEditorProps> = ({
     resetForm(newMapValues(maps));
   };
 
-  const buildWarp = (b: BorderLinkForm): Warp | undefined =>
-    b.mapId
-      ? {
-          to: b.mapId,
-          position: { x: b.tileX * TILE_SIZE, y: b.tileY * TILE_SIZE },
-        }
-      : undefined;
+  const buildLink = (b: BorderLinkForm): BorderLink | undefined => {
+    if (!b.mapId) return undefined;
+    const offset = Number.isFinite(b.offset) ? Math.round(b.offset) : 0;
+    return {
+      to: b.mapId,
+      ...(offset !== 0 && { offset }),
+      ...(b.position && { position: b.position }),
+    };
+  };
 
   const handleSave = async ({
     name,
@@ -163,10 +169,10 @@ export const MapEditor: React.FC<MapEditorProps> = ({
     borderRight,
   }: MapFormValues) => {
     const borderLinks = {
-      up: buildWarp(borderUp),
-      down: buildWarp(borderDown),
-      left: buildWarp(borderLeft),
-      right: buildWarp(borderRight),
+      up: buildLink(borderUp),
+      down: buildLink(borderDown),
+      left: buildLink(borderLeft),
+      right: buildLink(borderRight),
     };
     const result = selectedId
       ? await updateMap(selectedId, {
@@ -268,38 +274,63 @@ export const MapEditor: React.FC<MapEditorProps> = ({
             <label style={label}>{t('map.borderLinks')}</label>
             {(
               ['borderUp', 'borderDown', 'borderLeft', 'borderRight'] as const
-            ).map((dir) => (
-              <div
-                key={dir}
-                style={{
-                  display: 'flex',
-                  gap: 6,
-                  alignItems: 'center',
-                  marginBottom: 4,
-                }}
-              >
-                <span style={{ ...label, width: 36, marginBottom: 0 }}>
-                  {t(BORDER_LABEL[dir] ?? 'map.borderUp')}
-                </span>
-                <input
-                  style={{ ...input, flex: 2 }}
-                  placeholder={t('map.mapIdPlaceholder')}
-                  {...register(`${dir}.mapId`)}
-                />
-                <input
-                  style={{ ...input, width: 50 }}
-                  type="number"
-                  placeholder="X"
-                  {...register(`${dir}.tileX`, { valueAsNumber: true })}
-                />
-                <input
-                  style={{ ...input, width: 50 }}
-                  type="number"
-                  placeholder="Y"
-                  {...register(`${dir}.tileY`, { valueAsNumber: true })}
-                />
-              </div>
-            ))}
+            ).map((dir) => {
+              const fixed = watch(`${dir}.position`);
+              return (
+                <div
+                  key={dir}
+                  style={{
+                    display: 'flex',
+                    gap: 6,
+                    alignItems: 'center',
+                    marginBottom: 4,
+                  }}
+                >
+                  <span style={{ ...label, width: 64, marginBottom: 0 }}>
+                    {t(BORDER_LABEL[dir] ?? 'map.borderUp')}
+                  </span>
+                  <select
+                    style={{ ...input, flex: 2 }}
+                    aria-label={t(BORDER_LABEL[dir] ?? 'map.borderUp')}
+                    {...register(`${dir}.mapId`)}
+                  >
+                    <option value="">{t('map.borderNone')}</option>
+                    {maps.map((m) => (
+                      <option key={m.id} value={m.id}>
+                        {m.id} - {m.name}
+                      </option>
+                    ))}
+                  </select>
+                  {fixed ? (
+                    <button
+                      type="button"
+                      style={resetBtn}
+                      title={t('map.borderFixedHint')}
+                      onClick={() =>
+                        setValue(`${dir}.position`, undefined, {
+                          shouldDirty: true,
+                        })
+                      }
+                    >
+                      {t('map.borderFixed', {
+                        x: Math.round(fixed.x / TILE_SIZE),
+                        y: Math.round(fixed.y / TILE_SIZE),
+                      })}
+                    </button>
+                  ) : (
+                    <input
+                      style={{ ...input, width: 64 }}
+                      type="number"
+                      step={1}
+                      aria-label={t('map.borderOffset')}
+                      title={t('map.borderOffset')}
+                      {...register(`${dir}.offset`, { valueAsNumber: true })}
+                    />
+                  )}
+                </div>
+              );
+            })}
+            <span style={hint}>{t('map.borderHint')}</span>
           </div>
         </>
       )}

@@ -24,10 +24,10 @@ vi.mock('../persistence/playerRepository.js', () => ({
  * An app that mints a session on /login and reports who the next request is
  * seen as, which is the only thing the guard changes.
  */
-function createApp() {
+function createApp(store: session.Store = new session.MemoryStore()) {
   const app = express();
   app.use(express.json());
-  app.use(createSessionMiddleware(new session.MemoryStore()));
+  app.use(createSessionMiddleware(store));
   app.post('/login', (req: ExtendedRequest, res) => {
     req.session.username = 'Alice';
     req.session.accessLevel = 2;
@@ -111,6 +111,21 @@ describe('session identity against the account generation', () => {
 
     const res = await agent.get('/whoami').expect(200);
     expect(res.body.username).toBeNull();
+  });
+
+  // The store answers from its own callback, outside any request handler, so
+  // a session read there that throws is an uncaughtException, and the server
+  // ends the process on one.
+  it('answers an error when the session store cannot be read', async () => {
+    authEpochOf.mockResolvedValue(0);
+    const store = new session.MemoryStore();
+    const agent = request.agent(createApp(store));
+    await agent.post('/login').expect(200);
+
+    store.get = (_sid, callback) =>
+      setImmediate(() => callback(new Error('mongo is down')));
+
+    await agent.get('/whoami').expect(500);
   });
 
   it('does not query the account for a request that names nobody', async () => {

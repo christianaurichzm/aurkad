@@ -83,9 +83,12 @@ export function createSessionMiddleware(
   });
 
   return (req, res, next) => {
-    withSession(req, res, () => {
-      const { session: current } = req as ExtendedRequest;
-      if (!current.username) return next();
+    withSession(req, res, (err?: unknown) => {
+      // A store that cannot be read hands over an error, or nothing at all
+      // while it is disconnected. Either way there is no session here, and this
+      // runs from the store's callback, where a throw takes the process down.
+      const { session: current } = req as Partial<ExtendedRequest>;
+      if (err || !current?.username) return next(err);
       void accountStillBacks(current).then((ok) => {
         if (!ok) {
           delete current.username;

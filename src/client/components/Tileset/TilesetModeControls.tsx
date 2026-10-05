@@ -472,11 +472,11 @@ const TilesetModeControlsComponent: React.FC = () => {
           <label style={labelStyle} htmlFor="xTo">
             {translate('tileset.tileX')}
           </label>
-          <input type="number" id="xTo" name="xTo" style={inputStyle} />
+          <input type="number" min={0} id="xTo" name="xTo" style={inputStyle} />
           <label style={labelStyle} htmlFor="yTo">
             {translate('tileset.tileY')}
           </label>
-          <input type="number" id="yTo" name="yTo" style={inputStyle} />
+          <input type="number" min={0} id="yTo" name="yTo" style={inputStyle} />
         </div>
       )}
 

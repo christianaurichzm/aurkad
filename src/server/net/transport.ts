@@ -341,9 +341,10 @@ export const startWebSocketServer = (
     }
 
     // An upgrade has no response to write to; the session middleware only
-    // reads the cookie off the request.
+    // reads the cookie off the request. A session store that failed leaves no
+    // session at all, which is refused like one naming nobody.
     sessionMiddleware(request as ExtendedRequest, {} as Response, () => {
-      if ((request as ExtendedRequest).session.username) {
+      if ((request as Partial<ExtendedRequest>).session?.username) {
         wss.handleUpgrade(request, socket, head, (ws) => {
           // The far end of a redirect continues the trace the other instance
           // opened, the one place two processes meet. An ordinary connection

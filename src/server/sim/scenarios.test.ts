@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { CharacterAction, Direction, Key } from '../../shared/types.js';
 import { TILE_SIZE } from '../../shared/constants.js';
-import { createFixture } from './simFixture.js';
+import { createFixture, makeTiles } from './simFixture.js';
 import {
   clearLootTableCache,
   createOrUpdateLootTable,
@@ -518,6 +518,58 @@ describe('map warp', () => {
     sim.step(10);
 
     expect(sim.getPlayer('Alice').mapId).toBe(dest.id);
+  });
+});
+
+describe('border links', () => {
+  /** Alice steps off the map edge toward `key`. */
+  function stepOff(key: Key) {
+    sim.press('Alice', key);
+    sim.step(1);
+    sim.release('Alice', key);
+    sim.step(1);
+  }
+
+  it('lands on the far edge, level with where the player left plus the offset', () => {
+    const dest = sim.addMap({ id: 'west', tiles: makeTiles(30, 10) });
+    sim.map.borderLinks = { left: { to: dest.id, offset: 2 } };
+    sim.addPlayer({ name: 'Alice', position: { x: 0, y: 5 * TILE_SIZE } });
+
+    stepOff(Key.ArrowLeft);
+
+    const alice = sim.getPlayer('Alice');
+    expect(alice.mapId).toBe(dest.id);
+    expect(alice.position).toEqual({ x: 9 * TILE_SIZE, y: 7 * TILE_SIZE });
+  });
+
+  it('pulls a crossing past the end of a shorter map onto it', () => {
+    const dest = sim.addMap({ id: 'east', tiles: makeTiles(4, 10) });
+    sim.map.borderLinks = { right: { to: dest.id } };
+    sim.addPlayer({
+      name: 'Alice',
+      position: { x: 19 * TILE_SIZE, y: 12 * TILE_SIZE },
+    });
+
+    stepOff(Key.ArrowRight);
+
+    const alice = sim.getPlayer('Alice');
+    expect(alice.mapId).toBe(dest.id);
+    expect(alice.position).toEqual({ x: 0, y: 3 * TILE_SIZE });
+  });
+
+  it('still sends the whole edge to a fixed position when the link has one', () => {
+    const dest = sim.addMap({ id: 'north' });
+    sim.map.borderLinks = {
+      up: { to: dest.id, position: { x: 4 * TILE_SIZE, y: 6 * TILE_SIZE } },
+    };
+    sim.addPlayer({ name: 'Alice', position: { x: 11 * TILE_SIZE, y: 0 } });
+
+    stepOff(Key.ArrowUp);
+
+    expect(sim.getPlayer('Alice').position).toEqual({
+      x: 4 * TILE_SIZE,
+      y: 6 * TILE_SIZE,
+    });
   });
 });
 

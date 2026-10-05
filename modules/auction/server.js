@@ -18,7 +18,8 @@
 //
 // The sale runs the same way: the buyer gets the item, then the seller's
 // coins are queued, so a crash between costs the seller a payment rather
-// than paying for an item nobody got.
+// than paying for an item nobody got. A full mailbox costs nothing: the
+// listing stays, as a debt or for sale, until the queue takes it.
 
 i18n({
   pt: {
@@ -39,6 +40,8 @@ i18n({
     'That listing is not yours.': 'Esse anúncio não é seu.',
     'Cancelled, and the item is in your mailbox.':
       'Cancelado, e o item está na sua caixa de correio.',
+    'Your mailbox has no room for it, so the listing stays up.':
+      'Sua caixa de correio não tem espaço para ele, então o anúncio continua.',
     'You cannot buy your own listing.':
       'Você não pode comprar o seu próprio anúncio.',
     'You need {price} to buy that.':
@@ -141,14 +144,33 @@ const pushAll = () => {
   for (const player of getPlayers()) push(player);
 };
 
-/** Back to the seller through the queue, because they may be long gone. */
+/** Whether the queue took it: a full mailbox refuses, a failed write throws. */
+const queued = (input) =>
+  delivery.queue(input).then(
+    (result) => result.ok,
+    () => false,
+  );
+
+/**
+ * Back to the seller through the queue, as they may be long gone. Held
+ * across the await like a sale, so no buyer takes the listing while the
+ * item is on its way back, and dropped only once the queue holds it: a
+ * refused delivery leaves the listing up for the expiry sweep to retry.
+ */
 async function returnToSeller(listing, reason) {
-  drop(listing.id);
-  await delivery.queue({
+  listing.state = 'returning';
+  write(listing);
+  const ok = await queued({
     to: listing.seller,
     itemId: listing.itemId,
     quantity: listing.quantity,
   });
+  if (!ok) {
+    listing.state = 'active';
+    write(listing);
+    return false;
+  }
+  drop(listing.id);
   const seller = getPlayer(listing.seller);
   if (seller && reason)
     sendMessage(
@@ -158,6 +180,27 @@ async function returnToSeller(listing, reason) {
         item: itemName(listing.itemId),
       }),
     );
+  return true;
+}
+
+/**
+ * The seller's coins. A refused payment keeps the listing as a debt the sweep
+ * pays off once the mailbox has room, because the buyer already has the item.
+ */
+async function paySeller(listing) {
+  listing.state = 'paying';
+  write(listing);
+  const ok = await queued({
+    to: listing.seller,
+    itemId: currencyItemId,
+    quantity: listing.payout,
+  });
+  if (ok) {
+    drop(listing.id);
+  } else {
+    listing.state = 'unpaid';
+    write(listing);
+  }
 }
 
 let counter = 0;
@@ -217,7 +260,8 @@ async function cancelListing(player, id) {
   if (!listing || listing.state !== 'active') return 'No such listing.';
   if (listing.seller !== player.name) return 'That listing is not yours.';
 
-  await returnToSeller(listing);
+  if (!(await returnToSeller(listing)))
+    return 'Your mailbox has no room for it, so the listing stays up.';
   pushAll();
   return 'Cancelled, and the item is in your mailbox.';
 }
@@ -251,13 +295,9 @@ async function buy(player, id) {
 
   const fee = Math.floor((listing.price * feePercent) / 100);
   const payout = Math.max(0, listing.price - fee);
-  if (payout > 0)
-    await delivery.queue({
-      to: listing.seller,
-      itemId: currencyItemId,
-      quantity: payout,
-    });
-  drop(listing.id);
+  listing.payout = payout;
+  if (payout > 0) await paySeller(listing);
+  else drop(listing.id);
 
   const seller = getPlayer(listing.seller);
   if (seller)
@@ -295,6 +335,10 @@ every(sweepTicks, () => {
         listing,
         'Your listing of {quantity}x {item} expired.',
       );
+  }
+  for (const id of store.keys(SCOPE)) {
+    const listing = read(id);
+    if (listing && listing.state === 'unpaid') void paySeller(listing);
   }
 });
 
@@ -372,7 +416,9 @@ provide('auction', {
    */
   withdraw: (id) => {
     const listing = read(String(id));
-    return listing ? returnToSeller(listing) : Promise.resolve();
+    return listing && listing.state === 'active'
+      ? returnToSeller(listing)
+      : Promise.resolve(false);
   },
 });
 

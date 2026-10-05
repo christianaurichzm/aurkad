@@ -96,6 +96,20 @@ describe('findPlacement', () => {
     );
   });
 
+  // A GM warp typed for a bigger map would leave the player outside this
+  // one, out of the camera and unable to take a step.
+  it('pulls a spot off the map onto its nearest edge', () => {
+    const sim = createFixture(0);
+    rebuildQuadtree(sim.mapId, sim.map);
+
+    expect(findPlacement(probe(sim), sim.mapId, tile(40, 30))).toEqual(
+      tile(19, 19),
+    );
+    expect(findPlacement(probe(sim), sim.mapId, tile(-3, 4))).toEqual(
+      tile(0, 4),
+    );
+  });
+
   // Placement happens inside the simulation, so two runs of the same session
   // have to choose the same tile or a replay diverges from what it recorded.
   it('chooses the same tile every time', () => {

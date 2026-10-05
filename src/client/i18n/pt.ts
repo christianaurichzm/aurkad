@@ -327,7 +327,13 @@ export const pt: Record<keyof typeof en, string> = {
   'map.borderDown': 'Baixo',
   'map.borderLeft': 'Esquerda',
   'map.borderRight': 'Direita',
-  'map.mapIdPlaceholder': 'idDoMapa',
+  'map.borderNone': '(nenhum)',
+  'map.borderOffset': 'Deslocamento',
+  'map.borderFixed': 'fixo ({x}, {y}) ×',
+  'map.borderFixedHint':
+    'A borda inteira leva a este tile. Clique para continuar tile a tile.',
+  'map.borderHint':
+    'Sair por uma borda continua no mapa escolhido, na mesma linha ou coluna. O deslocamento alinha mapas de tamanhos diferentes: a linha 5 com deslocamento 3 chega na linha 8.',
   'map.size': 'Tamanho (colunas × linhas)',
   'map.cols': 'Colunas',
   'map.rows': 'Linhas',

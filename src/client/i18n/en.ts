@@ -331,7 +331,13 @@ export const en = {
   'map.borderDown': 'Down',
   'map.borderLeft': 'Left',
   'map.borderRight': 'Right',
-  'map.mapIdPlaceholder': 'mapId',
+  'map.borderNone': '(none)',
+  'map.borderOffset': 'Offset',
+  'map.borderFixed': 'fixed ({x}, {y}) ×',
+  'map.borderFixedHint':
+    'The whole edge leads to this one tile. Click to continue tile by tile instead.',
+  'map.borderHint':
+    'Walking off an edge continues on the chosen map, on the same row or column. Offset lines up maps of different sizes: row 5 with offset 3 arrives on row 8.',
   'map.size': 'Size (cols × rows)',
   'map.cols': 'Cols',
   'map.rows': 'Rows',

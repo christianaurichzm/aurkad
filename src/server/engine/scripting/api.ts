@@ -534,9 +534,8 @@ export function buildApi(
 
     // Economic commit: persist these players now instead of waiting for the
     // snapshot loop, so a crash cannot revert a confirmed transfer.
-    persistNow: (...playersToSave: PlayerServer[]): void => {
-      void persistPlayersNow(playersToSave.filter((p) => !!p));
-    },
+    persistNow: (...playersToSave: PlayerServer[]): Promise<boolean> =>
+      persistPlayersNow(playersToSave.filter((p) => !!p)),
 
     // Items owed to a player who may be offline, which trade cannot cover.
     // These hit the database and return promises. The queue is core because

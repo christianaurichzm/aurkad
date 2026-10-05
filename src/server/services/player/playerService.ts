@@ -6,7 +6,7 @@ import {
   EQUIPMENT_SLOTS,
 } from '../../../shared/constants.js';
 import { gameConfig, respawnPosition } from '../../gameConfig.js';
-import { findPlacement } from '../world/physicsService.js';
+import { findPlacement, onMap } from '../world/physicsService.js';
 import {
   PlayerServer,
   PlayerRecord,
@@ -286,12 +286,15 @@ export async function persistPlayersOnShutdown(
  * nothing, and writing one half afterwards is the inconsistency it exists
  * to prevent. Both paths leave the dirty flag set by `updatePlayer`, so
  * write-behind is the retry.
+ *
+ * Resolves to whether every player was written and never rejects, so a
+ * caller may await durability or leave it floating.
  */
 export async function persistPlayersNow(
   playersToSave: PlayerServer[],
-): Promise<void> {
+): Promise<boolean> {
   if (mongoose.connection.readyState !== mongoose.ConnectionStates.connected)
-    return;
+    return false;
 
   // Held for the whole call, not just the transaction: until the last await,
   // the write-behind sweep must not write one of these documents alone. A
@@ -299,13 +302,13 @@ export async function persistPlayersNow(
   const held = playersToSave.length > 1 ? playersToSave.map((p) => p.id) : [];
   beginPlayerCommit(held);
   try {
-    await commitPlayers(playersToSave);
+    return await commitPlayers(playersToSave);
   } finally {
     endPlayerCommit(held);
   }
 }
 
-async function commitPlayers(playersToSave: PlayerServer[]): Promise<void> {
+async function commitPlayers(playersToSave: PlayerServer[]): Promise<boolean> {
   if (playersToSave.length > 1 && supportsTransactions()) {
     const committed = await withTransaction(
       async (session) => {
@@ -316,11 +319,11 @@ async function commitPlayers(playersToSave: PlayerServer[]): Promise<void> {
       },
       `economic commit: ${playersToSave.map((p) => p.name).join(', ')}`,
     );
-    if (committed) return;
+    if (committed) return true;
     logger.error('[economy] atomic commit failed; write-behind retries', {
       players: playersToSave.map((p) => p.name),
     });
-    return;
+    return false;
   }
 
   const results = await Promise.allSettled(
@@ -334,6 +337,7 @@ async function commitPlayers(playersToSave: PlayerServer[]): Promise<void> {
       });
     }
   });
+  return results.every((result) => result.status === 'fulfilled');
 }
 
 // Single funnel for all experience gain. Emits a mutable beforeXpGain hook
@@ -780,7 +784,16 @@ export async function refuseEntry(
 
 /** Puts a character loaded from its document into the world, on its map. */
 export function enterWorld(player: PlayerServer) {
+  // Callers spread the account record into the character, and the snapshot
+  // loop `$set`s whatever the character carries back over the document: an
+  // address or password kept from login would undo one changed while online.
+  const account = player as Partial<PlayerRecord>;
+  delete account.password;
+  delete account.email;
   auditedAccess.set(player, player.access);
+  // Saved on a map that has since been resized smaller, or arriving from an
+  // instance that could not see this map's size for a border landing.
+  player.position = onMap(player, player.mapId, player.position);
   // A slot worn since before equipping kept a record holds only the item's
   // id, and unequipping takes back what the definition gives, which is
   // nothing once the item is deleted. The current definition is the best

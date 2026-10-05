@@ -461,11 +461,24 @@ export type MapOrientation = 'orthogonal' | 'isometric';
 // else safe) for back-compat.
 export type PvpMorale = 'safe' | 'normal' | 'no-penalty';
 
+/**
+ * Walking off one edge of a map continues on `to`, entering from its opposite
+ * edge at the same row (left/right) or column (up/down), so every tile of the
+ * edge leads to its neighbour. `offset` lines up maps of different sizes: row
+ * r here is row r + offset there. `position` instead sends the whole edge to
+ * one fixed tile.
+ */
+export interface BorderLink {
+  to: MapStateServer['id'];
+  offset?: number;
+  position?: Position;
+}
+
 export interface BorderLinks {
-  up?: Warp;
-  down?: Warp;
-  left?: Warp;
-  right?: Warp;
+  up?: BorderLink;
+  down?: BorderLink;
+  left?: BorderLink;
+  right?: BorderLink;
 }
 
 export interface MapStateBase {

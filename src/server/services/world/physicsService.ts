@@ -1,5 +1,10 @@
 import { TILE_SIZE } from '../../../shared/constants.js';
-import { mapPixelWidth, mapPixelHeight } from '../../../shared/mapGeometry.js';
+import {
+  mapPixelWidth,
+  mapPixelHeight,
+  mapTileWidth,
+  mapTileHeight,
+} from '../../../shared/mapGeometry.js';
 import {
   CombatTarget,
   MapStateServer,
@@ -100,6 +105,31 @@ export const hasCollision = (character: CombatTarget): boolean => {
   );
 };
 
+/** `value` moved onto the map, on the grid, with room for `size` pixels. */
+const ontoMap = (value: number, mapTiles: number, size: number) =>
+  Math.max(
+    0,
+    Math.min(value, (mapTiles - Math.ceil(size / TILE_SIZE)) * TILE_SIZE),
+  );
+
+/**
+ * `position` pulled onto the map at its nearest edge, or as it is when the map
+ * is not loaded here. Off the map, the client never receives the chunk under
+ * the player and keeps the world covered in black, character included.
+ */
+export const onMap = (
+  entity: { width: number; height: number },
+  mapId: string,
+  position: Position,
+): Position => {
+  const tiles = getMap(mapId)?.tiles;
+  if (!tiles) return position;
+  return {
+    x: ontoMap(position.x, mapTileWidth(tiles), entity.width),
+    y: ontoMap(position.y, mapTileHeight(tiles), entity.height),
+  };
+};
+
 /**
  * How far out to look for somewhere to stand. Three rings is a 7x7 block of
  * tiles, which covers a crowded warp pad or a spawn point with a queue on it
@@ -131,6 +161,9 @@ function ringOffsets(ring: number): Array<{ dx: number; dy: number }> {
  * a warp, a respawn. Two players on one tile after a bring, or corpses
  * respawning onto one spawn point, lasts until somebody walks away.
  *
+ * A spot off the map is pulled onto it first (see onMap): coordinates typed
+ * for a bigger map, or a border landing on a smaller one.
+ *
  * Falls back to `desired` when everything nearby is taken. A teleport that
  * silently does not happen is worse than an overlap: the GM sees the player
  * stay put, the script sees its warp ignored, and neither is told why.
@@ -138,8 +171,9 @@ function ringOffsets(ring: number): Array<{ dx: number; dy: number }> {
 export const findPlacement = (
   entity: CombatTarget,
   mapId: string,
-  desired: Position,
+  wanted: Position,
 ): Position => {
+  const desired = onMap(entity, mapId, wanted);
   const probe = {
     id: entity.id,
     kind: entity.kind,

@@ -755,8 +755,11 @@ declare function exchangeItems(
  * Persist players to the database immediately (economic commit). Call after
  * moving items between players or containers so a crash cannot revert a
  * confirmed transfer. Failures fall back to the periodic snapshot.
+ *
+ * Resolves to whether every player was written, and never rejects: await it
+ * when the next step must not happen until the commit is durable.
  */
-declare function persistNow(...players: PlayerServer[]): void;
+declare function persistNow(...players: PlayerServer[]): Promise<boolean>;
 
 /** Why a queued delivery was refused. */
 type DeliveryFailure =

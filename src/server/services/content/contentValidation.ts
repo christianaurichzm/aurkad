@@ -111,7 +111,7 @@ interface MapRef {
     | Partial<
         Record<
           'up' | 'down' | 'left' | 'right',
-          { to: string; position: { x: number; y: number } }
+          { to: string; position?: { x: number; y: number } | undefined }
         >
       >
     | undefined;
@@ -596,7 +596,10 @@ export function validateWorldGraph(
     ];
 
   const exitsOf = (map: MapRef) => {
-    const exits: Array<{ to: string; position: { x: number; y: number } }> = [];
+    const exits: Array<{
+      to: string;
+      position?: { x: number; y: number } | undefined;
+    }> = [];
     for (const row of map.tiles ?? []) {
       for (const tile of row) if (tile.warp) exits.push(tile.warp);
     }
@@ -613,6 +616,9 @@ export function validateWorldGraph(
     for (const exit of exitsOf(map)) {
       const target = byId.get(exit.to);
       if (!target) continue; // dangling target: already reported per-map
+      // A border link with no fixed position lands wherever along the edge
+      // the player crossed, and findPlacement steps off a blocked tile there.
+      if (!exit.position) continue;
 
       const landing = tileAt(target, exit.position);
       if (!landing) continue; // out of bounds: mapValidation reports it

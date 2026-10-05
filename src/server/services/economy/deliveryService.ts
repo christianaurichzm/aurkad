@@ -41,15 +41,6 @@ import type { PlayerServer } from '../../../shared/types.js';
  */
 const MAX_PENDING_PER_PLAYER = 100;
 
-/**
- * How many claimed ids are remembered on the player document.
- *
- * Only needed to cover the window between "player saved" and "row deleted",
- * which is one round trip, so this is generous. An id drops off the ring only
- * after that many later claims, by which point its row is long gone.
- */
-const CLAIMED_HISTORY = 50;
-
 /** Engine-owned key in the player's data bag, not a script's to manage. */
 const CLAIMED_KEY = '__claimedDeliveries';
 
@@ -280,11 +271,22 @@ export async function sweepUnclaimableDeliveries(): Promise<number> {
   return deletedCount;
 }
 
-function readClaimedHistory(player: PlayerServer): string[] {
+/**
+ * The claimed ids whose rows still exist. An id is remembered exactly as
+ * long as its row is queued, since that row is what a retry would hand
+ * over again, so the record is pruned against the queue rather than cut to
+ * a length one failed delete could outgrow.
+ */
+function readClaimedHistory(
+  player: PlayerServer,
+  pending: PendingDelivery[],
+): string[] {
   const stored = player.data?.[CLAIMED_KEY];
-  return Array.isArray(stored)
-    ? stored.filter((v) => typeof v === 'string')
-    : [];
+  if (!Array.isArray(stored)) return [];
+  const queued = new Set(pending.map((row) => row.id));
+  return stored.filter(
+    (v): v is string => typeof v === 'string' && queued.has(v),
+  );
 }
 
 /**
@@ -302,7 +304,7 @@ export async function claimDeliveries(
   const wanted = ids ? pending.filter((row) => ids.includes(row.id)) : pending;
   if (wanted.length === 0) return [];
 
-  const claimed = readClaimedHistory(player);
+  const claimed = readClaimedHistory(player, pending);
   const outcomes: ClaimOutcome[] = [];
   const settled: string[] = [];
 
@@ -335,7 +337,7 @@ export async function claimDeliveries(
 
   if (settled.length === 0) return outcomes;
 
-  (player.data ??= {})[CLAIMED_KEY] = claimed.slice(-CLAIMED_HISTORY);
+  (player.data ??= {})[CLAIMED_KEY] = claimed;
 
   try {
     // One write, carrying both the inventory and the claim record. Deleting the
@@ -349,6 +351,15 @@ export async function claimDeliveries(
     return outcomes;
   }
 
-  await DeliveryModel.deleteMany({ id: { $in: settled } });
+  try {
+    await DeliveryModel.deleteMany({ id: { $in: settled } });
+  } catch (err) {
+    // The items are already saved, so the claim happened; the rows left behind
+    // are skipped by the record above and cleared by the next claim.
+    logger.error('[delivery] claimed rows not deleted', {
+      player: player.name,
+      err,
+    });
+  }
   return outcomes;
 }

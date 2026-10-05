@@ -57,12 +57,18 @@ const WarpSchema = z.object({
   position: PositionSchema,
 });
 
+const BorderLinkSchema = z.object({
+  to: z.string().min(1),
+  offset: z.number().int().optional(),
+  position: PositionSchema.optional(),
+});
+
 export const BorderLinksSchema = z
   .object({
-    up: WarpSchema.optional(),
-    down: WarpSchema.optional(),
-    left: WarpSchema.optional(),
-    right: WarpSchema.optional(),
+    up: BorderLinkSchema.optional(),
+    down: BorderLinkSchema.optional(),
+    left: BorderLinkSchema.optional(),
+    right: BorderLinkSchema.optional(),
   })
   .optional();
 

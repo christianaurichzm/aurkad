@@ -341,6 +341,35 @@ describe('claimDeliveries', () => {
     expect(await countDeliveries('Alice')).toBe(0);
   });
 
+  // A full mailbox settled in one claim: the record has to cover every row a
+  // failed delete leaves behind, and keep covering them through the retries.
+  it('does not deliver twice when a full mailbox outlives the claim', async () => {
+    const alice = await makePlayer('Alice');
+    await DeliveryModel.insertMany(
+      Array.from({ length: 100 }, (_, i) => ({
+        id: `row-${i}`,
+        to: 'Alice',
+        itemId: POTION,
+        quantity: 1,
+        source: 'test',
+        createdAt: i,
+      })),
+    );
+
+    const deleteMany = vi
+      .spyOn(DeliveryModel, 'deleteMany')
+      .mockRejectedValue(new Error('database unavailable'));
+    await claimDeliveries(alice);
+    await claimDeliveries(alice);
+    deleteMany.mockRestore();
+    await claimDeliveries(alice);
+
+    expect(alice.inventory.items).toEqual([{ item: POTION, quantity: 100 }]);
+    const stored = await getPlayerByNameFromDb('Alice');
+    expect(stored?.inventory.items).toEqual([{ item: POTION, quantity: 100 }]);
+    expect(await countDeliveries('Alice')).toBe(0);
+  });
+
   // The mirror case: the write that carries both the item and the record of
   // the claim never landed, so the item is still owed and the row must survive.
   it('keeps the row when the player could not be saved', async () => {

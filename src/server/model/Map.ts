@@ -66,12 +66,21 @@ const TileSchema = new mongoose.Schema(
   { _id: false },
 );
 
+const BorderLinkSchema = new mongoose.Schema(
+  {
+    to: { type: String, required: true },
+    offset: Number,
+    position: { x: Number, y: Number },
+  },
+  { _id: false },
+);
+
 const BorderLinksSchema = new mongoose.Schema(
   {
-    up: WarpSchema,
-    down: WarpSchema,
-    left: WarpSchema,
-    right: WarpSchema,
+    up: BorderLinkSchema,
+    down: BorderLinkSchema,
+    left: BorderLinkSchema,
+    right: BorderLinkSchema,
   },
   { _id: false },
 );

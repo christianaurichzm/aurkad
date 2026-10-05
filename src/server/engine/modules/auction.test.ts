@@ -10,6 +10,7 @@ import { clearCommands } from '../commands.js';
 import { clearAll, emit } from '../hooks.js';
 import { drainGameEvents } from '../eventBus.js';
 import { createFixture } from '../../sim/simFixture.js';
+import { msToTicks } from '../../sim/clock.js';
 import { kvDelete, kvKeys } from '../../persistence/kvStore.js';
 import * as deliveryService from '../../services/economy/deliveryService.js';
 import type { PlayerServer } from '../../../shared/types.js';
@@ -142,6 +143,25 @@ describe('buying', () => {
     expect(queued).toMatchObject([{ to: 'Ana', itemId: COIN, quantity: 50 }]);
   });
 
+  it('owes the seller a refused payment until the sweep delivers it', async () => {
+    const seller = playerWith('Ana', [{ item: SWORD, quantity: 1 }]);
+    const buyer = playerWith('Bo', [{ item: COIN, quantity: 100 }]);
+    auction().list(seller, SWORD, 1, 50);
+    const [listing] = auction().listings();
+    vi.mocked(deliveryService.queueDelivery).mockResolvedValueOnce({
+      ok: false,
+      reason: 'mailbox-full',
+    });
+
+    await auction().buy(buyer, listing!.id);
+    expect(queued).toEqual([]);
+    expect(kvKeys('auction')).toHaveLength(1);
+
+    sim.step(msToTicks(60_000));
+    await vi.waitFor(() => expect(kvKeys('auction')).toEqual([]));
+    expect(queued).toMatchObject([{ to: 'Ana', itemId: COIN, quantity: 50 }]);
+  });
+
   it('refuses a buyer who cannot afford it, and leaves the listing up', async () => {
     const seller = playerWith('Ana', [{ item: SWORD, quantity: 1 }]);
     const buyer = playerWith('Bo', [{ item: COIN, quantity: 10 }]);
@@ -213,6 +233,23 @@ describe('cancelling', () => {
     expect(reply).toBe('Cancelled, and the item is in your mailbox.');
     expect(queued).toMatchObject([{ to: 'Ana', itemId: SWORD, quantity: 2 }]);
     expect(auction().listings()).toEqual([]);
+  });
+
+  it('keeps the listing when the mailbox has no room for the item', async () => {
+    const seller = playerWith('Ana', [{ item: SWORD, quantity: 1 }]);
+    auction().list(seller, SWORD, 1, 50);
+    const [listing] = auction().listings();
+    vi.mocked(deliveryService.queueDelivery).mockResolvedValueOnce({
+      ok: false,
+      reason: 'mailbox-full',
+    });
+
+    const reply = await auction().cancel(seller, listing!.id);
+
+    expect(reply).toBe(
+      'Your mailbox has no room for it, so the listing stays up.',
+    );
+    expect(auction().listings()).toHaveLength(1);
   });
 
   it('refuses somebody else listing', async () => {
