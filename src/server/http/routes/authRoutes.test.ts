@@ -167,6 +167,20 @@ describe('POST /register', () => {
 
     expect(res.status).toBe(409);
   });
+
+  it('lets one of two racing sign-ups in, whatever the case', async () => {
+    await PlayerModel.init();
+    const results = await Promise.all(
+      ['CaseRace', 'caserace'].map((username) =>
+        request(app)
+          .post('/register')
+          .send({ username, password: 'secret123' }),
+      ),
+    );
+
+    expect(results.map((res) => res.status).sort()).toEqual([201, 409]);
+    expect(await PlayerModel.countDocuments({ name: /^caserace$/i })).toBe(1);
+  });
 });
 
 describe('POST /login', () => {

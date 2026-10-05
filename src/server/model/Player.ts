@@ -79,4 +79,16 @@ const PlayerSchema = new mongoose.Schema({
   },
 });
 
+// Names are unique regardless of case, the rule sign-up checks with the same
+// collation. The plain index on `name` stays: a query only uses a collated
+// index when it asks for the collation, and the exact lookups do not.
+PlayerSchema.index(
+  { name: 1 },
+  {
+    unique: true,
+    name: 'name_ci',
+    collation: { locale: 'en', strength: 2 },
+  },
+);
+
 export default mongoose.model('Player', PlayerSchema);
