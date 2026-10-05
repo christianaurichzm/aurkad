@@ -24,8 +24,8 @@ import {
   changeSprite,
   handlePlayerUpdates,
   kickPlayer,
-  endSessionsFor,
   setAccess,
+  saveAccess,
 } from '../../services/player/playerService.js';
 import { createRouter } from '../../app.js';
 
@@ -190,10 +190,7 @@ export function createModRouter() {
 
       setAccess(target, accessLevel);
       handlePlayerUpdates(target);
-      // The level the target's sessions carry was copied in at their login, so
-      // the demotion has not reached them: without this, the account this route
-      // just took ADMIN from can call this route and take it back.
-      await endSessionsFor(playerName);
+      await saveAccess(playerName, accessLevel);
       broadcast();
 
       res.status(200).send('Access updated');
@@ -229,12 +226,7 @@ export function createModRouter() {
 
       setAccess(me, accessLevel);
       handlePlayerUpdates(me);
-      // The operator's other sessions carry the old level and are not the one
-      // in hand, so they end like any other; this one is re-stamped rather than
-      // ended, which is what makes this route self-service.
-      req.session.authEpoch = await endSessionsFor(me.name);
-      req.session.accessLevel = accessLevel;
-      req.session.save(() => {});
+      await saveAccess(me.name, accessLevel);
       broadcast();
 
       res.status(200).send('Your access updated');

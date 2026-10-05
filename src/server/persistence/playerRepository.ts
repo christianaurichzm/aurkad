@@ -1,7 +1,7 @@
 import type { ClientSession } from 'mongoose';
 import PlayerModel from '../model/Player.js';
 import { presenceFence } from './presence.js';
-import { PlayerRecord, PlayerServer } from '../../shared/types.js';
+import { Access, PlayerRecord, PlayerServer } from '../../shared/types.js';
 import { gameConfig } from '../gameConfig.js';
 
 // Integrity boundary for player documents leaving the DB. Mongoose minimize
@@ -52,34 +52,29 @@ export const playerRepository = {
   },
 
   /**
-   * The generation a session must match, or null when there is no such
-   * account, whose sessions are dropped.
+   * The generation a session must match and the level the account acts at,
+   * or null when there is no such account, whose sessions are dropped.
    */
-  async authEpochOf(name: string): Promise<number | null> {
+  async authOf(
+    name: string,
+  ): Promise<{ authEpoch: number; access: Access } | null> {
     const doc = await PlayerModel.findOne({ name })
-      .select({ authEpoch: 1 })
-      .lean<{ authEpoch?: number }>()
+      .select({ authEpoch: 1, access: 1 })
+      .lean<{ authEpoch?: number; access?: Access }>()
       .exec();
-    return doc ? (doc.authEpoch ?? 0) : null;
+    return doc
+      ? { authEpoch: doc.authEpoch ?? 0, access: doc.access ?? Access.USER }
+      : null;
   },
 
-  /** Ends every session minted before now; returns the generation to match. */
-  async bumpAuthEpoch(
-    name: string,
-    access?: PlayerServer['access'],
-  ): Promise<number> {
-    const doc = await PlayerModel.findOneAndUpdate(
-      { name },
-      {
-        $inc: { authEpoch: 1 },
-        ...(access !== undefined ? { $set: { access } } : {}),
-      },
-      { returnDocument: 'after' },
-    )
-      .select({ authEpoch: 1 })
-      .lean<{ authEpoch?: number }>()
-      .exec();
-    return doc?.authEpoch ?? 0;
+  /** The generation a session must match, or null with no such account. */
+  async authEpochOf(name: string): Promise<number | null> {
+    return (await playerRepository.authOf(name))?.authEpoch ?? null;
+  },
+
+  /** An access level written now, ahead of the snapshot that would carry it. */
+  async saveAccess(name: string, access: Access): Promise<void> {
+    await PlayerModel.updateOne({ name }, { $set: { access } }).exec();
   },
 
   async list(): Promise<PlayerRecord[]> {

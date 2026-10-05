@@ -4,10 +4,12 @@ import type { RequestHandler, Request } from 'express';
 import type { Access, PlayerServer } from '../../shared/types.js';
 import { config } from '../config.js';
 import { playerRepository } from '../persistence/playerRepository.js';
+import { getPlayerByName } from '../sim/world.js';
 
 declare module 'express-session' {
   interface SessionData {
     username: PlayerServer['name'];
+    /** The account's, read again on every request (see accountStillBacks). */
     accessLevel: Access;
     assetKey: string;
     /**
@@ -30,11 +32,11 @@ export type ExtendedRequest = Request & {
 };
 
 /**
- * Whether the account still stands behind what this session claims.
- *
- * Fails closed: the alternative is a check that anyone can skip by making the
- * database flake, and an unreachable Mongo already means the server is not
- * serving (see /readyz).
+ * Whether the account still stands behind this session, and the level it
+ * acts at now: the live player's when in this world, where a GM command or
+ * a script changes it in place, else the database's. So a promotion or
+ * demotion holds from the next request without ending any session. Fails
+ * closed, or a flaky database would skip the check (see /readyz).
  */
 async function accountStillBacks(
   session: Partial<SessionData>,
@@ -42,8 +44,11 @@ async function accountStillBacks(
   const name = session.username;
   if (!name) return true;
   try {
-    const current = await playerRepository.authEpochOf(name);
-    return current !== null && current === (session.authEpoch ?? 0);
+    const account = await playerRepository.authOf(name);
+    if (account === null || account.authEpoch !== (session.authEpoch ?? 0))
+      return false;
+    session.accessLevel = getPlayerByName(name)?.access ?? account.access;
+    return true;
   } catch {
     return false;
   }
@@ -51,10 +56,10 @@ async function accountStillBacks(
 
 /**
  * Session state, plus the check that it has not outlived its account. A
- * session carries who it is and what it may do, taken at login, and nothing
- * downstream re-reads the account, so without this a demotion or a password
- * reset would leave the old session as authoritative as ever. A session that
- * no longer matches is emptied rather than answered, since this also runs in
+ * session carries who it is and the account generation it was minted
+ * against; a password reset moves the generation and ends older sessions,
+ * and the level is read from the account on each request. A session that no
+ * longer matches is emptied rather than answered, since this also runs in
  * front of the WebSocket upgrade, where there is no response to write.
  */
 export function createSessionMiddleware(

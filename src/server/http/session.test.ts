@@ -12,13 +12,20 @@ import session from 'express-session';
 import request from 'supertest';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { createSessionMiddleware, type ExtendedRequest } from './session.js';
+import { playersByName } from '../sim/state.js';
+import type { PlayerServer } from '../../shared/types.js';
 
-const authEpochOf = vi.fn<(name: string) => Promise<number | null>>();
+const authOf =
+  vi.fn<
+    (name: string) => Promise<{ authEpoch: number; access: number } | null>
+  >();
 vi.mock('../persistence/playerRepository.js', () => ({
   playerRepository: {
-    authEpochOf: (name: string) => authEpochOf(name),
+    authOf: (name: string) => authOf(name),
   },
 }));
+/** The account as the database has it: generation `authEpoch`, ADMIN. */
+const account = (authEpoch: number, access = 2) => ({ authEpoch, access });
 
 /**
  * An app that mints a session on /login and reports who the next request is
@@ -45,11 +52,12 @@ function createApp(store: session.Store = new session.MemoryStore()) {
 
 describe('session identity against the account generation', () => {
   beforeEach(() => {
-    authEpochOf.mockReset();
+    authOf.mockReset();
+    playersByName.clear();
   });
 
   it('keeps a session whose generation still matches the account', async () => {
-    authEpochOf.mockResolvedValue(0);
+    authOf.mockResolvedValue(account(0));
     const agent = request.agent(createApp());
     await agent.post('/login').expect(200);
 
@@ -58,23 +66,47 @@ describe('session identity against the account generation', () => {
   });
 
   it('drops the identity of a session the account has moved past', async () => {
-    authEpochOf.mockResolvedValue(0);
+    authOf.mockResolvedValue(account(0));
     const agent = request.agent(createApp());
     await agent.post('/login').expect(200);
 
-    // What a demotion or a password reset does.
-    authEpochOf.mockResolvedValue(1);
+    // What a password reset does.
+    authOf.mockResolvedValue(account(1));
 
     const res = await agent.get('/whoami').expect(200);
     expect(res.body).toEqual({ username: null, accessLevel: null });
   });
 
-  it('drops the identity of a session naming an account that is gone', async () => {
-    authEpochOf.mockResolvedValue(0);
+  it('acts at the level the account has now, not the one it logged in at', async () => {
+    authOf.mockResolvedValue(account(0));
     const agent = request.agent(createApp());
     await agent.post('/login').expect(200);
 
-    authEpochOf.mockResolvedValue(null);
+    // A demotion: the session stays, its rights go.
+    authOf.mockResolvedValue(account(0, 0));
+
+    const res = await agent.get('/whoami').expect(200);
+    expect(res.body).toEqual({ username: 'Alice', accessLevel: 0 });
+  });
+
+  it('takes the level of the player in this world over the database', async () => {
+    authOf.mockResolvedValue(account(0, 0));
+    const agent = request.agent(createApp());
+    await agent.post('/login').expect(200);
+
+    // Changed in place by a GM command, ahead of the snapshot.
+    playersByName.set('Alice', { access: 1 } as PlayerServer);
+
+    const res = await agent.get('/whoami').expect(200);
+    expect(res.body.accessLevel).toBe(1);
+  });
+
+  it('drops the identity of a session naming an account that is gone', async () => {
+    authOf.mockResolvedValue(account(0));
+    const agent = request.agent(createApp());
+    await agent.post('/login').expect(200);
+
+    authOf.mockResolvedValue(null);
 
     const res = await agent.get('/whoami').expect(200);
     expect(res.body.username).toBeNull();
@@ -83,7 +115,7 @@ describe('session identity against the account generation', () => {
   it('treats a session minted before the field as generation zero', async () => {
     // Sessions minted before the generation existed carry none, and logging
     // everyone out on a deploy would be worse than what the generation fixes.
-    authEpochOf.mockResolvedValue(0);
+    authOf.mockResolvedValue(account(0));
     const app = express();
     app.use(createSessionMiddleware(new session.MemoryStore()));
     app.post('/legacy-login', (req: ExtendedRequest, res) => {
@@ -102,12 +134,12 @@ describe('session identity against the account generation', () => {
   });
 
   it('drops the identity when the account cannot be read at all', async () => {
-    authEpochOf.mockResolvedValue(0);
+    authOf.mockResolvedValue(account(0));
     const agent = request.agent(createApp());
     await agent.post('/login').expect(200);
 
     // Failing open would let anyone able to flake the database skip the check.
-    authEpochOf.mockRejectedValue(new Error('mongo is down'));
+    authOf.mockRejectedValue(new Error('mongo is down'));
 
     const res = await agent.get('/whoami').expect(200);
     expect(res.body.username).toBeNull();
@@ -117,7 +149,7 @@ describe('session identity against the account generation', () => {
   // a session read there that throws is an uncaughtException, and the server
   // ends the process on one.
   it('answers an error when the session store cannot be read', async () => {
-    authEpochOf.mockResolvedValue(0);
+    authOf.mockResolvedValue(account(0));
     const store = new session.MemoryStore();
     const agent = request.agent(createApp(store));
     await agent.post('/login').expect(200);
@@ -130,6 +162,6 @@ describe('session identity against the account generation', () => {
 
   it('does not query the account for a request that names nobody', async () => {
     await request(createApp()).get('/whoami').expect(200);
-    expect(authEpochOf).not.toHaveBeenCalled();
+    expect(authOf).not.toHaveBeenCalled();
   });
 });

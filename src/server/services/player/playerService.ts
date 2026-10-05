@@ -95,14 +95,14 @@ export async function authEpochOf(name: string): Promise<number | null> {
   return playerRepository.authEpochOf(name);
 }
 
-/** Ends every session minted before now; returns the generation to match. */
-export async function endSessionsFor(name: string): Promise<number> {
-  const epoch = await playerRepository.bumpAuthEpoch(
-    name,
-    getPlayerByName(name)?.access,
-  );
-  notifySessionRevoked(name, epoch);
-  return epoch;
+/**
+ * Writes `name`'s access level through to the database at once. Sessions
+ * read the level from the account on every request (see session.ts),
+ * including ones on another instance or with no player in the world, so a
+ * demotion left for the next snapshot would leave the rights in place.
+ */
+export async function saveAccess(name: string, access: Access): Promise<void> {
+  await playerRepository.saveAccess(name, access);
 }
 
 export async function deletePlayer(id: string): Promise<void> {
