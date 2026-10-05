@@ -42,6 +42,16 @@ async function registerAndLogin(
   await expect(page.getByPlaceholder('Username', { exact: true })).toHaveValue(
     username,
   );
+  return login(page, username, password);
+}
+
+/** Signs in from the login form, and follows the socket the game opens. */
+async function login(
+  page: import('@playwright/test').Page,
+  username: string,
+  password: string,
+) {
+  await page.getByPlaceholder('Username', { exact: true }).fill(username);
   await page.getByPlaceholder('Password', { exact: true }).fill(password);
 
   const wsPromise = page.waitForEvent('websocket', (ws) =>
@@ -305,11 +315,14 @@ test('creates, edits, crosses, resizes, and reconnects on small maps', async ({
     )
       errors.push(message.text());
   });
-  const { self } = await registerAndLogin(
-    page,
-    'e2e-map-admin',
-    'e2e-password',
-  );
+  // The fixture makes this one name the admin, so a retry against the same
+  // server finds the account the attempt before it registered: 409 is fine.
+  const registered = await page.request.post('/register', {
+    data: { username: 'e2e-map-admin', password: 'e2e-password' },
+  });
+  expect([201, 409]).toContain(registered.status());
+  await page.goto('/');
+  const { self } = await login(page, 'e2e-map-admin', 'e2e-password');
   await page.locator('#hud-level').click();
   await page.keyboard.press('c');
   const content = page.getByRole('dialog', { name: 'Content Editor' });
