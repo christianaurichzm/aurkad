@@ -199,6 +199,9 @@ export function dropItemFromInventory(
 export function useItem(username: string, itemId: number): boolean {
   const player = getPlayerByName(username);
   if (!player) return false;
+  // A commit in flight holds the inventory: the effect and the item's onUse
+  // script would run, and the removal after them would be refused.
+  if (isPlayerCommitting(player.id)) return false;
 
   const item = getItemById(itemId);
   if (!item) return false;

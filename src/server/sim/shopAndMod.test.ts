@@ -7,6 +7,14 @@ import {
   dropItemFromInventory,
   pickUpItem,
 } from '../services/economy/inventoryService.js';
+import {
+  lockInventory,
+  unlockInventory,
+} from '../services/economy/economyService.js';
+import {
+  beginPlayerCommit,
+  endPlayerCommit,
+} from '../persistence/dirtyPlayers.js';
 import { changeSprite } from '../services/player/playerService.js';
 import { updatePlayerMap } from '../services/world/mapService.js';
 import {
@@ -197,6 +205,30 @@ describe('inventory', () => {
 
     expect(player.health).toBe(80);
     expect(player.inventory.items.find((i) => i.item === 30)?.quantity).toBe(2);
+  });
+
+  it('using a consumable while an inventory commit holds it does nothing', () => {
+    sim.addItem({
+      id: 30,
+      name: 'Potion',
+      description: '',
+      sprite: 0,
+      type: 'consumable',
+      effects: [{ attribute: 'health', type: 'add', value: 30 }],
+    });
+    const player = sim.addPlayer({ name: 'Alice', health: 50, maxHealth: 100 });
+    player.inventory.items.push({ item: 30, quantity: 3 });
+    beginPlayerCommit([player.id]);
+    lockInventory(player.inventory);
+    try {
+      expect(useItem('Alice', 30)).toBe(false);
+    } finally {
+      unlockInventory(player.inventory);
+      endPlayerCommit([player.id]);
+    }
+
+    expect(player.health).toBe(50);
+    expect(player.inventory.items.find((i) => i.item === 30)?.quantity).toBe(3);
   });
 
   it('using the last consumable removes it from inventory entirely', () => {
