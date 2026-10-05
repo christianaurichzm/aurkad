@@ -302,25 +302,28 @@ const DIRECTION_BORDER: Record<
  * pulls it onto a smaller map and off a blocked tile.
  */
 function borderLanding(
-  map: MapStateServer,
   dir: Direction,
   from: Position,
   link: BorderLink,
 ): Position {
   if (link.position) return link.position;
-  // A map on another instance is not in memory here, so it is taken
-  // to be this map's size. The arrival pulls a landing past a smaller map onto
-  // it, but on a bigger one a left or up crossing stops short of the far edge;
-  // the fix is the instance registry carrying map sizes.
-  const tiles = getMap(link.to)?.tiles ?? map.tiles;
+  const tiles = getMap(link.to)?.tiles;
+  // A remote map's dimensions are known only on arrival. A finite position
+  // beyond its far edge lets enterWorld clamp to that edge on the destination.
+  const farX = tiles
+    ? mapPixelWidth(tiles) - TILE_SIZE
+    : Number.MAX_SAFE_INTEGER;
+  const farY = tiles
+    ? mapPixelHeight(tiles) - TILE_SIZE
+    : Number.MAX_SAFE_INTEGER;
   const shift = (link.offset ?? 0) * TILE_SIZE;
   switch (dir) {
     case Direction.Left:
-      return { x: mapPixelWidth(tiles) - TILE_SIZE, y: from.y + shift };
+      return { x: farX, y: from.y + shift };
     case Direction.Right:
       return { x: 0, y: from.y + shift };
     case Direction.Up:
-      return { x: from.x + shift, y: mapPixelHeight(tiles) - TILE_SIZE };
+      return { x: from.x + shift, y: farY };
     case Direction.Down:
       return { x: from.x + shift, y: 0 };
   }
@@ -458,7 +461,7 @@ export const processMovementIntent = () => {
           warpToMap(
             player,
             link.to,
-            borderLanding(map, activeMoveDir, player.position, link),
+            borderLanding(activeMoveDir, player.position, link),
           );
         } else {
           player.action = CharacterAction.Idle;

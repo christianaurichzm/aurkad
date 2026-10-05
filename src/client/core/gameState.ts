@@ -38,7 +38,7 @@ const visited = new Map<string, Tile[][]>();
 
 /** True while the map under the player is still arriving. */
 let mapPending = false;
-let chunksSinceMapChange = 0;
+const receivedChunks = new Set<string>();
 
 let composedCache: MapStateClient | null = null;
 let composedFromStatic: MapStaticClient | null = null;
@@ -144,7 +144,7 @@ export const setMapMeta = (meta: MapMetaClient) => {
   // A map we still have needs no cover: it is on screen in the same frame the
   // player arrives, which is the whole point of keeping it.
   mapPending = !known;
-  chunksSinceMapChange = 0;
+  receivedChunks.clear();
 };
 
 export const applyMapChunk = (chunk: MapChunkPayload) => {
@@ -169,21 +169,24 @@ export const applyMapChunk = (chunk: MapChunkPayload) => {
   }
   staticMap = { ...staticMap, tiles: newTiles };
 
-  chunksSinceMapChange++;
+  receivedChunks.add(`${chunk.chunkX},${chunk.chunkY}`);
   // The cover waits for the chunk under the player, not the tile, since a
   // tile may be empty. The chunk count lifts it as a fallback.
-  if (mapPending && (isPlayersChunk(chunk) || chunksSinceMapChange >= 4)) {
-    mapPending = false;
-  }
+  updateMapPending();
 };
 
-function isPlayersChunk(chunk: MapChunkPayload): boolean {
+function updateMapPending(): void {
+  if (!mapPending) return;
   const position = dynamic?.player.position;
-  if (!position) return true;
-  return (
-    Math.floor(position.x / TILE_SIZE / CHUNK_SIZE) === chunk.chunkX &&
-    Math.floor(position.y / TILE_SIZE / CHUNK_SIZE) === chunk.chunkY
-  );
+  if (
+    (!position && receivedChunks.size > 0) ||
+    receivedChunks.size >= 4 ||
+    (position &&
+      receivedChunks.has(
+        `${Math.floor(position.x / TILE_SIZE / CHUNK_SIZE)},${Math.floor(position.y / TILE_SIZE / CHUNK_SIZE)}`,
+      ))
+  )
+    mapPending = false;
 }
 
 export const removeEntities = (playerIds: string[], npcIds: string[]) => {
@@ -280,4 +283,7 @@ export const applyWorldUpdate = (payload: WorldUpdatePayload) => {
     },
     player: payload.self,
   };
+  // Chunks precede the world update on the wire, so the arrival position can
+  // name a chunk already received while the previous position was still held.
+  updateMapPending();
 };

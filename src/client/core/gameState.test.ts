@@ -8,8 +8,13 @@ import {
   setMapMeta,
   setStaticMap,
 } from './gameState';
-import { CharacterAction, Direction } from '../../shared/types';
+import {
+  CharacterAction,
+  Direction,
+  type MapMetaClient,
+} from '../../shared/types';
 import type { WorldUpdatePayload } from '../../shared/wsProtocol';
+import { TILE_SIZE } from '../../shared/constants';
 
 const self = {
   id: 'me',
@@ -146,15 +151,14 @@ describe('applyWorldUpdate', () => {
 
 // A map arrives as metadata first and tiles later, a chunk at a time, so
 // the renderer covers it until the player's chunk lands.
-const meta = (id: string, revision = 1) =>
-  ({
-    id,
-    name: id,
-    type: 'normal',
-    cols: 32,
-    rows: 32,
-    revision,
-  }) as never;
+const meta = (id: string, revision = 1): MapMetaClient => ({
+  id,
+  name: id,
+  type: 'normal',
+  cols: 32,
+  rows: 32,
+  revision,
+});
 
 const chunk = (
   mapId: string,
@@ -170,6 +174,43 @@ const chunk = (
 });
 
 describe('a map that is still arriving', () => {
+  it('lifts the cover when the new position arrives after its chunk', () => {
+    applyWorldUpdate(
+      update({
+        self: { ...self, position: { x: 40 * TILE_SIZE, y: 30 * TILE_SIZE } },
+      }),
+    );
+    setMapMeta({ ...meta('small'), cols: 10, rows: 10 });
+    applyMapChunk(chunk('small', 0, 0));
+
+    applyWorldUpdate(
+      update({
+        self: { ...self, position: { x: 9 * TILE_SIZE, y: 9 * TILE_SIZE } },
+      }),
+    );
+
+    expect(isMapPending()).toBe(false);
+  });
+
+  it('keeps waiting when an update arrives before the chunk under the player', () => {
+    applyWorldUpdate(
+      update({
+        self: { ...self, position: { x: 20 * TILE_SIZE, y: 20 * TILE_SIZE } },
+      }),
+    );
+    setMapMeta(meta('late-chunk'));
+    applyMapChunk(chunk('late-chunk', 0, 0));
+    applyWorldUpdate(
+      update({
+        self: { ...self, position: { x: 20 * TILE_SIZE, y: 20 * TILE_SIZE } },
+      }),
+    );
+
+    expect(isMapPending()).toBe(true);
+    applyMapChunk(chunk('late-chunk', 1, 1));
+    expect(isMapPending()).toBe(false);
+  });
+
   it('waits for the chunk the player is standing in', () => {
     setMapMeta(meta('A'));
     expect(isMapPending()).toBe(true);

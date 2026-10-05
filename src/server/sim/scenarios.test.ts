@@ -6,6 +6,10 @@ import {
   clearLootTableCache,
   createOrUpdateLootTable,
 } from '../services/economy/lootTableService.js';
+import * as instanceRegistry from '../persistence/instanceRegistry.js';
+import { playerRepository } from '../persistence/playerRepository.js';
+import { enterWorld } from '../services/player/playerService.js';
+import { getPlayerByName } from './world.js';
 
 // Loot tables are documents; these tests only need them in the cache.
 vi.mock('../model/LootTable.js', () => ({
@@ -529,6 +533,46 @@ describe('border links', () => {
     sim.release('Alice', key);
     sim.step(1);
   }
+
+  it.each([
+    {
+      edge: 'left' as const,
+      key: Key.ArrowLeft,
+      from: { x: 0, y: 5 * TILE_SIZE },
+      expected: { x: 39 * TILE_SIZE, y: 7 * TILE_SIZE },
+    },
+    {
+      edge: 'up' as const,
+      key: Key.ArrowUp,
+      from: { x: 5 * TILE_SIZE, y: 0 },
+      expected: { x: 7 * TILE_SIZE, y: 29 * TILE_SIZE },
+    },
+  ])(
+    'lands on the $edge neighbour edge when a larger map belongs to another instance',
+    async ({ edge, key, from, expected }) => {
+      const save = vi.spyOn(playerRepository, 'save').mockResolvedValue(true);
+      const lookup = vi
+        .spyOn(instanceRegistry, 'lookupInstanceUrl')
+        .mockReturnValue('ws://remote');
+      try {
+        sim.map.borderLinks = { [edge]: { to: 'remote-map', offset: 2 } };
+        sim.addPlayer({ name: 'Alice', position: from });
+        stepOff(key);
+        await vi.waitFor(() =>
+          expect(getPlayerByName('Alice')).toBeUndefined(),
+        );
+
+        sim.addMap({ id: 'remote-map', tiles: makeTiles(30, 40) });
+        const arrival = save.mock.calls[0]![0];
+        enterWorld(arrival);
+
+        expect(arrival.position).toEqual(expected);
+      } finally {
+        save.mockRestore();
+        lookup.mockRestore();
+      }
+    },
+  );
 
   it('lands on the far edge, level with where the player left plus the offset', () => {
     const dest = sim.addMap({ id: 'west', tiles: makeTiles(30, 10) });

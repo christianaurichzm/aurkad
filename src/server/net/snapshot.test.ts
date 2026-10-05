@@ -9,12 +9,15 @@ import { resetEntityReplication } from './entityReplication.js';
 import { playersWsMap } from './connections.js';
 import { config } from '../config.js';
 import { createFixture, tile } from '../sim/simFixture.js';
+import { unregisterPlayer } from '../sim/world.js';
 import { rebuildQuadtree } from '../spatial/spatialManager.js';
 import {
   createOrUpdateItem,
   deleteItem,
 } from '../services/economy/inventoryService.js';
-import { items } from '../services/world/gameData.js';
+import { createDefaultTiles, items } from '../services/world/gameData.js';
+import { enterWorld } from '../services/player/playerService.js';
+import { teleportPlayer } from '../services/world/movementService.js';
 import { setMapTile } from '../services/world/mapService.js';
 import ItemModel from '../model/Item.js';
 import DeliveryModel from '../model/Delivery.js';
@@ -59,6 +62,43 @@ describe('broadcast backpressure', () => {
     broadcastGameState();
     expect(healthy.send).toHaveBeenCalled();
   });
+});
+
+describe('arrival on a small blank map', () => {
+  it.each(['teleport', 'login'] as const)(
+    'streams the chunk under the clamped player after %s',
+    (arrival) => {
+      const sim = createFixture(0);
+      const dest = sim.addMap({
+        id: 'small',
+        tiles: createDefaultTiles(10, 8),
+      });
+      const alice = sim.addPlayer({ name: 'Alice', position: tile(40, 30) });
+      if (arrival === 'teleport')
+        teleportPlayer(alice, dest.id, alice.position);
+      else {
+        unregisterPlayer(alice.id);
+        alice.mapId = dest.id;
+        enterWorld(alice);
+      }
+      rebuildQuadtree(dest.id, dest);
+      const ws = fakeWs(0);
+      playersWsMap.set('Alice', ws as unknown as WebSocket);
+
+      broadcastGameState();
+
+      expect(alice.position).toEqual(tile(9, 7));
+      const frames = ws.send.mock.calls.map((c) => JSON.parse(String(c[0])));
+      expect(frames.find((f) => f.type === 'mapChunk')?.payload).toMatchObject({
+        mapId: dest.id,
+        chunkX: 0,
+        chunkY: 0,
+      });
+      expect(
+        frames.find((f) => f.type === 'worldUpdate')?.payload.self.position,
+      ).toEqual(tile(9, 7));
+    },
+  );
 });
 
 describe('health changes', () => {
