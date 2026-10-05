@@ -755,14 +755,27 @@ declare function exchangeItems(
 ): EconomyResult;
 
 /**
- * Persist players to the database immediately (economic commit). Call after
- * moving items between players or containers so a crash cannot revert a
- * confirmed transfer. Failures fall back to the periodic snapshot.
- *
- * Resolves to whether every player was written, and never rejects: await it
- * when the next step must not happen until the commit is durable.
+ * Write players to the database now, after moving items, so a crash cannot
+ * revert a confirmed transfer. Resolves to whether all were written and
+ * never rejects. Items moving between players belong in commitInventories.
  */
 declare function persistNow(...players: PlayerServer[]): Promise<boolean>;
+
+/**
+ * Move items between players as one durable commit. `change` gets copies
+ * of the inventories in `players` order; the copies become the inventories
+ * only once written, so a failed commit changes nothing.
+ *
+ *     const ok = await commitInventories([alice, bob], ([a, b]) =>
+ *       moveItem(a, b, Items.Gold, 100).ok);
+ *
+ * False when a player is mid-commit, when `change` returns false or when
+ * the write fails.
+ */
+declare function commitInventories(
+  players: PlayerServer[],
+  change: (inventories: ItemContainer[]) => boolean,
+): Promise<boolean>;
 
 /** Why a queued delivery was refused. */
 type DeliveryFailure =

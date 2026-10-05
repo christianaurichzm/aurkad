@@ -32,6 +32,7 @@ import {
   withTransaction,
 } from './transactions.js';
 import {
+  commitInventories,
   createPlayer,
   persistPlayersNow,
 } from '../services/player/playerService.js';
@@ -48,7 +49,7 @@ import { sendDelivery } from '../services/economy/deliveryService.js';
 import { items } from '../services/world/gameData.js';
 import DeliveryModel from '../model/Delivery.js';
 import { logger } from '../logger.js';
-import type { PlayerServer } from '../../shared/types.js';
+import type { InventoryLike, PlayerServer } from '../../shared/types.js';
 
 const SWORD = 7;
 
@@ -74,6 +75,9 @@ function failSecondWrite(): void {
     .mockImplementationOnce(real)
     .mockRejectedValueOnce(new Error('connection lost'));
 }
+
+const swordToBob = ([alice, bob]: InventoryLike[]): boolean =>
+  moveItem(alice!, bob!, SWORD, 1).ok;
 
 const heldBy = async (name: string): Promise<number> => {
   const record = await playerRepository.findByName(name);
@@ -139,6 +143,21 @@ describe('standalone mongod', () => {
     expect(await heldBy('Alice')).toBe(0);
     expect(await heldBy('Bob')).toBe(0);
   });
+
+  it('writes a half-landed inventory commit back from memory', async () => {
+    const [from, to] = await tradingPair();
+    registerPlayer(from);
+    registerPlayer(to);
+    failSecondWrite();
+
+    expect(await commitInventories([from, to], swordToBob)).toBe(false);
+    expect(await heldBy('Alice')).toBe(0);
+    expect(from.inventory.items).toEqual([{ item: SWORD, quantity: 1 }]);
+
+    await persistDirtyPlayers();
+    expect(await heldBy('Alice')).toBe(1);
+    expect(await heldBy('Bob')).toBe(0);
+  });
 });
 
 describe('replica set', () => {
@@ -180,6 +199,43 @@ describe('replica set', () => {
     // the players can retry. "Bob has it and Alice still does" is not.
     expect(await heldBy('Alice')).toBe(1);
     expect(await heldBy('Bob')).toBe(0);
+  });
+
+  it('applies an inventory commit only once both sides are written', async () => {
+    const [from, to] = await tradingPair();
+
+    expect(await commitInventories([from, to], swordToBob)).toBe(true);
+
+    expect(await heldBy('Alice')).toBe(0);
+    expect(await heldBy('Bob')).toBe(1);
+    expect(from.inventory.items).toEqual([]);
+    expect(to.inventory.items).toEqual([{ item: SWORD, quantity: 1 }]);
+  });
+
+  it('leaves memory and disk as they were when an inventory commit fails', async () => {
+    const [from, to] = await tradingPair();
+    registerPlayer(from);
+    registerPlayer(to);
+    failSecondWrite();
+
+    expect(await commitInventories([from, to], swordToBob)).toBe(false);
+    expect(from.inventory.items).toEqual([{ item: SWORD, quantity: 1 }]);
+    expect(to.inventory.items).toEqual([]);
+
+    // Write-behind has nothing to save half of: memory never moved.
+    await persistDirtyPlayers();
+    expect(await heldBy('Alice')).toBe(1);
+    expect(await heldBy('Bob')).toBe(0);
+  });
+
+  it('refuses an inventory commit for a player already committing', async () => {
+    const [from, to] = await tradingPair();
+    const change = vi.fn(swordToBob);
+
+    const first = commitInventories([from, to], change);
+    expect(await commitInventories([to, from], change)).toBe(false);
+    expect(await first).toBe(true);
+    expect(change).toHaveBeenCalledTimes(1);
   });
 
   it('does not let snapshots write half a trade after a presence refusal', async () => {

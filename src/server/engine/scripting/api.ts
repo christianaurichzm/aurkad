@@ -5,6 +5,7 @@ import {
   respawnPlayer,
   awardExperience,
   persistPlayersNow,
+  commitInventories,
 } from '../../services/player/playerService.js';
 import { runtimeState } from '../../sim/state.js';
 import {
@@ -566,6 +567,11 @@ export function buildApi(
     // snapshot loop, so a crash cannot revert a confirmed transfer.
     persistNow: (...playersToSave: PlayerServer[]): Promise<boolean> =>
       persistPlayersNow(playersToSave.filter((p) => !!p)),
+
+    // A transfer between players that is confirmed only once it is durable:
+    // the change runs on copies and reaches the live inventories after the
+    // write lands (see commitInventories in playerService).
+    commitInventories,
 
     auctions: {
       list: listAuctions,

@@ -1,4 +1,14 @@
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import {
+  describe,
+  it,
+  expect,
+  beforeEach,
+  afterEach,
+  onTestFinished,
+  vi,
+} from 'vitest';
+import mongoose from 'mongoose';
+import { playerRepository } from '../../persistence/playerRepository.js';
 import { unloadAllModules } from './moduleLoader.js';
 import { loadModulesForTest } from '../../../test/modules.js';
 import { useApi, clearProvides } from './registry.js';
@@ -75,7 +85,21 @@ describe('gameplay modules', () => {
     expect(bob.experience).toBe(40);
   });
 
-  it('trade swaps offered items when the recipient accepts', () => {
+  it('trade swaps offered items once the commit is saved', async () => {
+    // Durability belongs to transactions.test.ts; here the write lands when
+    // the test says so.
+    const connected = vi
+      .spyOn(mongoose.connection, 'readyState', 'get')
+      .mockReturnValue(mongoose.ConnectionStates.connected);
+    let land = () => {};
+    const landed = new Promise<void>((resolve) => (land = resolve));
+    const save = vi
+      .spyOn(playerRepository, 'save')
+      .mockImplementation(() => landed.then(() => true));
+    onTestFinished(() => {
+      connected.mockRestore();
+      save.mockRestore();
+    });
     const sim = createFixture(0);
     const alice = sim.addPlayer({
       name: 'Alice',
@@ -89,9 +113,14 @@ describe('gameplay modules', () => {
     handleChatCommand(alice, '/trade offer Bob 30 2 40 1');
     handleChatCommand(bob, '/trade accept Alice');
 
-    expect(
-      alice.inventory.items.find((entry) => entry.item === 30)?.quantity,
-    ).toBe(1);
+    await vi.waitFor(() => expect(save).toHaveBeenCalledTimes(2));
+    const held = (entry: { item: number }) => entry.item === 30;
+    expect(alice.inventory.items.find(held)?.quantity).toBe(3);
+
+    land();
+    await vi.waitFor(() =>
+      expect(alice.inventory.items.find(held)?.quantity).toBe(1),
+    );
     expect(
       alice.inventory.items.find((entry) => entry.item === 40)?.quantity,
     ).toBe(1);

@@ -1,7 +1,6 @@
 // @ts-check
-// Trade module: item swaps between online players. The core inventory is
-// untouched; this checks capacity, then moves the items through the core
-// give and remove APIs.
+// Trade module: item swaps between online players, checked for room and
+// moved on both sides in one commit.
 
 i18n({
   pt: {
@@ -24,6 +23,8 @@ i18n({
       'Você não tem a quantidade pedida.',
     'Your inventory is full.': 'Seu inventário está cheio.',
     'Trade completed.': 'Troca concluída.',
+    'The trade could not be saved. Try again.':
+      'Não foi possível salvar a troca. Tente de novo.',
     'Trade cancelled.': 'Troca cancelada.',
     'No trade to cancel.': 'Nenhuma troca para cancelar.',
     'Trade commands must be used in-game.':
@@ -155,8 +156,9 @@ function offerTrade(
   return done(t(player, 'Trade offered to {player}.', { player: target.name }));
 }
 
-function acceptTrade(player, fromName) {
-  const offer = offers.get(keyOf(String(fromName || ''), player.name));
+async function acceptTrade(player, fromName) {
+  const key = keyOf(String(fromName || ''), player.name);
+  const offer = offers.get(key);
   if (!offer) return refused('No trade offer from that player.');
 
   const from = getPlayer(offer.from);
@@ -188,38 +190,26 @@ function acceptTrade(player, fromName) {
       t(player, "{player}'s inventory is full.", { player: from.name }),
     );
 
-  // Each leg is atomic on its own. The checks above are what make the pair
-  // safe: both sides are known to have the goods and the room before the first
-  // one moves, so the second cannot fail and strand the first.
-  const gave = moveItem(
-    from.inventory,
-    to.inventory,
-    offer.give.itemId,
-    offer.give.quantity,
-  );
-  if (!gave.ok) return refused('Offer is no longer valid.');
-
-  if (offer.want) {
-    const paid = moveItem(
-      to.inventory,
-      from.inventory,
-      offer.want.itemId,
-      offer.want.quantity,
+  // Claimed before the commit, so an accept or cancel meanwhile finds nothing.
+  offers.delete(key);
+  /** @type {boolean | undefined} */
+  let moved;
+  const saved = await commitInventories([from, to], ([giver, taker]) => {
+    moved =
+      moveItem(giver, taker, offer.give.itemId, offer.give.quantity).ok &&
+      (!offer.want ||
+        moveItem(taker, giver, offer.want.itemId, offer.want.quantity).ok);
+    return moved;
+  });
+  if (!saved) {
+    if (!offers.has(key)) offers.set(key, offer);
+    return refused(
+      moved === false
+        ? 'Offer is no longer valid.'
+        : 'The trade could not be saved. Try again.',
     );
-    if (!paid.ok) {
-      // Put the first leg back rather than leaving a one-sided trade.
-      moveItem(
-        to.inventory,
-        from.inventory,
-        offer.give.itemId,
-        offer.give.quantity,
-      );
-      return refused('You do not have the requested item quantity.');
-    }
   }
-  persistNow(from, to);
 
-  offers.delete(keyOf(offer.from, offer.to));
   push(from);
   push(to);
   sendEvent(from, 'trade:complete', offer);
@@ -248,14 +238,15 @@ command(
     description:
       'Trade: /trade offer <player> <item> <qty> [wantItem] [wantQty] | accept|cancel <player>',
   },
-  ({ player, args, reply }) => {
+  async ({ player, args, reply }) => {
     if (!player) return reply('Trade commands must be used in-game.');
     const sub = String(args[0] || '').toLowerCase();
     if (sub === 'offer')
       return reply(
         offerTrade(player, args[1], args[2], args[3], args[4], args[5]).message,
       );
-    if (sub === 'accept') return reply(acceptTrade(player, args[1]).message);
+    if (sub === 'accept')
+      return reply((await acceptTrade(player, args[1])).message);
     if (sub === 'cancel') return reply(cancelTrade(player, args[1]).message);
     if (sub === 'list')
       return reply(
@@ -276,7 +267,7 @@ function answer(player, result) {
   });
 }
 
-on('customAction', ({ player, channel, payload }) => {
+on('customAction', async ({ player, channel, payload }) => {
   const data = /** @type {any} */ (payload) || {};
   if (channel === 'trade:offer') {
     answer(
@@ -291,7 +282,7 @@ on('customAction', ({ player, channel, payload }) => {
       ),
     );
   } else if (channel === 'trade:accept') {
-    answer(player, acceptTrade(player, data.from));
+    answer(player, await acceptTrade(player, data.from));
   } else if (channel === 'trade:cancel') {
     answer(player, cancelTrade(player, data.player));
   } else if (channel === 'trade:request') {
@@ -328,7 +319,7 @@ on('playerLeave', ({ player }) => {
 // Another module or a script gets the sentence alone.
 provide('trade', {
   offer: (...args) => offerTrade(...args).message,
-  accept: (...args) => acceptTrade(...args).message,
+  accept: async (...args) => (await acceptTrade(...args)).message,
   cancel: (...args) => cancelTrade(...args).message,
   offersFor,
 });

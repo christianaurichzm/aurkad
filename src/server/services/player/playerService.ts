@@ -18,6 +18,7 @@ import {
   Player,
   PlayerCold,
   PlayerHot,
+  type InventoryLike,
 } from '../../../shared/types.js';
 import { playerRepository } from '../../persistence/playerRepository.js';
 
@@ -46,7 +47,9 @@ import {
   endPlayerCommit,
   waitForPlayerCommit,
   isPlayerCommitting,
+  markPlayerDirty,
 } from '../../persistence/dirtyPlayers.js';
+import { lockInventory, unlockInventory } from '../economy/economyService.js';
 import {
   acquirePresence,
   releasePresence,
@@ -352,13 +355,73 @@ export async function persistPlayersNow(
   }
 }
 
-async function commitPlayers(playersToSave: PlayerServer[]): Promise<boolean> {
+/**
+ * Changes several players' inventories as one commit, confirmed only once
+ * durable. `change` works on copies written together, and only a write that
+ * landed becomes the live inventories, so a failed commit leaves nothing for
+ * write-behind to save half of. The inventories stay locked from the first
+ * await to the last, so nothing moves an item under the copies.
+ *
+ * False when a player is already mid-commit or listed twice, when `change`
+ * returns false, or when the write did not land.
+ */
+export async function commitInventories(
+  playersToCommit: PlayerServer[],
+  change: (inventories: InventoryLike[]) => boolean,
+): Promise<boolean> {
+  const ids = playersToCommit.map((player) => player.id);
+  if (
+    mongoose.connection.readyState !== mongoose.ConnectionStates.connected ||
+    new Set(ids).size !== ids.length ||
+    ids.some(isPlayerCommitting)
+  )
+    return false;
+
+  beginPlayerCommit(ids);
+  for (const player of playersToCommit) lockInventory(player.inventory);
+  try {
+    // A snapshot that started before the hold must land first, or its stale
+    // inventory would overwrite the commit.
+    await Promise.all(ids.map(waitForPlayerPersistence));
+    const inventories = playersToCommit.map((player) =>
+      structuredClone(player.inventory),
+    );
+    if (!change(inventories)) return false;
+    const committed = await commitPlayers(
+      playersToCommit,
+      playersToCommit.map((player, i) => ({
+        ...player,
+        inventory: inventories[i]!,
+      })),
+    );
+    if (!committed) {
+      // Without transactions one document may have landed. Memory still holds
+      // the state before the change, so the next sweep writes it back.
+      for (const id of ids) markPlayerDirty(id);
+      return false;
+    }
+    playersToCommit.forEach((player, i) => {
+      player.inventory.items = inventories[i]!.items;
+      updatePlayer(player);
+    });
+    return true;
+  } finally {
+    for (const player of playersToCommit) unlockInventory(player.inventory);
+    endPlayerCommit(ids);
+  }
+}
+
+/** Writes `states[i]` for `playersToSave[i]`; states default to the players. */
+async function commitPlayers(
+  playersToSave: PlayerServer[],
+  states = playersToSave,
+): Promise<boolean> {
   if (playersToSave.length > 1 && supportsTransactions()) {
     let refused = false;
     const committed = await withTransaction(
       async (session) => {
         // Sequential: one session cannot run operations in parallel.
-        for (const player of playersToSave) {
+        for (const player of states) {
           try {
             await persistPlayerSessionState(player, session);
           } catch (err) {
@@ -382,7 +445,7 @@ async function commitPlayers(playersToSave: PlayerServer[]): Promise<boolean> {
   }
 
   const results = await Promise.allSettled(
-    playersToSave.map((p) => persistPlayerSessionState(p)),
+    states.map((p) => persistPlayerSessionState(p)),
   );
   results.forEach((result, i) => {
     if (result.status === 'rejected') {
