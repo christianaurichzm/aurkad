@@ -42,7 +42,11 @@ import {
   listLootTables,
   clearLootTableCache,
 } from '../services/economy/lootTableService.js';
-import { getNextItemId, getNextNpcId } from '../services/dbService.js';
+import {
+  DB_SCHEMA_VERSION,
+  getNextItemId,
+  getNextNpcId,
+} from '../services/dbService.js';
 import { listArrows } from '../services/content/arrowService.js';
 import { listSpells } from '../services/content/spellService.js';
 
@@ -317,6 +321,18 @@ describe('importContentPack', () => {
         mpCost: 0,
       }),
     ]);
+  });
+
+  it('refuses a database from a newer build before writing to it', async () => {
+    await mongoose
+      .model('Meta')
+      .create({ _id: 'schemaVersion', value: DB_SCHEMA_VERSION + 1 });
+    write('items.json', [
+      { id: 1, name: 'Potion', sprite: 0, type: 'consumable' },
+    ]);
+
+    await expect(importContentPack()).rejects.toThrow(/schema version/);
+    expect(await listItems()).toHaveLength(0);
   });
 
   it('does nothing when content dir is missing', async () => {

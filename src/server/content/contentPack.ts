@@ -60,7 +60,10 @@ import {
 } from '../services/content/contentValidation.js';
 import { registeredBehaviors } from '../engine/scripting/entityScripts.js';
 import { isProvided } from '../engine/modules/registry.js';
-import { raiseCounter } from '../services/dbService.js';
+import {
+  checkDatabaseSchemaVersion,
+  raiseCounter,
+} from '../services/dbService.js';
 
 // Versionable game content lives as JSON files in content/. On boot it is
 // upserted into MongoDB (files win for the ids they define), so a creator can
@@ -384,6 +387,9 @@ export async function importContentPack(): Promise<void> {
     logger.info('[content] No content/ directory - skipping import');
     return;
   }
+  // The boot imports before loadInitialData, and the CLI never reaches it: a
+  // database from a newer build has to be refused before the first upsert.
+  await checkDatabaseSchemaVersion();
 
   for (const key of IMPORT_ORDER) {
     const spec = SPECS[key];
