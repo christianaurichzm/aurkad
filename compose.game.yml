@@ -5,13 +5,16 @@
 #
 #   echo "SESSION_SECRET=$(openssl rand -hex 32)" > .env
 #   echo "ADMIN=yourname" >> .env                 # this username becomes admin
+#   echo "UID=$(id -u)" >> .env && echo "GID=$(id -g)" >> .env
 #   mkdir game
-#   docker compose run --rm --user "$(id -u):$(id -g)" new-game "My Game"
+#   docker compose run --rm new-game "My Game"
 #   docker compose up -d                          # https://localhost
 #
 # game/ is yours: edit it on the host, scripts hot-reload, the rest applies on
 # `docker compose restart app`. The world (maps, players, items) lives in
-# MongoDB, not in the folder.
+# MongoDB, not in the folder. The engine runs as your user (UID and GID), so
+# what it writes there - the Appearance page's theme/, scripts saved in the
+# editor - is yours too, and it can write into a folder you made.
 #
 # The login cookie is only ever sent over HTTPS (USE_SECURE_COOKIES), so Caddy
 # sits in front even on your own computer. There it signs localhost with an
@@ -45,6 +48,7 @@ services:
   app:
     image: ghcr.io/christianaurichzm/aurkad:latest
     restart: unless-stopped
+    user: ${UID:?set UID and GID in .env, see the top of this file}:${GID:?set GID in .env}
     depends_on:
       mongo:
         condition: service_healthy
@@ -63,6 +67,7 @@ services:
   new-game:
     image: ghcr.io/christianaurichzm/aurkad:latest
     profiles: [tools]
+    user: ${UID:?set UID and GID in .env, see the top of this file}:${GID:?set GID in .env}
     entrypoint: ['node', 'dist/server/content/newGame.js', '/app/game']
     volumes:
       - ./game:/app/game

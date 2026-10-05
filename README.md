@@ -13,8 +13,9 @@ empty folder:
 curl -LO https://github.com/christianaurichzm/aurkad/releases/latest/download/compose.yml
 echo "SESSION_SECRET=$(openssl rand -hex 32)" > .env
 echo "ADMIN=yourname" >> .env      # registering this username makes you admin
+echo "UID=$(id -u)" >> .env && echo "GID=$(id -g)" >> .env   # the engine runs as you
 mkdir game
-docker compose run --rm --user "$(id -u):$(id -g)" new-game "My Game"
+docker compose run --rm new-game "My Game"
 docker compose up -d
 ```
 

@@ -37,6 +37,8 @@ services:
     build: .
     container_name: engine-app
     restart: unless-stopped
+    # As the owner of the folders mounted below, which the server writes to.
+    user: ${UID:?set UID and GID in .env (id -u, id -g)}:${GID:?set GID in .env}
     depends_on:
       mongo:
         condition: service_healthy
@@ -53,10 +55,12 @@ services:
       # Creators edit these on the host - no image rebuild needed.
       # scripts/ hot-reloads; game.json applies on restart.
       - ./game.json:/app/game.json:ro
-      # Writable: the boot writes content.generated.d.ts there for your editor.
+      # Writable: the boot writes content.generated.d.ts there for your editor,
+      # and the script editor saves there.
       - ./scripts:/app/scripts
       - ./assets:/app/assets:ro
-      - ./theme:/app/theme:ro
+      # Writable: the Appearance page saves theme.json and its uploads here.
+      - ./theme:/app/theme
       - ./content:/app/content:ro
       - ./modules:/app/modules:ro
       # A game kept in a folder of its own is one mount in place of game.json,
@@ -98,6 +102,7 @@ services:
   #   build: .
   #   container_name: engine-app-b
   #   restart: unless-stopped
+  #   user: ${UID}:${GID}
   #   depends_on:
   #     mongo:
   #       condition: service_healthy
@@ -115,7 +120,7 @@ services:
   #     - ./game.json:/app/game.json:ro
   #     - ./scripts:/app/scripts
   #     - ./assets:/app/assets:ro
-  #     - ./theme:/app/theme:ro
+  #     - ./theme:/app/theme
   #     - ./content:/app/content:ro
   #     - ./modules:/app/modules:ro
 
