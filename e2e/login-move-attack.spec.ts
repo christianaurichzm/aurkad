@@ -421,9 +421,10 @@ test('creates, edits, crosses, resizes, and reconnects on small maps', async ({
   expect(body.mapId).toBe('1');
   expect(body.tiles).toHaveLength(20);
   expect(body.tiles.every((row) => row.length === 20)).toBe(true);
-  expect(
-    (await (await page.request.get(`/maps/${mapId}`)).json()).tiles,
-  ).toEqual(map.tiles);
+  const unchangedSmallMap = (await (
+    await page.request.get(`/maps/${mapId}`)
+  ).json()) as typeof map;
+  expect(unchangedSmallMap.tiles).toEqual(map.tiles);
 
   const backOnSmallMap = self.waitUntil(
     'the small map before resizing',

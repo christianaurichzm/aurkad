@@ -51,8 +51,10 @@ describe('a new map', () => {
     };
     const { container, rerender } = render(<MapEditor {...props} maps={[]} />);
 
-    await act(async () =>
-      rerender(<MapEditor {...props} maps={[map('isometric')]} />),
+    await act(() =>
+      Promise.resolve(
+        rerender(<MapEditor {...props} maps={[map('isometric')]} />),
+      ),
     );
 
     expect(
@@ -72,7 +74,9 @@ describe('a new map', () => {
       container.querySelector<HTMLSelectElement>('#mapOrientation')!;
     fireEvent.change(orientation, { target: { value: 'isometric' } });
 
-    await act(async () => rerender(<MapEditor {...props} maps={[map()]} />));
+    await act(() =>
+      Promise.resolve(rerender(<MapEditor {...props} maps={[map()]} />)),
+    );
 
     expect(orientation.value).toBe('isometric');
   });
