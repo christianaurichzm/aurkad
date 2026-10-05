@@ -56,6 +56,7 @@ export const updateMapById = async (
     return;
   }
 
+  mapState = { ...previous, ...mapState, players: previous.players };
   mapState.tilesRevision = previous.tilesRevision;
   runtimeState.maps[mapState.id] = mapState;
 

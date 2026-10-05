@@ -174,6 +174,53 @@ const chunk = (
 });
 
 describe('a map that is still arriving', () => {
+  it('ignores chunks from the previous map and a previous revision', () => {
+    setMapMeta(meta('stale-chunks', 2));
+    applyMapChunk(chunk('1', 0, 0, 2));
+    applyMapChunk(chunk('stale-chunks', 0, 0, 1));
+
+    expect(isMapPending()).toBe(true);
+    expect(getGameState()?.tiles[0]?.[0]?.tileIndex).toBe(-1);
+
+    applyMapChunk(chunk('stale-chunks', 0, 0, 2));
+    expect(isMapPending()).toBe(false);
+    expect(getGameState()?.tiles[0]?.[0]?.tileIndex).toBe(5);
+  });
+
+  it('does not count repeated chunks toward the fallback that lifts the cover', () => {
+    setMapMeta(meta('repeated-chunks'));
+    for (let i = 0; i < 4; i++) applyMapChunk(chunk('repeated-chunks', 1, 1));
+
+    expect(isMapPending()).toBe(true);
+    applyMapChunk(chunk('repeated-chunks', 0, 0));
+    expect(isMapPending()).toBe(false);
+  });
+
+  it('lifts the cover over a legitimately empty tile', () => {
+    setMapMeta(meta('empty-tile'));
+    applyMapChunk({
+      ...chunk('empty-tile', 0, 0),
+      tiles: [[{ tileIndex: -1 }]],
+    });
+
+    expect(isMapPending()).toBe(false);
+    expect(getGameState()?.tiles[0]?.[0]?.tileIndex).toBe(-1);
+  });
+
+  it('waits for fresh tiles when a cached map has a new revision', () => {
+    setMapMeta(meta('revised-map'));
+    applyMapChunk(chunk('revised-map', 0, 0));
+    setMapMeta(meta('another-map'));
+    setMapMeta(meta('revised-map', 2));
+
+    expect(isMapPending()).toBe(true);
+    expect(getGameState()?.tiles[0]?.[0]?.tileIndex).toBe(-1);
+    applyMapChunk(chunk('revised-map', 0, 0));
+    expect(isMapPending()).toBe(true);
+    applyMapChunk(chunk('revised-map', 0, 0, 2));
+    expect(isMapPending()).toBe(false);
+  });
+
   it('lifts the cover when the new position arrives after its chunk', () => {
     applyWorldUpdate(
       update({

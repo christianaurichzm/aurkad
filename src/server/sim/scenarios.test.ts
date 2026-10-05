@@ -547,6 +547,18 @@ describe('border links', () => {
       from: { x: 5 * TILE_SIZE, y: 0 },
       expected: { x: 7 * TILE_SIZE, y: 29 * TILE_SIZE },
     },
+    {
+      edge: 'right' as const,
+      key: Key.ArrowRight,
+      from: { x: 19 * TILE_SIZE, y: 5 * TILE_SIZE },
+      expected: { x: 0, y: 7 * TILE_SIZE },
+    },
+    {
+      edge: 'down' as const,
+      key: Key.ArrowDown,
+      from: { x: 5 * TILE_SIZE, y: 19 * TILE_SIZE },
+      expected: { x: 7 * TILE_SIZE, y: 0 },
+    },
   ])(
     'lands on the $edge neighbour edge when a larger map belongs to another instance',
     async ({ edge, key, from, expected }) => {
@@ -571,6 +583,108 @@ describe('border links', () => {
         save.mockRestore();
         lookup.mockRestore();
       }
+    },
+  );
+
+  it.each([
+    {
+      edge: 'left',
+      back: 'right',
+      key: Key.ArrowLeft,
+      returnKey: Key.ArrowRight,
+      from: { x: 0, y: 5 * TILE_SIZE },
+      expected: { x: 9 * TILE_SIZE, y: 7 * TILE_SIZE },
+      offset: 2,
+    },
+    {
+      edge: 'right',
+      back: 'left',
+      key: Key.ArrowRight,
+      returnKey: Key.ArrowLeft,
+      from: { x: 19 * TILE_SIZE, y: 5 * TILE_SIZE },
+      expected: { x: 0, y: 3 * TILE_SIZE },
+      offset: -2,
+    },
+    {
+      edge: 'up',
+      back: 'down',
+      key: Key.ArrowUp,
+      returnKey: Key.ArrowDown,
+      from: { x: 5 * TILE_SIZE, y: 0 },
+      expected: { x: 3 * TILE_SIZE, y: 29 * TILE_SIZE },
+      offset: -2,
+    },
+    {
+      edge: 'down',
+      back: 'up',
+      key: Key.ArrowDown,
+      returnKey: Key.ArrowUp,
+      from: { x: 5 * TILE_SIZE, y: 19 * TILE_SIZE },
+      expected: { x: 7 * TILE_SIZE, y: 0 },
+      offset: 2,
+    },
+  ])(
+    'returns to the same tile through reciprocal $edge links on unequal maps',
+    ({ edge, back, key, returnKey, from, expected, offset }) => {
+      const dest = sim.addMap({ id: 'neighbour', tiles: makeTiles(30, 10) });
+      sim.map.borderLinks = { [edge]: { to: dest.id, offset } };
+      dest.borderLinks = { [back]: { to: sim.mapId, offset: -offset } };
+      const alice = sim.addPlayer({ name: 'Alice', position: from });
+
+      stepOff(key);
+
+      expect(alice.position).toEqual(expected);
+      expect(sim.map.players[alice.id]).toBeUndefined();
+      expect(dest.players[alice.id]).toBe(alice);
+      expect(alice.moving).toBe(false);
+      expect(alice.targetPosition).toBeUndefined();
+
+      stepOff(returnKey);
+
+      expect(alice.mapId).toBe(sim.mapId);
+      expect(alice.position).toEqual(from);
+      expect(dest.players[alice.id]).toBeUndefined();
+      expect(sim.map.players[alice.id]).toBe(alice);
+    },
+  );
+
+  it.each([
+    {
+      edge: 'left',
+      key: Key.ArrowLeft,
+      from: { x: 0, y: 5 * TILE_SIZE },
+      offset: -40,
+    },
+    {
+      edge: 'right',
+      key: Key.ArrowRight,
+      from: { x: 19 * TILE_SIZE, y: 5 * TILE_SIZE },
+      offset: 40,
+    },
+    {
+      edge: 'up',
+      key: Key.ArrowUp,
+      from: { x: 5 * TILE_SIZE, y: 0 },
+      offset: -40,
+    },
+    {
+      edge: 'down',
+      key: Key.ArrowDown,
+      from: { x: 5 * TILE_SIZE, y: 19 * TILE_SIZE },
+      offset: 40,
+    },
+  ])(
+    'clamps a $edge crossing with an excessive offset onto a one-tile map',
+    ({ edge, key, from, offset }) => {
+      const dest = sim.addMap({ id: 'one-tile', tiles: makeTiles(1, 1) });
+      sim.map.borderLinks = { [edge]: { to: dest.id, offset } };
+      const alice = sim.addPlayer({ name: 'Alice', position: from });
+
+      stepOff(key);
+
+      expect(alice.mapId).toBe(dest.id);
+      expect(alice.position).toEqual({ x: 0, y: 0 });
+      expect(dest.players[alice.id]).toBe(alice);
     },
   );
 

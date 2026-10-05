@@ -122,6 +122,10 @@ export const MapEditor: React.FC<MapEditorProps> = ({
     onDirtyChange(isDirty);
   }, [isDirty, onDirtyChange]);
 
+  useEffect(() => {
+    if (!selectedId && !isDirty) resetForm(newMapValues(maps));
+  }, [maps, selectedId, isDirty, resetForm]);
+
   const mapTypeOptions: { value: MapType; label: string }[] = [
     { value: 'normal', label: t('map.typeNormal') },
     { value: 'pvp', label: t('map.typePvp') },
@@ -174,17 +178,20 @@ export const MapEditor: React.FC<MapEditorProps> = ({
       left: buildLink(borderLeft),
       right: buildLink(borderRight),
     };
-    const result = selectedId
-      ? await updateMap(selectedId, {
-          name,
-          type,
-          orientation,
-          music: music || undefined,
-          instanced,
-          borderLinks,
-        })
-      : await createMap({ name, type, orientation, cols, rows });
+    const result = await (
+      selectedId
+        ? updateMap(selectedId, {
+            name,
+            type,
+            orientation,
+            music: music || undefined,
+            instanced,
+            borderLinks,
+          })
+        : createMap({ name, type, orientation, cols, rows })
+    ).catch(() => null);
     chatResultMsg(!!result, t('map.saved'), t('map.saveError'));
+    if (!result) return;
     refreshData();
     setSelectedId('');
     setShowResize(false);

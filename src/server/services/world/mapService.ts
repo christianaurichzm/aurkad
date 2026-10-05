@@ -10,7 +10,13 @@ import {
   Direction,
   CharacterAction,
 } from '../../../shared/types.js';
-import { getMap, getPlayer, runtimeState, updateMapById } from './gameData.js';
+import {
+  getMap,
+  getPlayer,
+  runtimeState,
+  updateMapById,
+  updatePlayer,
+} from './gameData.js';
 import { placePlayerOnMap, detachFromMap } from '../../sim/world.js';
 
 import { emit } from '../../engine/hooks.js';
@@ -20,6 +26,7 @@ import { forgetReplicatedEntity, resendChunkAt } from '../../net/snapshot.js';
 import { getNextMapId } from '../dbService.js';
 import { getItemById } from '../economy/inventoryService.js';
 import { getNpcById } from '../npc/index.js';
+import { onMap } from './physicsService.js';
 
 export async function getMapById(id: string): Promise<MapStateServer | null> {
   return mapRepository.findById(id);
@@ -52,7 +59,26 @@ export async function createOrUpdateMap(
   }
 
   runtimeState.maps[map.id] = merged;
-  if (map.tiles !== undefined) emit('mapChange', { mapId: map.id });
+  if (map.tiles !== undefined) {
+    for (const player of Object.values(merged.players ?? {})) {
+      const position = onMap(player, map.id, player.position);
+      const target = player.targetPosition ?? player.position;
+      const next = onMap(player, map.id, target);
+      if (
+        position.x === player.position.x &&
+        position.y === player.position.y &&
+        next.x === target.x &&
+        next.y === target.y
+      )
+        continue;
+      // Movement reads map services during boot; loading it here avoids
+      // entering the tick loop before its movement systems are initialized.
+      const { teleportPlayer } = await import('./movementService.js');
+      teleportPlayer(player, map.id, position);
+      updatePlayer(player);
+    }
+    emit('mapChange', { mapId: map.id });
+  }
 
   await mapRepository.upsert(map.id, map);
 

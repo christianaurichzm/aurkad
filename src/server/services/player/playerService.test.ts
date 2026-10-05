@@ -13,7 +13,7 @@ import {
   setAccess,
 } from './playerService.js';
 import { on, clearAll } from '../../engine/hooks.js';
-import { createFixture } from '../../sim/simFixture.js';
+import { createFixture, makeTiles, tile } from '../../sim/simFixture.js';
 import { getPlayerByName } from '../../sim/world.js';
 import { gameConfig } from '../../gameConfig.js';
 import { items } from '../world/gameData.js';
@@ -237,6 +237,51 @@ describe('access changed outside setAccess', () => {
 });
 
 describe('entering the world', () => {
+  it.each([
+    {
+      label: 'past the far corner after a resize',
+      position: tile(40, 30),
+      cols: 8,
+      rows: 6,
+      expected: tile(7, 5),
+    },
+    {
+      label: 'before the origin',
+      position: tile(-3, -2),
+      cols: 8,
+      rows: 6,
+      expected: tile(0, 0),
+    },
+    {
+      label: 'on a one-tile map',
+      position: tile(5, 5),
+      cols: 1,
+      rows: 1,
+      expected: tile(0, 0),
+    },
+  ])(
+    'registers a saved player $label at a position visible to the join hook',
+    ({ position, cols, rows, expected }) => {
+      const fx = createFixture();
+      fx.map.tiles = makeTiles(rows, cols);
+      const player = mkPlayer({ mapId: fx.mapId, position });
+      const joined = vi.fn();
+      const off = on('playerJoin', ({ player }) =>
+        joined({ ...player.position }),
+      );
+      try {
+        const map = enterWorld(player);
+
+        expect(player.position).toEqual(expected);
+        expect(joined).toHaveBeenCalledWith(expected);
+        expect(map?.players[player.id]).toBe(player);
+        expect(getPlayerByName(player.name)).toBe(player);
+      } finally {
+        off();
+      }
+    },
+  );
+
   it('pins what an unrecorded slot gives, so deleting the item cannot strand it', () => {
     const fx = createFixture();
     items.set(77, {

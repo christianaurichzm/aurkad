@@ -288,13 +288,14 @@ test.describe('touch layout', () => {
   });
 });
 
-test('creates a small map, teleports through the GM panel, and saves its tiles', async ({
+test('creates, edits, crosses, resizes, and reconnects on small maps', async ({
   page,
 }) => {
   test.skip(
     process.env.E2E_PRODUCTION !== 'true',
     'Requires the isolated admin fixture',
   );
+  test.setTimeout(60_000);
   const errors: string[] = [];
   page.on('pageerror', (error) => errors.push(error.message));
   page.on('console', (message) => {
@@ -336,6 +337,14 @@ test('creates a small map, teleports through the GM panel, and saves its tiles',
   await gm.getByLabel('Map ID', { exact: true }).fill('1');
   await gm.getByLabel('Col', { exact: true }).fill('19');
   await gm.getByLabel('Row', { exact: true }).fill('19');
+  await expect(gm.getByLabel('Col', { exact: true })).toHaveAttribute(
+    'min',
+    '0',
+  );
+  await expect(gm.getByLabel('Row', { exact: true })).toHaveAttribute(
+    'min',
+    '0',
+  );
   const onLargeMap = self.waitUntil(
     'the far corner of the large map',
     (s) => s.position.x === 19 * 64 && s.position.y === 19 * 64,
@@ -382,6 +391,119 @@ test('creates a small map, teleports through the GM panel, and saves its tiles',
       (row) => row.length === 8 && row.every((tile) => tile.tileIndex === 0),
     ),
   ).toBe(true);
+
+  // Keep the painter open across the transition: its buffer must follow the
+  // new map before a save can overwrite any tiles.
+  const backOnLargeMap = self.waitUntil(
+    'the large map with the painter open',
+    (s) => s.position.x === 3 * 64 && s.position.y === 3 * 64,
+  );
+  expect(
+    (
+      await page.request.post('/mod/warp', {
+        data: { playerName: 'e2e-map-admin', mapId: '1', col: 3, row: 3 },
+      })
+    ).ok(),
+  ).toBe(true);
+  await backOnLargeMap;
+  await expect(page.locator('#mapName')).toHaveValue('Smoke');
+  await page.getByRole('button', { name: 'Fill', exact: true }).click();
+  const savedLargeMap = page.waitForResponse((response) =>
+    response.url().endsWith('/saveMap'),
+  );
+  await page.locator('#saveButton').click();
+  const largeSave = await savedLargeMap;
+  expect(largeSave.ok()).toBe(true);
+  const body = largeSave.request().postDataJSON() as {
+    mapId: string;
+    tiles: unknown[][];
+  };
+  expect(body.mapId).toBe('1');
+  expect(body.tiles).toHaveLength(20);
+  expect(body.tiles.every((row) => row.length === 20)).toBe(true);
+  expect(
+    (await (await page.request.get(`/maps/${mapId}`)).json()).tiles,
+  ).toEqual(map.tiles);
+
+  const backOnSmallMap = self.waitUntil(
+    'the small map before resizing',
+    (s) => s.position.x === 7 * 64 && s.position.y === 5 * 64,
+  );
+  expect(
+    (
+      await page.request.post('/mod/warp', {
+        data: { playerName: 'e2e-map-admin', mapId, col: 19, row: 19 },
+      })
+    ).ok(),
+  ).toBe(true);
+  await backOnSmallMap;
+  await expect(page.locator('#mapName')).toHaveValue('Small map');
+  await page
+    .locator('#tilesetContainer')
+    .getByRole('button', { name: 'Close', exact: true })
+    .click();
+
+  const afterResize = self.waitUntil(
+    'the live player inside the resized map',
+    (s) => s.position.x === 3 * 64 && s.position.y === 2 * 64,
+  );
+  expect(
+    (
+      await page.request.post(`/maps/${mapId}/resize`, {
+        data: { cols: 4, rows: 3 },
+      })
+    ).ok(),
+  ).toBe(true);
+  await afterResize;
+
+  const newSelf = page
+    .waitForEvent('websocket', (socket) => socket.url().includes('/ws'))
+    .then(trackSelf);
+  await page.reload();
+  await page
+    .getByPlaceholder('Username', { exact: true })
+    .fill('e2e-map-admin');
+  await page.getByPlaceholder('Password', { exact: true }).fill('e2e-password');
+  await page.getByRole('button', { name: 'Login', exact: true }).click();
+  const resumed = await newSelf;
+  await expect(page.locator('#hud-level')).toBeVisible();
+  expect(
+    (await resumed.current('the saved position after reconnect')).position,
+  ).toEqual({ x: 3 * 64, y: 2 * 64 });
+  await expect
+    .poll(() =>
+      page
+        .locator('#fringeCanvas')
+        .evaluate(
+          (canvas) =>
+            (canvas as HTMLCanvasElement)
+              .getContext('2d')!
+              .getImageData(0, 0, 1, 1).data[3],
+        ),
+    )
+    .toBe(0);
+
+  expect(
+    (
+      await page.request.post('/mod/warp', {
+        data: { playerName: 'e2e-map-admin', mapId, col: -1, row: 0 },
+      })
+    ).status(),
+  ).toBe(400);
+  await page.locator('#hud-level').click();
+  await page.keyboard.press('z');
+  await expect(page.locator('#mapName')).toHaveValue('Small map');
+  await page.getByRole('button', { name: 'Fill', exact: true }).click();
+  const savedAfterReconnect = page.waitForResponse((response) =>
+    response.url().endsWith('/saveMap'),
+  );
+  await page.locator('#saveButton').click();
+  expect((await savedAfterReconnect).ok()).toBe(true);
+  const resizedMap = (await (
+    await page.request.get(`/maps/${mapId}`)
+  ).json()) as { tiles: unknown[][] };
+  expect(resizedMap.tiles).toHaveLength(3);
+  expect(resizedMap.tiles.every((row) => row.length === 4)).toBe(true);
   expect(errors).toEqual([]);
 });
 

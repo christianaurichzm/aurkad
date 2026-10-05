@@ -5,6 +5,8 @@ import type {
   PersistentNpc,
   Tile,
 } from '../../../shared/types.js';
+import { createFixture, makeTiles, tile } from '../../sim/simFixture.js';
+import { getMap, updateMapById } from './gameData.js';
 
 const getNpcById = vi.fn();
 vi.mock('../npc/index.js', () => ({
@@ -95,4 +97,88 @@ describe('the mapChange hook', () => {
 
     expect(seen).toEqual([7]);
   });
+});
+
+describe('editing a populated map', () => {
+  it('keeps an in-bounds step running when a tile edit leaves room for it', async () => {
+    const sim = createFixture();
+    const alice = sim.addPlayer({
+      position: tile(1, 1),
+      moving: true,
+      targetPosition: tile(2, 1),
+      moveTick: 1,
+      moveDurationTicks: 5,
+    });
+
+    await createOrUpdateMap({ id: sim.mapId, tiles: makeTiles(3, 4) });
+
+    expect(alice.position).toEqual(tile(1, 1));
+    expect(alice.targetPosition).toEqual(tile(2, 1));
+    expect(alice.moving).toBe(true);
+    expect(alice.moveTick).toBe(1);
+    expect(alice.moveDurationTicks).toBe(5);
+  });
+
+  it('retains the live roster when an update comes from a stored map document', async () => {
+    const sim = createFixture();
+    const alice = sim.addPlayer({ name: 'Alice', position: tile(5, 5) });
+    const npc = sim.addNpc({ position: tile(2, 2) });
+    const document = {
+      id: sim.mapId,
+      name: 'Renamed',
+      type: 'normal',
+      tiles: makeTiles(20, 20),
+      droppedItems: [],
+    } as unknown as MapStateServer;
+
+    await updateMapById(document);
+
+    const live = getMap(sim.mapId)!;
+    expect(live.players[alice.id]).toBe(alice);
+    expect(live.npcs[npc.id]).toBe(npc);
+    expect(alice.position).toEqual(tile(5, 5));
+  });
+
+  it.each([
+    {
+      label: 'standing outside',
+      position: tile(19, 19),
+      targetPosition: tile(18, 19),
+    },
+    {
+      label: 'stepping outside',
+      position: tile(3, 2),
+      targetPosition: tile(4, 2),
+    },
+  ])(
+    'moves players $label onto a shrunken map and cancels a step toward deleted tiles',
+    async ({ position, targetPosition }) => {
+      const sim = createFixture();
+      const alice = sim.addPlayer({
+        name: 'Alice',
+        position,
+        moving: true,
+        targetPosition,
+        moveTick: 1,
+        moveDurationTicks: 5,
+      });
+      const joinedPositions: unknown[] = [];
+      const stop = on('mapChange', () =>
+        joinedPositions.push({ ...alice.position }),
+      );
+      try {
+        await createOrUpdateMap({ id: sim.mapId, tiles: makeTiles(3, 4) });
+
+        expect(alice.position).toEqual(tile(3, 2));
+        expect(alice.moving).toBe(false);
+        expect(alice.targetPosition).toBeUndefined();
+        expect(alice.moveTick).toBeUndefined();
+        expect(alice.moveDurationTicks).toBeUndefined();
+        expect(joinedPositions).toEqual([tile(3, 2)]);
+        expect(getMap(sim.mapId)?.players[alice.id]).toBe(alice);
+      } finally {
+        stop();
+      }
+    },
+  );
 });

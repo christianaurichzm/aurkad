@@ -9,10 +9,7 @@ import {
   ResizeMapBodySchema,
 } from '../bodySchemas.js';
 import checkAccess from '../middleware/checkAccess.js';
-import {
-  createDefaultTiles,
-  updateMapById,
-} from '../../services/world/gameData.js';
+import { createDefaultTiles } from '../../services/world/gameData.js';
 import {
   createOrUpdateMap,
   getMapById,
@@ -162,7 +159,14 @@ export function createMapRouter() {
         const map = await getMapById(id);
         if (!map) return res.status(404).json({ error: 'Map not found.' });
         const resized = resizeTiles(map.tiles, cols, rows);
-        await updateMapById({ ...map, tiles: resized });
+        await mapSave(
+          id,
+          resized,
+          map.name,
+          map.type,
+          map.music,
+          map.orientation,
+        );
         res.status(200).json({ success: true, cols, rows });
       } catch (error) {
         logger.error('Error resizing map', { err: error });
