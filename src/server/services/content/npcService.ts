@@ -3,10 +3,16 @@ import { runtimeState } from '../../sim/state.js';
 import NpcModel from '../../model/Npc.js';
 import { getNextNpcId } from '../dbService.js';
 import { resetNpcAi } from '../npc/aiBrain.js';
+import { despawnNpc } from '../npc/spawn.js';
 import { logger } from '../../logger.js';
 
+// Without the document's _id and __v: callers spread this into live npcs,
+// which serialization sends almost whole, so _id would be stringified for
+// every npc's delta check on every tick.
 export async function getNpcById(id: string): Promise<PersistentNpc | null> {
-  return await NpcModel.findOne({ id }).lean<PersistentNpc>().exec();
+  return await NpcModel.findOne({ id }, { _id: 0, __v: 0 })
+    .lean<PersistentNpc>()
+    .exec();
 }
 
 export async function createOrUpdateNpc(
@@ -79,6 +85,9 @@ export async function refreshNpcInRuntime(id: string): Promise<void> {
         const merged = {
           ...map.npcs[runtimeId]!,
           ...updated,
+          // The document's id is the template's. The live npc answers to its
+          // own, which is what replication, targeting and despawn know it by.
+          id: npc.id,
           health: updated.maxHealth,
           action: CharacterAction.Idle,
         };
@@ -97,7 +106,10 @@ export async function refreshNpcInRuntime(id: string): Promise<void> {
 
 export async function deleteNpc(id: string): Promise<void> {
   for (const map of Object.values(runtimeState.maps)) {
-    delete map.npcs[id];
+    // Keyed per spawn tile, not by the template they were built from.
+    for (const npc of Object.values(map.npcs ?? {})) {
+      if ((npc.templateId ?? npc.id) === id) despawnNpc(npc);
+    }
   }
   await NpcModel.deleteOne({ id });
 }
