@@ -9,6 +9,7 @@ import {
   stepNpcToward,
 } from './behaviors.js';
 import { respawnNpc } from './index.js';
+import { spawnNpc } from './spawn.js';
 import { npcMoveTicks } from './types.js';
 import { gameConfig } from '../../gameConfig.js';
 import { resolveDamage } from '../combat/index.js';
@@ -312,10 +313,27 @@ describe('respawnNpc', () => {
     expect(getOrInitNpcAi(npc).state).toBe('idle');
   });
 
-  it('does nothing when no spawn tile exists for the npc', () => {
-    const npc = sim.addNpc({ id: 'ghost', maxHealth: 30, health: 1 });
+  it('takes an npc with no spawn tile out of the world', () => {
+    const npc = sim.addNpc({ id: 'ghost', maxHealth: 30, health: 0 });
     respawnNpc(sim.mapId, npc);
-    expect(npc.health).toBe(1);
+    expect(sim.map.npcs[npc.id]).toBeUndefined();
+  });
+
+  it("stops a script's npc fighting once it is killed", () => {
+    const alice = sim.addPlayer({ name: 'Alice', position: tile(5, 5) });
+    const lich = spawnNpc({
+      mapId: sim.mapId,
+      col: 6,
+      row: 5,
+      attack: 7,
+      behavior: 'aggressive',
+    })!;
+
+    resolveDamage(lich, lich.health, { attacker: alice });
+    sim.step(npcMoveTicks(lich) * 4);
+
+    expect(sim.map.npcs[lich.id]).toBeUndefined();
+    expect(alice.health).toBe(alice.maxHealth);
   });
 
   it('keeps an npc with respawnMs off the map until its time is up', () => {

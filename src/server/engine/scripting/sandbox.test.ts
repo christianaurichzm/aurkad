@@ -451,7 +451,8 @@ describe('API helpers', () => {
     );
     expect(deaths).toEqual(['Alice:Training Dummy']);
     expect(alice.experience).toBe(7);
-    expect(npc?.health).toBe(0);
+    // It has no spawn tile to come back to.
+    expect(npc).toBeUndefined();
 
     handle.cleanup();
   });

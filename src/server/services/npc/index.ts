@@ -177,10 +177,8 @@ function idleStep(npc: RuntimeNpc, ai: NpcAiState, map: MapStateServer) {
 
 export const respawnNpc = (mapId: string, npc: RuntimeNpc) => {
   const delay = npc.respawnMs ? msToTicks(npc.respawnMs) : 0;
-  if (delay === 0) {
-    placeAtSpawn(mapId, npc);
-    return;
-  }
+  if (delay === 0 && placeAtSpawn(mapId, npc)) return;
+
   // Off the map is what makes it dead to everything at once: the quadtree,
   // targeting, collision and the ai all walk map.npcs, and a viewer is sent
   // the id as gone. Replication forgets it because the id comes back, and
@@ -188,6 +186,12 @@ export const respawnNpc = (mapId: string, npc: RuntimeNpc) => {
   const map = getMap(mapId);
   if (map?.npcs[npc.id] === npc) delete map.npcs[npc.id];
   forgetReplicatedEntity(npc.id);
+  resetNpcAi(npc);
+  // No spawn tile is nowhere to come back to, which is every npc a script
+  // spawned. Left on the map, a dead one is skipped by the snapshot and the
+  // quadtree but not by the ai, and goes on chasing and hitting players as
+  // something nobody can see or strike.
+  if (delay === 0) return;
   scheduleAfter(delay, () => {
     // The map is looked up again: a save in the editor rebuilds its npcs, and
     // one rebuilt meanwhile already stands in this id's place.
