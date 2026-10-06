@@ -12,7 +12,8 @@ const MUTATING = new Set(['POST', 'PUT', 'PATCH', 'DELETE']);
 
 // The web console records its own entry, with the command and its arguments
 // parsed out. Logging the request too would double every console action, and
-// the request version is the less useful of the two.
+// the request version is the less useful of the two. Only for requests the gate
+// lets through: a refused one never reaches the console to be recorded there.
 const RECORDED_ELSEWHERE = new Set(['/admin/console']);
 
 /** Path without the query string, which can carry a session id or a token. */
@@ -49,8 +50,7 @@ const checkAccess = (requiredAccess: Access) => {
   return <P>(req: Request<P>, res: Response, next: NextFunction) => {
     const username = req.session.username;
     const accessLevel = req.session.accessLevel;
-    const audited =
-      MUTATING.has(req.method) && !RECORDED_ELSEWHERE.has(pathOf(req));
+    const audited = MUTATING.has(req.method);
 
     const entry = () => ({
       actor: username,
@@ -77,7 +77,7 @@ const checkAccess = (requiredAccess: Access) => {
       return res.status(403).send('Forbidden');
     }
 
-    if (audited) {
+    if (audited && !RECORDED_ELSEWHERE.has(pathOf(req))) {
       // Recorded on finish, not here: the status is what says whether the ban
       // actually landed or died on a validation error, and an entry claiming
       // an action that never happened is worse than no entry at all.
