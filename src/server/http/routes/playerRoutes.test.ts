@@ -34,10 +34,11 @@ import { createPlayerRouter } from './playerRoutes.js';
 
 const app = express();
 app.use(express.json());
+// The player 'op' unless a request says otherwise.
 app.use((req: ExtendedRequest, _res, next) => {
   req.session = {
-    username: 'op',
-    accessLevel: Access.USER,
+    username: req.get('x-user') ?? 'op',
+    accessLevel: Number(req.get('x-access') ?? Access.USER),
   } as ExtendedRequest['session'];
   next();
 });
@@ -53,5 +54,33 @@ describe('spending attribute points', () => {
     expect(player.maxHealth).toBe(320);
     expect(player.strength).toBe(1);
     expect(player.unspentPoints).toBe(2);
+  });
+
+  // The id is in the path, so the gate's "logged in" is not enough: anyone
+  // could put another player's id there.
+  it("refuses to spend another player's points", async () => {
+    const before = { ...player };
+
+    await request(app)
+      .post('/players/p1/assignPoints')
+      .set('x-user', 'mallory')
+      .send({ attack: 1 })
+      .expect(403);
+
+    expect(player).toEqual(before);
+  });
+
+  it("lets an admin spend them on the player's behalf", async () => {
+    const { attack, unspentPoints } = player;
+
+    await request(app)
+      .post('/players/p1/assignPoints')
+      .set('x-user', 'gm')
+      .set('x-access', String(Access.ADMIN))
+      .send({ attack: 1 })
+      .expect(200);
+
+    expect(player.attack).toBe(attack + 1);
+    expect(player.unspentPoints).toBe(unspentPoints - 1);
   });
 });
