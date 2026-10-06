@@ -1,6 +1,8 @@
 import { describe, it, expect, afterEach, vi } from 'vitest';
+import fc from 'fast-check';
 import { createFixture } from '../../sim/simFixture.js';
 import type { Item, PlayerServer } from '../../../shared/types.js';
+import { EQUIPMENT_SLOTS } from '../../../shared/constants.js';
 import { clearAll, on } from '../../engine/hooks.js';
 import ItemModel from '../../model/Item.js';
 import DeliveryModel from '../../model/Delivery.js';
@@ -325,5 +327,78 @@ describe('equipment effects', () => {
     equipItem(alice, 60);
 
     expect(alice.attack).toBe(5);
+  });
+
+  // Each piece sits in its own slot and pieces stack add and multiply on the
+  // same stats, so the order things go on and come off varies freely.
+  it('come off whole in any order, leaving the stats they found', () => {
+    const slots = EQUIPMENT_SLOTS;
+    const effect = fc.record({
+      attribute: fc.constantFrom('attack' as const, 'defense' as const),
+      type: fc.constantFrom('add' as const, 'multiply' as const),
+      value: fc.integer({ min: 1, max: 4 }),
+    });
+    const step = fc.record({
+      piece: fc.integer({ min: 0, max: slots.length - 1 }),
+      on: fc.boolean(),
+    });
+
+    fc.assert(
+      fc.property(
+        fc.array(fc.array(effect, { maxLength: 2 }), {
+          minLength: slots.length,
+          maxLength: slots.length,
+        }),
+        fc.array(step, { maxLength: 30 }),
+        (effectsPerPiece, steps) => {
+          const sim = createFixture(0);
+          slots.forEach((type, i) =>
+            sim.addItem(item(80 + i, { type, effects: effectsPerPiece[i] })),
+          );
+          const alice = sim.addPlayer({
+            name: 'Alice',
+            attack: 10,
+            defense: 7,
+            inventory: {
+              items: slots.map((_, i) => ({ item: 80 + i, quantity: 1 })),
+              maxCapacity: 10,
+            },
+          });
+
+          for (const { piece, on } of steps) {
+            if (on && alice.equipped[slots[piece]!] === undefined) {
+              equipItem(alice, 80 + piece);
+            } else if (!on) unequipItem(alice, slots[piece]!);
+          }
+          for (const slot of slots) unequipItem(alice, slot);
+
+          expect(alice.attack).toBeCloseTo(10, 9);
+          expect(alice.defense).toBeCloseTo(7, 9);
+        },
+      ),
+    );
+  });
+
+  it('come off a slot with no record in the reverse of the order they went on', () => {
+    const sim = createFixture(0);
+    sim.addItem(
+      item(50, {
+        effects: [
+          { attribute: 'attack', type: 'add', value: 2 },
+          { attribute: 'attack', type: 'multiply', value: 3 },
+        ],
+      }),
+    );
+    // Worn since before equipping kept a record: the bonus is in the stat,
+    // (10 + 2) * 3, and the definition is all there is to undo it.
+    const alice = sim.addPlayer({
+      name: 'Alice',
+      attack: 36,
+      equipped: { weapon: 50 },
+    });
+
+    unequipItem(alice, 'weapon');
+
+    expect(alice.attack).toBe(10);
   });
 });

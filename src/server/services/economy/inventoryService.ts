@@ -221,9 +221,9 @@ export function equipItem(player: PlayerServer, itemId: number): void {
 
   player.equipped[slot] = itemId;
 
-  // Copied, because unequipping must take off what went on here: by then the
+  // Recorded, because unequipping must take off what went on here: by then the
   // definition may have been edited or deleted from the catalogue.
-  const effects = item.effects?.map((effect) => ({ ...effect })) ?? [];
+  const effects = contributionOf(player, item.effects);
   (player.equippedEffects ??= {})[slot] = effects;
   applyItemEffects(player, effects);
 
@@ -289,6 +289,29 @@ export function unequipItem(player: PlayerServer, slot: EquipmentSlot): void {
   }
 }
 
+/**
+ * What `effects` would add to each of this player's stats right now, as
+ * plain additions. A piece is worn as this rather than as its definition:
+ * a multiplier undone by dividing is only right while nothing else on the
+ * stat moved since, and +2 then x2 on 10 is 24, while taking the +2 off
+ * first leaves 11 once both are gone. A fixed amount comes off exactly.
+ */
+function contributionOf(
+  player: PlayerServer,
+  effects: Effect[] | undefined,
+): Effect[] {
+  const after = new Map<Effect['attribute'], number>();
+  for (const { attribute, type, value } of effects ?? []) {
+    const current = after.get(attribute) ?? player[attribute];
+    after.set(attribute, type === 'add' ? current + value : current * value);
+  }
+  return [...after].map(([attribute, value]) => ({
+    attribute,
+    type: 'add',
+    value: value - player[attribute],
+  }));
+}
+
 export function applyItemEffects(
   player: PlayerServer,
   effects: Effect[] | undefined,
@@ -296,7 +319,10 @@ export function applyItemEffects(
 ): void {
   if (!effects) return;
 
-  for (const effect of effects) {
+  // Undone last first: (x + 2) * 3 comes back to x by dividing, then
+  // subtracting. Additions, which is how equipping records a piece, come off
+  // the same in any order.
+  for (const effect of reverse ? [...effects].reverse() : effects) {
     const { attribute, type, value } = effect;
 
     if (type === 'add') {
