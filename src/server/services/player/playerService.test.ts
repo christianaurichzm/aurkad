@@ -1,7 +1,10 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
+import fc from 'fast-check';
+import WebSocket from 'ws';
 import {
   CharacterAction,
   Direction,
+  Key,
   PlayerServer,
 } from '../../../shared/types.js';
 import {
@@ -9,15 +12,31 @@ import {
   awardExperience,
   handlePlayerUpdates,
   enterWorld,
+  disconnectPlayer,
   persistPlayerSessionState,
   setAccess,
 } from './playerService.js';
 import { on, clearAll } from '../../engine/hooks.js';
 import { createFixture, makeTiles, tile } from '../../sim/simFixture.js';
-import { getPlayerByName } from '../../sim/world.js';
+import { getAllPlayers, getPlayerByName } from '../../sim/world.js';
+import { runtimeState } from '../../sim/state.js';
+import { msToTicks } from '../../sim/clock.js';
 import { gameConfig } from '../../gameConfig.js';
+import { getMetrics } from '../../metrics.js';
+import { playersWsMap } from '../../net/connections.js';
+import {
+  replicatedEntityCount,
+  resetEntityReplication,
+} from '../../net/entityReplication.js';
+import { resetPlayerNetState } from '../../net/snapshot.js';
+import { enqueueClientAction } from '../../net/transport.js';
+import { clearPlayerDirty } from '../../persistence/dirtyPlayers.js';
 import { items } from '../content/itemService.js';
+import { resolveDamage } from '../combat/index.js';
+import { clearDamageContributions } from '../combat/damage.js';
 import { unequipItem } from '../economy/inventoryService.js';
+import { despawnNpc, spawnNpc } from '../npc/spawn.js';
+import { pressedKeysMap, teleportPlayer } from '../world/movementService.js';
 
 const { recordAdminAction } = vi.hoisted(() => ({
   recordAdminAction: vi.fn(),
@@ -305,5 +324,266 @@ describe('entering the world', () => {
     unequipItem(player, 'gloves');
 
     expect(player.attack).toBe(10);
+  });
+});
+
+describe('leaving the world', () => {
+  const NAMES = ['Ann', 'Bo', 'Cy'];
+  const MAPS = ['map1', 'map2'];
+  const RESPAWN_MS = 500;
+
+  type Op =
+    | { kind: 'join'; who: number; map: number; col: number; row: number }
+    | { kind: 'leave'; who: number }
+    | { kind: 'press' | 'release'; who: number; key: Key }
+    | { kind: 'walkTo'; who: number; col: number; row: number }
+    | { kind: 'warp'; who: number; map: number; col: number; row: number }
+    | {
+        kind: 'summon';
+        map: number;
+        col: number;
+        row: number;
+        behavior: 'aggressive' | 'neutral';
+      }
+    | { kind: 'hit'; npc: number; by: number; lethal: boolean }
+    | { kind: 'dismiss'; npc: number }
+    | { kind: 'tick'; ticks: number };
+
+  const who = fc.nat({ max: NAMES.length - 1 });
+  const map = fc.nat({ max: MAPS.length - 1 });
+  const cell = fc.nat({ max: 19 });
+  const op: fc.Arbitrary<Op> = fc.oneof(
+    {
+      weight: 3,
+      arbitrary: fc.record({
+        kind: fc.constant('join'),
+        who,
+        map,
+        col: cell,
+        row: cell,
+      }),
+    },
+    { weight: 2, arbitrary: fc.record({ kind: fc.constant('leave'), who }) },
+    {
+      weight: 2,
+      arbitrary: fc.record({
+        kind: fc.constantFrom('press', 'release'),
+        who,
+        key: fc.constantFrom(Key.ArrowRight, Key.ArrowDown, Key.Control),
+      }),
+    },
+    {
+      weight: 1,
+      arbitrary: fc.record({
+        kind: fc.constant('walkTo'),
+        who,
+        col: cell,
+        row: cell,
+      }),
+    },
+    {
+      weight: 1,
+      arbitrary: fc.record({
+        kind: fc.constant('warp'),
+        who,
+        map,
+        col: cell,
+        row: cell,
+      }),
+    },
+    {
+      weight: 2,
+      arbitrary: fc.record({
+        kind: fc.constant('summon'),
+        map,
+        col: cell,
+        row: cell,
+        behavior: fc.constantFrom('aggressive', 'neutral'),
+      }),
+    },
+    {
+      weight: 3,
+      arbitrary: fc.record({
+        kind: fc.constant('hit'),
+        npc: fc.nat({ max: 7 }),
+        by: who,
+        lethal: fc.boolean(),
+      }),
+    },
+    {
+      weight: 1,
+      arbitrary: fc.record({ kind: fc.constant('dismiss'), npc: fc.nat(7) }),
+    },
+    {
+      weight: 4,
+      arbitrary: fc.record({
+        kind: fc.constant('tick'),
+        ticks: fc.integer({ min: 1, max: 12 }),
+      }),
+    },
+  );
+
+  const socket = () =>
+    ({
+      readyState: WebSocket.OPEN,
+      bufferedAmount: 0,
+      send: () => {},
+      close: () => {},
+    }) as unknown as WebSocket;
+
+  const npcsOnMaps = () =>
+    Object.values(runtimeState.maps)
+      .flatMap((m) => Object.values(m.npcs))
+      .sort((a, b) => a.id.localeCompare(b.id));
+
+  // Every id a run can leave state under, so a failed run does not hand its
+  // leak to the next one while fast-check shrinks.
+  const npcIds = new Set<string>();
+
+  function freshWorld() {
+    const sim = createFixture(0);
+    sim.addMap({ id: 'map2' });
+    resetEntityReplication();
+    NAMES.forEach((name, i) => {
+      resetPlayerNetState(name);
+      clearPlayerDirty(`p${i}`);
+      clearDamageContributions(`p${i}`);
+    });
+    npcIds.forEach(clearDamageContributions);
+    playersWsMap.clear();
+
+    // One that is back on its tile the moment it dies and one that is off the
+    // map for a while first: the two ways a content npc respawns. The xp is
+    // what makes a kill write to its killer, and so mark them dirty.
+    for (const [template, col, respawnMs] of [
+      ['rat', 2, undefined],
+      ['wolf', 4, RESPAWN_MS],
+    ] as const) {
+      sim.map.tiles[2]![col]!.npcSpawn = template;
+      const npc = sim.addNpc({
+        id: `${template}:2:${col}`,
+        templateId: template,
+        position: tile(col, 2),
+        attack: 0,
+        experienceValue: 1,
+        respawnMs,
+      });
+      npcIds.add(npc.id);
+    }
+    return sim;
+  }
+
+  async function leave(name: string) {
+    await disconnectPlayer(name);
+    // What the socket's close handler does after handing the departure over.
+    playersWsMap.delete(name);
+  }
+
+  async function apply(sim: ReturnType<typeof createFixture>, o: Op) {
+    const name = 'who' in o ? NAMES[o.who]! : '';
+    const player = getPlayerByName(name);
+    switch (o.kind) {
+      case 'join':
+        if (player) return;
+        enterWorld(
+          mkPlayer({
+            id: `p${o.who}`,
+            name,
+            mapId: MAPS[o.map]!,
+            position: tile(o.col, o.row),
+          }),
+        );
+        playersWsMap.set(name, socket());
+        return;
+      case 'leave':
+        if (player) await leave(name);
+        return;
+      case 'press':
+      case 'release':
+        enqueueClientAction({
+          username: name,
+          type: 'keyboard',
+          keyboardAction: { key: o.key, type: o.kind },
+        });
+        return;
+      case 'walkTo':
+        enqueueClientAction({
+          username: name,
+          type: 'moveTo',
+          col: o.col,
+          row: o.row,
+        });
+        return;
+      case 'warp':
+        if (player) teleportPlayer(player, MAPS[o.map]!, tile(o.col, o.row));
+        return;
+      case 'summon': {
+        const npc = spawnNpc({
+          mapId: MAPS[o.map]!,
+          col: o.col,
+          row: o.row,
+          maxHealth: 3,
+          behavior: o.behavior,
+        });
+        if (npc) npcIds.add(npc.id);
+        return;
+      }
+      case 'hit': {
+        const npcs = npcsOnMaps();
+        const target = npcs[o.npc % Math.max(1, npcs.length)];
+        if (!target) return;
+        const attacker = getPlayerByName(NAMES[o.by]!);
+        resolveDamage(target, o.lethal ? target.health : 1, { attacker });
+        return;
+      }
+      case 'dismiss': {
+        const npcs = npcsOnMaps();
+        const target = npcs[o.npc % Math.max(1, npcs.length)];
+        if (target) despawnNpc(target);
+        return;
+      }
+      case 'tick':
+        sim.step(o.ticks);
+        // A tick records every entity on a map, so a baseline beyond those is
+        // one nothing will ever look up again.
+        expect(replicatedEntityCount()).toBe(
+          getAllPlayers().length + npcsOnMaps().length,
+        );
+        return;
+    }
+  }
+
+  it('leaves nothing keyed by a player or an npc behind', async () => {
+    await fc.assert(
+      fc.asyncProperty(fc.array(op, { maxLength: 40 }), async (ops) => {
+        const sim = freshWorld();
+        // Other tests in this file leave players of their own behind, under
+        // names and ids this one never uses.
+        const before = getMetrics().caches;
+        for (const o of ops) {
+          await apply(sim, o);
+          // Dead is off the map: one left on it is invisible to players and
+          // untouchable by them, but not to the npc ai.
+          for (const npc of npcsOnMaps()) {
+            expect(npc.health).toBeGreaterThan(0);
+          }
+        }
+
+        for (const name of NAMES) {
+          if (getPlayerByName(name)) await leave(name);
+        }
+        // A wolf killed late is still on its way back, and would land after
+        // the sweep below.
+        sim.step(msToTicks(RESPAWN_MS));
+        for (const npc of npcsOnMaps()) despawnNpc(npc);
+        sim.step(1);
+
+        // The caches /metrics publishes are exactly the ones keyed by a player
+        // or an entity, so a new one is checked here as soon as it is.
+        expect(getMetrics().caches).toEqual(before);
+        expect(pressedKeysMap.size).toBe(0);
+      }),
+      { numRuns: 150 },
+    );
   });
 });
