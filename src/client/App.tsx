@@ -14,7 +14,7 @@ import { TilesetEditor } from './components/Tileset/TilesetEditor';
 import { GMPanel } from './components/GMPanel';
 import { ChatPanel, ChatPeek } from './components/ChatPanel';
 import { ActionPanel, CreatorTools } from './components/ActionPanel';
-import { useGame } from './context/GameContext';
+import { useGame } from './GameContext';
 import { useGameBrand } from './components/common/AuthLayout';
 import { useMediaQuery } from './hooks/useMediaQuery';
 import { useT } from './i18n';

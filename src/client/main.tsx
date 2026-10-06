@@ -1,7 +1,7 @@
 import ReactDOM from 'react-dom/client';
 import App from './App';
-import { GameProvider } from './context/GameContext';
-import { AdminApp } from './admin/AdminApp';
+import { GameProvider } from './GameContext';
+import { AdminApp } from './pages/AdminApp';
 import { installErrorReporter } from './io/network/http/errorReporter';
 import { fetchGameBrand } from './io/network';
 import { t } from './i18n';

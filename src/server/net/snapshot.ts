@@ -29,7 +29,7 @@ import {
   resyncBody,
   forgetEntity,
 } from './entityReplication.js';
-import { queryEntitiesInRect } from '../spatial/spatialManager.js';
+import { queryEntitiesInRect } from '../sim/spatialManager.js';
 import {
   type ColdSnapshot,
   coldSnapshotHolds,

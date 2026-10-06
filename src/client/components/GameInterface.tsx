@@ -11,7 +11,7 @@ import {
   setMapMeta,
   setPlayerStats,
 } from '../core/gameState';
-import { useGame } from '../context/GameContext';
+import { useGame } from '../GameContext';
 import { ConnectionStatus } from './HUD/ConnectionStatus';
 import { useUIStore } from '../stores/uiStore';
 

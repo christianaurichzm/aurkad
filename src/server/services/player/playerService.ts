@@ -54,7 +54,7 @@ import {
   acquirePresence,
   releasePresence,
 } from '../../persistence/presence.js';
-import { getBan, unbanPlayer } from '../content/banService.js';
+import { getBan, unbanPlayer } from './banService.js';
 import { serverState } from '../world/serverState.js';
 import { publishToInstances } from '../../persistence/instanceBus.js';
 import { persistedLocation } from '../world/instanceService.js';

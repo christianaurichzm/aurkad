@@ -9,7 +9,7 @@ import { runInSandbox, type ScriptHandle } from './sandbox.js';
 import { clearEntityBehaviors } from './entityScripts.js';
 import { clearAll } from '../hooks.js';
 import { createFixture, tile } from '../../sim/simFixture.js';
-import { rebuildQuadtree } from '../../spatial/spatialManager.js';
+import { rebuildQuadtree } from '../../sim/spatialManager.js';
 import { handleInteract } from '../../services/world/interactionService.js';
 import { Direction, Key, type Item } from '../../../shared/types.js';
 

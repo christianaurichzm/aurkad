@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useUIStore } from '../../stores/uiStore';
-import { useGame } from '../../context/GameContext';
+import { useGame } from '../../GameContext';
 import { usePlayerForceUpdate } from '../../hooks/usePlayerForceUpdate';
 import { Sprite } from '../common/SpritePreview';
 import { getHealthBarInfo } from '../../graphics/hud';

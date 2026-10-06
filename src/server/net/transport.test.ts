@@ -16,7 +16,7 @@ import { gameConfig } from '../gameConfig.js';
 import { config } from '../config.js';
 import { advanceTick } from '../sim/clock.js';
 import { createFixture, tile } from '../sim/simFixture.js';
-import { rebuildQuadtree } from '../spatial/spatialManager.js';
+import { rebuildQuadtree } from '../sim/spatialManager.js';
 // Only the tracing half is pinned; everything else stays the real config, so
 // the limits and payload sizes the other tests lean on are untouched.
 const { tracing } = vi.hoisted(() => ({
@@ -53,7 +53,7 @@ import mongoose from 'mongoose';
 import type { MongoMemoryServer } from 'mongodb-memory-server';
 import { startMemoryMongo } from '../../test/mongo.js';
 import { createPlayer } from '../services/player/playerService.js';
-import { banPlayer } from '../services/content/banService.js';
+import { banPlayer } from '../services/player/banService.js';
 import { getPlayerByName } from '../sim/world.js';
 import { runtimeState } from '../sim/state.js';
 import { playerRepository } from '../persistence/playerRepository.js';

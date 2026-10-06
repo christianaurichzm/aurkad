@@ -11,7 +11,7 @@ import { clearHandlerBudget, isHandlerDisabled } from './handlerBudget.js';
 import { config } from '../../config.js';
 import { clearAll } from '../hooks.js';
 import { createFixture, tile } from '../../sim/simFixture.js';
-import { rebuildQuadtree } from '../../spatial/spatialManager.js';
+import { rebuildQuadtree } from '../../sim/spatialManager.js';
 import { handleInteract } from '../../services/world/interactionService.js';
 import { resolveDamage } from '../../services/combat/index.js';
 import { useItem } from '../../services/economy/inventoryService.js';

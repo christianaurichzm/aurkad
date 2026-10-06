@@ -1,6 +1,6 @@
 import React, { useEffect, useReducer, useState } from 'react';
 import { Access } from '../../shared/types';
-import { useGame } from '../context/GameContext';
+import { useGame } from '../GameContext';
 import { usePlayerForceUpdate } from '../hooks/usePlayerForceUpdate';
 import {
   httpError,

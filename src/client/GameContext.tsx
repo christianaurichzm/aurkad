@@ -1,5 +1,5 @@
 import { createContext, useContext, useState } from 'react';
-import { MapMetaClient, Player } from '../../shared/types';
+import { MapMetaClient, Player } from '../shared/types';
 
 type GameContextType = {
   isLoggedIn: boolean;

@@ -72,7 +72,7 @@ import { startLiveOps } from './services/liveOpsService.js';
 import {
   importContentPack,
   reportUnknownBehaviors,
-} from './content/contentPack.js';
+} from './contentPack/contentPack.js';
 import { loadKvStore, startKvStore } from './persistence/kvStore.js';
 import { getAllPlayers } from './sim/world.js';
 import { persistPlayersOnShutdown } from './services/player/playerService.js';

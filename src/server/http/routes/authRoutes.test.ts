@@ -18,7 +18,7 @@ import { WebSocket } from 'ws';
 import { createAuthRouter } from './authRoutes.js';
 import PlayerModel from '../../model/Player.js';
 import { createPlayer } from '../../services/player/playerService.js';
-import { banPlayer, getBan } from '../../services/content/banService.js';
+import { banPlayer, getBan } from '../../services/player/banService.js';
 import { serverState } from '../../services/world/serverState.js';
 import { playersWsMap } from '../../net/connections.js';
 import { getPlayerByName } from '../../sim/world.js';

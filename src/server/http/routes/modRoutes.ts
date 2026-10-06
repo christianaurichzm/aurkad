@@ -18,7 +18,7 @@ import { getMap } from '../../services/world/gameData.js';
 import checkAccess from '../middleware/checkAccess.js';
 import { broadcast } from '../../net/index.js';
 import { teleportPlayer } from '../../services/world/movementService.js';
-import { banPlayer } from '../../services/content/banService.js';
+import { banPlayer } from '../../services/player/banService.js';
 import {
   getPlayerByName,
   changeSprite,

@@ -16,7 +16,7 @@ import {
 import { clearAllAttackCooldowns } from '../services/combat/attackCooldown.js';
 import { updateNpcs } from '../services/npc/index.js';
 import { clearAllNpcAiState } from '../services/npc/aiBrain.js';
-import { rebuildQuadtree } from '../spatial/spatialManager.js';
+import { rebuildQuadtree } from './spatialManager.js';
 import {
   CharacterAction,
   Direction,

@@ -15,7 +15,7 @@ vi.mock('../io/network', () => ({
   requestPasswordReset: vi.fn(),
 }));
 
-vi.mock('../context/GameContext', () => ({
+vi.mock('../GameContext', () => ({
   useGame: () => ({ loginSuccess: mocks.loginSuccess }),
 }));
 

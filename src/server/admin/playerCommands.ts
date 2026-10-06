@@ -15,7 +15,7 @@ import {
   banPlayer,
   unbanPlayer,
   getBan,
-} from '../services/content/banService.js';
+} from '../services/player/banService.js';
 import { broadcast, playersWsMap } from '../net/index.js';
 import { getMap, updatePlayer } from '../services/world/gameData.js';
 import { warpToMap } from '../services/world/movementService.js';

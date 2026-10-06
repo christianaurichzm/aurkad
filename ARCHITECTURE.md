@@ -19,13 +19,12 @@ The project is organized in three tiers:
 ```
 src/
   server/
-    sim/          20 Hz simulation loop, clock, RNG, replay
+    sim/          20 Hz simulation loop, clock, RNG, replay, per-map quadtrees
     net/          WebSocket transport, snapshots, AOI, fan-out, wire stats
     services/     gameplay services (movement, combat, npc, player)
     engine/       hooks/events, module loader, scripting sandbox
     persistence/  repository layer over Mongoose, write-behind, KV store
     http/         Express app, routes, session, request logging
-    spatial/      per-map quadtree manager
   client/
     core/         game bootstrap and client state
     graphics/     canvas renderers, camera, sprite atlas

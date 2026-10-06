@@ -84,7 +84,7 @@ import {
   getQuestById,
 } from '../../services/content/questService.js';
 import { cachedRecipes } from '../../services/content/recipeService.js';
-import { queryEntitiesInRadius } from '../../spatial/spatialManager.js';
+import { queryEntitiesInRadius } from '../../sim/spatialManager.js';
 import type { SpawnNpcOptions } from '../../services/npc/spawn.js';
 import { resolveDamage } from '../../services/combat/index.js';
 import { mapPvpMorale } from '../../../shared/utils.js';

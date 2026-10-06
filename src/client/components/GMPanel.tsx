@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Access } from '../../shared/types';
-import { useGame } from '../context/GameContext';
+import { useGame } from '../GameContext';
 import { usePlayerForceUpdate } from '../hooks/usePlayerForceUpdate';
 import { PlayerModeration } from './moderation/PlayerModeration';
 import { CommandConsole } from './moderation/CommandConsole';

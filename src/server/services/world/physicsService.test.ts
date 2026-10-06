@@ -9,7 +9,7 @@ import { createFixture, tile } from '../../sim/simFixture.js';
 import { findPlacement, hasCollision } from './physicsService.js';
 import { respawnPlayer } from '../player/playerService.js';
 import { spawnNpc } from '../npc/spawn.js';
-import { rebuildQuadtree } from '../../spatial/spatialManager.js';
+import { rebuildQuadtree } from '../../sim/spatialManager.js';
 import { gameConfig, respawnPosition } from '../../gameConfig.js';
 import { runtimeState } from '../../sim/state.js';
 import type { CombatTarget } from '../../../shared/types.js';

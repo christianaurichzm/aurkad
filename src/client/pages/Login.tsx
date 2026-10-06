@@ -10,7 +10,7 @@ import {
   requestPasswordReset,
 } from '../io/network';
 import { setAssetKey } from '../io/assets';
-import { useGame } from '../context/GameContext';
+import { useGame } from '../GameContext';
 import { useUIStore } from '../stores/uiStore';
 import { colors, radius } from '../theme';
 import { useT } from '../i18n';

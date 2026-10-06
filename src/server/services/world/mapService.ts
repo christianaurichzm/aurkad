@@ -21,7 +21,7 @@ import { placePlayerOnMap, detachFromMap } from '../../sim/world.js';
 
 import { emit } from '../../engine/hooks.js';
 import { mapRepository } from '../../persistence/mapRepository.js';
-import { dropQuadtree } from '../../spatial/spatialManager.js';
+import { dropQuadtree } from '../../sim/spatialManager.js';
 import { forgetReplicatedEntity, resendChunkAt } from '../../net/snapshot.js';
 import { getNextMapId } from '../dbService.js';
 import { getItemById } from '../economy/inventoryService.js';

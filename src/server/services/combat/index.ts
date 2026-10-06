@@ -14,7 +14,7 @@ import { getMap, updatePlayer } from '../world/gameData.js';
 import { logger } from '../../logger.js';
 import { getTick, msToTicks } from '../../sim/clock.js';
 import { cancelScheduled, scheduleAfter } from '../../sim/scheduler.js';
-import { queryEntitiesInRadius } from '../../spatial/spatialManager.js';
+import { queryEntitiesInRadius } from '../../sim/spatialManager.js';
 import { gameConfig } from '../../gameConfig.js';
 import { inReach, mapAllowsPvp } from '../../../shared/utils.js';
 import { tryConsumeAttackCooldown } from './attackCooldown.js';

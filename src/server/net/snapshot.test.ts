@@ -10,7 +10,7 @@ import { playersWsMap } from './connections.js';
 import { config } from '../config.js';
 import { createFixture, tile } from '../sim/simFixture.js';
 import { unregisterPlayer } from '../sim/world.js';
-import { rebuildQuadtree } from '../spatial/spatialManager.js';
+import { rebuildQuadtree } from '../sim/spatialManager.js';
 import {
   createOrUpdateItem,
   deleteItem,

@@ -12,7 +12,7 @@ import { broadcastGameState, resetPlayerNetState } from './snapshot.js';
 import { resetEntityReplication } from './entityReplication.js';
 import { playersWsMap } from './connections.js';
 import { createFixture } from '../sim/simFixture.js';
-import { rebuildQuadtree } from '../spatial/spatialManager.js';
+import { rebuildQuadtree } from '../sim/spatialManager.js';
 import type { MapStateServer, Tile } from '../../shared/types.js';
 import type { WsServerMessage } from '../../shared/wsProtocol.js';
 

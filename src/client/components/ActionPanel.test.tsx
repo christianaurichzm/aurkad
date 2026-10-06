@@ -15,7 +15,7 @@ const mocks = vi.hoisted(() => ({
   fetchGameBrand: vi.fn(),
 }));
 
-vi.mock('../context/GameContext', () => ({
+vi.mock('../GameContext', () => ({
   useGame: mocks.useGame,
 }));
 

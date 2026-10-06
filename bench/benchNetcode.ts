@@ -22,7 +22,7 @@ import {
 import {
   rebuildQuadtree,
   queryEntitiesInRect,
-} from '../src/server/spatial/spatialManager.js';
+} from '../src/server/sim/spatialManager.js';
 import { TILE_SIZE, EQUIPMENT_SLOTS } from '../src/shared/constants.js';
 
 // Mirrors config.net.aoiMarginTiles (default 2), inlined so the benchmark

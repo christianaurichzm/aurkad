@@ -5,7 +5,7 @@ import {
   processMovementIntent,
   processMovementCompletion,
 } from '../services/world/movementService.js';
-import { rebuildQuadtree } from '../spatial/spatialManager.js';
+import { rebuildQuadtree } from './spatialManager.js';
 import { getRuntimeState } from '../services/world/gameData.js';
 import { ServerActionType } from '../engine/actions.js';
 import {

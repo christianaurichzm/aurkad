@@ -7,7 +7,7 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { clearCommands, handleReplCommand } from '../engine/commands.js';
 import { registerPlayerCommands } from './playerCommands.js';
 import { createFixture, tile } from '../sim/simFixture.js';
-import { rebuildQuadtree } from '../spatial/spatialManager.js';
+import { rebuildQuadtree } from '../sim/spatialManager.js';
 import { runtimeState } from '../sim/state.js';
 import { serverState } from '../services/world/serverState.js';
 import { Access } from '../../shared/types.js';
@@ -20,7 +20,7 @@ vi.mock('../services/auditService.js', () => ({
 }));
 // Bans live in Mongo; what matters here is that the command reaches them.
 const banPlayer = vi.fn();
-vi.mock('../services/content/banService.js', () => ({
+vi.mock('../services/player/banService.js', () => ({
   banPlayer: (...args: unknown[]) => banPlayer(...args),
   unbanPlayer: () => Promise.resolve(),
   getBan: () => Promise.resolve(null),

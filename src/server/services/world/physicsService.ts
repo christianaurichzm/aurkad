@@ -12,7 +12,7 @@ import {
   Warp,
 } from '../../../shared/types.js';
 import { getMap } from './gameData.js';
-import { queryNearbyEntities } from '../../spatial/spatialManager.js';
+import { queryNearbyEntities } from '../../sim/spatialManager.js';
 
 const isTileBlocked = (
   map: MapStateServer,

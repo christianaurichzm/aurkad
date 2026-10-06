@@ -7,7 +7,7 @@ import { useUIStore } from '../../stores/uiStore';
 
 // The card names the player, which is session state rather than store state;
 // the bars below it are what these cases are about.
-vi.mock('../../context/GameContext', () => ({
+vi.mock('../../GameContext', () => ({
   useGame: () => ({ player: { name: 'Alice', sprite: 3 } }),
 }));
 

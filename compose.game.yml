@@ -68,7 +68,7 @@ services:
     image: ghcr.io/christianaurichzm/aurkad:latest
     profiles: [tools]
     user: ${UID:?set UID and GID in .env, see the top of this file}:${GID:?set GID in .env}
-    entrypoint: ['node', 'dist/server/content/newGame.js', '/app/game']
+    entrypoint: ['node', 'dist/server/contentPack/newGame.js', '/app/game']
     volumes:
       - ./game:/app/game
 

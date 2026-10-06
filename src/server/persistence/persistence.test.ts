@@ -9,7 +9,7 @@ import { beforeAll, afterAll, beforeEach, describe, it, expect } from 'vitest';
 import mongoose from 'mongoose';
 import type { MongoMemoryServer } from 'mongodb-memory-server';
 import { startMemoryMongo } from '../../test/mongo.js';
-import { playerRepository } from '../persistence/playerRepository.js';
+import { playerRepository } from './playerRepository.js';
 import {
   DB_SCHEMA_VERSION,
   checkDatabaseSchemaVersion,
@@ -23,7 +23,7 @@ import {
   banPlayer,
   getBan,
   unbanPlayer,
-} from '../services/content/banService.js';
+} from '../services/player/banService.js';
 
 let mongod: MongoMemoryServer;
 

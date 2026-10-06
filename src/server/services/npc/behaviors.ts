@@ -10,7 +10,7 @@ import {
 } from '../../../shared/types.js';
 import { hasCollision } from '../world/physicsService.js';
 import { resolveDamage, swing } from '../combat/index.js';
-import { queryEntitiesInRadius } from '../../spatial/spatialManager.js';
+import { queryEntitiesInRadius } from '../../sim/spatialManager.js';
 import { randomInt } from '../../sim/rng.js';
 import { inReach } from '../../../shared/utils.js';
 

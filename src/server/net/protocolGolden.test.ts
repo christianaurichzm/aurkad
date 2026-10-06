@@ -16,7 +16,7 @@ import {
 import { resetEntityReplication } from './entityReplication.js';
 import { playersWsMap } from './connections.js';
 import { createFixture, tile, makeTiles } from '../sim/simFixture.js';
-import { rebuildQuadtree } from '../spatial/spatialManager.js';
+import { rebuildQuadtree } from '../sim/spatialManager.js';
 import { items } from '../services/world/gameData.js';
 import { PROTOCOL_VERSION } from '../../shared/wsProtocol.js';
 import { PROTOCOL_GOLDEN_STEPS } from '../../shared/testFixtures/wsProtocolGoldens.js';
