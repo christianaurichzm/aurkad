@@ -1,5 +1,10 @@
 import { describe, it, expect, beforeEach } from 'vitest';
+import fs from 'node:fs';
+import path from 'node:path';
+import { pathToFileURL } from 'node:url';
+import ts from 'typescript';
 import { runInSandbox } from './sandbox.js';
+import { renderContentDts } from './contentConstants.js';
 import { clearAll, emit, on } from '../hooks.js';
 import { createFixture, tile } from '../../sim/simFixture.js';
 import { Direction, Key } from '../../../shared/types.js';
@@ -1114,5 +1119,68 @@ describe('deterministic RNG in scripts', () => {
     expect(alice.data?.empty).toBeUndefined();
 
     handle.cleanup();
+  });
+});
+
+// The globals a script is handed are written down in three places besides the
+// sandbox, and a miss in any of them fails quietly: lint rejects a call that
+// works, or the editor knows nothing of one lint allows.
+describe('the globals a script is handed', () => {
+  /** Names a declaration file puts in the global scope. */
+  function declaredGlobals(source: string): string[] {
+    const file = ts.createSourceFile('g.d.ts', source, ts.ScriptTarget.Latest);
+    const names: string[] = [];
+    for (const statement of file.statements) {
+      if (ts.isFunctionDeclaration(statement) && statement.name) {
+        names.push(statement.name.text);
+      } else if (ts.isVariableStatement(statement)) {
+        for (const d of statement.declarationList.declarations) {
+          if (ts.isIdentifier(d.name)) names.push(d.name.text);
+        }
+      }
+    }
+    return names;
+  }
+
+  function sandboxGlobals(): string[] {
+    let handed: string[] = [];
+    const handle = runInSandbox('report(Object.keys(globalThis));', 'g.js', {
+      // What the module loader adds for a module.
+      config: {},
+      report: (keys: string[]) => (handed = [...keys]),
+    });
+    handle.cleanup();
+    // console is log/warn/error under another name, and those three are the
+    // ones the docs and lint use.
+    return handed.filter((k) => k !== 'report' && k !== 'console').sort();
+  }
+
+  it('are the ones lint allows in modules and game scripts', async () => {
+    type Block = {
+      files?: string[];
+      languageOptions?: { globals?: Record<string, unknown> };
+    };
+    const eslint = (await import(
+      pathToFileURL(path.resolve(process.cwd(), 'eslint.config.js')).href
+    )) as { default: Block[] };
+    // `extends` is spread into blocks of its own under the same `files`.
+    const linted = eslint.default
+      .filter((c) => c.files?.includes('modules/**/server.js'))
+      .flatMap((c) => Object.keys(c.languageOptions?.globals ?? {}));
+
+    expect([...new Set(linted)].sort()).toEqual(sandboxGlobals());
+  });
+
+  it('are the ones the declaration files name', () => {
+    const globalDts = fs.readFileSync(
+      path.resolve(process.cwd(), 'scripts/global.d.ts'),
+      'utf8',
+    );
+    const declared = new Set([
+      ...declaredGlobals(globalDts),
+      ...declaredGlobals(renderContentDts()),
+    ]);
+
+    expect([...declared].sort()).toEqual(sandboxGlobals());
   });
 });

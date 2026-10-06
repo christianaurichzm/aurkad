@@ -1,4 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import fs from 'node:fs';
+import path from 'node:path';
+import ts from 'typescript';
 // First, for its side effect: customEvents and wsManager import each other
 // and gameStateSync subscribes at module scope, so load order decides
 // whether that subscribe finds an initialized map. The app reaches wsManager
@@ -16,7 +19,7 @@ import { escapeClaimed } from '../../hooks/useEscapeClose';
  * stamps the English on each element for the switch to re-apply. Only a real
  * DOM shows that this holds.
  */
-const serve = (code: string) => {
+const serve = (code: string | ((engine: Record<string, unknown>) => void)) => {
   vi.stubGlobal(
     'fetch',
     vi.fn(() =>
@@ -26,8 +29,11 @@ const serve = (code: string) => {
     ),
   );
   vi.doMock('/modules/test/client', () => ({
-    // eslint-disable-next-line @typescript-eslint/no-implied-eval
-    default: new Function('engine', 'React', `'use strict';${code}`),
+    default:
+      typeof code === 'string'
+        ? // eslint-disable-next-line @typescript-eslint/no-implied-eval
+          new Function('engine', 'React', `'use strict';${code}`)
+        : code,
   }));
 };
 
@@ -181,5 +187,61 @@ describe('module client strings', () => {
     expect(document.querySelector('input')?.getAttribute('placeholder')).toBe(
       'Nome da guilda',
     );
+  });
+});
+
+// A module's client half is plain JavaScript, so the declaration file is all
+// the editor and typecheck know of the engine. A member missing there can't
+// be called without an error; a stale one typechecks and then throws.
+describe('the engine a module is handed', () => {
+  /** Member names of a type literal or interface in clientEngine.d.ts. */
+  function declared(
+    pick: (s: ts.Statement) => ts.NodeArray<ts.TypeElement> | undefined,
+  ) {
+    const source = fs.readFileSync(
+      path.resolve(process.cwd(), 'modules/clientEngine.d.ts'),
+      'utf8',
+    );
+    const file = ts.createSourceFile('e.d.ts', source, ts.ScriptTarget.Latest);
+    const members = file.statements.map(pick).find(Boolean) ?? [];
+    const names = members.flatMap((m) =>
+      m.name && ts.isIdentifier(m.name) ? [m.name.text] : [],
+    );
+    return [...new Set(names)].sort();
+  }
+
+  async function handedEngine(): Promise<Record<string, unknown>> {
+    let handed: Record<string, unknown> = {};
+    serve((engine) => (handed = engine));
+    await loadClientModules();
+    return handed;
+  }
+
+  it('is what the declaration file says it is', async () => {
+    const engine = await handedEngine();
+    const members = declared((s) => {
+      if (!ts.isVariableStatement(s)) return undefined;
+      const d = s.declarationList.declarations[0];
+      return d &&
+        ts.isIdentifier(d.name) &&
+        d.name.text === 'engine' &&
+        d.type &&
+        ts.isTypeLiteralNode(d.type)
+        ? d.type.members
+        : undefined;
+    });
+
+    expect(Object.keys(engine).sort()).toEqual(members);
+  });
+
+  it('hands over the ui toolkit the declaration file describes', async () => {
+    const engine = await handedEngine();
+    const members = declared((s) =>
+      ts.isInterfaceDeclaration(s) && s.name.text === 'ModuleUi'
+        ? s.members
+        : undefined,
+    );
+
+    expect(Object.keys(engine.ui as object).sort()).toEqual(members);
   });
 });
