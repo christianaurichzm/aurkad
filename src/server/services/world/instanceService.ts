@@ -15,6 +15,7 @@ import { scheduleEvery } from '../../sim/scheduler.js';
 import { dropQuadtree } from '../../sim/spatialManager.js';
 import { forgetReplicatedEntity } from '../../net/snapshot.js';
 import { forgetNpcAiForMap } from '../npc/aiBrain.js';
+import { clearDamageContributions } from '../combat/damage.js';
 import { getMap } from '../../sim/world.js';
 
 /**
@@ -218,7 +219,12 @@ export function persistedLocation(player: PlayerServer): {
 function closeInstance(key: string): void {
   const map = runtimeState.maps[key];
   if (map) {
-    for (const npc of Object.values(map.npcs)) forgetReplicatedEntity(npc.id);
+    // Its npcs go with it, and so does everything kept under their ids: a
+    // copy's ids are never handed out again, so nothing would clear it later.
+    for (const npc of Object.values(map.npcs)) {
+      forgetReplicatedEntity(npc.id);
+      clearDamageContributions(npc.id);
+    }
     delete runtimeState.maps[key];
   }
   forgetNpcAiForMap(key);

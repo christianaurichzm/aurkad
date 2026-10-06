@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach, onTestFinished, vi } from 'vitest';
 import fc from 'fast-check';
 import WebSocket from 'ws';
 import {
@@ -36,7 +36,11 @@ import { resolveDamage } from '../combat/index.js';
 import { clearDamageContributions } from '../combat/damage.js';
 import { unequipItem } from '../economy/inventoryService.js';
 import { despawnNpc, spawnNpc } from '../npc/spawn.js';
-import { pressedKeysMap, teleportPlayer } from '../world/movementService.js';
+import { warpToMap } from '../world/movementService.js';
+import {
+  clearInstancesForTest,
+  sweepInstances,
+} from '../world/instanceService.js';
 
 const { recordAdminAction } = vi.hoisted(() => ({
   recordAdminAction: vi.fn(),
@@ -330,6 +334,8 @@ describe('entering the world', () => {
 describe('leaving the world', () => {
   const NAMES = ['Ann', 'Bo', 'Cy'];
   const MAPS = ['map1', 'map2'];
+  // A warp can also lead into a dungeon, which is entered as a copy of its own.
+  const WARP_TO = [...MAPS, 'dungeon'];
   const RESPAWN_MS = 500;
 
   type Op =
@@ -337,7 +343,8 @@ describe('leaving the world', () => {
     | { kind: 'leave'; who: number }
     | { kind: 'press' | 'release'; who: number; key: Key }
     | { kind: 'walkTo'; who: number; col: number; row: number }
-    | { kind: 'warp'; who: number; map: number; col: number; row: number }
+    | { kind: 'warp'; who: number; to: number; col: number; row: number }
+    | { kind: 'sweep' }
     | {
         kind: 'summon';
         map: number;
@@ -386,11 +393,12 @@ describe('leaving the world', () => {
       arbitrary: fc.record({
         kind: fc.constant('warp'),
         who,
-        map,
+        to: fc.nat({ max: WARP_TO.length - 1 }),
         col: cell,
         row: cell,
       }),
     },
+    { weight: 1, arbitrary: fc.constant({ kind: 'sweep' as const }) },
     {
       weight: 2,
       arbitrary: fc.record({
@@ -441,8 +449,17 @@ describe('leaving the world', () => {
   const npcIds = new Set<string>();
 
   function freshWorld() {
+    clearInstancesForTest();
     const sim = createFixture(0);
     sim.addMap({ id: 'map2' });
+    const imp = sim.addNpc({
+      id: 'imp:3:3',
+      mapId: 'dungeon',
+      position: tile(3, 3),
+      attack: 0,
+    });
+    delete sim.map.npcs[imp.id];
+    sim.addMap({ id: 'dungeon', instanced: true, npcs: { [imp.id]: imp } });
     resetEntityReplication();
     NAMES.forEach((name, i) => {
       resetPlayerNetState(name);
@@ -515,7 +532,10 @@ describe('leaving the world', () => {
         });
         return;
       case 'warp':
-        if (player) teleportPlayer(player, MAPS[o.map]!, tile(o.col, o.row));
+        if (player) warpToMap(player, WARP_TO[o.to]!, tile(o.col, o.row));
+        return;
+      case 'sweep':
+        sweepInstances();
         return;
       case 'summon': {
         const npc = spawnNpc({
@@ -533,6 +553,7 @@ describe('leaving the world', () => {
         const target = npcs[o.npc % Math.max(1, npcs.length)];
         if (!target) return;
         const attacker = getPlayerByName(NAMES[o.by]!);
+        npcIds.add(target.id);
         resolveDamage(target, o.lethal ? target.health : 1, { attacker });
         return;
       }
@@ -554,6 +575,12 @@ describe('leaving the world', () => {
   }
 
   it('leaves nothing keyed by a player or an npc behind', async () => {
+    // So that a sweep closes whatever copy it finds empty the second time.
+    const grace = gameConfig.world.instanceGraceMs;
+    gameConfig.world.instanceGraceMs = 0;
+    onTestFinished(() => {
+      gameConfig.world.instanceGraceMs = grace;
+    });
     await fc.assert(
       fc.asyncProperty(fc.array(op, { maxLength: 40 }), async (ops) => {
         const sim = freshWorld();
@@ -581,9 +608,23 @@ describe('leaving the world', () => {
         // The caches /metrics publishes are exactly the ones keyed by a player
         // or an entity, so a new one is checked here as soon as it is.
         expect(getMetrics().caches).toEqual(before);
-        expect(pressedKeysMap.size).toBe(0);
       }),
-      { numRuns: 150 },
+      {
+        numRuns: 150,
+        examples: [
+          // Rarely drawn at random: a hit inside a copy that then closes.
+          [
+            [
+              { kind: 'join', who: 0, map: 0, col: 0, row: 0 },
+              { kind: 'warp', who: 0, to: 2, col: 0, row: 0 },
+              { kind: 'hit', npc: 0, by: 0, lethal: false },
+              { kind: 'warp', who: 0, to: 0, col: 0, row: 0 },
+              { kind: 'sweep' },
+              { kind: 'sweep' },
+            ],
+          ],
+        ],
+      },
     );
   });
 });

@@ -58,7 +58,7 @@ import {
 import { getBan, unbanPlayer } from './banService.js';
 import { serverState } from '../serverState.js';
 import { publishToInstances } from '../../persistence/instanceBus.js';
-import { persistedLocation } from '../world/instanceService.js';
+import { forgetEntrance, persistedLocation } from '../world/instanceService.js';
 import {
   supportsTransactions,
   withTransaction,
@@ -834,6 +834,10 @@ function removePlayerSessionState(player: PlayerServer): void {
     // Logging out mid-fight is the one way a player leaves without dying, and
     // the ledger is keyed by the victim.
     clearDamageContributions(player.id);
+    // Last, after the leave hook: the way out of a copy is what a write made
+    // inside one puts in the document, and the next session starts from the
+    // document, which holds it by then.
+    forgetEntrance(player.id);
   }
 }
 
