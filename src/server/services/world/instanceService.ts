@@ -1,4 +1,3 @@
-import crypto from 'node:crypto';
 import type {
   MapStateServer,
   PlayerServer,
@@ -11,6 +10,7 @@ import { emit } from '../../engine/hooks.js';
 import { logger } from '../../logger.js';
 import { runtimeState } from '../../sim/state.js';
 import { getTick, msToTicks } from '../../sim/clock.js';
+import { randomInt } from '../../sim/rng.js';
 import { scheduleEvery } from '../../sim/scheduler.js';
 import { dropQuadtree } from '../../sim/spatialManager.js';
 import { forgetReplicatedEntity } from '../../net/snapshot.js';
@@ -114,7 +114,14 @@ function createInstance(templateId: string, owner: string): string | undefined {
     return undefined;
   }
 
-  const key = `${templateId}${SEPARATOR}${crypto.randomBytes(3).toString('hex')}`;
+  // Rolled on the simulation's sequence: different from one boot to the next,
+  // and the same in a replay of this one, where the npcs of the copy have to
+  // come back under the ids they had.
+  let key: string;
+  do {
+    const suffix = randomInt(0x1000000).toString(16).padStart(6, '0');
+    key = `${templateId}${SEPARATOR}${suffix}`;
+  } while (runtimeState.maps[key]);
   const npcs: Record<string, RuntimeNpc> = {};
   for (const npc of blueprintFor(templateId, template)) {
     // The id carries the map, because the replication cache is keyed by entity
