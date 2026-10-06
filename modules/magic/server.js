@@ -32,7 +32,11 @@ i18n({
 
 const spells = new Map();
 let tomeAttached = false;
-const cooldowns = {}; // playerName -> { spellId: readyAtMs }
+// Cooldowns count ticks, so a fast replay matches the live session; the
+// hotbar alone gets milliseconds.
+const cooldowns = {}; // playerName -> { spellId: readyAtTick }
+let tickNow = 0;
+const msPerTick = 1000 / TICK_RATE;
 
 const getMana = (p) => {
   const m = getPlayerData(p, 'mana');
@@ -68,7 +72,10 @@ function pushState(player) {
         description: s.description || '',
         icon: iconOf(s),
         cost: s.cost,
-        readyAt: cd[s.id] || 0,
+        readyAt:
+          cd[s.id] > tickNow
+            ? Date.now() + (cd[s.id] - tickNow) * msPerTick
+            : 0,
         friendly: s.target ? s.target !== 'enemies' : s.visualTarget === 'self',
         // The whole duration, so the slot can show the share left.
         cooldownMs: s.cooldownMs || 0,
@@ -89,9 +96,8 @@ function cast(player, spellId) {
   const book = spellbook(player);
   if (book && !book.has(spellId)) return false; // not one of theirs
 
-  const now = Date.now();
   const cd = cooldowns[player.name] || (cooldowns[player.name] = {});
-  if ((cd[spellId] || 0) > now) return false; // on cooldown
+  if ((cd[spellId] || 0) > tickNow) return false; // on cooldown
 
   const mana = getMana(player);
   if (mana < spell.cost) return false; // not enough mana
@@ -114,7 +120,7 @@ function cast(player, spellId) {
   }
 
   setMana(player, mana - spell.cost);
-  cd[spellId] = now + (spell.cooldownMs || 0);
+  cd[spellId] = tickNow + msToTicks(spell.cooldownMs || 0);
   pushState(player);
   return true;
 }
@@ -262,6 +268,7 @@ on('customAction', ({ player, channel, payload }) => {
 
 // Regenerate mana ~once per second.
 on('tick', ({ tick }) => {
+  tickNow = tick;
   if (tick % 20 !== 0) return;
   for (const p of getPlayers()) {
     const m = getMana(p);
