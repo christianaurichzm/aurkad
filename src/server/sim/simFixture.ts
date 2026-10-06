@@ -11,6 +11,7 @@ import {
 } from '../services/world/movementService.js';
 import { clearAllAttackCooldowns } from '../services/combat/attackCooldown.js';
 import { clearAllNpcAiState } from '../services/npc/aiBrain.js';
+import { resetSpawnIds } from '../services/npc/spawn.js';
 import { clearActionQueue, enqueueClientAction } from '../net/transport.js';
 import {
   CharacterAction,
@@ -52,6 +53,7 @@ export function createFixture(seed = 0) {
   items.clear();
   clearAllAttackCooldowns();
   clearAllNpcAiState();
+  resetSpawnIds();
   clearActionQueue();
 
   const mapId = 'map1';

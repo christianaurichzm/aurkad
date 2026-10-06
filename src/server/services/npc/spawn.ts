@@ -40,6 +40,11 @@ export interface SpawnNpcOptions {
 
 let spawnSeq = 0;
 
+/** Test seam: ids start over with a fresh world, like every other counter. */
+export function resetSpawnIds(): void {
+  spawnSeq = 0;
+}
+
 /**
  * A number the caller supplied, or the default for anything else. Every
  * optional field has a default for "not given", and "not a number" gets the
