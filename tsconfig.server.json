@@ -9,7 +9,8 @@
     "outDir": "dist",
     "esModuleInterop": true,
     "skipLibCheck": true,
-    "sourceMap": true
+    "sourceMap": true,
+    "types": ["node"]
   },
   "include": ["src/server/**/*", "src/shared/**/*"],
   "exclude": ["node_modules", "dist"]
