@@ -26,8 +26,7 @@ import {
   sendDelivery,
   sweepUnclaimableDeliveries,
 } from './deliveryService.js';
-import { deleteItem } from './inventoryService.js';
-import { items } from '../world/gameData.js';
+import { deleteItem, items } from '../content/itemService.js';
 import { createPlayer } from '../player/playerService.js';
 import { playersByName } from '../../sim/state.js';
 import { getPlayerByNameFromDb } from '../player/playerService.js';

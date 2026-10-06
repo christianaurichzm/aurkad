@@ -16,7 +16,7 @@ import { on, clearAll } from '../../engine/hooks.js';
 import { createFixture, makeTiles, tile } from '../../sim/simFixture.js';
 import { getPlayerByName } from '../../sim/world.js';
 import { gameConfig } from '../../gameConfig.js';
-import { items } from '../world/gameData.js';
+import { items } from '../content/itemService.js';
 import { unequipItem } from '../economy/inventoryService.js';
 
 const { recordAdminAction } = vi.hoisted(() => ({

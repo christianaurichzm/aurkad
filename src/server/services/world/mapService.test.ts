@@ -9,7 +9,7 @@ import { createFixture, makeTiles, tile } from '../../sim/simFixture.js';
 import { getMap, updateMapById } from './gameData.js';
 
 const getNpcById = vi.fn();
-vi.mock('../npc/index.js', () => ({
+vi.mock('../content/npcService.js', () => ({
   getNpcById: (id: string) => getNpcById(id),
 }));
 

@@ -1,9 +1,10 @@
 import { writeFileSync, mkdirSync } from 'node:fs';
 import path from 'node:path';
-import { items, runtimeState } from '../../services/world/gameData.js';
+import { runtimeState } from '../../services/world/gameData.js';
+import { items } from '../../services/content/itemService.js';
 import { getAllSpells } from '../../services/content/spellService.js';
 import { getAllArrows } from '../../services/content/arrowService.js';
-import { listNpcs } from '../../services/npc/index.js';
+import { listNpcs } from '../../services/content/npcService.js';
 import { gamePath } from '../../config.js';
 import { logger } from '../../logger.js';
 

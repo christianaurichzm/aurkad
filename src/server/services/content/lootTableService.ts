@@ -1,5 +1,5 @@
 // Loot tables, cached: a table is read on every NPC death, inside the tick,
-// the same reason `items` is a module-level Map in world/gameData.ts.
+// the same reason `items` is a module-level Map in itemService.ts.
 
 import LootTableModel from '../../model/LootTable.js';
 import type { LootTable, NpcItemDrop } from '../../../shared/types.js';

@@ -29,8 +29,7 @@ import {
   supportsTransactions,
   withTransaction,
 } from '../../persistence/transactions.js';
-import { getItemById } from './inventoryService.js';
-import { items } from '../world/gameData.js';
+import { getItemById, items } from '../content/itemService.js';
 import { getPlayerByName } from '../../sim/world.js';
 import {
   getPlayerByNameFromDb,

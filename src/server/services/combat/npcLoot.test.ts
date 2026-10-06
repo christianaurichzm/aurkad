@@ -6,12 +6,12 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { resolveDamage } from './index.js';
 import { createFixture, tile } from '../../sim/simFixture.js';
-import { items } from '../../services/world/gameData.js';
+import { items } from '../content/itemService.js';
 import { seedRng } from '../../sim/rng.js';
 import {
   createOrUpdateLootTable,
   clearLootTableCache,
-} from '../economy/lootTableService.js';
+} from '../content/lootTableService.js';
 import { clearAll, on } from '../../engine/hooks.js';
 import { provideApi, clearProvides } from '../../engine/modules/registry.js';
 import { despawnNpc } from '../npc/spawn.js';

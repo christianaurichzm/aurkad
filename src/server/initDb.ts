@@ -5,14 +5,10 @@ import {
   insertNpcs,
   listMaps,
 } from './services/world/mapService.js';
-import {
-  createDefaultTiles,
-  items,
-  runtimeState,
-} from './services/world/gameData.js';
-import { listItems } from './services/economy/inventoryService.js';
+import { createDefaultTiles, runtimeState } from './services/world/gameData.js';
+import { listItems, items } from './services/content/itemService.js';
 import { sweepUnclaimableDeliveries } from './services/economy/deliveryService.js';
-import { loadLootTables } from './services/economy/lootTableService.js';
+import { loadLootTables } from './services/content/lootTableService.js';
 import { loadLiveOpsFlags } from './services/liveOpsService.js';
 import { loadArrows } from './services/content/arrowService.js';
 import { loadDialogs } from './services/content/dialogService.js';

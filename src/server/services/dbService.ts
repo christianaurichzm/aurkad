@@ -4,7 +4,7 @@ import type { NpcItemDrop } from '../../shared/types.js';
 import {
   createOrUpdateLootTable,
   dropsToLootTable,
-} from './economy/lootTableService.js';
+} from './content/lootTableService.js';
 
 const CounterSchema = new mongoose.Schema({
   _id: { type: String, required: true },

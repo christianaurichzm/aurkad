@@ -13,7 +13,7 @@ import { handleCustomAction } from '../../services/comms/customEventService.js';
 import { createFixture, tile } from '../../sim/simFixture.js';
 import { gameConfig } from '../../gameConfig.js';
 import { useItem } from '../../services/economy/inventoryService.js';
-import { items } from '../../services/world/gameData.js';
+import { items } from '../../services/content/itemService.js';
 import { registeredBehaviors } from '../scripting/entityScripts.js';
 import type { PlayerServer, Spell } from '../../../shared/types.js';
 import { TILE_SIZE } from '../../../shared/constants.js';

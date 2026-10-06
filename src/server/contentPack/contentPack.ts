@@ -19,8 +19,8 @@ import {
 import {
   createOrUpdateItem,
   listItems,
-} from '../services/economy/inventoryService.js';
-import { createOrUpdateNpc, listNpcs } from '../services/npc/persistenceOps.js';
+} from '../services/content/itemService.js';
+import { createOrUpdateNpc, listNpcs } from '../services/content/npcService.js';
 import { createOrUpdateMap, listMaps } from '../services/world/mapService.js';
 import {
   createOrUpdateShop,
@@ -30,7 +30,7 @@ import {
   createOrUpdateLootTable,
   dropsToLootTable,
   listLootTables,
-} from '../services/economy/lootTableService.js';
+} from '../services/content/lootTableService.js';
 import {
   createOrUpdateDialog,
   listDialogs,

@@ -16,7 +16,6 @@ import {
   CreateArrowBodySchema,
 } from '../bodySchemas.js';
 import checkAccess from '../middleware/checkAccess.js';
-import { deleteNpcEverywhere } from '../../services/world/gameData.js';
 import { listMaps } from '../../services/world/mapService.js';
 import {
   validateContentReferences,
@@ -32,13 +31,13 @@ import {
   createOrUpdateItem,
   deleteItem,
   listItems,
-} from '../../services/economy/inventoryService.js';
+} from '../../services/content/itemService.js';
 import {
   cachedLootTables,
   createOrUpdateLootTable,
   deleteLootTable,
   listLootTables,
-} from '../../services/economy/lootTableService.js';
+} from '../../services/content/lootTableService.js';
 import {
   cachedDialogs,
   createOrUpdateDialog,
@@ -60,7 +59,8 @@ import {
   createOrUpdateNpc,
   listNpcs,
   updateNpcAll,
-} from '../../services/npc/index.js';
+  deleteNpc,
+} from '../../services/content/npcService.js';
 import {
   listSpells,
   createOrUpdateSpell,
@@ -169,7 +169,7 @@ export function createContentRouter() {
 
   router.delete('/npcs/:id', checkAccess(Access.ADMIN), async (req, res) => {
     const id = req.params['id'];
-    await deleteNpcEverywhere(id);
+    await deleteNpc(id);
     res.status(204).send();
   });
 

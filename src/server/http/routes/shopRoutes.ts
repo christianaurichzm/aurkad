@@ -17,10 +17,7 @@ import {
   deleteShop,
   shopOpenFor,
 } from '../../services/economy/shopService.js';
-import {
-  getItemById,
-  listItems,
-} from '../../services/economy/inventoryService.js';
+import { getItemById, listItems } from '../../services/content/itemService.js';
 import {
   enrichPlayer,
   getPlayerByName,

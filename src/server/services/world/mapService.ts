@@ -24,8 +24,8 @@ import { mapRepository } from '../../persistence/mapRepository.js';
 import { dropQuadtree } from '../../sim/spatialManager.js';
 import { forgetReplicatedEntity, resendChunkAt } from '../../net/snapshot.js';
 import { getNextMapId } from '../dbService.js';
-import { getItemById } from '../economy/inventoryService.js';
-import { getNpcById } from '../npc/index.js';
+import { getItemById } from '../content/itemService.js';
+import { getNpcById } from '../content/npcService.js';
 import { onMap } from './physicsService.js';
 
 export async function getMapById(id: string): Promise<MapStateServer | null> {

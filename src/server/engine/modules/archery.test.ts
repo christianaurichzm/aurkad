@@ -12,7 +12,7 @@ import { handleCustomAction } from '../../services/comms/customEventService.js';
 import { createFixture, tile } from '../../sim/simFixture.js';
 import { Direction } from '../../../shared/types.js';
 import { TILE_SIZE } from '../../../shared/constants.js';
-import { items } from '../../services/world/gameData.js';
+import { items } from '../../services/content/itemService.js';
 import {
   registerArrow,
   unregisterArrow,

@@ -25,9 +25,10 @@ import {
   recordDamageContribution,
 } from './damage.js';
 import { handleChatAction } from '../comms/chatService.js';
-import { dropOnGround, getItemById } from '../economy/inventoryService.js';
+import { dropOnGround } from '../economy/inventoryService.js';
+import { getItemById } from '../content/itemService.js';
 import { rollLootTable } from '../economy/lootService.js';
-import { getLootTable } from '../economy/lootTableService.js';
+import { getLootTable } from '../content/lootTableService.js';
 import { respawnNpc } from '../npc/index.js';
 import { markNpcAggro } from '../npc/aiBrain.js';
 import { respawnPlayer, awardExperience } from '../player/playerService.js';

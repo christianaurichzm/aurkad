@@ -34,14 +34,14 @@ import MapModel from '../model/Map.js';
 import {
   listItems,
   createOrUpdateItem,
-} from '../services/economy/inventoryService.js';
-import { listNpcs, updateNpcAll } from '../services/npc/persistenceOps.js';
+} from '../services/content/itemService.js';
+import { listNpcs, updateNpcAll } from '../services/content/npcService.js';
 import { listMaps } from '../services/world/mapService.js';
 import { listShops } from '../services/economy/shopService.js';
 import {
   listLootTables,
   clearLootTableCache,
-} from '../services/economy/lootTableService.js';
+} from '../services/content/lootTableService.js';
 import {
   DB_SCHEMA_VERSION,
   getNextItemId,

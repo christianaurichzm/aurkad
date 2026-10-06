@@ -13,7 +13,7 @@ import {
   persistPlayerSessionState,
   waitForPlayerPersistence,
 } from '../player/playerService.js';
-import { getItemById } from './inventoryService.js';
+import { getItemById } from '../content/itemService.js';
 import {
   exchangeItems,
   removeItem,

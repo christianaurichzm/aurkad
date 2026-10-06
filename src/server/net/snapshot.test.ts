@@ -14,8 +14,9 @@ import { rebuildQuadtree } from '../sim/spatialManager.js';
 import {
   createOrUpdateItem,
   deleteItem,
-} from '../services/economy/inventoryService.js';
-import { createDefaultTiles, items } from '../services/world/gameData.js';
+  items,
+} from '../services/content/itemService.js';
+import { createDefaultTiles } from '../services/world/gameData.js';
 import { enterWorld } from '../services/player/playerService.js';
 import { teleportPlayer } from '../services/world/movementService.js';
 import { setMapTile } from '../services/world/mapService.js';

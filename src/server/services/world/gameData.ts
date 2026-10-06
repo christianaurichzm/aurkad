@@ -1,6 +1,5 @@
 import {
   GameState,
-  Item,
   MapStateServer,
   PlayerServer,
   Tile,
@@ -8,7 +7,6 @@ import {
 import { logger } from '../../logger.js';
 
 import { createOrUpdateMap } from './mapService.js';
-import { deleteNpc } from '../npc/index.js';
 
 import { deletePlayer } from '../player/playerService.js';
 import { runtimeState } from '../../sim/state.js';
@@ -20,8 +18,6 @@ import {
 import { markPlayerDirty } from '../../persistence/dirtyPlayers.js';
 
 export { runtimeState } from '../../sim/state.js';
-
-export const items = new Map<number, Item>();
 
 export function createDefaultTiles(cols = 20, rows = 14): Tile[][] {
   return Array.from({ length: rows }, () =>
@@ -90,10 +86,3 @@ export const updatePlayer = (player: PlayerServer): void => {
   upsertOnCurrentMap(player);
   markPlayerDirty(player.id);
 };
-
-export async function deleteNpcEverywhere(id: string): Promise<void> {
-  for (const map of Object.values(runtimeState.maps)) {
-    delete map.npcs[id];
-  }
-  await deleteNpc(id);
-}

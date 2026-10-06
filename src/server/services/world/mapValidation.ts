@@ -1,8 +1,8 @@
 import { Tile } from '../../../shared/types.js';
 import { mapPixelWidth, mapPixelHeight } from '../../../shared/mapGeometry.js';
 import { getMapById, listMaps } from './mapService.js';
-import { listNpcs } from '../npc/index.js';
-import { listItems } from '../economy/inventoryService.js';
+import { listNpcs } from '../content/npcService.js';
+import { listItems } from '../content/itemService.js';
 import { listShops } from '../economy/shopService.js';
 
 export interface MapValidationResult {

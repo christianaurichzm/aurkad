@@ -1,12 +1,3 @@
-export {
-  getNpcById,
-  createOrUpdateNpc,
-  updateNpcAll,
-  refreshNpcInRuntime,
-  deleteNpc,
-  listNpcs,
-} from './persistenceOps.js';
-
 import { TILE_SIZE } from '../../../shared/constants.js';
 import { randomPick } from '../../sim/rng.js';
 import {

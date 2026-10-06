@@ -14,7 +14,7 @@ import {
   getFlag,
   type FlagValue,
 } from '../../services/liveOpsService.js';
-import { getMap, items, updatePlayer } from '../../services/world/gameData.js';
+import { getMap, updatePlayer } from '../../services/world/gameData.js';
 import { handleChatAction } from '../../services/comms/chatService.js';
 import { setIgnored } from '../../services/world/serverState.js';
 import {
@@ -47,7 +47,7 @@ import {
 } from '../../services/player/cosmeticsService.js';
 import { spawnNpc, despawnNpc } from '../../services/npc/spawn.js';
 import { stepNpcToward } from '../../services/npc/behaviors.js';
-import { getItemById } from '../../services/economy/inventoryService.js';
+import { getItemById, items } from '../../services/content/itemService.js';
 import {
   addItem,
   canFit,

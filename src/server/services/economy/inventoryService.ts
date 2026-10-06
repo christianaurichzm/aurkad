@@ -1,81 +1,25 @@
 import {
   MapStateServer,
   PlayerServer,
-  Item,
   EquipmentSlot,
   Effect,
   DroppedItem,
 } from '../../../shared/types.js';
 import type { ClientItemAction } from '../../engine/actions.js';
-import { getMap, updatePlayer, updateMap, items } from '../world/gameData.js';
+import { getMap, updatePlayer, updateMap } from '../world/gameData.js';
+import { getItemById } from '../content/itemService.js';
 import { logger } from '../../logger.js';
-import ItemModel from '../../model/Item.js';
-import { getNextItemId } from '../dbService.js';
 import { EQUIPMENT_SLOTS } from '../../../shared/constants.js';
 import { getPlayerByName, levelUpPlayer } from '../player/playerService.js';
 import { emit } from '../../engine/hooks.js';
 import { dispatchEntityScript } from '../../engine/scripting/entityScripts.js';
 import { addItem, canFit, removeItem } from './economyService.js';
 import { isPlayerCommitting } from '../../persistence/dirtyPlayers.js';
-import { sweepUnclaimableDeliveries } from './deliveryService.js';
-import { forgetSentItem, recordHealthChange } from '../../net/snapshot.js';
+import { recordHealthChange } from '../../net/snapshot.js';
 import { gameConfig } from '../../gameConfig.js';
 import { getTick, msToTicks } from '../../sim/clock.js';
 import { scheduleEvery } from '../../sim/scheduler.js';
 import { runtimeState } from '../../sim/state.js';
-
-export function getItemById(id: number): Item | null {
-  return items.get(id) ?? null;
-}
-
-/**
- * Optional fields a caller can clear by leaving them out.
- *
- * Every caller passes a complete item (editor form, content import), which is
- * why the cache line below replaces the entry wholesale. The database write has
- * to agree: a plain `findOneAndUpdate` only writes the keys present, so
- * clearing one in the editor would work until the next restart brought it back.
- */
-const CLEARABLE_ITEM_FIELDS = ['scriptId', 'scriptParams', 'arrowId'] as const;
-
-export async function createOrUpdateItem(
-  item: Omit<Item, 'id'> & { id?: number },
-): Promise<void> {
-  if (!item.id) {
-    item.id = await getNextItemId();
-  }
-
-  const id = item.id;
-  const unset: Record<string, ''> = {};
-  for (const field of CLEARABLE_ITEM_FIELDS) {
-    if (item[field] === undefined) unset[field] = '';
-  }
-
-  await ItemModel.findOneAndUpdate(
-    { id },
-    {
-      $set: item,
-      ...(Object.keys(unset).length > 0 && { $unset: unset }),
-    },
-    { upsert: true },
-  );
-  items.set(id, { ...item, id });
-  forgetSentItem(id);
-}
-
-export async function deleteItem(id: number): Promise<void> {
-  await ItemModel.deleteOne({ id });
-  items.delete(id);
-  forgetSentItem(id);
-  // Anything queued for delivery of this item just became unclaimable, and the
-  // recipient cannot get rid of it either. Here rather than in the route: this
-  // is the funnel every deletion crosses.
-  await sweepUnclaimableDeliveries();
-}
-
-export async function listItems(): Promise<Item[]> {
-  return await ItemModel.find().lean<Item[]>().exec();
-}
 
 /**
  * Puts items on the ground, on top of a pile of the same item on that tile when

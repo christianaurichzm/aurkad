@@ -6,12 +6,12 @@ import ItemModel from '../../model/Item.js';
 import DeliveryModel from '../../model/Delivery.js';
 import { countItem } from './economyService.js';
 import {
-  deleteItem,
   dropItemFromInventory,
   equipItem,
   startDropSweep,
   unequipItem,
 } from './inventoryService.js';
+import { deleteItem } from '../content/itemService.js';
 
 // 40 ticks at 20 Hz.
 vi.mock('../../gameConfig.js', async (importOriginal) => {

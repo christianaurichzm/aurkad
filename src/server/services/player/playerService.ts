@@ -34,7 +34,7 @@ import {
 } from '../../sim/world.js';
 import { emit } from '../../engine/hooks.js';
 import { addPlayerOnMap, removePlayerFromMap } from '../world/mapService.js';
-import { getItemById } from '../economy/inventoryService.js';
+import { getItemById } from '../content/itemService.js';
 import {
   broadcast,
   playersWsMap,

@@ -46,7 +46,7 @@ import { persistDirtyPlayers } from './playerSnapshot.js';
 import { players } from '../sim/state.js';
 import { registerPlayer, unregisterPlayer } from '../sim/world.js';
 import { sendDelivery } from '../services/economy/deliveryService.js';
-import { items } from '../services/world/gameData.js';
+import { items } from '../services/content/itemService.js';
 import DeliveryModel from '../model/Delivery.js';
 import { logger } from '../logger.js';
 import type { InventoryLike, PlayerServer } from '../../shared/types.js';

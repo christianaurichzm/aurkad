@@ -125,6 +125,21 @@ properties:
 - **KV store.** A namespaced key-value store backs script/module data
   (`store.get`/`store.set`).
 
+### Where each content type lives
+
+Each kind of content the admin tools edit and a content pack carries has one
+service, which owns its reads and writes and, when the tick reads it, its
+in-memory cache:
+
+| Content                                                            | Service                             |
+| ------------------------------------------------------------------ | ----------------------------------- |
+| items, NPCs, loot tables, spells, arrows, dialogs, quests, recipes | `services/content/<type>Service.ts` |
+| maps                                                               | `services/world/mapService.ts`      |
+| shops                                                              | `services/economy/shopService.ts`   |
+
+Maps and shops sit with the gameplay their services also run (warps and
+instances, buying and selling).
+
 ## Extensibility
 
 Three layers, in increasing order of coupling to the engine:

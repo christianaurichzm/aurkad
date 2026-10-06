@@ -5,7 +5,7 @@ import { createFixture, makeTiles } from './simFixture.js';
 import {
   clearLootTableCache,
   createOrUpdateLootTable,
-} from '../services/economy/lootTableService.js';
+} from '../services/content/lootTableService.js';
 import * as instanceRegistry from '../persistence/instanceRegistry.js';
 import { playerRepository } from '../persistence/playerRepository.js';
 import { enterWorld } from '../services/player/playerService.js';

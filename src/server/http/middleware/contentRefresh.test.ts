@@ -32,7 +32,7 @@ vi.mock('../../services/world/mapService.js', () => ({
   getMapById: () => Promise.resolve(null),
   listMaps: () => Promise.resolve([]),
 }));
-vi.mock('../../services/economy/inventoryService.js', () => ({
+vi.mock('../../services/content/itemService.js', () => ({
   createOrUpdateItem: () => Promise.resolve(),
   deleteItem: () => Promise.reject(new Error('gone')),
   getItemById: () => undefined,

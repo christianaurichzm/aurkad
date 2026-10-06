@@ -1,8 +1,8 @@
 import { CharacterAction, PersistentNpc } from '../../../shared/types.js';
-import { runtimeState } from '../world/gameData.js';
+import { runtimeState } from '../../sim/state.js';
 import NpcModel from '../../model/Npc.js';
 import { getNextNpcId } from '../dbService.js';
-import { resetNpcAi } from './aiBrain.js';
+import { resetNpcAi } from '../npc/aiBrain.js';
 import { logger } from '../../logger.js';
 
 export async function getNpcById(id: string): Promise<PersistentNpc | null> {
@@ -96,6 +96,9 @@ export async function refreshNpcInRuntime(id: string): Promise<void> {
 }
 
 export async function deleteNpc(id: string): Promise<void> {
+  for (const map of Object.values(runtimeState.maps)) {
+    delete map.npcs[id];
+  }
   await NpcModel.deleteOne({ id });
 }
 

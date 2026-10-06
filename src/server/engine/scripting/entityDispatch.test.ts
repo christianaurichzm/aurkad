@@ -15,7 +15,7 @@ import { rebuildQuadtree } from '../../sim/spatialManager.js';
 import { handleInteract } from '../../services/world/interactionService.js';
 import { resolveDamage } from '../../services/combat/index.js';
 import { useItem } from '../../services/economy/inventoryService.js';
-import { items } from '../../services/world/gameData.js';
+import { items } from '../../services/content/itemService.js';
 import { Direction, Key, type Item } from '../../../shared/types.js';
 
 const calls = vi.hoisted(() => ({ log: [] as unknown[] }));
