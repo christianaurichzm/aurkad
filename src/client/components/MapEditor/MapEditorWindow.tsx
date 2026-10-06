@@ -1,11 +1,11 @@
 import React, { useEffect, useReducer, useRef, useState } from 'react';
 import {
-  toggleTilesetEditor,
-  tilesetEditorInitialized,
+  toggleMapEditor,
+  mapEditorInitialized,
   resetToOriginalMap,
-} from '../../graphics/tileset';
+} from '../../graphics/mapEditor';
 import { useUIStore } from '../../stores/uiStore';
-import { TilesetModeControls } from './TilesetModeControls';
+import { MapEditorTools } from './MapEditorTools';
 import { useDraggable } from '../../hooks/useDraggable';
 import { useEscapeClose } from '../../hooks/useEscapeClose';
 import { useMediaQuery } from '../../hooks/useMediaQuery';
@@ -46,7 +46,7 @@ export const freeOfTheWorld = (world: DOMRect, width: number, height: number) =>
     .filter((strip) => Math.min(strip.width, strip.height) >= NARROWEST)
     .sort((a, b) => b.width * b.height - a.width * a.height)[0] ?? null;
 
-export const TilesetEditor: React.FC = () => {
+export const MapEditorWindow: React.FC = () => {
   const t = useT();
   const [visible, setVisible] = useState(false);
   const visibleRef = useRef(false);
@@ -77,8 +77,8 @@ export const TilesetEditor: React.FC = () => {
     const { mapEdited, setMapEdited } = useUIStore.getState();
     if (mapEdited) {
       const discard = await useUIStore.getState().showDialog({
-        title: t('tileset.discardTitle'),
-        message: t('tileset.discardMessage'),
+        title: t('mapEditor.discardTitle'),
+        message: t('mapEditor.discardMessage'),
         kind: 'confirm',
         confirmLabel: t('editor.discard'),
         cancelLabel: t('editor.keepEditing'),
@@ -103,15 +103,15 @@ export const TilesetEditor: React.FC = () => {
         setVisible(true);
       }
     };
-    window.addEventListener('toggleTilesetEditor', onToggle);
-    return () => window.removeEventListener('toggleTilesetEditor', onToggle);
+    window.addEventListener('toggleMapEditor', onToggle);
+    return () => window.removeEventListener('toggleMapEditor', onToggle);
   }, []);
 
   useEffect(() => {
     if (visible) {
-      toggleTilesetEditor(true);
-    } else if (tilesetEditorInitialized) {
-      toggleTilesetEditor(false);
+      toggleMapEditor(true);
+    } else if (mapEditorInitialized) {
+      toggleMapEditor(false);
     }
   }, [visible]);
 
@@ -153,7 +153,7 @@ export const TilesetEditor: React.FC = () => {
         }}
       >
         <span style={{ fontWeight: 700, fontSize: 13, color: colors.text }}>
-          {t('tileset.title')}
+          {t('mapEditor.title')}
         </span>
         <button
           aria-label={t('common.close')}
@@ -185,7 +185,7 @@ export const TilesetEditor: React.FC = () => {
           ...(strip && { maxHeight: '45%', overflowY: 'auto' }),
         }}
       >
-        <TilesetModeControls />
+        <MapEditorTools />
       </div>
 
       <div style={{ overflow: 'auto', flex: 1, minHeight: 0 }}>

@@ -16,7 +16,7 @@ export function getInputValue(id: string): string {
   const element = document.getElementById(id) as HTMLInputElement | null;
   if (element) return element.value;
 
-  // The tileset editor parks its current selection on window under this name
+  // The map editor parks its current selection on window under this name
   // for the tile kinds that have no input of their own to read back.
   const selection = (window as unknown as Record<string, string | undefined>)[
     `selected${capitalizeFirst(id)}`

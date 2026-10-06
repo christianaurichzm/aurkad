@@ -42,12 +42,15 @@ vi.mock('./canvas', () => ({
   },
 }));
 
-vi.mock('./tileset', () => ({
+vi.mock('./mapRender', () => ({
   renderGameMap: mocks.renderGameMap,
-  renderEditorLayer: mocks.renderEditorLayer,
   renderMapMask: vi.fn(),
   isometricMapObjects: () => [],
   renderMapFringe: vi.fn(),
+}));
+
+vi.mock('./mapEditor', () => ({
+  renderEditorLayer: mocks.renderEditorLayer,
   getEditorTiles: () => mocks.editorTiles,
 }));
 
@@ -169,7 +172,10 @@ describe('the ground pass', () => {
     render();
 
     expect(mocks.renderGameMap).toHaveBeenCalledTimes(2);
-    expect(mocks.renderGameMap).toHaveBeenLastCalledWith(mocks.editorTiles);
+    expect(mocks.renderGameMap).toHaveBeenLastCalledWith(
+      mocks.editorTiles,
+      true,
+    );
   });
 
   // Crossing a border with the editor open changes where the ground comes
@@ -183,7 +189,7 @@ describe('the ground pass', () => {
     vi.clearAllMocks();
     render();
 
-    expect(mocks.renderGameMap).toHaveBeenCalledWith(mocks.editorTiles);
+    expect(mocks.renderGameMap).toHaveBeenCalledWith(mocks.editorTiles, true);
   });
 
   // Markers come from the editor's copy, so swapping it for another map's

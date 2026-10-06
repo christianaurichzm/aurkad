@@ -1,11 +1,11 @@
 import { useEffect } from 'react';
 import { initGameCanvas } from '../graphics/canvas';
-import { initTilesetEditor } from '../graphics/tileset';
+import { initMapEditor } from '../graphics/mapEditor';
 
 export const GameCanvas = () => {
   useEffect(() => {
     const stopObserving = initGameCanvas();
-    initTilesetEditor();
+    initMapEditor();
     return stopObserving;
   }, []);
 

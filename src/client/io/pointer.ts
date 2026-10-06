@@ -12,7 +12,7 @@ import {
   spritePosition,
   worldToView,
 } from '../graphics/camera';
-import { tilesetEditorInitialized } from '../graphics/tileset';
+import { mapEditorInitialized } from '../graphics/mapEditor';
 import { pressKey, releaseKey } from './keyboard';
 import { sendAction } from './network';
 
@@ -90,7 +90,7 @@ const nearestCellOf = (npc: RuntimeNpc, from: Position) =>
  */
 export const clickWorld = (sx: number, sy: number) => {
   const player = getPlayer();
-  if (!player || tilesetEditorInitialized) return;
+  if (!player || mapEditorInitialized) return;
   const cam = getCamera();
   const npc = npcUnder(sx + cam.x, sy + cam.y);
   clicked = npc?.id;

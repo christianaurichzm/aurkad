@@ -148,7 +148,7 @@ describe('ActionPanel', () => {
     const onToggle = vi.fn();
     setAccess(Access.ADMIN);
     mocks.openMapEditor.mockResolvedValue(true);
-    window.addEventListener('toggleTilesetEditor', onToggle);
+    window.addEventListener('toggleMapEditor', onToggle);
 
     render(<CreatorTools />);
 
@@ -158,7 +158,7 @@ describe('ActionPanel', () => {
     await waitFor(() => expect(mocks.openMapEditor).toHaveBeenCalledTimes(1));
     expect(onToggle).toHaveBeenCalledTimes(1);
 
-    window.removeEventListener('toggleTilesetEditor', onToggle);
+    window.removeEventListener('toggleMapEditor', onToggle);
   });
 
   it('dispatches the online players event', async () => {

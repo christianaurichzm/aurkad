@@ -22,7 +22,7 @@ const handleKeyPress = async (key: Key) => {
       break;
     case Key.z:
       if (await openMapEditor()) {
-        window.dispatchEvent(new Event('toggleTilesetEditor'));
+        window.dispatchEvent(new Event('toggleMapEditor'));
       }
       break;
     case Key.c:

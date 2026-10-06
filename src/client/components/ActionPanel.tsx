@@ -69,7 +69,7 @@ const creatorActions: CreatorAction[] = [
     id: 'map',
     label: 'actions.mapEditor',
     keyLabel: 'Z',
-    eventName: 'toggleTilesetEditor',
+    eventName: 'toggleMapEditor',
     minAccess: Access.ADMIN,
     authorize: openMapEditor,
   },

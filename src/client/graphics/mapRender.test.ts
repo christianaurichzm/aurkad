@@ -1,0 +1,234 @@
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { setStaticMap } from '../core/gameState';
+import { setCamera } from './camera';
+import { isometricFrames, tileset } from '../io/assets';
+import type { Tile } from '../../shared/types';
+import { isometricMapObjects, renderGameMap } from './mapRender';
+
+const mocks = vi.hoisted(() => {
+  const calls: { fn: string; args: unknown[] }[] = [];
+  const record =
+    (fn: string) =>
+    (...args: unknown[]) => {
+      calls.push({ fn, args });
+    };
+  return {
+    calls,
+    cam: { x: 0, y: 0 },
+    canvas: {
+      width: 128,
+      height: 64,
+      getBoundingClientRect: () => ({
+        left: 0,
+        top: 0,
+        width: 128,
+        height: 64,
+      }),
+    },
+    ctx: {
+      save: record('save'),
+      restore: record('restore'),
+      translate: record('translate'),
+      transform: record('transform'),
+      clearRect: record('clearRect'),
+      drawImage: record('drawImage'),
+      fillRect: record('fillRect'),
+      fillText: record('fillText'),
+      strokeText: record('strokeText'),
+      fill: record('fill'),
+      closePath: record('closePath'),
+      beginPath: record('beginPath'),
+      moveTo: record('moveTo'),
+      lineTo: record('lineTo'),
+      stroke: record('stroke'),
+      strokeRect: record('strokeRect'),
+    } as unknown as CanvasRenderingContext2D,
+  };
+});
+
+vi.mock('./canvas', () => ({
+  foregroundCanvas: mocks.canvas,
+  foregroundCtx: mocks.ctx,
+  maskCtx: mocks.ctx,
+  fringeCtx: mocks.ctx,
+  worldScale: 1,
+  worldCanvasGeneration: 0,
+  prepareWorldContext: vi.fn(),
+}));
+
+vi.mock('../io/assets', () => ({
+  tileset: { width: 256, height: 256 },
+  tilesetAlpha: { width: 256, height: 256 },
+  isometricFrames: {},
+  isometricReach: 64,
+}));
+
+beforeEach(() => {
+  setStaticMap({ id: 'test', name: 'test', type: 'normal', tiles: [] });
+  setCamera(mocks.cam);
+});
+
+/** A 4x4 map, of which the 128x64 canvas shows three columns and two rows. */
+const mapOf = (tileIndex: number): Tile[][] =>
+  Array.from({ length: 4 }, () =>
+    Array.from({ length: 4 }, () => ({ tileIndex })),
+  );
+
+const counts = () => ({
+  clears: mocks.calls.filter((c) => c.fn === 'clearRect').length,
+  draws: mocks.calls.filter((c) => c.fn === 'drawImage').length,
+});
+
+describe('the map the game draws', () => {
+  // The ground is painted onto a canvas of its own around the camera; the
+  // tiles that land there are counted apart from the screen's draws.
+  let painted = 0;
+  beforeEach(() => {
+    mocks.calls.length = 0;
+    painted = 0;
+    vi.stubGlobal(
+      'OffscreenCanvas',
+      class {
+        constructor(
+          public width: number,
+          public height: number,
+        ) {}
+        getContext() {
+          return {
+            ...mocks.ctx,
+            clearRect: () => {},
+            drawImage: () => {
+              painted++;
+            },
+          };
+        }
+      },
+    );
+  });
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it('paints the ground around the camera once and copies the screen out of it', () => {
+    const tiles = mapOf(1);
+    renderGameMap(tiles);
+    // The whole 4x4 map fits inside the viewport and its margin.
+    expect(painted).toBe(16);
+    expect(counts()).toEqual({ clears: 1, draws: 1 });
+
+    setCamera({ x: 40, y: 20 });
+    mocks.calls.length = 0;
+    renderGameMap(tiles);
+
+    expect(painted).toBe(16);
+    expect(counts()).toEqual({ clears: 1, draws: 1 });
+  });
+
+  it('paints again for a new grid, or a camera past the margin', () => {
+    const tiles = mapOf(1);
+    renderGameMap(tiles);
+    renderGameMap(mapOf(1));
+    expect(painted).toBe(32);
+
+    const wide = Array.from({ length: 4 }, () =>
+      Array.from({ length: 40 }, () => ({ tileIndex: 1 })),
+    );
+    renderGameMap(wide);
+    const before = painted;
+    setCamera({ x: 1000, y: 0 });
+    renderGameMap(wide);
+    expect(painted).toBeGreaterThan(before);
+  });
+
+  it('uses explicit atlas frames on a flat map, keeping ground pixels opaque', () => {
+    isometricFrames['0'] = {
+      x: 128,
+      y: 0,
+      width: 128,
+      height: 128,
+      drawWidth: 64,
+      drawHeight: 64,
+      anchorX: 32,
+      anchorY: 32,
+    };
+    try {
+      renderGameMap([[{ tileIndex: 0 }]], true);
+      expect(mocks.calls.find((call) => call.fn === 'drawImage')?.args).toEqual(
+        [tileset, 128, 0, 128, 128, 0, 0, 64, 64],
+      );
+    } finally {
+      delete isometricFrames['0'];
+    }
+  });
+
+  it('draws a live grid straight onto the screen', () => {
+    // The editor changes its grid in place, so a painted copy of it would go
+    // stale with nothing to say so.
+    renderGameMap(mapOf(1), true);
+
+    // Two tiles: the loop walks one past the canvas edge and the draw culls
+    // it, so a 128x64 viewport is 2x1 tiles, after one full-canvas clear.
+    expect(painted).toBe(0);
+    expect(counts()).toEqual({ clears: 1, draws: 2 });
+  });
+
+  it('leaves the ground alone when there is no map to draw', () => {
+    // The editor's copy is empty until the admin route answers, and clearing
+    // for it would blank the world until the camera moves.
+    renderGameMap([]);
+
+    expect(counts()).toEqual({ clears: 0, draws: 0 });
+  });
+});
+
+describe('the props an isometric map sorts with its actors', () => {
+  it('fades a prop in front of the player that covers them, and no other', () => {
+    const tiles = mapOf(0);
+    for (const [col, row] of [
+      [0, 0],
+      [2, 2],
+      [3, 3],
+    ] as const)
+      tiles[row][col].maskIndex = 5;
+    setStaticMap({
+      id: 'iso',
+      name: 'iso',
+      type: 'normal',
+      orientation: 'isometric',
+      tiles,
+    });
+    mocks.cam.x = -256;
+    mocks.cam.y = -128;
+    const saved: number[] = [];
+    const drawnAt: number[] = [];
+    const ctx = {
+      canvas: { width: 512, height: 512 },
+      globalAlpha: 1,
+      save() {
+        saved.push(this.globalAlpha);
+      },
+      restore() {
+        this.globalAlpha = saved.pop() ?? 1;
+      },
+      drawImage() {
+        drawnAt.push(this.globalAlpha);
+      },
+    };
+
+    const alphaOf = Object.fromEntries(
+      isometricMapObjects(tiles, ctx as unknown as CanvasRenderingContext2D, {
+        x: 64,
+        y: 64,
+      }).map((object) => {
+        drawnAt.length = 0;
+        object.draw();
+        return [`${object.col},${object.row}`, drawnAt[0]];
+      }),
+    );
+
+    // The player stands on (1,1): (0,0) is behind them, (3,3) in front but
+    // below their feet, (2,2) in front and over their body.
+    expect(alphaOf).toEqual({ '0,0': 1, '2,2': 0.45, '3,3': 1 });
+    expect(ctx.globalAlpha).toBe(1);
+  });
+});

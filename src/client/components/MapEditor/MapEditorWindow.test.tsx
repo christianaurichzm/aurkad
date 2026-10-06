@@ -1,5 +1,5 @@
 import { expect, it } from 'vitest';
-import { freeOfTheWorld } from './TilesetEditor';
+import { freeOfTheWorld } from './MapEditorWindow';
 
 const rect = (left: number, top: number, width: number, height: number) =>
   ({ left, top, right: left + width, bottom: top + height }) as DOMRect;

@@ -24,12 +24,11 @@ import {
 } from './canvas';
 import {
   renderGameMap,
-  renderEditorLayer,
   renderMapMask,
   renderMapFringe,
-  getEditorTiles,
   isometricMapObjects,
-} from './tileset';
+} from './mapRender';
+import { renderEditorLayer, getEditorTiles } from './mapEditor';
 import {
   renderEntitiesSorted,
   renderEntityHuds,
@@ -119,7 +118,7 @@ export const render = () => {
       cam.x !== lastCamX ||
       cam.y !== lastCamY;
     if (tilesDirty) {
-      renderGameMap(ground);
+      renderGameMap(ground, mapEdited);
       renderEditorLayer();
       // The editor mutates its grid in place, so null keeps the pass dirty
       // while it is the one drawn.

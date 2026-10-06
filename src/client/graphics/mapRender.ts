@@ -1,0 +1,398 @@
+import { TILE_SIZE, ISO_SCALE } from '../../shared/constants';
+import type { TilePublic } from '../../shared/types';
+import {
+  tileset,
+  tilesetAlpha,
+  isometricFrames,
+  isometricReach,
+} from '../io/assets';
+import {
+  foregroundCanvas,
+  foregroundCtx,
+  maskCtx,
+  fringeCtx,
+  prepareWorldContext,
+  worldScale,
+  worldCanvasGeneration,
+} from './canvas';
+import { getCamera, spritePosition, worldToView } from './camera';
+import { getMapOrientation } from '../core/gameState';
+import { viewBounds } from '../../shared/mapGeometry';
+
+// The rows and columns the camera can see, so a pass costs the viewport
+// rather than the whole map.
+export const visibleRange = <T>(
+  tiles: T[][],
+  width: number,
+  height: number,
+  reach = isometricReach,
+) => {
+  const cam = getCamera();
+  const bounds = viewBounds(
+    cam.x,
+    cam.y,
+    width,
+    height,
+    getMapOrientation(),
+    reach,
+  );
+  return {
+    startCol: Math.max(0, Math.floor(bounds.left / TILE_SIZE)),
+    endCol: Math.min(
+      (tiles[0]?.length ?? 0) - 1,
+      Math.ceil(bounds.right / TILE_SIZE),
+    ),
+    startRow: Math.max(0, Math.floor(bounds.top / TILE_SIZE)),
+    endRow: Math.min(tiles.length - 1, Math.ceil(bounds.bottom / TILE_SIZE)),
+  };
+};
+
+type Rect = { x: number; y: number; width: number; height: number };
+
+// The view pixels a ground tile covers: its frame on an isometric atlas, else
+// its square, or the diamond that square is sheared into.
+export const groundRect = (
+  col: number,
+  row: number,
+  tileIndex: number,
+): Rect => {
+  if (frameOf(tileIndex)) return objectRect(col, row, tileIndex);
+  const at = worldToView(col * TILE_SIZE, row * TILE_SIZE);
+  return getMapOrientation() === 'isometric'
+    ? { x: at.x - TILE_SIZE, y: at.y, width: 2 * TILE_SIZE, height: TILE_SIZE }
+    : { x: at.x, y: at.y, width: TILE_SIZE, height: TILE_SIZE };
+};
+
+/**
+ * One ground tile, in view pixels: the caller translates for the camera.
+ * `clear` first erases the cell it covers - a square or its diamond; a frame
+ * overlaps its neighbours, which a clear would cut into.
+ */
+export const drawGroundTile = (
+  ctx: CanvasRenderingContext2D | OffscreenCanvasRenderingContext2D,
+  col: number,
+  row: number,
+  tileIndex: number,
+  clear = false,
+) => {
+  if (frameOf(tileIndex)) {
+    drawMapObject(ctx, col, row, tileIndex, tileset);
+    return;
+  }
+  const at = worldToView(col * TILE_SIZE, row * TILE_SIZE);
+  const tilesPerRow = tileset.width / TILE_SIZE;
+  ctx.save();
+  ctx.translate(at.x, at.y);
+  if (getMapOrientation() === 'isometric')
+    ctx.transform(ISO_SCALE, ISO_SCALE / 2, -ISO_SCALE, ISO_SCALE / 2, 0, 0);
+  if (clear) ctx.clearRect(0, 0, TILE_SIZE, TILE_SIZE);
+  // Smoothed at a scale that splits a tile's edge across device pixels, edges
+  // show as a dark grid. Each tile bleeds a device pixel into its right and
+  // lower neighbours, which cover it.
+  const bleed = ctx.imageSmoothingEnabled ? 1 / worldScale : 0;
+  ctx.drawImage(
+    tileset,
+    (tileIndex % tilesPerRow) * TILE_SIZE,
+    Math.floor(tileIndex / tilesPerRow) * TILE_SIZE,
+    TILE_SIZE,
+    TILE_SIZE,
+    0,
+    0,
+    TILE_SIZE + bleed,
+    TILE_SIZE + bleed,
+  );
+  ctx.restore();
+};
+
+/** Every ground tile that shows inside `area` (view pixels). */
+const drawGround = (
+  ctx: CanvasRenderingContext2D | OffscreenCanvasRenderingContext2D,
+  tiles: TilePublic[][],
+  area: Rect,
+) => {
+  const reach =
+    getMapOrientation() === 'isometric' ? isometricReach : TILE_SIZE;
+  const bounds = viewBounds(
+    area.x,
+    area.y,
+    area.width,
+    area.height,
+    getMapOrientation(),
+    reach,
+  );
+  const startRow = Math.max(0, Math.floor(bounds.top / TILE_SIZE));
+  const endRow = Math.min(
+    tiles.length - 1,
+    Math.ceil(bounds.bottom / TILE_SIZE),
+  );
+  const startCol = Math.max(0, Math.floor(bounds.left / TILE_SIZE));
+  const endCol = Math.min(
+    (tiles[0]?.length ?? 0) - 1,
+    Math.ceil(bounds.right / TILE_SIZE),
+  );
+  for (let row = startRow; row <= endRow; row++) {
+    for (let col = startCol; col <= endCol; col++) {
+      const tileIndex = tiles[row]?.[col]?.tileIndex;
+      if (tileIndex === undefined || tileIndex === -1) continue;
+      const r = groundRect(col, row, tileIndex);
+      if (
+        r.x >= area.x + area.width ||
+        r.x + r.width <= area.x ||
+        r.y >= area.y + area.height ||
+        r.y + r.height <= area.y
+      )
+        continue;
+      drawGroundTile(ctx, col, row, tileIndex);
+    }
+  }
+};
+
+// The editor's copy, painted straight onto the screen: edits change it in
+// place, so nothing about it says when a copy of it has gone stale.
+export const drawTiles = (tiles: TilePublic[][]) => {
+  // The editor's copy is empty until fetched, and the loop repaints only on
+  // camera or map change, so clearing here would leave the world blank.
+  if (!tiles.length) return;
+  const cam = getCamera();
+  const width = foregroundCanvas.width / worldScale;
+  const height = foregroundCanvas.height / worldScale;
+  foregroundCtx.clearRect(0, 0, width, height);
+  foregroundCtx.save();
+  foregroundCtx.translate(-cam.x, -cam.y);
+  drawGround(foregroundCtx, tiles, { x: cam.x, y: cam.y, width, height });
+  foregroundCtx.restore();
+};
+
+/**
+ * The ground around the camera, painted once and copied from while the
+ * camera stays inside it: one draw a frame instead of one per tile. The
+ * margin is how far the camera goes before the next repaint.
+ */
+const GROUND_MARGIN = 256;
+let groundCache: {
+  canvas: OffscreenCanvas;
+  tiles: TilePublic[][];
+  atlas: ImageBitmap;
+  frames: typeof isometricFrames;
+  orientation: string | undefined;
+  generation: number;
+  x: number;
+  y: number;
+} | null = null;
+
+const drawCachedTiles = (tiles: TilePublic[][]) => {
+  if (!tiles.length) return;
+  const cam = getCamera();
+  const width = foregroundCanvas.width / worldScale;
+  const height = foregroundCanvas.height / worldScale;
+  let cache = groundCache;
+  if (
+    !cache ||
+    cache.tiles !== tiles ||
+    cache.atlas !== tileset ||
+    cache.frames !== isometricFrames ||
+    cache.orientation !== getMapOrientation() ||
+    cache.generation !== worldCanvasGeneration ||
+    cam.x < cache.x ||
+    cam.y < cache.y ||
+    cam.x + width > cache.x + cache.canvas.width / worldScale ||
+    cam.y + height > cache.y + cache.canvas.height / worldScale
+  ) {
+    const w = Math.ceil((width + 2 * GROUND_MARGIN) * worldScale);
+    const h = Math.ceil((height + 2 * GROUND_MARGIN) * worldScale);
+    const canvas =
+      cache?.canvas.width === w && cache.canvas.height === h
+        ? cache.canvas
+        : new OffscreenCanvas(w, h);
+    const ctx = canvas.getContext('2d')!;
+    prepareWorldContext(ctx);
+    ctx.clearRect(0, 0, w / worldScale, h / worldScale);
+    const area = {
+      x: cam.x - GROUND_MARGIN,
+      y: cam.y - GROUND_MARGIN,
+      width: w / worldScale,
+      height: h / worldScale,
+    };
+    ctx.save();
+    ctx.translate(-area.x, -area.y);
+    drawGround(ctx, tiles, area);
+    ctx.restore();
+    cache = groundCache = {
+      canvas,
+      tiles,
+      atlas: tileset,
+      frames: isometricFrames,
+      orientation: getMapOrientation(),
+      generation: worldCanvasGeneration,
+      x: area.x,
+      y: area.y,
+    };
+  }
+  foregroundCtx.clearRect(0, 0, width, height);
+  foregroundCtx.drawImage(
+    cache.canvas,
+    (cam.x - cache.x) * worldScale,
+    (cam.y - cache.y) * worldScale,
+    width * worldScale,
+    height * worldScale,
+    0,
+    0,
+    width,
+    height,
+  );
+};
+
+/**
+ * The map as the game draws it, run on every frame the camera crosses a
+ * pixel, so it must not copy the map. The game's grid is replaced, never
+ * mutated, so its identity keys the cache; the editor's copy is edited in
+ * place, so `live` skips the cache.
+ */
+export const renderGameMap = (tiles: TilePublic[][], live = false) => {
+  if (live) drawTiles(tiles);
+  else drawCachedTiles(tiles);
+};
+const frameOf = (index: number) => isometricFrames[index];
+
+// Where an object lands in view pixels: an isometric frame hangs from its
+// anchor at the cell's centre, anything else fills its cell.
+function objectRect(col: number, row: number, index: number) {
+  const frame = frameOf(index);
+  if (frame) {
+    const foot = worldToView((col + 0.5) * TILE_SIZE, (row + 0.5) * TILE_SIZE);
+    return {
+      x: foot.x - frame.anchorX,
+      y: foot.y - frame.anchorY,
+      width: frame.drawWidth,
+      height: frame.drawHeight,
+    };
+  }
+  const at = spritePosition(col * TILE_SIZE, row * TILE_SIZE);
+  return { x: at.x, y: at.y, width: TILE_SIZE, height: TILE_SIZE };
+}
+
+function drawMapObject(
+  ctx: CanvasRenderingContext2D | OffscreenCanvasRenderingContext2D,
+  col: number,
+  row: number,
+  index: number,
+  source: ImageBitmap | HTMLCanvasElement = tilesetAlpha,
+) {
+  const frame = frameOf(index);
+  const perRow = tileset.width / TILE_SIZE;
+  const to = objectRect(col, row, index);
+  ctx.drawImage(
+    source,
+    frame ? frame.x : (index % perRow) * TILE_SIZE,
+    frame ? frame.y : Math.floor(index / perRow) * TILE_SIZE,
+    frame ? frame.width : TILE_SIZE,
+    frame ? frame.height : TILE_SIZE,
+    to.x,
+    to.y,
+    to.width,
+    to.height,
+  );
+}
+
+type MapObject = {
+  y: number;
+  col: number;
+  row: number;
+  index: number;
+  draw: () => void;
+};
+
+function mapObjects(
+  tiles: TilePublic[][],
+  layer: 'maskIndex' | 'fringeIndex',
+  ctx: CanvasRenderingContext2D | OffscreenCanvasRenderingContext2D,
+) {
+  const range = visibleRange(
+    tiles,
+    ctx.canvas.width / worldScale,
+    ctx.canvas.height / worldScale,
+  );
+  const objects: MapObject[] = [];
+  for (let row = range.startRow; row <= range.endRow; row++) {
+    for (let col = range.startCol; col <= range.endCol; col++) {
+      const index = tiles[row]?.[col]?.[layer];
+      if (index === undefined) continue;
+      objects.push({
+        y: worldToView((col + 0.5) * TILE_SIZE, (row + 0.5) * TILE_SIZE).y,
+        col,
+        row,
+        index,
+        draw: () => drawMapObject(ctx, col, row, index),
+      });
+    }
+  }
+  return objects;
+}
+
+// Transparency of a prop standing between the camera and the player.
+const SEE_THROUGH_ALPHA = 0.45;
+// The part of a sprite frame the character fills: a prop grazing the frame's
+// empty corners hides nothing.
+const FIGURE_INSET = { x: 16, top: 12, bottom: 4 };
+
+/**
+ * The mask layer of an isometric map, to be sorted in with the actors: on such
+ * a map a wall or a tree is in front of whoever stands behind it and behind
+ * whoever stands in front, which one layer above or below everyone cannot be.
+ *
+ * `seen` is the player the camera follows. A prop in front of them that covers
+ * their figure is drawn faint, or walking behind a wall loses the character
+ * the player is steering.
+ */
+export const isometricMapObjects = (
+  tiles: TilePublic[][],
+  ctx: CanvasRenderingContext2D,
+  seen?: { x: number; y: number },
+): MapObject[] => {
+  if (getMapOrientation() !== 'isometric') return [];
+  const objects = mapObjects(tiles, 'maskIndex', ctx);
+  if (!seen) return objects;
+  const depth = worldToView(seen.x + TILE_SIZE / 2, seen.y + TILE_SIZE / 2).y;
+  const at = spritePosition(seen.x, seen.y);
+  const left = at.x + FIGURE_INSET.x;
+  const right = at.x + TILE_SIZE - FIGURE_INSET.x;
+  const top = at.y + FIGURE_INSET.top;
+  const bottom = at.y + TILE_SIZE - FIGURE_INSET.bottom;
+  return objects.map((object) => {
+    if (object.y <= depth) return object;
+    const r = objectRect(object.col, object.row, object.index);
+    if (
+      r.x >= right ||
+      r.x + r.width <= left ||
+      r.y >= bottom ||
+      r.y + r.height <= top
+    )
+      return object;
+    return {
+      ...object,
+      draw: () => {
+        ctx.save();
+        ctx.globalAlpha = SEE_THROUGH_ALPHA;
+        object.draw();
+        ctx.restore();
+      },
+    };
+  });
+};
+
+export const renderMapMask = (
+  tiles: TilePublic[][],
+  ctx: CanvasRenderingContext2D | OffscreenCanvasRenderingContext2D = maskCtx,
+) => {
+  if (getMapOrientation() === 'isometric') return;
+  for (const object of mapObjects(tiles, 'maskIndex', ctx)) object.draw();
+};
+
+export const renderMapFringe = (
+  tiles: TilePublic[][],
+  ctx: CanvasRenderingContext2D | OffscreenCanvasRenderingContext2D = fringeCtx,
+) => {
+  const objects = mapObjects(tiles, 'fringeIndex', ctx);
+  objects.sort((a, b) => a.y - b.y);
+  for (const object of objects) object.draw();
+};

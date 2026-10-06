@@ -17,8 +17,8 @@ const state = vi.hoisted(() => {
 
 vi.mock('./network', () => ({ sendAction: vi.fn() }));
 vi.mock('./keyboard', () => ({ pressKey: vi.fn(), releaseKey: vi.fn() }));
-vi.mock('../graphics/tileset', () => ({
-  get tilesetEditorInitialized() {
+vi.mock('../graphics/mapEditor', () => ({
+  get mapEditorInitialized() {
     return state.editorOpen;
   },
 }));

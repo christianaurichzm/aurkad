@@ -1,22 +1,19 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { setStaticMap } from '../../core/gameState';
-import { setCamera } from '../camera';
-import { isometricFrames, tileset } from '../../io/assets';
-import type { Tile } from '../../../shared/types';
+import { setStaticMap } from '../core/gameState';
+import { setCamera } from './camera';
+import type { Tile } from '../../shared/types';
 import {
   fillMap,
   getEditorTiles,
-  initTilesetEditor,
-  isometricMapObjects,
+  initMapEditor,
   placePiece,
   readKit,
   renderEditorLayer,
-  renderGameMap,
   resetToOriginalMap,
   setEditorTiles,
   toggleBlocking,
   toggleMask,
-} from './index';
+} from './mapEditor';
 
 const mocks = vi.hoisted(() => {
   const calls: { fn: string; args: unknown[] }[] = [];
@@ -59,7 +56,7 @@ const mocks = vi.hoisted(() => {
   };
 });
 
-vi.mock('../canvas', () => ({
+vi.mock('./canvas', () => ({
   foregroundCanvas: mocks.canvas,
   foregroundCtx: mocks.ctx,
   maskCtx: mocks.ctx,
@@ -69,7 +66,7 @@ vi.mock('../canvas', () => ({
   prepareWorldContext: vi.fn(),
 }));
 
-vi.mock('../../io/assets', () => ({
+vi.mock('../io/assets', () => ({
   tileset: { width: 256, height: 256 },
   tilesetAlpha: { width: 256, height: 256 },
   isometricFrames: {},
@@ -81,7 +78,7 @@ beforeEach(() => {
   setCamera(mocks.cam);
 });
 
-vi.mock('../../io/network', () => ({
+vi.mock('../io/network', () => ({
   saveMap: vi.fn(),
   fetchNpcs: vi.fn(),
 }));
@@ -91,131 +88,6 @@ const mapOf = (tileIndex: number): Tile[][] =>
   Array.from({ length: 4 }, () =>
     Array.from({ length: 4 }, () => ({ tileIndex })),
   );
-
-const counts = () => ({
-  clears: mocks.calls.filter((c) => c.fn === 'clearRect').length,
-  draws: mocks.calls.filter((c) => c.fn === 'drawImage').length,
-});
-
-describe('the map the game draws', () => {
-  // The ground is painted onto a canvas of its own around the camera; the
-  // tiles that land there are counted apart from the screen's draws.
-  let painted = 0;
-  beforeEach(() => {
-    mocks.calls.length = 0;
-    painted = 0;
-    vi.stubGlobal(
-      'OffscreenCanvas',
-      class {
-        constructor(
-          public width: number,
-          public height: number,
-        ) {}
-        getContext() {
-          return {
-            ...mocks.ctx,
-            clearRect: () => {},
-            drawImage: () => {
-              painted++;
-            },
-          };
-        }
-      },
-    );
-  });
-  afterEach(() => {
-    vi.unstubAllGlobals();
-  });
-
-  it('paints the ground around the camera once and copies the screen out of it', () => {
-    const tiles = mapOf(1);
-    renderGameMap(tiles);
-    // The whole 4x4 map fits inside the viewport and its margin.
-    expect(painted).toBe(16);
-    expect(counts()).toEqual({ clears: 1, draws: 1 });
-
-    setCamera({ x: 40, y: 20 });
-    mocks.calls.length = 0;
-    renderGameMap(tiles);
-
-    expect(painted).toBe(16);
-    expect(counts()).toEqual({ clears: 1, draws: 1 });
-  });
-
-  it('paints again for a new grid, or a camera past the margin', () => {
-    const tiles = mapOf(1);
-    renderGameMap(tiles);
-    renderGameMap(mapOf(1));
-    expect(painted).toBe(32);
-
-    const wide = Array.from({ length: 4 }, () =>
-      Array.from({ length: 40 }, () => ({ tileIndex: 1 })),
-    );
-    renderGameMap(wide);
-    const before = painted;
-    setCamera({ x: 1000, y: 0 });
-    renderGameMap(wide);
-    expect(painted).toBeGreaterThan(before);
-  });
-
-  it('uses explicit atlas frames on a flat map, keeping ground pixels opaque', () => {
-    isometricFrames['0'] = {
-      x: 128,
-      y: 0,
-      width: 128,
-      height: 128,
-      drawWidth: 64,
-      drawHeight: 64,
-      anchorX: 32,
-      anchorY: 32,
-    };
-    try {
-      setEditorTiles([[{ tileIndex: 0 }]]);
-      mocks.calls.length = 0;
-      renderGameMap(getEditorTiles());
-      expect(mocks.calls.find((call) => call.fn === 'drawImage')?.args).toEqual(
-        [tileset, 128, 0, 128, 128, 0, 0, 64, 64],
-      );
-    } finally {
-      delete isometricFrames['0'];
-    }
-  });
-
-  it('draws the editor copy straight onto the screen', () => {
-    // Edits change that grid in place, so a painted copy of it would go stale
-    // with nothing to say so.
-    setEditorTiles(mapOf(1));
-    mocks.calls.length = 0;
-
-    renderGameMap(getEditorTiles());
-
-    // Two tiles: the loop walks one past the canvas edge and the draw culls
-    // it, so a 128x64 viewport is 2x1 tiles, after one full-canvas clear.
-    expect(painted).toBe(0);
-    expect(counts()).toEqual({ clears: 1, draws: 2 });
-  });
-
-  it('leaves the ground alone when there is no map to draw', () => {
-    // The editor's copy is empty until the admin route answers, and clearing
-    // for it would blank the world until the camera moves.
-    renderGameMap([]);
-
-    expect(counts()).toEqual({ clears: 0, draws: 0 });
-  });
-
-  it('leaves the editor copy alone', () => {
-    // The editor loads its own copy over the admin route: the game's tiles
-    // are `TilePublic`, stripped of every trigger, warp and door, and an
-    // editor seeded from them would save a map with the rules erased.
-    setEditorTiles(mapOf(9));
-    const loaded = getEditorTiles();
-
-    renderGameMap(mapOf(1));
-
-    expect(getEditorTiles()).toBe(loaded);
-    expect(getEditorTiles()[0]?.[0]?.tileIndex).toBe(9);
-  });
-});
 
 describe('the map the editor holds', () => {
   beforeEach(() => {
@@ -258,7 +130,7 @@ describe('the layer the editor draws over the map', () => {
     vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockReturnValue(
       mocks.ctx,
     );
-    initTilesetEditor();
+    initMapEditor();
   });
 
   const markerAt = () =>
@@ -332,7 +204,7 @@ describe('a drag in a toggle mode', () => {
     vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockReturnValue(
       mocks.ctx,
     );
-    initTilesetEditor();
+    initMapEditor();
     setEditorTiles(mapOf(1));
     toggleBlocking();
   });
@@ -380,7 +252,7 @@ describe('a mask placed from a selection of several tiles', () => {
     vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockReturnValue(
       mocks.ctx,
     );
-    initTilesetEditor();
+    initMapEditor();
     setEditorTiles(mapOf(1));
     toggleMask();
   });
@@ -444,7 +316,7 @@ describe('isometric editing', () => {
     vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockReturnValue(
       mocks.ctx,
     );
-    initTilesetEditor();
+    initMapEditor();
     setEditorTiles(mapOf(0));
     toggleBlocking();
     const canvas = document.getElementById('foregroundCanvas')!;
@@ -462,58 +334,6 @@ describe('isometric editing', () => {
         .filter((t) => t.blocked),
     ).toHaveLength(1);
     toggleBlocking();
-  });
-});
-
-describe('the props an isometric map sorts with its actors', () => {
-  it('fades a prop in front of the player that covers them, and no other', () => {
-    const tiles = mapOf(0);
-    for (const [col, row] of [
-      [0, 0],
-      [2, 2],
-      [3, 3],
-    ] as const)
-      tiles[row][col].maskIndex = 5;
-    setStaticMap({
-      id: 'iso',
-      name: 'iso',
-      type: 'normal',
-      orientation: 'isometric',
-      tiles,
-    });
-    mocks.cam.x = -256;
-    mocks.cam.y = -128;
-    const saved: number[] = [];
-    const drawnAt: number[] = [];
-    const ctx = {
-      canvas: { width: 512, height: 512 },
-      globalAlpha: 1,
-      save() {
-        saved.push(this.globalAlpha);
-      },
-      restore() {
-        this.globalAlpha = saved.pop() ?? 1;
-      },
-      drawImage() {
-        drawnAt.push(this.globalAlpha);
-      },
-    };
-
-    const alphaOf = Object.fromEntries(
-      isometricMapObjects(tiles, ctx as unknown as CanvasRenderingContext2D, {
-        x: 64,
-        y: 64,
-      }).map((object) => {
-        drawnAt.length = 0;
-        object.draw();
-        return [`${object.col},${object.row}`, drawnAt[0]];
-      }),
-    );
-
-    // The player stands on (1,1): (0,0) is behind them, (3,3) in front but
-    // below their feet, (2,2) in front and over their body.
-    expect(alphaOf).toEqual({ '0,0': 1, '2,2': 0.45, '3,3': 1 });
-    expect(ctx.globalAlpha).toBe(1);
   });
 });
 

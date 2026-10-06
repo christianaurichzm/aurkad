@@ -31,7 +31,7 @@ describe('getInputValue', () => {
     expect(getInputValue('tileKind')).toBe('wall');
   });
 
-  it('falls back to the selection the tileset editor parks on window', () => {
+  it('falls back to the selection the map editor parks on window', () => {
     (window as unknown as Record<string, unknown>).selectedTileKind = 'water';
     expect(getInputValue('tileKind')).toBe('water');
   });

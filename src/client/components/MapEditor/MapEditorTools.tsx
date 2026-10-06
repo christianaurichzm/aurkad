@@ -26,7 +26,7 @@ import {
   setEditorTiles,
   undo,
   redo,
-} from '../../graphics/tileset';
+} from '../../graphics/mapEditor';
 import { useUIStore } from '../../stores/uiStore';
 import {
   fetchNpcs,
@@ -120,7 +120,7 @@ const layerActiveColor: Partial<Record<TileEditMode, string>> = {
 // selection for the tile kinds that have no DOM input of their own.
 const editorSelection = window as unknown as Record<string, string | number>;
 
-const TilesetModeControlsComponent: React.FC = () => {
+const MapEditorToolsComponent: React.FC = () => {
   const translate = useT();
   const mapEdited = useUIStore((state) => state.mapEdited);
   const currentMapId = useUIStore((state) => state.currentMap?.id);
@@ -157,7 +157,7 @@ const TilesetModeControlsComponent: React.FC = () => {
       setEditorTiles(map.tiles, music);
     } else {
       setMapType('normal');
-      setMapName(t('tileset.newMap'));
+      setMapName(t('mapEditor.newMap'));
       setMapMusic('');
       setEditorMusic('');
     }
@@ -215,15 +215,15 @@ const TilesetModeControlsComponent: React.FC = () => {
       if (!result?.success) {
         const body = result as unknown as { errors?: string[] };
         await useUIStore.getState().showDialog({
-          title: t('tileset.saveBlocked'),
-          message: body?.errors?.join('\n') ?? t('tileset.validationFailed'),
+          title: t('mapEditor.saveBlocked'),
+          message: body?.errors?.join('\n') ?? t('mapEditor.validationFailed'),
           kind: 'error',
         });
         return;
       }
       if (result.warnings.length > 0) {
         await useUIStore.getState().showDialog({
-          title: t('tileset.savedWithWarnings'),
+          title: t('mapEditor.savedWithWarnings'),
           message: result.warnings.join('\n'),
           kind: 'info',
         });
@@ -231,8 +231,8 @@ const TilesetModeControlsComponent: React.FC = () => {
       await loadMapData();
     } catch {
       await useUIStore.getState().showDialog({
-        title: t('tileset.saveFailed'),
-        message: t('tileset.saveFailedMessage'),
+        title: t('mapEditor.saveFailed'),
+        message: t('mapEditor.saveFailedMessage'),
         kind: 'error',
       });
     }
@@ -292,12 +292,12 @@ const TilesetModeControlsComponent: React.FC = () => {
           }}
         >
           <label style={labelStyle} htmlFor="mapName">
-            {translate('tileset.mapName')}
+            {translate('mapEditor.mapName')}
           </label>
           <input
             id="mapName"
             type="text"
-            placeholder={translate('tileset.mapName')}
+            placeholder={translate('mapEditor.mapName')}
             value={mapName}
             style={inputStyle}
             onChange={(e) => {
@@ -316,7 +316,7 @@ const TilesetModeControlsComponent: React.FC = () => {
           }}
         >
           <label style={labelStyle} htmlFor="mapMusic">
-            {translate('tileset.music')}
+            {translate('mapEditor.music')}
           </label>
           <input
             id="mapMusic"
@@ -351,21 +351,21 @@ const TilesetModeControlsComponent: React.FC = () => {
         <button
           onClick={() => fillMap()}
           style={ghostBtn}
-          title={translate('tileset.fillHelp')}
+          title={translate('mapEditor.fillHelp')}
         >
-          {translate('tileset.fill')}
+          {translate('mapEditor.fill')}
         </button>
         <button
           onClick={() => undo()}
           style={ghostBtn}
-          title={translate('tileset.undo')}
+          title={translate('mapEditor.undo')}
         >
           ↩
         </button>
         <button
           onClick={() => redo()}
           style={ghostBtn}
-          title={translate('tileset.redo')}
+          title={translate('mapEditor.redo')}
         >
           ↪
         </button>
@@ -431,7 +431,7 @@ const TilesetModeControlsComponent: React.FC = () => {
         }}
       >
         <span style={{ ...labelStyle, marginBottom: 0 }}>
-          {translate('tileset.layers')}
+          {translate('mapEditor.layers')}
         </span>
         <div style={{ display: 'flex', gap: 5 }}>
           {layerModes.map((mode) => {
@@ -470,11 +470,11 @@ const TilesetModeControlsComponent: React.FC = () => {
             onChange={setSelectedWarpMap}
           />
           <label style={labelStyle} htmlFor="xTo">
-            {translate('tileset.tileX')}
+            {translate('mapEditor.tileX')}
           </label>
           <input type="number" min={0} id="xTo" name="xTo" style={inputStyle} />
           <label style={labelStyle} htmlFor="yTo">
-            {translate('tileset.tileY')}
+            {translate('mapEditor.tileY')}
           </label>
           <input type="number" min={0} id="yTo" name="yTo" style={inputStyle} />
         </div>
@@ -529,7 +529,7 @@ const TilesetModeControlsComponent: React.FC = () => {
       {activeMode === 'door' && (
         <div style={inputsBox}>
           <label style={labelStyle} htmlFor="doorItem">
-            {translate('tileset.doorItem')}
+            {translate('mapEditor.doorItem')}
           </label>
           <input
             type="number"
@@ -538,7 +538,7 @@ const TilesetModeControlsComponent: React.FC = () => {
             defaultValue={0}
           />
           <label style={labelStyle} htmlFor="doorOpenTile">
-            {translate('tileset.doorOpenTile')}
+            {translate('mapEditor.doorOpenTile')}
           </label>
           <input
             type="number"
@@ -552,7 +552,7 @@ const TilesetModeControlsComponent: React.FC = () => {
       {activeMode === 'sound' && (
         <div style={inputsBox}>
           <label style={labelStyle} htmlFor="soundFile">
-            {translate('tileset.soundFile')}
+            {translate('mapEditor.soundFile')}
           </label>
           <input
             type="text"
@@ -584,7 +584,7 @@ const TilesetModeControlsComponent: React.FC = () => {
           onScriptIdChange={setScriptId}
           params={scriptParams}
           onParamsChange={setScriptParams}
-          hint={translate('tileset.scriptHint')}
+          hint={translate('mapEditor.scriptHint')}
           loadItems={loadItems}
           loadNpcs={loadNpcs}
         />
@@ -593,7 +593,7 @@ const TilesetModeControlsComponent: React.FC = () => {
       {activeMode === 'conditionalBlock' && (
         <div style={inputsBox}>
           <label style={labelStyle} htmlFor="conditionalBlockId">
-            {translate('tileset.blockId')}
+            {translate('mapEditor.blockId')}
           </label>
           <input
             type="text"
@@ -619,4 +619,4 @@ const ghostBtn: React.CSSProperties = {
   flexShrink: 0,
 };
 
-export const TilesetModeControls = React.memo(TilesetModeControlsComponent);
+export const MapEditorTools = React.memo(MapEditorToolsComponent);

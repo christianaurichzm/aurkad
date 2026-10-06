@@ -10,7 +10,7 @@ import { Login } from './pages/Login';
 import { Register } from './pages/Register';
 import { ShopModal } from './components/Shop/ShopModal';
 import { QuestTracker } from './components/Quest/QuestTracker';
-import { TilesetEditor } from './components/Tileset/TilesetEditor';
+import { MapEditorWindow } from './components/MapEditor/MapEditorWindow';
 import { GMPanel } from './components/GMPanel';
 import { ChatPanel, ChatPeek } from './components/ChatPanel';
 import { ActionPanel, CreatorTools } from './components/ActionPanel';
@@ -123,7 +123,7 @@ function App() {
           <SettingsModal />
           <GMPanel />
           {brand?.inventory !== false && <InventoryPanel />}
-          <TilesetEditor />
+          <MapEditorWindow />
           <ContentEditor />
           <div id="module-ui" />
         </div>
