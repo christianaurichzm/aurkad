@@ -36,12 +36,12 @@ import {
 import { emit } from '../../engine/hooks.js';
 import { addPlayerOnMap, removePlayerFromMap } from '../world/mapService.js';
 import { getItemById } from '../content/itemService.js';
+import { playersWsMap } from '../../net/connections.js';
 import {
   broadcast,
-  playersWsMap,
   resetPlayerNetState,
   forgetReplicatedEntity,
-} from '../../net/index.js';
+} from '../../net/snapshot.js';
 import {
   beginPlayerCommit,
   clearPlayerDirty,

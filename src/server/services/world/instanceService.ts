@@ -13,7 +13,7 @@ import { runtimeState } from '../../sim/state.js';
 import { getTick, msToTicks } from '../../sim/clock.js';
 import { scheduleEvery } from '../../sim/scheduler.js';
 import { dropQuadtree } from '../../sim/spatialManager.js';
-import { forgetReplicatedEntity } from '../../net/index.js';
+import { forgetReplicatedEntity } from '../../net/snapshot.js';
 import { forgetNpcAiForMap } from '../npc/aiBrain.js';
 import { getMap } from '../../sim/world.js';
 
