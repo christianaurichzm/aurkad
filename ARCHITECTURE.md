@@ -9,10 +9,11 @@ game state and simulation; clients render an interpolated view and send input.
 
 The project is organized in three tiers:
 
-1. **Core** - the engine (this repository's `src/`).
-2. **Official optional modules** - opt-in gameplay systems in `modules/`,
+1. **Core**: the engine (this repository's `src/`).
+2. **Official optional modules**: opt-in gameplay systems in `modules/`,
    toggled from `game.json`.
-3. **Game scripts** - server-side game logic in `scripts/`, hot-reloaded.
+3. **Game scripts**: server-side game logic in a game folder's `scripts/`,
+   hot-reloaded.
 
 ## Repository layout
 
@@ -32,7 +33,8 @@ src/
     components/   React UI (HUD, inventory, editors, dialogs)
   shared/         wire protocol types, constants, geometry, quadtree
 modules/          official optional modules (plain JS + manifests)
-scripts/          game-specific server logic (plain JS, hot-reloaded)
+scripts/          the scripting API that game scripts are typed against
+demos/            sample games, each a folder GAME_DIR can point at
 ```
 
 ## The simulation loop
@@ -133,9 +135,9 @@ Three layers, in increasing order of coupling to the engine:
 - **Modules** (`modules/`, loaded by `engine/modules/moduleLoader.ts`). Each is
   a folder with a `module.json` manifest and a `server.js` (plus optional
   `client.js`), toggled from `game.json`. Modules run on the same script API and
-  hooks - none live in the core.
-- **Scripts** (`scripts/`). Server-side game logic in plain JS, hot-reloaded on
-  save, using the typed API in `scripts/global.d.ts`.
+  hooks; none live in the core.
+- **Scripts** (a game's `scripts/`). Server-side game logic in plain JS,
+  hot-reloaded on save, using the typed API in `scripts/global.d.ts`.
 
 ### Scripting trust model
 

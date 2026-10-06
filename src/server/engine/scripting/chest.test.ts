@@ -1,6 +1,7 @@
 /**
- * The chest the repo ships in scripts/chest.js, run as the server runs it: on
- * a tile it is stepped on, on an npc it is opened with the interact key.
+ * The starter game's chest, demos/starter/scripts/chest.js, run as the
+ * server runs it: on a tile it is stepped on, on an npc it is opened with
+ * the interact key.
  */
 import fs from 'node:fs';
 import path from 'node:path';
@@ -15,7 +16,7 @@ import { Direction, Key, type Item } from '../../../shared/types.js';
 
 const GEM = 7;
 const source = fs.readFileSync(
-  path.join(process.cwd(), 'scripts/chest.js'),
+  path.join(process.cwd(), 'demos/starter/scripts/chest.js'),
   'utf-8',
 );
 

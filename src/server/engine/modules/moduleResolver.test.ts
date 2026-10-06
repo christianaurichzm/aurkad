@@ -1,7 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { describe, it, expect } from 'vitest';
-import { gameConfig } from '../../gameConfig.js';
+import { loadGameConfig } from '../../gameConfig.js';
 import {
   isModuleEnabled,
   resolveModuleConfig,
@@ -108,8 +108,7 @@ describe('game.json', () => {
       .filter((e) => fs.existsSync(path.join(dir, e.name, 'module.json')))
       .map((e) => e.name);
 
-    expect(
-      installed.filter((id) => gameConfig.modules[id] === undefined),
-    ).toEqual([]);
+    const { modules } = loadGameConfig(path.resolve('demos/starter'));
+    expect(installed.filter((id) => modules[id] === undefined)).toEqual([]);
   });
 });

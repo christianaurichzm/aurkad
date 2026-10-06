@@ -4,11 +4,9 @@ Versionable game content as JSON. Put files here and they are imported into
 MongoDB at server boot (files win for the ids they define). Mongo stays the
 runtime source of truth; commit these files to version your game.
 
-This directory ships empty on purpose - the engine you clone has no game in it,
-and what you put here is yours. The sample game is a pack of its own,
-`demos/starter/`, loaded with `npm run starter`. That script is one
-`CONTENT_PATH` away from this one, which is how any pack is loaded without
-being copied in here first.
+This one is the starter game's (`npm run starter`). A game's pack is the
+`content/` in its folder, the one `GAME_DIR` points at; `CONTENT_PATH` loads one
+from anywhere else.
 
 Maps are created in-game via the admin map editor and exported with
 `npm run content:export`.
@@ -26,8 +24,7 @@ Maps are created in-game via the admin map editor and exported with
 - `shops.json`
 - `maps.json`
 
-The `*.example.json` files are **not** loaded - they are reference templates,
-and with the sample game moved out they are all this directory ships.
+The `*.example.json` files are **not** loaded; they are reference templates.
 
 ## Workflow
 
@@ -102,7 +99,7 @@ heals to full.
 relative rarity, a bounded number of drops or quantity ranges, use a table from
 `loot.json` via `lootTableId` instead.
 `lootTableId` and `scriptId` are optional references; see `loot.json` above and
-`scripts/example.js` for behaviors.
+`../scripts/example.js` for behaviors.
 
 **loot.json**: reusable weighted drop tables. Point an NPC at one with
 `lootTableId`; it then takes precedence over that NPC's `itemsToDrop`.

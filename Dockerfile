@@ -26,8 +26,8 @@ COPY modules ./modules
 COPY scripts/global.d.ts scripts/tsconfig.json ./scripts/
 
 # The game itself is a bind mount - one folder with GAME_DIR pointing at it
-# (compose.game.yml), or game.json, scripts/, assets/ and theme/ one by one
-# (docker-compose.yml) - so creators edit it without rebuilding the image.
+# (compose.game.yml, docker-compose.yml) - so creators edit it without
+# rebuilding the image.
 USER node
 EXPOSE 8080
 # --enable-source-maps: the build ships .js.map files, so without it every

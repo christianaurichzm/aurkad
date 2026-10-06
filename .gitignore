@@ -146,6 +146,7 @@ src/server/model/seed.ts
 
 # Generated per-project content constants (rebuilt at server boot)
 scripts/content.generated.d.ts
+demos/starter/scripts/content.generated.d.ts
 
 # Playwright E2E run artifacts
 /playwright-report/

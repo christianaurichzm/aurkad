@@ -51,23 +51,15 @@ services:
       CORS_ALLOWED_ORIGINS: ${PUBLIC_URL:-https://localhost}
       USE_SECURE_COOKIES: 'true'
       TRUST_PROXY: '1'
+      GAME_DIR: /app/game
     volumes:
-      # Creators edit these on the host - no image rebuild needed.
-      # scripts/ hot-reloads; game.json applies on restart.
-      - ./game.json:/app/game.json:ro
-      # Writable: the boot writes content.generated.d.ts there for your editor,
-      # and the script editor saves there.
-      - ./scripts:/app/scripts
-      - ./assets:/app/assets:ro
-      # Writable: the Appearance page saves theme.json and its uploads here.
-      - ./theme:/app/theme
-      - ./content:/app/content:ro
+      # The game folder, edited on the host with no image rebuild: scripts/
+      # hot-reloads, the rest applies on restart. Point it at your own game
+      # (npm run new-game) instead of the starter. Writable: the boot writes
+      # content.generated.d.ts into scripts/ for your editor, the script
+      # editor saves there, and the Appearance page saves into theme/.
+      - ./demos/starter:/app/game
       - ./modules:/app/modules:ro
-      # A game kept in a folder of its own is one mount in place of game.json,
-      # assets, theme and content, plus GAME_DIR: /app/game in environment
-      # above. scripts/ stays mounted for the engine's global.d.ts; the game's
-      # own scripts live in its folder.
-      #   - ./games/my-game:/app/game:ro
 
   # The session cookie is Secure in production, and a browser never stores one
   # sent over plain http, so the game is only reachable through TLS - on your
@@ -116,12 +108,9 @@ services:
   #     TRUST_PROXY: '1'
   #     WS_PUBLIC_URL: wss://localhost:8444
   #     MAP_IDS: map3,map4
+  #     GAME_DIR: /app/game
   #   volumes:
-  #     - ./game.json:/app/game.json:ro
-  #     - ./scripts:/app/scripts
-  #     - ./assets:/app/assets:ro
-  #     - ./theme:/app/theme
-  #     - ./content:/app/content:ro
+  #     - ./demos/starter:/app/game
   #     - ./modules:/app/modules:ro
 
 volumes:

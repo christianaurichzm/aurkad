@@ -55,6 +55,7 @@ npm install
 npm run db:up                        # MongoDB only, in Docker
 npm run new-game -- games/my-game    # named after the folder, or pass "A Name"; --isometric
 GAME_DIR=games/my-game npm run dev   # server (8080) + client dev server with HMR
+npm run starter                      # or the sample game in demos/starter, every module on
 ```
 
 In development the first account registered becomes the admin.
@@ -105,7 +106,7 @@ above.
   be a volume they share.
 
 - **`scripts/`** - server-side game logic in JavaScript (or TypeScript). Files
-  are loaded at boot and hot-reloaded on save. See `scripts/example.js` and the
+  are loaded at boot and hot-reloaded on save. See `demos/starter/scripts/example.js` and the
   typed API in `scripts/global.d.ts` - `npm run docs:api` renders it, and the
   client-side module API, as a browsable reference. Example:
 

@@ -282,7 +282,7 @@ export default tseslint.config(
   {
     // Sandboxed code is loaded, not compiled, so it has no tsconfig for the
     // type-aware rules to read.
-    files: ['modules/**/server.js', 'scripts/**/*.js'],
+    files: ['modules/**/server.js', 'demos/*/scripts/**/*.js'],
     extends: [js.configs.recommended, tseslint.configs.disableTypeChecked],
     languageOptions: {
       sourceType: 'script',
