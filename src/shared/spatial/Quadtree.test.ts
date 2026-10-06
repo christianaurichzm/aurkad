@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { Quadtree, QuadtreeEntity } from './Quadtree.js';
+import fc from 'fast-check';
+import { Quadtree, QuadtreeEntity, type Rectangle } from './Quadtree.js';
 
 describe('Quadtree - Basic Operations', () => {
   let quadtree: Quadtree;
@@ -396,9 +397,13 @@ describe('Quadtree - pruning on clear', () => {
     const split = qt.getStats().nodeCount;
     expect(split).toBeGreaterThan(1);
 
-    for (let tick = 0; tick < 5; tick++) fill(qt, straddlers);
-
-    expect(qt.getStats().nodeCount).toBe(split);
+    // Read straight after the clear: the insert pass would split the node again
+    // and hide the thrash this guards against.
+    for (let tick = 0; tick < 5; tick++) {
+      qt.clear();
+      expect(qt.getStats().nodeCount).toBe(split);
+      for (const s of straddlers) qt.insert(s);
+    }
   });
 
   it('keeps a branch that still has something in it', () => {
@@ -443,5 +448,87 @@ describe('Quadtree - pruning on clear', () => {
     expect(qt.queryRadius({ x: 900, y: 900 }, 50).map((e) => e.id)).toEqual([
       'b',
     ]);
+  });
+});
+
+/**
+ * An index has one job: to agree with a scan of everything in it. Each
+ * round rebuilds the tree as the server does each tick (clear, then insert
+ * whoever is there), so splits, straddlers kept on a parent and branches
+ * pruned on clear all get their turn. A small node capacity makes the tree
+ * split at a few dozen entities.
+ *
+ * The contract covers entities whose top-left corner is on the map, where
+ * spawning and movement keep them; one may still reach past the right or
+ * bottom edge, as a wide npc in the last column does.
+ */
+describe('Quadtree - agrees with a linear scan', () => {
+  const SIZE = 1024;
+  const overlaps = (a: Rectangle, b: Rectangle) =>
+    !(
+      a.x + a.width < b.x ||
+      b.x + b.width < a.x ||
+      a.y + a.height < b.y ||
+      b.y + b.height < a.y
+    );
+  // Tile multiples, where edges touch exactly, as well as anywhere at all.
+  const coord = fc.oneof(
+    fc.integer({ min: 0, max: SIZE / 64 - 1 }).map((t) => t * 64),
+    fc.integer({ min: 0, max: SIZE - 1 }),
+  );
+  const extent = fc.oneof(
+    fc.integer({ min: 1, max: 3 }).map((t) => t * 64),
+    fc.integer({ min: 0, max: 200 }),
+  );
+  const entity = fc.record({
+    position: fc.record({ x: coord, y: coord }),
+    width: extent,
+    height: extent,
+  });
+  const area = fc.record({
+    x: coord,
+    y: coord,
+    width: fc.integer({ min: 0, max: SIZE }),
+    height: fc.integer({ min: 0, max: SIZE }),
+  });
+
+  it('finds exactly what a scan finds, across any sequence of rebuilds', () => {
+    fc.assert(
+      fc.property(
+        fc.array(
+          fc.record({
+            entities: fc.array(entity, { maxLength: 80 }),
+            queries: fc.array(area, { minLength: 1, maxLength: 4 }),
+          }),
+          { minLength: 1, maxLength: 6 },
+        ),
+        (rounds) => {
+          const tree = new Quadtree(
+            { x: 0, y: 0, width: SIZE, height: SIZE },
+            4,
+            6,
+          );
+          for (const { entities, queries } of rounds) {
+            tree.clear();
+            const placed = entities.map((e, i) => ({ ...e, id: String(i) }));
+            for (const e of placed) tree.insert(e);
+            expect(tree.size()).toBe(placed.length);
+
+            for (const q of queries) {
+              const scan = placed
+                .filter((e) => overlaps({ ...e.position, ...e }, q))
+                .map((e) => e.id)
+                .sort();
+              const found = tree
+                .query(q)
+                .map((e) => e.id!)
+                .sort();
+              expect(found).toEqual(scan);
+            }
+          }
+        },
+      ),
+      { numRuns: 300 },
+    );
   });
 });
