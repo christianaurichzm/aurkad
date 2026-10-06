@@ -1,10 +1,11 @@
 import { describe, it, expect, afterEach } from 'vitest';
+import fc from 'fast-check';
 import WebSocket from 'ws';
 import { broadcastGameState, resetPlayerNetState } from './snapshot.js';
 import { resetEntityReplication, slotCapacity } from './entityReplication.js';
 import { spawnNpc, despawnNpc } from '../services/npc/spawn.js';
 import { playersWsMap } from './connections.js';
-import { createFixture, tile } from '../sim/simFixture.js';
+import { createFixture, makeTiles, tile } from '../sim/simFixture.js';
 import { rebuildQuadtree } from '../sim/spatialManager.js';
 import { toPlayerPublic, toNpcPublic } from './serialization.js';
 import { queryEntitiesInRect } from '../sim/spatialManager.js';
@@ -12,9 +13,11 @@ import { calcViewport, type Viewport } from '../../shared/mapGeometry.js';
 import { config } from '../config.js';
 import { TILE_SIZE } from '../../shared/constants.js';
 import {
+  Direction,
   Key,
   type PlayerServer,
   type MapStateServer,
+  type RuntimeNpc,
 } from '../../shared/types.js';
 import type { WorldUpdatePayload } from '../../shared/wsProtocol.js';
 
@@ -329,6 +332,38 @@ describe('entity replication conserves state', () => {
     );
   });
 
+  // The same nap, but Bob does something else as Alice wakes, so the shared
+  // fragment carries a delta without the move she missed, and handing her
+  // only that would lose the move for good.
+  it('merges what a viewer slept through with what it wakes up to', () => {
+    const sim = createFixture(0);
+    const alice = sim.addPlayer({ name: 'Alice', position: tile(2, 2) });
+    const bob = sim.addPlayer({ name: 'Bob', position: tile(4, 2) });
+    resetPlayerNetState('Alice');
+
+    const { ws, setBuffered, worldUpdates } = collectingWs();
+    playersWsMap.set('Alice', ws);
+    const client = makeClient();
+
+    rebuildQuadtree(sim.mapId, sim.map);
+    broadcastGameState();
+
+    setBuffered(config.ws.maxBufferedBytes + 1);
+    bob.position = tile(5, 2);
+    rebuildQuadtree(sim.mapId, sim.map);
+    broadcastGameState();
+
+    setBuffered(0);
+    bob.direction = Direction.Up;
+    rebuildQuadtree(sim.mapId, sim.map);
+    broadcastGameState();
+    for (const p of worldUpdates()) client.apply(p);
+
+    expect(client.players[bob.id]).toEqual(
+      serverTruth(sim.map, alice).players[bob.id],
+    );
+  });
+
   // Same claim as the first test in this file, but with the viewer served on
   // half the ticks: what it is not told about has to reach it later, and an
   // entity that came and went entirely inside a skipped tick must not linger.
@@ -372,6 +407,214 @@ describe('entity replication conserves state', () => {
       );
     } finally {
       net.viewerCadenceTicks = before;
+    }
+  });
+
+  // Random changes to the world: entities in and out of view, the viewer
+  // moved, npcs spawned into recycled slots and despawned, fields set and
+  // cleared, items dropped and taken, the viewer congested or on a cadence.
+  // The claim is checked whenever the world held still for a full cadence.
+  // Only npc health changes, as player health regenerates on its own.
+  it('conserves state across any sequence of changes', () => {
+    const net = config.net as { viewerCadenceTicks: number };
+    const cadenceBefore = net.viewerCadenceTicks;
+    // Mostly around the viewer, where a change is seen, and now and then
+    // anywhere on the map, which is how things enter and leave the view.
+    const coord = fc.oneof(
+      { arbitrary: fc.integer({ min: 5, max: 20 }), weight: 3 },
+      { arbitrary: fc.nat({ max: 79 }), weight: 1 },
+    );
+    const at = { col: coord, row: coord };
+    // A bug here usually needs one entity changed twice around a tick the
+    // viewer missed, so targets are few and ticks are common.
+    const who = fc.nat({ max: 3 });
+    const change = fc.oneof(
+      {
+        arbitrary: fc.record({
+          op: fc.constant('teleport' as const),
+          who,
+          ...at,
+        }),
+        weight: 3,
+      },
+      {
+        arbitrary: fc.record({ op: fc.constant('spawn' as const), ...at }),
+        weight: 2,
+      },
+      {
+        arbitrary: fc.record({ op: fc.constant('despawn' as const), who }),
+        weight: 1,
+      },
+      {
+        arbitrary: fc.record({
+          op: fc.constant('npcHealth' as const),
+          who,
+          value: fc.integer({ min: 1, max: 10 }),
+        }),
+        weight: 2,
+      },
+      {
+        arbitrary: fc.record({
+          op: fc.constant('look' as const),
+          who,
+          sprite: fc.nat({ max: 5 }),
+          direction: fc.constantFrom(
+            Direction.Up,
+            Direction.Down,
+            Direction.Left,
+            Direction.Right,
+          ),
+        }),
+        weight: 2,
+      },
+      {
+        arbitrary: fc.record({
+          op: fc.constant('nameTag' as const),
+          who,
+          value: fc.constantFrom('GM', 'VIP', undefined),
+        }),
+        weight: 2,
+      },
+      {
+        arbitrary: fc.record({ op: fc.constant('drop' as const), ...at }),
+        weight: 1,
+      },
+      {
+        arbitrary: fc.record({ op: fc.constant('take' as const), which: who }),
+        weight: 1,
+      },
+      {
+        arbitrary: fc.record({
+          op: fc.constant('congest' as const),
+          on: fc.boolean(),
+        }),
+        weight: 2,
+      },
+      { arbitrary: fc.constant({ op: 'tick' as const }), weight: 4 },
+      { arbitrary: fc.constant({ op: 'settle' as const }), weight: 2 },
+    );
+
+    try {
+      fc.assert(
+        fc.property(
+          fc.constantFrom(1, 2, 3),
+          fc.array(change, { maxLength: 30 }),
+          (cadence, changes) => {
+            net.viewerCadenceTicks = cadence;
+            playersWsMap.clear();
+            resetEntityReplication();
+
+            const sim = createFixture(0);
+            sim.map.tiles = makeTiles(80, 80);
+            const alice = sim.addPlayer({
+              name: 'Alice',
+              position: tile(10, 10),
+            });
+            const players = [
+              alice,
+              sim.addPlayer({ name: 'Bob', position: tile(12, 10) }),
+              sim.addPlayer({ name: 'Cid', position: tile(8, 12) }),
+            ];
+            const npcs: RuntimeNpc[] = [];
+            resetPlayerNetState('Alice');
+
+            const { ws, setBuffered, worldUpdates } = collectingWs();
+            playersWsMap.set('Alice', ws);
+            const client = makeClient();
+            let applied = 0;
+
+            const tick = () => {
+              sim.step(1);
+              const updates = worldUpdates();
+              for (const p of updates.slice(applied)) client.apply(p);
+              applied = updates.length;
+            };
+            const settle = () => {
+              setBuffered(0);
+              for (let i = 0; i < cadence; i++) tick();
+              const truth = serverTruth(sim.map, alice);
+              expect(client.players).toEqual(truth.players);
+              expect(client.npcs).toEqual(truth.npcs);
+              expect(client.droppedItems).toEqual(truth.droppedItems);
+            };
+            const pick = <T>(list: T[], n: number): T | undefined =>
+              list[n % Math.max(1, list.length)];
+
+            // Served once before anything happens, as a viewer already in the
+            // game has been: a first frame is a full state, which would answer
+            // for whatever the changes below did and test nothing.
+            tick();
+
+            for (const c of changes) {
+              switch (c.op) {
+                case 'teleport': {
+                  const who = pick([...players, ...npcs], c.who);
+                  if (who) who.position = tile(c.col, c.row);
+                  break;
+                }
+                case 'spawn': {
+                  const npc = spawnNpc({
+                    mapId: sim.mapId,
+                    col: c.col,
+                    row: c.row,
+                  });
+                  if (npc) npcs.push(npc);
+                  break;
+                }
+                case 'despawn': {
+                  const npc = pick(npcs, c.who);
+                  if (!npc) break;
+                  despawnNpc(npc);
+                  npcs.splice(npcs.indexOf(npc), 1);
+                  break;
+                }
+                case 'npcHealth': {
+                  const npc = pick(npcs, c.who);
+                  if (npc) npc.health = c.value;
+                  break;
+                }
+                case 'look': {
+                  const who = pick([...players, ...npcs], c.who);
+                  if (!who) break;
+                  who.sprite = c.sprite;
+                  who.direction = c.direction;
+                  break;
+                }
+                case 'nameTag':
+                  pick(players, c.who)!.nameTag = c.value;
+                  break;
+                case 'drop':
+                  sim.map.droppedItems.push({
+                    itemId: 1,
+                    position: tile(c.col, c.row),
+                    sprite: 0,
+                    quantity: 1,
+                  });
+                  break;
+                case 'take':
+                  sim.map.droppedItems.splice(
+                    c.which % Math.max(1, sim.map.droppedItems.length),
+                    1,
+                  );
+                  break;
+                case 'congest':
+                  setBuffered(c.on ? config.ws.maxBufferedBytes + 1 : 0);
+                  break;
+                case 'tick':
+                  tick();
+                  break;
+                case 'settle':
+                  settle();
+                  break;
+              }
+            }
+            settle();
+          },
+        ),
+        { numRuns: 200 },
+      );
+    } finally {
+      net.viewerCadenceTicks = cadenceBefore;
     }
   });
 

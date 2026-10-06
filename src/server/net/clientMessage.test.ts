@@ -212,6 +212,12 @@ describe('ClientMessageSchema', () => {
 // modified client sends whatever it likes, and the server relies on nothing
 // getting past except the shapes it declares.
 describe('ClientMessageSchema under arbitrary input', () => {
+  // Read off the schema rather than listed, so the properties below follow it
+  // when a message type is added.
+  const declaredTypes: string[] = ClientMessageSchema.options.map(
+    (option) => option.shape.type.value,
+  );
+
   // Valid messages, mutated: arbitrary junk is never valid, so a property
   // filtered on validity would run zero times.
   const validMessage = fc.oneof(
@@ -233,9 +239,25 @@ describe('ClientMessageSchema under arbitrary input', () => {
       scope: fc.constantFrom('player', 'map', 'global'),
     }),
     fc.record({ type: fc.constant('custom'), channel: fc.constant('c') }),
+    fc.record({
+      type: fc.constant('language'),
+      language: fc.string({ minLength: 2, maxLength: 8 }),
+    }),
+    fc.record({
+      type: fc.constant('moveTo'),
+      col: fc.integer({ min: 0, max: 4095 }),
+      row: fc.integer({ min: 0, max: 4095 }),
+    }),
   );
 
-  it('accepts the four shapes it declares', () => {
+  // The generator is the one part that does not follow the schema by itself,
+  // and a type missing from it is a type none of these properties ever see.
+  it('generates every type the schema declares', () => {
+    const generated = new Set(fc.sample(validMessage, 500).map((m) => m.type));
+    expect([...generated].sort()).toEqual([...declaredTypes].sort());
+  });
+
+  it('accepts every shape it declares', () => {
     fc.assert(
       fc.property(validMessage, (message) => {
         expect(ClientMessageSchema.safeParse(message).success).toBe(true);
@@ -264,16 +286,11 @@ describe('ClientMessageSchema under arbitrary input', () => {
     );
   });
 
-  it('refuses any type outside the four, however well formed the rest is', () => {
+  it('refuses any type it does not declare, however well formed the rest is', () => {
     fc.assert(
       fc.property(
         validMessage,
-        fc
-          .anything()
-          .filter(
-            (t) =>
-              !['keyboard', 'item', 'chat', 'custom'].includes(t as string),
-          ),
+        fc.anything().filter((t) => !declaredTypes.includes(t as string)),
         (message, type) => {
           expect(
             ClientMessageSchema.safeParse({ ...message, type }).success,
@@ -291,9 +308,7 @@ describe('ClientMessageSchema under arbitrary input', () => {
         // Not `toBe(false)`: fc.anything() could in principle produce a real
         // message, and the property is that nothing ELSE gets through.
         if (result.success) {
-          expect(['keyboard', 'item', 'chat', 'custom']).toContain(
-            result.data.type,
-          );
+          expect(declaredTypes).toContain(result.data.type);
         }
       }),
     );

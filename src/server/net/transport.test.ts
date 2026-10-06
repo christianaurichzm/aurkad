@@ -11,12 +11,16 @@ import {
 import { createServer, type Server as HttpServer } from 'node:http';
 import type { AddressInfo } from 'node:net';
 import WebSocket from 'ws';
+import fc from 'fast-check';
 import { ServerActionType } from '../engine/actions.js';
 import { gameConfig } from '../gameConfig.js';
 import { config } from '../config.js';
 import { advanceTick } from '../sim/clock.js';
 import { createFixture, tile } from '../sim/simFixture.js';
 import { rebuildQuadtree } from '../sim/spatialManager.js';
+import { Key, type Item } from '../../shared/types.js';
+import { mapPixelHeight, mapPixelWidth } from '../../shared/mapGeometry.js';
+import { ClientMessageSchema } from './clientMessage.js';
 // Only the tracing half is pinned; everything else stays the real config, so
 // the limits and payload sizes the other tests lean on are untouched.
 const { tracing } = vi.hoisted(() => ({
@@ -41,6 +45,7 @@ vi.mock('../config.js', async (importOriginal) => {
 
 import { playersWsMap } from './connections.js';
 import {
+  enqueueClientAction,
   enqueueServerAction,
   getActionQueueSize,
   processActions,
@@ -155,6 +160,136 @@ describe('UpdateNpcPositions', () => {
     processActions();
 
     expect(npc.position).toEqual(before);
+  });
+});
+
+// What gets past the schema reaches a handler inside the tick, where a throw
+// does not lose the message but does stop the drain: everything queued behind
+// it waits for the next tick. So whatever the schema lets in has to be
+// something the handlers survive, and leave the player in one piece after.
+describe('processActions under any message the schema accepts', () => {
+  const SWORD = 10;
+  const HELMET = 11;
+  const POTION = 12;
+  const itemId = fc.oneof(fc.constantFrom(SWORD, HELMET, POTION), fc.nat());
+  const message = fc.oneof(
+    fc.record({
+      type: fc.constant('keyboard'),
+      keyboardAction: fc.record({
+        key: fc.constantFrom(...Object.values(Key)),
+        type: fc.constantFrom('press', 'release'),
+      }),
+      seq: fc.option(fc.integer(), { nil: undefined }),
+    }),
+    fc.record({
+      type: fc.constant('item'),
+      item: itemId,
+      action: fc.constantFrom('use', 'drop'),
+      quantity: fc.option(fc.integer({ min: 1 }), { nil: undefined }),
+    }),
+    fc.record({
+      type: fc.constant('chat'),
+      message: fc.oneof(
+        fc.string({ minLength: 1, maxLength: 200 }),
+        fc.string({ maxLength: 40 }).map((rest) => `/${rest}`),
+      ),
+      scope: fc.constantFrom('player', 'map', 'global'),
+    }),
+    fc.record({
+      type: fc.constant('custom'),
+      channel: fc.string({ minLength: 1, maxLength: 64 }),
+      payload: fc.option(fc.jsonValue(), { nil: undefined }),
+    }),
+    fc.record({
+      type: fc.constant('language'),
+      language: fc.string({ minLength: 2, maxLength: 8 }),
+    }),
+    fc.record({
+      type: fc.constant('moveTo'),
+      col: fc.integer({ min: 0, max: 4095 }),
+      row: fc.integer({ min: 0, max: 4095 }),
+    }),
+  );
+
+  it('handles it without throwing and conserves what the player carries', () => {
+    fc.assert(
+      fc.property(
+        fc.array(message, { minLength: 1, maxLength: 12 }),
+        fc.integer({ min: 1, max: 4 }),
+        (messages, ticks) => {
+          const sim = createFixture(0);
+          sim.addItem({
+            id: SWORD,
+            name: 'Sword',
+            sprite: 0,
+            type: 'weapon',
+          } as Item);
+          sim.addItem({
+            id: HELMET,
+            name: 'Helm',
+            sprite: 0,
+            type: 'helmet',
+          } as Item);
+          sim.addItem({
+            id: POTION,
+            name: 'Potion',
+            sprite: 0,
+            type: 'consumable',
+            effects: [{ attribute: 'health', type: 'add', value: 5 }],
+          } as Item);
+          const alice = sim.addPlayer({
+            name: 'Alice',
+            position: tile(3, 3),
+            health: 50,
+            inventory: {
+              items: [
+                { item: SWORD, quantity: 3 },
+                { item: HELMET, quantity: 1 },
+                { item: POTION, quantity: 5 },
+              ],
+              maxCapacity: 10,
+            },
+          });
+          sim.addNpc({ position: tile(5, 3), behavior: 'neutral' });
+
+          // As the socket handler does it: parsed, then queued under the name
+          // the session carries.
+          for (const raw of messages) {
+            const parsed = ClientMessageSchema.safeParse(raw);
+            expect(parsed.success).toBe(true);
+            if (parsed.success) {
+              enqueueClientAction({ username: 'Alice', ...parsed.data });
+            }
+          }
+          sim.step(ticks);
+
+          const held = (id: number) =>
+            alice.inventory.items
+              .filter((i) => i.item === id)
+              .reduce((n, i) => n + i.quantity, 0) +
+            Object.values(alice.equipped).filter((e) => e === id).length +
+            sim.map.droppedItems
+              .filter((d) => d.itemId === id)
+              .reduce((n, d) => n + d.quantity, 0);
+          expect(held(SWORD)).toBe(3);
+          expect(held(HELMET)).toBe(1);
+          expect(held(POTION)).toBeLessThanOrEqual(5);
+          for (const { quantity } of alice.inventory.items) {
+            expect(Number.isInteger(quantity) && quantity > 0).toBe(true);
+          }
+          expect(alice.health).toBeGreaterThanOrEqual(0);
+          expect(alice.health).toBeLessThanOrEqual(alice.maxHealth);
+          expect(alice.position.x).toBeGreaterThanOrEqual(0);
+          expect(alice.position.y).toBeGreaterThanOrEqual(0);
+          expect(alice.position.x + alice.width).toBeLessThanOrEqual(
+            mapPixelWidth(sim.map.tiles),
+          );
+          expect(alice.position.y + alice.height).toBeLessThanOrEqual(
+            mapPixelHeight(sim.map.tiles),
+          );
+        },
+      ),
+    );
   });
 });
 
