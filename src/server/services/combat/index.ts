@@ -10,7 +10,7 @@ import {
   CharacterAction,
 } from '../../../shared/types.js';
 import { TILE_SIZE } from '../../../shared/constants.js';
-import { getMap, updatePlayer } from '../world/gameData.js';
+import { getMap, updatePlayer } from '../../sim/world.js';
 import { logger } from '../../logger.js';
 import { getTick, msToTicks } from '../../sim/clock.js';
 import { cancelScheduled, scheduleAfter } from '../../sim/scheduler.js';

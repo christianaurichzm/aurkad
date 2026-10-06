@@ -13,11 +13,12 @@ import {
 import {
   getMap,
   getPlayer,
-  runtimeState,
-  updateMapById,
   updatePlayer,
-} from './gameData.js';
-import { placePlayerOnMap, detachFromMap } from '../../sim/world.js';
+  placePlayerOnMap,
+  detachFromMap,
+} from '../../sim/world.js';
+import { runtimeState } from '../../sim/state.js';
+import { logger } from '../../logger.js';
 
 import { emit } from '../../engine/hooks.js';
 import { mapRepository } from '../../persistence/mapRepository.js';
@@ -31,6 +32,39 @@ import { onMap } from './physicsService.js';
 export async function getMapById(id: string): Promise<MapStateServer | null> {
   return mapRepository.findById(id);
 }
+
+export function createDefaultTiles(cols = 20, rows = 14): Tile[][] {
+  return Array.from({ length: rows }, () =>
+    Array.from({ length: cols }, () => ({ tileIndex: -1, blocked: false })),
+  );
+}
+
+export const updateMapById = async (
+  mapState: MapStateServer,
+): Promise<MapStateServer | undefined> => {
+  const previous = runtimeState.maps[mapState.id];
+  if (!previous) {
+    logger.warn('updateMap: Map not found', { mapId: mapState.id });
+    return;
+  }
+
+  mapState = { ...previous, ...mapState, players: previous.players };
+  mapState.tilesRevision = previous.tilesRevision;
+  runtimeState.maps[mapState.id] = mapState;
+
+  await createOrUpdateMap({
+    id: mapState.id,
+    name: mapState.name,
+    type: mapState.type,
+    pvp: mapState.pvp,
+    orientation: mapState.orientation,
+    tiles: mapState.tiles,
+    music: mapState.music,
+    instanced: mapState.instanced,
+    borderLinks: mapState.borderLinks,
+  });
+  return mapState;
+};
 
 export async function createOrUpdateMap(
   map: Partial<MapStateServer>,

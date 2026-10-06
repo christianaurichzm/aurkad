@@ -4,7 +4,7 @@ import { logger } from '../../logger.js';
 import { emitGameEvent } from '../../engine/eventBus.js';
 import { emit } from '../../engine/hooks.js';
 import { handleChatCommand } from '../../engine/commands.js';
-import { isMuted } from '../world/serverState.js';
+import { isMuted } from '../serverState.js';
 import { playersWsMap } from '../../net/connections.js';
 import { WebSocket } from 'ws';
 import { getPlayerByName } from '../player/playerService.js';

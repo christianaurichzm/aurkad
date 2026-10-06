@@ -4,8 +4,9 @@ import {
   createOrUpdateMap,
   insertNpcs,
   listMaps,
+  createDefaultTiles,
 } from './services/world/mapService.js';
-import { createDefaultTiles, runtimeState } from './services/world/gameData.js';
+import { runtimeState } from './sim/state.js';
 import { listItems, items } from './services/content/itemService.js';
 import { sweepUnclaimableDeliveries } from './services/economy/deliveryService.js';
 import { loadLootTables } from './services/content/lootTableService.js';

@@ -1,4 +1,5 @@
-import { MapStateServer, PlayerServer } from '../../shared/types.js';
+import { GameState, MapStateServer, PlayerServer } from '../../shared/types.js';
+import { markPlayerDirty } from '../persistence/dirtyPlayers.js';
 import { players, playersByName, runtimeState } from './state.js';
 import { logger } from '../logger.js';
 
@@ -65,4 +66,35 @@ export function detachFromMap(id: string): MapStateServer | undefined {
   if (!map) return undefined;
   delete map.players[id];
   return map;
+}
+
+export function getRuntimeState(): GameState {
+  return runtimeState;
+}
+
+export function getMap(mapId?: string): MapStateServer | undefined {
+  if (!mapId) return;
+  return runtimeState.maps[mapId];
+}
+
+export function updateMap(map: MapStateServer): MapStateServer | undefined {
+  if (!runtimeState.maps[map.id]) {
+    logger.warn('updateMap: Map not found', { mapId: map.id });
+    return;
+  }
+  runtimeState.maps[map.id] = map;
+  return map;
+}
+
+/** `getPlayerById` for callers that expect them online: a miss is logged. */
+export function getPlayer(playerId: string): PlayerServer | undefined {
+  const player = getPlayerById(playerId);
+  if (!player) logger.warn('getPlayer: Player not found', { playerId });
+  return player;
+}
+
+// Synchronous: write-behind only marks the player dirty.
+export function updatePlayer(player: PlayerServer): void {
+  upsertOnCurrentMap(player);
+  markPlayerDirty(player.id);
 }

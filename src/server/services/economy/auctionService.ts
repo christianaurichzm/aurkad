@@ -21,7 +21,7 @@ import {
   unlockInventory,
 } from './economyService.js';
 import { queueDelivery } from './deliveryService.js';
-import { updatePlayer } from '../world/gameData.js';
+import { updatePlayer } from '../../sim/world.js';
 import type { PlayerServer } from '../../../shared/types.js';
 
 export interface AuctionListing {

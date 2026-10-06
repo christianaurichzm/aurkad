@@ -16,10 +16,12 @@ import {
   deleteItem,
   items,
 } from '../services/content/itemService.js';
-import { createDefaultTiles } from '../services/world/gameData.js';
 import { enterWorld } from '../services/player/playerService.js';
 import { teleportPlayer } from '../services/world/movementService.js';
-import { setMapTile } from '../services/world/mapService.js';
+import {
+  setMapTile,
+  createDefaultTiles,
+} from '../services/world/mapService.js';
 import ItemModel from '../model/Item.js';
 import DeliveryModel from '../model/Delivery.js';
 import type { Item, PlayerCold, PlayerServer } from '../../shared/types.js';

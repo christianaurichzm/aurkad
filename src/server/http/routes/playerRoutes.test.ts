@@ -21,7 +21,10 @@ const { player } = vi.hoisted(() => ({
 vi.mock('../../services/player/playerService.js', () => ({
   getPlayerById: () => Promise.resolve(player),
 }));
-vi.mock('../../services/world/gameData.js', () => ({ updatePlayer: vi.fn() }));
+vi.mock('../../sim/world.js', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('../../sim/world.js')>()),
+  updatePlayer: vi.fn(),
+}));
 vi.mock('../../services/auditService.js', () => ({
   recordAdminAction: vi.fn(),
   summarizeDetails: () => undefined,

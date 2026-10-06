@@ -14,9 +14,9 @@ import {
   getFlag,
   type FlagValue,
 } from '../../services/liveOpsService.js';
-import { getMap, updatePlayer } from '../../services/world/gameData.js';
+import { getMap, updatePlayer } from '../../sim/world.js';
 import { handleChatAction } from '../../services/comms/chatService.js';
-import { setIgnored } from '../../services/world/serverState.js';
+import { setIgnored } from '../../services/serverState.js';
 import {
   updatePlayerMap,
   setMapTile,

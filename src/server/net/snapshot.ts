@@ -11,7 +11,7 @@ import {
 } from '../../shared/wsProtocol.js';
 import { config } from '../config.js';
 import { logger } from '../logger.js';
-import { getRuntimeState } from '../services/world/gameData.js';
+import { getRuntimeState } from '../sim/world.js';
 import { items } from '../services/content/itemService.js';
 import {
   toPlayerPublic,

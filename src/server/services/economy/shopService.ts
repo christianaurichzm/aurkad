@@ -1,7 +1,7 @@
 import { shopRepository } from '../../persistence/shopRepository.js';
 import { PlayerServer, ProductRaw, Shop } from '../../../shared/types.js';
 import { tileAt } from '../../../shared/mapGeometry.js';
-import { getMap, updatePlayer } from '../world/gameData.js';
+import { getMap, updatePlayer } from '../../sim/world.js';
 import { persistPlayersNow } from '../player/playerService.js';
 import {
   addItem,

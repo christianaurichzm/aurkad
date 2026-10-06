@@ -6,7 +6,7 @@ import {
   DroppedItem,
 } from '../../../shared/types.js';
 import type { ClientItemAction } from '../../engine/actions.js';
-import { getMap, updatePlayer, updateMap } from '../world/gameData.js';
+import { getMap, updatePlayer, updateMap } from '../../sim/world.js';
 import { getItemById } from '../content/itemService.js';
 import { logger } from '../../logger.js';
 import { EQUIPMENT_SLOTS } from '../../../shared/constants.js';

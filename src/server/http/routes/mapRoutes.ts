@@ -9,12 +9,12 @@ import {
   ResizeMapBodySchema,
 } from '../bodySchemas.js';
 import checkAccess from '../middleware/checkAccess.js';
-import { createDefaultTiles } from '../../services/world/gameData.js';
 import {
   createOrUpdateMap,
   getMapById,
   listMaps,
   mapSave,
+  createDefaultTiles,
 } from '../../services/world/mapService.js';
 import {
   validateMapTiles,

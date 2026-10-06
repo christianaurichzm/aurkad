@@ -14,7 +14,7 @@ import {
   SetMyAccessBodySchema,
   WarpPlayerBodySchema,
 } from '../bodySchemas.js';
-import { getMap } from '../../services/world/gameData.js';
+import { getMap } from '../../sim/world.js';
 import checkAccess from '../middleware/checkAccess.js';
 import { broadcast } from '../../net/index.js';
 import { teleportPlayer } from '../../services/world/movementService.js';

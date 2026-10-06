@@ -36,7 +36,7 @@ import {
   forgetFlagFromInstance,
   type LiveOpsFlag,
 } from './services/liveOpsService.js';
-import { serverState, type ServerMode } from './services/world/serverState.js';
+import { serverState, type ServerMode } from './services/serverState.js';
 import type { ChatMessagePayload } from '../shared/types.js';
 import { flushAnalytics, startAnalytics } from './services/analyticsService.js';
 import { createSessionMiddleware } from './http/session.js';

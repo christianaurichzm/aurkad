@@ -9,7 +9,7 @@ import { registerPlayerCommands } from './playerCommands.js';
 import { createFixture, tile } from '../sim/simFixture.js';
 import { rebuildQuadtree } from '../sim/spatialManager.js';
 import { runtimeState } from '../sim/state.js';
-import { serverState } from '../services/world/serverState.js';
+import { serverState } from '../services/serverState.js';
 import { Access } from '../../shared/types.js';
 import { TILE_SIZE } from '../../shared/constants.js';
 

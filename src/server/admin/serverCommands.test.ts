@@ -6,7 +6,7 @@ import {
 } from '../engine/commands.js';
 import { registerServerCommands } from './serverCommands.js';
 import { drainGameEvents } from '../engine/eventBus.js';
-import { serverState } from '../services/world/serverState.js';
+import { serverState } from '../services/serverState.js';
 import { Access } from '../../shared/types.js';
 import { createFixture } from '../sim/simFixture.js';
 import {

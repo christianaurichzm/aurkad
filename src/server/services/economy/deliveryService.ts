@@ -30,7 +30,7 @@ import {
   withTransaction,
 } from '../../persistence/transactions.js';
 import { getItemById, items } from '../content/itemService.js';
-import { getPlayerByName } from '../../sim/world.js';
+import { getPlayerByName, updatePlayer } from '../../sim/world.js';
 import {
   getPlayerByNameFromDb,
   persistPlayerSessionState,
@@ -38,7 +38,6 @@ import {
 } from '../player/playerService.js';
 import { measureValue } from '../../persistence/dataLimits.js';
 import { logger } from '../../logger.js';
-import { updatePlayer } from '../world/gameData.js';
 import type { PlayerServer } from '../../../shared/types.js';
 import {
   beginPlayerCommit,

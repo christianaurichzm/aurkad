@@ -23,7 +23,7 @@ import {
   handleMoveTo,
   clearPressedKeys,
 } from '../services/world/movementService.js';
-import { getRuntimeState } from '../services/world/gameData.js';
+import { getRuntimeState } from '../sim/world.js';
 import { handleItemAction } from '../services/economy/inventoryService.js';
 import { handleCustomAction } from '../services/comms/customEventService.js';
 import { updateNpcs } from '../services/npc/index.js';

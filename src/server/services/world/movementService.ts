@@ -26,8 +26,7 @@ import type {
   ClientMoveToAction,
 } from '../../engine/actions.js';
 import { useApi } from '../../engine/modules/registry.js';
-import { getMap, updatePlayer } from './gameData.js';
-import { getAllPlayers } from '../../sim/world.js';
+import { getAllPlayers, getMap, updatePlayer } from '../../sim/world.js';
 import { emitGameEvent } from '../../engine/eventBus.js';
 import { emit } from '../../engine/hooks.js';
 import { dispatchEntityScript } from '../../engine/scripting/entityScripts.js';

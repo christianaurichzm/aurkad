@@ -1,4 +1,4 @@
-import { getRuntimeState } from './services/world/gameData.js';
+import { getRuntimeState } from './sim/world.js';
 import { openConnectionCount } from './net/connections.js';
 import { viewerCacheSizes } from './net/snapshot.js';
 import { replicatedEntityCount } from './net/entityReplication.js';

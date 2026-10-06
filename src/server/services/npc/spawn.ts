@@ -6,7 +6,8 @@ import {
 } from '../../../shared/types.js';
 import { TILE_SIZE } from '../../../shared/constants.js';
 import { mapTileHeight, mapTileWidth } from '../../../shared/mapGeometry.js';
-import { getMap, runtimeState } from '../world/gameData.js';
+import { getMap } from '../../sim/world.js';
+import { runtimeState } from '../../sim/state.js';
 import { findPlacement } from '../world/physicsService.js';
 import { forgetReplicatedEntity } from '../../net/snapshot.js';
 import { clearDamageContributions } from '../combat/damage.js';

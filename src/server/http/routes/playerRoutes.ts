@@ -2,7 +2,7 @@ import { WebSocket } from 'ws';
 import { Access } from '../../../shared/types.js';
 import { parseBody, AssignPointsBodySchema } from '../bodySchemas.js';
 import checkAccess from '../middleware/checkAccess.js';
-import { updatePlayer } from '../../services/world/gameData.js';
+import { updatePlayer } from '../../sim/world.js';
 import { getPlayerById } from '../../services/player/playerService.js';
 import { playersWsMap } from '../../net/connections.js';
 import { listOnlineEverywhere } from '../../persistence/presence.js';

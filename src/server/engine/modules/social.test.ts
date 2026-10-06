@@ -8,7 +8,7 @@ import { clearProvides, useApi } from './registry.js';
 import { clearCommands } from '../commands.js';
 import { clearAll, emit } from '../hooks.js';
 import { drainGameEvents } from '../eventBus.js';
-import { serverState } from '../../services/world/serverState.js';
+import { serverState } from '../../services/serverState.js';
 import { createFixture } from '../../sim/simFixture.js';
 
 let sim: ReturnType<typeof createFixture>;

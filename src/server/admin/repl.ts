@@ -5,7 +5,7 @@ import {
   listCommands,
   type CommandStyle,
 } from '../engine/commands.js';
-import { serverState } from '../services/world/serverState.js';
+import { serverState } from '../services/serverState.js';
 
 /**
  * The server terminal: readline, colour and the prompt. Commands live in the

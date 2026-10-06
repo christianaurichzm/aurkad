@@ -1,10 +1,10 @@
 import { registerCommand } from '../engine/commands.js';
 import { isSuspicious, runCensus } from '../services/economy/economyCensus.js';
 import { Access } from '../../shared/types.js';
-import { serverState, type ServerMode } from '../services/world/serverState.js';
+import { serverState, type ServerMode } from '../services/serverState.js';
 import { getChatLog, handleChatAction } from '../services/comms/chatService.js';
 import { publishToInstances } from '../persistence/instanceBus.js';
-import { getRuntimeState } from '../services/world/gameData.js';
+import { getRuntimeState } from '../sim/world.js';
 import { getMetrics } from '../metrics.js';
 import { config } from '../config.js';
 import {

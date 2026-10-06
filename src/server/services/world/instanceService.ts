@@ -15,7 +15,7 @@ import { scheduleEvery } from '../../sim/scheduler.js';
 import { dropQuadtree } from '../../sim/spatialManager.js';
 import { forgetReplicatedEntity } from '../../net/index.js';
 import { forgetNpcAiForMap } from '../npc/aiBrain.js';
-import { getMap } from './gameData.js';
+import { getMap } from '../../sim/world.js';
 
 /**
  * A dungeon is a copy of a map, not a map of its own. Everything keyed by

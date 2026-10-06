@@ -6,7 +6,8 @@ import type {
   Tile,
 } from '../../../shared/types.js';
 import { createFixture, makeTiles, tile } from '../../sim/simFixture.js';
-import { getMap, updateMapById } from './gameData.js';
+import { updateMapById } from './mapService.js';
+import { getMap } from '../../sim/world.js';
 
 const getNpcById = vi.fn();
 vi.mock('../content/npcService.js', () => ({
@@ -19,7 +20,7 @@ vi.mock('../../persistence/mapRepository.js', () => ({
 
 const { insertNpcs, createOrUpdateMap } = await import('./mapService.js');
 const { on } = await import('../../engine/hooks.js');
-const { runtimeState } = await import('./gameData.js');
+const { runtimeState } = await import('../../sim/state.js');
 
 const tiles = (npcId: string): Tile[][] => [
   [{ tileIndex: 0 }, { tileIndex: 0, npcSpawn: npcId }],

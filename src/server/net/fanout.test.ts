@@ -3,7 +3,7 @@ import type WebSocket from 'ws';
 import type { ChatMessagePayload } from '../../shared/types.js';
 import { emitGameEvent } from '../engine/eventBus.js';
 import { createFixture } from '../sim/simFixture.js';
-import { setIgnored } from '../services/world/serverState.js';
+import { setIgnored } from '../services/serverState.js';
 import { playersWsMap } from './connections.js';
 import {
   broadcastChat,

@@ -25,7 +25,7 @@ import {
   refuseEntry,
 } from '../../services/player/playerService.js';
 import { toMapMeta } from '../../net/serialization.js';
-import { serverState } from '../../services/world/serverState.js';
+import { serverState } from '../../services/serverState.js';
 import { playersWsMap } from '../../net/connections.js';
 import { WebSocket } from 'ws';
 import { createRouter } from '../../app.js';

@@ -17,10 +17,9 @@ import {
   getBan,
 } from '../services/player/banService.js';
 import { broadcast, playersWsMap } from '../net/index.js';
-import { getMap, updatePlayer } from '../services/world/gameData.js';
 import { warpToMap } from '../services/world/movementService.js';
-import { getAllPlayers } from '../sim/world.js';
-import { isMuted, serverState } from '../services/world/serverState.js';
+import { getAllPlayers, getMap, updatePlayer } from '../sim/world.js';
+import { isMuted, serverState } from '../services/serverState.js';
 import {
   createResetToken,
   resetLink,

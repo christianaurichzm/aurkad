@@ -22,15 +22,15 @@ import {
 } from '../../../shared/types.js';
 import { playerRepository } from '../../persistence/playerRepository.js';
 
-import { getPlayer, updatePlayer } from '../world/gameData.js';
 import {
-  getPlayerByName as lookupPlayerByName,
-  // Runtime registry lookup, distinct from this file's own getPlayerById
+  getPlayerByName as lookupPlayerByName, // Runtime registry lookup, distinct from this file's own getPlayerById
   // (a database read), only to check disconnectPlayer is not racing a
   // second disconnect for the same player.
   getPlayerById as getRegisteredPlayer,
   registerPlayer,
   unregisterPlayer,
+  getPlayer,
+  updatePlayer,
 } from '../../sim/world.js';
 import { emit } from '../../engine/hooks.js';
 import { addPlayerOnMap, removePlayerFromMap } from '../world/mapService.js';
@@ -55,7 +55,7 @@ import {
   releasePresence,
 } from '../../persistence/presence.js';
 import { getBan, unbanPlayer } from './banService.js';
-import { serverState } from '../world/serverState.js';
+import { serverState } from '../serverState.js';
 import { publishToInstances } from '../../persistence/instanceBus.js';
 import { persistedLocation } from '../world/instanceService.js';
 import {

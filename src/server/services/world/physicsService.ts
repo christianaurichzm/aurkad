@@ -11,7 +11,7 @@ import {
   Position,
   Warp,
 } from '../../../shared/types.js';
-import { getMap } from './gameData.js';
+import { getMap } from '../../sim/world.js';
 import { queryNearbyEntities } from '../../sim/spatialManager.js';
 
 const isTileBlocked = (

@@ -5,7 +5,7 @@ import {
 } from '../../../shared/types.js';
 import { TILE_SIZE } from '../../../shared/constants.js';
 import { canInteract } from '../../../shared/utils.js';
-import { getMap } from './gameData.js';
+import { getMap } from '../../sim/world.js';
 import { queryEntitiesInRadius } from '../../sim/spatialManager.js';
 import { emit } from '../../engine/hooks.js';
 import { dispatchEntityScript } from '../../engine/scripting/entityScripts.js';

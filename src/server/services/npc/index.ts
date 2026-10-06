@@ -7,7 +7,7 @@ import {
   RuntimeNpc,
   PlayerServer,
 } from '../../../shared/types.js';
-import { getMap } from '../world/gameData.js';
+import { getMap } from '../../sim/world.js';
 import { getOrInitNpcAi, transitionNpcAi, resetNpcAi } from './aiBrain.js';
 import { isHunter, type NpcAiState } from './types.js';
 import { getTick, msToTicks } from '../../sim/clock.js';

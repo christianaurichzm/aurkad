@@ -4,7 +4,8 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 import type { ExtendedRequest } from '../session.js';
 import { Access } from '../../../shared/types.js';
 
-vi.mock('../../services/world/gameData.js', () => ({
+vi.mock('../../sim/world.js', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('../../sim/world.js')>()),
   getRuntimeState: () => ({ maps: {} }),
 }));
 vi.mock('../../net/connections.js', () => ({
