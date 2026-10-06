@@ -83,7 +83,11 @@ export function clearAllPathGoals(): void {
   pathGoals.clear();
 }
 
-/** Drops held-key state for a player leaving, so a disconnect leaks none. */
+/** Players holding keys and walking to a clicked cell, as metrics. */
+export function movementStateCounts(): { heldKeys: number; pathGoals: number } {
+  return { heldKeys: pressedKeysMap.size, pathGoals: pathGoals.size };
+}
+
 export function clearPressedKeys(username: string): void {
   pressedKeysMap.delete(username);
   pathGoals.delete(username);

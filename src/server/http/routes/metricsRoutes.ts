@@ -258,6 +258,19 @@ export function buildMetricsSamples(): Sample[] {
           m.caches.damageLedger,
           'entities tracking who damaged them',
         ],
+        ['npc_ai', m.caches.npcAi, 'ai state per npc'],
+        [
+          'attack_cooldown',
+          m.caches.attackCooldown,
+          'last attack tick per player',
+        ],
+        ['held_keys', m.caches.heldKeys, 'keys held per player'],
+        ['path_goals', m.caches.pathGoals, 'clicked destination per player'],
+        [
+          'instance_entrances',
+          m.caches.instanceEntrances,
+          'way out of a copy per player',
+        ],
       ] as const
     ).map(([key, value, help]) => ({
       name: `engine_cache_entries_${key}`,

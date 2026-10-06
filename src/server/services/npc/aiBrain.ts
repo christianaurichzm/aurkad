@@ -65,6 +65,11 @@ export function transitionNpcAi(ai: NpcAiState, next: NpcAiStateName) {
   ai.lastStateChangeTick = getTick();
 }
 
+/** Npcs holding ai state, published as a metric. */
+export function npcAiStateCount(): number {
+  return npcAiState.size;
+}
+
 export function resetNpcAi(npc: RuntimeNpc) {
   const key = getNpcAiKey(npc);
   npcAiState.delete(key);

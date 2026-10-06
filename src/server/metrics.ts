@@ -5,6 +5,10 @@ import { replicatedEntityCount } from './net/entityReplication.js';
 import { rateLimiterEntryCount } from './net/transport.js';
 import { dirtyPlayerCount } from './persistence/dirtyPlayers.js';
 import { damageLedgerSize } from './services/combat/damage.js';
+import { attackCooldownCount } from './services/combat/attackCooldown.js';
+import { npcAiStateCount } from './services/npc/aiBrain.js';
+import { movementStateCounts } from './services/world/movementService.js';
+import { entranceCount } from './services/world/instanceService.js';
 import {
   handlerCosts,
   scriptTimeShares,
@@ -114,6 +118,7 @@ export function getMetrics() {
 
   const memory = process.memoryUsage();
   const viewers = viewerCacheSizes();
+  const movement = movementStateCounts();
 
   return {
     uptime: Math.floor(process.uptime()),
@@ -156,6 +161,11 @@ export function getMetrics() {
       rateLimit: rateLimiterEntryCount(),
       dirtyPlayers: dirtyPlayerCount(),
       damageLedger: damageLedgerSize(),
+      npcAi: npcAiStateCount(),
+      attackCooldown: attackCooldownCount(),
+      heldKeys: movement.heldKeys,
+      pathGoals: movement.pathGoals,
+      instanceEntrances: entranceCount(),
     },
   };
 }

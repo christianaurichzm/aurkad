@@ -178,6 +178,11 @@ export function enterInstance(
   return key;
 }
 
+/** Players with a way out of a copy recorded, published as a metric. */
+export function entranceCount(): number {
+  return entrances.size;
+}
+
 /** Dropped when a player leaves for a map that is not a copy. */
 export function forgetEntrance(playerId: string): void {
   entrances.delete(playerId);

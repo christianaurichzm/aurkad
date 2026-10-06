@@ -15,6 +15,11 @@ export function tryConsumeAttackCooldown(id: string, tick: number): boolean {
   return true;
 }
 
+/** Players holding an attack cooldown, published as a metric. */
+export function attackCooldownCount(): number {
+  return lastAttackTick.size;
+}
+
 export function clearAttackCooldown(id: string): void {
   lastAttackTick.delete(id);
 }

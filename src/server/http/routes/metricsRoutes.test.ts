@@ -117,6 +117,11 @@ describe('GET /metrics', () => {
       'rate_limit',
       'dirty_players',
       'damage_ledger',
+      'npc_ai',
+      'attack_cooldown',
+      'held_keys',
+      'path_goals',
+      'instance_entrances',
     ]) {
       expect(res.text).toContain(`# TYPE engine_cache_entries_${cache} gauge`);
       expect(valueOf(`engine_cache_entries_${cache}`)).toBe(0);
