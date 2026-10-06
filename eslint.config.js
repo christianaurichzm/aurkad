@@ -266,6 +266,24 @@ export default tseslint.config(
   },
 
   {
+    // The simulation rolls on the seeded sim/rng.ts that replays reproduce.
+    // The sandbox already points scripts' Math.random at it.
+    files: ['src/server/**/*.ts', 'src/shared/**/*.ts'],
+    ignores: ['**/*.test.ts'],
+    rules: {
+      'no-restricted-properties': [
+        'error',
+        {
+          object: 'Math',
+          property: 'random',
+          message:
+            'Roll on sim/rng.ts so a replay can reproduce it; a value nobody may predict, like an id, comes from node:crypto.',
+        },
+      ],
+    },
+  },
+
+  {
     // Tests read HTTP bodies, KV documents and sandbox results as the untyped
     // values they are.
     files: ['**/*.test.ts', '**/*.test.tsx'],

@@ -1,3 +1,4 @@
+import { randomUUID } from 'node:crypto';
 import mongoose, { type ClientSession } from 'mongoose';
 import {
   SPRITE_WIDTH,
@@ -136,7 +137,7 @@ export const createPlayer = async (
   const { baseXp } = gameConfig.leveling;
 
   const newPlayer: PlayerServer = {
-    id: Math.random().toString(36).substring(2, 9),
+    id: randomUUID(),
     name: username,
     position: respawnPosition,
     width: SPRITE_WIDTH,
