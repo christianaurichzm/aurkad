@@ -54,7 +54,12 @@ function replayScenario(): Array<{ label: string; messages: string[] }> {
     inventory: { items: [{ item: 1, quantity: 3 }], maxCapacity: 10 },
   });
   sim.addPlayer({ id: 'bob', name: 'Bob', position: tile(1, 0) });
-  sim.addNpc({ id: 'npc1', name: 'Goblin', position: tile(1, 1) });
+  sim.addNpc({
+    id: 'npc1',
+    name: 'Goblin',
+    position: tile(1, 1),
+    moveIntervalMs: undefined,
+  });
 
   const received: string[] = [];
   const viewer = {

@@ -59,7 +59,11 @@ function emitTick() {
   emit('tick', { tick: getTick() });
 }
 
-const tickSystems: Array<{ name: string; run: () => unknown }> = [
+type TickSystem = { name: string; run: () => unknown };
+
+// The frame contract. The sim fixture steps through this same list, so a test
+// sees systems in the order the server runs them.
+export const tickSystems: readonly TickSystem[] = [
   { name: 'advanceTick', run: advanceTick },
   { name: 'scheduledServerActions', run: scheduledServerActions },
   { name: 'rebuildSpatialIndexes', run: rebuildSpatialIndexes },

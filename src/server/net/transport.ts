@@ -554,3 +554,16 @@ export function markServerShuttingDown() {
 export function enqueueServerAction(action: ServerActionType) {
   enqueueAction({ action });
 }
+
+/**
+ * A client action with no socket behind it, for the sim fixture: the same
+ * queue a socket's message lands in, minus the connection checks that only a
+ * socket can fail.
+ */
+export function enqueueClientAction(action: ClientAction) {
+  enqueueAction(action);
+}
+
+export function clearActionQueue() {
+  actionQueue.clear();
+}

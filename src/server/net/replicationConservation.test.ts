@@ -154,8 +154,6 @@ describe('entity replication conserves state', () => {
       if (i === 0) sim.press('Bob', Key.ArrowRight);
       if (i === 6) sim.release('Bob', Key.ArrowRight);
       sim.step(1);
-      rebuildQuadtree(sim.mapId, sim.map);
-      broadcastGameState();
       for (const payload of worldUpdates()) client.apply(payload);
     }
 
@@ -359,8 +357,6 @@ describe('entity replication conserves state', () => {
         if (i === 7) roamer.position = tile(3, 2);
         if (i === 8) roamer.position = tile(60, 60);
         sim.step(1);
-        rebuildQuadtree(sim.mapId, sim.map);
-        broadcastGameState();
         for (const payload of worldUpdates()) client.apply(payload);
       }
 

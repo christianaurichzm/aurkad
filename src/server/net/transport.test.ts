@@ -149,7 +149,7 @@ describe('UpdateNpcPositions', () => {
     });
     const before = { ...npc.position };
 
-    advanceTick(); // not fx.step: the fixture drives updateNpcs itself
+    advanceTick(); // not fx.step, which queues and drains an npc update of its own
     rebuildQuadtree(fx.map.id, fx.map);
     enqueueServerAction(ServerActionType.UpdateNpcPositions);
     processActions();

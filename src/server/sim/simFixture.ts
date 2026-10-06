@@ -1,22 +1,17 @@
-import { resetClock, advanceTick, getTick } from './clock.js';
-import { runScheduledTasks, resetScheduler } from './scheduler.js';
+import { resetClock } from './clock.js';
+import { resetScheduler } from './scheduler.js';
 import { seedRng } from './rng.js';
-import { emit } from '../engine/hooks.js';
+import { tickSystems } from './loop.js';
 import { players, playersByName, runtimeState } from './state.js';
 import { registerPlayer, getPlayerByName } from './world.js';
 import { items } from '../services/content/itemService.js';
 import {
   pressedKeysMap,
   clearAllPathGoals,
-  handleKeyAction,
-  handleMoveTo,
-  processMovementIntent,
-  processMovementCompletion,
 } from '../services/world/movementService.js';
 import { clearAllAttackCooldowns } from '../services/combat/attackCooldown.js';
-import { updateNpcs } from '../services/npc/index.js';
 import { clearAllNpcAiState } from '../services/npc/aiBrain.js';
-import { rebuildQuadtree } from './spatialManager.js';
+import { clearActionQueue, enqueueClientAction } from '../net/transport.js';
 import {
   CharacterAction,
   Direction,
@@ -43,10 +38,6 @@ export function makeTiles(rows: number, cols: number): Tile[][] {
   );
 }
 
-type InputEvent =
-  | { username: string; key: Key; type: 'press' | 'release' }
-  | { username: string; type: 'moveTo'; col: number; row: number };
-
 export function createFixture(seed = 0) {
   resetClock();
   resetScheduler();
@@ -61,6 +52,7 @@ export function createFixture(seed = 0) {
   items.clear();
   clearAllAttackCooldowns();
   clearAllNpcAiState();
+  clearActionQueue();
 
   const mapId = 'map1';
   const map: MapStateServer = {
@@ -73,8 +65,6 @@ export function createFixture(seed = 0) {
     players: {},
   };
   runtimeState.maps[mapId] = map;
-
-  const pendingKeys: InputEvent[] = [];
 
   function addPlayer(overrides: Partial<PlayerServer> = {}): PlayerServer {
     const id = overrides.id ?? uid();
@@ -131,6 +121,9 @@ export function createFixture(seed = 0) {
       action: CharacterAction.Idle,
       health: 30,
       kind: 'npc',
+      // One npc decision per step(). Pace tests pass their own value, or
+      // undefined for the game default.
+      moveIntervalMs: 1,
       ...overrides,
     };
     map.npcs[npc.id] = npc;
@@ -159,50 +152,34 @@ export function createFixture(seed = 0) {
     return m;
   }
 
-  // Queue key events; processed AFTER the spatial rebuild each tick,
-  // matching the real server's order: rebuild, processActions, movement.
+  // Goes through the real action queue, so players act before npcs within
+  // a tick, as on a live server.
   function press(username: string, key: Key) {
-    pendingKeys.push({ username, key, type: 'press' });
+    enqueueClientAction({
+      username,
+      type: 'keyboard',
+      keyboardAction: { key, type: 'press' },
+    });
   }
 
   function release(username: string, key: Key) {
-    pendingKeys.push({ username, key, type: 'release' });
+    enqueueClientAction({
+      username,
+      type: 'keyboard',
+      keyboardAction: { key, type: 'release' },
+    });
   }
 
   // Clicks share the key queue, so their order is kept as from a real client.
   function moveTo(username: string, col: number, row: number) {
-    pendingKeys.push({ username, type: 'moveTo', col, row });
+    enqueueClientAction({ username, type: 'moveTo', col, row });
   }
 
+  // The live loop isolates each system and logs a throw; here a throw fails
+  // the test that caused it.
   function step(ticks = 1) {
     for (let i = 0; i < ticks; i++) {
-      advanceTick();
-
-      for (const [mid, m] of Object.entries(runtimeState.maps)) {
-        rebuildQuadtree(mid, m);
-        const livePlayers = Object.values(m.players).filter(
-          (player) => player.health > 0,
-        );
-        for (const npc of Object.values(m.npcs))
-          updateNpcs(npc, m, livePlayers);
-      }
-
-      // Flush key events now that the spatial index is up to date
-      for (const ev of pendingKeys) {
-        if (ev.type === 'moveTo') handleMoveTo(ev);
-        else
-          handleKeyAction({
-            username: ev.username,
-            type: 'keyboard',
-            keyboardAction: { key: ev.key, type: ev.type },
-          });
-      }
-      pendingKeys.length = 0;
-
-      processMovementCompletion();
-      processMovementIntent();
-      runScheduledTasks();
-      emit('tick', { tick: getTick() });
+      for (const system of tickSystems) system.run();
     }
   }
 

@@ -514,7 +514,7 @@ describe('path depth', () => {
 
 describe('npcMoveTicks', () => {
   it('falls back to the game-wide interval', () => {
-    const npc = sim.addNpc();
+    const npc = sim.addNpc({ moveIntervalMs: undefined });
     expect(npcMoveTicks(npc)).toBe(
       msToTicks(gameConfig.combat.npcUpdateIntervalMs),
     );
