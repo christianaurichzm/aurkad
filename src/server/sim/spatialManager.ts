@@ -70,16 +70,7 @@ export function queryEntitiesInRect(
   return info.qt.query(rect);
 }
 
-export function getQuadtreeStats(mapId: string) {
-  const info = mapQuadtreeInfo.get(mapId);
-  return info?.qt.getStats() ?? null;
-}
-
 /** Forgets a map's tree, for when the map itself stops existing. */
 export function dropQuadtree(mapId: string): void {
   mapQuadtreeInfo.delete(mapId);
-}
-
-export function clearAllQuadtrees(): void {
-  mapQuadtreeInfo.clear();
 }

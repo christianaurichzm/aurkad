@@ -84,8 +84,3 @@ export const PROTOCOL_GOLDEN_STEPS: ProtocolGoldenStep[] = [
     ],
   },
 ];
-
-/** Every golden frame in order, for consumers that just replay the session. */
-export const PROTOCOL_GOLDEN_MESSAGES: string[] = PROTOCOL_GOLDEN_STEPS.flatMap(
-  (step) => step.messages,
-);

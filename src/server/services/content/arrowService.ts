@@ -13,10 +13,6 @@ export async function listArrows(): Promise<Arrow[]> {
   return ArrowModel.find().lean<Arrow[]>().exec();
 }
 
-export async function getArrowById(id: number): Promise<Arrow | null> {
-  return ArrowModel.findOne({ id }).lean<Arrow>().exec();
-}
-
 export async function createOrUpdateArrow(
   arrow: Omit<Arrow, 'id'> & { id?: number },
 ): Promise<Arrow> {

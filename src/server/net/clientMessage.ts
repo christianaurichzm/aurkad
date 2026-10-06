@@ -62,5 +62,3 @@ export const ClientMessageSchema = z.discriminatedUnion('type', [
   LanguageMessageSchema,
   MoveToMessageSchema,
 ]);
-
-export type ClientMessage = z.infer<typeof ClientMessageSchema>;

@@ -184,8 +184,6 @@ function warnWallClockTimer(
   );
 }
 
-export type ScriptApi = ReturnType<typeof buildApi>;
-
 export function buildApi(
   scriptName: string,
   trackUnsub: (fn: Cleanup) => void,

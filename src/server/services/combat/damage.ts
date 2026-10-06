@@ -33,14 +33,6 @@ export function recordDamageContribution(
   byPlayer.set(playerId, (byPlayer.get(playerId) ?? 0) + amount);
 }
 
-/** How much one player dealt to `targetId`, 0 if they never landed a hit. */
-export function damageContributionOf(
-  targetId: string,
-  playerId: string,
-): number {
-  return contributions.get(targetId)?.get(playerId) ?? 0;
-}
-
 /** Every contributor, largest share first. Ties keep insertion order. */
 export function damageContributors(targetId: string): DamageContributor[] {
   const byPlayer = contributions.get(targetId);

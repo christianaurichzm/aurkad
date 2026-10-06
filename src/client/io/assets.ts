@@ -36,7 +36,6 @@ const PieceSchema = z.object({
   connect: z.number().int().min(0).max(15).optional(),
   blocks: z.boolean().default(false),
 });
-export type PieceFrame = z.infer<typeof PieceSchema>;
 
 // Frames are in tiles.png; anchors are offsets from the projected cell center.
 const FrameSchema = z.object({

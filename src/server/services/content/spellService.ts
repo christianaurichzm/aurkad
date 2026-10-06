@@ -38,10 +38,6 @@ export async function listSpells(): Promise<Spell[]> {
   return SpellModel.find().lean<Spell[]>().exec();
 }
 
-export async function getSpellById(id: number): Promise<Spell | null> {
-  return SpellModel.findOne({ id }).lean<Spell>().exec();
-}
-
 export async function createOrUpdateSpell(
   spell: SpellInput & { id?: number },
 ): Promise<Spell> {

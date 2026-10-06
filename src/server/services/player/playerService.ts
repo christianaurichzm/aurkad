@@ -113,10 +113,6 @@ export async function nameTaken(name: string): Promise<boolean> {
   return playerRepository.nameTaken(name);
 }
 
-export async function listPlayers(): Promise<PlayerRecord[]> {
-  return playerRepository.list();
-}
-
 export const createPlayer = async (
   username: string,
   password: string,

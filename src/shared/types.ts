@@ -70,8 +70,6 @@ export interface Effect {
   value: number;
 }
 
-export type BanEntry = { until?: number; reason?: string };
-
 export type ItemType =
   (typeof EQUIPMENT_SLOTS)[number] | 'consumable' | 'money';
 
@@ -128,11 +126,6 @@ export interface EquippedItems {
 
 /** Where a piece of equipment goes; the names of `EQUIPMENT_SLOTS`. */
 export type EquipmentSlot = keyof EquippedItems;
-
-export interface InventoryDetailed {
-  items: InventoryItemDetailed[];
-  maxCapacity: number;
-}
 
 export interface InventoryItemDetailed {
   item: Item;
@@ -578,7 +571,6 @@ export interface GameState {
 export type PlayersServerMap = { [key: string]: PlayerServer };
 export type PlayersMap = { [key: string]: PlayerPublic };
 export type RuntimeNpcsMap = { [key: string]: RuntimeNpc };
-export type ItemsMap = { [key: number]: Item };
 
 export interface OnlinePlayersResponse {
   players: string[];

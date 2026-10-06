@@ -33,10 +33,6 @@ export interface SaveMapResponse {
   warnings: string[];
 }
 
-export interface SaveMapError {
-  errors: string[];
-}
-
 export const saveMap = async (
   newMapTiles: MapStateClient['tiles'],
   name: string,

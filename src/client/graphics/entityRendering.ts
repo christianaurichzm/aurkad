@@ -178,5 +178,3 @@ export const renderDroppedItems = (droppedItems: DroppedItem[]) => {
     renderItemIcon(itemCtx, item.sprite, at.x, at.y, false);
   });
 };
-
-export const renderEntityDirect = renderEntity;
