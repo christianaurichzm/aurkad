@@ -13,8 +13,8 @@ export function createAssetsRouter() {
   const router = createRouter();
 
   // The sheets' optional metadata: tiles.json places isometric frames in the
-  // tile atlas, sprites.json sizes the character frames. Absent means the
-  // 64 px grid every sheet starts from.
+  // tile atlas and animates tiles, sprites.json sizes the character frames.
+  // Absent means the 64 px grid every sheet starts from, nothing moving.
   router.get(['/assets/tiles.json', '/assets/sprites.json'], (req, res) => {
     if (!req.session.username)
       return res.status(401).json({ error: 'Unauthorized' });

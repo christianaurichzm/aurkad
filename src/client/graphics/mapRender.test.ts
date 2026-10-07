@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { setStaticMap } from '../core/gameState';
 import { setCamera } from './camera';
-import { isometricFrames, tileset } from '../io/assets';
+import { isometricFrames, tileAnimations, tileset } from '../io/assets';
 import type { Tile } from '../../shared/types';
 import { isometricMapObjects, renderGameMap } from './mapRender';
 
@@ -61,6 +61,7 @@ vi.mock('../io/assets', () => ({
   tilesetAlpha: { width: 256, height: 256 },
   isometricFrames: {},
   isometricReach: 64,
+  tileAnimations: {},
 }));
 
 beforeEach(() => {
@@ -158,6 +159,46 @@ describe('the map the game draws', () => {
       );
     } finally {
       delete isometricFrames['0'];
+    }
+  });
+
+  it('draws an animated tile as its current frame, repainting when it turns', () => {
+    tileAnimations['1'] = { frames: [5, 6], ms: 100 };
+    const now = vi.spyOn(performance, 'now').mockReturnValue(0);
+    try {
+      const sourceOf = () => {
+        mocks.calls.length = 0;
+        renderGameMap([[{ tileIndex: 1 }]], true);
+        return mocks.calls.find((call) => call.fn === 'drawImage')?.args;
+      };
+      // A 256 px atlas holds four tiles a row: 5 and 6 are on the second.
+      expect(sourceOf()?.slice(1, 3)).toEqual([64, 64]);
+      now.mockReturnValue(100);
+      expect(sourceOf()?.slice(1, 3)).toEqual([128, 64]);
+
+      const tiles = mapOf(1);
+      renderGameMap(tiles);
+      now.mockReturnValue(150);
+      renderGameMap(tiles);
+      expect(painted).toBe(16);
+      now.mockReturnValue(200);
+      renderGameMap(tiles);
+      expect(painted).toBe(32);
+
+      // The same animation, far past the edge of the screen: it turns, and
+      // nothing on screen has moved, so nothing is painted again.
+      const offScreen = Array.from({ length: 4 }, () =>
+        Array.from({ length: 40 }, () => ({ tileIndex: 2 })),
+      );
+      offScreen[0][39] = { tileIndex: 1 };
+      renderGameMap(offScreen);
+      const before = painted;
+      now.mockReturnValue(300);
+      renderGameMap(offScreen);
+      expect(painted).toBe(before);
+    } finally {
+      now.mockRestore();
+      delete tileAnimations['1'];
     }
   });
 

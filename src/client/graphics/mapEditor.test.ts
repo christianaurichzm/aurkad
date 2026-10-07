@@ -71,6 +71,7 @@ vi.mock('../io/assets', () => ({
   tilesetAlpha: { width: 256, height: 256 },
   isometricFrames: {},
   isometricReach: 64,
+  tileAnimations: {},
 }));
 
 beforeEach(() => {

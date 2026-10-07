@@ -27,6 +27,7 @@ import {
   renderMapMask,
   renderMapFringe,
   isometricMapObjects,
+  animationStep,
 } from './mapRender';
 import { renderEditorLayer, getEditorTiles } from './mapEditor';
 import {
@@ -50,6 +51,7 @@ let lastOrientation: string | undefined;
 let lastCamX = 0;
 let lastCamY = 0;
 let lastCanvasGeneration = -1;
+let lastAnimationStep = 0;
 
 let maskOffscreen: OffscreenCanvas | null = null;
 let fringeOffscreen: OffscreenCanvas | null = null;
@@ -110,8 +112,10 @@ export const render = () => {
     const editorTiles = getEditorTiles();
     const ground = mapEdited ? editorTiles : map.tiles;
     const canvasDirty = worldCanvasGeneration !== lastCanvasGeneration;
+    const step = animationStep(map.tiles);
     const tilesDirty =
       canvasDirty ||
+      step !== lastAnimationStep ||
       map.orientation !== lastOrientation ||
       ground !== lastDrawnTiles ||
       editorTiles !== lastEditorTiles ||
@@ -131,6 +135,7 @@ export const render = () => {
     // Mask and fringe caches, rerendered only when tiles or camera change.
     const overlayDirty =
       canvasDirty ||
+      step !== lastAnimationStep ||
       map.orientation !== lastOrientation ||
       map.tiles !== lastFringeTiles ||
       cam.x !== lastFringeCamX ||
@@ -183,6 +188,7 @@ export const render = () => {
     }
 
     lastOrientation = map.orientation;
+    lastAnimationStep = step;
     lastCanvasGeneration = worldCanvasGeneration;
 
     // Mask canvas (above ground, below entities).

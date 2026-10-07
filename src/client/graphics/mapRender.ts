@@ -5,6 +5,7 @@ import {
   tilesetAlpha,
   isometricFrames,
   isometricReach,
+  tileAnimations,
 } from '../io/assets';
 import {
   foregroundCanvas,
@@ -48,6 +49,49 @@ export const visibleRange = <T>(
 };
 
 type Rect = { x: number; y: number; width: number; height: number };
+
+/** The tile for `index` now: its animation's current frame, or itself. */
+export const animatedTile = (index: number, now = performance.now()) => {
+  const animation = tileAnimations[index];
+  if (!animation) return index;
+  const { frames, ms } = animation;
+  return frames[Math.floor(now / ms) % frames.length] ?? index;
+};
+
+type Layer = 'tileIndex' | 'maskIndex' | 'fringeIndex';
+const ALL_LAYERS: Layer[] = ['tileIndex', 'maskIndex', 'fringeIndex'];
+
+/**
+ * A number that changes when an animated tile on screen turns a frame and
+ * never for one off it, so the cached layers repaint only when it shows.
+ */
+export const animationStep = (
+  tiles: TilePublic[][],
+  layers = ALL_LAYERS,
+  now = performance.now(),
+) => {
+  if (Object.keys(tileAnimations).length === 0) return 0;
+  const range = visibleRange(
+    tiles,
+    foregroundCanvas.width / worldScale,
+    foregroundCanvas.height / worldScale,
+  );
+  const seen = new Set<number>();
+  for (let row = range.startRow; row <= range.endRow; row++) {
+    for (let col = range.startCol; col <= range.endCol; col++) {
+      const tile = tiles[row]?.[col];
+      if (!tile) continue;
+      for (const layer of layers) {
+        const index = tile[layer];
+        if (index !== undefined && tileAnimations[index]) seen.add(index);
+      }
+    }
+  }
+  let step = 0;
+  for (const index of seen)
+    step += Math.floor(now / (tileAnimations[index]?.ms ?? 1));
+  return step;
+};
 
 // The view pixels a ground tile covers: its frame on an isometric atlas, else
 // its square, or the diamond that square is sheared into.
@@ -132,8 +176,9 @@ const drawGround = (
   );
   for (let row = startRow; row <= endRow; row++) {
     for (let col = startCol; col <= endCol; col++) {
-      const tileIndex = tiles[row]?.[col]?.tileIndex;
-      if (tileIndex === undefined || tileIndex === -1) continue;
+      const index = tiles[row]?.[col]?.tileIndex;
+      if (index === undefined || index === -1) continue;
+      const tileIndex = animatedTile(index);
       const r = groundRect(col, row, tileIndex);
       if (
         r.x >= area.x + area.width ||
@@ -176,6 +221,7 @@ let groundCache: {
   frames: typeof isometricFrames;
   orientation: string | undefined;
   generation: number;
+  step: number;
   x: number;
   y: number;
 } | null = null;
@@ -186,6 +232,7 @@ const drawCachedTiles = (tiles: TilePublic[][]) => {
   const width = foregroundCanvas.width / worldScale;
   const height = foregroundCanvas.height / worldScale;
   let cache = groundCache;
+  const step = animationStep(tiles, ['tileIndex']);
   if (
     !cache ||
     cache.tiles !== tiles ||
@@ -193,6 +240,7 @@ const drawCachedTiles = (tiles: TilePublic[][]) => {
     cache.frames !== isometricFrames ||
     cache.orientation !== getMapOrientation() ||
     cache.generation !== worldCanvasGeneration ||
+    cache.step !== step ||
     cam.x < cache.x ||
     cam.y < cache.y ||
     cam.x + width > cache.x + cache.canvas.width / worldScale ||
@@ -224,6 +272,7 @@ const drawCachedTiles = (tiles: TilePublic[][]) => {
       frames: isometricFrames,
       orientation: getMapOrientation(),
       generation: worldCanvasGeneration,
+      step,
       x: area.x,
       y: area.y,
     };
@@ -315,8 +364,9 @@ function mapObjects(
   const objects: MapObject[] = [];
   for (let row = range.startRow; row <= range.endRow; row++) {
     for (let col = range.startCol; col <= range.endCol; col++) {
-      const index = tiles[row]?.[col]?.[layer];
-      if (index === undefined) continue;
+      const placed = tiles[row]?.[col]?.[layer];
+      if (placed === undefined) continue;
+      const index = animatedTile(placed);
       objects.push({
         y: worldToView((col + 0.5) * TILE_SIZE, (row + 0.5) * TILE_SIZE).y,
         col,

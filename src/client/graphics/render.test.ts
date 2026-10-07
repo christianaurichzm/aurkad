@@ -47,6 +47,7 @@ vi.mock('./mapRender', () => ({
   renderMapMask: vi.fn(),
   isometricMapObjects: () => [],
   renderMapFringe: vi.fn(),
+  animationStep: () => 0,
 }));
 
 vi.mock('./mapEditor', () => ({

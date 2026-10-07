@@ -53,6 +53,18 @@ export let isometricFrames: Record<string, z.infer<typeof FrameSchema>> = {};
 // How far from its cell's center a frame can be drawn. The renderer scans
 // this far past the screen, so a tall prop with its cell off screen shows.
 export let isometricReach = TILE_SIZE;
+
+/**
+ * tiles.json `animations`: a tile id drawn as each of `frames` in turn, `ms`
+ * apiece, for water or a torch. Every cell with the id shows the same frame,
+ * so joined pieces stay joined.
+ */
+const AnimationSchema = z.object({
+  frames: z.array(z.number().int().nonnegative()).min(1).max(256),
+  ms: z.number().int().min(16).max(60_000),
+});
+export let tileAnimations: Record<string, z.infer<typeof AnimationSchema>> = {};
+
 let _assetKey = '';
 
 export function setAssetKey(hexKey: string): void {
@@ -91,9 +103,16 @@ export const initTileset = async () => {
   tilesetAlpha = makeColorKeyCanvas(tileset);
   const response = await fetch('/assets/tiles.json');
   if (!response.ok) throw new Error(`Atlas metadata: HTTP ${response.status}`);
+  const { animations, ...frames } = (await response.json()) as Record<
+    string,
+    unknown
+  >;
   isometricFrames = z
     .record(z.string().regex(/^\d+$/), FrameSchema)
-    .parse(await response.json());
+    .parse(frames);
+  tileAnimations = z
+    .record(z.string().regex(/^\d+$/), AnimationSchema)
+    .parse(animations ?? {});
   for (const frame of Object.values(isometricFrames)) {
     if (
       frame.x + frame.width > tileset.width ||
