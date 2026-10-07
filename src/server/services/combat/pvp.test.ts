@@ -1,4 +1,5 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, onTestFinished } from 'vitest';
+import { on } from '../../engine/hooks.js';
 import { createFixture, tile } from '../../sim/simFixture.js';
 import { Direction, Key, PvpMorale } from '../../../shared/types.js';
 import { mapPvpMorale, mapAllowsPvp } from '../../../shared/utils.js';
@@ -49,5 +50,23 @@ describe('PvP morale in combat', () => {
 
   it('no-penalty: players can damage each other', () => {
     expect(bobHealthAfterAliceAttacks('no-penalty')).toBeLessThan(100);
+  });
+
+  it('lets a handler open a safe map to a hit', () => {
+    onTestFinished(
+      on('pvpAllowed', (ask) => {
+        if (ask.target.name === 'Bob') ask.allowed = true;
+      }),
+    );
+    expect(bobHealthAfterAliceAttacks('safe')).toBeLessThan(100);
+  });
+
+  it('lets a handler close a pvp map to one', () => {
+    onTestFinished(
+      on('pvpAllowed', (ask) => {
+        ask.allowed = false;
+      }),
+    );
+    expect(bobHealthAfterAliceAttacks('normal')).toBe(100);
   });
 });

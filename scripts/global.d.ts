@@ -217,6 +217,17 @@ interface HookPayloads {
    * to own the attack; the built-in swing is skipped for that press.
    */
   playerAttack: { player: PlayerServer; handled: boolean };
+  /**
+   * Whether `attacker` may hit `target`, asked as a swing picks its target.
+   * `allowed` arrives as the map's rule; change it for a flagged player or
+   * two guilds at war.
+   */
+  pvpAllowed: {
+    attacker: PlayerServer;
+    target: PlayerServer;
+    mapId: string;
+    allowed: boolean;
+  };
   beforeDamage: {
     attacker?: CombatTarget;
     target: CombatTarget;

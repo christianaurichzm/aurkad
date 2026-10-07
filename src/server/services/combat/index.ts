@@ -70,6 +70,17 @@ const resolveBaseDamage = (
   return Math.max(minimumDamage, value);
 };
 
+/** The map's pvp rule for this pair, as modules amend it (see `pvpAllowed`). */
+function pvpAllowed(
+  attacker: PlayerServer,
+  target: PlayerServer,
+  map: MapStateServer,
+): boolean {
+  const ask = { attacker, target, mapId: map.id, allowed: mapAllowsPvp(map) };
+  emit('pvpAllowed', ask);
+  return ask.allowed;
+}
+
 const findAttackTarget = (
   attacker: PlayerServer,
   map: MapStateServer,
@@ -84,8 +95,9 @@ const findAttackTarget = (
   for (const entity of nearby) {
     if (!entity.id || entity.id === attacker.id) continue;
 
+    const player = map.players[entity.id];
     const target: CombatTarget | undefined =
-      (mapAllowsPvp(map) ? map.players[entity.id] : undefined) ??
+      (player && pvpAllowed(attacker, player, map) ? player : undefined) ??
       map.npcs[entity.id];
 
     if (!target || target.health <= 0) continue;

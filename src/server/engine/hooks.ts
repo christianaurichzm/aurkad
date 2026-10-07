@@ -42,6 +42,18 @@ export type HookMap = {
   // built-in melee stands down, so a game can replace the style. Damage stays
   // in the core either way.
   playerAttack: { player: PlayerServer; handled: boolean };
+  /**
+   * Whether `attacker` may hit `target`, asked while a swing picks its target.
+   * `allowed` arrives as the map's rule (anyone on a pvp map, nobody on a safe
+   * one) and a handler widens or narrows it: a PK module opens a flagged
+   * player to everyone, a guild war opens two guilds to each other.
+   */
+  pvpAllowed: {
+    attacker: PlayerServer;
+    target: PlayerServer;
+    mapId: string;
+    allowed: boolean;
+  };
   beforeDamage: {
     attacker?: CombatTarget;
     target: CombatTarget;
