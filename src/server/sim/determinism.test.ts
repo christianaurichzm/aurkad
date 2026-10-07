@@ -373,6 +373,8 @@ describe('deterministic replay with every module loaded', () => {
     teardown();
     const sim = createFixture(7);
     resetEntityReplication();
+    // PvP on, so kills flag PKs.
+    sim.map.pvp = 'normal';
     // Respawn map.
     sim.addMap({ id: gameConfig.world.startMapId });
     sim.addItem({
@@ -443,7 +445,10 @@ describe('deterministic replay with every module loaded', () => {
       enterWorld(
         sim.addPlayer({
           name,
-          position: tile(5 + i * 3, 5),
+          // Lined up facing each other with one-hit kills, so PvP fights and PK
+          // flags happen early in every session.
+          position: tile(5, 5 + i),
+          attack: 200,
           inventory: {
             items: [
               { item: COIN, quantity: 10 },
@@ -480,7 +485,7 @@ describe('deterministic replay with every module loaded', () => {
         expect(divergence?.b).toEqual(divergence?.a);
       }),
       // No shrinking: it is slow here, and the first divergent tick is enough.
-      { numRuns: 5, endOnFailure: true },
+      { numRuns: 8, endOnFailure: true },
     );
   });
 
@@ -493,7 +498,7 @@ describe('deterministic replay with every module loaded', () => {
         expect(divergence?.b).toEqual(divergence?.a);
       }),
       // No shrinking: it is slow here, and the first divergent tick is enough.
-      { numRuns: 5, endOnFailure: true },
+      { numRuns: 8, endOnFailure: true },
     );
   });
 });

@@ -16,12 +16,13 @@ modules/
 
 Bundled modules: **dialog** (NPC dialog boxes), **quest** (quests + tracker),
 **guild** (guilds + panel + name tag), **magic** (spells with mana/cooldowns +
-hotbar), **pk** (player-killer flagging on PvP maps), **pet** (a follower that
-fights for you), **archery** (press R to shoot), **party** (runtime groups +
-shared kill XP), **trade** (player item swaps), **equipment** (set bonuses on
-top of core equipment stats), **status** (timed buffs/debuffs via tick +
-beforeDamage), and **bank** (per-player item storage). All are opt-in via
-`game.json` and built on the script API + hooks - none of them live in the core.
+hotbar), **pk** (a kill on a PvP map flags you, and a flagged player can be
+attacked on any map), **pet** (a follower that fights for you), **archery**
+(press R to shoot), **party** (runtime groups + shared kill XP), **trade**
+(player item swaps), **equipment** (set bonuses on top of core equipment
+stats), **status** (timed buffs/debuffs via tick + beforeDamage), and **bank**
+(per-player item storage). All are opt-in via `game.json` and built on the
+script API + hooks; none of them live in the core.
 
 ## Manifest (`module.json`)
 

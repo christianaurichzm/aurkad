@@ -1,19 +1,24 @@
 // @ts-check
 // PK module. Killing a player on a 'normal' PvP map flags the killer with
-// a red name for a while, set through the cosmetic resolver at high
-// priority so it covers lower ones such as VIP gold until it expires.
+// a red name, set through the cosmetic resolver at high priority.
+//
+// Anyone may attack a PK on any map, and a PK may answer only another PK,
+// or anyone on a PvP map.
 
 const flagMs = Number((config && config.flagMinutes) || 10) * 60 * 1000;
 const PK_SOURCE = 'pk';
 const PK_PRIORITY = 100;
 
-const isPk = (p) => {
-  const until = getPlayerData(p, 'pkUntil');
-  return typeof until === 'number' && Date.now() < until;
-};
+// The time left on the flag, counted down in ticks while the player is
+// online, so logging out does not wait it off and replays match.
+const LEFT = 'pkLeftMs';
+const SWEEP_TICKS = 100;
+const sweepMs = SWEEP_TICKS * (1000 / TICK_RATE);
+
+const isPk = (p) => (Number(getPlayerData(p, LEFT)) || 0) > 0;
 
 function flag(killer) {
-  setPlayerData(killer, 'pkUntil', Date.now() + flagMs);
+  setPlayerData(killer, LEFT, flagMs);
   setPlayerData(
     killer,
     'pkCount',
@@ -24,7 +29,7 @@ function flag(killer) {
 
 function unflag(p) {
   clearCosmetic(p, 'nameColor', PK_SOURCE);
-  setPlayerData(p, 'pkUntil', undefined);
+  setPlayerData(p, LEFT, undefined);
 }
 
 i18n({
@@ -42,21 +47,37 @@ on('playerDeath', ({ player, killer }) => {
   // An admin is the server's own hand, so a GM is never flagged.
   if (killer.access >= Access.ADMIN) return;
   if (getMapPvp(player.mapId) !== 'normal') return; // only penalty maps flag
+  // Hunting a player killer is open to anyone: that is what the flag is for.
+  if (isPk(player)) return;
   flag(killer);
   broadcastMessage(killer.name + ' became a player killer!');
 });
 
+// A flagged target is open to everyone; off PvP maps that is the only way
+// one player may hit another.
+on('pvpAllowed', (ask) => {
+  if (isPk(ask.target)) ask.allowed = true;
+});
+
 // Re-apply the red name for a returning player who is still flagged.
 on('playerJoin', ({ player }) => {
+  // A save holding `pkUntil`, the flag's end time, is converted.
+  const until = getPlayerData(player, 'pkUntil');
+  if (typeof until === 'number') {
+    setPlayerData(player, LEFT, Math.max(0, until - Date.now()));
+    setPlayerData(player, 'pkUntil', undefined);
+  }
   if (isPk(player))
     setCosmetic(player, 'nameColor', PK_SOURCE, 'red', PK_PRIORITY);
 });
 
-// Drop the flag when it expires (~every 5s).
+// Run the flag down (~every 5s), for whoever is in the game.
 on('tick', ({ tick }) => {
-  if (tick % 100 !== 0) return;
+  if (tick % SWEEP_TICKS !== 0) return;
   for (const p of getPlayers()) {
-    if (!isPk(p) && getPlayerData(p, 'pkUntil') != null) unflag(p);
+    const left = Number(getPlayerData(p, LEFT)) || 0;
+    if (left > sweepMs) setPlayerData(p, LEFT, left - sweepMs);
+    else if (getPlayerData(p, LEFT) != null) unflag(p);
   }
 });
 
