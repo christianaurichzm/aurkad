@@ -18,6 +18,8 @@ import {
 import { logger } from '../logger.js';
 import { TILE_SIZE } from '../../shared/constants.js';
 import mongoose from 'mongoose';
+import fc from 'fast-check';
+import type { z } from 'zod';
 import type { MongoMemoryServer } from 'mongodb-memory-server';
 import { startMemoryMongo } from '../../test/mongo.js';
 import { importContentPack, exportContentPack, SPECS } from './contentPack.js';
@@ -789,5 +791,198 @@ describe('id counters after import', () => {
     await importContentPack();
 
     expect(await getNextItemId()).toBe(4);
+  });
+});
+
+// Any pack the schemas accept has to come back from the database as the
+// schemas read it. This generates the combinations nobody wrote down: an
+// optional field present in one entry and absent in the next, an empty
+// list, a null.
+describe('a generated pack', () => {
+  type Def = {
+    type: string;
+    shape?: Record<string, z.ZodType>;
+    innerType?: z.ZodType;
+    element?: z.ZodType;
+    options?: z.ZodType[];
+    entries?: Record<string, string>;
+    values?: unknown[];
+    keyType?: z.ZodType;
+    valueType?: z.ZodType;
+  };
+  type Bag = {
+    minimum?: number;
+    maximum?: number;
+    exclusiveMinimum?: number;
+    exclusiveMaximum?: number;
+    format?: string;
+    patterns?: Set<RegExp>;
+  };
+  const inside = (schema: z.ZodType) =>
+    (schema as unknown as { _zod: { def: Def; bag: Bag } })._zod;
+
+  /** Values for a schema, kept small so a failure stays readable. */
+  function arbitraryOf(schema: z.ZodType): fc.Arbitrary<unknown> {
+    const { def, bag } = inside(schema);
+    switch (def.type) {
+      case 'object': {
+        const shape = def.shape!;
+        const required = Object.keys(shape).filter((key) => {
+          const t = inside(shape[key]!).def.type;
+          return t !== 'optional' && t !== 'default';
+        });
+        return fc.record(
+          Object.fromEntries(
+            Object.entries(shape).map(([key, field]) => [
+              key,
+              arbitraryOf(field),
+            ]),
+          ),
+          { requiredKeys: required as never[] },
+        );
+      }
+      case 'optional':
+      case 'default':
+        return arbitraryOf(def.innerType!);
+      case 'nullable':
+        return fc.option(arbitraryOf(def.innerType!), { nil: null });
+      case 'string': {
+        const min = bag.minimum ?? 0;
+        const patterns = [...(bag.patterns ?? [])];
+        return fc
+          .string({
+            unit: fc.constantFrom('a', 'b', 'c', '#', '1', ' '),
+            minLength: min,
+            maxLength: Math.min(bag.maximum ?? min + 5, min + 5),
+          })
+          .filter((v) => patterns.every((p) => p.test(v)));
+      }
+      case 'number': {
+        const int = bag.format?.includes('int');
+        const step = int ? 1 : 0.25;
+        const min = Math.max(
+          bag.minimum ?? -3,
+          bag.exclusiveMinimum !== undefined ? bag.exclusiveMinimum + step : -3,
+        );
+        const max = Math.min(
+          bag.maximum ?? Infinity,
+          bag.exclusiveMaximum !== undefined
+            ? bag.exclusiveMaximum - step
+            : Infinity,
+          min + 40,
+        );
+        return int
+          ? fc.integer({ min: Math.ceil(min), max: Math.floor(max) })
+          : fc
+              .integer({
+                min: Math.ceil(min / step),
+                max: Math.floor(max / step),
+              })
+              .map((n) => n * step);
+      }
+      case 'boolean':
+        return fc.boolean();
+      case 'enum':
+        return fc.constantFrom(...Object.values(def.entries!));
+      case 'literal':
+        return fc.constantFrom(...def.values!);
+      case 'array':
+        return fc.array(arbitraryOf(def.element!), {
+          minLength: bag.minimum ?? 0,
+          maxLength: Math.max(bag.minimum ?? 0, 2),
+        });
+      case 'union':
+        return fc.oneof(...def.options!.map(arbitraryOf));
+      case 'record':
+        return fc.dictionary(
+          arbitraryOf(def.keyType!) as fc.Arbitrary<string>,
+          arbitraryOf(def.valueType!),
+          { maxKeys: 2 },
+        );
+      default:
+        throw new Error(`no generator for a ${def.type} schema`);
+    }
+  }
+
+  const KEYS = Object.keys(SPECS) as (keyof typeof SPECS)[];
+
+  /** Entries for one file: valid, with distinct ids. */
+  function entriesFor(key: keyof typeof SPECS) {
+    // Still read, never written: an old pack's drops become a loot table of
+    // the npc's own, so they cannot come back as they went in.
+    const schema =
+      key === 'npcs'
+        ? SPECS.npcs.schema.omit({ itemsToDrop: true })
+        : SPECS[key].schema;
+    return fc.uniqueArray(
+      arbitraryOf(schema).filter((v) => schema.safeParse(v).success),
+      { selector: (v) => (v as { id: unknown }).id, maxLength: 2 },
+    );
+  }
+
+  const pack = fc.record(
+    Object.fromEntries(KEYS.map((key) => [key, entriesFor(key)])) as Record<
+      keyof typeof SPECS,
+      fc.Arbitrary<unknown[]>
+    >,
+  );
+
+  const byId = (rows: unknown[]) =>
+    [...rows].sort((a, b) =>
+      String((a as { id: unknown }).id).localeCompare(
+        String((b as { id: unknown }).id),
+      ),
+    );
+  /**
+   * Mongoose starts every array field as an empty one and drops empty objects
+   * on write, so a list the file left out comes back as [] and a {} the file
+   * wrote comes back absent. Both pairs mean the same to everything that reads
+   * them. A field that lost what it held still shows, since only the input
+   * side can be empty.
+   */
+  const withoutEmpties = (value: unknown): unknown => {
+    if (Array.isArray(value)) return value.map(withoutEmpties);
+    if (!value || typeof value !== 'object') return value;
+    return Object.fromEntries(
+      Object.entries(value)
+        .map(([k, v]) => [k, withoutEmpties(v)] as const)
+        .filter(
+          ([, v]) =>
+            !(Array.isArray(v) && v.length === 0) &&
+            !(
+              v &&
+              typeof v === 'object' &&
+              !Array.isArray(v) &&
+              Object.keys(v).length === 0
+            ),
+        ),
+    );
+  };
+
+  const read = (file: string): unknown[] =>
+    JSON.parse(fs.readFileSync(path.join(tmpDir, file), 'utf-8')) as unknown[];
+
+  it('comes back from the database as the schemas read it', async () => {
+    await fc.assert(
+      fc.asyncProperty(pack, async (files) => {
+        const cols = mongoose.connection.collections;
+        await Promise.all(Object.values(cols).map((c) => c.deleteMany({})));
+        for (const key of KEYS) write(SPECS[key].file, files[key]);
+
+        expect(await importContentPack()).toBe(true);
+        await exportContentPack();
+
+        for (const key of KEYS) {
+          const schema = SPECS[key].schema as z.ZodType;
+          const expected = JSON.parse(
+            JSON.stringify(files[key].map((row) => schema.parse(row))),
+          ) as unknown[];
+          expect({
+            [key]: withoutEmpties(byId(read(SPECS[key].file))),
+          }).toEqual({ [key]: withoutEmpties(byId(expected)) });
+        }
+      }),
+      { numRuns: 40 },
+    );
   });
 });
