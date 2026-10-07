@@ -6,10 +6,42 @@
  * pin one store each. The rest cover the comparison, which is what turns a
  * count into a signal.
  */
-import { beforeAll, afterAll, beforeEach, describe, it, expect } from 'vitest';
+import {
+  beforeAll,
+  afterAll,
+  beforeEach,
+  afterEach,
+  describe,
+  it,
+  expect,
+} from 'vitest';
 import mongoose from 'mongoose';
-import type { MongoMemoryServer } from 'mongodb-memory-server';
-import { startMemoryMongo } from '../../../test/mongo.js';
+import fc from 'fast-check';
+import type { MongoMemoryReplSet } from 'mongodb-memory-server';
+import { startMemoryReplSet } from '../../../test/mongo.js';
+import { loadModulesForTest } from '../../../test/modules.js';
+import {
+  probeTransactionSupport,
+  setTransactionSupportForTest,
+} from '../../persistence/transactions.js';
+import { clearKvStoreMemory } from '../../persistence/kvStore.js';
+import { unloadAllModules } from '../../engine/modules/moduleLoader.js';
+import { clearProvides, useApi } from '../../engine/modules/registry.js';
+import { clearCommands } from '../../engine/commands.js';
+import { clearAll } from '../../engine/hooks.js';
+import { getMap, getPlayerByName } from '../../sim/world.js';
+import { tile } from '../../sim/simFixture.js';
+import {
+  disconnectPlayer,
+  enterWorld,
+  getPlayerByNameFromDb,
+} from '../player/playerService.js';
+import {
+  dropItemFromInventory,
+  pickUpItem,
+  useItem,
+} from './inventoryService.js';
+import type { PlayerServer } from '../../../shared/types.js';
 import DeliveryModel from '../../model/Delivery.js';
 import AuctionModel from '../../model/Auction.js';
 import EconomyCensusModel from '../../model/EconomyCensus.js';
@@ -20,14 +52,17 @@ import { playerRepository } from '../../persistence/playerRepository.js';
 import { playersByName } from '../../sim/state.js';
 import type { EconomyCensus } from './economyCensus.js';
 
-let mongod: MongoMemoryServer;
+// A replica set, so economic commits can run both ways they run in
+// production: in a transaction, and as separate writes where there is none.
+let mongod: MongoMemoryReplSet;
 
 beforeAll(async () => {
-  mongod = await startMemoryMongo();
+  mongod = await startMemoryReplSet();
   await mongoose.connect(mongod.getUri());
 }, 30_000);
 
 afterAll(async () => {
+  setTransactionSupportForTest(false);
   await mongoose.disconnect();
   await mongod.stop();
 });
@@ -309,5 +344,305 @@ describe('retention', () => {
 
     expect(ttl?.key).toEqual({ at: 1 });
     expect(ttl?.expireAfterSeconds).toBeGreaterThan(0);
+  });
+});
+
+// The census exists to catch an item minted or lost where two systems meet,
+// like a trade accepted while the same sword is being listed. So players
+// here do everything at once and leave and come back in between, and none
+// of it may change what exists.
+describe('across every system that moves an item', () => {
+  const HERB = 4;
+  const NAMES = ['Ana', 'Bo', 'Cid'];
+
+  type Op =
+    | { kind: 'drop'; who: number; item: number; qty: number }
+    | { kind: 'pickUp' | 'wield' | 'claim'; who: number }
+    | { kind: 'deposit'; who: number; item: number; qty: number }
+    | { kind: 'withdraw'; who: number; slot: number; qty: number }
+    | {
+        kind: 'trade';
+        who: number;
+        to: number;
+        give: number;
+        giveQty: number;
+        want: number;
+        wantQty: number;
+      }
+    | { kind: 'list'; who: number; item: number; qty: number; price: number }
+    | { kind: 'buy' | 'cancel'; who: number; listing: number }
+    | { kind: 'mail'; who: number; to: number; item: number; qty: number }
+    | { kind: 'leave' | 'rejoin'; who: number };
+
+  const who = fc.nat({ max: NAMES.length - 1 });
+  // Somebody else, as an offset from `who`: trading or writing to yourself is
+  // refused before it gets anywhere.
+  const other = fc.integer({ min: 1, max: NAMES.length - 1 });
+  const item = fc.constantFrom(GOLD, SWORD, HERB);
+  const qty = fc.oneof(
+    { weight: 3, arbitrary: fc.constant(1) },
+    fc.integer({ min: 2, max: 4 }),
+  );
+  const op: fc.Arbitrary<Op> = fc.oneof(
+    fc.record({ kind: fc.constant('drop'), who, item, qty }),
+    fc.record({
+      kind: fc.constantFrom('pickUp', 'wield', 'claim'),
+      who,
+    }),
+    fc.record({ kind: fc.constant('deposit'), who, item, qty }),
+    {
+      weight: 2,
+      arbitrary: fc.record({
+        kind: fc.constant('withdraw'),
+        who,
+        slot: fc.nat(3),
+        qty,
+      }),
+    },
+    {
+      weight: 2,
+      arbitrary: fc.record({
+        kind: fc.constant('trade'),
+        who,
+        to: other,
+        give: item,
+        giveQty: qty,
+        want: item,
+        wantQty: qty,
+      }),
+    },
+    fc.record({
+      kind: fc.constant('list'),
+      who,
+      item,
+      qty,
+      price: fc.integer({ min: 1, max: 30 }),
+    }),
+    fc.record({
+      kind: fc.constantFrom('buy', 'cancel'),
+      who,
+      listing: fc.nat({ max: 5 }),
+    }),
+    fc.record({ kind: fc.constant('mail'), who, to: other, item, qty }),
+    fc.record({ kind: fc.constantFrom('leave', 'rejoin'), who }),
+  );
+  // Each inner list starts together and is awaited together.
+  const batches = fc.array(fc.array(op, { minLength: 1, maxLength: 3 }), {
+    maxLength: 15,
+  });
+
+  type Apis = {
+    trade: {
+      offer(
+        p: PlayerServer,
+        to: string,
+        give: number,
+        giveQty: number,
+        want: number,
+        wantQty: number,
+      ): string;
+      accept(p: PlayerServer, from: string): Promise<string>;
+    };
+    bank: {
+      get(p: PlayerServer): { items: { item: number; quantity: number }[] };
+      deposit(p: PlayerServer, item: number, qty: number): string;
+      withdraw(p: PlayerServer, item: number, qty: number): string;
+    };
+    auction: {
+      listings(): Promise<{ id: string }[]>;
+      list(
+        p: PlayerServer,
+        item: number,
+        qty: number,
+        price: number,
+      ): Promise<string>;
+      buy(p: PlayerServer, id: string): Promise<string>;
+      cancel(p: PlayerServer, id: string): Promise<string>;
+    };
+    mail: {
+      send(
+        p: PlayerServer,
+        to: string,
+        item: number,
+        qty: number,
+        message: string,
+      ): Promise<string>;
+      claim(p: PlayerServer): Promise<string>;
+    };
+  };
+  const api = <K extends keyof Apis>(id: K) => useApi<Apis[K]>(id)!;
+
+  const nameOf = (who: number, offset = 0) =>
+    NAMES[(who + offset) % NAMES.length]!;
+
+  async function apply(o: Op): Promise<void> {
+    const name = nameOf(o.who);
+    const player = getPlayerByName(name);
+    if (o.kind === 'rejoin') {
+      if (player) return;
+      const record = await getPlayerByNameFromDb(name);
+      if (record) enterWorld({ ...record });
+      return;
+    }
+    if (!player) return;
+    switch (o.kind) {
+      case 'leave':
+        return disconnectPlayer(name);
+      case 'drop':
+        dropItemFromInventory(name, o.item, o.qty);
+        return;
+      case 'pickUp':
+        pickUpItem(getMap(player.mapId)!, player);
+        return;
+      case 'wield':
+        // The client's way to put the sword on or take it off.
+        useItem(name, SWORD);
+        return;
+      case 'deposit':
+        api('bank').deposit(player, o.item, o.qty);
+        return;
+      case 'withdraw': {
+        const held = api('bank').get(player).items;
+        const entry = held[o.slot % Math.max(1, held.length)];
+        if (entry) {
+          api('bank').withdraw(
+            player,
+            entry.item,
+            Math.min(o.qty, entry.quantity),
+          );
+        }
+        return;
+      }
+      case 'trade': {
+        const partner = getPlayerByName(nameOf(o.who, o.to));
+        api('trade').offer(
+          player,
+          nameOf(o.who, o.to),
+          o.give,
+          o.giveQty,
+          o.want,
+          o.wantQty,
+        );
+        if (partner) await api('trade').accept(partner, name);
+        return;
+      }
+      case 'list':
+        await api('auction').list(player, o.item, o.qty, o.price);
+        return;
+      case 'buy':
+      case 'cancel': {
+        const listings = await api('auction').listings();
+        const target = listings[o.listing % Math.max(1, listings.length)];
+        if (target) await api('auction')[o.kind](player, target.id);
+        return;
+      }
+      case 'mail':
+        await api('mail').send(
+          player,
+          nameOf(o.who, o.to),
+          o.item,
+          o.qty,
+          'hi',
+        );
+        return;
+      case 'claim':
+        await api('mail').claim(player);
+        return;
+    }
+  }
+
+  /**
+   * One arrival or departure per player at a time, which is what the socket
+   * lanes guarantee: two of them racing is a state the server never reaches.
+   */
+  const oneSessionChangeEach = (batch: Op[]) => {
+    const changing = new Set<number>();
+    return batch.filter((o) => {
+      if (o.kind !== 'leave' && o.kind !== 'rejoin') return true;
+      if (changing.has(o.who)) return false;
+      changing.add(o.who);
+      return true;
+    });
+  };
+
+  const totals = (census: EconomyCensus) =>
+    Object.fromEntries(census.items.map((i) => [i.itemId, i.total]));
+
+  async function play(sessions: Op[][]): Promise<void> {
+    const cols = mongoose.connection.collections;
+    await Promise.all(Object.values(cols).map((c) => c.deleteMany({})));
+    unloadAllModules();
+    clearAll();
+    clearCommands();
+    clearProvides();
+    clearKvStoreMemory();
+    const sim = createFixture(0);
+    sim.addItem({
+      id: GOLD,
+      name: 'Gold',
+      description: '',
+      sprite: 0,
+      type: 'money',
+    });
+    sim.addItem({
+      id: SWORD,
+      name: 'Sword',
+      description: '',
+      sprite: 0,
+      type: 'weapon',
+    });
+    sim.addItem({
+      id: HERB,
+      name: 'Herb',
+      description: '',
+      sprite: 0,
+      type: 'consumable',
+    });
+    loadModulesForTest('trade', 'bank', 'auction', 'mail');
+
+    for (const name of NAMES) {
+      const player = sim.addPlayer({
+        name,
+        position: tile(5, 5),
+        inventory: {
+          items: [
+            { item: GOLD, quantity: 100 },
+            { item: SWORD, quantity: 1 },
+            { item: HERB, quantity: 5 },
+          ],
+          maxCapacity: 10,
+        },
+      });
+      await playerRepository.insert({ ...player, password: 'hash' });
+      enterWorld(player);
+    }
+
+    const before = totals(await takeCensus());
+    for (const batch of sessions) {
+      const results = await Promise.allSettled(
+        oneSessionChangeEach(batch).map(apply),
+      );
+      const thrown = results.flatMap((r) =>
+        r.status === 'rejected' ? [String(r.reason)] : [],
+      );
+      expect(thrown).toEqual([]);
+      expect(totals(await takeCensus())).toEqual(before);
+    }
+  }
+
+  afterEach(() => {
+    unloadAllModules();
+    clearAll();
+    clearProvides();
+  });
+
+  it('keeps every item, with commits in a transaction', async () => {
+    expect(await probeTransactionSupport()).toBe(true);
+    await fc.assert(fc.asyncProperty(batches, play), { numRuns: 20 });
+  });
+
+  it('keeps every item, with commits as separate writes', async () => {
+    setTransactionSupportForTest(false);
+    await fc.assert(fc.asyncProperty(batches, play), { numRuns: 20 });
   });
 });
