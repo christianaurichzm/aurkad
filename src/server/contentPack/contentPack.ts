@@ -87,7 +87,10 @@ const NpcBehaviorSchema = z.enum([
 // The editor's own schema plus the id the file carries: z.object drops what it
 // does not know, so a field declared in one place only is lost on every import.
 const ItemSchema = CreateItemBodySchema.extend({
-  id: z.number().int().nonnegative(),
+  // Not 0: an item saved without an id is given the next one, and 0 reads as
+  // none, so an item 0 in a file would come in renumbered and every loot
+  // table, shop and tile naming it would point at nothing.
+  id: z.number().int().positive(),
 });
 const ArrowSchema = CreateArrowBodySchema.extend({
   id: z.number().int().positive(),

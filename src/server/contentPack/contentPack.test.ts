@@ -179,6 +179,16 @@ describe('importContentPack', () => {
     expect(maps.map((m) => m.id)).toEqual(['overworld']);
   });
 
+  it('refuses an item 0, which the database would have renumbered', async () => {
+    vi.spyOn(logger, 'error').mockImplementation(() => logger);
+    write('items.json', [
+      { id: 0, name: 'Potion', sprite: 0, type: 'consumable' },
+    ]);
+
+    expect(await importContentPack()).toBe(false);
+    expect(await listItems()).toEqual([]);
+  });
+
   // A pack written by hand (as the demos are) names behaviour, not geometry.
   // Less than a tile misplaces the health bar and leaves a melee npc unable
   // to reach the next tile.
