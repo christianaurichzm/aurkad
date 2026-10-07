@@ -8,6 +8,9 @@ const DroppedItemSchema = new mongoose.Schema(
     },
     itemId: Number,
     sprite: Number,
+    // Declared or mongoose drops it on write, and the map then exports drops
+    // the pack schema refuses: the whole next import is turned away.
+    quantity: Number,
   },
   { _id: false },
 );
