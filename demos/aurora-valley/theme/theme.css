@@ -1,0 +1,145 @@
+/* Aurora Valley's look over the engine's stylesheet: wood, parchment and
+   gold, every panel held in a pixel frame with gold studs at the corners.
+   The fonts are beside this file (fonts/, OFL). */
+/* Alegreya Sans is drawn small on its em: its x-height is 0.47 of it and its
+   set width 14% under the engine's own face, which is what every size in the
+   client was picked for. size-adjust gives the letters that size back in all
+   of them at once. Adjusted, it is still the narrower of the two, so what
+   fits the engine's face fits this one. */
+@font-face {
+  font-family: 'Alegreya Sans';
+  font-weight: 400;
+  font-display: swap;
+  src: url(fonts/alegreya-sans-400.woff2) format('woff2');
+  size-adjust: 112%;
+}
+@font-face {
+  font-family: 'Alegreya Sans';
+  font-weight: 500;
+  font-display: swap;
+  src: url(fonts/alegreya-sans-500.woff2) format('woff2');
+  size-adjust: 112%;
+}
+@font-face {
+  font-family: 'Alegreya Sans';
+  font-weight: 600 900;
+  font-display: swap;
+  src: url(fonts/alegreya-sans-700.woff2) format('woff2');
+  size-adjust: 112%;
+}
+@font-face {
+  font-family: 'Cinzel';
+  font-weight: 400 900;
+  font-display: swap;
+  src: url(fonts/cinzel.woff2) format('woff2');
+}
+
+:root {
+  --color-primary: #8a6812;
+  --color-primary-hover: #9a7415;
+  --color-accent: #c9a227;
+  --color-success: #8fbf57;
+  --color-danger: #a6332e;
+  --color-danger-text: #f08a80;
+  --color-danger-dark: #8a2a26;
+  --color-danger-muted: #3a1f18;
+  --color-info: #7fb0cc;
+  --color-warning: #d98c25;
+  --color-app-bg: #1b1410;
+  --color-panel-bg: #3a2a1d;
+  --color-surface: #4a3524;
+  --color-surface-muted: #2c1f15;
+  --color-text: #f3e6cd;
+  --color-text-muted: #c3ac8b;
+  --color-border: #6b4a2c;
+  --color-overlay: rgba(20, 13, 8, 0.72);
+  --color-selected: #5a4020;
+  --surface-control: #563d28;
+  --font-ui: 'Alegreya Sans', 'Chakra Petch', sans-serif;
+  --font-display: 'Cinzel', serif;
+  /* Names over the world, the HUD's numbers and speech: the panels' face
+     rather than the engine's pixel one, which clashes with Alegreya and
+     Cinzel. */
+  --font-world: var(--font-ui);
+
+  /* 36px of pixel art sliced at 10: the bevelled wood repeats along each
+     edge and the corners keep their studs. A stud is exactly the slice, so
+     none of it lands in the part that repeats; what repeats is the band in
+     the middle of each edge, one every 16px. It is 2px of the stud's shaded
+     gold and not its bright face: a frame is around the world on every side,
+     and a bright rhythm there pulls the eye off the map. */
+  --aurora-frame: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='36' height='36' shape-rendering='crispEdges'><rect width='36' height='36' fill='%2324170d'/><rect x='2' y='2' width='32' height='32' fill='%236b4526'/><rect x='2' y='4' width='32' height='2' fill='%23835732'/><rect x='2' y='8' width='32' height='1' fill='%234f3219'/><rect x='4' y='2' width='2' height='32' fill='%23835732'/><rect x='8' y='2' width='1' height='32' fill='%234f3219'/><rect x='10' y='10' width='16' height='16' fill='%233a2a1d'/><rect x='10' y='10' width='16' height='1' fill='%23120b06'/><rect x='10' y='10' width='1' height='16' fill='%23120b06'/><rect x='17' y='2' width='2' height='8' fill='%23a37f1f'/><rect x='17' y='26' width='2' height='8' fill='%23a37f1f'/><rect x='2' y='17' width='8' height='2' fill='%23a37f1f'/><rect x='26' y='17' width='8' height='2' fill='%23a37f1f'/><rect width='10' height='10' fill='%238a6a1c'/><rect x='1' y='1' width='8' height='8' fill='%23d9b441'/><rect x='3' y='3' width='4' height='4' fill='%23a37f1f'/><rect x='4' y='4' width='2' height='2' fill='%23fff0b0'/><rect x='26' width='10' height='10' fill='%238a6a1c'/><rect x='27' y='1' width='8' height='8' fill='%23d9b441'/><rect x='29' y='3' width='4' height='4' fill='%23a37f1f'/><rect x='30' y='4' width='2' height='2' fill='%23fff0b0'/><rect y='26' width='10' height='10' fill='%238a6a1c'/><rect x='1' y='27' width='8' height='8' fill='%23d9b441'/><rect x='3' y='29' width='4' height='4' fill='%23a37f1f'/><rect x='4' y='30' width='2' height='2' fill='%23fff0b0'/><rect x='26' y='26' width='10' height='10' fill='%238a6a1c'/><rect x='27' y='27' width='8' height='8' fill='%23d9b441'/><rect x='29' y='29' width='4' height='4' fill='%23a37f1f'/><rect x='30' y='30' width='2' height='2' fill='%23fff0b0'/></svg>");
+  --aurora-frame-width: 10px;
+  --aurora-grain:
+    repeating-linear-gradient(
+      0deg,
+      rgba(0, 0, 0, 0.08) 0 1px,
+      transparent 1px 3px,
+      rgba(255, 220, 160, 0.03) 3px 4px,
+      transparent 4px 7px
+    ),
+    repeating-linear-gradient(
+      90deg,
+      transparent 0 11px,
+      rgba(0, 0, 0, 0.06) 11px 12px
+    );
+}
+/* The frame is width the content gives up, and a short screen has none to
+   spare. */
+@media (max-height: 820px) {
+  :root {
+    --aurora-frame-width: 8px;
+  }
+}
+@media (max-height: 760px) {
+  :root {
+    --aurora-frame-width: 6px;
+  }
+}
+
+.panel,
+.auth-card,
+.editor-window,
+.inventory-panel,
+.player-menu {
+  border: var(--aurora-frame-width) solid var(--color-border);
+  border-image: var(--aurora-frame) 10 / var(--aurora-frame-width) round;
+  background: var(--aurora-grain), var(--color-panel-bg);
+}
+
+#ui,
+.auth-layout {
+  background:
+    repeating-linear-gradient(
+      45deg,
+      transparent 0 6px,
+      rgba(201, 162, 39, 0.03) 6px 8px
+    ),
+    var(--color-app-bg);
+}
+/* The login heading: the arched window on the valley (logo.png, 36x40 drawn
+   at 4x by ../logo.py) over the name, in the frame's gold. Shown at 2x, a
+   whole multiple, so its pixels stay square. */
+.auth-heading {
+  text-align: center;
+}
+.engine-brand {
+  flex-direction: column;
+  gap: 10px;
+  font-size: 30px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  color: var(--color-accent);
+  text-shadow: 0 2px 0 rgba(0, 0, 0, 0.55);
+}
+.engine-brand > img {
+  height: 80px;
+  image-rendering: pixelated;
+}
+
+#canvasFrame {
+  border: 2px solid var(--color-border);
+}
+.window-titlebar {
+  background: var(--color-surface-muted);
+}
