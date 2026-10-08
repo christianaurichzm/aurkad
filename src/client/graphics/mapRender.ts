@@ -119,6 +119,9 @@ export const drawGroundTile = (
   tileIndex: number,
   clear = false,
 ) => {
+  // A missing tiles sheet leaves the map undrawn rather than throwing and
+  // ending the frame before the characters.
+  if (!tileset) return;
   if (frameOf(tileIndex)) {
     drawMapObject(ctx, col, row, tileIndex, tileset);
     return;
@@ -327,6 +330,7 @@ function drawMapObject(
   index: number,
   source: ImageBitmap | HTMLCanvasElement = tilesetAlpha,
 ) {
+  if (!tileset) return;
   const frame = frameOf(index);
   const perRow = tileset.width / TILE_SIZE;
   const to = objectRect(col, row, index);
