@@ -618,7 +618,7 @@ export const pt: Record<keyof typeof en, string> = {
 
   'admin.appearance': 'Aparência',
   'appearance.handwritten':
-    'Este jogo também tem um theme.css, escrito à mão. Onde os dois definem a mesma coisa o theme.css ganha, e a prévia não consegue mostrar isso.',
+    'Este jogo também tem um theme.css, escrito à mão, e o que ele define ganha das escolhas daqui: essas ficam travadas, e a prévia desenha o jogo como o theme.css desenha.',
   'appearance.presets': 'Começar de',
   'appearance.preset.engine': 'Padrão da engine',
   'appearance.preset.parchment': 'Pergaminho',
@@ -633,6 +633,7 @@ export const pt: Record<keyof typeof en, string> = {
   'appearance.color.text': 'Texto',
   'appearance.color.danger': 'Perigo',
   'appearance.engineDefault': 'Padrão da engine',
+  'appearance.setInCss': 'Definido no theme.css',
   'appearance.reset': 'Restaurar {name}',
   'appearance.corners': 'Cantos',
   'appearance.corners.square': 'Retos',
@@ -668,8 +669,9 @@ export const pt: Record<keyof typeof en, string> = {
   'appearance.saved':
     'Salvo. Os jogadores veem na próxima vez que carregarem o jogo.',
   'appearance.preview': 'Prévia',
-  'appearance.sample.world': 'Mundo',
-  'appearance.sample.signIn': 'Entrar',
+  'appearance.sample.login': 'Tela de login',
+  'appearance.sample.game': 'No jogo',
+  'appearance.sample.world': 'Beira do Rio',
   'appearance.sample.player': 'Rowan',
   'appearance.sample.quest': 'Lobos na Orla da Mata',
   'appearance.sample.progress': '3 de 8',

@@ -620,7 +620,7 @@ export const en = {
 
   'admin.appearance': 'Appearance',
   'appearance.handwritten':
-    'This game also has a theme.css, written by hand. Where the two set the same thing theme.css wins, and the preview cannot show that.',
+    'This game also has a theme.css, written by hand, and what it sets wins over the choices here: those are locked, and the preview draws the game as theme.css does.',
   'appearance.presets': 'Start from',
   'appearance.preset.engine': 'Engine default',
   'appearance.preset.parchment': 'Parchment',
@@ -635,6 +635,7 @@ export const en = {
   'appearance.color.text': 'Text',
   'appearance.color.danger': 'Danger',
   'appearance.engineDefault': 'Engine default',
+  'appearance.setInCss': 'Set in theme.css',
   'appearance.reset': 'Reset {name}',
   'appearance.corners': 'Corners',
   'appearance.corners.square': 'Square',
@@ -669,8 +670,9 @@ export const en = {
   'appearance.discard': 'Discard changes',
   'appearance.saved': 'Saved. Players see it the next time they load the game.',
   'appearance.preview': 'Preview',
-  'appearance.sample.world': 'World',
-  'appearance.sample.signIn': 'Sign in',
+  'appearance.sample.login': 'Login screen',
+  'appearance.sample.game': 'In game',
+  'appearance.sample.world': 'Riverside',
   'appearance.sample.player': 'Rowan',
   'appearance.sample.quest': 'Wolves at the Treeline',
   'appearance.sample.progress': '3 of 8',

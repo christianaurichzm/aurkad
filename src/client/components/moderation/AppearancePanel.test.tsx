@@ -11,11 +11,13 @@ type Sent = { method: string; path: string; type: string; body: unknown };
 let stored: Record<string, unknown>;
 let sent: Sent[];
 let handwritten: boolean;
+let cssVariables: string[];
 
 beforeEach(() => {
   stored = { colors: {}, layout: 'right', art: 'pixel', dialogDim: true };
   sent = [];
   handwritten = false;
+  cssVariables = [];
   vi.stubGlobal(
     'fetch',
     vi.fn((path: string, init: RequestInit) => {
@@ -40,7 +42,7 @@ beforeEach(() => {
             path === '/game'
               ? { name: 'Tandem', logo: '/favicon.svg', layout: 'right' }
               : method === 'GET'
-                ? { theme: stored, handwritten }
+                ? { theme: stored, handwritten, cssVariables }
                 : stored,
           ),
           { headers: { 'Content-Type': 'application/json' } },
@@ -168,10 +170,19 @@ describe('AppearancePanel', () => {
     expect(sent).toEqual([]);
   });
 
-  it('says so when a theme.css written by hand is in the way', async () => {
+  it('locks what a theme.css written by hand sets, and previews it as the game will', async () => {
     handwritten = true;
+    cssVariables = ['--color-primary'];
+    const user = userEvent.setup();
     render(<AppearancePanel />);
 
-    expect(await screen.findByText(/theme\.css wins/)).toBeVisible();
+    expect(await screen.findByText(/what it sets wins/)).toBeVisible();
+    expect(screen.getByLabelText('Primary')).toBeDisabled();
+    expect(screen.getByText('Set in theme.css')).toBeVisible();
+
+    await user.click(screen.getByRole('button', { name: 'Parchment' }));
+
+    expect(variable('--color-primary')).toBe('');
+    expect(variable('--color-accent')).toBe('#d9b441');
   });
 });

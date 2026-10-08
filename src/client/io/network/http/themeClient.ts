@@ -4,11 +4,16 @@ import { httpClient } from './httpClient';
 // The admin panel's Appearance page: theme/theme.json and its pictures. A
 // player's client only gets the result, from /game and /theme/theme.css.
 
-/** `handwritten`: the game also has a theme.css, which wins over all of it. */
+/**
+ * `handwritten`: the game also has a theme.css, which wins over all of it;
+ * `cssVariables`: the variables that theme.css sets, which win over the ones
+ * a save would write.
+ */
 export const fetchTheme = () =>
-  httpClient<{ theme: Theme; handwritten: boolean }>('/admin/theme', {
-    method: 'GET',
-  });
+  httpClient<{ theme: Theme; handwritten: boolean; cssVariables: string[] }>(
+    '/admin/theme',
+    { method: 'GET' },
+  );
 
 /** Everything but the pictures, which are saved as they are uploaded. */
 export const saveTheme = ({ logo: _, background: __, ...choices }: Theme) =>

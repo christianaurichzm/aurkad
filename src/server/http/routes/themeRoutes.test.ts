@@ -74,21 +74,37 @@ describe('themeRoutes', () => {
     expect((await request(appAs()).get('/admin/theme')).body).toEqual({
       theme: { colors: {}, layout: 'right', art: 'pixel', dialogDim: true },
       handwritten: false,
+      cssVariables: [],
     });
 
     fs.writeFileSync(
       path.join(themeDir, 'theme.css'),
       "/* This game's look.\n   :root { --color-primary: #d9822b; } */\n",
     );
-    expect((await request(appAs()).get('/admin/theme')).body.handwritten).toBe(
-      false,
-    );
+    expect((await request(appAs()).get('/admin/theme')).body).toMatchObject({
+      handwritten: false,
+      cssVariables: [],
+    });
 
     fs.writeFileSync(path.join(themeDir, 'theme.css'), ':root {}');
 
     expect((await request(appAs()).get('/admin/theme')).body.handwritten).toBe(
       true,
     );
+  });
+
+  it('names the variables a theme.css sets, and not the ones it only reads', async () => {
+    fs.writeFileSync(
+      path.join(themeDir, 'theme.css'),
+      [
+        ':root { --color-primary: #8a6812; --color-surface:#4a3524; }',
+        '.panel { --color-primary: #000; color: var(--color-text); }',
+      ].join('\n'),
+    );
+
+    expect(
+      (await request(appAs()).get('/admin/theme')).body.cssVariables,
+    ).toEqual(['--color-primary', '--color-surface']);
   });
 
   it('saves the choices, which the next read answers', async () => {

@@ -20,16 +20,17 @@ import {
 } from '../../../shared/theme';
 import { useT, type TranslationKey } from '../../i18n';
 import { useGameBrand } from '../common/AuthLayout';
+import { Icon, type IconName } from '../common/Icon';
+import { ENGINE_MARK } from '../../../shared/constants';
 
 /**
- * How the game looks, chosen without writing CSS: colours, corners, a font,
- * where the menu sits, a logo and a picture behind the login.
+ * How the game looks without writing CSS: colours, corners, a font, the
+ * menu's place, a logo and a login picture.
  *
- * The preview is the game's own stylesheet under the variables the server
- * would write for the draft, so what it shows is what a save produces. It
- * starts from the engine's values and not from the page's: this page is
- * themed by the last save, and a colour cleared in the draft has to go back
- * to the engine's, not to the one still loaded.
+ * The preview is the game's own markup under the variables a save would
+ * write, starting from the engine's values. A variable the handwritten
+ * theme.css sets wins in the game, so the preview leaves it to the page and
+ * its control is locked.
  */
 
 const COLORS: Record<ThemeColor, TranslationKey> = {
@@ -63,6 +64,28 @@ const ART: Record<Theme['art'], TranslationKey> = {
 const IMAGES: Record<ThemeImage, TranslationKey> = {
   logo: 'appearance.image.logo',
   background: 'appearance.image.background',
+};
+
+// The side column's first tiles, as the game draws them.
+const SAMPLE_ACTIONS: [icon: IconName, label: TranslationKey][] = [
+  ['bag', 'actions.inventory'],
+  ['stats', 'actions.attributes'],
+  ['players', 'actions.onlinePlayers'],
+];
+const SAMPLE_HP = { now: 72, max: 100 };
+const SAMPLE_MP = { now: 27, max: 60 };
+const share = ({ now, max }: { now: number; max: number }) =>
+  `${(now / max) * 100}%`;
+// The login form's own field and button sizes (pages/Login.tsx).
+const sampleInput: React.CSSProperties = {
+  width: '100%',
+  padding: 12,
+  marginBottom: 12,
+};
+const sampleSubmit: React.CSSProperties = {
+  width: '100%',
+  padding: 12,
+  fontWeight: 700,
 };
 
 type Look = Pick<Theme, 'colors' | 'corners' | 'font'>;
@@ -151,6 +174,14 @@ function engineVariables(): Record<string, string> {
   return out;
 }
 
+/** What the page's stylesheets, the game's theme.css included, give `token`. */
+const pageColor = (token: string) => {
+  const value = getComputedStyle(document.documentElement)
+    .getPropertyValue(token)
+    .trim();
+  return HEX.test(value) ? value : '#000000';
+};
+
 /** This page is themed by what was saved when it loaded; take the new one. */
 const reloadTheme = () =>
   document
@@ -167,6 +198,9 @@ export const AppearancePanel: React.FC = () => {
   const [saved, setSaved] = useState<Theme | null>(null);
   const [draft, setDraft] = useState<Theme | null>(null);
   const [handwritten, setHandwritten] = useState(false);
+  const [cssVariables, setCssVariables] = useState<ReadonlySet<string>>(
+    new Set(),
+  );
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const [note, setNote] = useState('');
@@ -178,6 +212,7 @@ export const AppearancePanel: React.FC = () => {
         setSaved(found.theme);
         setDraft(found.theme);
         setHandwritten(found.handwritten);
+        setCssVariables(new Set(found.cssVariables));
       })
       .catch((e: unknown) => setError(friendlyHttpError(e)));
   }, []);
@@ -242,10 +277,14 @@ export const AppearancePanel: React.FC = () => {
     return HEX.test(value) ? value : '#000000';
   };
 
-  const previewStyle = {
-    ...engine,
-    ...Object.fromEntries(themeTokens(draft)),
-  } as React.CSSProperties;
+  const fromCss = (...tokens: string[]) =>
+    tokens.every((token) => cssVariables.has(token));
+
+  const previewStyle = Object.fromEntries(
+    [...Object.entries(engine), ...themeTokens(draft)].filter(
+      ([token]) => !cssVariables.has(token),
+    ),
+  ) as React.CSSProperties;
   const logo = draft.logo ? `/theme/${draft.logo}` : brand?.logo;
 
   return (
@@ -304,12 +343,19 @@ export const AppearancePanel: React.FC = () => {
               <label>
                 <input
                   type="color"
-                  value={colors[color] ?? engineColor(color)}
+                  disabled={fromCss(THEME_TOKENS[color])}
+                  value={
+                    fromCss(THEME_TOKENS[color])
+                      ? pageColor(THEME_TOKENS[color])
+                      : (colors[color] ?? engineColor(color))
+                  }
                   onChange={(e) => setColor(color, e.target.value)}
                 />
                 {t(COLORS[color])}
               </label>
-              {colors[color] ? (
+              {fromCss(THEME_TOKENS[color]) ? (
+                <small>{t('appearance.setInCss')}</small>
+              ) : colors[color] ? (
                 <button
                   type="button"
                   className="link-button"
@@ -332,14 +378,25 @@ export const AppearancePanel: React.FC = () => {
             </label>
             <select
               id="appearance-corners"
-              value={draft.corners ?? ''}
+              disabled={fromCss('--radius-control', '--radius-panel')}
+              value={
+                fromCss('--radius-control', '--radius-panel')
+                  ? ''
+                  : (draft.corners ?? '')
+              }
               onChange={(e) =>
                 change({
                   corners: (e.target.value || undefined) as Theme['corners'],
                 })
               }
             >
-              <option value="">{t('appearance.engineDefault')}</option>
+              <option value="">
+                {t(
+                  fromCss('--radius-control', '--radius-panel')
+                    ? 'appearance.setInCss'
+                    : 'appearance.engineDefault',
+                )}
+              </option>
               {(Object.keys(CORNERS) as (keyof typeof CORNERS)[]).map((c) => (
                 <option key={c} value={c}>
                   {t(CORNERS[c])}
@@ -351,12 +408,19 @@ export const AppearancePanel: React.FC = () => {
             <label htmlFor="appearance-font">{t('appearance.font')}</label>
             <select
               id="appearance-font"
-              value={draft.font ?? ''}
+              disabled={fromCss('--font-ui')}
+              value={fromCss('--font-ui') ? '' : (draft.font ?? '')}
               onChange={(e) =>
                 change({ font: (e.target.value || undefined) as Theme['font'] })
               }
             >
-              <option value="">{t('appearance.engineDefault')}</option>
+              <option value="">
+                {t(
+                  fromCss('--font-ui')
+                    ? 'appearance.setInCss'
+                    : 'appearance.engineDefault',
+                )}
+              </option>
               {(Object.keys(FONTS) as (keyof typeof FONTS)[]).map((f) => (
                 <option key={f} value={f}>
                   {t(FONTS[f])}
@@ -416,6 +480,7 @@ export const AppearancePanel: React.FC = () => {
               <label>
                 {t(IMAGES[slot])}
                 <input
+                  disabled={slot === 'background' && fromCss('--auth-backdrop')}
                   type="file"
                   accept="image/png,image/jpeg,image/webp"
                   aria-label={t('appearance.upload', { name: t(IMAGES[slot]) })}
@@ -425,6 +490,9 @@ export const AppearancePanel: React.FC = () => {
                   }}
                 />
               </label>
+              {slot === 'background' && fromCss('--auth-backdrop') && (
+                <small>{t('appearance.setInCss')}</small>
+              )}
               {draft[slot] && (
                 <button
                   type="button"
@@ -440,73 +508,134 @@ export const AppearancePanel: React.FC = () => {
           <p className="appearance-note">{t('appearance.imageHint')}</p>
         </fieldset>
 
-        <div className="appearance-actions">
-          <button
-            type="submit"
-            className="button-primary"
-            disabled={busy || !dirty}
-          >
-            {t('appearance.save')}
-          </button>
-          <button
-            type="button"
-            disabled={busy || !dirty}
-            onClick={() => setDraft(saved)}
-          >
-            {t('appearance.discard')}
-          </button>
+        <div className="appearance-savebar">
+          <div className="appearance-actions">
+            <button
+              type="submit"
+              className="button-primary"
+              disabled={busy || !dirty}
+            >
+              {t('appearance.save')}
+            </button>
+            <button
+              type="button"
+              disabled={busy || !dirty}
+              onClick={() => setDraft(saved)}
+            >
+              {t('appearance.discard')}
+            </button>
+          </div>
+          {error && (
+            <p className="appearance-note" role="alert" data-tone="danger">
+              {error}
+            </p>
+          )}
+          {note && (
+            <p className="appearance-note" role="status">
+              {note}
+            </p>
+          )}
         </div>
-        {error && (
-          <p className="appearance-note" role="alert" data-tone="danger">
-            {error}
-          </p>
-        )}
-        {note && (
-          <p className="appearance-note" role="status">
-            {note}
-          </p>
-        )}
       </form>
 
+      {/* The game's own markup and ids, which a theme.css styles: the game
+          is not mounted on this page, so none of them is taken. */}
       <section
         className="appearance-preview"
         aria-label={t('appearance.preview')}
         style={previewStyle}
         inert
       >
+        <p className="appearance-caption">{t('appearance.sample.login')}</p>
         <div className="appearance-login">
           <div className="auth-layout">
             <div className="auth-card">
-              <div className="engine-brand">
-                {logo && <img src={logo} alt="" />}
-                <span>{brand?.name}</span>
+              <div className="auth-heading">
+                <div
+                  className="engine-brand"
+                  data-engine-mark={logo === ENGINE_MARK || undefined}
+                >
+                  {logo && <img src={logo} alt="" />}
+                  <span>{brand?.name}</span>
+                </div>
+                <h1>{t('auth.login')}</h1>
               </div>
-              <button type="button" className="button-primary">
-                {t('appearance.sample.signIn')}
-              </button>
+              <div className="auth-form">
+                <input placeholder={t('auth.username')} style={sampleInput} />
+                <input placeholder={t('auth.password')} style={sampleInput} />
+                <button
+                  type="submit"
+                  className="button-primary"
+                  style={sampleSubmit}
+                >
+                  {t('auth.login')}
+                </button>
+              </div>
             </div>
           </div>
         </div>
+
+        <p className="appearance-caption">{t('appearance.sample.game')}</p>
         <div className="appearance-game" data-layout={draft.layout}>
-          <div className="appearance-world">{t('appearance.sample.world')}</div>
-          <div className="panel">
-            <h3 className="window-heading">{t('appearance.sample.player')}</h3>
-            <div className="appearance-bar" />
-            <ul className="list">
-              <li className="list-row">
-                <span className="list-row-text">
-                  {t('appearance.sample.quest')}
-                  <small>{t('appearance.sample.progress')}</small>
-                </span>
-              </li>
-            </ul>
-            <div className="appearance-actions">
-              <button type="button" className="button-primary">
-                {t('appearance.sample.accept')}
-              </button>
-              <button type="button" className="button-danger">
-                {t('appearance.sample.abandon')}
-              </button>
+          <div className="appearance-world">
+            <div id="map-name">{t('appearance.sample.world')}</div>
+            <div className="editor-window game-window">
+              <div className="window-titlebar">
+                <h2>{t('appearance.sample.quest')}</h2>
+              </div>
+              <div className="window-content">
+                <p>{t('appearance.sample.progress')}</p>
+                <div className="appearance-actions">
+                  <button type="button" className="button-primary">
+                    {t('appearance.sample.accept')}
+                  </button>
+                  <button type="button" className="button-danger">
+                    {t('appearance.sample.abandon')}
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div className="appearance-side">
+            <div id="hud" className="panel">
+              <div id="hud-portrait" data-sprite={0} />
+              <div className="hud-stats">
+                <div id="hud-who">
+                  <span id="hud-name">{t('appearance.sample.player')}</span>
+                  <span id="hud-level">{t('hud.level', { level: 7 })}</span>
+                </div>
+                <div id="hud-row">
+                  <span id="hud-hp-label">{t('hud.hp')}</span>
+                  <div id="health-bar-container">
+                    <div id="health-bar" style={{ width: share(SAMPLE_HP) }} />
+                  </div>
+                  <span id="hud-hp-values">
+                    {SAMPLE_HP.now}/{SAMPLE_HP.max}
+                  </span>
+                </div>
+                <div className="hud-resource-row">
+                  <span className="hud-resource-label">{t('hud.mp')}</span>
+                  <div className="mana-track">
+                    <div
+                      className="mana-fill"
+                      style={{ width: share(SAMPLE_MP) }}
+                    />
+                  </div>
+                  <span className="hud-resource-values">
+                    {SAMPLE_MP.now}/{SAMPLE_MP.max}
+                  </span>
+                </div>
+              </div>
+            </div>
+            <div id="actionPanel" className="panel">
+              <div className="action-grid">
+                {SAMPLE_ACTIONS.map(([icon, label]) => (
+                  <button key={icon} type="button" className="action-button">
+                    <Icon name={icon} />
+                    <span className="action-label">{t(label)}</span>
+                  </button>
+                ))}
+              </div>
             </div>
           </div>
         </div>

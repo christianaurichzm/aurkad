@@ -39,17 +39,23 @@ export function createThemeRouter({
   };
 
   router.get('/admin/theme', admin, async (_req, res) => {
-    const [theme, handwritten] = await Promise.all([
+    const [theme, css] = await Promise.all([
       readTheme(themeDir),
-      // The page has to say when a theme.css has rules: they win over every
-      // choice made here, and the preview cannot show that. The starter
-      // ships one that is only a comment, which wins over nothing.
+      // Without its comments: the starter ships a theme.css that is only
+      // one, which wins over nothing.
       readFile(path.join(themeDir, 'theme.css'), 'utf8').then(
-        (css) => css.replace(/\/\*[\s\S]*?\*\//g, '').trim() !== '',
-        () => false,
+        (text) => text.replace(/\/\*[\s\S]*?\*\//g, ''),
+        () => '',
       ),
     ]);
-    res.json({ theme, handwritten });
+    // A theme.css with rules wins over every choice made on the page, and
+    // the variables it sets win over the ones the page would write: the
+    // page locks those and leaves them out of its preview.
+    res.json({
+      theme,
+      handwritten: css.trim() !== '',
+      cssVariables: [...new Set(css.match(/--[\w-]+(?=\s*:)/g))],
+    });
   });
 
   router.put('/admin/theme', admin, async (req, res) => {

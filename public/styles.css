@@ -2140,18 +2140,23 @@ button.item-slot:hover::after {
   background: var(--color-app-bg);
 }
 /* As tall as its card, where the real one fills the screen. The card keeps
-   its real width: a theme sizes the name and the logo for it. */
+   its real width, a theme sizes the name and the logo for it, so it is
+   scaled whole to leave the game below it in view. */
 .appearance-login > .auth-layout {
   position: static;
   padding: 24px 16px;
+  zoom: 0.7;
 }
-.appearance-login .auth-card {
-  display: grid;
-  gap: 16px;
+.appearance-caption {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--color-text-muted);
 }
 .appearance-game {
   display: flex;
-  gap: 8px;
+  gap: 6px;
 }
 .appearance-game[data-layout='left'] {
   flex-direction: row-reverse;
@@ -2159,43 +2164,78 @@ button.item-slot:hover::after {
 .appearance-game[data-layout='bottom'] {
   flex-direction: column;
 }
-.appearance-game > .panel {
-  display: grid;
-  gap: 8px;
-  align-content: start;
-  flex: 0 0 220px;
+.appearance-side {
+  flex: 0 0 250px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
 }
-.appearance-game[data-layout='bottom'] > .panel {
+/* The game's #hud grows along the bar it sits in, not down a column. */
+.appearance-side > #hud {
   flex: none;
+}
+.appearance-game[data-layout='bottom'] > .appearance-side {
+  flex: none;
+  flex-direction: row;
+}
+.appearance-game[data-layout='bottom'] > .appearance-side > .panel {
+  flex: 1;
 }
 .appearance-game[data-layout='overlay'] {
   position: relative;
 }
-.appearance-game[data-layout='overlay'] > .panel {
+.appearance-game[data-layout='overlay'] > .appearance-side {
   position: absolute;
-  inset: 8px auto auto 8px;
-  width: 220px;
-  opacity: 0.9;
+  inset: 40px auto auto 8px;
+  z-index: 1;
+  width: 250px;
+}
+/* The world as the editor's grid draws it, under the map's name and a window
+   the player opened. */
+.appearance-world {
+  position: relative;
+  flex: 1;
+  min-height: 280px;
+  border: 2px solid var(--color-border);
+  background:
+    linear-gradient(
+        color-mix(in srgb, var(--color-border) 45%, transparent) 1px,
+        transparent 1px
+      )
+      0 0 / 32px 32px,
+    linear-gradient(
+        90deg,
+        color-mix(in srgb, var(--color-border) 45%, transparent) 1px,
+        transparent 1px
+      )
+      0 0 / 32px 32px,
+    var(--color-surface-muted);
 }
 .appearance-game[data-layout='overlay'] > .appearance-world {
-  min-height: 240px;
+  min-height: 300px;
 }
-.appearance-world {
-  flex: 1;
+.appearance-world .window-content {
   display: grid;
-  place-items: center;
-  min-height: 150px;
-  border: 1px dashed var(--color-border);
-  color: var(--color-text-muted);
+  gap: 10px;
 }
-.appearance-bar {
-  height: 10px;
-  border-radius: var(--radius-control);
-  background: linear-gradient(
-    90deg,
-    var(--color-primary) 62%,
-    var(--surface-control) 62%
-  );
+.appearance-world > .editor-window {
+  position: absolute;
+  left: 50%;
+  bottom: 16px;
+  z-index: 1;
+  width: min(260px, 90%);
+  max-height: none;
+  transform: translateX(-50%);
+}
+/* Save in reach while the form above it scrolls, with what it answered. */
+.appearance-savebar {
+  position: sticky;
+  bottom: 0;
+  display: grid;
+  gap: 6px;
+  padding: 10px 0;
+  border-top: 1px solid var(--color-border);
+  background: var(--color-surface);
 }
 @media (max-width: 760px) {
   .appearance {
