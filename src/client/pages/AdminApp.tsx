@@ -1,4 +1,4 @@
-import { AuthLayout } from '../components/common/AuthLayout';
+import { AuthLayout, useGameBrand } from '../components/common/AuthLayout';
 import React, { useEffect, useState } from 'react';
 import {
   adminLogin,
@@ -29,6 +29,7 @@ const ScriptEditor = React.lazy(() =>
 // log in with a mod/admin account and moderate from any browser, no gameplay.
 export const AdminApp: React.FC = () => {
   const t = useT();
+  const game = useGameBrand();
   const [session, setSession] = useState<AdminSession | null>(null);
   const [checked, setChecked] = useState(false);
   const [status, setStatus] = useState('');
@@ -51,7 +52,15 @@ export const AdminApp: React.FC = () => {
   return (
     <div style={page}>
       <header className="admin-header" style={header}>
-        <div style={brand}>{t('admin.title')}</div>
+        <div style={brand}>
+          {game && (
+            <>
+              <img src={game.logo} alt="" style={brandLogo} />
+              <span>{game.name}</span>
+            </>
+          )}
+          <span style={brandPanel}>{t('admin.title')}</span>
+        </div>
         <div className="admin-header-actions" style={headerRight}>
           <span style={who}>
             {session.username} · {Access[session.access]}
@@ -214,7 +223,20 @@ const header: React.CSSProperties = {
   background: colors.surface,
   borderBottom: `1px solid ${colors.border}`,
 };
-const brand: React.CSSProperties = { fontWeight: 800, fontSize: 16 };
+const brand: React.CSSProperties = {
+  display: 'flex',
+  alignItems: 'center',
+  gap: 10,
+  fontWeight: 800,
+  fontSize: 16,
+};
+// No taller than the text beside it, so the sticky header stays one line.
+const brandLogo: React.CSSProperties = { height: 22, width: 'auto' };
+const brandPanel: React.CSSProperties = {
+  fontWeight: 600,
+  fontSize: 14,
+  color: colors.textMuted,
+};
 const headerRight: React.CSSProperties = {
   display: 'flex',
   alignItems: 'center',
