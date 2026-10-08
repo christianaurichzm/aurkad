@@ -1,4 +1,7 @@
 import { describe, it, expect, beforeEach } from 'vitest';
+import fs from 'node:fs';
+import path from 'node:path';
+import ts from 'typescript';
 import { on, off, emit, clearAll } from './hooks.js';
 import { createFixture, tile } from '../sim/simFixture.js';
 import { Direction, Key } from '../../shared/types.js';
@@ -409,5 +412,56 @@ describe('itemEquip / itemUnequip hooks', () => {
 
     expect(player.equipped.weapon).toBe(20);
     expect(log).toEqual([]);
+  });
+});
+
+// Script hooks are declared twice: HookMap here, which the engine emits
+// against, and HookPayloads in scripts/global.d.ts, which scripts typecheck
+// against. Types differ (scripts get MapState, not MapStateServer), but a
+// hook or field missing from one is a payload scripts never see or get.
+describe('the hooks scripts are told about', () => {
+  type Pick = (s: ts.Statement) => ts.NodeArray<ts.TypeElement> | undefined;
+
+  /** Each hook in the declaration `pick` finds, with its payload's fields. */
+  function hooksIn(file: string, pick: Pick): Record<string, string[]> {
+    const source = ts.createSourceFile(
+      file,
+      fs.readFileSync(path.resolve(process.cwd(), file), 'utf8'),
+      ts.ScriptTarget.Latest,
+    );
+    const members: readonly ts.TypeElement[] =
+      source.statements.map(pick).find(Boolean) ?? [];
+    return Object.fromEntries(
+      members
+        .filter((m): m is ts.PropertySignature => ts.isPropertySignature(m))
+        .map((hook) => {
+          const payload = hook.type;
+          const fields =
+            payload && ts.isTypeLiteralNode(payload)
+              ? payload.members.map(
+                  (f) => f.name!.getText(source) + (f.questionToken ? '?' : ''),
+                )
+              : [];
+          return [hook.name.getText(source), fields.sort()];
+        }),
+    );
+  }
+
+  it('are the ones the engine emits, with the same fields', () => {
+    const engine = hooksIn('src/server/engine/hooks.ts', (s) =>
+      ts.isTypeAliasDeclaration(s) &&
+      s.name.text === 'HookMap' &&
+      ts.isTypeLiteralNode(s.type)
+        ? s.type.members
+        : undefined,
+    );
+    const declared = hooksIn('scripts/global.d.ts', (s) =>
+      ts.isInterfaceDeclaration(s) && s.name.text === 'HookPayloads'
+        ? s.members
+        : undefined,
+    );
+
+    expect(Object.keys(engine)).not.toHaveLength(0);
+    expect(declared).toEqual(engine);
   });
 });
