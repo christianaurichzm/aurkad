@@ -290,8 +290,6 @@ body {
      one that is scrolled by dragging the whole editor around. */
   width: min(512px, calc(100vw - 16px));
   height: min(100dvh, 1200px);
-  background: var(--color-surface);
-  border: 1px solid var(--color-border);
   padding: 0;
   box-sizing: border-box;
   overflow-y: auto;
@@ -299,24 +297,6 @@ body {
   flex-direction: column;
   gap: 10px;
   cursor: default;
-}
-
-#tilesetContainer > button#saveButton {
-  align-self: flex-end;
-  padding: 6px 12px;
-  background: var(--color-primary);
-  color: #fff;
-  border: none;
-  border-radius: var(--radius-control);
-  cursor: pointer;
-}
-
-#tilesetContainer > canvas#tilesetCanvas {
-  flex: 1;
-  width: 100%;
-  border: 1px solid #666;
-  background-color: #fff;
-  margin-top: 8px;
 }
 
 /* One framed block of the side column: the player card, the menu, the chat.

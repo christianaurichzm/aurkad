@@ -9,7 +9,8 @@ import { MapEditorTools } from './MapEditorTools';
 import { useDraggable } from '../../hooks/useDraggable';
 import { useEscapeClose } from '../../hooks/useEscapeClose';
 import { useMediaQuery } from '../../hooks/useMediaQuery';
-import { colors, radius, shadow, zIndex } from '../../theme';
+import { colors, zIndex } from '../../theme';
+import { Icon } from '../common/Icon';
 import { useT } from '../../i18n';
 
 // Where useDraggable stops dragging: a phone, upright or on its side.
@@ -120,59 +121,28 @@ export const MapEditorWindow: React.FC = () => {
   return (
     <div
       id="tilesetContainer"
+      className="editor-window"
       ref={ref}
       style={{
-        position: 'fixed',
         top: pos.y,
         left: pos.x,
         zIndex: zIndex.editor,
-        background: colors.surface,
-        border: `1px solid ${colors.border}`,
-        borderRadius: radius.panel,
-        boxShadow: shadow.modal,
-        overflow: 'hidden',
-        display: 'flex',
-        flexDirection: 'column',
         maxHeight: 'calc(100dvh - 96px)',
         ...(strip && { ...strip, maxHeight: 'none' }),
       }}
     >
-      <div
-        onPointerDown={onPointerDown}
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          padding: '8px 12px',
-          borderBottom: `1px solid ${colors.border}`,
-          background: colors.surfaceMuted,
-          cursor: 'move',
-          userSelect: 'none',
-          touchAction: 'none',
-          flexShrink: 0,
-        }}
-      >
-        <span style={{ fontWeight: 700, fontSize: 13, color: colors.text }}>
-          {t('mapEditor.title')}
-        </span>
+      <div className="window-titlebar" onPointerDown={onPointerDown}>
+        <h2>{t('mapEditor.title')}</h2>
         <button
+          type="button"
           aria-label={t('common.close')}
           className="window-close"
-          style={{
-            border: 'none',
-            background: 'transparent',
-            fontSize: 16,
-            cursor: 'pointer',
-            color: colors.textMuted,
-            lineHeight: 1,
-            padding: '0 2px',
-          }}
           onClick={(e) => {
             e.stopPropagation();
             void handleClose();
           }}
         >
-          ×
+          <Icon name="close" />
         </button>
       </div>
 

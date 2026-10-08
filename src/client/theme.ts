@@ -2,6 +2,7 @@
 export const colors = {
   primary: 'var(--color-primary)',
   primaryHover: 'var(--color-primary-hover)',
+  accent: 'var(--color-accent)',
   success: 'var(--color-success)',
   danger: 'var(--color-danger)',
   dangerText: 'var(--color-danger-text)',

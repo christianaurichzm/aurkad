@@ -74,22 +74,16 @@ const inputsBox: React.CSSProperties = {
   borderRadius: radius.control,
 };
 
-const propModes: TileEditMode[] = [
-  'blocking',
-  'warping',
-  'npc',
-  'item',
-  'shop',
-  'bank',
-  'avoidNpc',
-  'heal',
-  'kill',
-  'warn',
-  'door',
-  'sound',
-  'changeSprite',
-  'script',
-  'conditionalBlock',
+const propGroups: { label: TranslationKey; modes: TileEditMode[] }[] = [
+  {
+    label: 'mapEditor.groupMovement',
+    modes: ['blocking', 'avoidNpc', 'conditionalBlock', 'door', 'warping'],
+  },
+  { label: 'mapEditor.groupEntities', modes: ['npc', 'item', 'shop', 'bank'] },
+  {
+    label: 'mapEditor.groupOnStep',
+    modes: ['heal', 'kill', 'warn', 'sound', 'changeSprite', 'script'],
+  },
 ];
 const layerModes: TileEditMode[] = ['mask', 'fringe'];
 const modeLabels: Record<TileEditMode, TranslationKey> = {
@@ -111,7 +105,9 @@ const modeLabels: Record<TileEditMode, TranslationKey> = {
   script: 'tileMode.script',
   conditionalBlock: 'tileMode.conditionalBlock',
 };
-const layerActiveColor: Partial<Record<TileEditMode, string>> = {
+// The corner each layer marks its tiles with on the map (drawLayerCorner in
+// graphics/mapEditor.ts), so the swatch doubles as the legend.
+const layerSwatch: Partial<Record<TileEditMode, string>> = {
   mask: '#00bcd4',
   fringe: '#9c27b0',
 };
@@ -273,14 +269,12 @@ const MapEditorToolsComponent: React.FC = () => {
         minWidth: 260,
       }}
     >
-      {/* Wraps because seven controls in one row on a phone left the two text
-          fields three characters wide. */}
+      {/* Wraps so the two text fields keep a usable width on a phone. */}
       <div
         style={{
           display: 'flex',
           flexWrap: 'wrap',
           gap: 8,
-          alignItems: 'flex-end',
         }}
       >
         <div
@@ -348,6 +342,29 @@ const MapEditorToolsComponent: React.FC = () => {
             }}
           />
         </div>
+      </div>
+
+      <div style={{ display: 'flex', gap: 5, alignItems: 'center' }}>
+        <button
+          id="saveButton"
+          onClick={handleSave}
+          disabled={!mapEdited}
+          style={{
+            background: colors.success,
+            color: '#fff',
+            border: 'none',
+            padding: '7px 14px',
+            borderRadius: radius.control,
+            cursor: !mapEdited ? 'not-allowed' : 'pointer',
+            fontWeight: 700,
+            fontSize: 13,
+            opacity: !mapEdited ? 0.45 : 1,
+            flexShrink: 0,
+          }}
+        >
+          {translate('common.save')}
+        </button>
+        <span style={{ flex: 1 }} />
         <button
           onClick={() => fillMap()}
           style={ghostBtn}
@@ -369,56 +386,57 @@ const MapEditorToolsComponent: React.FC = () => {
         >
           ↪
         </button>
-        <button
-          id="saveButton"
-          onClick={handleSave}
-          disabled={!mapEdited}
-          style={{
-            background: colors.success,
-            color: '#fff',
-            border: 'none',
-            padding: '7px 14px',
-            borderRadius: radius.control,
-            cursor: !mapEdited ? 'not-allowed' : 'pointer',
-            fontWeight: 700,
-            fontSize: 13,
-            opacity: !mapEdited ? 0.45 : 1,
-            flexShrink: 0,
-          }}
-        >
-          {translate('common.save')}
-        </button>
       </div>
 
       <div
         style={{
           display: 'grid',
           gridTemplateColumns: 'repeat(3, 1fr)',
-          gap: 5,
+          gap: 8,
         }}
       >
-        {propModes.map((mode) => {
-          const isActive = activeMode === mode;
-          return (
-            <button
-              key={mode}
-              onClick={() => handleToggle(mode)}
-              style={{
-                padding: '6px 0',
-                border: `1px solid ${isActive ? colors.danger : colors.border}`,
-                borderRadius: radius.control,
-                background: isActive ? colors.danger : colors.surfaceMuted,
-                color: isActive ? '#fff' : colors.text,
-                fontWeight: 600,
-                fontSize: 12,
-                cursor: 'pointer',
-                transition: 'all 0.12s',
-              }}
-            >
-              {translate(modeLabels[mode])}
-            </button>
-          );
-        })}
+        {propGroups.map(({ label, modes }) => (
+          <div
+            key={label}
+            role="group"
+            aria-label={translate(label)}
+            style={{
+              display: 'flex',
+              flexDirection: 'column',
+              gap: 5,
+              minWidth: 0,
+            }}
+          >
+            <span style={{ ...labelStyle, marginBottom: 0 }}>
+              {translate(label)}
+            </span>
+            {modes.map((mode) => {
+              const isActive = activeMode === mode;
+              return (
+                <button
+                  key={mode}
+                  aria-pressed={isActive}
+                  onClick={() => handleToggle(mode)}
+                  style={{
+                    padding: '6px 0',
+                    border: `1px solid ${isActive ? colors.accent : colors.border}`,
+                    borderRadius: radius.control,
+                    background: isActive
+                      ? colors.selected
+                      : colors.surfaceMuted,
+                    color: colors.text,
+                    fontWeight: 600,
+                    fontSize: 12,
+                    cursor: 'pointer',
+                    transition: 'all 0.12s',
+                  }}
+                >
+                  {translate(modeLabels[mode])}
+                </button>
+              );
+            })}
+          </div>
+        ))}
       </div>
 
       <div
@@ -433,28 +451,61 @@ const MapEditorToolsComponent: React.FC = () => {
         <span style={{ ...labelStyle, marginBottom: 0 }}>
           {translate('mapEditor.layers')}
         </span>
-        <div style={{ display: 'flex', gap: 5 }}>
-          {layerModes.map((mode) => {
+        {/* Ground is the editor with no mode on, which is also what the
+            attribute buttons fall back to, so none of the three is lit while
+            one of those is. */}
+        <div
+          role="group"
+          aria-label={translate('mapEditor.layers')}
+          style={{
+            display: 'flex',
+            border: `1px solid ${colors.border}`,
+            borderRadius: radius.control,
+            overflow: 'hidden',
+          }}
+        >
+          {[null, ...layerModes].map((mode, i) => {
             const isActive = activeMode === mode;
-            const activeColor = layerActiveColor[mode] ?? colors.danger;
+            const swatch = mode && layerSwatch[mode];
             return (
               <button
-                key={mode}
-                onClick={() => handleToggle(mode)}
+                key={mode ?? 'ground'}
+                aria-pressed={isActive}
+                onClick={() => {
+                  if (isActive) return;
+                  if (mode) handleToggle(mode);
+                  else if (activeMode) handleToggle(activeMode);
+                }}
                 style={{
                   flex: 1,
                   padding: '6px 0',
-                  border: `1px solid ${isActive ? activeColor : colors.border}`,
-                  borderRadius: radius.control,
-                  background: isActive ? activeColor : colors.surfaceMuted,
-                  color: isActive ? '#fff' : colors.text,
+                  border: 'none',
+                  borderLeft: i ? `1px solid ${colors.border}` : 'none',
+                  background: isActive ? colors.selected : colors.surfaceMuted,
+                  boxShadow: isActive
+                    ? `inset 0 0 0 1px ${colors.accent}`
+                    : 'none',
+                  color: colors.text,
                   fontWeight: 600,
                   fontSize: 12,
                   cursor: 'pointer',
                   transition: 'all 0.12s',
                 }}
               >
-                {translate(modeLabels[mode])}
+                {swatch && (
+                  <span
+                    aria-hidden
+                    style={{
+                      display: 'inline-block',
+                      width: 8,
+                      height: 8,
+                      marginRight: 6,
+                      borderRadius: 2,
+                      background: swatch,
+                    }}
+                  />
+                )}
+                {translate(mode ? modeLabels[mode] : 'mapEditor.ground')}
               </button>
             );
           })}
