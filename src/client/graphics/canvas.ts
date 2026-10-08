@@ -17,6 +17,12 @@ export let itemCtx: CanvasRenderingContext2D;
 export let fringeCanvas: HTMLCanvasElement;
 export let fringeCtx: CanvasRenderingContext2D;
 
+// Names, speech, health bars and damage numbers, above every world layer
+// and always at screen resolution, since nearest-neighbour scaling breaks
+// glyph strokes at non-integer scales.
+export let textCanvas: HTMLCanvasElement;
+export let textCtx: CanvasRenderingContext2D;
+
 // The world is drawn 1280 wide everywhere, so on a phone a 15px name comes
 // out at 5. World text grows by what the screen took away, up to twice.
 const READABLE = 0.73;
@@ -85,14 +91,29 @@ const visiblePart = (): typeof visibleView => {
   };
 };
 
+const fitText = (scale: number, prepare: boolean) => {
+  const width = Math.round(GAME_WIDTH * scale);
+  const height = Math.round(GAME_HEIGHT * (width / GAME_WIDTH));
+  const resized = textCanvas.width !== width || textCanvas.height !== height;
+  if (!resized && !prepare) return;
+  if (resized) {
+    textCanvas.width = width;
+    textCanvas.height = height;
+  }
+  prepareWorldContext(textCtx, width / GAME_WIDTH);
+};
+
 const fitWorld = (prepare = false) => {
   const shown = playerCanvas.clientWidth / GAME_WIDTH;
   worldTextScale = shown > 0 ? Math.min(2, Math.max(1, READABLE / shown)) : 1;
   visibleView = visiblePart();
 
-  const scale = smoothArt()
-    ? Math.min(MAX_WORLD_SCALE, Math.max(1, shown * devicePixelRatio))
-    : 1;
+  const screen = Math.min(
+    MAX_WORLD_SCALE,
+    Math.max(1, shown * devicePixelRatio),
+  );
+  fitText(screen, prepare);
+  const scale = smoothArt() ? screen : 1;
   const width = Math.round(GAME_WIDTH * scale);
   const height = Math.round(GAME_HEIGHT * (width / GAME_WIDTH));
   const canvases = worldCanvases();
@@ -146,11 +167,15 @@ export const initGameCanvas = () => {
   fringeCanvas = getEl<HTMLCanvasElement>('fringeCanvas')!;
   if (!fringeCanvas) throw new Error('fringeCanvas element not found');
 
+  textCanvas = getEl<HTMLCanvasElement>('textCanvas')!;
+  if (!textCanvas) throw new Error('textCanvas element not found');
+
   foregroundCtx = foregroundCanvas.getContext('2d')!;
   maskCtx = maskCanvas.getContext('2d')!;
   playerCtx = playerCanvas.getContext('2d')!;
   itemCtx = itemCanvas.getContext('2d')!;
   fringeCtx = fringeCanvas.getContext('2d')!;
+  textCtx = textCanvas.getContext('2d')!;
 
   fitWorld(true);
   let active = true;

@@ -117,9 +117,10 @@
   --z-canvas-items: 3;
   --z-canvas-actors: 4;
   --z-canvas-fringe: 5;
+  --z-canvas-text: 6;
   /* Editor markers (B, W, N, ...) sit above every world layer: a tile hidden
      under a fringe roof is exactly the one whose blocking you need to see. */
-  --z-canvas-grid: 6;
+  --z-canvas-grid: 7;
   --z-game-overlay: 50;
   --z-hud: 100;
   --z-panel: 150;
@@ -235,7 +236,8 @@ body {
 #itemCanvas,
 #gridCanvas,
 #playerCanvas,
-#fringeCanvas {
+#fringeCanvas,
+#textCanvas {
   width: 100%;
   height: 100%;
 }
@@ -270,6 +272,14 @@ body {
   z-index: var(--z-canvas-fringe);
   pointer-events: none;
   background: transparent;
+}
+/* Drawn at the screen's resolution (graphics/canvas.ts); what is left of the
+   scale is filtered, which a line of text survives and pixel art does not. */
+#canvasStack > #textCanvas {
+  z-index: var(--z-canvas-text);
+  pointer-events: none;
+  background: transparent;
+  image-rendering: auto;
 }
 
 #npcSpritePreview,

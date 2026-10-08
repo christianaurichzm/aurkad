@@ -19,6 +19,7 @@ import {
   playerCtx,
   fringeCanvas,
   fringeCtx,
+  textCtx,
   prepareWorldContext,
   worldCanvasGeneration,
 } from './canvas';
@@ -80,17 +81,23 @@ function drawMapCover(): void {
     mapCover = Math.max(0, mapCover - elapsed / MAP_FADE_MS);
 
   if (mapCover <= 0 || !fringeCtx) return;
-  fringeCtx.save();
-  fringeCtx.globalAlpha = mapCover;
-  fringeCtx.fillStyle = '#000';
-  fringeCtx.fillRect(0, 0, GAME_WIDTH, GAME_HEIGHT);
-  fringeCtx.restore();
+  // Over the text layer too, so no name floats over the missing map.
+  for (const ctx of [fringeCtx, textCtx]) {
+    ctx.save();
+    ctx.globalAlpha = mapCover;
+    ctx.fillStyle = '#000';
+    ctx.fillRect(0, 0, GAME_WIDTH, GAME_HEIGHT);
+    ctx.restore();
+  }
 }
 
 export const render = () => {
   const map = getGameState();
   const rawPlayer = getPlayer();
   const mapEdited = useUIStore.getState().mapEdited;
+
+  // Every frame, the ones with no map included, or their names would linger.
+  textCtx.clearRect(0, 0, GAME_WIDTH, GAME_HEIGHT);
 
   // Interpolate position before computing the camera so the background doesn't
   // jump discretely while the player sprite slides smoothly between tiles.
@@ -241,7 +248,10 @@ export const render = () => {
     fringeCtx.save();
     fringeCtx.translate(-cam.x, -cam.y);
     runOverlays(fringeCtx, cam, OverlayLayer.scene);
-    renderEntityHuds(hudEntries, fringeCtx, namedNpcs());
+    fringeCtx.restore();
+    textCtx.save();
+    textCtx.translate(-cam.x, -cam.y);
+    renderEntityHuds(hudEntries, textCtx, namedNpcs());
     // Asked where the server has the player, drawn where they are seen, and not
     // while a modal holds the keys.
     const prompt =
@@ -253,16 +263,16 @@ export const render = () => {
       const { x, y } = currentPlayer.position;
       const center = worldToView(x + TILE_SIZE / 2, y + TILE_SIZE / 2);
       const bottom = worldToView(x + TILE_SIZE, y + TILE_SIZE);
-      renderInteractPrompt(fringeCtx, prompt, center.x, bottom.y + 2);
+      renderInteractPrompt(textCtx, prompt, center.x, bottom.y + 2);
     }
     const ui = useUIStore.getState();
     if (ui.promptKey !== (prompt?.key ?? null))
       ui.setPromptKey(prompt?.key ?? null);
-    renderFloatingTexts(fringeCtx);
+    renderFloatingTexts(textCtx);
     // Same world translate the world layer gets, so an overlay undoing it with
     // translate(cam.x, cam.y) lands in screen space either way.
-    runOverlays(fringeCtx, cam, OverlayLayer.hud);
-    fringeCtx.restore();
+    runOverlays(textCtx, cam, OverlayLayer.hud);
+    textCtx.restore();
   }
 
   // Outside the block, since frames with no map are the ones to cover.

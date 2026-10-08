@@ -47,7 +47,14 @@ describe('canvas stacking order', () => {
 
 describe('world text', () => {
   it('is drawn larger where the world is shown smaller, twice at most', async () => {
-    document.body.innerHTML = ['foreground', 'mask', 'player', 'item', 'fringe']
+    document.body.innerHTML = [
+      'foreground',
+      'mask',
+      'player',
+      'item',
+      'fringe',
+      'text',
+    ]
       .map((name) => `<canvas id="${name}Canvas" width="1280"></canvas>`)
       .join('');
     vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockReturnValue({
@@ -98,6 +105,7 @@ it('uses device pixels for smooth art while keeping the visible view logical', a
     'item',
     'grid',
     'fringe',
+    'text',
   ]
     .map(
       (name) =>
@@ -142,6 +150,11 @@ it('uses device pixels for smooth art while keeping the visible view logical', a
   initGameCanvas()();
   expect(worldScale).toBe(1);
   expect(ctx.imageSmoothingEnabled).toBe(false);
+  // Pixel art keeps the logical buffer; the text over it does not.
+  expect(document.querySelector('canvas')!.width).toBe(1280);
+  expect(document.querySelector<HTMLCanvasElement>('#textCanvas')!.width).toBe(
+    2560,
+  );
   await Promise.resolve();
   vi.restoreAllMocks();
   vi.unstubAllGlobals();

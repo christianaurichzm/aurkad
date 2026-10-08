@@ -17,6 +17,7 @@ export const GameCanvas = () => {
       <canvas id="gridCanvas" width="1280" height="896"></canvas>
       <canvas id="playerCanvas" width="1280" height="896"></canvas>
       <canvas id="fringeCanvas" width="1280" height="896"></canvas>
+      <canvas id="textCanvas" width="1280" height="896"></canvas>
     </div>
   );
 };

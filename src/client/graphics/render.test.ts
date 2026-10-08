@@ -36,6 +36,7 @@ vi.mock('./canvas', () => ({
   playerCtx: mocks.ctx,
   fringeCanvas: canvas,
   fringeCtx: mocks.ctx,
+  textCtx: mocks.ctx,
   prepareWorldContext: vi.fn(),
   get worldCanvasGeneration() {
     return mocks.canvasGeneration;

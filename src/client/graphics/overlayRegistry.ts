@@ -46,7 +46,8 @@ export function registerOverlay(
 /**
  * With no `layer`, every overlay. With one, only that layer: `world` draws on
  * the entities' canvas, which the fringe (tree tops, roofs) paints over;
- * `scene` and `hud` on the fringe's, after it, with the names between them.
+ * `scene` on the fringe's, after it; `hud` on the text canvas above both,
+ * after the names.
  */
 export function runOverlays(
   ctx: CanvasRenderingContext2D,

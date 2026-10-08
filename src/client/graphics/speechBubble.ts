@@ -1,14 +1,23 @@
+import { themeToken } from './floatingText';
+
 const BUBBLE_DURATION = 4000;
 const MAX_TEXT_LEN = 42;
 // Past this the bubble stops growing and the line is squeezed to fit it.
 const MAX_TEXT_WIDTH = 240;
 
-const bubbles = new Map<string, { text: string; startTime: number }>();
+const bubbles = new Map<
+  string,
+  { text: string; startTime: number; font: string }
+>();
 
 export function setPlayerSpeech(id: string, text: string) {
   const truncated =
     text.length > MAX_TEXT_LEN ? text.slice(0, MAX_TEXT_LEN - 3) + '...' : text;
-  bubbles.set(id, { text: truncated, startTime: performance.now() });
+  bubbles.set(id, {
+    text: truncated,
+    startTime: performance.now(),
+    font: themeToken('--font-world', 'sans-serif'),
+  });
 }
 
 function getActiveSpeech(id: string): string | null {
@@ -29,15 +38,16 @@ export function renderSpeechBubble(
 ) {
   const text = getActiveSpeech(id);
   if (!text) return;
+  const { startTime, font } = bubbles.get(id)!;
 
-  const elapsed = performance.now() - bubbles.get(id)!.startTime;
+  const elapsed = performance.now() - startTime;
   const progress = elapsed / BUBBLE_DURATION;
   const alpha = progress > 0.75 ? (1 - progress) / 0.25 : 1;
 
   ctx.save();
   ctx.globalAlpha = Math.max(0, alpha);
-  // The size of the name under it, so a line is as readable as who said it.
-  ctx.font = 'bold 14px Arial';
+  // The size and face of the name under it, so a line reads like who said it.
+  ctx.font = `bold 14px ${font}`;
 
   const textW = Math.min(ctx.measureText(text).width, MAX_TEXT_WIDTH);
   const padX = 10;
