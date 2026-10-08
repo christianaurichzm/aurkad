@@ -1,4 +1,4 @@
-import { access } from 'node:fs/promises';
+import { readFile } from 'node:fs/promises';
 import path from 'node:path';
 import express, { type Response } from 'express';
 import { THEME_IMAGES, type ThemeImage } from '../../../shared/theme.js';
@@ -41,10 +41,11 @@ export function createThemeRouter({
   router.get('/admin/theme', admin, async (_req, res) => {
     const [theme, handwritten] = await Promise.all([
       readTheme(themeDir),
-      // The page has to say when a theme.css is there: it wins over every
-      // choice made here, and the preview cannot show that.
-      access(path.join(themeDir, 'theme.css')).then(
-        () => true,
+      // The page has to say when a theme.css has rules: they win over every
+      // choice made here, and the preview cannot show that. The starter
+      // ships one that is only a comment, which wins over nothing.
+      readFile(path.join(themeDir, 'theme.css'), 'utf8').then(
+        (css) => css.replace(/\/\*[\s\S]*?\*\//g, '').trim() !== '',
         () => false,
       ),
     ]);

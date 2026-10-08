@@ -70,11 +70,19 @@ describe('themeRoutes', () => {
     expect(fs.readdirSync(themeDir)).toEqual([]);
   });
 
-  it('answers the defaults for a game with no theme, and says when a theme.css is there', async () => {
+  it('answers the defaults for a game with no theme, and says when a theme.css has rules', async () => {
     expect((await request(appAs()).get('/admin/theme')).body).toEqual({
       theme: { colors: {}, layout: 'right', art: 'pixel', dialogDim: true },
       handwritten: false,
     });
+
+    fs.writeFileSync(
+      path.join(themeDir, 'theme.css'),
+      "/* This game's look.\n   :root { --color-primary: #d9822b; } */\n",
+    );
+    expect((await request(appAs()).get('/admin/theme')).body.handwritten).toBe(
+      false,
+    );
 
     fs.writeFileSync(path.join(themeDir, 'theme.css'), ':root {}');
 
