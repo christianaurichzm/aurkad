@@ -193,8 +193,8 @@ export const respawnNpc = (mapId: string, npc: RuntimeNpc) => {
   // something nobody can see or strike.
   if (delay === 0) return;
   scheduleAfter(delay, () => {
-    // The map is looked up again: a save in the editor rebuilds its npcs, and
-    // one rebuilt meanwhile already stands in this id's place.
+    // The map is looked up again: a save in the editor replaces the map
+    // object, and can put a new npc on this id's spawn tile meanwhile.
     const current = getMap(mapId);
     if (!current || current.npcs[npc.id]) return;
     if (placeAtSpawn(mapId, npc)) current.npcs[npc.id] = npc;

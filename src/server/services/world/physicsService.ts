@@ -9,6 +9,7 @@ import {
   CombatTarget,
   MapStateServer,
   Position,
+  Tile,
   Warp,
 } from '../../../shared/types.js';
 import { getMap } from '../../sim/world.js';
@@ -124,12 +125,18 @@ export const onMap = (
   position: Position,
 ): Position => {
   const tiles = getMap(mapId)?.tiles;
-  if (!tiles) return position;
-  return {
-    x: ontoMap(position.x, mapTileWidth(tiles), entity.width),
-    y: ontoMap(position.y, mapTileHeight(tiles), entity.height),
-  };
+  return tiles ? onTiles(entity, tiles, position) : position;
 };
+
+/** `position` pulled onto a grid of `tiles` at its nearest edge. */
+export const onTiles = (
+  entity: { width: number; height: number },
+  tiles: Tile[][],
+  position: Position,
+): Position => ({
+  x: ontoMap(position.x, mapTileWidth(tiles), entity.width),
+  y: ontoMap(position.y, mapTileHeight(tiles), entity.height),
+});
 
 /**
  * How far out to look for somewhere to stand. Three rings is a 7x7 block of

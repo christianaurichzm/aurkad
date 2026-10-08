@@ -18,9 +18,13 @@ vi.mock('../../persistence/mapRepository.js', () => ({
   mapRepository: { upsert: vi.fn() },
 }));
 
-const { insertNpcs, createOrUpdateMap } = await import('./mapService.js');
+const { insertNpcs, createOrUpdateMap, mapSave } =
+  await import('./mapService.js');
 const { on } = await import('../../engine/hooks.js');
 const { runtimeState } = await import('../../sim/state.js');
+const { spawnNpc } = await import('../npc/spawn.js');
+const { respawnNpc } = await import('../npc/index.js');
+const { msToTicks } = await import('../../sim/clock.js');
 
 const tiles = (npcId: string): Tile[][] => [
   [{ tileIndex: 0 }, { tileIndex: 0, npcSpawn: npcId }],
@@ -182,4 +186,143 @@ describe('editing a populated map', () => {
       }
     },
   );
+});
+
+// The editor sends the whole grid on every save, so the save has to tell what
+// the edit changed from what the players changed since the map loaded.
+describe('saving a map from the editor while it is played', () => {
+  const wolf: Partial<PersistentNpc> = {
+    id: 'wolf',
+    name: 'Wolf',
+    sprite: 3,
+    maxHealth: 50,
+    attack: 4,
+    behavior: 'aggressive',
+    respawnMs: 60_000,
+  };
+
+  const grid = (
+    size: number,
+    spawns: Array<[number, number]> = [],
+    placed: Array<[number, number, number]> = [],
+  ): Tile[][] => {
+    const tiles = makeTiles(size, size);
+    for (const [col, row] of spawns) tiles[row]![col]!.npcSpawn = 'wolf';
+    for (const [col, row, item] of placed) tiles[row]![col]!.item = item;
+    return tiles;
+  };
+
+  // The map as boot leaves it: npcs from spawn tiles, nothing on the ground.
+  const loaded = async (tiles: Tile[][]) => {
+    const sim = createFixture();
+    getNpcById.mockResolvedValue(wolf);
+    sim.map.tiles = tiles;
+    await insertNpcs(sim.map, sim.mapId, tiles);
+    return sim;
+  };
+
+  const save = (mapId: string, tiles: Tile[][]) =>
+    mapSave(mapId, tiles, 'Test', 'normal');
+
+  it('leaves what players dropped on the ground', async () => {
+    const sim = await loaded(grid(10));
+    const drop = {
+      itemId: 7,
+      sprite: 1,
+      quantity: 3,
+      position: tile(4, 4),
+      expiresAtTick: 600,
+    };
+    sim.map.droppedItems.push(drop);
+
+    await save(sim.mapId, grid(10));
+
+    expect(getMap(sim.mapId)!.droppedItems).toEqual([drop]);
+  });
+
+  it('keeps a wounded npc where the fight left it', async () => {
+    const sim = await loaded(grid(10, [[2, 2]]));
+    const npc = Object.values(sim.map.npcs)[0]!;
+    npc.health = 12;
+    npc.position = tile(5, 6);
+
+    await save(sim.mapId, grid(10, [[2, 2]]));
+
+    expect(getMap(sim.mapId)!.npcs[npc.id]).toBe(npc);
+    expect(npc.health).toBe(12);
+    expect(npc.position).toEqual(tile(5, 6));
+  });
+
+  it('keeps the npcs a script spawned', async () => {
+    const sim = await loaded(grid(10));
+    const cat = spawnNpc({ mapId: sim.mapId, col: 3, row: 3, name: 'Cat' })!;
+
+    await save(sim.mapId, grid(10));
+
+    expect(getMap(sim.mapId)!.npcs[cat.id]).toBe(cat);
+  });
+
+  it('adds the npc of a new spawn and takes away the one whose spawn went', async () => {
+    const sim = await loaded(grid(10, [[2, 2]]));
+    const old = Object.values(sim.map.npcs)[0]!;
+
+    await save(sim.mapId, grid(10, [[7, 7]]));
+
+    const npcs = Object.values(getMap(sim.mapId)!.npcs);
+    expect(npcs).not.toContain(old);
+    expect(npcs.map((n) => n.position)).toEqual([tile(7, 7)]);
+  });
+
+  it('leaves a killed npc to its respawn instead of raising it', async () => {
+    const sim = await loaded(grid(10, [[2, 2]]));
+    const npc = Object.values(sim.map.npcs)[0]!;
+    respawnNpc(sim.mapId, npc);
+
+    await save(sim.mapId, grid(10, [[2, 2]]));
+    expect(getMap(sim.mapId)!.npcs).toEqual({});
+
+    sim.step(msToTicks(60_000) + 1);
+    expect(getMap(sim.mapId)!.npcs[npc.id]).toBe(npc);
+  });
+
+  it('puts an item placed in the editor on the ground once', async () => {
+    const sim = await loaded(grid(10));
+    sim.addItem({
+      id: 9,
+      name: 'Potion',
+      description: '',
+      sprite: 2,
+      type: 'consumable',
+    });
+
+    await save(sim.mapId, grid(10, [], [[4, 4, 9]]));
+    expect(getMap(sim.mapId)!.droppedItems).toEqual([
+      { itemId: 9, sprite: 2, quantity: 1, position: tile(4, 4) },
+    ]);
+
+    // Picked up, then the map is saved again for something else.
+    getMap(sim.mapId)!.droppedItems.length = 0;
+    await save(sim.mapId, grid(10, [], [[4, 4, 9]]));
+    expect(getMap(sim.mapId)!.droppedItems).toEqual([]);
+  });
+
+  it('moves what stood on the removed tiles of a shrunken map onto it', async () => {
+    const sim = await loaded(grid(10, [[1, 1]]));
+    const npc = Object.values(sim.map.npcs)[0]!;
+    npc.position = tile(8, 8);
+    const cat = spawnNpc({ mapId: sim.mapId, col: 9, row: 2, name: 'Cat' })!;
+    sim.map.droppedItems.push({
+      itemId: 7,
+      sprite: 1,
+      quantity: 1,
+      position: tile(9, 9),
+    });
+
+    await save(sim.mapId, grid(4, [[1, 1]]));
+
+    const live = getMap(sim.mapId)!;
+    expect(live.npcs[npc.id]?.position).toEqual(tile(3, 3));
+    expect(live.npcs[cat.id]?.position).toEqual(tile(3, 2));
+    expect(live.droppedItems.map((d) => d.position)).toEqual([tile(3, 3)]);
+  });
 });
