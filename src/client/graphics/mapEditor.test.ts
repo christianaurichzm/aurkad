@@ -12,8 +12,10 @@ import {
   resetToOriginalMap,
   setEditorTiles,
   toggleBlocking,
+  toggleMapEditor,
   toggleMask,
 } from './mapEditor';
+import { tileAnimations } from '../io/assets';
 
 const mocks = vi.hoisted(() => {
   const calls: { fn: string; args: unknown[] }[] = [];
@@ -335,6 +337,44 @@ describe('isometric editing', () => {
         .filter((t) => t.blocked),
     ).toHaveLength(1);
     toggleBlocking();
+  });
+});
+
+describe('the palette', () => {
+  beforeEach(() => {
+    mocks.calls.length = 0;
+    document.body.innerHTML =
+      '<canvas id="tilesetCanvas"></canvas><canvas id="gridCanvas"></canvas>';
+    vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockReturnValue(
+      mocks.ctx,
+    );
+  });
+
+  it('runs an animated tile in its cell and dims the frames it cycles through', () => {
+    tileAnimations['1'] = { frames: [1, 5], ms: 100 };
+    const now = vi.spyOn(performance, 'now').mockReturnValue(100);
+    try {
+      initMapEditor();
+      const draws = mocks.calls.filter((c) => c.fn === 'drawImage');
+      // A 256 px atlas holds four tiles a row: tile 1's cell is at (64, 0),
+      // and frame 5, the one showing at 100 ms, comes from (64, 64).
+      expect(
+        draws.some(
+          (c) =>
+            c.args[1] === 64 &&
+            c.args[2] === 64 &&
+            c.args[5] === 64 &&
+            c.args[6] === 0,
+        ),
+      ).toBe(true);
+      expect(
+        mocks.calls.filter((c) => c.fn === 'fillRect').map((c) => c.args),
+      ).toEqual([[64, 64, 64, 64]]);
+    } finally {
+      toggleMapEditor(false);
+      now.mockRestore();
+      delete tileAnimations['1'];
+    }
   });
 });
 

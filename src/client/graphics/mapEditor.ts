@@ -11,7 +11,12 @@ import {
 import { TILE_SIZE } from '../../shared/constants';
 import { MapType, Tile, TileAction, TileEditMode } from '../../shared/types';
 import type { ScriptParams } from '../../shared/scriptParams';
-import { tileset, tilesetAlpha, isometricFrames } from '../io/assets';
+import {
+  tileset,
+  tilesetAlpha,
+  isometricFrames,
+  tileAnimations,
+} from '../io/assets';
 import { saveMap, type SaveMapResponse, fetchNpcs } from '../io/network';
 import {
   foregroundCanvas,
@@ -23,6 +28,7 @@ import { useUIStore } from '../stores/uiStore';
 import { getCamera, screenToWorld, worldToScreen } from './camera';
 import { getMapOrientation } from '../core/gameState';
 import {
+  animatedTile,
   drawGroundTile,
   drawTiles,
   groundRect,
@@ -92,6 +98,7 @@ export const initMapEditor = () => {
   gridCtx = gridCanvas.getContext('2d')!;
   tilesetCtx = tilesetCanvas.getContext('2d')!;
   paintPalette();
+  startPaletteAnimations();
   setupEventListeners();
   initializeGrid();
   void loadEditorNpcNames();
@@ -105,6 +112,7 @@ export const initMapEditor = () => {
  */
 const paintPalette = () => {
   if (activeKit()) return paintKitPalette();
+  selectionShown = false;
   const perRow = Math.floor(tileset.width / TILE_SIZE);
   const frames = isometricFrames;
   const ids = Object.keys(frames).map(Number);
@@ -129,24 +137,84 @@ const paintPalette = () => {
     tileset.width,
     height,
   );
-  for (const id of ids) {
-    const f = frames[id];
-    const cellX = (id % perRow) * TILE_SIZE;
-    const cellY = Math.floor(id / perRow) * TILE_SIZE;
-    const k = Math.min(TILE_SIZE / f.width, TILE_SIZE / f.height);
-    tilesetCtx.clearRect(cellX, cellY, TILE_SIZE, TILE_SIZE);
-    tilesetCtx.drawImage(
-      tilesetAlpha,
-      f.x,
-      f.y,
-      f.width,
-      f.height,
-      cellX + (TILE_SIZE - f.width * k) / 2,
-      cellY + TILE_SIZE - f.height * k,
-      f.width * k,
-      f.height * k,
-    );
+  for (const id of ids) drawPaletteCell(id, id);
+  paintAnimatedCells();
+};
+
+const paletteCell = (id: number) => {
+  const perRow = Math.floor(tileset.width / TILE_SIZE);
+  return {
+    x: (id % perRow) * TILE_SIZE,
+    y: Math.floor(id / perRow) * TILE_SIZE,
+  };
+};
+
+/** Tile `art`'s picture in tile `id`'s palette cell, a frame scaled to fit. */
+const drawPaletteCell = (id: number, art: number) => {
+  const { x, y } = paletteCell(id);
+  const f = isometricFrames[art];
+  const source = f ?? {
+    ...paletteCell(art),
+    width: TILE_SIZE,
+    height: TILE_SIZE,
+  };
+  const k = Math.min(TILE_SIZE / source.width, TILE_SIZE / source.height);
+  tilesetCtx.clearRect(x, y, TILE_SIZE, TILE_SIZE);
+  tilesetCtx.drawImage(
+    tilesetAlpha,
+    source.x,
+    source.y,
+    source.width,
+    source.height,
+    x + (TILE_SIZE - source.width * k) / 2,
+    y + TILE_SIZE - source.height * k,
+    source.width * k,
+    source.height * k,
+  );
+};
+
+/**
+ * Animated tiles show their current frame in the palette, and a cell that
+ * is only a frame of another tile's animation is dimmed.
+ */
+const paintAnimatedCells = (now = performance.now()) => {
+  const frameOnly = new Set<number>();
+  for (const [key, { frames }] of Object.entries(tileAnimations)) {
+    drawPaletteCell(Number(key), animatedTile(Number(key), now));
+    for (const frame of frames)
+      if (!tileAnimations[frame]) frameOnly.add(frame);
   }
+  tilesetCtx.fillStyle = 'rgba(0, 0, 0, 0.6)';
+  for (const id of frameOnly) {
+    const { x, y } = paletteCell(id);
+    tilesetCtx.fillRect(x, y, TILE_SIZE, TILE_SIZE);
+  }
+};
+
+// The palette has a loop of its own, as SpritePreview does: the game's loop
+// paints the world, not this panel.
+let paletteFrame = 0;
+let paletteStep = -1;
+let selectionShown = false;
+const runPaletteAnimations = () => {
+  paletteFrame = requestAnimationFrame(runPaletteAnimations);
+  if (activeKit()) return;
+  const now = performance.now();
+  let step = 0;
+  for (const { ms } of Object.values(tileAnimations))
+    step += Math.floor(now / ms);
+  if (step === paletteStep) return;
+  paletteStep = step;
+  for (const key of Object.keys(tileAnimations))
+    drawPaletteCell(Number(key), animatedTile(Number(key), now));
+  // A repainted cell takes the edge of the selection with it.
+  if (selectionShown) strokeSelection();
+};
+
+const startPaletteAnimations = () => {
+  cancelAnimationFrame(paletteFrame);
+  if (Object.keys(tileAnimations).length)
+    paletteFrame = requestAnimationFrame(runPaletteAnimations);
 };
 
 type PieceCell = { col: number; row: number; id: number; blocks: boolean };
@@ -699,6 +767,11 @@ const endSelecting = () => {
 
 const highlightSelectedTile = () => {
   paintPalette();
+  strokeSelection();
+  selectionShown = true;
+};
+
+const strokeSelection = () => {
   tilesetCtx.strokeStyle = 'red';
   tilesetCtx.lineWidth = 2;
   const startX = Math.min(selectedTile.startX, selectedTile.endX) * TILE_SIZE;
@@ -1172,11 +1245,13 @@ export const toggleMapEditor = (shouldShow: boolean) => {
       initMapEditor();
     } else {
       paintPalette();
+      startPaletteAnimations();
       setupEventListeners();
       initializeGrid();
     }
     show('gridCanvas', 'block');
   } else {
+    cancelAnimationFrame(paletteFrame);
     removeEventListeners();
     hide('gridCanvas');
     setMapEdited(false);
