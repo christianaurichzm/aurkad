@@ -8,7 +8,12 @@ import {
   parseSpriteLayout,
   setSpriteLayout,
 } from './sprite';
-import { drawSprite, drawSpriteGeneric } from './spriteDrawing';
+import {
+  drawSprite,
+  drawSpriteGeneric,
+  figureBounds,
+  spriteTop,
+} from './spriteDrawing';
 
 const mocks = vi.hoisted(() => ({ playerCtx: {} as CanvasRenderingContext2D }));
 vi.mock('./canvas', () => ({ playerCtx: mocks.playerCtx }));
@@ -120,6 +125,35 @@ describe('drawSprite', () => {
       128, 128, 640, 320, 64, 64,
     ]);
     setSpriteLayout(DEFAULT_SPRITE_LAYOUT);
+  });
+});
+
+describe('spriteTop', () => {
+  it('is the top of the figure, wherever its frame leaves it', () => {
+    // Opaque from 20 px down and 10 px in from each side; a faint rim pixel
+    // above the head is not the head.
+    const data = new Uint8ClampedArray(SPRITE_WIDTH * SPRITE_HEIGHT * 4);
+    for (let y = 20; y < SPRITE_HEIGHT; y++)
+      for (let x = 10; x < SPRITE_WIDTH - 10; x++)
+        data[(y * SPRITE_WIDTH + x) * 4 + 3] = 255;
+    data[(5 * SPRITE_WIDTH + 30) * 4 + 3] = 100;
+    vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockReturnValue({
+      ...recordingContext().ctx,
+      getImageData: () => ({ data }),
+    } as never);
+    const sheet = document.createElement('canvas');
+    sheet.width = SHEET;
+    sheet.height = SPRITE_HEIGHT * 4;
+    buildEntityAtlas({ sprites: sheet });
+
+    expect(figureBounds(0)).toEqual({
+      x: 10,
+      y: 20,
+      width: SPRITE_WIDTH - 20,
+      height: SPRITE_HEIGHT - 20,
+    });
+    expect(spriteTop(0, 640, 320)).toBe(320 + 20);
+    vi.restoreAllMocks();
   });
 });
 

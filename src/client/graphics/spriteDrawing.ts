@@ -3,6 +3,7 @@ import { entityAtlas, entityAtlasOffsets } from './atlas';
 import { characterLayout, getCharacterSpriteCoordinates } from './sprite';
 import { playerCtx } from './canvas';
 import { TILE_SIZE } from '../../shared/constants';
+import { Direction } from '../../shared/types';
 
 export function drawSpriteGeneric(
   ctx: CanvasRenderingContext2D,
@@ -51,11 +52,59 @@ const spriteBox = (
     posY + footprintHeight - TILE_SIZE,
   );
 
-/**
- * Where a character's name and health bar go: the top of its box, or of
- * its frame where the frame is taller, so a figure larger than a tile does
- * not wear its name across its chest.
- */
+export interface FigureBounds {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}
+
+// Where the figure stands in its frame: the opaque part of its standing
+// frame facing down. Sheets leave different room around a figure, so names
+// and portraits go by this. Read once per character.
+const figures = new Map<number, FigureBounds>();
+let figuresOf: HTMLCanvasElement | null = null;
+
+export function figureBounds(characterIndex: number): FigureBounds {
+  const { width, height, idleColumn } = characterLayout(characterIndex);
+  const frame = { x: 0, y: 0, width, height };
+  const off = entityAtlasOffsets.sprites;
+  if (!entityAtlas || !off) return frame;
+  if (figuresOf !== entityAtlas) {
+    figures.clear();
+    figuresOf = entityAtlas;
+  }
+  const known = figures.get(characterIndex);
+  if (known) return known;
+
+  const at = getCharacterSpriteCoordinates(
+    characterIndex,
+    idleColumn,
+    Direction.Down,
+    off.width,
+  );
+  const { data } = entityAtlas
+    .getContext('2d')!
+    .getImageData(off.x + at.x, off.y + at.y, width, height);
+  let [left, top, right, bottom] = [width, height, -1, -1];
+  for (let i = 0; i < width * height; i++) {
+    if (data[i * 4 + 3] < 128) continue;
+    const x = i % width;
+    const y = Math.floor(i / width);
+    left = Math.min(left, x);
+    right = Math.max(right, x);
+    top = Math.min(top, y);
+    bottom = Math.max(bottom, y);
+  }
+  const figure =
+    right < 0
+      ? frame
+      : { x: left, y: top, width: right - left + 1, height: bottom - top + 1 };
+  figures.set(characterIndex, figure);
+  return figure;
+}
+
+/** Where a character's name and health bar go: the top of its head. */
 export function spriteTop(
   characterIndex: number,
   posX: number,
@@ -65,10 +114,8 @@ export function spriteTop(
 ) {
   const { anchorY, scale } = characterLayout(characterIndex);
   const box = spriteBox(posX, posY, footprintWidth, footprintHeight);
-  return Math.min(
-    spritePosition(posX, posY).y,
-    box.y + TILE_SIZE - anchorY * scale,
-  );
+  const head = figureBounds(characterIndex).y;
+  return box.y + TILE_SIZE - (anchorY - head) * scale;
 }
 
 // The frame hangs from its anchor at the foot of the character's box.

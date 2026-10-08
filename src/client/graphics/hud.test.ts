@@ -209,20 +209,20 @@ describe('renderNpcLabel', () => {
     expect(rec.calls).toEqual([]);
   });
 
-  // A figure two tiles tall stands its frame above its box; the name goes
-  // over the frame, not over the box, which is the figure's middle.
+  // A figure two tiles tall stands its frame above its box, so the name goes
+  // over the frame, its baseline 6px above the head.
   it('stands over a frame taller than the tile', () => {
     const nameY = () => {
       const rec = recordingContext();
       renderNpcLabel(npc('Lia'), false, rec.ctx);
       return rec.of('fillText')[0]?.args[2];
     };
-    expect(nameY()).toBe(64);
+    expect(nameY()).toBe(64 - 6);
     try {
       setSpriteLayout(
         parseSpriteLayout({ width: 128, height: 128, anchorY: 120 }),
       );
-      expect(nameY()).toBe(64 + TILE_SIZE - 120);
+      expect(nameY()).toBe(64 + TILE_SIZE - 120 - 6);
     } finally {
       setSpriteLayout(DEFAULT_SPRITE_LAYOUT);
     }

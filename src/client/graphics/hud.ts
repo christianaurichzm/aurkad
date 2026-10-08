@@ -95,7 +95,7 @@ export const renderHUD = (
   const { name, level, position, access, nameColor, nameTag, nameTagColor } =
     player;
   const { x } = spritePosition(position.x, position.y);
-  const y = spriteTop(player.sprite, position.x, position.y);
+  const y = spriteTop(player.sprite, position.x, position.y) - NAME_CLEARANCE;
   const cx = x + TILE_SIZE / 2; // sprite center: names are centered over it
   const { world } = hudTheme();
 
@@ -165,7 +165,7 @@ export const renderNpcLabel = (
     npc.width,
     npc.height,
   );
-  const y = hasHealthBar ? top - HEALTH_BAR_CLEARANCE : top;
+  const y = top - (hasHealthBar ? HEALTH_BAR_CLEARANCE : NAME_CLEARANCE);
   const comma = npc.name.indexOf(',');
   const role = comma > 0 ? npc.name.slice(comma + 1).trim() : '';
 
@@ -183,8 +183,11 @@ export const renderNpcLabel = (
 };
 
 const HEALTH_BAR_HEIGHT = 5;
-// Room above the sprite for the bar, its outline and a name's descenders.
+// Room above the head for the bar, its outline and a name's descenders.
 const HEALTH_BAR_CLEARANCE = HEALTH_BAR_HEIGHT + 8;
+// Room between a head and the name's baseline: the descenders, the outline
+// round them, and air enough that the name does not read as part of the hair.
+const NAME_CLEARANCE = 6;
 
 // A slim bar in the danger colour: the colour says whose health it is, the
 // length how much is left.
