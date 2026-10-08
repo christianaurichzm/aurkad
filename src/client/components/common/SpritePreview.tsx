@@ -18,7 +18,7 @@ interface SpritePreviewProps {
 
 /**
  * A character's sprite with no frame, for a box the stylesheet draws, where
- * a theme can swap it for a picture.
+ * a theme can swap it for a picture. `size` is the buffer.
  */
 export const Sprite = ({
   spriteId,
@@ -29,6 +29,8 @@ export const Sprite = ({
     size={size}
     style={{
       display: 'block',
+      width: '100%',
+      height: '100%',
       border: 'none',
       borderRadius: 0,
       background: 'none',
