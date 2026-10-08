@@ -580,6 +580,7 @@ export const en = {
 
   'console.noOutput': '(no output)',
   'console.failed': 'Command failed.',
+  'console.commands': '{count} commands',
   'console.hint': 'Run a command, e.g.',
   'console.placeholder': 'type a command and press Enter',
 

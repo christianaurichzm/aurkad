@@ -577,6 +577,7 @@ export const pt: Record<keyof typeof en, string> = {
 
   'console.noOutput': '(sem saída)',
   'console.failed': 'O comando falhou.',
+  'console.commands': '{count} comandos',
   'console.hint': 'Rode um comando, por exemplo',
   'console.placeholder': 'digite um comando e aperte Enter',
 

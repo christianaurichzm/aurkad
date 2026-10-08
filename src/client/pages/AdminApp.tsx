@@ -83,7 +83,7 @@ export const AdminApp: React.FC = () => {
           <h2 style={panelTitle}>{t('admin.console')}</h2>
           <CommandConsole height={260} />
         </section>
-        <section style={panel}>
+        <section style={{ ...panel, alignSelf: 'start' }}>
           <h2 style={panelTitle}>{t('twofa.title')}</h2>
           <TwoFactorPanel />
         </section>

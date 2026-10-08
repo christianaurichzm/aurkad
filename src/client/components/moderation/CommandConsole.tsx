@@ -101,22 +101,27 @@ export const CommandConsole: React.FC<{ height?: number }> = ({
         )}
       </div>
       {commands.length > 0 && (
-        <div style={cmdList}>
-          {commands.map((c) => (
-            <button
-              key={c.name}
-              type="button"
-              style={cmdChip}
-              title={c.description}
-              onClick={() => {
-                setInput(`${c.name} `);
-                inputRef.current?.focus();
-              }}
-            >
-              {c.name}
-            </button>
-          ))}
-        </div>
+        <details>
+          <summary style={cmdSummary}>
+            {t('console.commands', { count: commands.length })}
+          </summary>
+          <div style={cmdList}>
+            {commands.map((c) => (
+              <button
+                key={c.name}
+                type="button"
+                style={cmdChip}
+                title={c.description}
+                onClick={() => {
+                  setInput(`${c.name} `);
+                  inputRef.current?.focus();
+                }}
+              >
+                {c.name}
+              </button>
+            ))}
+          </div>
+        </details>
       )}
       <div style={inputRow}>
         <span style={prompt}>›</span>
@@ -167,12 +172,16 @@ const lineOut: React.CSSProperties = {
   color: colors.text,
   whiteSpace: 'pre',
 };
+const cmdSummary: React.CSSProperties = {
+  color: colors.textMuted,
+  fontSize: 12,
+  cursor: 'pointer',
+};
 const cmdList: React.CSSProperties = {
   display: 'flex',
   flexWrap: 'wrap',
   gap: 4,
-  maxHeight: 76,
-  overflowY: 'auto',
+  marginTop: 6,
 };
 const cmdChip: React.CSSProperties = {
   padding: '2px 8px',
