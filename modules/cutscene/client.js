@@ -18,7 +18,7 @@ const SLIDE_MS = 320;
 const BOX_HEIGHT = 78;
 const SIDE_PAD = 90;
 
-/** @type {{ lines: string[], index: number, speaker: string, auto: number, startedAt: number, lineAt: number } | null} */
+/** @type {{ lines: string[], index: number, speaker: string, auto: number, startedAt: number, lineAt: number, font: string } | null} */
 let scene = null;
 
 function end() {
@@ -69,6 +69,11 @@ engine.onServerEvent('cutscene', (payload) => {
     auto: typeof payload.auto === 'number' ? payload.auto : 0,
     startedAt: Date.now(),
     lineAt: Date.now(),
+    // The caption uses the theme's font, read once per scene.
+    font:
+      getComputedStyle(document.documentElement)
+        .getPropertyValue('--font-ui')
+        .trim() || 'sans-serif',
   };
   if (fresh) {
     window.addEventListener('keydown', onKeyDown, true);
@@ -94,10 +99,11 @@ function wrap(ctx, text, maxWidth) {
   return out;
 }
 
-// On the hud layer: bars that a day/night tint or the lighting darkness could
-// paint over would not be bars.
+// On the hud layer, so no tint or darkness paints over the bars, and last
+// on it so they cover the minimap too.
 engine.registerOverlay((ctx, cam) => {
   if (!scene) return;
+  const { font } = scene;
 
   const now = Date.now();
   if (scene.auto > 0 && now - scene.lineAt >= scene.auto) {
@@ -120,7 +126,7 @@ engine.registerOverlay((ctx, cam) => {
 
   const line = scene.lines[scene.index];
   if (line) {
-    ctx.font = '16px Arial';
+    ctx.font = `16px ${font}`;
     const maxWidth = width - SIDE_PAD * 2 - 32;
     const rows = wrap(ctx, line, maxWidth);
     const boxH = Math.max(BOX_HEIGHT, 34 + rows.length * 22);
@@ -138,14 +144,14 @@ engine.registerOverlay((ctx, cam) => {
     let textY = boxY + 30;
     if (scene.speaker) {
       ctx.fillStyle = '#ffd479';
-      ctx.font = 'bold 14px Arial';
+      ctx.font = `bold 14px ${font}`;
       ctx.textAlign = 'left';
       ctx.fillText(engine.t(scene.speaker), SIDE_PAD + 16, textY);
       textY += 22;
     }
 
     ctx.fillStyle = '#e8e8ea';
-    ctx.font = '16px Arial';
+    ctx.font = `16px ${font}`;
     ctx.textAlign = 'left';
     for (const row of rows) {
       ctx.fillText(engine.t(row), SIDE_PAD + 16, textY);
@@ -154,7 +160,7 @@ engine.registerOverlay((ctx, cam) => {
 
     if (scene.auto <= 0) {
       ctx.fillStyle = 'rgba(232,232,234,0.45)';
-      ctx.font = '12px Arial';
+      ctx.font = `12px ${font}`;
       ctx.textAlign = 'right';
       ctx.fillText(
         engine.t('click or Enter'),
@@ -165,7 +171,7 @@ engine.registerOverlay((ctx, cam) => {
   }
 
   ctx.restore();
-}, engine.OverlayLayer.hud);
+}, engine.OverlayLayer.hud + 1);
 
 engine.i18n({
   pt: { 'click or Enter': 'clique ou Enter' },

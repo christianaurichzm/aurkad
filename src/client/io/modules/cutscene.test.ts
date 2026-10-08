@@ -37,10 +37,10 @@ const press = (key: string) => {
 };
 
 describe('cutscene overlay', () => {
-  it('draws on the hud layer, above the tint and the darkness', () => {
+  it('draws last on the hud layer, over the tint, the darkness and the minimap', () => {
     const { mod } = load();
     expect(mod.overlays).toHaveLength(1);
-    expect(mod.overlays[0].order).toBe(100);
+    expect(mod.overlays[0].order).toBe(101);
   });
 
   it('draws nothing until a script plays one', () => {
