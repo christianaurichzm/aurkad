@@ -108,8 +108,7 @@ export function onServerPositionUpdate(
     }
   }
 
-  // Shallow-copy both positions so jsondiffpatch mutations on the live game
-  // state object do not corrupt step.from / step.to after the step is queued.
+  // Copies, so mutating the live game state cannot change a queued step.
   queue.push({
     from: { ...lastPos },
     to: { ...to },

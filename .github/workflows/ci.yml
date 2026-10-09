@@ -45,9 +45,6 @@ jobs:
             if (n < 400) { process.stderr.write('FAIL: test count ' + n + ' is below minimum 400\n'); process.exit(1); }
           "
 
-      - name: bench (informational)
-        run: npm run bench || true
-
   # Separate job, single Node version: the smoke suite drives a real browser
   # against a real server, so it is slow and gains nothing from the version
   # matrix, as what it checks (the Vite proxy, the session cookie, the WS

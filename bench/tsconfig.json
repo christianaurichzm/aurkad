@@ -1,5 +1,5 @@
 {
-  "//": "Config for benchmarks, used by BOTH `npm run typecheck:bench` and `npm run bench` (via TS_NODE_PROJECT - ts-node resolves tsconfig from cwd, so it would otherwise pick the root tsconfig.json, whose `types: [vite/client]` hides @types/node). No `noEmit` here: it would make ts-node refuse to execute; the typecheck script passes --noEmit on the CLI.",
+  "//": "Config for benchmarks, used by BOTH `npm run typecheck:bench` and `npm run loadtest` (via TS_NODE_PROJECT - ts-node resolves tsconfig from cwd, so it would otherwise pick the root tsconfig.json, whose `types: [vite/client]` hides @types/node). No `noEmit` here: it would make ts-node refuse to execute; the typecheck script passes --noEmit on the CLI.",
   "extends": "../tsconfig.base.json",
   "compilerOptions": {
     "noUncheckedIndexedAccess": true,
