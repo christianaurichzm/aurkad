@@ -6,9 +6,12 @@ import { logger } from '../logger.js';
 import {
   BorderLinksSchema,
   CreateArrowBodySchema,
+  CreateDialogBodySchema,
   CreateItemBodySchema,
-  NpcTuningFields,
-  ScriptParamsSchema,
+  CreateLootTableBodySchema,
+  CreateNpcBodySchema,
+  CreateQuestBodySchema,
+  CreateRecipeBodySchema,
   TileSchema,
 } from '../http/bodySchemas.js';
 import {
@@ -75,17 +78,6 @@ const contentDir = (): string =>
     ? path.resolve(process.env.CONTENT_PATH)
     : gamePath('content');
 
-const NpcBehaviorSchema = z.enum([
-  'aggressive',
-  'hostile',
-  'neutral',
-  'friendly',
-  'shopkeeper',
-  'guard',
-]);
-
-// The editor's own schema plus the id the file carries: z.object drops what it
-// does not know, so a field declared in one place only is lost on every import.
 const ItemSchema = CreateItemBodySchema.extend({
   // Not 0: an item saved without an id is given the next one, and 0 reads as
   // none, so an item 0 in a file would come in renumbered and every loot
@@ -99,20 +91,16 @@ const SpellSchema = SpellFieldsSchema.extend({
   id: z.number().int().positive(),
 });
 
-const NpcSchema = z.object({
+// The editor's npc plus what only a file sets: the id, the size, the reach and
+// the pre-loot-table drop list.
+const NpcSchema = CreateNpcBodySchema.extend({
   id: z.string().min(1),
-  name: z.string().min(1),
-  sprite: z.number().int().nonnegative(),
   // One tile, like every other way an npc enters the world (seed,
   // spawnNpc); smaller, the health bar is narrower than the sprite and a
   // melee npc cannot reach the next tile.
   width: z.number().int().positive().default(SPRITE_WIDTH),
   height: z.number().int().positive().default(SPRITE_HEIGHT),
-  maxHealth: z.number().int().positive(),
-  attack: z.number().int().nonnegative(),
   attackRange: z.number().int().positive().default(TILE_SIZE),
-  behavior: NpcBehaviorSchema,
-  experienceValue: z.number().int().nonnegative().optional(),
   // Still accepted, never written: a pack exported before loot tables carries
   // this, and the import turns it into a table of the npc's own (see the
   // upsert below). Exporting produces `lootTableId` and nothing else.
@@ -125,118 +113,6 @@ const NpcSchema = z.object({
       }),
     )
     .optional(),
-  lootTableId: z.string().optional(),
-  dialogId: z.string().optional(),
-  questId: z.string().optional(),
-  scriptId: z.string().optional(),
-  scriptParams: ScriptParamsSchema.optional(),
-  ...NpcTuningFields,
-});
-
-const LootQuantitySchema = z.union([
-  z.number().int().positive(),
-  z.object({
-    min: z.number().int().positive(),
-    max: z.number().int().positive(),
-  }),
-]);
-
-const LootEntrySchema = z.object({
-  itemId: z.number().int().nonnegative(),
-  weight: z.number().nonnegative().optional(),
-  chance: z.number().min(0).max(1).optional(),
-  quantity: LootQuantitySchema.optional(),
-  condition: z.string().min(1).optional(),
-});
-
-const LootTableSchema = z.object({
-  id: z.string().min(1),
-  name: z.string().min(1),
-  guaranteed: z.array(LootEntrySchema).optional(),
-  rolls: z
-    .object({
-      min: z.number().int().nonnegative(),
-      max: z.number().int().nonnegative(),
-    })
-    .optional(),
-  entries: z.array(LootEntrySchema).optional(),
-  emptyWeight: z.number().nonnegative().optional(),
-});
-
-const DialogSchema = z.object({
-  id: z.string().min(1),
-  name: z.string().min(1),
-  start: z.string().min(1).optional(),
-  nodes: z
-    .array(
-      z.object({
-        id: z.string().min(1),
-        text: z.string().min(1),
-        choices: z
-          .array(
-            z.object({
-              label: z.string().min(1),
-              next: z.string().min(1).optional(),
-              condition: z.string().min(1).optional(),
-              action: z.string().min(1).optional(),
-            }),
-          )
-          .optional(),
-      }),
-    )
-    .min(1),
-});
-
-const QuestSchema = z.object({
-  id: z.string().min(1),
-  name: z.string().min(1),
-  description: z.string().optional(),
-  objective: z.discriminatedUnion('type', [
-    z.object({
-      type: z.literal('kill'),
-      npcId: z.string().min(1),
-      count: z.number().int().positive(),
-    }),
-    z.object({
-      type: z.literal('collect'),
-      itemId: z.number().int().nonnegative(),
-      count: z.number().int().positive(),
-    }),
-    z.object({ type: z.literal('talk'), npcId: z.string().min(1) }),
-    z.object({
-      type: z.literal('reach'),
-      mapId: z.string().min(1),
-      row: z.number().int().nonnegative(),
-      col: z.number().int().nonnegative(),
-    }),
-  ]),
-  reward: z
-    .object({
-      experience: z.number().int().nonnegative().optional(),
-      items: z
-        .array(
-          z.object({
-            itemId: z.number().int().nonnegative(),
-            quantity: z.number().int().positive(),
-          }),
-        )
-        .optional(),
-      script: z.string().min(1).optional(),
-    })
-    .optional(),
-});
-
-const RecipeIngredientSchema = z.object({
-  itemId: z.number().int().nonnegative(),
-  quantity: z.number().int().positive(),
-});
-
-const RecipeSchema = z.object({
-  id: z.string().min(1),
-  name: z.string().min(1),
-  inputs: z.array(RecipeIngredientSchema).min(1),
-  output: RecipeIngredientSchema,
-  condition: z.string().min(1).optional(),
 });
 
 const MapSchema = z.object({
@@ -313,28 +189,28 @@ export const SPECS = {
   } as FileSpec<typeof ItemSchema>,
   loot: {
     file: 'loot.json',
-    schema: LootTableSchema,
+    schema: CreateLootTableBodySchema,
     upsert: (e) => createOrUpdateLootTable(e),
     list: listLootTables,
-  } as FileSpec<typeof LootTableSchema>,
+  } as FileSpec<typeof CreateLootTableBodySchema>,
   dialogs: {
     file: 'dialogs.json',
-    schema: DialogSchema,
+    schema: CreateDialogBodySchema,
     upsert: (e) => createOrUpdateDialog(e),
     list: listDialogs,
-  } as FileSpec<typeof DialogSchema>,
+  } as FileSpec<typeof CreateDialogBodySchema>,
   quests: {
     file: 'quests.json',
-    schema: QuestSchema,
+    schema: CreateQuestBodySchema,
     upsert: (e) => createOrUpdateQuest(e),
     list: listQuests,
-  } as FileSpec<typeof QuestSchema>,
+  } as FileSpec<typeof CreateQuestBodySchema>,
   recipes: {
     file: 'recipes.json',
-    schema: RecipeSchema,
+    schema: CreateRecipeBodySchema,
     upsert: (e) => createOrUpdateRecipe(e),
     list: listRecipes,
-  } as FileSpec<typeof RecipeSchema>,
+  } as FileSpec<typeof CreateRecipeBodySchema>,
   npcs: {
     file: 'npcs.json',
     schema: NpcSchema,
