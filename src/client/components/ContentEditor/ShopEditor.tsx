@@ -1,20 +1,39 @@
-import React, { useEffect, useState } from 'react';
+import React from 'react';
 import { Controller, useFieldArray, useForm } from 'react-hook-form';
 import { Item, ProductRaw, Shop } from '../../../shared/types';
 import { createShop, updateShop, deleteShop } from '../../io/network';
 import { chatResultMsg } from '../ChatPanel';
 import { AsyncSelect } from '../common/Select/AsyncSelect';
-import { colors, radius } from '../../theme';
+import { editorStyles } from '../../theme';
+import {
+  useEntrySelection,
+  type EditorGuardProps,
+} from '../../hooks/useEntrySelection';
 import { useT } from '../../i18n';
 
-interface ShopEditorProps {
+const {
+  container,
+  field,
+  label,
+  input,
+  box,
+  boxHeader,
+  entryRow,
+  emptyHint,
+  actions,
+  saveBtn,
+  deleteBtn,
+  ghostBtn,
+  addBtn,
+  removeBtn,
+} = editorStyles;
+
+interface ShopEditorProps extends EditorGuardProps {
   shops: Shop<ProductRaw>[];
   items: Item[];
   loadShops: () => Promise<{ value: string; label: string }[]>;
   loadItems: () => Promise<{ value: number; label: string }[]>;
   refreshData: () => void;
-  onDirtyChange: (dirty: boolean) => void;
-  requestDiscard: () => Promise<boolean>;
 }
 
 type ProductRow = { itemId: number; currency: number; price: number };
@@ -37,11 +56,9 @@ export const ShopEditor: React.FC<ShopEditorProps> = ({
   loadShops,
   loadItems,
   refreshData,
-  onDirtyChange,
-  requestDiscard,
+  ...guard
 }) => {
   const t = useT();
-  const [selectedId, setSelectedId] = useState('');
   const {
     control,
     formState: { isDirty },
@@ -54,19 +71,14 @@ export const ShopEditor: React.FC<ShopEditorProps> = ({
     name: 'products',
   });
 
-  useEffect(() => {
-    onDirtyChange(isDirty);
-  }, [isDirty, onDirtyChange]);
-
-  const reset = async () => {
-    if (!(await requestDiscard())) return;
-    setSelectedId('');
-    resetForm(defaultValues);
-  };
+  const { selectedId, clear, open, startNew } = useEntrySelection(
+    isDirty,
+    guard,
+    () => resetForm(defaultValues),
+  );
 
   const selectShop = async (id: string) => {
-    if (!(await requestDiscard())) return;
-    setSelectedId(id);
+    if (!(await open(id))) return;
     const shop = shops.find((s) => s.id === id);
     if (shop) resetForm(shopToForm(shop));
   };
@@ -81,8 +93,7 @@ export const ShopEditor: React.FC<ShopEditorProps> = ({
           .catch(() => false);
     chatResultMsg(ok, t('shopEditor.saved'), t('shopEditor.saveError'));
     refreshData();
-    setSelectedId('');
-    resetForm(defaultValues);
+    clear();
   };
 
   const removeShop = async () => {
@@ -90,8 +101,7 @@ export const ShopEditor: React.FC<ShopEditorProps> = ({
     await deleteShop(selectedId);
     chatResultMsg(true, t('shopEditor.deleted'), t('shopEditor.deleteError'));
     refreshData();
-    setSelectedId('');
-    resetForm(defaultValues);
+    clear();
   };
 
   return (
@@ -107,7 +117,11 @@ export const ShopEditor: React.FC<ShopEditorProps> = ({
             />
           </div>
           {selectedId && (
-            <button type="button" style={ghostBtn} onClick={() => void reset()}>
+            <button
+              type="button"
+              style={ghostBtn}
+              onClick={() => void startNew()}
+            >
               {t('editor.new')}
             </button>
           )}
@@ -134,8 +148,8 @@ export const ShopEditor: React.FC<ShopEditorProps> = ({
         </div>
       </div>
 
-      <div style={productsBox}>
-        <div style={productsHeader}>
+      <div style={box}>
+        <div style={boxHeader}>
           <span style={label}>{t('shopEditor.products')}</span>
           <button
             type="button"
@@ -151,7 +165,7 @@ export const ShopEditor: React.FC<ShopEditorProps> = ({
         )}
 
         {fields.map((f, i) => (
-          <div key={f.id} style={productRow}>
+          <div key={f.id} style={entryRow}>
             <div style={{ flex: 2, minWidth: 0 }}>
               <label style={label}>{t('item.item')}</label>
               <Controller
@@ -217,122 +231,4 @@ export const ShopEditor: React.FC<ShopEditorProps> = ({
       </div>
     </form>
   );
-};
-
-const container: React.CSSProperties = {
-  display: 'flex',
-  flexDirection: 'column',
-  gap: 14,
-};
-
-const field: React.CSSProperties = {
-  display: 'flex',
-  flexDirection: 'column',
-  gap: 4,
-};
-
-const label: React.CSSProperties = {
-  fontSize: 11,
-  fontWeight: 600,
-  textTransform: 'uppercase',
-  letterSpacing: '0.04em',
-  color: colors.textMuted,
-};
-
-const input: React.CSSProperties = {
-  padding: '7px 9px',
-  border: `1.5px solid ${colors.border}`,
-  borderRadius: radius.control,
-  fontSize: 14,
-  outline: 'none',
-  width: '100%',
-  boxSizing: 'border-box',
-  background: colors.surface,
-};
-
-const productsBox: React.CSSProperties = {
-  background: colors.surfaceMuted,
-  border: `1px solid ${colors.border}`,
-  borderRadius: radius.control,
-  padding: '10px 12px',
-  display: 'flex',
-  flexDirection: 'column',
-  gap: 8,
-};
-
-const productsHeader: React.CSSProperties = {
-  display: 'flex',
-  alignItems: 'center',
-  justifyContent: 'space-between',
-};
-
-const productRow: React.CSSProperties = {
-  display: 'flex',
-  gap: 8,
-  alignItems: 'flex-end',
-};
-
-const emptyHint: React.CSSProperties = {
-  fontSize: 13,
-  color: colors.textMuted,
-  margin: 0,
-};
-
-const actions: React.CSSProperties = { display: 'flex', gap: 8 };
-
-const saveBtn: React.CSSProperties = {
-  flex: 1,
-  background: colors.primary,
-  color: '#fff',
-  border: 'none',
-  padding: '9px 16px',
-  borderRadius: radius.control,
-  cursor: 'pointer',
-  fontWeight: 600,
-  fontSize: 14,
-};
-
-const deleteBtn: React.CSSProperties = {
-  background: colors.danger,
-  color: '#fff',
-  border: 'none',
-  padding: '9px 14px',
-  borderRadius: radius.control,
-  cursor: 'pointer',
-  fontWeight: 600,
-  fontSize: 14,
-};
-
-const ghostBtn: React.CSSProperties = {
-  background: colors.surfaceMuted,
-  color: colors.text,
-  border: `1px solid ${colors.border}`,
-  padding: '7px 12px',
-  borderRadius: radius.control,
-  cursor: 'pointer',
-  fontWeight: 600,
-  fontSize: 13,
-  whiteSpace: 'nowrap',
-};
-
-const addBtn: React.CSSProperties = {
-  background: 'transparent',
-  color: colors.info,
-  border: `1px solid ${colors.primary}`,
-  padding: '3px 10px',
-  borderRadius: radius.control,
-  cursor: 'pointer',
-  fontWeight: 600,
-  fontSize: 12,
-};
-
-const removeBtn: React.CSSProperties = {
-  background: 'transparent',
-  color: colors.textMuted,
-  border: 'none',
-  padding: '0 4px',
-  cursor: 'pointer',
-  fontSize: 14,
-  alignSelf: 'flex-end',
-  paddingBottom: 8,
 };

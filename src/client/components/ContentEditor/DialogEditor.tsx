@@ -11,15 +11,35 @@ import { saveDialog, deleteDialog, fetchDialogRefs } from '../../io/network';
 import { chatResultMsg } from '../ChatPanel';
 import { AsyncSelect } from '../common/Select/AsyncSelect';
 import { Select } from '../common/Select/Select';
-import { colors, radius } from '../../theme';
+import { colors, radius, editorStyles } from '../../theme';
+import {
+  useEntrySelection,
+  type EditorGuardProps,
+} from '../../hooks/useEntrySelection';
 import { useT } from '../../i18n';
 
-interface DialogEditorProps {
+const {
+  container,
+  field,
+  label,
+  input,
+  box,
+  boxHeader,
+  entryRow,
+  emptyHint,
+  warning,
+  actions,
+  saveBtn,
+  deleteBtn,
+  ghostBtn,
+  addBtn,
+  removeBtn,
+} = editorStyles;
+
+interface DialogEditorProps extends EditorGuardProps {
   dialogs: Dialog[];
   loadDialogs: () => Promise<{ value: string; label: string }[]>;
   refreshData: () => void;
-  onDirtyChange: (dirty: boolean) => void;
-  requestDiscard: () => Promise<boolean>;
 }
 
 // Empty strings rather than undefined: a react-hook-form input is controlled,
@@ -136,7 +156,7 @@ const NodeChoices: React.FC<{
       )}
       {choices.fields.map((field, i) => (
         <React.Fragment key={field.id}>
-          <div style={choiceRow}>
+          <div style={entryRow}>
             <div style={{ flex: 2, minWidth: 0 }}>
               <label style={label}>{t('dialog.label')}</label>
               <input
@@ -226,11 +246,9 @@ export const DialogEditor: React.FC<DialogEditorProps> = ({
   dialogs,
   loadDialogs,
   refreshData,
-  onDirtyChange,
-  requestDiscard,
+  ...guard
 }) => {
   const t = useT();
-  const [selectedId, setSelectedId] = useState('');
   const {
     control,
     formState: { isDirty },
@@ -256,24 +274,19 @@ export const DialogEditor: React.FC<DialogEditorProps> = ({
   }, []);
   const watchedNodes = watch('nodes');
 
-  useEffect(() => {
-    onDirtyChange(isDirty);
-  }, [isDirty, onDirtyChange]);
+  const { selectedId, clear, open, startNew } = useEntrySelection(
+    isDirty,
+    guard,
+    () => resetForm(defaultValues),
+  );
 
   const nodeOptions = watchedNodes
     .map((node) => node.id)
     .filter((id) => id.trim())
     .map((id) => ({ value: id, label: id }));
 
-  const reset = async () => {
-    if (!(await requestDiscard())) return;
-    setSelectedId('');
-    resetForm(defaultValues);
-  };
-
   const selectDialog = async (id: string) => {
-    if (!(await requestDiscard())) return;
-    setSelectedId(id);
+    if (!(await open(id))) return;
     const dialog = dialogs.find((d) => d.id === id);
     if (dialog) resetForm(dialogToForm(dialog));
   };
@@ -311,8 +324,7 @@ export const DialogEditor: React.FC<DialogEditorProps> = ({
       chatResultMsg(false, '', warning);
     }
     refreshData();
-    setSelectedId('');
-    resetForm(defaultValues);
+    clear();
   };
 
   const remove = async () => {
@@ -320,8 +332,7 @@ export const DialogEditor: React.FC<DialogEditorProps> = ({
     await deleteDialog(selectedId);
     chatResultMsg(true, t('dialog.deleted'), t('dialog.deleteError'));
     refreshData();
-    setSelectedId('');
-    resetForm(defaultValues);
+    clear();
   };
 
   return (
@@ -337,7 +348,11 @@ export const DialogEditor: React.FC<DialogEditorProps> = ({
             />
           </div>
           {selectedId && (
-            <button type="button" style={ghostBtn} onClick={() => void reset()}>
+            <button
+              type="button"
+              style={ghostBtn}
+              onClick={() => void startNew()}
+            >
               {t('editor.new')}
             </button>
           )}
@@ -463,43 +478,6 @@ export const DialogEditor: React.FC<DialogEditorProps> = ({
   );
 };
 
-const container: React.CSSProperties = {
-  display: 'flex',
-  flexDirection: 'column',
-  gap: 14,
-};
-const field: React.CSSProperties = {
-  display: 'flex',
-  flexDirection: 'column',
-  gap: 4,
-};
-const label: React.CSSProperties = {
-  fontSize: 11,
-  fontWeight: 600,
-  textTransform: 'uppercase',
-  letterSpacing: '0.04em',
-  color: colors.textMuted,
-};
-const input: React.CSSProperties = {
-  padding: '7px 9px',
-  border: `1.5px solid ${colors.border}`,
-  borderRadius: radius.control,
-  fontSize: 14,
-  outline: 'none',
-  width: '100%',
-  boxSizing: 'border-box',
-  background: colors.surface,
-  fontFamily: 'inherit',
-};
-const box: React.CSSProperties = {
-  background: colors.surfaceMuted,
-  border: `1px solid ${colors.border}`,
-  borderRadius: radius.control,
-  padding: '10px 12px',
-  display: 'flex',
-  flexDirection: 'column',
-  gap: 10,
-};
 const nodeCard: React.CSSProperties = {
   background: colors.surface,
   border: `1px solid ${colors.border}`,
@@ -513,77 +491,4 @@ const choiceBox: React.CSSProperties = {
   display: 'flex',
   flexDirection: 'column',
   gap: 6,
-};
-const boxHeader: React.CSSProperties = {
-  display: 'flex',
-  alignItems: 'center',
-  justifyContent: 'space-between',
-};
-const choiceRow: React.CSSProperties = {
-  display: 'flex',
-  gap: 8,
-  alignItems: 'flex-end',
-};
-const emptyHint: React.CSSProperties = {
-  fontSize: 13,
-  color: colors.textMuted,
-  margin: 0,
-};
-const warning: React.CSSProperties = {
-  fontSize: 12,
-  color: colors.dangerText,
-  margin: 0,
-};
-const actions: React.CSSProperties = { display: 'flex', gap: 8 };
-const saveBtn: React.CSSProperties = {
-  flex: 1,
-  background: colors.primary,
-  color: '#fff',
-  border: 'none',
-  padding: '9px 16px',
-  borderRadius: radius.control,
-  cursor: 'pointer',
-  fontWeight: 600,
-  fontSize: 14,
-};
-const deleteBtn: React.CSSProperties = {
-  background: colors.danger,
-  color: '#fff',
-  border: 'none',
-  padding: '9px 14px',
-  borderRadius: radius.control,
-  cursor: 'pointer',
-  fontWeight: 600,
-  fontSize: 14,
-};
-const ghostBtn: React.CSSProperties = {
-  background: colors.surfaceMuted,
-  color: colors.text,
-  border: `1px solid ${colors.border}`,
-  padding: '7px 12px',
-  borderRadius: radius.control,
-  cursor: 'pointer',
-  fontWeight: 600,
-  fontSize: 13,
-  whiteSpace: 'nowrap',
-};
-const addBtn: React.CSSProperties = {
-  background: 'transparent',
-  color: colors.info,
-  border: `1px solid ${colors.primary}`,
-  padding: '3px 10px',
-  borderRadius: radius.control,
-  cursor: 'pointer',
-  fontWeight: 600,
-  fontSize: 12,
-};
-const removeBtn: React.CSSProperties = {
-  background: 'transparent',
-  color: colors.textMuted,
-  border: 'none',
-  padding: '0 4px',
-  cursor: 'pointer',
-  fontSize: 14,
-  alignSelf: 'flex-end',
-  paddingBottom: 8,
 };

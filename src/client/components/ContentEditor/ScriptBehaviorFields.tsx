@@ -11,8 +11,10 @@ import {
 import { fetchBehaviors } from '../../io/network';
 import { AsyncSelect } from '../common/Select/AsyncSelect';
 import { Select } from '../common/Select/Select';
-import { colors, radius } from '../../theme';
+import { colors, radius, editorStyles } from '../../theme';
 import { useT } from '../../i18n';
+
+const { label, warning } = editorStyles;
 
 type OptionLoader<T extends string | number> = () => Promise<
   { value: T; label: string }[]
@@ -258,14 +260,6 @@ const box: React.CSSProperties = {
   padding: '10px 12px',
 };
 
-const label: React.CSSProperties = {
-  fontSize: 11,
-  fontWeight: 600,
-  textTransform: 'uppercase',
-  letterSpacing: '0.04em',
-  color: colors.textMuted,
-};
-
 const paramField: React.CSSProperties = {
   display: 'flex',
   flexDirection: 'column',
@@ -301,11 +295,5 @@ const input: React.CSSProperties = {
 const note: React.CSSProperties = {
   fontSize: 12,
   color: colors.textMuted,
-  margin: 0,
-};
-
-const warning: React.CSSProperties = {
-  fontSize: 12,
-  color: colors.dangerText,
   margin: 0,
 };

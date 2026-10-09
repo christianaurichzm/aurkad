@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React from 'react';
 import { Controller, useFieldArray, useForm } from 'react-hook-form';
 import { Effect, Item, ModifiablePlayerAttribute } from '../../../shared/types';
 import {
@@ -15,17 +15,37 @@ import {
   itemBehaviorEvents,
   type ScriptParams,
 } from '../../../shared/scriptParams';
-import { colors, radius } from '../../theme';
+import { colors, radius, editorStyles } from '../../theme';
+import {
+  useEntrySelection,
+  type EditorGuardProps,
+} from '../../hooks/useEntrySelection';
 import { useT, type TranslationKey } from '../../i18n';
 
-interface ItemEditorProps {
+const {
+  container,
+  field,
+  label,
+  input,
+  checkboxField,
+  cols,
+  leftCol,
+  rightCol,
+  boxHeader,
+  emptyHint,
+  actions,
+  saveBtn,
+  deleteBtn,
+  ghostBtn,
+  addBtn,
+} = editorStyles;
+
+interface ItemEditorProps extends EditorGuardProps {
   items: Item[];
   loadItems: () => Promise<any>;
   refreshData: () => void;
   /** Loaded module ids; fields a disabled module would read stay hidden. */
   modules: string[];
-  onDirtyChange: (dirty: boolean) => void;
-  requestDiscard: () => Promise<boolean>;
 }
 
 type EffectRow = {
@@ -105,11 +125,9 @@ export const ItemEditor: React.FC<ItemEditorProps> = ({
   loadItems,
   refreshData,
   modules,
-  onDirtyChange,
-  requestDiscard,
+  ...guard
 }) => {
   const t = useT();
-  const [selectedId, setSelectedId] = useState('');
   const {
     control,
     formState: { isDirty },
@@ -146,19 +164,14 @@ export const ItemEditor: React.FC<ItemEditorProps> = ({
     ];
   };
 
-  useEffect(() => {
-    onDirtyChange(isDirty);
-  }, [isDirty, onDirtyChange]);
-
-  const reset = async () => {
-    if (!(await requestDiscard())) return;
-    setSelectedId('');
-    resetForm(defaultValues);
-  };
+  const { selectedId, clear, open, startNew } = useEntrySelection(
+    isDirty,
+    guard,
+    () => resetForm(defaultValues),
+  );
 
   const selectItem = async (id: number) => {
-    if (!(await requestDiscard())) return;
-    setSelectedId(String(id));
+    if (!(await open(String(id)))) return;
     const item = items.find((i) => i.id === id);
     if (item) resetForm(itemToFormValues(item));
   };
@@ -200,8 +213,7 @@ export const ItemEditor: React.FC<ItemEditorProps> = ({
       chatResultMsg(false, '', warning);
     }
     refreshData();
-    setSelectedId('');
-    resetForm(defaultValues);
+    clear();
   };
 
   const removeItem = async () => {
@@ -209,8 +221,7 @@ export const ItemEditor: React.FC<ItemEditorProps> = ({
     await deleteItem(Number(selectedId));
     chatResultMsg(true, t('item.deleted'), t('item.deleteError'));
     refreshData();
-    setSelectedId('');
-    resetForm(defaultValues);
+    clear();
   };
 
   const typeOptions: { value: Item['type']; label: string }[] = [
@@ -236,7 +247,11 @@ export const ItemEditor: React.FC<ItemEditorProps> = ({
             />
           </div>
           {selectedId && (
-            <button type="button" style={resetBtn} onClick={() => void reset()}>
+            <button
+              type="button"
+              style={ghostBtn}
+              onClick={() => void startNew()}
+            >
               {t('editor.new')}
             </button>
           )}
@@ -325,7 +340,7 @@ export const ItemEditor: React.FC<ItemEditorProps> = ({
       </div>
 
       <div style={effectsBox}>
-        <div style={effectsHeader}>
+        <div style={boxHeader}>
           <span style={label}>{t('item.effects')}</span>
           <button
             type="button"
@@ -409,31 +424,6 @@ export const ItemEditor: React.FC<ItemEditorProps> = ({
   );
 };
 
-const container: React.CSSProperties = {
-  display: 'flex',
-  flexDirection: 'column',
-  gap: 14,
-};
-
-const cols: React.CSSProperties = {
-  display: 'grid',
-  gridTemplateColumns: '90px 1fr',
-  gap: 14,
-};
-
-const leftCol: React.CSSProperties = {
-  display: 'flex',
-  flexDirection: 'column',
-  gap: 8,
-  alignItems: 'center',
-};
-
-const rightCol: React.CSSProperties = {
-  display: 'flex',
-  flexDirection: 'column',
-  gap: 10,
-};
-
 const previewIcon: React.CSSProperties = {
   width: 64,
   height: 64,
@@ -441,40 +431,6 @@ const previewIcon: React.CSSProperties = {
   borderRadius: radius.control,
   background: colors.surfaceMuted,
   flexShrink: 0,
-};
-
-const field: React.CSSProperties = {
-  display: 'flex',
-  flexDirection: 'column',
-  gap: 4,
-};
-
-const label: React.CSSProperties = {
-  fontSize: 11,
-  fontWeight: 600,
-  textTransform: 'uppercase',
-  letterSpacing: '0.04em',
-  color: colors.textMuted,
-};
-
-const input: React.CSSProperties = {
-  padding: '7px 9px',
-  border: `1.5px solid ${colors.border}`,
-  borderRadius: radius.control,
-  fontSize: 14,
-  outline: 'none',
-  width: '100%',
-  boxSizing: 'border-box',
-  background: colors.surface,
-};
-
-const checkboxField: React.CSSProperties = {
-  display: 'flex',
-  alignItems: 'center',
-  gap: 8,
-  fontSize: 13,
-  color: colors.text,
-  cursor: 'pointer',
 };
 
 const effectsBox: React.CSSProperties = {
@@ -487,70 +443,10 @@ const effectsBox: React.CSSProperties = {
   gap: 6,
 };
 
-const effectsHeader: React.CSSProperties = {
-  display: 'flex',
-  alignItems: 'center',
-  justifyContent: 'space-between',
-};
-
 const effectRow: React.CSSProperties = {
   display: 'flex',
   gap: 6,
   alignItems: 'center',
-};
-
-const emptyHint: React.CSSProperties = {
-  fontSize: 13,
-  color: colors.textMuted,
-  margin: 0,
-};
-
-const actions: React.CSSProperties = { display: 'flex', gap: 8 };
-
-const saveBtn: React.CSSProperties = {
-  flex: 1,
-  background: colors.primary,
-  color: '#fff',
-  border: 'none',
-  padding: '9px 16px',
-  borderRadius: radius.control,
-  cursor: 'pointer',
-  fontWeight: 600,
-  fontSize: 14,
-};
-
-const deleteBtn: React.CSSProperties = {
-  background: colors.danger,
-  color: '#fff',
-  border: 'none',
-  padding: '9px 14px',
-  borderRadius: radius.control,
-  cursor: 'pointer',
-  fontWeight: 600,
-  fontSize: 14,
-};
-
-const resetBtn: React.CSSProperties = {
-  background: colors.surfaceMuted,
-  color: colors.text,
-  border: `1px solid ${colors.border}`,
-  padding: '7px 12px',
-  borderRadius: radius.control,
-  cursor: 'pointer',
-  fontWeight: 600,
-  fontSize: 13,
-  whiteSpace: 'nowrap',
-};
-
-const addBtn: React.CSSProperties = {
-  background: 'transparent',
-  color: colors.info,
-  border: `1px solid ${colors.primary}`,
-  padding: '3px 10px',
-  borderRadius: radius.control,
-  cursor: 'pointer',
-  fontWeight: 600,
-  fontSize: 12,
 };
 
 const removeEffectBtn: React.CSSProperties = {

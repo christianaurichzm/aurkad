@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback } from 'react';
 import { useForm } from 'react-hook-form';
 import {
   fetchSpells,
@@ -11,14 +11,16 @@ import { AsyncSelect } from '../common/Select/AsyncSelect';
 import { SpritePreview } from '../common/SpritePreview';
 import { spellSheet } from '../../io/assets';
 import { SPELL_FRAME_MS } from '../../graphics/spellEffect';
-import { colors, radius } from '../../theme';
+import { editorStyles } from '../../theme';
 import { useT } from '../../i18n';
+import {
+  useEntrySelection,
+  type EditorGuardProps,
+} from '../../hooks/useEntrySelection';
 import type { Spell } from '../../../shared/types';
 
-interface SpellEditorProps {
-  onDirtyChange: (dirty: boolean) => void;
-  requestDiscard: () => Promise<boolean>;
-}
+const { container, field, label, input, saveBtn, deleteBtn, ghostBtn } =
+  editorStyles;
 
 type SpellForm = {
   name: string;
@@ -48,12 +50,8 @@ const defaults: SpellForm = {
   icon: null,
 };
 
-export const SpellEditor: React.FC<SpellEditorProps> = ({
-  onDirtyChange,
-  requestDiscard,
-}) => {
+export const SpellEditor: React.FC<EditorGuardProps> = (guard) => {
   const t = useT();
-  const [selectedId, setSelectedId] = useState('');
   const {
     formState: { isDirty },
     handleSubmit,
@@ -62,9 +60,11 @@ export const SpellEditor: React.FC<SpellEditorProps> = ({
     watch,
   } = useForm<SpellForm>({ defaultValues: defaults });
 
-  useEffect(() => {
-    onDirtyChange(isDirty);
-  }, [isDirty, onDirtyChange]);
+  const { selectedId, clear, open, startNew } = useEntrySelection(
+    isDirty,
+    guard,
+    () => reset(defaults),
+  );
 
   const loadOptions = useCallback(async () => {
     const data = await fetchSpells();
@@ -75,8 +75,7 @@ export const SpellEditor: React.FC<SpellEditorProps> = ({
   }, []);
 
   const handleSelect = async (id: string) => {
-    if (!(await requestDiscard())) return;
-    setSelectedId(id);
+    if (!(await open(id))) return;
     const spells = await fetchSpells();
     const s = spells.find((x) => String(x.id) === id);
     if (s)
@@ -104,8 +103,7 @@ export const SpellEditor: React.FC<SpellEditorProps> = ({
           .catch(() => false)
       : !!(await createSpell(data).catch(() => null));
     chatResultMsg(!!result, t('spell.saved'), t('spell.saveError'));
-    reset(defaults);
-    setSelectedId('');
+    clear();
   };
 
   const handleDelete = async () => {
@@ -114,8 +112,7 @@ export const SpellEditor: React.FC<SpellEditorProps> = ({
       .then(() => true)
       .catch(() => false);
     chatResultMsg(ok, t('spell.deleted'), t('spell.deleteError'));
-    reset(defaults);
-    setSelectedId('');
+    clear();
   };
 
   const name = watch('name');
@@ -143,10 +140,7 @@ export const SpellEditor: React.FC<SpellEditorProps> = ({
             <button
               type="button"
               style={ghostBtn}
-              onClick={() => {
-                reset(defaults);
-                setSelectedId('');
-              }}
+              onClick={() => void startNew()}
             >
               {t('editor.new')}
             </button>
@@ -295,62 +289,4 @@ export const SpellEditor: React.FC<SpellEditorProps> = ({
       </div>
     </form>
   );
-};
-
-const container: React.CSSProperties = {
-  display: 'flex',
-  flexDirection: 'column',
-  gap: 14,
-};
-const field: React.CSSProperties = {
-  display: 'flex',
-  flexDirection: 'column',
-  gap: 4,
-};
-const label: React.CSSProperties = {
-  fontSize: 11,
-  fontWeight: 600,
-  textTransform: 'uppercase',
-  letterSpacing: '0.04em',
-  color: colors.textMuted,
-};
-const input: React.CSSProperties = {
-  padding: '7px 9px',
-  border: `1.5px solid ${colors.border}`,
-  borderRadius: radius.control,
-  fontSize: 14,
-  background: colors.surface,
-  width: '100%',
-  boxSizing: 'border-box',
-};
-const saveBtn: React.CSSProperties = {
-  background: colors.primary,
-  color: '#fff',
-  border: 'none',
-  padding: '10px 16px',
-  borderRadius: radius.control,
-  cursor: 'pointer',
-  fontWeight: 600,
-  fontSize: 14,
-  flex: 1,
-};
-const deleteBtn: React.CSSProperties = {
-  background: colors.danger,
-  color: '#fff',
-  border: 'none',
-  padding: '10px 16px',
-  borderRadius: radius.control,
-  cursor: 'pointer',
-  fontWeight: 600,
-  fontSize: 14,
-};
-const ghostBtn: React.CSSProperties = {
-  background: colors.surfaceMuted,
-  color: colors.text,
-  border: `1px solid ${colors.border}`,
-  padding: '7px 12px',
-  borderRadius: radius.control,
-  cursor: 'pointer',
-  fontWeight: 600,
-  fontSize: 13,
 };

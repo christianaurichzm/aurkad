@@ -1,3 +1,5 @@
+import type { CSSProperties } from 'react';
+
 // CSS variables are shared by React panels and the game shell.
 export const colors = {
   primary: 'var(--color-primary)',
@@ -49,3 +51,112 @@ export const shadow = {
   modal: '0 12px 32px rgba(0, 0, 0, 0.28)',
   raised: '0 2px 8px rgba(0, 0, 0, 0.2)',
 } as const;
+
+// The content editors' shared form parts. Each editor destructures what it
+// draws, so a form for a new kind of content starts from the same look.
+export const editorStyles = {
+  container: { display: 'flex', flexDirection: 'column', gap: 14 },
+  field: { display: 'flex', flexDirection: 'column', gap: 4 },
+  label: {
+    fontSize: 11,
+    fontWeight: 600,
+    textTransform: 'uppercase',
+    letterSpacing: '0.04em',
+    color: colors.textMuted,
+  },
+  input: {
+    padding: '7px 9px',
+    border: `1.5px solid ${colors.border}`,
+    borderRadius: radius.control,
+    fontSize: 14,
+    width: '100%',
+    boxSizing: 'border-box',
+    background: colors.surface,
+  },
+  checkboxField: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: 8,
+    fontSize: 13,
+    color: colors.text,
+    cursor: 'pointer',
+  },
+  cols: { display: 'grid', gridTemplateColumns: '90px 1fr', gap: 14 },
+  leftCol: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: 8,
+    alignItems: 'center',
+  },
+  rightCol: { display: 'flex', flexDirection: 'column', gap: 10 },
+  box: {
+    background: colors.surfaceMuted,
+    border: `1px solid ${colors.border}`,
+    borderRadius: radius.control,
+    padding: '10px 12px',
+    display: 'flex',
+    flexDirection: 'column',
+    gap: 8,
+  },
+  boxHeader: {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  entryRow: { display: 'flex', gap: 8, alignItems: 'flex-end' },
+  emptyHint: { fontSize: 13, color: colors.textMuted, margin: 0 },
+  warning: { fontSize: 12, color: colors.dangerText, margin: 0 },
+  actions: { display: 'flex', gap: 8 },
+  saveBtn: {
+    flex: 1,
+    background: colors.primary,
+    color: '#fff',
+    border: 'none',
+    padding: '9px 16px',
+    borderRadius: radius.control,
+    cursor: 'pointer',
+    fontWeight: 600,
+    fontSize: 14,
+  },
+  deleteBtn: {
+    background: colors.danger,
+    color: '#fff',
+    border: 'none',
+    padding: '9px 14px',
+    borderRadius: radius.control,
+    cursor: 'pointer',
+    fontWeight: 600,
+    fontSize: 14,
+  },
+  ghostBtn: {
+    background: colors.surfaceMuted,
+    color: colors.text,
+    border: `1px solid ${colors.border}`,
+    padding: '7px 12px',
+    borderRadius: radius.control,
+    cursor: 'pointer',
+    fontWeight: 600,
+    fontSize: 13,
+    whiteSpace: 'nowrap',
+  },
+  addBtn: {
+    background: 'transparent',
+    color: colors.info,
+    border: `1px solid ${colors.primary}`,
+    padding: '3px 10px',
+    borderRadius: radius.control,
+    cursor: 'pointer',
+    fontWeight: 600,
+    fontSize: 12,
+  },
+  removeBtn: {
+    background: 'transparent',
+    color: colors.textMuted,
+    border: 'none',
+    padding: '0 4px',
+    cursor: 'pointer',
+    fontSize: 14,
+    alignSelf: 'flex-end',
+    paddingBottom: 8,
+  },
+} satisfies Record<string, CSSProperties>;

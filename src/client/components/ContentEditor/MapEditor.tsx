@@ -10,16 +10,21 @@ import {
 import { AsyncSelect } from '../common/Select/AsyncSelect';
 import { chatResultMsg } from '../ChatPanel';
 import { updateMap, createMap, resizeMap } from '../../io/network';
-import { colors, radius } from '../../theme';
+import { colors, radius, editorStyles } from '../../theme';
 import { TILE_SIZE } from '../../../shared/constants';
 import { useT, type TranslationKey } from '../../i18n';
+import {
+  useEntrySelection,
+  type EditorGuardProps,
+} from '../../hooks/useEntrySelection';
 
-interface MapEditorProps {
+const { container, field, label, input, checkboxField, ghostBtn } =
+  editorStyles;
+
+interface MapEditorProps extends EditorGuardProps {
   maps: MapStateClient[];
   loadMaps: () => Promise<any>;
   refreshData: () => void;
-  onDirtyChange: (dirty: boolean) => void;
-  requestDiscard: () => Promise<boolean>;
 }
 
 // `position` sends the whole edge to one tile. The editor makes none but
@@ -98,11 +103,9 @@ export const MapEditor: React.FC<MapEditorProps> = ({
   maps,
   refreshData,
   loadMaps,
-  onDirtyChange,
-  requestDiscard,
+  ...guard
 }) => {
   const t = useT();
-  const [selectedId, setSelectedId] = useState<string>('');
   const [resizeCols, setResizeCols] = useState(20);
   const [resizeRows, setResizeRows] = useState(14);
   const [showResize, setShowResize] = useState(false);
@@ -118,9 +121,11 @@ export const MapEditor: React.FC<MapEditorProps> = ({
 
   const name = watch('name');
 
-  useEffect(() => {
-    onDirtyChange(isDirty);
-  }, [isDirty, onDirtyChange]);
+  const { selectedId, clear, open, startNew } = useEntrySelection(
+    isDirty,
+    guard,
+    () => resetForm(newMapValues(maps)),
+  );
 
   useEffect(() => {
     if (!selectedId && !isDirty) resetForm(newMapValues(maps));
@@ -132,8 +137,7 @@ export const MapEditor: React.FC<MapEditorProps> = ({
   ];
 
   const handleSelect = async (mapId: string) => {
-    if (!(await requestDiscard())) return;
-    setSelectedId(mapId);
+    if (!(await open(mapId))) return;
     setShowResize(false);
     const map = maps.find((m) => m.id === mapId);
     if (map) {
@@ -141,12 +145,6 @@ export const MapEditor: React.FC<MapEditorProps> = ({
       setResizeCols(map.tiles?.[0]?.length ?? 20);
       setResizeRows(map.tiles?.length ?? 14);
     }
-  };
-
-  const reset = async () => {
-    if (!(await requestDiscard())) return;
-    setSelectedId('');
-    resetForm(newMapValues(maps));
   };
 
   const buildLink = (b: BorderLinkForm): BorderLink | undefined => {
@@ -193,9 +191,8 @@ export const MapEditor: React.FC<MapEditorProps> = ({
     chatResultMsg(!!result, t('map.saved'), t('map.saveError'));
     if (!result) return;
     refreshData();
-    setSelectedId('');
     setShowResize(false);
-    resetForm(newMapValues(maps));
+    clear();
   };
 
   const handleResize = async () => {
@@ -221,7 +218,11 @@ export const MapEditor: React.FC<MapEditorProps> = ({
             />
           </div>
           {selectedId && (
-            <button type="button" style={resetBtn} onClick={() => void reset()}>
+            <button
+              type="button"
+              style={ghostBtn}
+              onClick={() => void startNew()}
+            >
               {t('editor.new')}
             </button>
           )}
@@ -311,7 +312,7 @@ export const MapEditor: React.FC<MapEditorProps> = ({
                   {fixed ? (
                     <button
                       type="button"
-                      style={resetBtn}
+                      style={ghostBtn}
                       title={t('map.borderFixedHint')}
                       onClick={() =>
                         setValue(`${dir}.position`, undefined, {
@@ -378,7 +379,7 @@ export const MapEditor: React.FC<MapEditorProps> = ({
             <label style={label}>{t('map.resize')}</label>
             <button
               type="button"
-              style={resetBtn}
+              style={ghostBtn}
               onClick={() => setShowResize((v) => !v)}
             >
               {showResize ? t('common.cancel') : t('map.resizeBtn')}
@@ -423,37 +424,6 @@ export const MapEditor: React.FC<MapEditorProps> = ({
   );
 };
 
-const container: React.CSSProperties = {
-  display: 'flex',
-  flexDirection: 'column',
-  gap: 14,
-};
-
-const field: React.CSSProperties = {
-  display: 'flex',
-  flexDirection: 'column',
-  gap: 4,
-};
-
-const label: React.CSSProperties = {
-  fontSize: 11,
-  fontWeight: 600,
-  textTransform: 'uppercase',
-  letterSpacing: '0.04em',
-  color: colors.textMuted,
-};
-
-const input: React.CSSProperties = {
-  padding: '7px 9px',
-  border: `1.5px solid ${colors.border}`,
-  borderRadius: radius.control,
-  fontSize: 14,
-  outline: 'none',
-  width: '100%',
-  boxSizing: 'border-box',
-  background: colors.surface,
-};
-
 const saveBtn: React.CSSProperties = {
   background: colors.primary,
   color: '#fff',
@@ -466,29 +436,8 @@ const saveBtn: React.CSSProperties = {
   width: '100%',
 };
 
-const checkboxField: React.CSSProperties = {
-  display: 'flex',
-  alignItems: 'center',
-  gap: 8,
-  fontSize: 13,
-  color: colors.text,
-  cursor: 'pointer',
-};
-
 const hint: React.CSSProperties = {
   fontSize: 11,
   color: colors.textMuted,
   marginTop: -4,
-};
-
-const resetBtn: React.CSSProperties = {
-  background: colors.surfaceMuted,
-  color: colors.text,
-  border: `1px solid ${colors.border}`,
-  padding: '7px 12px',
-  borderRadius: radius.control,
-  cursor: 'pointer',
-  fontWeight: 600,
-  fontSize: 13,
-  whiteSpace: 'nowrap',
 };

@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback } from 'react';
 import { useForm } from 'react-hook-form';
 import {
   fetchArrows,
@@ -10,13 +10,15 @@ import { chatResultMsg } from '../ChatPanel';
 import { AsyncSelect } from '../common/Select/AsyncSelect';
 import { SpritePreview } from '../common/SpritePreview';
 import { arrowSheet } from '../../io/assets';
-import { colors, radius } from '../../theme';
+import { editorStyles } from '../../theme';
 import { useT } from '../../i18n';
+import {
+  useEntrySelection,
+  type EditorGuardProps,
+} from '../../hooks/useEntrySelection';
 
-interface ArrowEditorProps {
-  onDirtyChange: (dirty: boolean) => void;
-  requestDiscard: () => Promise<boolean>;
-}
+const { container, field, label, input, saveBtn, deleteBtn, ghostBtn } =
+  editorStyles;
 
 type ArrowForm = {
   name: string;
@@ -36,12 +38,8 @@ const defaults: ArrowForm = {
   tileSpeed: 8,
 };
 
-export const ArrowEditor: React.FC<ArrowEditorProps> = ({
-  onDirtyChange,
-  requestDiscard,
-}) => {
+export const ArrowEditor: React.FC<EditorGuardProps> = (guard) => {
   const t = useT();
-  const [selectedId, setSelectedId] = useState('');
   const {
     formState: { isDirty },
     handleSubmit,
@@ -50,9 +48,11 @@ export const ArrowEditor: React.FC<ArrowEditorProps> = ({
     watch,
   } = useForm<ArrowForm>({ defaultValues: defaults });
 
-  useEffect(() => {
-    onDirtyChange(isDirty);
-  }, [isDirty, onDirtyChange]);
+  const { selectedId, clear, open, startNew } = useEntrySelection(
+    isDirty,
+    guard,
+    () => reset(defaults),
+  );
 
   const loadOptions = useCallback(async () => {
     const data = await fetchArrows();
@@ -63,8 +63,7 @@ export const ArrowEditor: React.FC<ArrowEditorProps> = ({
   }, []);
 
   const handleSelect = async (id: string) => {
-    if (!(await requestDiscard())) return;
-    setSelectedId(id);
+    if (!(await open(id))) return;
     const arrows = await fetchArrows();
     const a = arrows.find((x) => String(x.id) === id);
     if (a)
@@ -93,8 +92,7 @@ export const ArrowEditor: React.FC<ArrowEditorProps> = ({
           .catch(() => false)
       : !!(await createArrow(payload).catch(() => null));
     chatResultMsg(!!result, t('arrow.saved'), t('arrow.saveError'));
-    reset(defaults);
-    setSelectedId('');
+    clear();
   };
 
   const handleDelete = async () => {
@@ -103,8 +101,7 @@ export const ArrowEditor: React.FC<ArrowEditorProps> = ({
       .then(() => true)
       .catch(() => false);
     chatResultMsg(ok, t('arrow.deleted'), t('arrow.deleteError'));
-    reset(defaults);
-    setSelectedId('');
+    clear();
   };
 
   const name = watch('name');
@@ -125,10 +122,7 @@ export const ArrowEditor: React.FC<ArrowEditorProps> = ({
             <button
               type="button"
               style={ghostBtn}
-              onClick={() => {
-                reset(defaults);
-                setSelectedId('');
-              }}
+              onClick={() => void startNew()}
             >
               {t('editor.new')}
             </button>
@@ -208,62 +202,4 @@ export const ArrowEditor: React.FC<ArrowEditorProps> = ({
       </div>
     </form>
   );
-};
-
-const container: React.CSSProperties = {
-  display: 'flex',
-  flexDirection: 'column',
-  gap: 14,
-};
-const field: React.CSSProperties = {
-  display: 'flex',
-  flexDirection: 'column',
-  gap: 4,
-};
-const label: React.CSSProperties = {
-  fontSize: 11,
-  fontWeight: 600,
-  textTransform: 'uppercase',
-  letterSpacing: '0.04em',
-  color: colors.textMuted,
-};
-const input: React.CSSProperties = {
-  padding: '7px 9px',
-  border: `1.5px solid ${colors.border}`,
-  borderRadius: radius.control,
-  fontSize: 14,
-  background: colors.surface,
-  width: '100%',
-  boxSizing: 'border-box',
-};
-const saveBtn: React.CSSProperties = {
-  background: colors.primary,
-  color: '#fff',
-  border: 'none',
-  padding: '10px 16px',
-  borderRadius: radius.control,
-  cursor: 'pointer',
-  fontWeight: 600,
-  fontSize: 14,
-  flex: 1,
-};
-const deleteBtn: React.CSSProperties = {
-  background: colors.danger,
-  color: '#fff',
-  border: 'none',
-  padding: '10px 16px',
-  borderRadius: radius.control,
-  cursor: 'pointer',
-  fontWeight: 600,
-  fontSize: 14,
-};
-const ghostBtn: React.CSSProperties = {
-  background: colors.surfaceMuted,
-  color: colors.text,
-  border: `1px solid ${colors.border}`,
-  padding: '7px 12px',
-  borderRadius: radius.control,
-  cursor: 'pointer',
-  fontWeight: 600,
-  fontSize: 13,
 };
