@@ -11,7 +11,6 @@ declare module 'express-session' {
     username: PlayerServer['name'];
     /** The account's, read again on every request (see accountStillBacks). */
     accessLevel: Access;
-    assetKey: string;
     /**
      * A second-factor secret that has been shown but not yet proven. Kept
      * here, not in the database, so an abandoned enrollment leaves nothing: it

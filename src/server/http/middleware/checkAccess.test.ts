@@ -263,7 +263,7 @@ const GATES: Record<string, 'public' | 'session' | Access> = {
 
   'GET /assets/tiles.json': 'public',
   'GET /assets/sprites.json': 'public',
-  'GET /assets/:name.bin': 'public',
+  'GET /assets/:name.png': 'public',
   'GET /audio/:filename': 'public',
 
   'POST /login': 'public',

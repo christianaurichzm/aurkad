@@ -1,6 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
-import { imageMap } from '../../../shared/mappings.js';
+import type { Response } from 'express';
+import { SHEETS } from '../../../shared/mappings.js';
 import { gamePath } from '../../config.js';
 import { logger } from '../../logger.js';
 import { createRouter } from '../../app.js';
@@ -8,6 +9,31 @@ import { createRouter } from '../../app.js';
 const ASSETS_DIR = process.env.ASSETS_PATH
   ? path.resolve(process.env.ASSETS_PATH)
   : gamePath('assets');
+
+const AUDIO_EXTENSIONS = new Set(['.mp3', '.ogg', '.wav']);
+
+/**
+ * Streams one file out of the asset directory rather than reading it into
+ * memory: a track is megabytes, and a Range header lets a player seek.
+ * `root` keeps a name inside the directory, like basename at the call
+ * sites before it.
+ */
+function sendAsset(res: Response, file: string, notFound: string) {
+  res.sendFile(file, { root: ASSETS_DIR }, (err) => {
+    if (!err) return;
+
+    // A game that names a sound it never shipped is the ordinary case, and
+    // at one line per swing per player it would bury the log it shares with
+    // real failures. Anything that is not "no such file" still is one:
+    // permissions on the asset directory are the operator's to see.
+    const code = (err as NodeJS.ErrnoException).code;
+    const level = code === 'ENOENT' ? logger.warn : logger.error;
+    level('Asset read failed', { file, err });
+
+    // Nothing to answer with once the body started going out.
+    if (!res.headersSent) res.status(404).send(notFound);
+  });
+}
 
 export function createAssetsRouter() {
   const router = createRouter();
@@ -32,41 +58,33 @@ export function createAssetsRouter() {
     );
   });
 
-  router.get('/assets/:name.bin', (req, res) => {
+  router.get('/assets/:name.png', (req, res) => {
     if (!req.session.username) {
       return res.status(401).json({ error: 'Unauthorized' });
     }
 
     const name = req.params['name'];
-    const imageId = imageMap[name];
-    if (!imageId) return res.status(404).send('Image not found');
+    if (!(SHEETS as readonly string[]).includes(name))
+      return res.status(404).send('Image not found');
 
-    const assetKey = req.session.assetKey;
-    if (!assetKey) return res.status(401).json({ error: 'No asset key' });
+    // Revalidated rather than cached outright, so a sheet the game replaced
+    // reaches the next login while an unchanged one is a 304.
+    res.setHeader('Cache-Control', 'private, no-cache');
+    sendAsset(res, `${name}.png`, 'Asset not found');
+  });
 
-    const filePath = path.join(ASSETS_DIR, `${imageId}.png`);
+  router.get('/audio/:filename', (req, res) => {
+    if (!req.session.username) {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
 
-    fs.readFile(filePath, (err, data) => {
-      if (err) {
-        logger.error('Asset read failed', { file: filePath, err });
-        return res.status(404).send('Asset not found');
-      }
+    const filename = req.params['filename'];
+    if (!AUDIO_EXTENSIONS.has(path.extname(filename).toLowerCase())) {
+      return res.status(400).send('Invalid file type');
+    }
 
-      // Written into a buffer, not through Buffer.prototype.map, which is
-      // Uint8Array's and calls a closure per byte, on the thread the 20 Hz
-      // loop runs on; a login asks for every sheet. allocUnsafe is safe
-      // because every byte below is written.
-      const keyBytes = Buffer.from(assetKey, 'hex');
-      const keyLen = keyBytes.length;
-      const out = Buffer.allocUnsafe(data.length);
-      for (let i = 0; i < data.length; i++) {
-        out[i] = data[i]! ^ keyBytes[i % keyLen]!;
-      }
-
-      res.setHeader('Content-Type', 'application/octet-stream');
-      res.setHeader('Cache-Control', 'no-store');
-      res.send(out);
-    });
+    res.setHeader('Cache-Control', 'private, max-age=3600');
+    sendAsset(res, path.basename(filename), 'Audio not found');
   });
 
   return router;

@@ -156,4 +156,3 @@ export { buyShopItem } from './http/shopClient';
 export { assignPointsPlayer, fetchOnlinePlayers } from './http/playerClient';
 
 // File Loader
-export { loadImageFromBin } from './fileLoader';

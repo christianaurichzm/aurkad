@@ -1,4 +1,3 @@
-import crypto from 'node:crypto';
 import bcrypt from 'bcrypt';
 import { type Response } from 'express';
 import type { ExtendedRequest } from '../session.js';
@@ -174,7 +173,6 @@ export function createAuthRouter() {
       }
       req.session.username = username;
       req.session.accessLevel = player.access ?? Access.USER;
-      req.session.assetKey = crypto.randomBytes(32).toString('hex');
       req.session.authEpoch = authEpoch;
 
       const map = enterWorld(runtimePlayer);
@@ -191,7 +189,6 @@ export function createAuthRouter() {
         res.status(200).json({
           player,
           map: mapMeta,
-          assetKey: req.session.assetKey,
           ...(serverState.motd ? { motd: serverState.motd } : {}),
         });
       });

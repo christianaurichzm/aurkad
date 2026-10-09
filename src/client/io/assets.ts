@@ -1,7 +1,6 @@
 import { z } from 'zod';
 import { MAX_ISOMETRIC_OVERHANG, TILE_SIZE } from '../../shared/constants';
-import { loadImageFromBin } from './network';
-import { imageMap } from '../../shared/mappings';
+import { SHEETS } from '../../shared/mappings';
 import { buildEntityAtlas } from '../graphics/atlas';
 import { parseSpriteLayout, setSpriteLayout } from '../graphics/sprite';
 
@@ -75,13 +74,11 @@ const AnimationSchema = z.object({
 });
 export let tileAnimations: Record<string, z.infer<typeof AnimationSchema>> = {};
 
-let _assetKey = '';
-
-export function setAssetKey(hexKey: string): void {
-  _assetKey = hexKey;
+async function loadSheet(name: (typeof SHEETS)[number]): Promise<ImageBitmap> {
+  const res = await fetch(`assets/${name}.png`);
+  if (!res.ok) throw new Error(`Failed to fetch ${name}: ${res.status}`);
+  return createImageBitmap(await res.blob());
 }
-
-const getUrl = (type: keyof typeof imageMap) => `assets/${imageMap[type]}.bin`;
 
 function makeColorKeyCanvas(bitmap: ImageBitmap): {
   canvas: HTMLCanvasElement;
@@ -112,7 +109,7 @@ function makeColorKeyCanvas(bitmap: ImageBitmap): {
 }
 
 export const initTileset = async () => {
-  tileset = await loadImageFromBin(getUrl('tiles'), _assetKey);
+  tileset = await loadSheet('tiles');
   const keyed = makeColorKeyCanvas(tileset);
   tilesetAlpha = keyed.canvas;
   const response = await fetch('/assets/tiles.json');
@@ -155,7 +152,7 @@ export const initTileset = async () => {
 };
 
 export const initSpriteSheet = async () => {
-  spriteSheet = await loadImageFromBin(getUrl('sprites'), _assetKey);
+  spriteSheet = await loadSheet('sprites');
   const response = await fetch('/assets/sprites.json');
   if (!response.ok) throw new Error(`Sprite metadata: HTTP ${response.status}`);
   setSpriteLayout(parseSpriteLayout(await response.json()));
@@ -163,27 +160,26 @@ export const initSpriteSheet = async () => {
 };
 
 export const initItems = async () => {
-  items = await loadImageFromBin(getUrl('items'), _assetKey);
+  items = await loadSheet('items');
   return items;
 };
 
 const initSpellSheet = async () => {
-  const bmp = await loadImageFromBin(getUrl('spells'), _assetKey);
+  const bmp = await loadSheet('spells');
   spellSheet = makeColorKeyCanvas(bmp).canvas;
 };
 
 const initArrowSheet = async () => {
-  const bmp = await loadImageFromBin(getUrl('arrows'), _assetKey);
+  const bmp = await loadSheet('arrows');
   arrowSheet = makeColorKeyCanvas(bmp).canvas;
 };
 
 const initAttackEffectSheet = async () => {
-  const bmp = await loadImageFromBin(getUrl('attackeffect'), _assetKey);
+  const bmp = await loadSheet('attackeffect');
   attackEffectSheet = makeColorKeyCanvas(bmp).canvas;
 };
 
 export const initializeAssets = async () => {
-  if (!_assetKey) throw new Error('Asset key not set - call setAssetKey first');
   // allSettled, so the atlas is built from whatever arrived. With all, one
   // sheet missing from the install would leave no atlas, and every player and
   // NPC would draw as just a name and a health bar.

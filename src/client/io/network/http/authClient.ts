@@ -12,7 +12,6 @@ export const login = async (
   return await httpClient<{
     player: Player;
     map: MapMetaClient;
-    assetKey: string;
     motd?: string;
   }>('/login', {
     method: 'POST',

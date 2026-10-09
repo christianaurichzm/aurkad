@@ -19,8 +19,6 @@ vi.mock('../GameContext', () => ({
   useGame: () => ({ loginSuccess: mocks.loginSuccess }),
 }));
 
-vi.mock('../io/assets', () => ({ setAssetKey: vi.fn() }));
-
 const signIn = async (user: string, password: string, remember: boolean) => {
   const it = userEvent.setup();
   // Empty means "leave what is already there", which is the remembered name.

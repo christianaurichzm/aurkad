@@ -35,11 +35,12 @@ export const keyRecord: Partial<Record<Key, Protocol>> = {
   z: Protocol.HTTP,
 };
 
-export const imageMap: Record<string, string> = {
-  tiles: 'tiles',
-  sprites: 'sprites',
-  items: 'items',
-  spells: 'spells',
-  arrows: 'arrows',
-  attackeffect: 'attackeffect',
-};
+/** The image sheets a client loads, each served as /assets/<name>.png. */
+export const SHEETS = [
+  'tiles',
+  'sprites',
+  'items',
+  'spells',
+  'arrows',
+  'attackeffect',
+] as const;

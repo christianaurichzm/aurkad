@@ -9,7 +9,6 @@ import {
   login,
   requestPasswordReset,
 } from '../io/network';
-import { setAssetKey } from '../io/assets';
 import { useGame } from '../GameContext';
 import { useUIStore } from '../stores/uiStore';
 import { colors, radius } from '../theme';
@@ -102,8 +101,7 @@ export const Login = ({
       } catch {
         // Storage disabled: the box still applies to this login's session.
       }
-      if (data?.player && data?.map && data?.assetKey) {
-        setAssetKey(data.assetKey);
+      if (data?.player && data?.map) {
         loginSuccess(data);
         if (data.motd) {
           useUIStore.getState().addChatMessage({
