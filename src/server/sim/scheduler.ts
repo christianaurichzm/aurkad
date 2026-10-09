@@ -66,13 +66,6 @@ export function cancelScheduled(id: number): void {
   tasks.delete(id);
 }
 
-/** Drops every task owned by `owner`. Used when a script is reloaded. */
-export function cancelScheduledByOwner(owner: string): void {
-  for (const task of tasks.values()) {
-    if (task.owner === owner) tasks.delete(task.id);
-  }
-}
-
 export function scheduledTaskCount(): number {
   return tasks.size;
 }

@@ -15,10 +15,14 @@ import {
   hasItem,
   moveItem,
   removeItem,
-  totalItem,
 } from './economyService.js';
 import fc from 'fast-check';
 import type { InventoryLike } from '../../../shared/types.js';
+
+// The conservation check: an operation that claims to move items must
+// leave this unchanged.
+const totalItem = (containers: InventoryLike[], itemId: number): number =>
+  containers.reduce((total, c) => total + countItem(c, itemId), 0);
 
 const container = (
   items: Array<[number, number]> = [],

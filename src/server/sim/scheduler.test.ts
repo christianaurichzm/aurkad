@@ -4,7 +4,6 @@ import {
   scheduleAfter,
   scheduleEvery,
   cancelScheduled,
-  cancelScheduledByOwner,
   runScheduledTasks,
   resetScheduler,
   scheduledTaskCount,
@@ -98,19 +97,6 @@ describe('scheduler', () => {
       cancelScheduled(id);
       tick(3);
       expect(fn).toHaveBeenCalledTimes(2);
-    });
-
-    it('drops every task belonging to one owner and leaves the rest', () => {
-      const mine = vi.fn();
-      const theirs = vi.fn();
-      scheduleEvery(1, mine, 'a.js');
-      scheduleAfter(1, mine, 'a.js');
-      scheduleEvery(1, theirs, 'b.js');
-
-      cancelScheduledByOwner('a.js');
-      tick(2);
-      expect(mine).not.toHaveBeenCalled();
-      expect(theirs).toHaveBeenCalledTimes(2);
     });
 
     it('lets a task cancel itself from inside its own callback', () => {

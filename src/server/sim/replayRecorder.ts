@@ -80,10 +80,6 @@ export function stopRecording(): void {
   _recording = false;
 }
 
-export function isRecording(): boolean {
-  return _recording;
-}
-
 /**
  * Records an action as queued, before it runs, so one that makes a handler
  * throw is still recorded.

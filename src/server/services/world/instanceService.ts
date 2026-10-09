@@ -90,11 +90,6 @@ export function isInstanceKey(mapId?: string): boolean {
   return mapId?.includes(SEPARATOR) ?? false;
 }
 
-export function templateOf(mapId: string): string {
-  const cut = mapId.indexOf(SEPARATOR);
-  return cut === -1 ? mapId : mapId.slice(0, cut);
-}
-
 /**
  * Which copy this player belongs to. The engine's answer is "their own", as
  * a solo dungeon needs no agreement. Anything grouping players (a party, a

@@ -220,16 +220,3 @@ export function exchangeItems(
   }
   return OK;
 }
-
-/**
- * Total of one item across containers.
- *
- * The conservation check: an operation that claims to move items must leave
- * this unchanged. Property tests use it, and it is what a reconciliation job
- * would compare snapshots of.
- */
-export function totalItem(containers: InventoryLike[], itemId: number): number {
-  let total = 0;
-  for (const container of containers) total += countItem(container, itemId);
-  return total;
-}

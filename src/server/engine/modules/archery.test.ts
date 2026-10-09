@@ -13,10 +13,7 @@ import { createFixture, tile } from '../../sim/simFixture.js';
 import { Direction } from '../../../shared/types.js';
 import { TILE_SIZE } from '../../../shared/constants.js';
 import { items } from '../../services/content/itemService.js';
-import {
-  registerArrow,
-  unregisterArrow,
-} from '../../services/content/arrowService.js';
+import { arrows } from '../../services/content/arrowService.js';
 import type { PlayerServer } from '../../../shared/types.js';
 
 const TEST_ARROW_ID = 999;
@@ -25,7 +22,7 @@ const TEST_ITEM_ID = 999;
 // Registers a minimal arrow + a weapon item that references it, and equips the
 // weapon on the given player so getEquippedArrow() returns the test arrow.
 function equipTestArrow(player: PlayerServer): void {
-  registerArrow({
+  arrows.set(TEST_ARROW_ID, {
     id: TEST_ARROW_ID,
     name: 'Test Arrow',
     description: '',
@@ -44,7 +41,7 @@ function equipTestArrow(player: PlayerServer): void {
 }
 
 function cleanupTestArrow(): void {
-  unregisterArrow(TEST_ARROW_ID);
+  arrows.delete(TEST_ARROW_ID);
   items.delete(TEST_ITEM_ID);
 }
 

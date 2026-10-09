@@ -20,7 +20,7 @@ vi.mock('../../model/Spell.js', () => ({
   },
 }));
 
-const { createOrUpdateSpell, getSpellSync } = await import('./spellService.js');
+const { createOrUpdateSpell, getAllSpells } = await import('./spellService.js');
 
 const spell = (over: Record<string, unknown> = {}) => ({
   name: 'Fireball',
@@ -52,7 +52,7 @@ describe('createOrUpdateSpell', () => {
       },
       { upsert: true, returnDocument: 'after' },
     );
-    expect(getSpellSync(7)?.damage).toBe(12);
+    expect(getAllSpells().find((s) => s.id === 7)?.damage).toBe(12);
   });
 
   it('refuses a negative number and says which field', async () => {

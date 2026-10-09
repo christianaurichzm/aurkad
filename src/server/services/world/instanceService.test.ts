@@ -22,7 +22,6 @@ const {
   isInstanceKey,
   persistedLocation,
   sweepInstances,
-  templateOf,
 } = await import('./instanceService.js');
 
 type Sim = ReturnType<typeof createFixture>;
@@ -79,7 +78,6 @@ describe('walking into an instanced map', () => {
 
     const mapId = sim.getPlayer('Alice').mapId;
     expect(isInstanceKey(mapId)).toBe(true);
-    expect(templateOf(mapId)).toBe('dungeon');
     // The template is the blueprint, never the room: a player standing on it
     // would be in a dungeon that every other party can walk into.
     expect(Object.keys(runtimeState.maps.dungeon!.players)).toEqual([]);

@@ -196,7 +196,6 @@ export const config = {
   port: parseIntEnv('PORT', 8080, { min: 1, max: 65535 }),
   mongoUri: process.env.MONGO_URI || 'mongodb://localhost:27017',
   mongoDbName: dbName,
-  imagesBaseUrl: process.env.IMAGES_BASE_URL || '.',
   session: {
     secret: sessionSecret,
   },

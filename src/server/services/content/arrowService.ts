@@ -1,7 +1,7 @@
 import ArrowModel from '../../model/Arrow.js';
 import type { Arrow } from '../../../shared/types.js';
 
-const arrows = new Map<number, Arrow>();
+export const arrows = new Map<number, Arrow>();
 
 export async function loadArrows(): Promise<void> {
   const docs = await ArrowModel.find().lean<Arrow[]>().exec();
@@ -44,12 +44,4 @@ export function getArrowSync(id: number): Arrow | undefined {
 
 export function getAllArrows(): Arrow[] {
   return [...arrows.values()];
-}
-
-export function registerArrow(arrow: Arrow): void {
-  arrows.set(arrow.id, arrow);
-}
-
-export function unregisterArrow(id: number): void {
-  arrows.delete(id);
 }

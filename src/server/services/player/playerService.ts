@@ -84,13 +84,6 @@ export async function getPlayerById(id: string): Promise<PlayerRecord | null> {
   return playerRepository.findById(id);
 }
 
-export async function createOrUpdatePlayer(
-  player: PlayerServer,
-  session?: ClientSession,
-): Promise<boolean> {
-  return playerRepository.save(player, session);
-}
-
 /** The generation a session must carry, or null when the account is gone. */
 export async function authEpochOf(name: string): Promise<number | null> {
   return playerRepository.authEpochOf(name);
@@ -244,7 +237,7 @@ const writePlayerSessionState = async (
   session?: ClientSession,
 ) => {
   reportAccessDrift(player);
-  const written = await createOrUpdatePlayer(
+  const written = await playerRepository.save(
     {
       ...player,
       // Not necessarily where they are standing: inside a dungeon the copy's

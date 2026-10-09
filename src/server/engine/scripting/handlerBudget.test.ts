@@ -6,7 +6,6 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import {
   clearHandlerBudget,
-  disabledHandlers,
   handlerCosts,
   isHandlerDisabled,
   runWithBudget,
@@ -88,16 +87,6 @@ describe('runWithBudget', () => {
     expect(isHandlerDisabled('slow.js', 'on:tick')).toBe(true);
     expect(isHandlerDisabled('slow.js', 'on:playerJoin')).toBe(false);
     expect(isHandlerDisabled('other.js', 'on:tick')).toBe(false);
-  });
-
-  it('lists what is switched off', () => {
-    for (let i = 0; i < STRIKES; i++) {
-      runWithBudget('slow.js', 'chest.onEnter', slow(OVER));
-    }
-
-    expect(disabledHandlers()).toEqual([
-      { script: 'slow.js', handler: 'chest.onEnter' },
-    ]);
   });
 
   // Attribution lives at the call sites, and catching an error here as well
@@ -250,7 +239,6 @@ describe('share of wall clock', () => {
     budget.runWithBudget('greedy.js', 'on:playerJoin', () => {});
 
     expect(budget.isHandlerDisabled('greedy.js', 'on:tick')).toBe(false);
-    expect(budget.disabledHandlers()).toEqual([]);
 
     const logged = log.join('\n');
     expect(logged).toContain('large share of the server');

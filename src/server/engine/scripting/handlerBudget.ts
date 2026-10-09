@@ -183,7 +183,7 @@ function report(
   );
 }
 
-/** Whether a handler is currently switched off. Editor and test use. */
+/** Whether a handler is currently switched off. */
 export function isHandlerDisabled(script: string, label: string): boolean {
   return budgets.get(keyOf(script, label))?.disabled ?? false;
 }
@@ -203,16 +203,6 @@ export function clearHandlerBudget(script?: string): void {
     if (budget.script === script) budgets.delete(key);
   }
   lastShare.delete(script);
-}
-
-/** Handlers switched off now, newest first, for the editor and metrics. */
-export function disabledHandlers(): Array<{ script: string; handler: string }> {
-  const out: Array<{ script: string; handler: string }> = [];
-  for (const budget of budgets.values()) {
-    if (!budget.disabled) continue;
-    out.push({ script: budget.script, handler: budget.handler });
-  }
-  return out;
 }
 
 /**

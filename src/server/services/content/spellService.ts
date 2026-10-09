@@ -75,10 +75,6 @@ export async function deleteSpell(id: number): Promise<void> {
   spells.delete(id);
 }
 
-export function getSpellSync(id: number): Spell | undefined {
-  return spells.get(id);
-}
-
 export function getAllSpells(): Spell[] {
   return [...spells.values()];
 }

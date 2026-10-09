@@ -17,9 +17,9 @@ import {
 import { logger } from '../logger.js';
 import { config } from '../config.js';
 import {
-  isRecording,
   recordAction,
   resetRecorder,
+  recordingStatus,
 } from '../sim/replayRecorder.js';
 import { existsSync, rmSync } from 'node:fs';
 
@@ -345,7 +345,7 @@ describe('replay', () => {
     const path = out[0]!.match(/Saved (\S+)/)?.[1];
     expect(path).toBeTruthy();
     expect(existsSync(path!)).toBe(true);
-    expect(isRecording()).toBe(true);
+    expect(recordingStatus().recording).toBe(true);
     // The file is only half the feature; reading it is the other half.
     expect(out[0]).toContain('npm run replay --');
   });
@@ -361,14 +361,14 @@ describe('replay', () => {
 
     const { out } = await run('replay stop');
     expect(out[0]).toContain('recording stopped');
-    expect(isRecording()).toBe(false);
+    expect(recordingStatus().recording).toBe(false);
   });
 
   it('stop with nothing buffered writes no file and says so', async () => {
     await run('replay start');
     const { out } = await run('replay stop');
     expect(out[0]).toMatch(/no file written, recording stopped/);
-    expect(isRecording()).toBe(false);
+    expect(recordingStatus().recording).toBe(false);
     expect(existsSync(TMP_DIR)).toBe(false);
   });
 
@@ -394,7 +394,7 @@ describe('replay', () => {
   it('is not a command an ordinary moderator can run', async () => {
     const { out } = await run('replay start', Access.MOD);
     expect(out[0]).toMatch(/permission/i);
-    expect(isRecording()).toBe(false);
+    expect(recordingStatus().recording).toBe(false);
   });
 });
 

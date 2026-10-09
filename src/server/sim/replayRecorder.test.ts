@@ -4,7 +4,6 @@ import {
   stopRecording,
   recordAction,
   getReplayData,
-  isRecording,
   recordingStatus,
   saveReplay,
   flushReplay,
@@ -36,7 +35,7 @@ beforeEach(() => {
 
 describe('replayRecorder', () => {
   it('is not recording by default', () => {
-    expect(isRecording()).toBe(false);
+    expect(recordingStatus().recording).toBe(false);
     recordAction(key('Bob', 'press'));
     expect(getReplayData().events).toHaveLength(0);
   });
@@ -150,7 +149,7 @@ describe('replayRecorder', () => {
     expect(existsSync(path!)).toBe(true);
     expect(path).toContain('incident');
     // Saving keeps the recording on.
-    expect(isRecording()).toBe(true);
+    expect(recordingStatus().recording).toBe(true);
   });
 
   it('stopping writes what is left', () => {
@@ -160,7 +159,7 @@ describe('replayRecorder', () => {
     const path = flushReplay(TMP_DIR);
 
     expect(existsSync(path!)).toBe(true);
-    expect(isRecording()).toBe(false);
+    expect(recordingStatus().recording).toBe(false);
   });
 
   it('writes nothing when nothing was recorded', () => {
@@ -174,7 +173,7 @@ describe('replayRecorder', () => {
     recordAction(key('Alice', 'press'));
     stopRecording();
 
-    expect(isRecording()).toBe(false);
+    expect(recordingStatus().recording).toBe(false);
     expect(getReplayData().events).toHaveLength(1);
     recordAction(key('Alice', 'release'));
     expect(getReplayData().events).toHaveLength(1);
@@ -196,7 +195,7 @@ describe('replayRecorder', () => {
     startRecording();
     recordAction(key('Alice', 'press'));
     resetRecorder();
-    expect(isRecording()).toBe(false);
+    expect(recordingStatus().recording).toBe(false);
     expect(getReplayData().events).toHaveLength(0);
   });
 });

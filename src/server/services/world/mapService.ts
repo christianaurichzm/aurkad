@@ -22,7 +22,6 @@ import { logger } from '../../logger.js';
 
 import { emit } from '../../engine/hooks.js';
 import { mapRepository } from '../../persistence/mapRepository.js';
-import { dropQuadtree } from '../../sim/spatialManager.js';
 import { forgetReplicatedEntity, resendChunkAt } from '../../net/snapshot.js';
 import { getNextMapId } from '../dbService.js';
 import { getItemById } from '../content/itemService.js';
@@ -161,23 +160,6 @@ export function setMapTile(
   resendChunkAt(mapId, c, r);
   emit('mapChange', { mapId });
   return true;
-}
-
-/**
- * Deletes a map everywhere, not just in the database: removing only the
- * document would leave the map live in runtimeState, its NPCs ticking and
- * its players broadcast until a restart, and its quadtree never released.
- * Nothing calls this yet.
- */
-export async function deleteMap(id: string): Promise<void> {
-  await mapRepository.delete(id);
-
-  const live = runtimeState.maps[id];
-  if (live) {
-    for (const npc of Object.values(live.npcs)) forgetReplicatedEntity(npc.id);
-    delete runtimeState.maps[id];
-  }
-  dropQuadtree(id);
 }
 
 export async function listMaps(): Promise<MapStateServer[]> {
