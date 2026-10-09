@@ -1,0 +1,9 @@
+{
+  "world": {
+    "startMapId": "1",
+    "respawnTile": {
+      "col": 15,
+      "row": 11
+    }
+  }
+}

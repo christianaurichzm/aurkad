@@ -1,0 +1,65 @@
+[
+  {
+    "id": 1,
+    "name": "Health Potion",
+    "description": "A red draught that closes wounds.",
+    "sprite": 0,
+    "type": "consumable",
+    "effects": [
+      {
+        "attribute": "health",
+        "type": "add",
+        "value": 30
+      }
+    ]
+  },
+  {
+    "id": 2,
+    "name": "Gold Coin",
+    "description": "Currency.",
+    "sprite": 1,
+    "type": "money"
+  },
+  {
+    "id": 3,
+    "name": "Short Sword",
+    "description": "Light and quick to draw.",
+    "sprite": 2,
+    "type": "weapon",
+    "effects": [
+      {
+        "attribute": "attack",
+        "type": "add",
+        "value": 3
+      }
+    ]
+  },
+  {
+    "id": 4,
+    "name": "Iron Helmet",
+    "description": "A solid iron helmet.",
+    "sprite": 3,
+    "type": "helmet",
+    "effects": [
+      {
+        "attribute": "defense",
+        "type": "add",
+        "value": 2
+      }
+    ]
+  },
+  {
+    "id": 5,
+    "name": "Mug of Cider",
+    "description": "Sweet, cold and good for a scrape.",
+    "sprite": 4,
+    "type": "consumable",
+    "effects": [
+      {
+        "attribute": "health",
+        "type": "add",
+        "value": 10
+      }
+    ]
+  }
+]

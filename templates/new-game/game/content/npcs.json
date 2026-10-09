@@ -1,0 +1,63 @@
+[
+  {
+    "id": "skeleton",
+    "name": "Skeleton",
+    "sprite": 3,
+    "maxHealth": 20,
+    "attack": 2,
+    "behavior": "hostile",
+    "experienceValue": 10,
+    "itemsToDrop": [
+      {
+        "itemId": 2,
+        "chance": 0.8,
+        "quantity": 3
+      },
+      {
+        "itemId": 1,
+        "chance": 0.2,
+        "quantity": 1
+      },
+      {
+        "itemId": 5,
+        "chance": 0.2,
+        "quantity": 1
+      }
+    ]
+  },
+  {
+    "id": "bone-knight",
+    "name": "Bone Knight",
+    "sprite": 4,
+    "maxHealth": 60,
+    "attack": 8,
+    "behavior": "aggressive",
+    "leash": 5,
+    "experienceValue": 40,
+    "itemsToDrop": [
+      {
+        "itemId": 2,
+        "chance": 1,
+        "quantity": 8
+      },
+      {
+        "itemId": 3,
+        "chance": 0.15,
+        "quantity": 1
+      },
+      {
+        "itemId": 4,
+        "chance": 0.2,
+        "quantity": 1
+      }
+    ]
+  },
+  {
+    "id": "mage",
+    "name": "Mage",
+    "sprite": 1,
+    "maxHealth": 50,
+    "attack": 0,
+    "behavior": "friendly"
+  }
+]

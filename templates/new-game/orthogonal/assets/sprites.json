@@ -1,0 +1,10 @@
+{
+  "width": 224,
+  "height": 224,
+  "anchorX": 112,
+  "anchorY": 256,
+  "scale": 0.5,
+  "columns": 6,
+  "idleColumn": 4,
+  "attackColumn": 5
+}

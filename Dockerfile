@@ -20,9 +20,11 @@ RUN npm ci --omit=dev && npm cache clean --force
 
 COPY --from=builder /app/dist ./dist
 
-# Read from disk at runtime rather than compiled in: the official modules, and
-# the scripting API's declarations that game scripts are type-checked against.
+# Read from disk at runtime rather than compiled in: the official modules,
+# the game new-game copies, and the scripting API's declarations that game
+# scripts are type-checked against.
 COPY modules ./modules
+COPY templates ./templates
 COPY scripts/global.d.ts scripts/tsconfig.json ./scripts/
 
 # The game itself is a bind mount - one folder with GAME_DIR pointing at it

@@ -13,3 +13,4 @@ REFACTOR_PLAN.md
 .idea
 *.md
 demos
+templates/*/build

@@ -27,15 +27,19 @@ again; Caddy fetches a real certificate.
 
 `new-game` writes a small playable game into `game/`: a map, a few monsters and
 items, a `game.json` with the name the login screen shows and every official
-module switched off, and placeholder art drawn in code. Add `--isometric` after
+module switched off, and art rendered from Kay Lousberg's KayKit models (CC0;
+`templates/new-game/build` makes it). Add `--isometric` after
 the name for a map drawn in 2:1 diamonds; the map editor then starts new maps
 the same way. The folder is yours to edit on the host - scripts hot-reload,
 the rest applies on `docker compose restart app` - and the world (maps,
 players, items) lives in MongoDB. Upgrading the engine is changing the version on the `image:` lines of
 `compose.yml` and `docker compose up -d`; `game/` is never touched.
 
-The art is six PNG sheets in `game/assets/`, and the placeholders show the grid
-each one is cut into, so you can paint over them:
+The art is six PNG sheets in `game/assets/`. Each is cut on the grid below
+unless a JSON file beside it says otherwise, as the new game's do for two:
+`tiles.json` names every frame of the tile atlas and the piece the map editor
+offers it as, and `sprites.json` sizes the character frames, which can be
+bigger than a cell:
 
 | Sheet              | Cell | Layout                                                           |
 | ------------------ | ---- | ---------------------------------------------------------------- |
