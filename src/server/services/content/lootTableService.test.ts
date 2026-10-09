@@ -25,7 +25,6 @@ vi.mock('../../model/LootTable.js', () => ({
 
 const {
   getLootTable,
-  knownLootTableIds,
   loadLootTables,
   createOrUpdateLootTable,
   deleteLootTable,
@@ -48,7 +47,7 @@ describe('loadLootTables', () => {
 
     await loadLootTables();
 
-    expect(knownLootTableIds()).toEqual(new Set(['a', 'b']));
+    expect(cachedLootTables().map((entry) => entry.id)).toEqual(['a', 'b']);
     expect(getLootTable('a')?.name).toBe('Table a');
   });
 
@@ -112,15 +111,6 @@ describe('deleteLootTable', () => {
 
     expect(getLootTable('a')).toBeUndefined();
     expect(deleteOne).toHaveBeenCalledWith({ id: 'a' });
-  });
-});
-
-describe('knownLootTableIds', () => {
-  it('is a copy, so a caller cannot corrupt the cache', async () => {
-    await createOrUpdateLootTable(table('a'));
-    knownLootTableIds().add('fake');
-
-    expect(knownLootTableIds()).toEqual(new Set(['a']));
   });
 });
 

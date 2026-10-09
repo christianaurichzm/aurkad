@@ -2,9 +2,10 @@
 // the same reason `items` is a module-level Map in itemService.ts.
 
 import LootTableModel from '../../model/LootTable.js';
+import { contentCache } from '../../persistence/contentCache.js';
 import type { LootTable, NpcItemDrop } from '../../../shared/types.js';
 
-const tables = new Map<string, LootTable>();
+const tables = contentCache<LootTable>(LootTableModel);
 
 /**
  * The table an npc's own drop list becomes, exactly: `guaranteed` entries
@@ -29,43 +30,10 @@ export function dropsToLootTable(
   };
 }
 
-export function getLootTable(id: string): LootTable | undefined {
-  return tables.get(id);
-}
-
-/** Every loaded id, for validating content that references them. */
-export function knownLootTableIds(): Set<string> {
-  return new Set(tables.keys());
-}
-
-export function cachedLootTables(): LootTable[] {
-  return [...tables.values()];
-}
-
-export async function loadLootTables(): Promise<void> {
-  const rows = await LootTableModel.find().lean<LootTable[]>().exec();
-  tables.clear();
-  for (const row of rows) tables.set(row.id, row);
-}
-
-export async function createOrUpdateLootTable(table: LootTable): Promise<void> {
-  await LootTableModel.findOneAndUpdate({ id: table.id }, table, {
-    upsert: true,
-  });
-  // Refresh the cache with the same object shape the loader produces, so an
-  // edit takes effect on the next kill instead of after a restart.
-  tables.set(table.id, { ...table });
-}
-
-export async function deleteLootTable(id: string): Promise<void> {
-  await LootTableModel.deleteOne({ id });
-  tables.delete(id);
-}
-
-export async function listLootTables(): Promise<LootTable[]> {
-  return LootTableModel.find().lean<LootTable[]>().exec();
-}
-
-export function clearLootTableCache(): void {
-  tables.clear();
-}
+export const getLootTable = tables.get;
+export const cachedLootTables = tables.all;
+export const loadLootTables = tables.load;
+export const listLootTables = tables.list;
+export const createOrUpdateLootTable = tables.upsert;
+export const deleteLootTable = tables.remove;
+export const clearLootTableCache = tables.clear;

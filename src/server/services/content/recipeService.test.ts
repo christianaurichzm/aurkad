@@ -24,14 +24,15 @@ vi.mock('../../model/Recipe.js', () => ({
 }));
 
 const {
-  getRecipeById,
-  knownRecipeIds,
   loadRecipes,
   createOrUpdateRecipe,
   deleteRecipe,
   clearRecipeCache,
   cachedRecipes,
 } = await import('./recipeService.js');
+
+const getRecipeById = (id: string) =>
+  cachedRecipes().find((entry) => entry.id === id);
 
 const recipe = (id: string): Recipe => ({
   id,
@@ -53,7 +54,7 @@ describe('loadRecipes', () => {
 
     await loadRecipes();
 
-    expect(knownRecipeIds()).toEqual(new Set(['a', 'b']));
+    expect(cachedRecipes().map((entry) => entry.id)).toEqual(['a', 'b']);
     expect(getRecipeById('a')?.name).toBe('Recipe a');
   });
 
@@ -114,15 +115,6 @@ describe('deleteRecipe', () => {
 
     expect(getRecipeById('a')).toBeUndefined();
     expect(deleteOne).toHaveBeenCalledWith({ id: 'a' });
-  });
-});
-
-describe('knownRecipeIds', () => {
-  it('is a copy, so a caller cannot corrupt the cache', async () => {
-    await createOrUpdateRecipe(recipe('a'));
-    knownRecipeIds().add('fake');
-
-    expect(knownRecipeIds()).toEqual(new Set(['a']));
   });
 });
 

@@ -26,7 +26,6 @@ vi.mock('../../model/Dialog.js', () => ({
 
 const {
   getDialogById,
-  knownDialogIds,
   loadDialogs,
   createOrUpdateDialog,
   deleteDialog,
@@ -53,7 +52,7 @@ describe('loadDialogs', () => {
 
     await loadDialogs();
 
-    expect(knownDialogIds()).toEqual(new Set(['a', 'b']));
+    expect(cachedDialogs().map((entry) => entry.id)).toEqual(['a', 'b']);
     expect(getDialogById('a')?.name).toBe('Dialog a');
   });
 
@@ -113,15 +112,6 @@ describe('deleteDialog', () => {
 
     expect(getDialogById('a')).toBeUndefined();
     expect(deleteOne).toHaveBeenCalledWith({ id: 'a' });
-  });
-});
-
-describe('knownDialogIds', () => {
-  it('is a copy, so a caller cannot corrupt the cache', async () => {
-    await createOrUpdateDialog(dialog('a'));
-    knownDialogIds().add('fake');
-
-    expect(knownDialogIds()).toEqual(new Set(['a']));
   });
 });
 

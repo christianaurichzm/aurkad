@@ -25,7 +25,6 @@ vi.mock('../../model/Quest.js', () => ({
 
 const {
   getQuestById,
-  knownQuestIds,
   loadQuests,
   createOrUpdateQuest,
   deleteQuest,
@@ -52,7 +51,7 @@ describe('loadQuests', () => {
 
     await loadQuests();
 
-    expect(knownQuestIds()).toEqual(new Set(['a', 'b']));
+    expect(cachedQuests().map((entry) => entry.id)).toEqual(['a', 'b']);
     expect(getQuestById('a')?.name).toBe('Quest a');
   });
 
@@ -118,15 +117,6 @@ describe('deleteQuest', () => {
 
     expect(getQuestById('a')).toBeUndefined();
     expect(deleteOne).toHaveBeenCalledWith({ id: 'a' });
-  });
-});
-
-describe('knownQuestIds', () => {
-  it('is a copy, so a caller cannot corrupt the cache', async () => {
-    await createOrUpdateQuest(quest('a'));
-    knownQuestIds().add('fake');
-
-    expect(knownQuestIds()).toEqual(new Set(['a']));
   });
 });
 
