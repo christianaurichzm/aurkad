@@ -41,8 +41,7 @@ export function createThemeRouter({
   router.get('/admin/theme', admin, async (_req, res) => {
     const [theme, css] = await Promise.all([
       readTheme(themeDir),
-      // Without its comments: the starter ships a theme.css that is only
-      // one, which wins over nothing.
+      // Comments stripped, so a theme.css holding only a comment wins nothing.
       readFile(path.join(themeDir, 'theme.css'), 'utf8').then(
         (text) => text.replace(/\/\*[\s\S]*?\*\//g, ''),
         () => '',

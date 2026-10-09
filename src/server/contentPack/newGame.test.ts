@@ -140,7 +140,7 @@ describe('writeGame', () => {
     if (dir) fs.rmSync(dir, { recursive: true, force: true });
   });
 
-  it('writes a game.json the boot accepts, named after the folder, and every sheet', () => {
+  it('writes a game.json the boot accepts, named after the folder, every sheet and the scripts', () => {
     dir = fs.mkdtempSync(path.join(os.tmpdir(), 'new-game-'));
     const game = path.join(dir, 'my-game');
     writeGame(game);
@@ -158,14 +158,20 @@ describe('writeGame', () => {
       expect(fs.existsSync(path.join(game, 'assets', `${sheet}.png`))).toBe(
         true,
       );
+    expect(fs.existsSync(path.join(game, 'scripts', 'example.js'))).toBe(true);
     expect(fs.existsSync(path.join(game, 'build'))).toBe(false);
   });
 
-  it('switches every official module off', () => {
+  // game.json is where an operator reads what this game is made of. A module
+  // missing from it runs on whatever its manifest says, on or off by accident.
+  it('lists every official module, switched off', () => {
     dir = fs.mkdtempSync(path.join(os.tmpdir(), 'new-game-'));
     writeGame(dir);
+    const installed = fs
+      .readdirSync('modules')
+      .filter((id) => fs.existsSync(path.join('modules', id, 'module.json')));
     const { modules } = loadGameConfig(dir);
-    expect(Object.keys(modules)).toContain('quest');
+    expect(Object.keys(modules).sort()).toEqual(installed.sort());
     for (const entry of Object.values(modules))
       expect(entry.enabled).toBe(false);
   });

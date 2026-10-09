@@ -1,5 +1,0 @@
-{
-  "//": "Editor support for this game's scripts, and what `npm run typecheck:scripts` checks: the engine's settings and API (scripts/global.d.ts at the repository root) over the files here.",
-  "extends": "../../../scripts/tsconfig.json",
-  "include": ["*.js", "../../../scripts/global.d.ts", "content.generated.d.ts"]
-}

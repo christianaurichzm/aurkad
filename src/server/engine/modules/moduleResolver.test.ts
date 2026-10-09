@@ -1,7 +1,4 @@
-import fs from 'node:fs';
-import path from 'node:path';
 import { describe, it, expect } from 'vitest';
-import { loadGameConfig } from '../../gameConfig.js';
 import {
   isModuleEnabled,
   resolveModuleConfig,
@@ -94,21 +91,5 @@ describe('orderModules', () => {
   it('ignores missing dependencies', () => {
     const a = mod({ id: 'a', dependencies: ['ghost'] });
     expect(orderModules([a]).map((m) => m.id)).toEqual(['a']);
-  });
-});
-
-// game.json is where an operator reads what this game is made of. A module
-// missing from it runs on whatever its manifest says, on or off by accident.
-describe('game.json', () => {
-  it('lists every module in modules/', () => {
-    const dir = path.resolve(process.cwd(), 'modules');
-    const installed = fs
-      .readdirSync(dir, { withFileTypes: true })
-      .filter((e) => e.isDirectory())
-      .filter((e) => fs.existsSync(path.join(dir, e.name, 'module.json')))
-      .map((e) => e.name);
-
-    const { modules } = loadGameConfig(path.resolve('demos/starter'));
-    expect(installed.filter((id) => modules[id] === undefined)).toEqual([]);
   });
 });

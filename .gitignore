@@ -146,7 +146,11 @@ src/server/model/seed.ts
 
 # Generated per-project content constants (rebuilt at server boot)
 scripts/content.generated.d.ts
-demos/starter/scripts/content.generated.d.ts
+
+# Games made with `npm run new-game` inside the checkout, as the README's
+# development steps and docker-compose.yml do
+/game/
+/games/
 
 # Playwright E2E run artifacts
 /playwright-report/

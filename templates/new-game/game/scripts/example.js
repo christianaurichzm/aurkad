@@ -1,7 +1,10 @@
-// @ts-check
-// Starter game script: edit this file to define your game's rules.
-// Everything here runs on the server, and saving hot-reloads it.
-// Full API reference at the bottom of this file; types in scripts/global.d.ts.
+// Your game's script: edit this file to define the rules. Everything here
+// runs on the server, and saving hot-reloads it with no restart. A quick
+// API reference is at the bottom; the full one, typed, is the engine's
+// scripts/global.d.ts (`npm run docs:api` renders it).
+//
+// A new game starts with every module off, so `use('dialog')` and
+// `use('quest')` below are undefined until you turn them on in game.json.
 
 // ─── MODULES ─────────────────────────────────────────────────────────────────
 // Grab module APIs once at load time. They are undefined if the module is
@@ -16,26 +19,26 @@ const quest = use('quest'); // quest tracker panel (Q key)
 
 if (quest) {
   quest.define({
-    id: 'goblinHunt',
-    name: 'Goblin Hunt',
-    description: 'Defeat 3 Goblins for the Elder.',
+    id: 'skeletonHunt',
+    name: 'Bones in the Meadow',
+    description: 'Defeat 3 Skeletons for the Mage.',
     target: 3,
     reward: (player) => {
       giveExperience(player, 100);
       giveItem(player, 1, 2); // 2× Health Potion (item id 1)
-      sendMessage(player, 'The Elder rewards you with potions and experience.');
+      sendMessage(player, 'The Mage rewards you with potions and experience.');
     },
   });
 
   quest.define({
-    id: 'orcSlayer',
-    name: 'Orc Slayer',
-    description: 'Prove yourself by defeating 5 Orcs.',
-    target: 5,
+    id: 'boneKnight',
+    name: 'The Bone Knight',
+    description: 'Defeat the Bone Knight in the far corner of the meadow.',
+    target: 1,
     reward: (player) => {
       giveExperience(player, 500);
-      giveItem(player, 8, 1); // Steel Sword (item id 8)
-      sendMessage(player, 'The Elder gives you a steel sword as reward!');
+      giveItem(player, 3, 1); // Short Sword (item id 3)
+      sendMessage(player, 'The Mage gives you a short sword as reward!');
     },
   });
 }
@@ -51,7 +54,7 @@ on('playerJoin', ({ player }) => {
   // Give a starter kit to brand-new players (level 1, empty inventory).
   if (player.level === 1 && player.inventory.items.length === 0) {
     giveItem(player, 1, 3); // 3× Health Potion
-    giveItem(player, 3, 10); // 10 Gold Coins
+    giveItem(player, 2, 10); // 10 Gold Coins
     sendMessage(
       player,
       'You received a starter kit: 3 Health Potions and 10 Gold Coins.',
@@ -74,8 +77,8 @@ on('npcInteract', ({ player, npc }) => {
   // greeting them here would put a second box on screen for one keypress.
   if (npc.dialogId || npc.scriptId) return;
 
-  if (npc.name === 'Elder') {
-    handleElderDialog(player);
+  if (npc.name === 'Mage') {
+    handleMageDialog(player);
     return;
   }
 
@@ -83,25 +86,25 @@ on('npcInteract', ({ player, npc }) => {
   dialog.show(player, { text: `${npc.name}: Greetings, traveler.` });
 });
 
-function handleElderDialog(player) {
+function handleMageDialog(player) {
   if (!quest || !dialog) return;
 
-  const goblinQ = quest.get(player, 'goblinHunt');
-  const orcQ = quest.get(player, 'orcSlayer');
+  const hunt = quest.get(player, 'skeletonHunt');
+  const knight = quest.get(player, 'boneKnight');
 
-  if (!goblinQ) {
+  if (!hunt) {
     // First visit: offer the introductory quest.
     dialog.show(
       player,
       {
-        text: 'Elder: Our village is overrun by goblins. Will you help us?',
+        text: 'Mage: The dead are walking in the meadow. Will you help me?',
         choices: ['I will help', 'Maybe later'],
       },
       (choice) => {
         if (choice === 0) {
-          quest.start(player, 'goblinHunt');
+          quest.start(player, 'skeletonHunt');
           dialog.show(player, {
-            text: 'Elder: Slay 3 Goblins and return to me. Safe travels.',
+            text: 'Mage: Put 3 Skeletons back in the ground and return to me.',
           });
         }
       },
@@ -109,62 +112,62 @@ function handleElderDialog(player) {
     return;
   }
 
-  if (goblinQ.status === 'active') {
+  if (hunt.status === 'active') {
     dialog.show(player, {
-      text: `Elder: You have defeated ${goblinQ.progress} of ${goblinQ.target} goblins. Keep going!`,
+      text: `Mage: You have defeated ${hunt.progress} of ${hunt.target} skeletons. Keep going!`,
     });
     return;
   }
 
-  // Goblin quest done: offer the next one if available.
-  if (!orcQ) {
+  // First quest done: offer the next one if available.
+  if (!knight) {
     dialog.show(
       player,
       {
-        text: 'Elder: You have my thanks! But stronger foes lurk to the east - Orcs. Will you face them?',
+        text: 'Mage: My thanks! But something raises them - a knight of bone, in the far corner. Will you face it?',
         choices: ['I accept', 'Not yet'],
       },
       (choice) => {
-        if (choice === 0) quest.start(player, 'orcSlayer');
+        if (choice === 0) quest.start(player, 'boneKnight');
       },
     );
     return;
   }
 
-  if (orcQ.status === 'active') {
+  if (knight.status === 'active') {
     dialog.show(player, {
-      text: `Elder: ${orcQ.progress}/${orcQ.target} orcs defeated. You are almost there!`,
+      text: 'Mage: The Bone Knight still stands. Mind its sword.',
     });
     return;
   }
 
   dialog.show(player, {
-    text: 'Elder: You are a true hero. The village is forever grateful.',
+    text: 'Mage: The meadow is quiet again. Thank you, hero.',
   });
 }
 
 // ─── AUTHORED DIALOGS ────────────────────────────────────────────────────────
-// The guard by the east road says nothing in this file: his conversation is a
-// document in the content editor (Dialogs tab), and the dialog module walks it.
-// Compare it with handleElderDialog above: the same feature, one written in
-// code and one in the editor.
+// A conversation can also be a document in the content editor (Dialogs tab),
+// which the dialog module walks: the same feature as handleMageDialog above,
+// written in the editor instead of in code. Give an npc one and this file
+// says nothing for it.
 //
 // What a document cannot hold is a rule, so a choice names one instead. These
-// two are the names the guard's dialog uses.
+// two are names a dialog's choices can use.
 
 // Whether to offer the choice at all. A missing or throwing condition hides it.
-provide('dialogCondition.goblinSlayer', ({ player }) => {
-  const hunt = quest && quest.get(player, 'goblinHunt');
+provide('dialogCondition.skeletonSlayer', ({ player }) => {
+  const hunt = quest && quest.get(player, 'skeletonHunt');
   return !!hunt && hunt.status === 'completed';
 });
 
 // What picking the choice does. If this throws, the conversation stops rather
 // than showing the node that thanks the player for a reward they never got.
-provide('dialogAction.guardGift', ({ player }) => {
-  if (getPlayerData(player, 'guardGift')) return; // already paid, once per player
-  setPlayerData(player, 'guardGift', true);
-  giveItem(player, 3, 25); // 25 Gold Coins
-  sendMessage(player, 'The guard hands you 25 gold coins.');
+provide('dialogAction.campGift', ({ player }) => {
+  if (getPlayerData(player, 'campGift')) return; // already paid, once per player
+  setPlayerData(player, 'campGift', true);
+  giveItem(player, 2, 25); // 25 Gold Coins
+  sendMessage(player, 'You are handed 25 gold coins.');
 });
 
 // ─── LOOT CONDITIONS ─────────────────────────────────────────────────────────
@@ -189,8 +192,8 @@ provide('lootCondition.eventActive', () => flags.enabled('lootEvent'));
 
 on('npcDeath', ({ npc, killer }) => {
   if (!quest) return;
-  if (npc.name === 'Goblin') quest.advance(killer, 'goblinHunt', 1);
-  if (npc.name === 'Orc') quest.advance(killer, 'orcSlayer', 1);
+  if (npc.name === 'Skeleton') quest.advance(killer, 'skeletonHunt', 1);
+  if (npc.name === 'Bone Knight') quest.advance(killer, 'boneKnight', 1);
 });
 
 // ─── SEQUENCES (COROUTINES) ──────────────────────────────────────────────────
@@ -221,24 +224,28 @@ command(
 // The shape a boss fight wants: announce, wait for the thing to actually
 // happen, then react. Written with hooks alone this is two handlers and a flag
 // in module scope remembering which phase we are in.
-on('npcInteract', ({ player, npc }) => {
-  if (npc.name !== 'Warden') return;
-  coroutine(function* wardenChallenge() {
-    sendMessage(player, 'The Warden raises its shield.');
-    yield wait(msToTicks(1500));
-    sendMessage(player, 'Prove yourself: slay a Goblin.');
+command(
+  'challenge',
+  { description: 'Demo: slay a Skeleton while the challenge stands' },
+  ({ player, reply }) => {
+    if (!player) return reply('In-game only.');
+    coroutine(function* skeletonChallenge() {
+      sendMessage(player, 'The Mage raises the staff.');
+      yield wait(msToTicks(1500));
+      sendMessage(player, 'Prove yourself: slay a Skeleton.');
 
-    // Only this player's kill resumes it; the filter runs on every npcDeath,
-    // and a resumption that does not match never wakes the sequence.
-    yield waitFor(
-      'npcDeath',
-      (p) => p.npc.name === 'Goblin' && p.killer?.name === player.name,
-    );
+      // Only this player's kill resumes it: the filter runs on every
+      // npcDeath, and one that does not match never wakes the sequence.
+      yield waitFor(
+        'npcDeath',
+        (p) => p.npc.name === 'Skeleton' && p.killer?.name === player.name,
+      );
 
-    sendMessage(player, 'The Warden steps aside.');
-    giveExperience(player, 50);
-  });
-});
+      sendMessage(player, 'The Mage nods.');
+      giveExperience(player, 50);
+    });
+  },
+);
 
 // ─── DEATH ───────────────────────────────────────────────────────────────────
 
@@ -359,8 +366,8 @@ command(
 //
 // on('playerLevelUp', ({ player, level }) => {
 //   if (level === 10) {
-//     giveItem(player, 2, 1); // Iron Sword at level 10
-//     sendMessage(player, 'You earned an Iron Sword for reaching level 10!');
+//     giveItem(player, 3, 1); // Short Sword at level 10
+//     sendMessage(player, 'You earned a Short Sword for reaching level 10!');
 //   }
 // });
 
@@ -469,10 +476,10 @@ command(
 //   onUnequip({ player }) { setPlayerData(player, 'cursed', false); },
 // });
 //
-// An item's type decides which of these it can reach: a consumable is spent by
-// onUse, equipment goes through onEquip/onUnequip. Whatever onEquip grants,
-// onUnequip has to take back: the player stays in that state until they take
-// the piece off, and swapping fires onUnequip for the old piece first.
+// An item's type decides which of these it can reach: a consumable is spent
+// by onUse, equipment goes through onEquip/onUnequip. Whatever onEquip
+// grants, onUnequip has to take back: the player keeps it until the piece
+// comes off, and a swap fires onUnequip for the outgoing piece first.
 //
 // One name can carry several of these at once: a boss that talks, hurts you on
 // its tile and drops loot is one attach with three handlers. Registrations are
@@ -505,7 +512,7 @@ command(
 //
 // Types: 'text' | 'number' | 'boolean' | 'select' (with `options`) | 'item' |
 // 'npc' | 'map'. The id types render as content pickers, so nobody has to
-// remember that the health potion is item 3.
+// remember that the health potion is item 1.
 //
 // `ctx.params` only ever contains what you declared, already coerced to the
 // declared type and clamped to min/max, so `params.quantity` is a number
@@ -651,22 +658,22 @@ command(
 //   from the sender and persistNow BEFORE queueing, or a crash makes a copy.
 //   The `mail` module is this wrapped in a mailbox, if you want the whole thing.
 //
-// PERSISTED DATA (limites reais; checar o retorno)
-//   getPlayerData(player, key)         → valor | undefined   devolve uma CÓPIA
-//   setPlayerData(player, key, value)  → boolean  false = recusado
-//   store.get/set/delete/keys/entries  idem, compartilhado entre jogadores
+// PERSISTED DATA (real limits; check the result)
+//   getPlayerData(player, key)         → value | undefined   returns a COPY
+//   setPlayerData(player, key, value)  → boolean  false = refused
+//   store.get/set/delete/keys/entries  the same, shared between players
 //
-//   Um read devolve cópia, então mutar o retorno não muda o que está guardado:
+//   A read returns a copy, so changing it does not change what is stored:
 //     const log = getPlayerData(p, 'log') || [];
 //     log.push(x);
-//     setPlayerData(p, 'log', log);   // obrigatório
+//     setPlayerData(p, 'log', log);   // required
 //
-//   `set` recusa valor grande demais, chave nova além do limite, ou valor não
-//   serializável (referência circular). Não é preferência: documento de jogador
-//   acima de 16MB para de salvar de vez, para sempre.
+//   `set` refuses a value too large, a new key past the limit, or a value
+//   that cannot be serialized (a circular reference). That is not a matter of
+//   taste: a player document over 16MB stops saving, for good.
 //
-//   Passe `undefined` para limpar a chave - também é como liberar espaço se
-//   bater no limite de chaves.
+//   Pass `undefined` to clear a key, which is also how to make room once
+//   the key limit is reached.
 //
 // LIVE-OPS FLAGS (read-only here; an admin sets them with /flag)
 //   flags.enabled(name)          → boolean  true only for a flag set to true

@@ -16,7 +16,6 @@ npm install
 npm run db:up                        # MongoDB in Docker
 npm run new-game -- games/my-game    # a small playable game to run against
 GAME_DIR=games/my-game npm run dev   # server (8080) + client dev server with HMR
-npm run starter                      # or the sample game in demos/starter
 ```
 
 ## Quality bar
@@ -25,7 +24,7 @@ Every change must keep these green, and CI enforces them:
 
 ```bash
 npm run typecheck      # tsc, server + client + scripts + modules, no emit
-npm run lint           # eslint over src, modules, the starter's scripts
+npm run lint           # eslint over src, modules, new-game's scripts
 npm run format:check   # prettier
 npm run test:run       # vitest single run
 ```

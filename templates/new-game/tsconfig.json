@@ -1,0 +1,5 @@
+{
+  "//": "What `npm run typecheck:scripts` checks: the scripts every new game starts with, against the engine's API (scripts/global.d.ts). new-game copies game/ and a view's folder, never this file.",
+  "extends": "../../scripts/tsconfig.json",
+  "include": ["game/scripts/*.js", "../../scripts/global.d.ts"]
+}

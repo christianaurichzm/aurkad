@@ -54,11 +54,11 @@ services:
       GAME_DIR: /app/game
     volumes:
       # The game folder, edited on the host with no image rebuild: scripts/
-      # hot-reloads, the rest applies on restart. Point it at your own game
-      # (npm run new-game) instead of the starter. Writable: the boot writes
-      # content.generated.d.ts into scripts/ for your editor, the script
+      # hot-reloads, the rest applies on restart. Make it first with
+      # `npm run new-game -- game`, or point this at a demo. Writable: the boot
+      # writes content.generated.d.ts into scripts/ for your editor, the script
       # editor saves there, and the Appearance page saves into theme/.
-      - ./demos/starter:/app/game
+      - ./game:/app/game
       - ./modules:/app/modules:ro
 
   # The session cookie is Secure in production, and a browser never stores one
@@ -110,7 +110,7 @@ services:
   #     MAP_IDS: map3,map4
   #     GAME_DIR: /app/game
   #   volumes:
-  #     - ./demos/starter:/app/game
+  #     - ./game:/app/game
   #     - ./modules:/app/modules:ro
 
 volumes:

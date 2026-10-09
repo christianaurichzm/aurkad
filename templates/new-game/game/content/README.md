@@ -4,9 +4,9 @@ Versionable game content as JSON. Put files here and they are imported into
 MongoDB at server boot (files win for the ids they define). Mongo stays the
 runtime source of truth; commit these files to version your game.
 
-This one is the starter game's (`npm run starter`). A game's pack is the
-`content/` in its folder, the one `GAME_DIR` points at; `CONTENT_PATH` loads one
-from anywhere else.
+A game's pack is the `content/` in its folder, the one `GAME_DIR` points at;
+`CONTENT_PATH` loads one from anywhere else. The examples below are not this
+game's content, just the shape of each file.
 
 Maps are created in-game via the admin map editor and exported with
 `npm run content:export`.
@@ -94,7 +94,7 @@ heals to full.
 ```
 
 `behavior`: `aggressive | hostile | neutral | friendly | shopkeeper | guard`.
-`width`, `height`, `attackRange` default to one tile (48) if omitted.
+`width`, `height`, `attackRange` default to one tile (64) if omitted.
 `itemsToDrop[].chance` is 0..1, and each entry is an independent roll. For
 relative rarity, a bounded number of drops or quantity ranges, use a table from
 `loot.json` via `lootTableId` instead.
@@ -226,8 +226,9 @@ of taking the materials.
 ]
 ```
 
-Tile fields: `tileIndex` (required), `blocked`, `avoidNpc`, `fringe`,
-`warp`, `npcSpawn`, `item`, `shop`, `triggers`.
+Tile fields: `tileIndex` (required), `maskIndex`, `fringeIndex`, `blocked`,
+`avoidNpc`, `warp`, `npcSpawn`, `item`, `shop`, `bank`, `door`,
+`conditionalBlock`, `triggers`.
 `triggers[].action`: `heal | kill | message` (also takes `text`), `sound`
 (`file`), `changeSprite` (`spriteId`), `script` (`scriptId`, naming a behavior
 a script registered with `attach()`).

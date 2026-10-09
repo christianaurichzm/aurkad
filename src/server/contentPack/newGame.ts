@@ -74,7 +74,7 @@ function main(): void {
   }
   writeGame(dir, name, values.isometric ? 'isometric' : 'orthogonal');
   console.log(
-    `Created ${arg}: a meadow, three kinds of npc, five items, and art to build on (KayKit, CC0).\n` +
+    `Created ${arg}: a meadow, three kinds of npc, five items, a script to start from, and art to build on (KayKit, CC0).\n` +
       `Run the engine with GAME_DIR pointing at it; its name and logo are brand in game.json.\n` +
       `In development the first account registered is the admin; in production, the one named by BOOTSTRAP_ADMIN_USERNAME.`,
   );

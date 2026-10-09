@@ -460,7 +460,7 @@ async function syncIdCounters(): Promise<void> {
       listNpcs(),
       listMaps(),
     ]);
-    // Ids may be non-numeric (npcs are named in the starter pack), and those
+    // Ids may be non-numeric (npcs are usually named), and those
     // simply do not constrain a numeric counter.
     const highest = (ids: Array<string | number>): number =>
       ids.reduce<number>((max, id) => Math.max(max, Number(id) || 0), 0);

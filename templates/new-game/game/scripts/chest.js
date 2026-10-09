@@ -1,8 +1,8 @@
 // A chest, written once and configured per tile or per npc. This file has
 // no ids: the item, the amount, the message and whether it can be looted
 // twice are fields the editor renders from `params` below, and the values
-// live on the tile or npc. Two chests on the seeded map share this
-// behaviour with different settings.
+// live on the tile or npc. Name `chest` in a tile's script trigger or an
+// npc's Script behavior field to place one.
 //
 // On a tile it is looted by stepping on it. On an npc it is solid and
 // opened with the interact key, and `openSprite` is what it shows after.

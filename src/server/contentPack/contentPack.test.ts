@@ -761,7 +761,7 @@ describe('id counters after import', () => {
   });
 
   it('leaves the counter alone when the ids are not numeric', async () => {
-    // Npcs in the starter pack are named ('goblin'), which constrains nothing.
+    // Npcs are usually named ('goblin'), which constrains nothing.
     write('npcs.json', [
       {
         id: 'goblin',
