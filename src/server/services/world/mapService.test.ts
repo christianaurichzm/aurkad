@@ -14,8 +14,8 @@ vi.mock('../content/npcService.js', () => ({
   getNpcById: (id: string) => getNpcById(id),
 }));
 
-vi.mock('../../persistence/mapRepository.js', () => ({
-  mapRepository: { upsert: vi.fn() },
+vi.mock('../../model/Map.js', () => ({
+  default: { findOneAndUpdate: vi.fn() },
 }));
 
 const { insertNpcs, createOrUpdateMap, mapSave } =

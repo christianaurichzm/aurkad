@@ -21,7 +21,7 @@ import { runtimeState } from '../../sim/state.js';
 import { logger } from '../../logger.js';
 
 import { emit } from '../../engine/hooks.js';
-import { mapRepository } from '../../persistence/mapRepository.js';
+import GameMapModel from '../../model/Map.js';
 import { forgetReplicatedEntity, resendChunkAt } from '../../net/snapshot.js';
 import { getNextMapId } from '../dbService.js';
 import { getItemById } from '../content/itemService.js';
@@ -32,7 +32,7 @@ import { resetNpcAi } from '../npc/aiBrain.js';
 const GROUND_ITEM_BOX = { width: TILE_SIZE, height: TILE_SIZE };
 
 export async function getMapById(id: string): Promise<MapStateServer | null> {
-  return mapRepository.findById(id);
+  return GameMapModel.findOne({ id }).lean<MapStateServer>().exec();
 }
 
 export function createDefaultTiles(cols = 20, rows = 14): Tile[][] {
@@ -127,7 +127,7 @@ export async function createOrUpdateMap(
     emit('mapChange', { mapId: map.id });
   }
 
-  await mapRepository.upsert(map.id, map);
+  await GameMapModel.findOneAndUpdate({ id: map.id }, map, { upsert: true });
 
   return map.id;
 }
@@ -163,7 +163,7 @@ export function setMapTile(
 }
 
 export async function listMaps(): Promise<MapStateServer[]> {
-  return mapRepository.list();
+  return GameMapModel.find().lean<MapStateServer[]>().exec();
 }
 
 /**

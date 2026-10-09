@@ -1,4 +1,4 @@
-import { shopRepository } from '../../persistence/shopRepository.js';
+import ShopModel from '../../model/Shop.js';
 import { PlayerServer, ProductRaw, Shop } from '../../../shared/types.js';
 import { tileAt } from '../../../shared/mapGeometry.js';
 import { getMap, updatePlayer } from '../../sim/world.js';
@@ -12,19 +12,19 @@ import {
 } from './economyService.js';
 
 export async function getShopById(id: string): Promise<Shop | null> {
-  return shopRepository.findById(id);
+  return ShopModel.findOne({ id }).lean<Shop>().exec();
 }
 
 export async function createOrUpdateShop(shop: Shop): Promise<void> {
-  await shopRepository.upsert(shop);
+  await ShopModel.findOneAndUpdate({ id: shop.id }, shop, { upsert: true });
 }
 
 export async function deleteShop(id: string): Promise<void> {
-  await shopRepository.delete(id);
+  await ShopModel.deleteOne({ id });
 }
 
 export async function listShops(): Promise<Shop[]> {
-  return shopRepository.list();
+  return ShopModel.find().lean<Shop[]>().exec();
 }
 
 /**
