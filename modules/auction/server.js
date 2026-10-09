@@ -248,12 +248,6 @@ provide('auction', {
   withdraw: async (id) => (await auctions.cancel(String(id))).ok,
 });
 
-// The old KV ledger cannot prove whether its debit or delivery was saved.
-// Preserve it for reconciliation instead of guessing and minting a refund.
-if (store.keys('auction').length)
-  log(
-    'Legacy auction entries require reconciliation; preserved in store scope auction.',
-  );
 log(
   `Auction module ready (currency=${currencyItemId}, ${durationMs / 3600_000}h, fee=${feePercent}%).`,
 );

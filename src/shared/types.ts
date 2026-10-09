@@ -578,9 +578,9 @@ export interface OnlinePlayersResponse {
 }
 
 /**
- * The drop list an npc carries in databases and content packs from before
- * loot tables. It is read once, turned into a table of its own and never
- * written again (see `dropsToLootTable` and the v2 step in dbService).
+ * The drop list an npc carries in content packs from before loot tables.
+ * The import turns it into a table of the npc's own and never writes it
+ * back (see `dropsToLootTable`).
  */
 export interface NpcItemDrop {
   itemId: Item['id'];

@@ -16,7 +16,7 @@ import { handleChatCommand, clearCommands } from '../commands.js';
 import { clearAll, emit } from '../hooks.js';
 import { drainGameEvents } from '../eventBus.js';
 import { handleCustomAction } from '../../services/comms/customEventService.js';
-import { clearKvStoreMemory, kvGet, kvSet } from '../../persistence/kvStore.js';
+import { clearKvStoreMemory, kvGet } from '../../persistence/kvStore.js';
 import { createFixture, tile } from '../../sim/simFixture.js';
 import { awardExperience } from '../../services/player/playerService.js';
 import { equipItem } from '../../services/economy/inventoryService.js';
@@ -175,27 +175,6 @@ describe('gameplay modules', () => {
         payload: expect.objectContaining({ message: 'Banco: vazio' }),
       }),
     );
-  });
-
-  it('bank migrates a legacy KV bank into the player document on first use', () => {
-    const sim = createFixture(0);
-    const alice = sim.addPlayer({
-      name: 'Alice',
-      inventory: { items: [{ item: 30, quantity: 1 }], maxCapacity: 10 },
-    });
-    kvSet('bank', 'Alice', {
-      maxCapacity: 50,
-      items: [{ item: 40, quantity: 2 }],
-    });
-
-    handleChatCommand(alice, '/bank deposit 30 1');
-
-    const bank = alice.data?.['bank'] as BankState;
-    expect(bank.items).toEqual([
-      { item: 40, quantity: 2 },
-      { item: 30, quantity: 1 },
-    ]);
-    expect(kvGet('bank', 'Alice')).toBeUndefined();
   });
 
   // The window draws a stack from what the server says it is, and a refusal

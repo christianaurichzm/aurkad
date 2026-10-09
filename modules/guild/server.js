@@ -2,7 +2,6 @@
 // Guild module, server entry. Guilds are public or private (invite only),
 // have owner, moderator and member roles, give an XP bonus when enough
 // members are online, and can share a dungeon copy (config.sharedInstances).
-// A record with members as string[] is migrated on first read.
 
 i18n({
   pt: {
@@ -71,24 +70,11 @@ const sharedInstances = !!(config && config.sharedInstances);
  * @typedef {{ name: string, privacy: 'public'|'private', leader: string, members: GuildMember[], invites: string[] }} Guild
  */
 
-/** @param {any} g @returns {Guild} */
-function migrate(g) {
-  if (!g) return g;
-  if (Array.isArray(g.members) && typeof g.members[0] === 'string') {
-    g.members = g.members.map((name, i) => ({
-      name,
-      role: i === 0 ? 'owner' : 'member',
-    }));
-  }
-  if (!g.privacy) g.privacy = 'public';
-  if (!Array.isArray(g.invites)) g.invites = [];
-  return g;
-}
-
 /** @returns {string|undefined} */
 const myGuildName = (player) => getPlayerData(player, 'guild');
 /** @param {string|undefined} name @returns {Guild|undefined} */
-const getGuild = (name) => migrate(name ? store.get('guild', name) : undefined);
+const getGuild = (name) =>
+  /** @type {Guild|undefined} */ (name ? store.get('guild', name) : undefined);
 const saveGuild = (g) => store.set('guild', g.name, g);
 
 const roleOf = (g, name) => (g.members.find((m) => m.name === name) || {}).role;

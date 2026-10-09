@@ -1,7 +1,6 @@
 // @ts-check
 // Bank module: item storage in player.data.bank, the same document as the
-// inventory, so one write covers both sides of a move. A bank still in the
-// shared KV store is moved over on first access.
+// inventory, so one write covers both sides of a move.
 
 // Translations keyed by the English text. reply and sendMessage translate
 // on their own; a sentence carrying a value goes through t().
@@ -49,20 +48,6 @@ function getBank(player) {
       maxCapacity: bank.maxCapacity || maxSlots,
       items: bank.items.slice(),
     };
-  }
-
-  // One-time migration from the legacy KV location. Persist the player before
-  // deleting the KV copy so the bank is never only in the deleted store.
-  const legacy = /** @type {Bank|undefined} */ (store.get('bank', player.name));
-  if (legacy && Array.isArray(legacy.items)) {
-    const migrated = {
-      maxCapacity: legacy.maxCapacity || maxSlots,
-      items: legacy.items.slice(),
-    };
-    setPlayerData(player, 'bank', migrated);
-    persistNow(player);
-    store.delete('bank', player.name);
-    return { maxCapacity: migrated.maxCapacity, items: migrated.items.slice() };
   }
 
   return emptyBank();
