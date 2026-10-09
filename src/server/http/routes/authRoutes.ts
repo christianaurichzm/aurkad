@@ -1,5 +1,5 @@
 import bcrypt from 'bcrypt';
-import { type Response } from 'express';
+import { Router, type Response } from 'express';
 import type { ExtendedRequest } from '../session.js';
 import { Access } from '../../../shared/types.js';
 import {
@@ -27,7 +27,6 @@ import { toMapMeta } from '../../net/serialization.js';
 import { serverState } from '../../services/serverState.js';
 import { playersWsMap } from '../../net/connections.js';
 import { WebSocket } from 'ws';
-import { createRouter } from '../../app.js';
 import { createAuthLimiter } from '../middleware/rateLimit.js';
 import {
   registerStrings,
@@ -78,7 +77,7 @@ registerStrings({
 const REMEMBERED_SESSION_MS = 7 * 24 * 60 * 60 * 1000;
 
 export function createAuthRouter() {
-  const router = createRouter();
+  const router = Router();
   const authLimiter = createAuthLimiter();
 
   router.post(

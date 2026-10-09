@@ -1,14 +1,14 @@
+import { Router } from 'express';
 import {
   getClientModules,
   getLoadedModuleIds,
   readModuleClientFile,
 } from '../../engine/modules/moduleLoader.js';
-import { createRouter } from '../../app.js';
 
 // Serves module browser entries to the client loader. The list tells the client
 // which modules ship client code; the per-module route returns that code.
 export function createModulesRouter() {
-  const router = createRouter();
+  const router = Router();
 
   router.get('/modules', (_req, res) => {
     res.json(getClientModules());

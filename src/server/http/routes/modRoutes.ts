@@ -1,4 +1,4 @@
-import { type Request, type Response } from 'express';
+import { Router, type Request, type Response } from 'express';
 import type { ExtendedRequest } from '../session.js';
 import { Access } from '../../../shared/types.js';
 import type { PlayerServer } from '../../../shared/types.js';
@@ -16,7 +16,7 @@ import {
 } from '../bodySchemas.js';
 import { getMap } from '../../sim/world.js';
 import checkAccess from '../middleware/checkAccess.js';
-import { broadcast } from '../../net/index.js';
+import { broadcast } from '../../net/snapshot.js';
 import { teleportPlayer } from '../../services/world/movementService.js';
 import { banPlayer } from '../../services/player/banService.js';
 import {
@@ -27,7 +27,6 @@ import {
   setAccess,
   saveAccess,
 } from '../../services/player/playerService.js';
-import { createRouter } from '../../app.js';
 
 /**
  * The operator's own live character, or null with the reason already sent.
@@ -48,7 +47,7 @@ function requireSelfInWorld(
 }
 
 export function createModRouter() {
-  const router = createRouter();
+  const router = Router();
 
   router.post(
     '/mod/changeSprite',

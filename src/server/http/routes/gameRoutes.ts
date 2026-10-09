@@ -1,9 +1,8 @@
 import { readFile } from 'node:fs/promises';
 import path from 'node:path';
-import express from 'express';
+import express, { Router } from 'express';
 import { gamePath } from '../../config.js';
 import { gameConfig, type GameConfig } from '../../gameConfig.js';
-import { createRouter } from '../../app.js';
 import { readTheme, themeVariables } from '../../theme.js';
 import { ENGINE_MARK } from '../../../shared/constants.js';
 
@@ -29,7 +28,7 @@ export function createGameRouter({
   account?: GameConfig['account'];
   themeDir?: string;
 } = {}) {
-  const router = createRouter();
+  const router = Router();
 
   router.get('/game', async (_req, res) => {
     const theme = await readTheme(themeDir);

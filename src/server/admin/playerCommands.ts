@@ -16,7 +16,8 @@ import {
   unbanPlayer,
   getBan,
 } from '../services/player/banService.js';
-import { broadcast, playersWsMap } from '../net/index.js';
+import { broadcast } from '../net/snapshot.js';
+import { playersWsMap } from '../net/connections.js';
 import { warpToMap } from '../services/world/movementService.js';
 import { getAllPlayers, getMap, updatePlayer } from '../sim/world.js';
 import { isMuted, serverState } from '../services/serverState.js';

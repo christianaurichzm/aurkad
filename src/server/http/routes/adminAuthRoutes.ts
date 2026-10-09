@@ -1,5 +1,5 @@
 import bcrypt from 'bcrypt';
-import { type Response } from 'express';
+import { Router, type Response } from 'express';
 import type { ExtendedRequest } from '../session.js';
 import { Access } from '../../../shared/types.js';
 import {
@@ -26,7 +26,6 @@ import {
 } from '../../services/player/twoFactorService.js';
 import { logger } from '../../logger.js';
 import { config } from '../../config.js';
-import { createRouter } from '../../app.js';
 import { createAuthLimiter } from '../middleware/rateLimit.js';
 
 // Standalone operator session for the /admin dashboard: authenticate and
@@ -35,7 +34,7 @@ import { createAuthLimiter } from '../middleware/rateLimit.js';
 // editor" pings live here too: each answers the session's access level for
 // a different domain, so no domain router owns them.
 export function createAdminAuthRouter() {
-  const router = createRouter();
+  const router = Router();
   // Its own instance, not the player one: an operator locked out because
   // players were fumbling passwords is exactly when the panel is needed.
   const adminLimiter = createAuthLimiter();

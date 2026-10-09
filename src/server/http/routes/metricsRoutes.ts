@@ -1,10 +1,9 @@
 import { timingSafeEqual } from 'node:crypto';
-import type { RequestHandler } from 'express';
+import { Router, type RequestHandler } from 'express';
 import { Access } from '../../../shared/types.js';
 import checkAccess from '../middleware/checkAccess.js';
 import { getMetrics } from '../../metrics.js';
 import { getNetStats } from '../../net/netStats.js';
-import { createRouter } from '../../app.js';
 import { config } from '../../config.js';
 import { logger } from '../../logger.js';
 import { ClientErrorBodySchema, parseBody } from '../bodySchemas.js';
@@ -357,7 +356,7 @@ export function metricsAuth(token: string | undefined): RequestHandler {
 // healthRoutes for those). It takes METRICS_TOKEN as a bearer token, or
 // an operator session.
 export function createMetricsRouter() {
-  const router = createRouter();
+  const router = Router();
 
   router.get('/metrics', metricsAuth(config.metrics.token), (_req, res) => {
     res.setHeader('Content-Type', 'text/plain; version=0.0.4; charset=utf-8');

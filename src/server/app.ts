@@ -1,5 +1,4 @@
 import express, {
-  Router,
   type NextFunction,
   type Request,
   type Response,
@@ -24,17 +23,6 @@ export function createApp() {
   app.use(cors(config.cors.options));
 
   return app;
-}
-
-/**
- * The router every route file builds on.
- *
- * Express forwards a rejected promise to the error chain, so an async handler
- * that throws answers 500 instead of hanging the request and killing the
- * process on the unhandled rejection.
- */
-export function createRouter(): Router {
-  return Router();
 }
 
 /**

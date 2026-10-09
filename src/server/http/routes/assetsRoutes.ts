@@ -1,10 +1,9 @@
 import fs from 'node:fs';
 import path from 'node:path';
-import type { Response } from 'express';
+import { Router, type Response } from 'express';
 import { SHEETS } from '../../../shared/mappings.js';
 import { gamePath } from '../../config.js';
 import { logger } from '../../logger.js';
-import { createRouter } from '../../app.js';
 
 const ASSETS_DIR = process.env.ASSETS_PATH
   ? path.resolve(process.env.ASSETS_PATH)
@@ -36,7 +35,7 @@ function sendAsset(res: Response, file: string, notFound: string) {
 }
 
 export function createAssetsRouter() {
-  const router = createRouter();
+  const router = Router();
 
   // The sheets' optional metadata: tiles.json places isometric frames in the
   // tile atlas and animates tiles, sprites.json sizes the character frames.

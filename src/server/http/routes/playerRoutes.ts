@@ -1,3 +1,4 @@
+import { Router } from 'express';
 import { WebSocket } from 'ws';
 import { Access } from '../../../shared/types.js';
 import { parseBody, AssignPointsBodySchema } from '../bodySchemas.js';
@@ -6,7 +7,6 @@ import { updatePlayer } from '../../sim/world.js';
 import { getPlayerById } from '../../services/player/playerService.js';
 import { playersWsMap } from '../../net/connections.js';
 import { listOnlineEverywhere } from '../../persistence/presence.js';
-import { createRouter } from '../../app.js';
 import { registerStrings, translateFor } from '../../engine/i18n.js';
 
 registerStrings({
@@ -20,7 +20,7 @@ registerStrings({
 // writes, not content: nothing on this router changes a definition, so none of
 // it regenerates script constants.
 export function createPlayerRouter() {
-  const router = createRouter();
+  const router = Router();
 
   router.get('/players/online', checkAccess(Access.USER), async (_, res) => {
     // Across the fleet when there is one: a player who cannot see half the

@@ -1,11 +1,11 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import express from 'express';
 import request from 'supertest';
-import { createRouter, handleRouteError } from './app.js';
+import { handleRouteError } from './app.js';
 import { logger } from './logger.js';
 
 function appWith(mount: (router: express.Router) => void) {
-  const router = createRouter();
+  const router = express.Router();
   mount(router);
   const app = express();
   app.use(router);
@@ -17,7 +17,7 @@ beforeEach(() => {
   vi.spyOn(logger, 'error').mockImplementation(() => undefined);
 });
 
-describe('createRouter', () => {
+describe('a failing route', () => {
   it('answers 500 when an async handler rejects', async () => {
     const app = appWith((router) => {
       router.get('/boom', async () => {

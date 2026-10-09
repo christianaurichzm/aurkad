@@ -1,3 +1,4 @@
+import { Router } from 'express';
 import { Access } from '../../../shared/types.js';
 import { logger } from '../../logger.js';
 import {
@@ -72,7 +73,6 @@ import {
   createOrUpdateArrow,
   deleteArrow,
 } from '../../services/content/arrowService.js';
-import { createRouter } from '../../app.js';
 
 /**
  * The catalog the content editor edits: what an npc, an item, a spell or an
@@ -105,7 +105,7 @@ function namedScriptWarnings(graph: ContentGraph): string[] {
 }
 
 export function createContentRouter() {
-  const router = createRouter();
+  const router = Router();
 
   router.get('/npcs', checkAccess(Access.ADMIN), async (_req, res) => {
     try {

@@ -1,3 +1,4 @@
+import { Router } from 'express';
 import { Access } from '../../../shared/types.js';
 import checkAccess from '../middleware/checkAccess.js';
 import {
@@ -14,13 +15,12 @@ import {
   readTypeDefs,
 } from '../../engine/scripting/scriptsRepository.js';
 import { getScriptErrors } from '../../engine/scripting/scriptErrors.js';
-import { createRouter } from '../../app.js';
 
 // Monaco script editor backend, mounted only when SCRIPT_EDITOR_ENABLED=true
 // (server.ts). Writes here run on the server with full host access (see
 // the trust model in engine/scripting/sandbox.ts), so it is ADMIN-gated too.
 export function createScriptsRouter() {
-  const router = createRouter();
+  const router = Router();
 
   router.get('/admin/scripts', checkAccess(Access.ADMIN), (_req, res) => {
     res.json(listScriptFiles());

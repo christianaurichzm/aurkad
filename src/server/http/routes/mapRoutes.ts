@@ -1,4 +1,4 @@
-import { type Request, type Response } from 'express';
+import { Router, type Request, type Response } from 'express';
 import { Access } from '../../../shared/types.js';
 import { logger } from '../../logger.js';
 import {
@@ -22,13 +22,12 @@ import {
 } from '../../services/world/mapValidation.js';
 import { validateScriptReferences } from '../../services/content/contentValidation.js';
 import { registeredBehaviors } from '../../engine/scripting/entityScripts.js';
-import { createRouter } from '../../app.js';
 
 // The map editor's server side: the tile grid, the map documents and their
 // geometry. What the editor names inside a tile (npcs, items, loot) is the
 // content catalog, in contentRoutes.
 export function createMapRouter() {
-  const router = createRouter();
+  const router = Router();
 
   router.post('/saveMap', checkAccess(Access.ADMIN), async (req, res) => {
     const body = parseBody(SaveMapBodySchema, req.body, res);

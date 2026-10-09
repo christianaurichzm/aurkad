@@ -1,9 +1,8 @@
 import { readFile } from 'node:fs/promises';
 import path from 'node:path';
-import express, { type Response } from 'express';
+import express, { Router, type Response } from 'express';
 import { THEME_IMAGES, type ThemeImage } from '../../../shared/theme.js';
 import { Access } from '../../../shared/types.js';
-import { createRouter } from '../../app.js';
 import { gamePath } from '../../config.js';
 import {
   ThemeChoicesSchema,
@@ -29,7 +28,7 @@ const IMAGE_TYPES = ['image/png', 'image/jpeg', 'image/webp'];
 export function createThemeRouter({
   themeDir = gamePath('theme'),
 }: { themeDir?: string } = {}) {
-  const router = createRouter();
+  const router = Router();
   const admin = checkAccess(Access.ADMIN);
 
   const slotOf = (name: string | undefined, res: Response) => {

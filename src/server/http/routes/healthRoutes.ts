@@ -1,14 +1,14 @@
+import { Router } from 'express';
 import mongoose from 'mongoose';
 import { getLastTickAt } from '../../metrics.js';
 import { openConnectionCount } from '../../net/connections.js';
-import { createRouter } from '../../app.js';
 
 // If no tick has been recorded in this window the simulation loop is
 // considered stalled and the instance reports not-ready.
 const TICK_STALENESS_MS = 5_000;
 
 export function createHealthRouter() {
-  const router = createRouter();
+  const router = Router();
 
   // Liveness: the process is up and the event loop responds. No dependency
   // checks, so a slow DB never restarts a healthy process. `players` is

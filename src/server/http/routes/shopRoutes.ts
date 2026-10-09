@@ -1,4 +1,4 @@
-import { type Request, type Response } from 'express';
+import { Router, type Request, type Response } from 'express';
 import type { ExtendedRequest } from '../session.js';
 import { Access, type PlayerServer } from '../../../shared/types.js';
 import { logger } from '../../logger.js';
@@ -22,7 +22,6 @@ import {
   enrichPlayer,
   getPlayerByName,
 } from '../../services/player/playerService.js';
-import { createRouter } from '../../app.js';
 import { registerStrings, translateFor } from '../../engine/i18n.js';
 
 // What a shopper reads, in the language their page asked in.
@@ -68,7 +67,7 @@ function atShop(
 // it, one domain (`shopService`) with one rule: what the editor puts on a
 // shelf, the buy route has to be able to price.
 export function createShopRouter() {
-  const router = createRouter();
+  const router = Router();
 
   router.get(
     '/shops',

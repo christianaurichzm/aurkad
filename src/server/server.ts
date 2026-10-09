@@ -62,10 +62,10 @@ import { createGameRouter } from './http/routes/gameRoutes.js';
 import { createMetricsRouter } from './http/routes/metricsRoutes.js';
 import {
   markServerShuttingDown,
-  startGameLoops,
   startWebSocketServer,
   stopWebSocketServer,
-} from './net/index.js';
+} from './net/transport.js';
+import { startGameLoops } from './sim/loop.js';
 import { connectToDatabase, loadInitialData } from './initDb.js';
 import { startLiveOps } from './services/liveOpsService.js';
 import {
