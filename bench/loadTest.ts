@@ -27,6 +27,7 @@ import {
   type Scenario,
 } from './load/scenarios.js';
 import { writeFileSync } from 'node:fs';
+import { setTimeout as sleep } from 'node:timers/promises';
 import {
   buildReport,
   formatReport,
@@ -168,8 +169,6 @@ async function adminCookie(): Promise<string | null> {
     return null;
   }
 }
-
-const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
 /**
  * Places the bots around the world when the scenario asks for a spread,

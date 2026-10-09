@@ -21,6 +21,7 @@
 import WebSocket from 'ws';
 import { readFileSync, writeFileSync } from 'node:fs';
 import { SourceMap } from 'node:module';
+import { setTimeout as sleep } from 'node:timers/promises';
 
 interface CallFrame {
   functionName: string;
@@ -67,8 +68,6 @@ const windowSeconds = numArg('seconds', 40);
 const samplingIntervalUs = numArg('interval', 500);
 const topFrames = numArg('top', 15);
 const outPath = argOf('out');
-
-const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
 /**
  * Buckets a frame by where its code lives.
