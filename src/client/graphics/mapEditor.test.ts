@@ -405,6 +405,14 @@ describe('a kit atlas', () => {
         frame({ name: 'fence', group: 'walls', connect: mask, blocks: true }),
       ]),
     ),
+    // Water, whose frame ids are 1000 plus the neighbours it joins,
+    // corners and all.
+    ...Object.fromEntries(
+      Array.from({ length: 256 }, (_, mask) => [
+        1000 + mask,
+        frame({ name: 'pond', layer: 'decal', connect: mask, blocks: true }),
+      ]),
+    ),
   } as unknown as Parameters<typeof readKit>[0];
   const kit = readKit(frames);
   const piece = (name: string) => kit.pieces.find((p) => p.name === name)!;
@@ -415,6 +423,7 @@ describe('a kit atlas', () => {
       ['grass', '', 2, 1],
       ['grave', 'graves', 1, 2],
       ['fence', 'walls', 1, 1],
+      ['pond', '', 1, 1],
     ]);
     expect(piece('grass').variants).toHaveLength(2);
   });
@@ -462,5 +471,36 @@ describe('a kit atlas', () => {
     placePiece(tiles, kit, null, 1, 1);
     expect(joined()[1].slice(0, 3)).toEqual([0, 0, 0]);
     expect(joined()[0][1]).toBe(0);
+  });
+
+  it('tells a pond the corners it is filled to, and a fence only its sides', () => {
+    const tiles = mapOf(0);
+    // An L of water: the corner cell of the bend has no water across from it.
+    for (const [row, col] of [
+      [0, 0],
+      [0, 1],
+      [1, 0],
+      [1, 1],
+      [2, 0],
+    ])
+      placePiece(tiles, kit, piece('pond'), row, col);
+    const pond = (row: number, col: number) =>
+      (tiles[row][col].maskIndex ?? 1000) - 1000;
+    // Right, down and the corner between them: a block of water.
+    expect(pond(0, 0)).toBe(2 | 4 | 32);
+    // Up, left and down, with the corner up and left; the one down and left
+    // is not water, the inside of the bend.
+    expect(pond(1, 0)).toBe(1 | 2 | 4 | 16);
+    expect(pond(1, 1)).toBe(1 | 8 | 128);
+
+    const fence = piece('fence');
+    for (const [row, col] of [
+      [2, 2],
+      [2, 3],
+      [3, 2],
+      [3, 3],
+    ])
+      placePiece(tiles, kit, fence, row, col);
+    expect((tiles[2][2].maskIndex ?? 10) - 10).toBe(2 | 4);
   });
 });

@@ -3,6 +3,7 @@ import type { TilePublic } from '../../shared/types';
 import {
   tileset,
   tilesetAlpha,
+  tilesetOpacity,
   isometricFrames,
   isometricReach,
   tileAnimations,
@@ -388,40 +389,85 @@ const SEE_THROUGH_ALPHA = 0.45;
 // The part of a sprite frame the character fills: a prop grazing the frame's
 // empty corners hides nothing.
 const FIGURE_INSET = { x: 16, top: 12, bottom: 4 };
+// A frame's pixel at least this opaque is the prop itself; its baked shadow is
+// drawn translucent, below this.
+const SOLID_ALPHA = 240;
+const solidAt = (x: number, y: number) =>
+  !tilesetOpacity || tilesetOpacity[y * tileset.width + x] >= SOLID_ALPHA;
 
 /**
- * The mask layer of an isometric map, to be sorted in with the actors: on such
- * a map a wall or a tree is in front of whoever stands behind it and behind
- * whoever stands in front, which one layer above or below everyone cannot be.
- *
- * `seen` is the player the camera follows. A prop in front of them that covers
- * their figure is drawn faint, or walking behind a wall loses the character
- * the player is steering.
+ * Whether a frame over `r` hides the figure in `box`, judged by its pixels
+ * at a few points, since a frame's box includes its shadow.
  */
-export const isometricMapObjects = (
+function frameHides(
+  frame: { x: number; y: number; width: number; height: number },
+  r: { x: number; y: number; width: number; height: number },
+  box: { left: number; right: number; top: number; bottom: number },
+) {
+  for (let i = 1; i < 4; i++) {
+    for (let j = 1; j < 5; j++) {
+      const x = box.left + ((box.right - box.left) * i) / 4;
+      const y = box.top + ((box.bottom - box.top) * j) / 5;
+      if (x < r.x || y < r.y || x >= r.x + r.width || y >= r.y + r.height)
+        continue;
+      if (
+        solidAt(
+          Math.floor(frame.x + ((x - r.x) * frame.width) / r.width),
+          Math.floor(frame.y + ((y - r.y) * frame.height) / r.height),
+        )
+      )
+        return true;
+    }
+  }
+  return false;
+}
+
+/**
+ * Whether a mask object stands up off the ground: everything on an
+ * isometric map, and on an orthogonal one a frame drawn past the top of its
+ * cell. A decal lies flat on either.
+ */
+const stands = (index: number) => {
+  const frame = frameOf(index);
+  if (frame?.piece?.layer === 'decal') return false;
+  if (getMapOrientation() === 'isometric') return true;
+  return frame !== undefined && frame.anchorY > TILE_SIZE / 2;
+};
+
+/**
+ * What stands on the mask layer, sorted in with the actors so a wall is in
+ * front of whoever stands behind it. A prop covering `seen`, the player the
+ * camera follows, is drawn faint.
+ */
+export const standingMapObjects = (
   tiles: TilePublic[][],
   ctx: CanvasRenderingContext2D,
   seen?: { x: number; y: number },
 ): MapObject[] => {
-  if (getMapOrientation() !== 'isometric') return [];
-  const objects = mapObjects(tiles, 'maskIndex', ctx);
+  const objects = mapObjects(tiles, 'maskIndex', ctx).filter((object) =>
+    stands(object.index),
+  );
   if (!seen) return objects;
   const depth = worldToView(seen.x + TILE_SIZE / 2, seen.y + TILE_SIZE / 2).y;
   const at = spritePosition(seen.x, seen.y);
-  const left = at.x + FIGURE_INSET.x;
-  const right = at.x + TILE_SIZE - FIGURE_INSET.x;
-  const top = at.y + FIGURE_INSET.top;
-  const bottom = at.y + TILE_SIZE - FIGURE_INSET.bottom;
+  const box = {
+    left: at.x + FIGURE_INSET.x,
+    right: at.x + TILE_SIZE - FIGURE_INSET.x,
+    top: at.y + FIGURE_INSET.top,
+    bottom: at.y + TILE_SIZE - FIGURE_INSET.bottom,
+  };
   return objects.map((object) => {
     if (object.y <= depth) return object;
     const r = objectRect(object.col, object.row, object.index);
     if (
-      r.x >= right ||
-      r.x + r.width <= left ||
-      r.y >= bottom ||
-      r.y + r.height <= top
+      r.x >= box.right ||
+      r.x + r.width <= box.left ||
+      r.y >= box.bottom ||
+      r.y + r.height <= box.top
     )
       return object;
+    const frame = frameOf(object.index);
+    if (frame && !frameHides(frame, r, box)) return object;
     return {
       ...object,
       draw: () => {
@@ -438,8 +484,8 @@ export const renderMapMask = (
   tiles: TilePublic[][],
   ctx: CanvasRenderingContext2D | OffscreenCanvasRenderingContext2D = maskCtx,
 ) => {
-  if (getMapOrientation() === 'isometric') return;
-  for (const object of mapObjects(tiles, 'maskIndex', ctx)) object.draw();
+  for (const object of mapObjects(tiles, 'maskIndex', ctx))
+    if (!stands(object.index)) object.draw();
 };
 
 export const renderMapFringe = (

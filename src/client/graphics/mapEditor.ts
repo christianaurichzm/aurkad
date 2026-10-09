@@ -221,7 +221,7 @@ type PieceCell = { col: number; row: number; id: number; blocks: boolean };
 export type Piece = {
   name: string;
   group: string;
-  layer: 'ground' | 'object';
+  layer: 'ground' | 'object' | 'decal';
   cols: number;
   rows: number;
   /** Each the cells one placement lays down. */
@@ -275,18 +275,30 @@ const JOINS = [
   [0, 1, 4],
   [-1, 0, 8],
 ] as const;
+// Then the corners, each counted only where both its sides join, for 47
+// sets. Water needs them to tell a pond's middle from the inside of a
+// bend; a sides-only piece like a fence is looked up by its sides.
+const CORNER_JOINS = [
+  [1, -1, 16, 1 | 2],
+  [1, 1, 32, 2 | 4],
+  [-1, 1, 64, 4 | 8],
+  [-1, -1, 128, 8 | 1],
+] as const;
 
 const rejoin = (tiles: Tile[][], kit: Kit, row: number, col: number) => {
   const tile = tiles[row]?.[col];
   const piece =
     tile?.maskIndex === undefined ? undefined : kit.pieceOf.get(tile.maskIndex);
   if (!tile || !piece?.joins) return;
-  let mask = 0;
-  for (const [dc, dr, bit] of JOINS) {
+  const same = (dc: number, dr: number) => {
     const next = tiles[row + dr]?.[col + dc]?.maskIndex;
-    if (next !== undefined && kit.pieceOf.get(next) === piece) mask |= bit;
-  }
-  const cell = piece.joins.get(mask);
+    return next !== undefined && kit.pieceOf.get(next) === piece;
+  };
+  let mask = 0;
+  for (const [dc, dr, bit] of JOINS) if (same(dc, dr)) mask |= bit;
+  for (const [dc, dr, bit, sides] of CORNER_JOINS)
+    if ((mask & sides) === sides && same(dc, dr)) mask |= bit;
+  const cell = piece.joins.get(mask) ?? piece.joins.get(mask & 15);
   if (cell) tile.maskIndex = cell.id;
 };
 
@@ -330,13 +342,13 @@ export const placePiece = (
     tile.maskIndex = cell.id;
     tile.blocked = cell.blocks;
     rejoin(tiles, kit, r, c);
-    for (const [dc, dr] of JOINS) rejoin(tiles, kit, r + dr, c + dc);
+    for (const [dc, dr] of [...JOINS, ...CORNER_JOINS])
+      rejoin(tiles, kit, r + dr, c + dc);
   }
 };
 
 let kitMemo: { frames: typeof isometricFrames; kit: Kit } | null = null;
 const activeKit = (): Kit | null => {
-  if (getMapOrientation() !== 'isometric') return null;
   if (kitMemo?.frames !== isometricFrames)
     kitMemo = { frames: isometricFrames, kit: readKit(isometricFrames) };
   return kitMemo.kit.pieces.length ? kitMemo.kit : null;
@@ -367,12 +379,20 @@ const thumbnailCells = (piece: Piece): PieceCell[] => {
   }));
 };
 
+// A cell's centre as the map's projection draws it, from the piece's first.
+const cellCenter = (col: number, row: number) =>
+  getMapOrientation() === 'isometric'
+    ? {
+        x: (col - row) * (TILE_SIZE / 2),
+        y: (col + row + 1) * (TILE_SIZE / 4),
+      }
+    : { x: (col + 0.5) * TILE_SIZE, y: (row + 0.5) * TILE_SIZE };
+
 const drawThumbnail = (piece: Piece, x: number, y: number) => {
   const placed = thumbnailCells(piece).flatMap((cell) => {
     const f = isometricFrames[cell.id];
     if (!f) return [];
-    const cx = (cell.col - cell.row) * (TILE_SIZE / 2);
-    const cy = (cell.col + cell.row + 1) * (TILE_SIZE / 4);
+    const { x: cx, y: cy } = cellCenter(cell.col, cell.row);
     return [
       { f, x: cx - f.anchorX, y: cy - f.anchorY, depth: cell.col + cell.row },
     ];

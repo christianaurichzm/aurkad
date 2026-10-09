@@ -46,7 +46,7 @@ vi.mock('./canvas', () => ({
 vi.mock('./mapRender', () => ({
   renderGameMap: mocks.renderGameMap,
   renderMapMask: vi.fn(),
-  isometricMapObjects: () => [],
+  standingMapObjects: () => [],
   renderMapFringe: vi.fn(),
   animationStep: () => 0,
 }));

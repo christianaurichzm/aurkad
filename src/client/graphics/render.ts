@@ -27,7 +27,7 @@ import {
   renderGameMap,
   renderMapMask,
   renderMapFringe,
-  isometricMapObjects,
+  standingMapObjects,
   animationStep,
 } from './mapRender';
 import { renderEditorLayer, getEditorTiles } from './mapEditor';
@@ -223,7 +223,7 @@ export const render = () => {
     const hudEntries = renderEntitiesSorted(
       playersWithSelf,
       map.npcs,
-      isometricMapObjects(ground, playerCtx, currentPlayer?.position),
+      standingMapObjects(ground, playerCtx, currentPlayer?.position),
     );
     renderProjectiles(playerCtx);
     renderAttackEffects(playerCtx);

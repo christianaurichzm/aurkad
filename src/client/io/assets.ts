@@ -7,6 +7,12 @@ import { parseSpriteLayout, setSpriteLayout } from '../graphics/sprite';
 
 export let tileset: ImageBitmap;
 export let tilesetAlpha: HTMLCanvasElement;
+/**
+ * tiles.png's alpha, a byte per pixel, kept while the atlas has frames.
+ * Overlap with the player is read here: every prop is drawn from
+ * tilesetAlpha, and reading it back more than once can move it off the GPU.
+ */
+export let tilesetOpacity: Uint8Array | null = null;
 export let spriteSheet: ImageBitmap;
 export let items: ImageBitmap;
 export let spellSheet: HTMLCanvasElement;
@@ -23,17 +29,21 @@ const cellIndex = z.number().int().min(0).max(63);
  * - `ground` goes on tileIndex and repeats with the map: cell (c, r) takes
  *   frame (c mod width, r mod height), so a seamless texture covers any area.
  * - `object` goes on maskIndex, all its cells at once.
+ * - `decal` goes on maskIndex too but lies flat, like a path or a pond, so
+ *   every actor is drawn over it.
  * - `connect` joins a piece to its own kind on the next cells, like a fence.
  *   The frame drawn is the one whose bits name the matching neighbours: 1
- *   above, 2 right, 4 below, 8 left.
+ *   above, 2 right, 4 below, 8 left. Water also reads corners, 16 above
+ *   right, 32 below right, 64 below left, 128 above left, each only with
+ *   both its sides set; a piece without corner frames draws by its sides.
  */
 const PieceSchema = z.object({
   name: z.string().min(1).max(64),
   group: z.string().max(64).optional(),
-  layer: z.enum(['ground', 'object']).default('object'),
+  layer: z.enum(['ground', 'object', 'decal']).default('object'),
   at: z.tuple([cellIndex, cellIndex]).default([0, 0]),
   variant: z.number().int().min(0).max(255).default(0),
-  connect: z.number().int().min(0).max(15).optional(),
+  connect: z.number().int().min(0).max(255).optional(),
   blocks: z.boolean().default(false),
 });
 
@@ -73,7 +83,10 @@ export function setAssetKey(hexKey: string): void {
 
 const getUrl = (type: keyof typeof imageMap) => `assets/${imageMap[type]}.bin`;
 
-function makeColorKeyCanvas(bitmap: ImageBitmap): HTMLCanvasElement {
+function makeColorKeyCanvas(bitmap: ImageBitmap): {
+  canvas: HTMLCanvasElement;
+  pixels: Uint8ClampedArray;
+} {
   const canvas = document.createElement('canvas');
   canvas.width = bitmap.width;
   canvas.height = bitmap.height;
@@ -81,7 +94,7 @@ function makeColorKeyCanvas(bitmap: ImageBitmap): HTMLCanvasElement {
   ctx.drawImage(bitmap, 0, 0);
   const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
   const d = imageData.data;
-  if (d[3] === 0) return canvas;
+  if (d[3] === 0) return { canvas, pixels: d };
   const bgR = d[0],
     bgG = d[1],
     bgB = d[2];
@@ -95,12 +108,13 @@ function makeColorKeyCanvas(bitmap: ImageBitmap): HTMLCanvasElement {
     }
   }
   ctx.putImageData(imageData, 0, 0);
-  return canvas;
+  return { canvas, pixels: d };
 }
 
 export const initTileset = async () => {
   tileset = await loadImageFromBin(getUrl('tiles'), _assetKey);
-  tilesetAlpha = makeColorKeyCanvas(tileset);
+  const keyed = makeColorKeyCanvas(tileset);
+  tilesetAlpha = keyed.canvas;
   const response = await fetch('/assets/tiles.json');
   if (!response.ok) throw new Error(`Atlas metadata: HTTP ${response.status}`);
   const { animations, ...frames } = (await response.json()) as Record<
@@ -119,6 +133,12 @@ export const initTileset = async () => {
       frame.y + frame.height > tileset.height
     )
       throw new Error('Isometric frame outside tiles.png');
+  }
+  tilesetOpacity = null;
+  if (Object.keys(isometricFrames).length > 0) {
+    tilesetOpacity = new Uint8Array(keyed.pixels.length / 4);
+    for (let i = 0; i < tilesetOpacity.length; i++)
+      tilesetOpacity[i] = keyed.pixels[i * 4 + 3];
   }
   isometricReach = Math.max(
     TILE_SIZE,
@@ -149,17 +169,17 @@ export const initItems = async () => {
 
 const initSpellSheet = async () => {
   const bmp = await loadImageFromBin(getUrl('spells'), _assetKey);
-  spellSheet = makeColorKeyCanvas(bmp);
+  spellSheet = makeColorKeyCanvas(bmp).canvas;
 };
 
 const initArrowSheet = async () => {
   const bmp = await loadImageFromBin(getUrl('arrows'), _assetKey);
-  arrowSheet = makeColorKeyCanvas(bmp);
+  arrowSheet = makeColorKeyCanvas(bmp).canvas;
 };
 
 const initAttackEffectSheet = async () => {
   const bmp = await loadImageFromBin(getUrl('attackeffect'), _assetKey);
-  attackEffectSheet = makeColorKeyCanvas(bmp);
+  attackEffectSheet = makeColorKeyCanvas(bmp).canvas;
 };
 
 export const initializeAssets = async () => {

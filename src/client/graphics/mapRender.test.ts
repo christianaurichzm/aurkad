@@ -1,9 +1,14 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { setStaticMap } from '../core/gameState';
 import { setCamera } from './camera';
-import { isometricFrames, tileAnimations, tileset } from '../io/assets';
+import {
+  isometricFrames,
+  tileAnimations,
+  tileset,
+  tilesetOpacity,
+} from '../io/assets';
 import type { Tile } from '../../shared/types';
-import { isometricMapObjects, renderGameMap } from './mapRender';
+import { renderGameMap, renderMapMask, standingMapObjects } from './mapRender';
 
 const mocks = vi.hoisted(() => {
   const calls: { fn: string; args: unknown[] }[] = [];
@@ -59,6 +64,7 @@ vi.mock('./canvas', () => ({
 vi.mock('../io/assets', () => ({
   tileset: { width: 256, height: 256 },
   tilesetAlpha: { width: 256, height: 256 },
+  tilesetOpacity: new Uint8Array(256 * 256),
   isometricFrames: {},
   isometricReach: 64,
   tileAnimations: {},
@@ -222,7 +228,7 @@ describe('the map the game draws', () => {
   });
 });
 
-describe('the props an isometric map sorts with its actors', () => {
+describe('the props a map sorts with its actors', () => {
   it('fades a prop in front of the player that covers them, and no other', () => {
     const tiles = mapOf(0);
     for (const [col, row] of [
@@ -257,7 +263,7 @@ describe('the props an isometric map sorts with its actors', () => {
     };
 
     const alphaOf = Object.fromEntries(
-      isometricMapObjects(tiles, ctx as unknown as CanvasRenderingContext2D, {
+      standingMapObjects(tiles, ctx as unknown as CanvasRenderingContext2D, {
         x: 64,
         y: 64,
       }).map((object) => {
@@ -271,5 +277,108 @@ describe('the props an isometric map sorts with its actors', () => {
     // below their feet, (2,2) in front and over their body.
     expect(alphaOf).toEqual({ '0,0': 1, '2,2': 0.45, '3,3': 1 });
     expect(ctx.globalAlpha).toBe(1);
+  });
+
+  it('fades a frame over the player only where it is solid, not for its shadow', () => {
+    const tiles = mapOf(0);
+    tiles[2][2].maskIndex = 1002;
+    // A frame whose box takes in the whole view, drawn from the top left of a
+    // 256 square sheet whose alpha the test sets.
+    isometricFrames[1002] = {
+      x: 0,
+      y: 0,
+      width: 256,
+      height: 256,
+      drawWidth: 512,
+      drawHeight: 512,
+      anchorX: 256,
+      anchorY: 256,
+    };
+    setStaticMap({
+      id: 'iso',
+      name: 'iso',
+      type: 'normal',
+      orientation: 'isometric',
+      tiles,
+    });
+    mocks.cam.x = -256;
+    mocks.cam.y = -128;
+    const drawnAt: number[] = [];
+    const ctx = {
+      canvas: { width: 512, height: 512 },
+      globalAlpha: 1,
+      save() {},
+      restore() {},
+      drawImage() {
+        drawnAt.push(this.globalAlpha);
+      },
+    };
+    const alphaDrawn = (alpha: number) => {
+      tilesetOpacity!.fill(alpha);
+      drawnAt.length = 0;
+      ctx.globalAlpha = 1;
+      for (const object of standingMapObjects(
+        tiles,
+        ctx as unknown as CanvasRenderingContext2D,
+        { x: 64, y: 64 },
+      ))
+        object.draw();
+      return drawnAt[0];
+    };
+    try {
+      expect(alphaDrawn(150)).toBe(1);
+      expect(alphaDrawn(255)).toBe(0.45);
+    } finally {
+      delete isometricFrames[1002];
+    }
+  });
+
+  it('on an orthogonal map, sorts what rises off its cell and leaves what lies flat on the mask', () => {
+    const tiles = mapOf(0);
+    tiles[0][0].maskIndex = 7; // a cell of the sheet
+    tiles[0][1].maskIndex = 1000; // a tree, drawn past the top of its cell
+    tiles[1][0].maskIndex = 1001; // a path
+    const frame = { x: 0, y: 0, width: 64, drawWidth: 64, anchorX: 32 };
+    isometricFrames[1000] = {
+      ...frame,
+      height: 128,
+      drawHeight: 128,
+      anchorY: 96,
+    };
+    isometricFrames[1001] = {
+      ...frame,
+      height: 68,
+      drawHeight: 68,
+      anchorY: 34,
+      piece: {
+        name: 'path',
+        layer: 'decal',
+        at: [0, 0],
+        variant: 0,
+        blocks: false,
+      },
+    };
+    setStaticMap({ id: 'o', name: 'o', type: 'normal', tiles });
+    mocks.cam.x = 0;
+    mocks.cam.y = 0;
+    let draws = 0;
+    const ctx = {
+      canvas: { width: 512, height: 512 },
+      save() {},
+      restore() {},
+      drawImage() {
+        draws++;
+      },
+    } as unknown as CanvasRenderingContext2D;
+    try {
+      expect(standingMapObjects(tiles, ctx).map((o) => o.index)).toEqual([
+        1000,
+      ]);
+      renderMapMask(tiles, ctx);
+      expect(draws).toBe(2);
+    } finally {
+      delete isometricFrames[1000];
+      delete isometricFrames[1001];
+    }
   });
 });
