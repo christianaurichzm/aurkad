@@ -549,4 +549,30 @@ describe('gameplay modules', () => {
 
     expect(bob.health).toBe(85);
   });
+
+  // Each boot counts ticks from zero, so a five-second fury saved ten hours
+  // into the last run would otherwise last ten more hours into this one.
+  it('a status saved under an older clock lasts no longer than its duration', () => {
+    const sim = createFixture(0);
+    const alice = sim.addPlayer({
+      name: 'Alice',
+      data: {
+        statusEffects: [
+          {
+            id: 'fury',
+            name: 'Fury',
+            durationTicks: 100,
+            expiresAt: 720_100,
+            outgoingDamageMultiplier: 1.5,
+          },
+        ],
+      },
+    });
+
+    sim.step(1);
+    expect(alice.data?.['statusEffects']).toHaveLength(1);
+    sim.step(100);
+
+    expect(alice.data?.['statusEffects']).toEqual([]);
+  });
 });

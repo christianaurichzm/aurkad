@@ -47,11 +47,24 @@ for (const id of Object.keys(builtIns)) define(id, builtIns[id]);
 for (const id of Object.keys((config && config.effects) || {}))
   define(id, config.effects[id]);
 
+// Expiry is a tick, and ticks count from each process's boot: a status saved
+// before a restart, or on another instance, can name an expiry this clock
+// will not reach for hours. None outlasts its duration from now, so that is
+// where one like it is brought back to.
+// After a restart a status may run its whole duration again; keep
+// the time left on the player at logout if that ever matters.
 function list(player) {
   const stored = getPlayerData(player, dataKey);
-  return (Array.isArray(stored) ? stored : []).filter(
-    (status) => status && status.id,
-  );
+  return (Array.isArray(stored) ? stored : [])
+    .filter((status) => status && status.id)
+    .map((status) => {
+      const latest =
+        currentTick +
+        Math.max(0, Math.floor(Number(status.durationTicks) || 0));
+      return status.expiresAt > latest
+        ? { ...status, expiresAt: latest }
+        : status;
+    });
 }
 
 function pushStatus(player, statuses) {
@@ -67,6 +80,7 @@ function publicStatus(status) {
   return {
     id: String(status.id),
     name: String(status.name || status.id),
+    durationTicks: Math.max(0, Math.floor(Number(status.durationTicks) || 0)),
     expiresAt: Math.max(
       currentTick,
       Math.floor(Number(status.expiresAt || currentTick)),
@@ -99,7 +113,11 @@ function apply(player, idOrStatus, overrides) {
 
   const merged = { ...base, ...(overrides || {}) };
   const duration = Math.max(1, Math.floor(Number(merged.durationTicks || 100)));
-  const status = publicStatus({ ...merged, expiresAt: currentTick + duration });
+  const status = publicStatus({
+    ...merged,
+    durationTicks: duration,
+    expiresAt: currentTick + duration,
+  });
   const statuses = list(player).filter((entry) => entry.id !== status.id);
   statuses.push(status);
   save(player, statuses);
@@ -118,12 +136,16 @@ function clear(player, id) {
   return true;
 }
 
+// Saves when anything expired or was capped, since an expiry corrected
+// only in memory would be corrected again on every read.
 function prune(player) {
-  const before = list(player);
-  const after = before.filter(
+  const after = list(player).filter(
     (status) => !status.expiresAt || status.expiresAt > currentTick,
   );
-  if (after.length !== before.length) save(player, after);
+  const stored = getPlayerData(player, dataKey);
+  if (JSON.stringify(after) !== JSON.stringify(stored || [])) {
+    save(player, after);
+  }
   return after;
 }
 
