@@ -534,7 +534,7 @@ export function parseBody<S extends z.ZodType>(
  * or a cleared field comes back from the stored document.
  */
 export function absentOptionalKeys(
-  schema: z.ZodObject,
+  schema: z.ZodObject<Record<string, z.ZodType>>,
   value: object,
 ): string[] {
   const present = value as Record<string, unknown>;
@@ -545,7 +545,7 @@ export function absentOptionalKeys(
 
 /** `absentOptionalKeys` as the `$unset` of an update, or nothing to unset. */
 export function unsetAbsent(
-  schema: z.ZodObject,
+  schema: z.ZodObject<Record<string, z.ZodType>>,
   value: object,
 ): { $unset?: Record<string, ''> } {
   const keys = absentOptionalKeys(schema, value);
