@@ -196,11 +196,11 @@ export const insertModeCell = async (mapId: string, tiles: Tile[][]) => {
 };
 
 /**
- * Each spawn tile names its npc (`template:row:col`), so one already live stays
- * as the game left it, and one whose tile is gone or spawns something else
- * goes. A script's npc has no tile and is not the editor's to take away. A
- * spawn the map already had that nothing live answers to is a kill waiting on
- * its respawn, which brings it back on its own schedule.
+ * Each spawn tile names its npc (`map:template:row:col`), so one already
+ * live stays as the game left it, and one whose tile is gone or spawns
+ * something else goes. A script's npc has no tile and is not the editor's
+ * to remove. A known spawn with no live npc is a kill awaiting respawn,
+ * which brings it back on its own schedule.
  */
 const keepLiveNpcs = (
   live: MapStateServer | undefined,
@@ -329,7 +329,10 @@ export const insertNpcs = async (
       const baseNpc = npcCache.get(npcId);
       if (!baseNpc) continue;
 
-      const instanceId = `${npcId}:${rowIndex}:${colIndex}`;
+      // The map is in the id because replication keys its diff history by id
+      // alone: the same template on the same tile of two maps would otherwise
+      // be one entity to every viewer.
+      const instanceId = `${mapId}:${npcId}:${rowIndex}:${colIndex}`;
       const runtimeNpc: RuntimeNpc = {
         ...baseNpc,
         id: instanceId,

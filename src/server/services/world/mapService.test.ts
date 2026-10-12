@@ -85,6 +85,19 @@ describe('insertNpcs geometry', () => {
 
     expect(npc.position).toEqual({ x: TILE_SIZE, y: 0 });
   });
+
+  // Replication keys an entity's diff history by id alone, so one template
+  // on the same tile of two maps sharing an id would be one npc to viewers.
+  it('gives the same spawn on two maps two ids', async () => {
+    getNpcById.mockResolvedValue({ id: 'lia', name: 'Lia', maxHealth: 20 });
+    const a: Partial<MapStateServer> = {};
+    const b: Partial<MapStateServer> = {};
+    await insertNpcs(a, 'aurora', tiles('lia'));
+    await insertNpcs(b, 'harbor', tiles('lia'));
+
+    expect(Object.keys(a.npcs!)).toEqual(['aurora:lia:0:1']);
+    expect(Object.keys(b.npcs!)).toEqual(['harbor:lia:0:1']);
+  });
 });
 
 describe('the mapChange hook', () => {

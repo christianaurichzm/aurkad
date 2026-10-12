@@ -192,8 +192,8 @@ function activeObjectives(player, type) {
   return out;
 }
 
-// A map-spawned npc's id is "<template>:<row>:<col>", while an objective
-// names the content id, so it matches on templateId.
+// A map-spawned npc's id is "<map>:<template>:<row>:<col>", so objectives
+// match on templateId.
 const contentIdOf = (npc) => npc.templateId || npc.id;
 
 on('npcDeath', ({ npc, killer }) => {
