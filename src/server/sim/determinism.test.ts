@@ -1,4 +1,13 @@
-import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+import {
+  describe,
+  it,
+  expect,
+  beforeAll,
+  afterAll,
+  beforeEach,
+  afterEach,
+  vi,
+} from 'vitest';
 import fs from 'node:fs';
 import fc from 'fast-check';
 import path from 'node:path';
@@ -34,6 +43,7 @@ import { enterWorld } from '../services/player/playerService.js';
 import { enqueueClientAction } from '../net/transport.js';
 import { resetEntityReplication } from '../net/entityReplication.js';
 import { gameConfig } from '../gameConfig.js';
+import { config } from '../config.js';
 import { clearInstancesForTest } from '../services/world/instanceService.js';
 
 // Fake timers don't reach the script realm's Date, so sandboxes created
@@ -367,6 +377,17 @@ describe('deterministic replay with every module loaded', () => {
 
   beforeEach(teardown);
   afterEach(teardown);
+
+  // The handler budget uses wall-clock time and can disable a handler,
+  // which would make two runs of the same session diverge.
+  const scripting = config.scripting as { handlerBudgetMs: number };
+  const budgetMs = scripting.handlerBudgetMs;
+  beforeAll(() => {
+    scripting.handlerBudgetMs = Number.MAX_SAFE_INTEGER;
+  });
+  afterAll(() => {
+    scripting.handlerBudgetMs = budgetMs;
+  });
 
   /** World state after each tick, the script clock advancing `msPerTick`. */
   function run(script: ClientAction[][], msPerTick: number): string[] {
