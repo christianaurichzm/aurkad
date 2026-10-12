@@ -63,28 +63,42 @@ export function publishToInstances(type: string, payload: unknown): void {
   );
 }
 
+// How far back each poll reads again. An id is the publisher's clock
+// second and then a per-process random value, so a line from another
+// instance can land after one read here and still sort before it. This
+// covers insert latency and clock skew; lines from a publisher further
+// behind are lost.
+const LOOKBACK_MS = 10_000;
+
+const idAt = (ms: number) =>
+  mongoose.Types.ObjectId.createFromTime(Math.floor(ms / 1000));
+
 /** Started once at boot; returns the stop for shutdown. */
 export function startInstanceBus(): () => void {
   if (!from) return () => {};
 
-  let lastId: mongoose.Types.ObjectId | undefined;
+  // What was read so far, by id, while it is young enough to be read again.
+  const seen = new Map<string, mongoose.Types.ObjectId>();
+  let floor = Date.now() - LOOKBACK_MS;
   let running = false;
 
-  // Where the stream is, asked for at once rather than on the first poll: an
-  // instance is deaf until it knows, and a booting instance must not replay an
-  // hour of chat at the players who are already here either.
-  const positioned = InstanceEventModel.findOne()
-    .sort({ _id: -1 })
+  // Where the stream is, asked at once rather than on the first poll: until
+  // then the instance is deaf, and a booting one must not replay chat at the
+  // players already here, so the current window counts as read.
+  const positioned = InstanceEventModel.find({ _id: { $gte: idAt(floor) } })
     .select('_id')
-    .lean<{ _id: mongoose.Types.ObjectId } | null>()
-    .then((newest) => {
-      lastId = newest?._id ?? new mongoose.Types.ObjectId();
+    .lean<{ _id: mongoose.Types.ObjectId }[]>()
+    .then((docs) => {
+      for (const { _id } of docs) seen.set(_id.toHexString(), _id);
     });
 
   const poll = async (): Promise<void> => {
     await positioned;
+    const startedAt = Date.now();
 
-    const events = await InstanceEventModel.find({ _id: { $gt: lastId } })
+    const events = await InstanceEventModel.find({
+      _id: { $gte: idAt(floor), $nin: [...seen.values()] },
+    })
       .sort({ _id: 1 })
       .limit(BATCH)
       .lean<
@@ -97,7 +111,7 @@ export function startInstanceBus(): () => void {
       >();
 
     for (const event of events) {
-      lastId = event._id;
+      seen.set(event._id.toHexString(), event._id);
       if (event.from === from) continue;
 
       const handler = handlers.get(event.type);
@@ -108,6 +122,16 @@ export function startInstanceBus(): () => void {
         (handler as (payload: unknown) => void)(event.payload);
       } catch (err) {
         logger.error('[bus] handler threw', { type: event.type, err });
+      }
+    }
+
+    // A full batch may have left older lines unread, so the window only moves
+    // on after a poll that read everything there was.
+    if (events.length < BATCH) {
+      floor = startedAt - LOOKBACK_MS;
+      const oldest = idAt(floor).getTimestamp().getTime();
+      for (const [key, id] of seen) {
+        if (id.getTimestamp().getTime() < oldest) seen.delete(key);
       }
     }
   };

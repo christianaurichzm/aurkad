@@ -67,10 +67,15 @@ const startAndSettle = async (): Promise<() => void> => {
 };
 
 /** What the other instance looks like from here: a row it wrote. */
-const fromBeta = async (type: string, payload: unknown) => {
+const fromBeta = async (
+  type: string,
+  payload: unknown,
+  _id = new mongoose.Types.ObjectId(),
+) => {
   await mongoose.connection
     .collection('instanceevents')
-    .insertOne({ from: 'ws://beta:8080', type, payload, at: new Date() });
+    .insertOne({ _id, from: 'ws://beta:8080', type, payload, at: new Date() });
+  return _id;
 };
 
 beforeAll(async () => {
@@ -137,5 +142,44 @@ describe('what one instance tells the others', () => {
     await until(() => heard.length > 0);
 
     expect(heard).toEqual([{ text: 'still delivered' }]);
+  }, 15_000);
+
+  // An id is the publisher's clock second and then a value random per
+  // process, so a line another instance sends in the same second can sort
+  // before one already read here.
+  it('delivers a line whose id sorts before one it already read', async () => {
+    const heard: unknown[] = [];
+    onInstanceEvent<{ line: string }>('chat', (payload) => heard.push(payload));
+    stop = await startAndSettle();
+
+    const first = await fromBeta('chat', { line: 'first' });
+    await until(() => heard.length === 1);
+    await fromBeta(
+      'chat',
+      { line: 'same second, smaller id' },
+      mongoose.Types.ObjectId.createFromTime(
+        first.getTimestamp().getTime() / 1000,
+      ),
+    );
+    await until(() => heard.length === 2);
+
+    expect(heard).toEqual([
+      { line: 'first' },
+      { line: 'same second, smaller id' },
+    ]);
+  }, 15_000);
+
+  it('delivers each line once, though every poll reads the recent past again', async () => {
+    const heard: unknown[] = [];
+    onInstanceEvent<{ n: number }>('chat', (payload) => heard.push(payload));
+    stop = await startAndSettle();
+
+    await fromBeta('chat', { n: 1 });
+    await fromBeta('chat', { n: 2 });
+    await until(() => heard.length === 2);
+    // Several more polls over the same window.
+    await new Promise((resolve) => setTimeout(resolve, 1_500));
+
+    expect(heard).toEqual([{ n: 1 }, { n: 2 }]);
   }, 15_000);
 });
