@@ -108,6 +108,18 @@ describe('reaching a level', () => {
     expect(achievements().has(late, 'apprentice')).toBe(true);
   });
 
+  it('leaves the client with the award, not the state from before it', () => {
+    const player = sim.addPlayer({ name: 'Ana' });
+    drainGameEvents();
+
+    emit('playerLevelUp', { player, level: 10 });
+
+    const updates = drainGameEvents().filter(
+      (e) => e.type === 'customPlayer' && e.channel === 'achievements:update',
+    ) as Array<{ payload: { earned: string[] } }>;
+    expect(updates.at(-1)?.payload.earned).toEqual(['apprentice']);
+  });
+
   it('does not award below it', () => {
     const player = sim.addPlayer({ name: 'Ana' });
 

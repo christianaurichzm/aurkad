@@ -164,12 +164,11 @@ on('itemPickup', ({ player, itemId, quantity }) => {
 });
 
 on('playerLevelUp', ({ player, level }) => {
-  const state = stateOf(player);
   for (const def of defs) {
     if (def.rule && def.rule.kind === 'level' && level >= def.rule.at)
       award(player, def.id, stateOf(player));
   }
-  push(player, state);
+  push(player);
 });
 
 on('customAction', ({ player, channel }) => {
