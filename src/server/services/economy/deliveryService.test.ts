@@ -185,6 +185,39 @@ describe('sendDelivery without transactions', () => {
     expect(await countDeliveries('Bob')).toBe(0);
     vi.restoreAllMocks();
   });
+
+  it('takes the fee with the item, or neither', async () => {
+    const postage = { itemId: POTION, quantity: 10 };
+    const alice = await withSword('Alice');
+    alice.inventory.items.push({ item: POTION, quantity: 5 });
+    await makePlayer('Bob');
+
+    expect(
+      await sendDelivery(alice, {
+        to: 'Bob',
+        itemId: SWORD,
+        source: 'mail',
+        fee: postage,
+      }),
+    ).toEqual({ ok: false, reason: 'not-enough' });
+    expect(alice.inventory.items).toEqual([
+      { item: SWORD, quantity: 1 },
+      { item: POTION, quantity: 5 },
+    ]);
+
+    alice.inventory.items[1]!.quantity = 15;
+    expect(
+      (
+        await sendDelivery(alice, {
+          to: 'Bob',
+          itemId: SWORD,
+          source: 'mail',
+          fee: postage,
+        })
+      ).ok,
+    ).toBe(true);
+    expect(alice.inventory.items).toEqual([{ item: POTION, quantity: 5 }]);
+  });
 });
 
 describe('queueDelivery', () => {

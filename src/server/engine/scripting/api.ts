@@ -67,6 +67,7 @@ import {
   queueDelivery,
   sendDelivery,
   type ClaimOutcome,
+  type DeliveryFee,
   type PendingDelivery,
   type QueueResult,
 } from '../../services/economy/deliveryService.js';
@@ -601,6 +602,7 @@ export function buildApi(
           itemId: number;
           quantity?: number;
           meta?: unknown;
+          fee?: DeliveryFee;
         },
       ): Promise<QueueResult> =>
         sendDelivery(from, { ...input, source: scriptName }),

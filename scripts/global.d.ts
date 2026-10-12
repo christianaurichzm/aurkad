@@ -795,7 +795,7 @@ type DeliveryFailure =
   | 'unknown-recipient'
   | 'mailbox-full'
   | 'meta-too-large'
-  /** `send` only: the sender no longer has that quantity. */
+  /** `send` only: the sender no longer has that quantity, or the fee. */
   | 'not-enough'
   /** `send` only: the write failed, so nothing was queued or debited. */
   | 'not-committed';
@@ -845,9 +845,9 @@ declare const delivery: {
     meta?: unknown;
   }): Promise<DeliveryQueueResult>;
   /**
-   * Queue an item taken from `from`'s inventory: the debit and the queued row
-   * are one commit. Do not remove the item, persist, or refund around this -
-   * on failure the sender's inventory is untouched.
+   * Queue an item taken from `from`'s inventory, debited in the same commit
+   * with any `fee`. Do not remove, persist or refund around it; on failure
+   * the sender's inventory is untouched.
    */
   send(
     from: PlayerServer,
@@ -856,6 +856,7 @@ declare const delivery: {
       itemId: number;
       quantity?: number;
       meta?: unknown;
+      fee?: { itemId: number; quantity: number };
     },
   ): Promise<DeliveryQueueResult>;
   /** Everything waiting for a player, oldest first. */

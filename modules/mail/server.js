@@ -1,14 +1,7 @@
 // @ts-check
 // Mail module: send an item and a note to another player, online or not.
-// The queue is core (`delivery`), since items owed to someone are an item
-// conservation problem `game.json` must not switch off; this module holds
-// the policy: who may send, what a letter costs, the note's length, the UI.
-//
-// Claims are exactly-once (see deliveryService). The send cannot be atomic
-// on a single MongoDB: the sender is debited and persisted before the row
-// is queued, so a crash in between loses the item rather than duplicating
-// it. A duplicate is invisible inflation and a loss one visible ticket;
-// closing the gap needs a replica set.
+// The queue is core (`delivery`) so disabling the module cannot strand
+// items; this holds the policy and the UI.
 
 const maxMessageLength = Math.max(
   0,
@@ -116,11 +109,8 @@ const answer = (player) => (text) =>
   sendEvent(player, 'mail:result', { message: t(player, text) });
 
 /**
- * Hands the item to the engine, which debits and queues it as one commit.
- *
- * Postage is the module's own policy and stays here, so it is the only thing
- * this function refunds: `delivery.send` leaves the inventory untouched when it
- * fails, and giving the letter's item back on top of that would print a copy.
+ * Hands the item and the postage to the engine, which debits both and queues
+ * the letter as one commit, and leaves the inventory untouched when it fails.
  */
 async function send(player, toName, itemIdValue, quantityValue, message) {
   const to = String(toName || '').trim();
@@ -142,13 +132,8 @@ async function send(player, toName, itemIdValue, quantityValue, message) {
 
   const note = String(message || '').slice(0, maxMessageLength);
 
-  if (costPerLetter > 0) {
-    if (!hasItem(player, currencyItemId, costPerLetter)) {
-      return t(player, 'Postage costs {cost}.', { cost: costPerLetter });
-    }
-    if (!removeItem(player, currencyItemId, costPerLetter)) {
-      return t(player, 'Postage costs {cost}.', { cost: costPerLetter });
-    }
+  if (costPerLetter > 0 && !hasItem(player, currencyItemId, costPerLetter)) {
+    return t(player, 'Postage costs {cost}.', { cost: costPerLetter });
   }
 
   const queued = await delivery.send(player, {
@@ -156,6 +141,9 @@ async function send(player, toName, itemIdValue, quantityValue, message) {
     itemId,
     quantity,
     meta: { from: player.name, message: note },
+    ...(costPerLetter > 0 && {
+      fee: { itemId: currencyItemId, quantity: costPerLetter },
+    }),
   });
 
   if (queued.ok) {
@@ -174,10 +162,6 @@ async function send(player, toName, itemIdValue, quantityValue, message) {
     });
   }
 
-  if (costPerLetter > 0) {
-    giveItem(player, currencyItemId, costPerLetter);
-    persistNow(player);
-  }
   return FAILURE_TEXT[queued.reason] || 'Could not send that.';
 }
 

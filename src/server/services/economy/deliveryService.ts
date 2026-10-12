@@ -91,6 +91,12 @@ export interface DeliveryInput {
   meta?: unknown;
 }
 
+/** What the sender pays on top of the item, such as postage. */
+export interface DeliveryFee {
+  itemId: number;
+  quantity: number;
+}
+
 // Narrowly typed so the same helper serves every result shape that can be
 // refused, not only QueueResult.
 const fail = (
@@ -185,7 +191,7 @@ export async function queueDelivery(
  */
 export async function sendDelivery(
   from: PlayerServer,
-  input: DeliveryInput,
+  input: DeliveryInput & { fee?: DeliveryFee },
 ): Promise<QueueResult> {
   const prepared = await prepareRow(input);
   if (!prepared.ok) return prepared;
@@ -198,7 +204,14 @@ export async function sendDelivery(
     // stale inventory can overwrite a transaction that has already committed.
     await waitForPlayerPersistence(from.id);
     const inventory = structuredClone(from.inventory);
-    if (!removeItem(inventory, row.itemId, row.quantity).ok)
+    // The fee is taken in the same commit as the item: charged apart, a send
+    // refused here would have to refund it, and a refund lands on whatever
+    // holds the inventory by then.
+    if (
+      !removeItem(inventory, row.itemId, row.quantity).ok ||
+      (input.fee &&
+        !removeItem(inventory, input.fee.itemId, input.fee.quantity).ok)
+    )
       return fail('not-enough');
     const debited = { ...from, inventory };
     if (supportsTransactions()) {
