@@ -8,6 +8,7 @@ import type {
 import { createFixture, makeTiles, tile } from '../../sim/simFixture.js';
 import { updateMapById } from './mapService.js';
 import { getMap } from '../../sim/world.js';
+import { config } from '../../config.js';
 
 const getNpcById = vi.fn();
 vi.mock('../content/npcService.js', () => ({
@@ -114,6 +115,25 @@ describe('the mapChange hook', () => {
     stop();
 
     expect(seen).toEqual([7]);
+  });
+});
+
+describe('a map another instance owns', () => {
+  it('is stored without being simulated here', async () => {
+    const instance = config.instance as { mapIds?: string[] };
+    instance.mapIds = ['home'];
+    try {
+      await createOrUpdateMap({
+        id: 'away',
+        name: 'Away',
+        type: 'normal',
+        tiles: [[{ tileIndex: 0 }]],
+      });
+    } finally {
+      instance.mapIds = undefined;
+    }
+
+    expect(getMap('away')).toBeUndefined();
   });
 });
 

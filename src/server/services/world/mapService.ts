@@ -19,6 +19,7 @@ import {
 } from '../../sim/world.js';
 import { runtimeState } from '../../sim/state.js';
 import { logger } from '../../logger.js';
+import { config } from '../../config.js';
 
 import { emit } from '../../engine/hooks.js';
 import GameMapModel from '../../model/Map.js';
@@ -30,6 +31,10 @@ import { onMap, onTiles } from './physicsService.js';
 import { resetNpcAi } from '../npc/aiBrain.js';
 
 const GROUND_ITEM_BOX = { width: TILE_SIZE, height: TILE_SIZE };
+
+/** Whether this process simulates the map: all unless MAP_IDS shards. */
+export const ownsMap = (id: string): boolean =>
+  !config.instance.mapIds || config.instance.mapIds.includes(id);
 
 export async function getMapById(id: string): Promise<MapStateServer | null> {
   return GameMapModel.findOne({ id }).lean<MapStateServer>().exec();
@@ -79,6 +84,14 @@ export async function createOrUpdateMap(
   }
   if (!map.id) {
     map.id = (await getNextMapId()).toString();
+  }
+
+  // Another instance's map is only stored. In memory here it would be a copy
+  // nobody simulates, and a warp would step into it instead of being
+  // redirected to the instance that owns it.
+  if (!ownsMap(map.id)) {
+    await GameMapModel.findOneAndUpdate({ id: map.id }, map, { upsert: true });
+    return map.id;
   }
 
   const previous = runtimeState.maps[map.id];
