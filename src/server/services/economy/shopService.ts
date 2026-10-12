@@ -5,9 +5,7 @@ import { getMap, updatePlayer } from '../../sim/world.js';
 import { persistPlayersNow } from '../player/playerService.js';
 import {
   addItem,
-  canFit,
-  hasItem,
-  removeItem,
+  exchangeItems,
   type EconomyResult,
 } from './economyService.js';
 
@@ -53,29 +51,17 @@ export const buyShopItem = async (
   const product = shop.products.find((p) => p.itemId === itemId);
   if (!product) return { ok: false, reason: 'not-sold' };
 
-  // Both halves are checked before either runs, so the player can never pay
-  // for something the inventory then has no room for.
-  if (!canFit(player.inventory, itemId)) {
-    return { ok: false, reason: 'no-space' };
-  }
-  if (
-    product.price > 0 &&
-    !hasItem(player.inventory, product.currency, product.price)
-  ) {
-    return { ok: false, reason: 'not-enough' };
-  }
-
-  if (product.price > 0) {
-    removeItem(player.inventory, product.currency, product.price);
-  }
-  const added = addItem(player.inventory, itemId, 1);
-  if (!added.ok) {
-    // Unreachable while canFit holds, but refunding beats charging for nothing.
-    if (product.price > 0) {
-      addItem(player.inventory, product.currency, product.price);
-    }
-    return added;
-  }
+  // One exchange, so room is judged on the bag the payment leaves: a stack of
+  // coins spent in full frees the slot the purchase goes into.
+  const result =
+    product.price > 0
+      ? exchangeItems(
+          player.inventory,
+          [{ itemId: product.currency, quantity: product.price }],
+          { itemId, quantity: 1 },
+        )
+      : addItem(player.inventory, itemId, 1);
+  if (!result.ok) return result;
 
   updatePlayer(player);
   await persistPlayersNow([player]);

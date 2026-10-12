@@ -253,4 +253,15 @@ describe('buying from a shop', () => {
 
     expect(countItem(player.inventory, 2)).toBe(2);
   });
+
+  it('sells into the slot the payment empties', async () => {
+    const player = buyer({
+      items: [{ item: 1, quantity: 10 }],
+      maxCapacity: 1,
+    });
+
+    expect(await buyShopItem(player, 2, shop(10))).toEqual({ ok: true });
+
+    expect(player.inventory.items).toEqual([{ item: 2, quantity: 1 }]);
+  });
 });
