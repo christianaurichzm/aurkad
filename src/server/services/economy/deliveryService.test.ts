@@ -27,9 +27,13 @@ import {
   sweepUnclaimableDeliveries,
 } from './deliveryService.js';
 import { deleteItem, items } from '../content/itemService.js';
-import { createPlayer } from '../player/playerService.js';
+import PlayerModel from '../../model/Player.js';
+import {
+  createPlayer,
+  getPlayerByNameFromDb,
+  persistPlayerSessionState,
+} from '../player/playerService.js';
 import { playersByName } from '../../sim/state.js';
-import { getPlayerByNameFromDb } from '../player/playerService.js';
 import type { PlayerServer } from '../../../shared/types.js';
 
 // The database write is the half of a claim that can fail on its own, and
@@ -499,6 +503,69 @@ describe('claimDeliveries', () => {
   it('is a no-op when nothing is waiting', async () => {
     const alice = await makePlayer('Alice');
     expect(await claimDeliveries(alice)).toEqual([]);
+  });
+
+  // The claim record only covers rows still queued, so a claim whose listing
+  // predates another claim's delete can find a row it no longer recognises.
+  it('hands each row over once when claims overlap', async () => {
+    const alice = await makePlayer('Alice');
+    const sword = await queueDelivery({
+      to: 'Alice',
+      itemId: SWORD,
+      source: 'test',
+    });
+    await queueDelivery({ to: 'Alice', itemId: POTION, source: 'test' });
+    const rows = await listDeliveries('Alice');
+
+    let release!: () => void;
+    const answered = new Promise<void>((resolve) => (release = resolve));
+    vi.spyOn(DeliveryModel, 'find').mockImplementationOnce(
+      () =>
+        ({
+          sort: () => ({
+            lean: () => ({ exec: () => answered.then(() => rows) }),
+          }),
+        }) as never,
+    );
+    const late = claimDeliveries(alice);
+    const others = claimDeliveries(alice, sword.ok ? [sword.id] : []).then(() =>
+      claimDeliveries(alice),
+    );
+    await Promise.race([others, new Promise((r) => setTimeout(r, 200))]);
+    release();
+    await Promise.all([late, others]);
+
+    expect(alice.inventory.items).toEqual([
+      { item: SWORD, quantity: 1 },
+      { item: POTION, quantity: 1 },
+    ]);
+  });
+
+  // A snapshot write carries the state it was cast from; landing after the
+  // claim it would erase the item whose row the claim has already deleted.
+  it('lets a write already in flight land before the claim', async () => {
+    const alice = await makePlayer('Alice');
+    await queueDelivery({ to: 'Alice', itemId: SWORD, source: 'test' });
+
+    let release!: () => void;
+    const landed = new Promise<void>((resolve) => (release = resolve));
+    const findOneAndUpdate = PlayerModel.findOneAndUpdate.bind(PlayerModel);
+    vi.spyOn(PlayerModel, 'findOneAndUpdate').mockImplementationOnce(((
+      filter: object,
+      update: object,
+      options: object,
+    ) => {
+      const cast = structuredClone(update);
+      return landed.then(() => findOneAndUpdate(filter, cast, options));
+    }) as never);
+    const snapshot = persistPlayerSessionState(alice);
+    const claim = claimDeliveries(alice);
+    await new Promise((r) => setTimeout(r, 100));
+    release();
+    await Promise.all([snapshot, claim]);
+
+    const stored = await getPlayerByNameFromDb('Alice');
+    expect(stored?.inventory.items).toEqual([{ item: SWORD, quantity: 1 }]);
   });
 });
 

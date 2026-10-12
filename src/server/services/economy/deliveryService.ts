@@ -43,6 +43,7 @@ import {
   beginPlayerCommit,
   endPlayerCommit,
   isPlayerCommitting,
+  waitForPlayerCommit,
 } from '../../persistence/dirtyPlayers.js';
 
 /**
@@ -321,6 +322,26 @@ function readClaimedHistory(
  * stay queued for the next attempt.
  */
 export async function claimDeliveries(
+  player: PlayerServer,
+  ids?: string[],
+): Promise<ClaimOutcome[]> {
+  // One claim at a time per player, from the listing to the row delete: a
+  // claim listing rows another is about to delete would find them unrecorded
+  // and add them again. It waits rather than refuses, as two `/mail claim`
+  // are a double-click; no await between the loop and the hold.
+  while (isPlayerCommitting(player.id)) await waitForPlayerCommit(player.id);
+  beginPlayerCommit([player.id]);
+  try {
+    // A snapshot cast before the claim must land first, or it erases the item
+    // after its row is gone.
+    await waitForPlayerPersistence(player.id);
+    return await claimHeld(player, ids);
+  } finally {
+    endPlayerCommit([player.id]);
+  }
+}
+
+async function claimHeld(
   player: PlayerServer,
   ids?: string[],
 ): Promise<ClaimOutcome[]> {
