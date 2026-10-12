@@ -5,6 +5,7 @@ import {
   insertNpcs,
   listMaps,
   createDefaultTiles,
+  ownsMap,
 } from './services/world/mapService.js';
 import { runtimeState } from './sim/state.js';
 import { listItems, items } from './services/content/itemService.js';
@@ -54,7 +55,14 @@ export async function loadInitialData() {
     const ownedMapIds = config.instance.mapIds;
     let loadedMaps: MapStateServer[] = await listMaps();
     if (ownedMapIds) {
-      loadedMaps = loadedMaps.filter((m) => ownedMapIds.includes(m.id));
+      // A shard whose maps are missing has nothing of its own to run, and a
+      // default map would take the next free id, maybe another instance's.
+      loadedMaps = loadedMaps.filter((m) => ownsMap(m.id));
+      if (loadedMaps.length === 0) {
+        throw new Error(
+          `MAP_IDS names no stored map (${ownedMapIds.join(', ')})`,
+        );
+      }
       logger.info('[DB] Sharded mode: loading owned maps', { ownedMapIds });
     }
 
