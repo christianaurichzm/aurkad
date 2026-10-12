@@ -517,6 +517,37 @@ describe('gameplay modules', () => {
     expect(equipment?.activeSets(alice)).toEqual([]);
   });
 
+  it('equipment takes a set off to the stat it found', () => {
+    useApi<EquipmentApi>('equipment')?.defineSet({
+      id: 'scout',
+      pieces: [101],
+      effects: [
+        { attribute: 'attack', type: 'add', value: 2 },
+        { attribute: 'attack', type: 'multiply', value: 2 },
+      ],
+    });
+    const sim = createFixture(0);
+    sim.addItem({
+      id: 101,
+      name: 'Helm',
+      description: '',
+      sprite: 0,
+      type: 'helmet',
+    });
+    const alice = sim.addPlayer({
+      name: 'Alice',
+      attack: 10,
+      inventory: { items: [{ item: 101, quantity: 1 }], maxCapacity: 10 },
+    });
+
+    for (let i = 0; i < 3; i++) {
+      equipItem(alice, 101);
+      expect(alice.attack).toBe(24);
+      equipItem(alice, 101);
+      expect(alice.attack).toBe(10);
+    }
+  });
+
   // What is stored is what the next reconcile takes off, so a bonus applied
   // under a refused write went on again at every equip.
   it('equipment applies no set bonus it could not record', () => {

@@ -61,23 +61,32 @@ function activeSets(player) {
   }));
 }
 
-function applyEffect(player, effect, reverse) {
-  if (!effect || !effect.attribute || !Number.isFinite(effect.value)) return;
-  const attr = effect.attribute;
-  if (typeof player[attr] !== 'number') return;
-
-  if (effect.type === 'multiply') {
-    if (effect.value === 0) return;
-    player[attr] = reverse
-      ? player[attr] / effect.value
-      : player[attr] * effect.value;
-  } else {
-    player[attr] += reverse ? -effect.value : effect.value;
+// What a set's effects add to `stats` now, as fixed amounts like core
+// equipment records, since dividing out a multiplier later is not exact.
+function contribution(stats, effects) {
+  const after = new Map();
+  for (const { attribute, type, value } of effects) {
+    if (typeof stats[attribute] !== 'number' || !Number.isFinite(value))
+      continue;
+    const current = after.get(attribute) ?? stats[attribute];
+    after.set(
+      attribute,
+      type === 'multiply' ? current * value : current + value,
+    );
   }
+  return [...after].map(([attribute, value]) => ({
+    attribute,
+    value: value - stats[attribute],
+  }));
 }
 
-function sameBonuses(a, b) {
-  return JSON.stringify(a || []) === JSON.stringify(b || []);
+function sameBonuses(stored, next) {
+  const definitions = stored.map(({ id, name, effects }) => ({
+    id,
+    name,
+    effects,
+  }));
+  return JSON.stringify(definitions) === JSON.stringify(next);
 }
 
 function reconcile(player, { forceSync = false } = {}) {
@@ -93,16 +102,22 @@ function reconcile(player, { forceSync = false } = {}) {
     return next;
   }
 
-  // Recorded before the stats move: what is stored is what the next reconcile
-  // takes back off, so bonuses applied under a refused write would be applied
-  // again on top of themselves every time.
-  if (!setPlayerData(player, dataKey, next)) return current;
+  // Worked out on a copy and recorded before the stats move, so a refused
+  // write cannot apply the bonuses twice.
+  const stats = { ...player };
   for (const bonus of current) {
-    for (const effect of bonus.effects || []) applyEffect(player, effect, true);
+    for (const { attribute, value } of bonus.applied || [])
+      stats[attribute] -= value;
   }
-  for (const bonus of next) {
-    for (const effect of bonus.effects || [])
-      applyEffect(player, effect, false);
+  const record = next.map((set) => {
+    const applied = contribution(stats, set.effects);
+    for (const { attribute, value } of applied) stats[attribute] += value;
+    return { ...set, applied };
+  });
+  if (!setPlayerData(player, dataKey, record)) return current;
+  for (const bonus of [...current, ...record]) {
+    for (const { attribute } of bonus.applied || [])
+      player[attribute] = stats[attribute];
   }
 
   sendEvent(player, 'equipment:update', {
