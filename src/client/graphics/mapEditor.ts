@@ -1295,6 +1295,10 @@ export const setEditorTiles = (tiles: Tile[][], music?: string) => {
 };
 
 const updateEditorMap = (tiles: Tile[][], music?: string) => {
+  // The history belongs to the buffer, so a load clears it; an undo must not
+  // bring back another map's tiles.
+  undoStack = [];
+  redoStack = [];
   map = tiles.map((row) => row.map((tile) => ({ ...tile })));
   originalMap = tiles.map((row) => row.map((tile) => ({ ...tile })));
   mapWidth = tiles[0]?.length ?? 20;

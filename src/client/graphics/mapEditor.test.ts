@@ -14,6 +14,7 @@ import {
   toggleBlocking,
   toggleMapEditor,
   toggleMask,
+  undo,
 } from './mapEditor';
 import { tileAnimations } from '../io/assets';
 
@@ -242,6 +243,16 @@ describe('a drag in a toggle mode', () => {
     mouse('mouseup', 10);
 
     expect(blocked(0)[0]).toBe(false);
+  });
+
+  it('forgets the history of the map it held before', () => {
+    mouse('mousedown', 10);
+    mouse('mouseup', 10);
+    setEditorTiles(mapOf(2));
+
+    undo();
+
+    expect(getEditorTiles()[0]?.[0]).toEqual({ tileIndex: 2 });
   });
 });
 
