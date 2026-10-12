@@ -64,13 +64,15 @@ const BFS_DIRS = [
 // to targetPos, or null at the goal or with no path within maxDepth. Only
 // static tiles block here; entities are checked by hasCollision at move
 // time. A player walking to a clicked cell takes the same path, passing in
-// `avoid` the cells it found occupied.
+// `avoid` the cells it found occupied, and `forNpc` false: `avoidNpc` fences
+// npcs in and lets players through, as collision does (isTileBlocked).
 export function bfsNextStep(
   npcPos: Position,
   targetPos: Position,
   map: MapStateServer,
   maxDepth: number,
   avoid: readonly Position[] = [],
+  forNpc = true,
 ): { x: number; y: number; dir: Direction } | null {
   const sc = Math.floor(npcPos.x / TILE_SIZE);
   const sr = Math.floor(npcPos.y / TILE_SIZE);
@@ -109,7 +111,7 @@ export function bfsNextStep(
       const isGoal = nc === gc && nr === gr;
       if (!isGoal) {
         const tile = map.tiles[nr]?.[nc];
-        if (!tile || tile.blocked || tile.avoidNpc) continue;
+        if (!tile || tile.blocked || (forNpc && tile.avoidNpc)) continue;
       }
 
       visited.add(key);

@@ -172,6 +172,20 @@ describe('walking to a clicked cell', () => {
     expect(npc.health).toBeLessThan(30);
   });
 
+  // Click pathing, like arrow keys, must pass npc-only blockers.
+  it('walks through a corridor marked to keep npcs out', () => {
+    sim.addPlayer({ name: 'Alice', position: { x: TILE_SIZE, y: TILE_SIZE } });
+    for (let row = 0; row < 8; row++) {
+      if (row === 1) sim.map.tiles[row]![3]!.avoidNpc = true;
+      else sim.map.tiles[row]![3]!.blocked = true;
+    }
+
+    sim.moveTo('Alice', 5, 1);
+    sim.step(80);
+
+    expect(at('Alice')).toEqual([5, 1]);
+  });
+
   it('ignores a cell off the map', () => {
     sim.addPlayer({ name: 'Alice', position: { x: TILE_SIZE, y: TILE_SIZE } });
 

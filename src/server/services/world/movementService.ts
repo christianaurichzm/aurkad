@@ -516,7 +516,14 @@ function followPath(
       position,
     } as CombatTarget);
   const plan = () =>
-    bfsNextStep(player.position, goalAt, map, CLICK_PATH_DEPTH, goal.avoid);
+    bfsNextStep(
+      player.position,
+      goalAt,
+      map,
+      CLICK_PATH_DEPTH,
+      goal.avoid,
+      false,
+    );
   let step = plan();
   if (step && occupied(step)) {
     goal.avoid.push(step);
