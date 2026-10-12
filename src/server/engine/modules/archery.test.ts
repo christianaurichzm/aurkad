@@ -237,4 +237,28 @@ describe('archery module', () => {
     sim.step(10);
     expect(enemy.health).toBeLessThan(healthAfterFirst);
   });
+  // 4 tiles a second is 12.8 px a tick, and twenty of them summed in floating
+  // point come to a hair less than the 256 px to the npc's middle.
+  it('hits a standing npc it was aimed at when the steps do not add up exactly', () => {
+    const sim = createFixture(0);
+    const alice = sim.addPlayer({
+      name: 'Alice',
+      position: tile(5, 5),
+      direction: Direction.Right,
+    });
+    const enemy = sim.addNpc({
+      behavior: 'aggressive',
+      attack: 0,
+      position: tile(9, 5),
+      moveIntervalMs: 60_000,
+    });
+    equipTestArrow(alice);
+    arrows.set(TEST_ARROW_ID, { ...arrows.get(TEST_ARROW_ID)!, tileSpeed: 4 });
+    sim.step(1);
+
+    shoot('Alice');
+    sim.step(25);
+
+    expect(enemy.health).toBeLessThan(enemy.maxHealth);
+  });
 });

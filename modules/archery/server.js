@@ -105,6 +105,8 @@ on('customAction', ({ player, channel }) => {
     dirY: dy / totalDistPx,
     speedPxPerTick,
     remainingPx: totalDistPx,
+    toX,
+    toY,
     damage: arrow.damage,
     attacker: player,
   });
@@ -127,9 +129,16 @@ on('tick', () => {
 
   for (let i = projectiles.length - 1; i >= 0; i--) {
     const p = projectiles[i];
-    p.cx += p.dirX * p.speedPxPerTick;
-    p.cy += p.dirY * p.speedPxPerTick;
     p.remainingPx -= p.speedPxPerTick;
+    // The last step lands exactly on the endpoint, since float steps stop a
+    // hair short of an npc's middle.
+    if (p.remainingPx <= 0) {
+      p.cx = p.toX;
+      p.cy = p.toY;
+    } else {
+      p.cx += p.dirX * p.speedPxPerTick;
+      p.cy += p.dirY * p.speedPxPerTick;
+    }
 
     const nearby = getNearbyNpcs(p.mapId, p.cx, p.cy, TILE_SIZE);
     let hit = false;
