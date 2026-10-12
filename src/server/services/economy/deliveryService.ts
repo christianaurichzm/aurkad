@@ -53,6 +53,29 @@ import {
  */
 const MAX_PENDING_PER_PLAYER = 100;
 
+/**
+ * The tail of each recipient's queue of sends.
+ *
+ * The cap is a count followed by an insert, so two sends counted before
+ * either inserts both fit. Sends to one recipient therefore run one after the
+ * other, from the count to the insert.
+ *
+ * In-process only; two instances sending to one recipient can still
+ * pass the cap together. A per-recipient counter document with a conditional
+ * $inc if multi-instance mail ever matters.
+ */
+const recipientTails = new Map<string, Promise<unknown>>();
+
+function oneSendAtATime<T>(to: string, send: () => Promise<T>): Promise<T> {
+  const result = (recipientTails.get(to) ?? Promise.resolve()).then(send, send);
+  const tail = result.catch(() => undefined);
+  recipientTails.set(to, tail);
+  void tail.then(() => {
+    if (recipientTails.get(to) === tail) recipientTails.delete(to);
+  });
+  return result;
+}
+
 /** Engine-owned key in the player's data bag, not a script's to manage. */
 const CLAIMED_KEY = '__claimedDeliveries';
 
@@ -170,16 +193,18 @@ async function prepareRow(
 }
 
 /** Queues an item for `to`, online or not, out of nowhere (a script grant). */
-export async function queueDelivery(
+export function queueDelivery(
   input: DeliveryInput,
   session?: ClientSession,
 ): Promise<QueueResult> {
-  const prepared = await prepareRow(input, session);
-  if (!prepared.ok) return prepared;
+  return oneSendAtATime(String(input.to), async () => {
+    const prepared = await prepareRow(input, session);
+    if (!prepared.ok) return prepared;
 
-  if (session) await DeliveryModel.create([prepared.row], { session });
-  else await DeliveryModel.create(prepared.row);
-  return { ok: true, id: prepared.row.id };
+    if (session) await DeliveryModel.create([prepared.row], { session });
+    else await DeliveryModel.create(prepared.row);
+    return { ok: true, id: prepared.row.id };
+  });
 }
 
 /**
@@ -190,7 +215,14 @@ export async function queueDelivery(
  * a duplicate. On failure the sender's inventory is as it was, and the
  * caller must not refund, or the item comes back twice.
  */
-export async function sendDelivery(
+export function sendDelivery(
+  from: PlayerServer,
+  input: DeliveryInput & { fee?: DeliveryFee },
+): Promise<QueueResult> {
+  return oneSendAtATime(String(input.to), () => sendHeld(from, input));
+}
+
+async function sendHeld(
   from: PlayerServer,
   input: DeliveryInput & { fee?: DeliveryFee },
 ): Promise<QueueResult> {

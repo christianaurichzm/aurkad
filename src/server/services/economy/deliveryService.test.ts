@@ -289,6 +289,22 @@ describe('queueDelivery', () => {
     expect(await countDeliveries('Alice')).toBe(100);
   });
 
+  it('holds the cap against sends counted at the same time', async () => {
+    await makePlayer('Alice');
+    for (let i = 0; i < 99; i++) {
+      await queueDelivery({ to: 'Alice', itemId: POTION, source: 'test' });
+    }
+
+    const results = await Promise.all(
+      [1, 2, 3].map(() =>
+        queueDelivery({ to: 'Alice', itemId: POTION, source: 'test' }),
+      ),
+    );
+
+    expect(results.filter((r) => r.ok)).toHaveLength(1);
+    expect(await countDeliveries('Alice')).toBe(100);
+  });
+
   it('refuses a payload over the stored-value limit', async () => {
     await makePlayer('Alice');
 
