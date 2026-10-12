@@ -182,7 +182,10 @@ export async function setFlag(
   flags.set(name, flag);
   try {
     if (!databaseReachable()) throw new Error('no database connection');
-    await LiveOpsFlagModel.findOneAndUpdate(
+    // Replaced whole: a field this flag no longer has, like a schedule an
+    // operator dropped, has to leave the row too, and an update written from
+    // the flag cannot name what is not there.
+    await LiveOpsFlagModel.replaceOne(
       { name },
       {
         name,

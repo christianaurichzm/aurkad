@@ -297,6 +297,19 @@ describe('surviving a restart', () => {
     expect(flagEnabled('winterEvent')).toBe(true);
   });
 
+  it('forgets a schedule the flag was set again without', async () => {
+    await setFlag('bossWeek', true, {
+      startsAt: Date.now() + 3_600_000,
+      expiresAt: Date.now() + 7_200_000,
+    });
+    await setFlag('bossWeek', true);
+
+    clearLiveOpsFlagsForTest();
+    await loadLiveOpsFlags();
+
+    expect(flagEnabled('bossWeek')).toBe(true);
+  });
+
   it('drops one whose time passed while the server was down', async () => {
     freezeClockAt('2026-07-30T12:00:00Z');
     await setFlag('overnight', true, { expiresAt: Date.now() + 60_000 });
