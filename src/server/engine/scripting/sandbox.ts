@@ -3,6 +3,7 @@ import { logger } from '../../logger.js';
 import { buildApi } from './api.js';
 import { getContentConstants } from './contentConstants.js';
 import { recordScriptError } from './scriptErrors.js';
+import { clearHandlerBudget } from './handlerBudget.js';
 
 // TRUST MODEL: read before exposing this to untrusted code.
 //
@@ -64,10 +65,14 @@ export function runInSandbox(
   // scripts keep their realm's Math rather than a host object.
   vm.runInContext('Math.random = random;', ctx);
 
+  // The time budget goes with the code it measured, so whatever loads under
+  // this name next, a script saved again or a module reloaded, starts with
+  // its handlers switched on.
   const cleanup = (): void => {
     unsubs.forEach((fn) => fn());
     timers.forEach((id) => clearInterval(id));
     timers.clear();
+    clearHandlerBudget(filename);
   };
 
   try {

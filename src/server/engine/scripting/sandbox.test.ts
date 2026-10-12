@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 import fs from 'node:fs';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
@@ -21,6 +21,7 @@ import { handleCustomAction } from '../../services/comms/customEventService.js';
 import { drainGameEvents } from '../eventBus.js';
 import { handleChatCommand, clearCommands } from '../commands.js';
 import { Access } from '../../../shared/types.js';
+import { isHandlerDisabled, runWithBudget } from './handlerBudget.js';
 
 beforeEach(() => {
   clearAll();
@@ -1182,5 +1183,29 @@ describe('the globals a script is handed', () => {
     ]);
 
     expect([...declared].sort()).toEqual(sandboxGlobals());
+  });
+});
+
+// A module is reloaded through the same handle a script is, so the handler the
+// old code lost to its budget has to come back with the new code.
+describe('cleaning up a sandbox', () => {
+  it('gives back the time budget of the handlers it ran', () => {
+    vi.useFakeTimers({ toFake: ['performance'] });
+    try {
+      const handle = runInSandbox('', 'module:slow');
+      const over = config.scripting.handlerBudgetMs + 5;
+      for (let i = 0; i < config.scripting.handlerBudgetStrikes; i++) {
+        runWithBudget('module:slow', 'on:tick', () =>
+          vi.advanceTimersByTime(over),
+        );
+      }
+      expect(isHandlerDisabled('module:slow', 'on:tick')).toBe(true);
+
+      handle.cleanup();
+
+      expect(isHandlerDisabled('module:slow', 'on:tick')).toBe(false);
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });

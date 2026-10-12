@@ -8,7 +8,6 @@ import {
   recordScriptDiagnostic,
   recordScriptError,
 } from './scriptErrors.js';
-import { clearHandlerBudget } from './handlerBudget.js';
 
 // The game's scripts, with the content.generated.d.ts written at boot next to
 // them. global.d.ts and the tsconfig describe the engine's API, not a game, so
@@ -153,10 +152,8 @@ function loadFile(filePath: string): void {
   handles.delete(name);
   // The file is about to be re-evaluated, so whatever the previous version
   // reported no longer describes the code on disk. Clearing here is what makes
-  // the editor's markers disappear once a fix is saved, and what gives a
-  // handler disabled for overrunning its budget another chance.
+  // the editor's markers disappear once a fix is saved.
   clearScriptErrors(name);
-  clearHandlerBudget(name);
 
   let code: string | null;
   try {
@@ -176,7 +173,6 @@ function unloadFile(name: string): void {
   handles.get(name)?.cleanup();
   handles.delete(name);
   clearScriptErrors(name);
-  clearHandlerBudget(name);
   logger.info(`[scripting] Unloaded: ${name}`);
 }
 
