@@ -84,6 +84,28 @@ export class Quadtree {
   }
 
   /**
+   * Takes an entity out of the node it was filed in, found by identity: where
+   * it was filed is where it stood when inserted, which it may have left.
+   */
+  remove(entity: QuadtreeEntity): boolean {
+    if (!this.removeFromNode(this.root, entity)) return false;
+    this.count--;
+    return true;
+  }
+
+  private removeFromNode(node: QuadtreeNode, entity: QuadtreeEntity): boolean {
+    const i = node.entities.indexOf(entity);
+    if (i !== -1) {
+      node.entities.splice(i, 1);
+      return true;
+    }
+    return (
+      node.children?.some((child) => this.removeFromNode(child, entity)) ??
+      false
+    );
+  }
+
+  /**
    * Split a node into 4 children
    */
   private split(node: QuadtreeNode): void {

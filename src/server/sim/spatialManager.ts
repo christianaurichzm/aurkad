@@ -38,19 +38,21 @@ export function rebuildQuadtree(mapId: string, map: MapStateServer): void {
 }
 
 /**
- * Puts an entity that came onto a map after this tick's rebuild into its tree.
- * Placement asks the tree who is standing where, and two players warping onto
- * one empty tile in the same tick would otherwise both find it free.
+ * Indexes an entity placed after this tick's rebuild at its current
+ * position, so two players sent to the same empty tile in one tick don't
+ * both find it free.
  */
-export function indexArrival(
+export function indexPlacement(
   map: MapStateServer,
   entity: QuadtreeEntity,
 ): void {
-  getOrCreateQuadtree(
+  const qt = getOrCreateQuadtree(
     map.id,
     mapPixelWidth(map.tiles),
     mapPixelHeight(map.tiles),
-  ).insert(entity);
+  );
+  qt.remove(entity);
+  qt.insert(entity);
 }
 
 export function queryNearbyEntities(character: CombatTarget): QuadtreeEntity[] {

@@ -12,6 +12,7 @@ import { getOrInitNpcAi, transitionNpcAi, resetNpcAi } from './aiBrain.js';
 import { isHunter, type NpcAiState } from './types.js';
 import { getTick, msToTicks } from '../../sim/clock.js';
 import { scheduleAfter } from '../../sim/scheduler.js';
+import { indexPlacement } from '../../sim/spatialManager.js';
 import { forgetReplicatedEntity } from '../../net/snapshot.js';
 import { gameConfig } from '../../gameConfig.js';
 import {
@@ -212,6 +213,7 @@ function placeAtSpawn(mapId: string, npc: RuntimeNpc): boolean {
   npc.health = npc.maxHealth;
   npc.position = newPosition;
   npc.action = CharacterAction.Idle;
+  indexPlacement(map, npc);
 
   resetNpcAi(npc);
   return true;

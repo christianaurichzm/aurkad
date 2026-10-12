@@ -532,3 +532,25 @@ describe('Quadtree - agrees with a linear scan', () => {
     );
   });
 });
+
+describe('Quadtree - remove', () => {
+  it('finds an entity in the node it was filed in after it moved', () => {
+    const qt = new Quadtree({ x: 0, y: 0, width: 1000, height: 1000 }, 2);
+    const entities = [0, 1, 2, 3, 4].map((i) => ({
+      id: `${i}`,
+      position: { x: i * 10, y: 0 },
+      width: 5,
+      height: 5,
+    }));
+    entities.forEach((e) => qt.insert(e));
+    const moved = entities[0]!;
+    moved.position = { x: 900, y: 900 };
+
+    expect(qt.remove(moved)).toBe(true);
+    expect(qt.size()).toBe(4);
+    expect(qt.query({ x: 0, y: 0, width: 1000, height: 1000 })).not.toContain(
+      moved,
+    );
+    expect(qt.remove(moved)).toBe(false);
+  });
+});

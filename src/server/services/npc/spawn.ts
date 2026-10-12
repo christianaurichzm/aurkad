@@ -8,6 +8,7 @@ import { TILE_SIZE } from '../../../shared/constants.js';
 import { mapTileHeight, mapTileWidth } from '../../../shared/mapGeometry.js';
 import { getMap } from '../../sim/world.js';
 import { runtimeState } from '../../sim/state.js';
+import { indexPlacement } from '../../sim/spatialManager.js';
 import { findPlacement } from '../world/physicsService.js';
 import { forgetReplicatedEntity } from '../../net/snapshot.js';
 import { clearDamageContributions } from '../combat/damage.js';
@@ -130,6 +131,7 @@ export function spawnNpc(opts: SpawnNpcOptions): RuntimeNpc | undefined {
   npc.position = findPlacement(npc, map.id, npc.position);
 
   map.npcs[id] = npc;
+  indexPlacement(map, npc);
   return npc;
 }
 

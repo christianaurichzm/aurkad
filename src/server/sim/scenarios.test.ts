@@ -3,6 +3,7 @@ import { CharacterAction, Direction, Key } from '../../shared/types.js';
 import { TILE_SIZE } from '../../shared/constants.js';
 import { createFixture, makeTiles, tile } from './simFixture.js';
 import { teleportPlayer } from '../services/world/movementService.js';
+import { spawnNpc } from '../services/npc/spawn.js';
 import {
   clearLootTableCache,
   createOrUpdateLootTable,
@@ -552,6 +553,32 @@ describe('map warp', () => {
 
     expect(alice.position).toEqual(tile(5, 5));
     expect(bob.position).not.toEqual(alice.position);
+  });
+
+  // A teleported entity stays in its old quadtree node until the rebuild.
+  it('lands two players teleported across one map onto one tile side by side', () => {
+    for (let col = 0; col < 12; col++)
+      sim.addPlayer({ position: tile(col, 0) });
+    const alice = sim.addPlayer({ name: 'Alice', position: tile(1, 1) });
+    const bob = sim.addPlayer({ name: 'Bob', position: tile(2, 1) });
+    sim.step(1);
+
+    teleportPlayer(alice, sim.mapId, tile(15, 15));
+    teleportPlayer(bob, sim.mapId, tile(15, 15));
+
+    expect(alice.position).toEqual(tile(15, 15));
+    expect(bob.position).not.toEqual(alice.position);
+  });
+
+  it('does not land a player on an npc spawned this tick', () => {
+    sim.step(1);
+
+    const npc = spawnNpc({ mapId: sim.mapId, col: 7, row: 7 });
+    const alice = sim.addPlayer({ name: 'Alice', position: tile(1, 1) });
+    teleportPlayer(alice, sim.mapId, tile(7, 7));
+
+    expect(npc?.position).toEqual(tile(7, 7));
+    expect(alice.position).not.toEqual(tile(7, 7));
   });
 
   it('does not keep a tile taken by someone who warped off it this tick', () => {
