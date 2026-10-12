@@ -274,8 +274,7 @@ export const resolveDamage = (
     case 'player': {
       emit('playerDeath', { player: target, killer: attacker });
       clearDamageContributions(target.id);
-      respawnPlayer(target);
-      updatePlayer(target);
+      if (!respawnPlayer(target)) updatePlayer(target);
 
       if (attacker?.kind === 'player') {
         handleChatAction({

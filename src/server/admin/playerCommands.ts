@@ -324,8 +324,7 @@ export function registerPlayerCommands(): void {
 
       const reason = args.slice(1).join(' ');
       player.health = 0;
-      respawnPlayer(player);
-      saveAndBroadcast([player]);
+      if (!respawnPlayer(player)) saveAndBroadcast([player]);
       sendPrivateMessage(
         player.name,
         reason

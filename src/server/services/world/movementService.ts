@@ -230,13 +230,15 @@ const runTileTriggers = (
     } else if (trigger.action === 'kill') {
       player.health = 0;
       emit('playerDeath', { player });
-      respawnPlayer(player);
+      const left = respawnPlayer(player);
       handleChatAction({
         scope: 'global',
         type: 'chat',
         subtype: 'death',
         message: `${player.name} fell into a deadly trap!`,
       });
+      // Respawned on another instance: the rest of this tile is not theirs.
+      if (left) return;
     } else if (trigger.action === 'message') {
       emitGameEvent({
         type: 'chatPlayer',

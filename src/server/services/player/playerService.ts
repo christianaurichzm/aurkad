@@ -7,7 +7,7 @@ import {
   EQUIPMENT_SLOTS,
 } from '../../../shared/constants.js';
 import { gameConfig, respawnPosition } from '../../gameConfig.js';
-import { findPlacement, onMap } from '../world/physicsService.js';
+import { onMap } from '../world/physicsService.js';
 import {
   PlayerServer,
   PlayerRecord,
@@ -34,7 +34,7 @@ import {
   updatePlayer,
 } from '../../sim/world.js';
 import { emit } from '../../engine/hooks.js';
-import { addPlayerOnMap, removePlayerFromMap } from '../world/mapService.js';
+import { addPlayerOnMap } from '../world/mapService.js';
 import { getItemById } from '../content/itemService.js';
 import { playersWsMap } from '../../net/connections.js';
 import {
@@ -65,7 +65,7 @@ import {
 } from '../../persistence/transactions.js';
 import { clearAttackCooldown } from '../combat/attackCooldown.js';
 import { clearDamageContributions } from '../combat/damage.js';
-import { clearPressedKeys } from '../world/movementService.js';
+import { clearPressedKeys, warpToMap } from '../world/movementService.js';
 import { logger } from '../../logger.js';
 import { recordAdminAction } from '../auditService.js';
 import { registerStrings, translate } from '../../engine/i18n.js';
@@ -501,18 +501,14 @@ export const handlePlayerUpdates = (player: PlayerServer): void => {
   }
 };
 
-export const respawnPlayer = (player: PlayerServer): void => {
+/**
+ * Back to full health on the start map, which may be on another instance:
+ * a warp like any other, handed off as a warp tile does. True when the
+ * player left this process and there is nobody here to update.
+ */
+export const respawnPlayer = (player: PlayerServer): boolean => {
   player.health = player.maxHealth;
-  removePlayerFromMap(player.id);
-  player.mapId = gameConfig.world.startMapId;
-  // Everyone respawns on the same tile, so without placement a wipe would
-  // stack the whole party on one square until they walked off it.
-  player.position = findPlacement(
-    player,
-    gameConfig.world.startMapId,
-    respawnPosition,
-  );
-  addPlayerOnMap(player.id);
+  return warpToMap(player, gameConfig.world.startMapId, respawnPosition);
 };
 
 export function toPlayerHot(player: PlayerServer): PlayerHot {

@@ -9,7 +9,8 @@ import {
 import * as instanceRegistry from '../persistence/instanceRegistry.js';
 import { playerRepository } from '../persistence/playerRepository.js';
 import { enterWorld } from '../services/player/playerService.js';
-import { getPlayerByName } from './world.js';
+import { getMap, getPlayerByName } from './world.js';
+import { gameConfig } from '../gameConfig.js';
 
 // Loot tables are documents; these tests only need them in the cache.
 vi.mock('../model/LootTable.js', () => ({
@@ -765,6 +766,57 @@ describe('tile triggers', () => {
     // Player is alive (respawned) and moved back to spawn
     expect(player.health).toBeGreaterThan(0);
     expect(player.position).not.toEqual(startPos);
+  });
+
+  it('respawns on the start map, off whichever map the player died on', () => {
+    sim.addMap({ id: gameConfig.world.startMapId });
+    sim.map.tiles[1]![2]!.triggers = [{ action: 'kill' }];
+    const player = sim.addPlayer({
+      name: 'Alice',
+      health: 50,
+      maxHealth: 100,
+      position: { x: TILE_SIZE, y: TILE_SIZE },
+    });
+
+    sim.press('Alice', Key.ArrowRight);
+    sim.step(10);
+
+    expect(player.mapId).toBe(gameConfig.world.startMapId);
+    expect(player.health).toBe(100);
+    expect(getMap(gameConfig.world.startMapId)!.players[player.id]).toBe(
+      player,
+    );
+    expect(sim.map.players[player.id]).toBeUndefined();
+  });
+
+  // The start map is on another instance, so respawn hands off like a warp.
+  it('hands a dead player to the instance that has the start map', async () => {
+    const save = vi.spyOn(playerRepository, 'save').mockResolvedValue(true);
+    const lookup = vi
+      .spyOn(instanceRegistry, 'lookupInstanceUrl')
+      .mockReturnValue('ws://remote');
+    try {
+      sim.map.tiles[1]![2]!.triggers = [{ action: 'kill' }];
+      sim.addPlayer({
+        name: 'Alice',
+        health: 50,
+        maxHealth: 100,
+        position: { x: TILE_SIZE, y: TILE_SIZE },
+      });
+
+      sim.press('Alice', Key.ArrowRight);
+      sim.step(10);
+      await vi.waitFor(() => expect(getPlayerByName('Alice')).toBeUndefined());
+
+      expect(lookup).toHaveBeenCalledWith(gameConfig.world.startMapId);
+      expect(save.mock.calls.at(-1)![0]).toMatchObject({
+        mapId: gameConfig.world.startMapId,
+        health: 100,
+      });
+    } finally {
+      save.mockRestore();
+      lookup.mockRestore();
+    }
   });
 
   it('multiple triggers all apply on entry', () => {

@@ -626,8 +626,7 @@ export function buildApi(
     },
     killPlayer: (player: PlayerServer): void => {
       player.health = 0;
-      respawnPlayer(player);
-      persist(scriptName, player);
+      if (!respawnPlayer(player)) persist(scriptName, player);
     },
     dealDamage: (
       target: CombatTarget | null | undefined,
