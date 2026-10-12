@@ -70,11 +70,21 @@ const sharedInstances = !!(config && config.sharedInstances);
  * @typedef {{ name: string, privacy: 'public'|'private', leader: string, members: GuildMember[], invites: string[] }} Guild
  */
 
-/** @returns {string|undefined} */
-const myGuildName = (player) => getPlayerData(player, 'guild');
 /** @param {string|undefined} name @returns {Guild|undefined} */
 const getGuild = (name) =>
   /** @type {Guild|undefined} */ (name ? store.get('guild', name) : undefined);
+
+/**
+ * The guild the player is in: the one their data names, while it still
+ * lists them. A player kicked while offline still carries the name.
+ *
+ * @returns {string|undefined}
+ */
+const myGuildName = (player) => {
+  const name = /** @type {string|undefined} */ (getPlayerData(player, 'guild'));
+  const g = getGuild(name);
+  return g && g.members.some((m) => m.name === player.name) ? name : undefined;
+};
 const saveGuild = (g) => store.set('guild', g.name, g);
 
 const roleOf = (g, name) => (g.members.find((m) => m.name === name) || {}).role;
@@ -379,7 +389,14 @@ on('customAction', ({ player, channel, payload }) => {
 
 on('playerJoin', ({ player }) => {
   const gn = myGuildName(player);
-  if (!gn) return;
+  if (!gn) {
+    // Kicked, or the guild disbanded, while they were away.
+    if (getPlayerData(player, 'guild') !== undefined) {
+      setPlayerData(player, 'guild', undefined);
+      setNameTag(player, undefined);
+    }
+    return;
+  }
   setNameTag(player, gn);
   pushGuild(gn);
 });

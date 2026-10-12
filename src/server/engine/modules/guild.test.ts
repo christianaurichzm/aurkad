@@ -12,6 +12,7 @@ import { createFixture } from '../../sim/simFixture.js';
 import { Access, PlayerServer } from '../../../shared/types.js';
 import { emit } from '../hooks.js';
 import { gameConfig } from '../../gameConfig.js';
+import { registerPlayer, unregisterPlayer } from '../../sim/world.js';
 
 interface GuildMember {
   name: string;
@@ -225,6 +226,35 @@ describe('guild module', () => {
     expect(api?.guildOf(alice)?.name).toBe('Dragons');
     expect(api?.isMember(alice, 'Dragons')).toBe(true);
     expect(api?.members('Dragons')).toEqual(['Alice']);
+  });
+
+  // A kick clears the guild off a player online here, and one kicked while
+  // away must not come back with the name, the tag and the benefits.
+  it('drops a member kicked while away, and keeps them out on their return', () => {
+    const sim = createFixture(0);
+    const alice = sim.addPlayer({ name: 'Alice' });
+    const bob = sim.addPlayer({ name: 'Bob' });
+    handleChatCommand(alice, '/guild create Dragons');
+    handleChatCommand(bob, '/guild join Dragons');
+    const api = useApi<{
+      isMember: (p: PlayerServer, name: string) => boolean;
+    }>('guild')!;
+
+    unregisterPlayer(bob.id);
+    handleChatCommand(alice, '/guild kick Bob');
+    expect(bob.data?.guild).toBe('Dragons');
+    expect(api.isMember(bob, 'Dragons')).toBe(false);
+
+    registerPlayer(bob);
+    emit('playerJoin', { player: bob });
+    expect(bob.data?.guild).toBeUndefined();
+    expect(bob.nameTag).toBeUndefined();
+
+    // Nor is a guild founded again under the name theirs.
+    handleChatCommand(alice, '/guild leave');
+    handleChatCommand(alice, '/guild create Dragons');
+    bob.data = { ...bob.data, guild: 'Dragons' };
+    expect(api.isMember(bob, 'Dragons')).toBe(false);
   });
 
   it('private guild rejects /guild join and requires invite', () => {
