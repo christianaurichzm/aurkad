@@ -1,7 +1,14 @@
 // Exercises the real archery module via the tick loop.
 // Damage is applied only when the projectile physically reaches an entity
 // (checked each server tick), so tests advance ticks with sim.step().
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import {
+  describe,
+  it,
+  expect,
+  beforeEach,
+  afterEach,
+  onTestFinished,
+} from 'vitest';
 import { unloadAllModules } from './moduleLoader.js';
 import { loadModulesForTest } from '../../../test/modules.js';
 import { clearProvides } from './registry.js';
@@ -12,6 +19,7 @@ import { handleCustomAction } from '../../services/comms/customEventService.js';
 import { createFixture, tile } from '../../sim/simFixture.js';
 import { Direction } from '../../../shared/types.js';
 import { TILE_SIZE } from '../../../shared/constants.js';
+import { config } from '../../config.js';
 import { items } from '../../services/content/itemService.js';
 import { arrows } from '../../services/content/arrowService.js';
 import type { PlayerServer } from '../../../shared/types.js';
@@ -237,6 +245,7 @@ describe('archery module', () => {
     sim.step(10);
     expect(enemy.health).toBeLessThan(healthAfterFirst);
   });
+
   // 4 tiles a second is 12.8 px a tick, and twenty of them summed in floating
   // point come to a hair less than the 256 px to the npc's middle.
   it('hits a standing npc it was aimed at when the steps do not add up exactly', () => {
@@ -260,5 +269,43 @@ describe('archery module', () => {
     sim.step(25);
 
     expect(enemy.health).toBeLessThan(enemy.maxHealth);
+  });
+
+  it('keeps the cooldown and the arrow speed in real time at another tick rate', () => {
+    const gameLoop = config.gameLoop as { tickRate: number };
+    const rate = gameLoop.tickRate;
+    gameLoop.tickRate = 40;
+    onTestFinished(() => {
+      gameLoop.tickRate = rate;
+    });
+    unloadAllModules();
+    loadModulesForTest('archery');
+    const sim = createFixture(0);
+    const alice = sim.addPlayer({
+      name: 'Alice',
+      position: tile(5, 5),
+      direction: Direction.Right,
+    });
+    const enemy = sim.addNpc({
+      behavior: 'aggressive',
+      attack: 0,
+      position: tile(9, 5),
+      // Stands still, so the flight time is the arrow's alone.
+      moveIntervalMs: 60_000,
+    });
+    equipTestArrow(alice);
+    sim.step(1);
+
+    shoot('Alice');
+    drainGameEvents();
+    // 8 tiles a second covers the 4 tiles in half a second: 20 ticks at 40 Hz.
+    sim.step(13);
+    expect(enemy.health).toBe(enemy.maxHealth);
+    sim.step(8);
+    expect(enemy.health).toBeLessThan(enemy.maxHealth);
+
+    // 21 ticks are 525 ms, short of the 600 ms cooldown.
+    shoot('Alice');
+    expect(firedProjectile()).toBeUndefined();
   });
 });

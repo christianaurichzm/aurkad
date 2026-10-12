@@ -2,10 +2,9 @@
 const defaultRangeTiles = Number((config && config.rangeTiles) || 6);
 const defaultTileSpeed = 8;
 const cooldownMs = Number((config && config.cooldownMs) || 600);
-const TICK_HZ = 20;
 const HALF = TILE_SIZE / 2;
 
-const cooldownTicks = Math.ceil((cooldownMs / 1000) * TICK_HZ);
+const cooldownTicks = msToTicks(cooldownMs);
 const cooldowns = {};
 const isEnemy = (n) => n.behavior === 'aggressive' || n.behavior === 'hostile';
 const projectiles = [];
@@ -91,7 +90,7 @@ on('customAction', ({ player, channel }) => {
   const totalDistPx = Math.sqrt(dx * dx + dy * dy);
   if (totalDistPx < 1) return;
 
-  const speedPxPerTick = (tileSpeed * TILE_SIZE) / TICK_HZ;
+  const speedPxPerTick = (tileSpeed * TILE_SIZE) / TICK_RATE;
   const duration = Math.max(
     50,
     Math.round((totalDistPx / (tileSpeed * TILE_SIZE)) * 1000),
