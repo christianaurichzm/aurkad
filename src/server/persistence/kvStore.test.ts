@@ -2,7 +2,15 @@
  * KV store: in-memory semantics (sync) plus write-behind round-trip through
  * an in-memory MongoDB.
  */
-import { beforeAll, afterAll, beforeEach, describe, it, expect } from 'vitest';
+import {
+  beforeAll,
+  afterAll,
+  beforeEach,
+  describe,
+  it,
+  expect,
+  vi,
+} from 'vitest';
 import mongoose from 'mongoose';
 import type { MongoMemoryServer } from 'mongodb-memory-server';
 import { startMemoryMongo } from '../../test/mongo.js';
@@ -119,5 +127,41 @@ describe('write-behind persistence', () => {
 
   it('flush with nothing dirty is a noop', async () => {
     await expect(flushKvStore()).resolves.toBeUndefined();
+  });
+
+  // A retry must not replay what failed regardless of what happened since: a
+  // delete that failed while the key was set again, replayed after the new
+  // value, would lose that value at the next restart.
+  it.each([
+    [
+      'a value set after a failed delete',
+      () => kvDelete('s', 'k'),
+      () => kvSet('s', 'k', 'new'),
+      'new',
+    ],
+    [
+      'a delete after a failed write',
+      () => kvSet('s', 'k', 'old'),
+      () => kvDelete('s', 'k'),
+      undefined,
+    ],
+  ] as const)('keeps %s', async (_, first, then, expected) => {
+    kvSet('s', 'k', 'stored');
+    await flushKvStore();
+    first();
+
+    const bulk = vi.spyOn(KvModel, 'bulkWrite').mockImplementationOnce(() => {
+      then();
+      return Promise.reject(new Error('connection reset'));
+    });
+    await flushKvStore();
+    bulk.mockRestore();
+    await flushKvStore();
+
+    expect(kvGet('s', 'k')).toBe(expected);
+    const doc = await KvModel.findOne({ scope: 's', key: 'k' }).lean<{
+      value: unknown;
+    }>();
+    expect(doc?.value).toBe(expected);
   });
 });
