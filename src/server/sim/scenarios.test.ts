@@ -1,9 +1,15 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { CharacterAction, Direction, Key } from '../../shared/types.js';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+import {
+  CharacterAction,
+  Direction,
+  Key,
+  type PlayerServer,
+} from '../../shared/types.js';
 import { TILE_SIZE } from '../../shared/constants.js';
 import { createFixture, makeTiles, tile } from './simFixture.js';
 import { teleportPlayer } from '../services/world/movementService.js';
 import { spawnNpc } from '../services/npc/spawn.js';
+import { provideApi } from '../engine/modules/registry.js';
 import {
   clearLootTableCache,
   createOrUpdateLootTable,
@@ -87,6 +93,45 @@ describe('player movement', () => {
       alice.position.y + alice.height > bob.position.y;
 
     expect(overlap).toBe(false);
+  });
+});
+
+describe('a conditionally blocked tile', () => {
+  let stop: () => void;
+  afterEach(() => stop());
+
+  const gate = (allow: (player: PlayerServer) => boolean) => {
+    sim.map.tiles[1]![2]!.blocked = true;
+    sim.map.tiles[1]![2]!.conditionalBlock = 'members';
+    stop = provideApi('conditionalBlock.members', allow);
+  };
+
+  it('lets through the player its predicate says yes to', () => {
+    gate((player) => player.name === 'Alice');
+    sim.addPlayer({ name: 'Alice', position: tile(1, 1) });
+    sim.addPlayer({ name: 'Bob', position: tile(3, 1) });
+
+    sim.press('Alice', Key.ArrowRight);
+    sim.press('Bob', Key.ArrowLeft);
+    sim.step(10);
+
+    expect(sim.getPlayer('Alice').position).toEqual(tile(2, 1));
+    expect(sim.getPlayer('Bob').position).toEqual(tile(3, 1));
+  });
+
+  it('does not let a second player onto someone standing in it', () => {
+    gate(() => true);
+    sim.addPlayer({ name: 'Alice', position: tile(1, 1) });
+    sim.addPlayer({ name: 'Bob', position: tile(3, 1) });
+
+    sim.press('Alice', Key.ArrowRight);
+    sim.step(10);
+    sim.release('Alice', Key.ArrowRight);
+    sim.press('Bob', Key.ArrowLeft);
+    sim.step(10);
+
+    expect(sim.getPlayer('Alice').position).toEqual(tile(2, 1));
+    expect(sim.getPlayer('Bob').position).toEqual(tile(3, 1));
   });
 });
 

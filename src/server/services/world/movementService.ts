@@ -25,7 +25,6 @@ import type {
   ClientKeyboardAction,
   ClientMoveToAction,
 } from '../../engine/actions.js';
-import { useApi } from '../../engine/modules/registry.js';
 import { getAllPlayers, getMap, updatePlayer } from '../../sim/world.js';
 import { emitGameEvent } from '../../engine/eventBus.js';
 import { emit } from '../../engine/hooks.js';
@@ -446,16 +445,11 @@ export const processMovementIntent = () => {
       const tile = map?.tiles[tileY]?.[tileX];
 
       if (tile?.door) {
-        if (tryOpenDoor(player, map!, tileY, tileX)) {
-          applyMovement(player, newTarget, isBoosting);
-        } else {
-          player.action = CharacterAction.Idle;
-        }
-      } else if (tile?.conditionalBlock) {
-        const check = useApi<(p: PlayerServer) => boolean>(
-          `conditionalBlock.${tile.conditionalBlock}`,
-        );
-        if (check?.(player)) {
+        // Opening it does not clear whoever stands in the doorway.
+        if (
+          tryOpenDoor(player, map!, tileY, tileX) &&
+          !hasCollision(proposedState)
+        ) {
           applyMovement(player, newTarget, isBoosting);
         } else {
           player.action = CharacterAction.Idle;

@@ -12,14 +12,41 @@ import {
   Tile,
   Warp,
 } from '../../../shared/types.js';
-import { getMap } from '../../sim/world.js';
+import { getMap, getPlayerById } from '../../sim/world.js';
 import { queryNearbyEntities } from '../../sim/spatialManager.js';
+import { useApi } from '../../engine/modules/registry.js';
+import { logger } from '../../logger.js';
+
+/**
+ * Whether a blocked tile's `conditionalBlock` lets this character through,
+ * asked of the predicate a script provides as `conditionalBlock.<name>`. It is
+ * written about a player, so it gets the live one rather than the probe being
+ * tested, and an npc never passes. Missing, throwing or not saying yes keeps
+ * the tile blocked.
+ */
+const passesCondition = (tile: Tile, character: CombatTarget): boolean => {
+  if (!tile.conditionalBlock || character.kind !== 'player') return false;
+  const player = getPlayerById(character.id);
+  const check = useApi<(p: typeof player) => boolean>(
+    `conditionalBlock.${tile.conditionalBlock}`,
+  );
+  if (!player || !check) return false;
+  try {
+    return check(player) === true;
+  } catch (err) {
+    logger.error('[physics] conditionalBlock predicate threw', {
+      condition: tile.conditionalBlock,
+      err,
+    });
+    return false;
+  }
+};
 
 const isTileBlocked = (
   map: MapStateServer,
   x: number,
   y: number,
-  forNpc = false,
+  character: CombatTarget,
 ): boolean => {
   const row = Math.floor(y / TILE_SIZE);
   const col = Math.floor(x / TILE_SIZE);
@@ -34,12 +61,13 @@ const isTileBlocked = (
   }
 
   const tile = map.tiles[row]?.[col];
+  if (!tile) return false;
 
-  if (forNpc) {
-    return !!tile?.blocked || !!tile?.avoidNpc;
+  if (character.kind === 'npc') {
+    return !!tile.blocked || !!tile.avoidNpc;
   }
 
-  return !!tile?.blocked;
+  return !!tile.blocked && !passesCondition(tile, character);
 };
 
 const isTileWarp = (
@@ -87,8 +115,6 @@ export const hasCollision = (character: CombatTarget): boolean => {
 
   if (characterCollision) return true;
 
-  const isNpc = character.kind === 'npc';
-
   // Every tile under the box, not just its corners: one three tiles wide has
   // a middle row and column the corners never land on. Steps a tile at a time
   // and always ends on the last pixel, so an unaligned box is covered too.
@@ -96,7 +122,7 @@ export const hasCollision = (character: CombatTarget): boolean => {
   const lastY = y + height - 1;
   for (let py = y; ; py = Math.min(py + TILE_SIZE, lastY)) {
     for (let px = x; ; px = Math.min(px + TILE_SIZE, lastX)) {
-      if (isTileBlocked(map, px, py, isNpc)) return true;
+      if (isTileBlocked(map, px, py, character)) return true;
       if (px >= lastX) break;
     }
     if (py >= lastY) break;
