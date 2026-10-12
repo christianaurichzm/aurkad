@@ -1,5 +1,6 @@
 import { Key } from '../../shared/types';
 import { pressKey, releaseKey } from './keyboard';
+import { isInputActive } from '../utils/domHelpers';
 
 // A gamepad reports state, not events, so each frame's pad is turned into
 // the same held-key set the keyboard makes, and the change from the last
@@ -52,7 +53,10 @@ export const pollGamepad = (): void => {
   const pads = navigator.getGamepads?.() ?? [];
   const pad = pads.find((candidate) => candidate?.connected);
 
-  const next = pad ? readPad(pad) : new Set<Key>();
+  // As with the keyboard, typing in a field or another window in front reads
+  // as nothing held, so a held direction stops and resumes with the focus.
+  const playing = document.hasFocus() && !isInputActive();
+  const next = pad && playing ? readPad(pad) : new Set<Key>();
 
   for (const key of held) if (!next.has(key)) releaseKey(key, 'gamepad');
   for (const key of next) if (!held.has(key)) void pressKey(key, 'gamepad');

@@ -29,6 +29,8 @@ describe('pollGamepad', () => {
   beforeEach(() => {
     // The module holds the previous frame's keys; an empty poll clears it so
     // each case starts with nothing held.
+    vi.spyOn(document, 'hasFocus').mockReturnValue(true);
+    document.body.innerHTML = '';
     plug(null);
     pollGamepad();
     pressKey.mockClear();
@@ -84,6 +86,25 @@ describe('pollGamepad', () => {
     pollGamepad();
 
     expect(pressKey).toHaveBeenCalledExactlyOnceWith(Key.ArrowUp, 'gamepad');
+  });
+
+  // The keyboard's own rule: what is typed into a field is not a move.
+  it('lets go while a text field has the focus, and holds again after', () => {
+    plug(pad([15]));
+    pollGamepad();
+    document.body.innerHTML = '<input>';
+    document.querySelector('input')!.focus();
+    pollGamepad();
+
+    expect(releaseKey).toHaveBeenCalledExactlyOnceWith(
+      Key.ArrowRight,
+      'gamepad',
+    );
+
+    document.body.innerHTML = '';
+    pollGamepad();
+
+    expect(pressKey).toHaveBeenCalledTimes(2);
   });
 
   it('drops everything held when the pad is unplugged', () => {
