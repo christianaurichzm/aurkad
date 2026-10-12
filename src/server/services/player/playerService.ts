@@ -185,6 +185,8 @@ registerStrings({
       'O servidor está em manutenção. Tente de novo mais tarde.',
     'Server is currently restricted to GMs only.':
       'O servidor está aberto só para GMs no momento.',
+    'Your last session is still being saved. Try again in a moment.':
+      'Sua última sessão ainda está sendo salva. Tente de novo em instantes.',
   },
 });
 
@@ -868,7 +870,15 @@ export const disconnectPlayer = async (username?: string) => {
   try {
     await persistPlayerSessionState(player);
   } catch (err) {
-    if (!(err instanceof PlayerWriteRefusedError)) throw err;
+    if (!(err instanceof PlayerWriteRefusedError)) {
+      logger.error('[presence] last write failed; retrying out of the world', {
+        player: player.name,
+        err,
+      });
+      removePlayerSessionState(player);
+      retryDeparture(player);
+      return;
+    }
   }
   // After the last write of this session, never before it: the lease is what
   // makes that write land, and the instance the player moves to reads the
@@ -876,6 +886,34 @@ export const disconnectPlayer = async (username?: string) => {
   await releasePresence(player.id);
   removePlayerSessionState(player);
 };
+
+/**
+ * Characters that left the world before their last write landed. Out of
+ * the simulation, as nobody is at the keyboard to defend them, but kept:
+ * memory holds the only copy of the progress since the last snapshot. The
+ * lease stays held and renewed until the write lands, so no instance loads
+ * the stale document, and refuseEntry turns this one's own login away.
+ */
+const unsavedDepartures = new Set<string>();
+const DEPARTURE_RETRY_MS = 5_000;
+
+function retryDeparture(player: PlayerServer): void {
+  unsavedDepartures.add(player.id);
+  setTimeout(() => void settleDeparture(player), DEPARTURE_RETRY_MS).unref();
+}
+
+async function settleDeparture(player: PlayerServer): Promise<void> {
+  try {
+    await persistPlayerSessionState(player);
+  } catch (err) {
+    if (!(err instanceof PlayerWriteRefusedError)) {
+      retryDeparture(player);
+      return;
+    }
+  }
+  unsavedDepartures.delete(player.id);
+  await releasePresence(player.id).catch(() => undefined);
+}
 
 /**
  * Why this account may not enter the world at this moment, or null. Asked
@@ -889,6 +927,14 @@ export async function refuseEntry(
 ): Promise<{ status: 403 | 503; message: string } | null> {
   const say = (text: string, params?: Record<string, string>) =>
     translate({ language }, text, params);
+  if (unsavedDepartures.has(record.id)) {
+    return {
+      status: 503,
+      message: say(
+        'Your last session is still being saved. Try again in a moment.',
+      ),
+    };
+  }
   const ban = await getBan(record.name);
   if (ban && (!ban.until || Date.now() < ban.until)) {
     return {

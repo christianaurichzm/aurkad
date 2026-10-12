@@ -31,6 +31,7 @@ import {
 import { resetPlayerNetState } from '../../net/snapshot.js';
 import { enqueueClientAction } from '../../net/transport.js';
 import { clearPlayerDirty } from '../../persistence/dirtyPlayers.js';
+import { playerRepository } from '../../persistence/playerRepository.js';
 import { items } from '../content/itemService.js';
 import { resolveDamage } from '../combat/index.js';
 import { clearDamageContributions } from '../combat/damage.js';
@@ -626,5 +627,25 @@ describe('leaving the world', () => {
         ],
       },
     );
+  });
+});
+
+describe('a departure the database cannot take', () => {
+  it('leaves the world anyway and is written once the database is back', async () => {
+    vi.useFakeTimers();
+    onTestFinished(() => void vi.useRealTimers());
+    const sim = createFixture(0);
+    sim.addPlayer({ name: 'Alice' });
+    const save = vi
+      .spyOn(playerRepository, 'save')
+      .mockRejectedValueOnce(new Error('database unavailable'));
+    onTestFinished(() => void save.mockRestore());
+
+    await disconnectPlayer('Alice');
+
+    expect(getPlayerByName('Alice')).toBeUndefined();
+    await vi.advanceTimersByTimeAsync(5_000);
+    expect(save).toHaveBeenCalledTimes(2);
+    expect(save.mock.calls[1]![0]).toMatchObject({ name: 'Alice' });
   });
 });
