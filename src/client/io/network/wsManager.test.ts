@@ -35,8 +35,14 @@ describe('sendAction before the socket is open', () => {
 
     const socket = FakeSocket.last;
     expect(socket.sent).toEqual([]);
+    const opened = vi.fn();
+    window.addEventListener('socketOpen', opened);
     socket.readyState = FakeSocket.OPEN;
     socket.onopen?.();
+    window.removeEventListener('socketOpen', opened);
+
+    // What the keyboard listens for to say the keys still held.
+    expect(opened).toHaveBeenCalledOnce();
 
     expect(socket.sent.map((a) => a.channel ?? a.type)).toEqual([
       'language',

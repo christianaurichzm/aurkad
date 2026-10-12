@@ -129,4 +129,11 @@ export const handleInput = () => {
   window.addEventListener('blur', () => {
     for (const key of [...heldKeys]) releaseKey(key);
   });
+
+  // A new socket, after a reconnect or a warp to another instance, starts
+  // with no keys down while the hand still holds them, and the browser sends
+  // no new keydown. A press made while the socket was closed was lost too.
+  window.addEventListener('socketOpen', () => {
+    for (const key of heldKeys) if (key !== bufferedPress) sendPress(key);
+  });
 };

@@ -87,6 +87,9 @@ export const initializeWebSocket = (url = currentWsUrl) => {
     // cross-map warp to another instance would answer in English until told.
     sendAction({ type: 'language', language: getLanguage() });
     for (const action of beforeOpen.splice(0)) sendAction(action);
+    // For what else a new session has to be told: the keys still held from
+    // the last one (io/keyboard).
+    window.dispatchEvent(new Event('socketOpen'));
   };
 
   socket.onmessage = (event: MessageEvent<string>) => {
