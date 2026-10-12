@@ -13,6 +13,7 @@ i18n({
     'Your bank is full.': 'Seu banco está cheio.',
     'That item is not in your bank.': 'Esse item não está no seu banco.',
     'Withdrew.': 'Sacado.',
+    'The bank cannot be saved.': 'Não foi possível salvar o banco.',
     'Your inventory is full.': 'Seu inventário está cheio.',
     'Bank commands must be used in-game.':
       'Os comandos de banco só funcionam dentro do jogo.',
@@ -80,14 +81,25 @@ function saveBank(player, bank) {
     maxCapacity: bank.maxCapacity || maxSlots,
     items: bank.items.filter((entry) => entry.quantity > 0),
   };
-  setPlayerData(player, 'bank', normalized);
+  if (!setPlayerData(player, 'bank', normalized)) return false;
   persistNow(player);
   sendEvent(player, 'bank:update', view(normalized));
-  return normalized;
+  return true;
 }
 
-// Both directions go through moveItem, which checks source and destination
-// before touching either.
+// Both directions go through moveItem. The bag is put back when the bank
+// cannot be stored, or the deposit would be lost or the withdrawal doubled.
+function transfer(player, toBank, itemId, amount) {
+  const bank = getBank(player);
+  const bag = player.inventory.items.map((entry) => ({ ...entry }));
+  const moved = toBank
+    ? moveItem(player.inventory, bank, itemId, amount)
+    : moveItem(bank, player.inventory, itemId, amount);
+  if (!moved.ok || saveBank(player, bank)) return moved;
+  player.inventory.items = bag;
+  return { ok: false, reason: 'not-stored' };
+}
+
 function deposit(player, itemIdValue, amountValue) {
   const itemId = positiveInt(itemIdValue, 0);
   const amount = positiveInt(amountValue, 1);
@@ -96,12 +108,9 @@ function deposit(player, itemIdValue, amountValue) {
   const info = getItem(itemId);
   if (info && info.bound) return 'That item is bound and cannot be banked.';
 
-  const bank = getBank(player);
-  const moved = moveItem(player.inventory, bank, itemId, amount);
-  if (moved.ok) {
-    saveBank(player, bank);
-    return 'Deposited.';
-  }
+  const moved = transfer(player, true, itemId, amount);
+  if (moved.ok) return 'Deposited.';
+  if (moved.reason === 'not-stored') return 'The bank cannot be saved.';
   return moved.reason === 'no-space'
     ? 'Your bank is full.'
     : 'You do not have that item quantity.';
@@ -112,12 +121,9 @@ function withdraw(player, itemIdValue, amountValue) {
   const amount = positiveInt(amountValue, 1);
   if (!itemId) return 'That item is not in your bank.';
 
-  const bank = getBank(player);
-  const moved = moveItem(bank, player.inventory, itemId, amount);
-  if (moved.ok) {
-    saveBank(player, bank);
-    return 'Withdrew.';
-  }
+  const moved = transfer(player, false, itemId, amount);
+  if (moved.ok) return 'Withdrew.';
+  if (moved.reason === 'not-stored') return 'The bank cannot be saved.';
   return moved.reason === 'no-space'
     ? 'Your inventory is full.'
     : 'That item is not in your bank.';

@@ -60,12 +60,15 @@ function rewardOf(id) {
   };
 }
 
+// False when player data refused the write, which leaves the client's log
+// as it was.
 function save(player, bag) {
-  setPlayerData(player, 'quests', bag); // persists with the player
+  if (!setPlayerData(player, 'quests', bag)) return false; // persists with the player
   const list = Object.keys(bag).map((id) =>
     Object.assign({ id, reward: rewardOf(id) }, bag[id]),
   );
   sendEvent(player, 'quest:update', list);
+  return true;
 }
 
 // A reward the player cannot hold is the failure this guards: the quest is
@@ -87,6 +90,8 @@ function payItems(player, items) {
 
 function finish(player, id, bag) {
   bag[id].status = 'completed';
+  // Stored before paying, or a refused write lets the next kill pay again.
+  if (!save(player, bag)) return;
   const def = defOf(id);
   if (!def) return;
   // A script's reward is a function. An authored one describes the reward
@@ -135,8 +140,7 @@ function start(player, id, from) {
     status: 'active',
     from: typeof from === 'string' ? from : undefined,
   };
-  save(player, bag);
-  return true;
+  return save(player, bag);
 }
 
 function advance(player, id, amount) {
@@ -146,7 +150,7 @@ function advance(player, id, amount) {
   if (!q || q.status === 'completed') return;
   q.progress = Math.min(q.target, q.progress + step);
   if (q.progress >= q.target) finish(player, id, bag);
-  save(player, bag);
+  else save(player, bag);
 }
 
 function complete(player, id) {
@@ -155,7 +159,6 @@ function complete(player, id) {
   if (!q || q.status === 'completed') return;
   q.progress = q.target;
   finish(player, id, bag);
-  save(player, bag);
 }
 
 const get = (player, id) => bagOf(player)[id];
@@ -211,7 +214,7 @@ on('itemPickup', ({ player, itemId }) => {
     if (!q) continue;
     q.progress = Math.min(q.target, countItem(player, itemId));
     if (q.progress >= q.target) finish(player, id, bag);
-    save(player, bag);
+    else save(player, bag);
   }
 });
 

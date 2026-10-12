@@ -93,6 +93,10 @@ function reconcile(player, { forceSync = false } = {}) {
     return next;
   }
 
+  // Recorded before the stats move: what is stored is what the next reconcile
+  // takes back off, so bonuses applied under a refused write would be applied
+  // again on top of themselves every time.
+  if (!setPlayerData(player, dataKey, next)) return current;
   for (const bonus of current) {
     for (const effect of bonus.effects || []) applyEffect(player, effect, true);
   }
@@ -101,7 +105,6 @@ function reconcile(player, { forceSync = false } = {}) {
       applyEffect(player, effect, false);
   }
 
-  setPlayerData(player, dataKey, next);
   sendEvent(player, 'equipment:update', {
     activeSets: next,
     sets: [...sets.values()],

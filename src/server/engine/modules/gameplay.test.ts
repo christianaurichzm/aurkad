@@ -8,6 +8,7 @@ import {
   vi,
 } from 'vitest';
 import mongoose from 'mongoose';
+import { config } from '../../config.js';
 import { playerRepository } from '../../persistence/playerRepository.js';
 import { unloadAllModules } from './moduleLoader.js';
 import { loadModulesForTest } from '../../../test/modules.js';
@@ -42,6 +43,17 @@ interface StatusApi {
     id: string,
     overrides?: Record<string, unknown>,
   ) => boolean;
+}
+
+// Player data refuses every write from here to the end of the test, as it
+// does for a player at the size limit.
+function refusePlayerData() {
+  const limits = config.scriptData as { maxValueBytes: number };
+  const was = limits.maxValueBytes;
+  limits.maxValueBytes = 10;
+  onTestFinished(() => {
+    limits.maxValueBytes = was;
+  });
 }
 
 type BankState = {
@@ -396,6 +408,24 @@ describe('gameplay modules', () => {
     ).toBeUndefined();
   });
 
+  it('bank leaves the bag as it was when the bank cannot be stored', () => {
+    const sim = createFixture(0);
+    const alice = sim.addPlayer({
+      name: 'Alice',
+      inventory: { items: [{ item: 30, quantity: 5 }], maxCapacity: 10 },
+    });
+    handleChatCommand(alice, '/bank deposit 30 2');
+    refusePlayerData();
+
+    handleChatCommand(alice, '/bank deposit 30 3');
+    handleChatCommand(alice, '/bank withdraw 30 2');
+
+    expect(alice.inventory.items).toEqual([{ item: 30, quantity: 3 }]);
+    expect((alice.data?.['bank'] as BankState).items).toEqual([
+      { item: 30, quantity: 2 },
+    ]);
+  });
+
   it('equipment applies and removes configured set bonuses', () => {
     const equipment = useApi<EquipmentApi>('equipment');
     expect(
@@ -447,6 +477,50 @@ describe('gameplay modules', () => {
 
     expect(alice.attack).toBe(10);
     expect(equipment?.activeSets(alice)).toEqual([]);
+  });
+
+  // What is stored is what the next reconcile takes off, so a bonus applied
+  // under a refused write went on again at every equip.
+  it('equipment applies no set bonus it could not record', () => {
+    useApi<EquipmentApi>('equipment')?.defineSet({
+      id: 'scout',
+      pieces: [101, 102],
+      effects: [{ attribute: 'attack', type: 'add', value: 7 }],
+    });
+    const sim = createFixture(0);
+    sim.addItem({
+      id: 101,
+      name: 'Helm',
+      description: '',
+      sprite: 0,
+      type: 'helmet',
+    });
+    sim.addItem({
+      id: 102,
+      name: 'Boots',
+      description: '',
+      sprite: 0,
+      type: 'boots',
+    });
+    const alice = sim.addPlayer({
+      name: 'Alice',
+      attack: 10,
+      inventory: {
+        items: [
+          { item: 101, quantity: 1 },
+          { item: 102, quantity: 1 },
+        ],
+        maxCapacity: 10,
+      },
+    });
+    refusePlayerData();
+
+    equipItem(alice, 101);
+    equipItem(alice, 102);
+    handleChatCommand(alice, '/sets');
+    handleChatCommand(alice, '/sets');
+
+    expect(alice.attack).toBe(10);
   });
 
   it('status effects modify damage and tick healing', () => {

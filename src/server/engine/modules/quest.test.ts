@@ -1,7 +1,16 @@
 // Exercises the real shipped quest module (modules/quest) end to end,
 // including a consumer script whose reward callback (a sandbox function)
 // fires across the module boundary.
-import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+import {
+  describe,
+  it,
+  expect,
+  beforeEach,
+  afterEach,
+  onTestFinished,
+  vi,
+} from 'vitest';
+import { config } from '../../config.js';
 import { runInSandbox } from '../scripting/sandbox.js';
 import { unloadAllModules } from './moduleLoader.js';
 import { loadModulesForTest } from '../../../test/modules.js';
@@ -137,6 +146,35 @@ describe('quest module', () => {
     expect(alice.experience).toBe(500); // reward (a sandbox fn) fired across the boundary
 
     handle.cleanup();
+  });
+
+  // Player data at its limit refuses the write. Paying before the refusal
+  // would leave the quest open in the stored bag, paying on every kill.
+  it('pays a quest once even while player data refuses to record it', () => {
+    const sim = createFixture(0);
+    const alice = sim.addPlayer({ name: 'Alice' });
+    const quest = useApi<QuestApi>('quest')!;
+    let paid = 0;
+    quest.define({ id: 'hunt', name: 'Hunt', target: 1, reward: () => paid++ });
+    quest.start(alice, 'hunt');
+
+    const limits = config.scriptData as { maxValueBytes: number };
+    const was = limits.maxValueBytes;
+    limits.maxValueBytes = 10;
+    onTestFinished(() => {
+      limits.maxValueBytes = was;
+    });
+
+    quest.advance(alice, 'hunt', 1);
+    quest.advance(alice, 'hunt', 1);
+    expect(paid).toBe(0);
+    expect(quest.get(alice, 'hunt')?.status).toBe('active');
+
+    limits.maxValueBytes = was;
+    quest.advance(alice, 'hunt', 1);
+    quest.advance(alice, 'hunt', 1);
+    expect(paid).toBe(1);
+    expect(quest.get(alice, 'hunt')?.status).toBe('completed');
   });
 });
 
