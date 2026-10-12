@@ -37,10 +37,21 @@ function merge(board, entries) {
   const byName = new Map(rows(board).map((row) => [row.name, row]));
   for (const entry of entries) byName.set(entry.name, entry);
   const list = [...byName.values()].sort(
-    (a, b) => b.score - a.score || a.name.localeCompare(b.name),
+    board === LEVEL_BOARD ? byLevel : byScore,
   );
   return store.set(SCOPE, board, list.slice(0, size));
 }
+
+const byScore = (a, b) => b.score - a.score || a.name.localeCompare(b.name);
+
+/**
+ * Level first, experience as the tiebreak. One combined score would let a
+ * full level 25 outrank an empty level 26.
+ */
+const byLevel = (a, b) =>
+  b.level - a.level ||
+  b.experience - a.experience ||
+  a.name.localeCompare(b.name);
 
 function submit(board, name, score, extra) {
   if (typeof name !== 'string' || !name || !Number.isFinite(score))
@@ -57,16 +68,9 @@ function boardNames() {
   ];
 }
 
-/**
- * Level first, experience as the tiebreak, folded into one number so the board
- * needs a single comparable score: two players on level 12 are separated by the
- * experience they carry into it.
- */
-const levelScore = (player) => player.level * 1_000_000 + player.experience;
-
 const entryOf = (player) => ({
   name: player.name,
-  score: levelScore(player),
+  score: player.level,
   level: player.level,
   experience: player.experience,
 });

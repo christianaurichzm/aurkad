@@ -51,7 +51,7 @@ describe('the level board', () => {
     emit('playerLeave', { player });
 
     expect(board().top()).toEqual([
-      { name: 'Ana', score: 12_000_400, level: 12, experience: 400 },
+      { name: 'Ana', score: 12, level: 12, experience: 400 },
     ]);
   });
 
@@ -67,6 +67,23 @@ describe('the level board', () => {
         .top()
         .map((row) => row.name),
     ).toEqual(['Bo', 'Cy', 'Ana']);
+  });
+
+  it('puts a higher level first however much experience the lower one holds', () => {
+    const full = sim.addPlayer({
+      name: 'Ana',
+      level: 25,
+      experience: 1_100_000,
+    });
+    const empty = sim.addPlayer({ name: 'Bo', level: 26, experience: 0 });
+
+    for (const player of [full, empty]) emit('playerLeave', { player });
+
+    expect(
+      board()
+        .top()
+        .map((row) => row.name),
+    ).toEqual(['Bo', 'Ana']);
   });
 
   it('keeps one row per player, updated rather than appended', () => {
@@ -185,7 +202,7 @@ describe('what the client is sent', () => {
     expect(update?.payload.board).toBe('level');
     expect(update?.payload.boards).toEqual(['level']);
     expect(update?.payload.rows).toEqual([
-      { rank: 1, name: 'Ana', score: 7_000_010, level: 7, experience: 10 },
+      { rank: 1, name: 'Ana', score: 7, level: 7, experience: 10 },
     ]);
   });
 
