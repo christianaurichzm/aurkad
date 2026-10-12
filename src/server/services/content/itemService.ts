@@ -3,6 +3,7 @@ import ItemModel from '../../model/Item.js';
 import { getNextItemId } from '../dbService.js';
 import { forgetSentItem } from '../../net/snapshot.js';
 import { sweepUnclaimableDeliveries } from '../economy/deliveryService.js';
+import { CreateItemBodySchema, unsetAbsent } from '../../http/bodySchemas.js';
 
 // Every item definition, loaded at boot. Read on pick-up, use, equip and every
 // snapshot that names an item, all inside the tick, where a database round
@@ -13,16 +14,6 @@ export function getItemById(id: number): Item | null {
   return items.get(id) ?? null;
 }
 
-/**
- * Optional fields a caller can clear by leaving them out.
- *
- * Every caller passes a complete item (editor form, content import), which is
- * why the cache line below replaces the entry wholesale. The database write has
- * to agree: a plain `findOneAndUpdate` only writes the keys present, so
- * clearing one in the editor would work until the next restart brought it back.
- */
-const CLEARABLE_ITEM_FIELDS = ['scriptId', 'scriptParams', 'arrowId'] as const;
-
 export async function createOrUpdateItem(
   item: Omit<Item, 'id'> & { id?: number },
 ): Promise<void> {
@@ -31,17 +22,12 @@ export async function createOrUpdateItem(
   }
 
   const id = item.id;
-  const unset: Record<string, ''> = {};
-  for (const field of CLEARABLE_ITEM_FIELDS) {
-    if (item[field] === undefined) unset[field] = '';
-  }
-
+  // Every caller passes a complete item (editor form, content import), which is
+  // why the cache line below replaces the entry wholesale; the stored document
+  // has to lose what the item left out too.
   await ItemModel.findOneAndUpdate(
     { id },
-    {
-      $set: item,
-      ...(Object.keys(unset).length > 0 && { $unset: unset }),
-    },
+    { $set: item, ...unsetAbsent(CreateItemBodySchema, item) },
     { upsert: true },
   );
   items.set(id, { ...item, id });

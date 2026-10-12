@@ -1,5 +1,6 @@
 import ArrowModel from '../../model/Arrow.js';
 import type { Arrow } from '../../../shared/types.js';
+import { CreateArrowBodySchema, unsetAbsent } from '../../http/bodySchemas.js';
 
 export const arrows = new Map<number, Arrow>();
 
@@ -23,10 +24,11 @@ export async function createOrUpdateArrow(
       .exec();
     arrow.id = (max?.id ?? 0) + 1;
   }
-  const result = await ArrowModel.findOneAndUpdate({ id: arrow.id }, arrow, {
-    upsert: true,
-    returnDocument: 'after',
-  })
+  const result = await ArrowModel.findOneAndUpdate(
+    { id: arrow.id },
+    { $set: arrow, ...unsetAbsent(CreateArrowBodySchema, arrow) },
+    { upsert: true, returnDocument: 'after' },
+  )
     .lean<Arrow>()
     .exec();
   arrows.set(arrow.id, result);

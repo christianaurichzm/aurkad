@@ -5,6 +5,11 @@ import { getNextNpcId } from '../dbService.js';
 import { resetNpcAi } from '../npc/aiBrain.js';
 import { despawnNpc } from '../npc/spawn.js';
 import { logger } from '../../logger.js';
+import {
+  CreateNpcBodySchema,
+  absentOptionalKeys,
+  unsetAbsent,
+} from '../../http/bodySchemas.js';
 
 // Without the document's _id and __v: callers spread this into live npcs,
 // which serialization sends almost whole, so _id would be stringified for
@@ -22,24 +27,12 @@ export async function createOrUpdateNpc(
     npc.id = (await getNextNpcId()).toString();
   }
 
-  await NpcModel.findOneAndUpdate({ id: npc.id }, npc, {
-    upsert: true,
-  });
+  await NpcModel.findOneAndUpdate(
+    { id: npc.id },
+    { $set: npc, ...unsetAbsent(CreateNpcBodySchema, npc) },
+    { upsert: true },
+  );
 }
-
-/**
- * Optional references the editor can clear. The editor submits the whole
- * form, so a field left out was cleared, and `$set` only writes the keys
- * present: without an unset, a cleared field would seem to save and come
- * back on the next load.
- */
-const CLEARABLE_NPC_FIELDS = [
-  'lootTableId',
-  'dialogId',
-  'questId',
-  'scriptId',
-  'scriptParams',
-] as const;
 
 export async function updateNpcAll(
   id: string,
@@ -47,17 +40,9 @@ export async function updateNpcAll(
 ): Promise<PersistentNpc | undefined> {
   if (!id) return;
 
-  const unset: Record<string, ''> = {};
-  for (const field of CLEARABLE_NPC_FIELDS) {
-    if (updates[field] === undefined) unset[field] = '';
-  }
-
   const updated = await NpcModel.findOneAndUpdate(
     { id },
-    {
-      $set: updates,
-      ...(Object.keys(unset).length > 0 && { $unset: unset }),
-    },
+    { $set: updates, ...unsetAbsent(CreateNpcBodySchema, updates) },
     { returnDocument: 'after' },
   )
     .lean<PersistentNpc>()
@@ -91,11 +76,11 @@ export async function refreshNpcInRuntime(id: string): Promise<void> {
           health: updated.maxHealth,
           action: CharacterAction.Idle,
         };
-        // The spread cannot express removal, for the same reason $unset exists
-        // above: a field the editor cleared is absent from the document, so the
-        // live npc would keep the old value until the next restart.
-        for (const field of CLEARABLE_NPC_FIELDS) {
-          if (updated[field] === undefined) delete merged[field];
+        // The spread cannot express removal, as with the $unset above: a
+        // field the editor cleared is absent, and the live npc would keep the
+        // old value until the next restart.
+        for (const field of absentOptionalKeys(CreateNpcBodySchema, updated)) {
+          delete (merged as Record<string, unknown>)[field];
         }
         map.npcs[runtimeId] = merged;
         resetNpcAi(npc);

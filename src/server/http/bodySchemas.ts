@@ -526,3 +526,30 @@ export function parseBody<S extends z.ZodType>(
   }
   return result.data;
 }
+
+/**
+ * The optional fields of `schema` that `value` leaves out. A content save
+ * carries the whole entry and is an upsert, whose `$set` only writes the
+ * keys present, so these must be `$unset` (and dropped from the live copy)
+ * or a cleared field comes back from the stored document.
+ */
+export function absentOptionalKeys(
+  schema: z.ZodObject,
+  value: object,
+): string[] {
+  const present = value as Record<string, unknown>;
+  return Object.entries(schema.shape)
+    .filter(([key, field]) => field.isOptional() && present[key] === undefined)
+    .map(([key]) => key);
+}
+
+/** `absentOptionalKeys` as the `$unset` of an update, or nothing to unset. */
+export function unsetAbsent(
+  schema: z.ZodObject,
+  value: object,
+): { $unset?: Record<string, ''> } {
+  const keys = absentOptionalKeys(schema, value);
+  return keys.length > 0
+    ? { $unset: Object.fromEntries(keys.map((key) => [key, ''])) }
+    : {};
+}

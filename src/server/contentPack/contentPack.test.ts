@@ -731,6 +731,61 @@ describe('clearing an optional reference', () => {
 
     expect((await listItems())[0]!.scriptId).toBeUndefined();
   });
+
+  it('puts an npc back on the default ai when the editor clears its tuning', async () => {
+    await importGoblin({
+      experienceValue: 40,
+      sight: 9,
+      pathDepth: 12,
+      leash: 20,
+      moveIntervalMs: 900,
+      respawnMs: 60_000,
+    });
+
+    await updateNpcAll('goblin', {
+      name: 'Goblin',
+      sprite: 2,
+      maxHealth: 30,
+      attack: 5,
+      behavior: 'aggressive',
+    });
+
+    const goblin = (await listNpcs())[0]!;
+    for (const field of [
+      'experienceValue',
+      'sight',
+      'pathDepth',
+      'leash',
+      'moveIntervalMs',
+      'respawnMs',
+    ]) {
+      expect(goblin).not.toHaveProperty(field);
+    }
+  });
+
+  it('removes what a re-imported pack no longer says', async () => {
+    await importGoblin({ dialogId: 'greet', sight: 9 });
+    write('items.json', [
+      { id: 10, name: 'Relic', sprite: 2, type: 'consumable', bound: true },
+    ]);
+    write('arrows.json', [
+      { id: 1, name: 'Arrow', sprite: 4, rangeTiles: 9, tileSpeed: 3 },
+    ]);
+    await importContentPack();
+
+    await importGoblin({});
+    write('items.json', [
+      { id: 10, name: 'Relic', sprite: 2, type: 'consumable' },
+    ]);
+    write('arrows.json', [{ id: 1, name: 'Arrow', sprite: 4 }]);
+    await importContentPack();
+
+    expect((await listNpcs())[0]).not.toHaveProperty('dialogId');
+    expect((await listNpcs())[0]).not.toHaveProperty('sight');
+    expect((await listItems())[0]).not.toHaveProperty('bound');
+    expect((await listArrows())[0]).not.toHaveProperty('rangeTiles');
+    expect((await listArrows())[0]).not.toHaveProperty('tileSpeed');
+  });
 });
 
 // Documents arrive through the counter (editor "create") and through
