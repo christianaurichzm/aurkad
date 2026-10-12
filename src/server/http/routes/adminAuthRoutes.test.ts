@@ -279,6 +279,33 @@ describe('the second factor on the panel', () => {
     expect((await twoFactorStatus('Helper')).recoveryLeft).toBe(9);
   });
 
+  // Turning it off asks for a code, so replacing it must not be a way round.
+  it('will not enroll over the factor that is on', async () => {
+    const first = await signedIn();
+    const second = request.agent(app);
+    await second
+      .post('/admin/login')
+      .send({ username: 'Helper', password: 'pw' });
+    const pending = await first
+      .post('/admin/2fa/setup')
+      .send({ currentPassword: 'pw' });
+    await enroll(second);
+
+    expect(
+      (await first.post('/admin/2fa/setup').send({ currentPassword: 'pw' }))
+        .status,
+    ).toBe(409);
+    // Nor finish an enrollment opened before the factor went on.
+    const stale = pending.body.secret as string;
+    expect(
+      (
+        await first
+          .post('/admin/2fa/enable')
+          .send({ totpToken: totpCode(stale) })
+      ).status,
+    ).toBe(409);
+  });
+
   it('turns off only for someone holding both halves', async () => {
     const agent = await signedIn();
     const { secret } = await enroll(agent);

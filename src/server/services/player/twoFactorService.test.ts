@@ -155,6 +155,19 @@ describe('the enrolled account', () => {
     });
   });
 
+  it('will not enroll over a factor that is on', async () => {
+    const { secret } = await enroll('Boss');
+    const other = newSecret();
+
+    expect(await enableTwoFactor('Boss', other, totpCode(other))).toEqual({
+      ok: false,
+      reason: 'already-enabled',
+    });
+    expect((await TwoFactorModel.findOne({ username: 'Boss' }))?.secret).toBe(
+      secret,
+    );
+  });
+
   it('answers ok for an account that never enrolled', async () => {
     expect(await checkSecondFactor('Nobody', undefined)).toBe('ok');
   });

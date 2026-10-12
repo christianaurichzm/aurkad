@@ -164,12 +164,17 @@ function newRecoveryCode(): string {
 }
 
 export type EnableResult =
-  { ok: true; recoveryCodes: string[] } | { ok: false; reason: 'wrong-code' };
+  | { ok: true; recoveryCodes: string[] }
+  | { ok: false; reason: 'wrong-code' | 'already-enabled' };
 
 /**
  * Turns the factor on, but only for someone who can already produce a code:
  * enrolling from a secret nobody scanned successfully is how an account locks
  * itself out on the next login.
+ *
+ * Never over a factor that is on. Replacing one would let a session and a
+ * password swap the authenticator without the code that turning it off asks
+ * for; the way to a new one is off, then on.
  */
 export async function enableTwoFactor(
   username: string,
@@ -184,10 +189,12 @@ export async function enableTwoFactor(
     recoveryCodes.map((code) => bcrypt.hash(code, SALT_ROUNDS)),
   );
 
-  await TwoFactorModel.updateOne(
+  // Inserted or nothing, in one operation: two enrollments racing each other
+  // cannot both land.
+  const written = await TwoFactorModel.updateOne(
     { username },
     {
-      $set: {
+      $setOnInsert: {
         username,
         secret,
         enabledAt: new Date(),
@@ -199,6 +206,9 @@ export async function enableTwoFactor(
     },
     { upsert: true },
   ).exec();
+  if (written.upsertedCount === 0) {
+    return { ok: false, reason: 'already-enabled' };
+  }
 
   return { ok: true, recoveryCodes };
 }

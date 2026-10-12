@@ -162,6 +162,11 @@ export function createAdminAuthRouter() {
       if (!doc || !(await bcrypt.compare(body.currentPassword, doc.password))) {
         return res.status(403).json({ message: 'Current password is wrong' });
       }
+      if ((await twoFactorStatus(username)).enabled) {
+        return res
+          .status(409)
+          .json({ message: 'Turn the second factor off first.' });
+      }
 
       const secret = newSecret();
       req.session.pendingTotpSecret = secret;
@@ -197,7 +202,11 @@ export function createAdminAuthRouter() {
         body.totpToken,
       );
       if (!result.ok) {
-        return res.status(400).json({ message: 'That code is wrong.' });
+        return result.reason === 'already-enabled'
+          ? res
+              .status(409)
+              .json({ message: 'Turn the second factor off first.' })
+          : res.status(400).json({ message: 'That code is wrong.' });
       }
 
       delete req.session.pendingTotpSecret;
