@@ -82,6 +82,38 @@ describe('magic module', () => {
     expect(caster.data?.mana).toBe(70); // 100 - 30 cost
   });
 
+  it('blast spares the npcs a sword could not strike', () => {
+    const sim = createFixture(0);
+    sim.addPlayer({ name: 'Alice', position: tile(5, 5) });
+    const spared = (
+      ['friendly', 'neutral', 'shopkeeper', 'guard'] as const
+    ).map((behavior, i) =>
+      sim.addNpc({
+        behavior,
+        position: tile(4 + i, 6),
+        maxHealth: 30,
+        health: 30,
+      }),
+    );
+    const orc = sim.addNpc({
+      behavior: 'hostile',
+      position: tile(6, 5),
+      maxHealth: 30,
+      health: 30,
+    });
+    sim.step(1);
+    drainGameEvents();
+
+    castVia('spell:cast', 'Alice', 'blast');
+
+    expect(spared.map((npc) => npc.health)).toEqual([30, 30, 30, 30]);
+    expect(orc.health).toBeLessThan(30);
+    const visuals = drainGameEvents().filter(
+      (e) => e.type === 'customMap' && e.channel === 'spell:visual',
+    );
+    expect(visuals).toHaveLength(1);
+  });
+
   it('bursts over the middle of an npc three tiles wide', () => {
     const sim = createFixture(0);
     sim.addPlayer({ name: 'Alice', position: tile(5, 5) });

@@ -170,11 +170,14 @@ function makeCast(s) {
   return function (caster) {
     let affected;
     if (target === 'enemies') {
+      // Only what a sword may strike, so a shopkeeper in the blast is spared.
       affected = getNearbyNpcs(
         caster.mapId,
         caster.position.x,
         caster.position.y,
         blastRadius,
+      ).filter(
+        (npc) => npc.behavior === 'aggressive' || npc.behavior === 'hostile',
       );
       for (const npc of affected) dealDamage(npc, s.damage, caster);
     } else {
