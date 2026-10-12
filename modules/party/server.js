@@ -194,14 +194,17 @@ on('customAction', ({ player, channel, payload }) => {
 });
 
 on('beforeXpGain', (ctx) => {
-  const { player, amount, source } = ctx;
+  const { player, amount, base, source } = ctx;
   if (source !== 'kill' || !Number.isFinite(amount) || amount <= 0) return;
+  if (!Number.isFinite(base) || base <= 0) return;
   const sharedWith = nearbyOnlineMembers(player);
   if (sharedWith.length < 2) return;
 
-  const share = Math.max(1, Math.floor(amount / sharedWith.length));
+  // Splits the kill's base worth; each member's share passes this hook's
+  // multipliers once, and the killer keeps theirs scaled to their share.
+  const share = Math.max(1, Math.floor(base / sharedWith.length));
   const awarded = Math.max(1, Math.floor(share * (1 + xpShareBonus)));
-  ctx.amount = awarded;
+  ctx.amount = amount * (awarded / base);
   for (const member of sharedWith) {
     if (member.name !== player.name) giveExperience(member, awarded);
   }

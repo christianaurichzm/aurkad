@@ -536,7 +536,7 @@ command(
 //   chatMessage                    { player, scope, message }
 //   playerAttack                   { player, handled }     - set handled = true to own the attack
 //   beforeDamage                   { attacker?, target, damage: { value } }  - mutate damage.value
-//   beforeXpGain                   { player, amount, source }  - mutate amount; source 'kill' | 'script' | ...
+//   beforeXpGain                   { player, amount, source, base }  - mutate amount; base is the unscaled award; source 'kill' | 'script' | ...
 //   customAction                   { player, channel, payload }  - from client sendServerEvent
 //   tick                           { tick }                - 20/s; throttle with tick % n
 //

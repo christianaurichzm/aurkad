@@ -65,7 +65,14 @@ export type HookMap = {
     damage: number;
     lethal: boolean;
   };
-  beforeXpGain: { player: PlayerServer; amount: number; source: string };
+  // `base` is what was awarded before any handler scaled it, for a handler
+  // that divides the award rather than scaling it.
+  beforeXpGain: {
+    player: PlayerServer;
+    amount: number;
+    source: string;
+    base: number;
+  };
   customAction: { player: PlayerServer; channel: string; payload: unknown };
   // Fires on the edge, when a live-ops flag starts or ends, which a scheduled
   // event needs and a read of the value cannot give.

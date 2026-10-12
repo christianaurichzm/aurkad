@@ -244,10 +244,15 @@ interface HookPayloads {
     lethal: boolean;
   };
   /**
-   * Mutate `amount` to scale XP gain (VIP 2x, say). `source` is 'kill',
-   * 'script' or another tag.
+   * Change `amount` to scale XP gain (a VIP 2x, say). `base` is the award
+   * before any handler scaled it; `source` is 'kill', 'script' and so on.
    */
-  beforeXpGain: { player: PlayerServer; amount: number; source: string };
+  beforeXpGain: {
+    player: PlayerServer;
+    amount: number;
+    source: string;
+    base: number;
+  };
   /** A custom message from client code. The payload is untrusted input. */
   customAction: { player: PlayerServer; channel: string; payload: unknown };
   /**

@@ -368,7 +368,7 @@ describe('the engine acting on xpMultiplier', () => {
 
   it('leaves experience alone when no flag is set', () => {
     startLiveOps();
-    const ctx = { player: null as never, amount: 50, source: 'test' };
+    const ctx = { player: null as never, amount: 50, source: 'test', base: 50 };
     emit('beforeXpGain', ctx);
     expect(ctx.amount).toBe(50);
   });

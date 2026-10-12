@@ -14,7 +14,7 @@ import { unloadAllModules } from './moduleLoader.js';
 import { loadModulesForTest } from '../../../test/modules.js';
 import { useApi, clearProvides } from './registry.js';
 import { handleChatCommand, clearCommands } from '../commands.js';
-import { clearAll, emit } from '../hooks.js';
+import { clearAll, emit, on } from '../hooks.js';
 import { drainGameEvents } from '../eventBus.js';
 import { handleCustomAction } from '../../services/comms/customEventService.js';
 import { clearKvStoreMemory, kvGet } from '../../persistence/kvStore.js';
@@ -96,6 +96,28 @@ describe('gameplay modules', () => {
 
     expect(alice.experience).toBe(40);
     expect(bob.experience).toBe(40);
+  });
+
+  // A multiplier registered before the party's handler has already scaled the
+  // killer's amount; splitting that hands every other member the multiplier
+  // twice, once in the split and again on their own award.
+  it('party applies an earlier multiplier to each share once', () => {
+    unloadAllModules();
+    on('beforeXpGain', (ctx) => {
+      ctx.amount *= 2;
+    });
+    loadModulesForTest('party');
+    const sim = createFixture(0);
+    const alice = sim.addPlayer({ name: 'Alice', position: tile(1, 1) });
+    const bob = sim.addPlayer({ name: 'Bob', position: tile(2, 1) });
+    handleChatCommand(alice, '/party create');
+    handleChatCommand(alice, '/party invite Bob');
+    handleChatCommand(bob, '/party accept Alice');
+
+    awardExperience(alice, 80, 'kill');
+
+    expect(alice.experience).toBe(80);
+    expect(bob.experience).toBe(80);
   });
 
   it('trade swaps offered items once the commit is saved', async () => {
