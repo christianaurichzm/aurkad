@@ -131,6 +131,24 @@ describe('RegeneratePlayersHP', () => {
   });
 });
 
+describe('a keyboard release', () => {
+  // Running is the held key, read every tick; the speed stat is what items and
+  // levels gave the character, and a key coming up has no business with it.
+  it('leaves the speed stat alone when Shift comes up', () => {
+    const player = fx.addPlayer({ name: 'runner', speed: 7 });
+
+    for (const type of ['press', 'release'] as const)
+      enqueueClientAction({
+        username: 'runner',
+        type: 'keyboard',
+        keyboardAction: { key: Key.Shift, type },
+      });
+    processActions();
+
+    expect(player.speed).toBe(7);
+  });
+});
+
 describe('UpdateNpcPositions', () => {
   it('walks an npc whose interval is due on this tick', () => {
     fx.addPlayer({ name: 'bait', position: tile(3, 3) });

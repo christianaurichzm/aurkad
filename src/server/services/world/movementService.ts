@@ -1,6 +1,5 @@
 import {
   TILE_SIZE,
-  DEFAULT_PLAYER_SPEED,
   MOVEMENT_DURATION,
   RUN_MOVEMENT_DURATION,
 } from '../../../shared/constants.js';
@@ -646,19 +645,6 @@ export const handleKeyAction = (action: ClientKeyboardAction) => {
 
     case 'release': {
       keys.delete(key);
-
-      if (key === Key.Shift) {
-        if (
-          !keys.has(Key.ArrowUp) &&
-          !keys.has(Key.ArrowDown) &&
-          !keys.has(Key.ArrowLeft) &&
-          !keys.has(Key.ArrowRight)
-        ) {
-          player.speed = DEFAULT_PLAYER_SPEED;
-        }
-        updatePlayerMap(player.id, player);
-      }
-
       break;
     }
   }
