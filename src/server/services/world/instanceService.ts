@@ -135,9 +135,9 @@ function createInstance(templateId: string, owner: string): string | undefined {
   const copy: MapStateServer = {
     ...template,
     id: key,
-    // Shared, never written: an instance is read-only, which is what makes one
-    // array of tiles safe to hand to every copy at once.
-    tiles: template.tiles,
+    // Each copy its own tiles, one object per tile: a door a script opens
+    // with setMapTile is changed in place, and is a door in this copy only.
+    tiles: template.tiles.map((row) => row.map((t) => ({ ...t }))),
     players: {},
     npcs,
     droppedItems: [],

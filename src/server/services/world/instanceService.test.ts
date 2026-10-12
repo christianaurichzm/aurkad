@@ -16,6 +16,7 @@ vi.mock('../../gameConfig.js', async (importOriginal) => {
 
 const { createFixture } = await import('../../sim/simFixture.js');
 const { on } = await import('../../engine/hooks.js');
+const { setMapTile } = await import('./mapService.js');
 const { runtimeState } = await import('../../sim/state.js');
 const {
   clearInstancesForTest,
@@ -125,6 +126,26 @@ describe('walking into an instanced map', () => {
     expect(npcs[0]!.health).toBe(30);
     // The one in the template was left exactly as it was.
     expect(runtimeState.maps.dungeon!.npcs['goblin:5:5']!.health).toBe(12);
+  });
+
+  it('opens a door in one copy only', () => {
+    sim.addPlayer({ name: 'Alice', position: { x: TILE_SIZE, y: TILE_SIZE } });
+    sim.addPlayer({ name: 'Bob', position: { x: TILE_SIZE, y: TILE_SIZE } });
+    walkIn('Alice');
+    walkIn('Bob');
+    const mine = sim.getPlayer('Alice').mapId;
+    const theirs = sim.getPlayer('Bob').mapId;
+
+    expect(setMapTile(mine, 3, 3, { tileIndex: 9, blocked: true })).toBe(true);
+
+    expect(runtimeState.maps[mine]!.tiles[3]![3]).toMatchObject({
+      tileIndex: 9,
+      blocked: true,
+    });
+    for (const other of [theirs, 'dungeon']) {
+      expect(runtimeState.maps[other]!.tiles[3]![3]!.tileIndex).not.toBe(9);
+      expect(runtimeState.maps[other]!.tiles[3]![3]!.blocked).toBeFalsy();
+    }
   });
 });
 
