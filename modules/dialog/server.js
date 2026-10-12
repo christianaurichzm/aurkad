@@ -60,6 +60,15 @@ on('customAction', ({ player, channel, payload }) => {
   }
 });
 
+// A box belongs to the session that opened it, so it is dropped on leave
+// and a late choice cannot land on a stale player.
+on('playerLeave', ({ player }) => {
+  pending.delete(player.name);
+});
+on('playerJoin', ({ player }) => {
+  sendEvent(player, 'dialog:hide', {});
+});
+
 // `name` or `name:arg`, split on the first colon, so one handler like
 // `questStart:goblinHunt` serves every quest.
 function splitRef(ref) {

@@ -121,6 +121,13 @@ it('leaves on Escape without answering anything', async () => {
   expect(screen.queryByRole('dialog')).toBeNull();
 });
 
+it('takes the box down when the server says the conversation is gone', () => {
+  show(LINE);
+  mod.handlers.get('dialog:hide')!({});
+  expect(screen.queryByRole('dialog')).toBeNull();
+  expect(mod.engine.sendServerEvent).not.toHaveBeenCalled();
+});
+
 it('answers the next line of a conversation with its own choices', async () => {
   show({ id: 1, text: 'Hello.' });
   await userEvent.keyboard('{Enter}1');

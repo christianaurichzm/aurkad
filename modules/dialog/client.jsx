@@ -234,4 +234,9 @@ engine.onServerEvent('dialog:show', (payload) => {
   draw();
 });
 
+engine.onServerEvent('dialog:hide', () => {
+  current = null;
+  draw();
+});
+
 engine.log('Dialog client ready.');

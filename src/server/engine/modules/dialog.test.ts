@@ -106,6 +106,30 @@ describe('dialog module', () => {
     expect(picked).toBe(1);
   });
 
+  it('drops a box whose player left before answering it', () => {
+    const sim = createFixture(0);
+    const alice = sim.addPlayer({ name: 'Alice' });
+    let picked = -1;
+    useApi<DialogApi>('dialog')!.show(
+      alice,
+      { text: 'Pick', choices: ['A'] },
+      (i) => (picked = i),
+    );
+    const id = dialogId();
+
+    emit('playerLeave', { player: alice });
+    const back = sim.addPlayer({ name: 'Alice' });
+    emit('playerJoin', { player: back });
+    choose(back, id, 0);
+
+    expect(picked).toBe(-1);
+    expect(
+      drainGameEvents().some(
+        (e) => e.type === 'customPlayer' && e.channel === 'dialog:hide',
+      ),
+    ).toBe(true);
+  });
+
   it('ignores an out-of-range or mismatched choice', () => {
     const sim = createFixture(0);
     const alice = sim.addPlayer({ name: 'Alice' });
