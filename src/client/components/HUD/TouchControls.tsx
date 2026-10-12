@@ -13,11 +13,11 @@ const hold = (key: Key) => ({
     // double tap, a zoom.
     event.preventDefault();
     event.currentTarget.setPointerCapture(event.pointerId);
-    void pressKey(key);
+    void pressKey(key, 'touch');
   },
-  onPointerUp: () => releaseKey(key),
-  onPointerCancel: () => releaseKey(key),
-  onLostPointerCapture: () => releaseKey(key),
+  onPointerUp: () => releaseKey(key, 'touch'),
+  onPointerCancel: () => releaseKey(key, 'touch'),
+  onLostPointerCapture: () => releaseKey(key, 'touch'),
   onContextMenu: (event: React.MouseEvent) => event.preventDefault(),
 });
 
@@ -30,9 +30,9 @@ export const TouchControls: React.FC = () => {
   const changeDirection = (key: Key | null) => {
     const current = gesture.current;
     if (!current || current.key === key) return;
-    if (current.key) releaseKey(current.key);
+    if (current.key) releaseKey(current.key, 'touch');
     current.key = key;
-    if (key) void pressKey(key);
+    if (key) void pressKey(key, 'touch');
     setDirection(key);
   };
 
@@ -44,14 +44,14 @@ export const TouchControls: React.FC = () => {
 
   useEffect(() => {
     const release = () => {
-      if (gesture.current?.key) releaseKey(gesture.current.key);
+      if (gesture.current?.key) releaseKey(gesture.current.key, 'touch');
       gesture.current = null;
       setDirection(null);
     };
     window.addEventListener('blur', release);
     return () => {
       window.removeEventListener('blur', release);
-      if (gesture.current?.key) releaseKey(gesture.current.key);
+      if (gesture.current?.key) releaseKey(gesture.current.key, 'touch');
     };
   }, []);
 

@@ -49,24 +49,27 @@ describe('pollGamepad', () => {
     pollGamepad();
 
     expect(pressKey).toHaveBeenCalledTimes(1);
-    expect(pressKey).toHaveBeenCalledWith(Key.Control);
+    expect(pressKey).toHaveBeenCalledWith(Key.Control, 'gamepad');
 
     plug(pad([]));
     pollGamepad();
 
-    expect(releaseKey).toHaveBeenCalledExactlyOnceWith(Key.Control);
+    expect(releaseKey).toHaveBeenCalledExactlyOnceWith(Key.Control, 'gamepad');
   });
 
   it('walks on a pushed stick and stops when it recentres', () => {
     plug(pad([], [0.9, 0]));
     pollGamepad();
 
-    expect(pressKey).toHaveBeenCalledExactlyOnceWith(Key.ArrowRight);
+    expect(pressKey).toHaveBeenCalledExactlyOnceWith(Key.ArrowRight, 'gamepad');
 
     plug(pad([], [0, 0]));
     pollGamepad();
 
-    expect(releaseKey).toHaveBeenCalledExactlyOnceWith(Key.ArrowRight);
+    expect(releaseKey).toHaveBeenCalledExactlyOnceWith(
+      Key.ArrowRight,
+      'gamepad',
+    );
   });
 
   it('ignores a stick resting off centre', () => {
@@ -80,7 +83,7 @@ describe('pollGamepad', () => {
     plug(pad([12]));
     pollGamepad();
 
-    expect(pressKey).toHaveBeenCalledExactlyOnceWith(Key.ArrowUp);
+    expect(pressKey).toHaveBeenCalledExactlyOnceWith(Key.ArrowUp, 'gamepad');
   });
 
   it('drops everything held when the pad is unplugged', () => {

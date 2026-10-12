@@ -55,7 +55,10 @@ it('attacks a hostile npc beside the player and talks to a friendly one', () => 
   state.npcs = { a: npcAt(2, 3, 'hostile'), b: npcAt(3, 4, 'friendly') };
   click(2, 3);
   click(3, 4);
-  expect(vi.mocked(pressKey).mock.calls).toEqual([[Key.Control], [Key.f]]);
+  expect(vi.mocked(pressKey).mock.calls).toEqual([
+    [Key.Control, 'pointer'],
+    [Key.f, 'pointer'],
+  ]);
 });
 
 it('attacks a big npc clicked anywhere on its body, aiming at its near side', () => {
@@ -63,7 +66,7 @@ it('attacks a big npc clicked anywhere on its body, aiming at its near side', ()
   state.npcs = { a: npcAt(4, 1, 'hostile', 3) };
   click(6, 1);
   expect(sendAction).toHaveBeenCalledWith({ type: 'moveTo', col: 4, row: 3 });
-  expect(pressKey).toHaveBeenCalledWith(Key.Control);
+  expect(pressKey).toHaveBeenCalledWith(Key.Control, 'pointer');
 });
 
 it('only walks up to an npc further off', () => {

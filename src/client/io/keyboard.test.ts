@@ -1,5 +1,6 @@
 import { beforeAll, expect, it, vi } from 'vitest';
-import { handleInput } from './keyboard';
+import { handleInput, pressKey, releaseKey } from './keyboard';
+import { Key } from '../../shared/types';
 import { sendAction } from './network';
 
 vi.mock('./network', () => ({
@@ -67,4 +68,33 @@ it('presses a key still held again on a new socket, and only while it is held', 
   window.dispatchEvent(new Event('socketOpen'));
 
   expect(sentKeyActions()).toEqual(['press', 'press', 'release']);
+});
+
+// The server holds one key for all of them, so it hears the first press and
+// the last release.
+it('keeps a key down while another device still holds it', async () => {
+  vi.spyOn(document, 'hasFocus').mockReturnValue(true);
+  document.body.innerHTML = '';
+  vi.mocked(sendAction).mockClear();
+
+  window.dispatchEvent(
+    new KeyboardEvent('keydown', { key: 'ArrowLeft', cancelable: true }),
+  );
+  await pressKey(Key.ArrowLeft, 'gamepad');
+  releaseKey(Key.ArrowLeft, 'gamepad');
+  expect(sentKeyActions()).toEqual(['press']);
+
+  window.dispatchEvent(new KeyboardEvent('keyup', { key: 'ArrowLeft' }));
+  expect(sentKeyActions()).toEqual(['press', 'release']);
+});
+
+it('lets go only of what the keyboard held when the window loses focus', async () => {
+  vi.mocked(sendAction).mockClear();
+
+  await pressKey(Key.ArrowUp, 'gamepad');
+  window.dispatchEvent(new Event('blur'));
+  expect(sentKeyActions()).toEqual(['press']);
+
+  releaseKey(Key.ArrowUp, 'gamepad');
+  expect(sentKeyActions()).toEqual(['press', 'release']);
 });

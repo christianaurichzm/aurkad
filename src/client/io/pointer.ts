@@ -28,8 +28,8 @@ const PEACEFUL: ReadonlySet<NpcBehavior> = new Set([
 const TAP_MS = 120;
 
 const tap = (key: Key) => {
-  void pressKey(key);
-  setTimeout(() => releaseKey(key), TAP_MS);
+  void pressKey(key, 'pointer');
+  setTimeout(() => releaseKey(key, 'pointer'), TAP_MS);
 };
 
 // The cell a click sent the player to, outlined on the ground for a moment

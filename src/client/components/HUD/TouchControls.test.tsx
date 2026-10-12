@@ -27,12 +27,12 @@ describe('TouchControls', () => {
 
     fireEvent.pointerDown(up);
 
-    expect(pressKey).toHaveBeenCalledExactlyOnceWith(Key.ArrowUp);
+    expect(pressKey).toHaveBeenCalledExactlyOnceWith(Key.ArrowUp, 'touch');
     expect(releaseKey).not.toHaveBeenCalled();
 
     fireEvent.pointerUp(up);
 
-    expect(releaseKey).toHaveBeenCalledExactlyOnceWith(Key.ArrowUp);
+    expect(releaseKey).toHaveBeenCalledExactlyOnceWith(Key.ArrowUp, 'touch');
   });
 
   // A thumb dragged off or an incoming call cancels the pointer instead of
@@ -43,8 +43,8 @@ describe('TouchControls', () => {
     fireEvent.pointerDown(attack);
     fireEvent.pointerCancel(attack);
 
-    expect(pressKey).toHaveBeenCalledExactlyOnceWith(Key.Control);
-    expect(releaseKey).toHaveBeenCalledExactlyOnceWith(Key.Control);
+    expect(pressKey).toHaveBeenCalledExactlyOnceWith(Key.Control, 'touch');
+    expect(releaseKey).toHaveBeenCalledExactlyOnceWith(Key.Control, 'touch');
   });
 
   it('changes direction under a captured pointer and stops in the center', () => {
@@ -55,8 +55,8 @@ describe('TouchControls', () => {
     );
     fireEvent.pointerDown(up);
     fireEvent.pointerMove(pad, { clientX: 145, clientY: 75 });
-    expect(releaseKey).toHaveBeenCalledWith(Key.ArrowUp);
-    expect(pressKey).toHaveBeenLastCalledWith(Key.ArrowRight);
+    expect(releaseKey).toHaveBeenCalledWith(Key.ArrowUp, 'touch');
+    expect(pressKey).toHaveBeenLastCalledWith(Key.ArrowRight, 'touch');
     expect(screen.getByLabelText('Move right')).toHaveAttribute(
       'aria-pressed',
       'true',
@@ -64,11 +64,11 @@ describe('TouchControls', () => {
     fireEvent.pointerMove(pad, { clientX: 140, clientY: 75 });
     expect(pressKey).toHaveBeenCalledTimes(2);
     fireEvent.pointerMove(pad, { clientX: 75, clientY: 75 });
-    expect(releaseKey).toHaveBeenLastCalledWith(Key.ArrowRight);
+    expect(releaseKey).toHaveBeenLastCalledWith(Key.ArrowRight, 'touch');
     fireEvent.pointerMove(pad, { clientX: 75, clientY: 145 });
-    expect(pressKey).toHaveBeenLastCalledWith(Key.ArrowDown);
+    expect(pressKey).toHaveBeenLastCalledWith(Key.ArrowDown, 'touch');
     fireEvent.lostPointerCapture(pad);
-    expect(releaseKey).toHaveBeenLastCalledWith(Key.ArrowDown);
+    expect(releaseKey).toHaveBeenLastCalledWith(Key.ArrowDown, 'touch');
   });
 
   it('offers a labelled button for every key the game needs', () => {

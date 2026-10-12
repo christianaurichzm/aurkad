@@ -54,8 +54,8 @@ export const pollGamepad = (): void => {
 
   const next = pad ? readPad(pad) : new Set<Key>();
 
-  for (const key of held) if (!next.has(key)) releaseKey(key);
-  for (const key of next) if (!held.has(key)) void pressKey(key);
+  for (const key of held) if (!next.has(key)) releaseKey(key, 'gamepad');
+  for (const key of next) if (!held.has(key)) void pressKey(key, 'gamepad');
 
   held = next;
 };

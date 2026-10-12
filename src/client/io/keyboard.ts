@@ -43,7 +43,10 @@ const handleKeyPress = async (key: Key) => {
 };
 
 let inputSeq = 0;
-const heldKeys = new Set<Key>();
+
+/** Each device holding a key down, so one letting go is not all of them. */
+export type KeySource = 'keyboard' | 'gamepad' | 'touch' | 'pointer';
+const holders = new Map<Key, Set<KeySource>>();
 
 // A press of these keys mid-slide waits in a one-slot buffer and is sent on
 // the first frame after the slide settles. Releasing first drops it.
@@ -68,17 +71,21 @@ export function flushInputBuffer(): void {
   sendPress(key);
 }
 
-// The one way in for every input device: the keyboard below, the on-screen
-// pad and the gamepad. Hold semantics live here (the server keeps moving
-// while a direction key is down), so a device only has to say pressed or
-// released and inherits the dedupe, the slide buffer and the cooldown paint.
-export const pressKey = async (key: Key): Promise<void> => {
+// The one way in for every input: keyboard, on-screen pad, pointer taps and
+// gamepad. Hold semantics live here, so a device only says pressed or
+// released and gets the dedupe, slide buffer and cooldown paint. The server
+// hears the first device to press a key and the last to let it go.
+export const pressKey = async (key: Key, source: KeySource): Promise<void> => {
   if (keyRecord[key] !== Protocol.WS) {
     await handleKeyPress(key);
     return;
   }
-  if (heldKeys.has(key)) return;
-  heldKeys.add(key);
+  const by = holders.get(key);
+  if (by) {
+    by.add(source);
+    return;
+  }
+  holders.set(key, new Set([source]));
   if (BUFFERABLE_KEYS.has(key) && isLocalPlayerMoving()) {
     bufferedPress = key;
     return;
@@ -86,9 +93,10 @@ export const pressKey = async (key: Key): Promise<void> => {
   sendPress(key);
 };
 
-export const releaseKey = (key: Key) => {
-  if (!heldKeys.has(key)) return;
-  heldKeys.delete(key);
+export const releaseKey = (key: Key, source: KeySource) => {
+  const by = holders.get(key);
+  if (!by?.delete(source) || by.size > 0) return;
+  holders.delete(key);
   if (bufferedPress === key) {
     bufferedPress = null;
     return;
@@ -112,7 +120,7 @@ const onKeyDown = async (e: KeyboardEvent) => {
   if (e.repeat) return;
   if (!isValidKey(e.key)) return;
 
-  await pressKey(e.key);
+  await pressKey(e.key, 'keyboard');
 };
 
 export const handleInput = () => {
@@ -121,19 +129,19 @@ export const handleInput = () => {
   });
 
   window.addEventListener('keyup', (e) => {
-    if (isValidKey(e.key)) releaseKey(e.key);
+    if (isValidKey(e.key)) releaseKey(e.key, 'keyboard');
   });
 
-  // Releasing a key while the window is unfocused (e.g. alt-tab) never fires
-  // keyup, so release everything on blur to avoid a stuck key.
+  // A key released while the window is unfocused fires no keyup, so blur
+  // lets go of every keyboard key. The gamepad says each frame what it holds.
   window.addEventListener('blur', () => {
-    for (const key of [...heldKeys]) releaseKey(key);
+    for (const key of [...holders.keys()]) releaseKey(key, 'keyboard');
   });
 
   // A new socket, after a reconnect or a warp to another instance, starts
   // with no keys down while the hand still holds them, and the browser sends
   // no new keydown. A press made while the socket was closed was lost too.
   window.addEventListener('socketOpen', () => {
-    for (const key of heldKeys) if (key !== bufferedPress) sendPress(key);
+    for (const key of holders.keys()) if (key !== bufferedPress) sendPress(key);
   });
 };
