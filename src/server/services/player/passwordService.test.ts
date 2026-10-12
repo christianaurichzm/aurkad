@@ -1,4 +1,12 @@
-import { beforeAll, afterAll, beforeEach, describe, it, expect } from 'vitest';
+import {
+  beforeAll,
+  afterAll,
+  beforeEach,
+  describe,
+  it,
+  expect,
+  vi,
+} from 'vitest';
 import mongoose from 'mongoose';
 import bcrypt from 'bcrypt';
 import type { MongoMemoryServer } from 'mongodb-memory-server';
@@ -67,6 +75,27 @@ describe('changing a known password', () => {
     expect(await changePassword('Nobody', 'x', 'new-password')).toBe(
       'no-account',
     );
+  });
+
+  it('does not undo a reset that lands after the old password was checked', async () => {
+    const minted = await createResetToken('Alice');
+    const compare = bcrypt.compare.bind(bcrypt) as (
+      data: string,
+      hash: string,
+    ) => Promise<boolean>;
+    vi.spyOn(bcrypt, 'compare').mockImplementationOnce((async (
+      data: string,
+      hash: string,
+    ) => {
+      const matched = await compare(data, hash);
+      await consumeResetToken(minted!.token, 'recovered');
+      return matched;
+    }) as never);
+
+    expect(await changePassword('Alice', 'old-password', 'stale')).toBe(
+      'wrong-password',
+    );
+    expect(await canLogInWith('recovered')).toBe(true);
   });
 });
 

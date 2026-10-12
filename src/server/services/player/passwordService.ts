@@ -62,24 +62,36 @@ async function spendToken(token: string, withAddress: boolean) {
   }).exec();
 }
 
-async function writePassword(username: string, password: string) {
+/**
+ * `checkedHash` is the hash the caller proved knowledge of. The write is
+ * conditional on it still being stored, so a change checked against the old
+ * password cannot land after a reset that replaced it and hand the account
+ * back to whoever knew the old one.
+ */
+async function writePassword(
+  username: string,
+  password: string,
+  checkedHash?: string,
+): Promise<boolean> {
   const hash = await bcrypt.hash(password, SALT_ROUNDS);
   // One write, because a changed password with the earlier sessions still
   // alive is what an interruption must not leave behind: whoever is being
   // locked out is exactly who those sessions belong to.
   const account = await PlayerModel.findOneAndUpdate(
-    { name: username },
+    { name: username, ...(checkedHash ? { password: checkedHash } : {}) },
     { $set: { password: hash }, $inc: { authEpoch: 1 } },
     { returnDocument: 'after' },
   )
     .select({ authEpoch: 1 })
     .lean<{ authEpoch: number }>()
     .exec();
-  if (account) notifySessionRevoked(username, account.authEpoch);
+  if (!account) return false;
+  notifySessionRevoked(username, account.authEpoch);
   // Every link minted before this moment is a way back into an account whose
   // owner just moved it, so all of them die with the change, including the
   // one being spent.
   await PasswordResetModel.deleteMany({ username }).exec();
+  return true;
 }
 
 /** The path for someone who is logged in and knows their current password. */
@@ -93,8 +105,9 @@ export async function changePassword(
   if (!(await bcrypt.compare(currentPassword, record.password))) {
     return 'wrong-password';
   }
-  await writePassword(record.name, newPassword);
-  return 'ok';
+  return (await writePassword(record.name, newPassword, record.password))
+    ? 'ok'
+    : 'wrong-password';
 }
 
 /**
