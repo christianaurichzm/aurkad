@@ -114,6 +114,19 @@ describe('authoring a recipe', () => {
 
     await waitFor(() => expect(screen.getAllByText('dup')).toHaveLength(2));
   });
+
+  // What was typed is the work to fix and send again.
+  it('keeps the form when the server refuses the save', async () => {
+    const user = userEvent.setup();
+    mocks.saveRecipe.mockRejectedValue({ status: 400, message: 'Invalid' });
+    setup();
+
+    await user.type(screen.getByPlaceholderText('steel-sword'), 'sword');
+    await user.click(screen.getByRole('button', { name: 'Create recipe' }));
+    await saved();
+
+    expect(screen.getByPlaceholderText('steel-sword')).toHaveValue('sword');
+  });
 });
 
 describe('editing an existing recipe', () => {

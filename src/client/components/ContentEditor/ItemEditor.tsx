@@ -204,22 +204,26 @@ export const ItemEditor: React.FC<ItemEditorProps> = ({
           : undefined,
     };
     const result = selectedId
-      ? await updateItem(Number(selectedId), data)
-      : await createItem(data);
+      ? await updateItem(Number(selectedId), data).catch(() => null)
+      : await createItem(data).catch(() => null);
     chatResultMsg(!!result, t('item.saved'), t('item.saveError'));
     // Dangling references never block a save, so this is where their author
     // hears about them.
     for (const warning of result?.warnings ?? []) {
       chatResultMsg(false, '', warning);
     }
+    if (!result) return;
     refreshData();
     clear();
   };
 
   const removeItem = async () => {
     if (!selectedId) return;
-    await deleteItem(Number(selectedId));
-    chatResultMsg(true, t('item.deleted'), t('item.deleteError'));
+    const ok = await deleteItem(Number(selectedId))
+      .then(() => true)
+      .catch(() => false);
+    chatResultMsg(ok, t('item.deleted'), t('item.deleteError'));
+    if (!ok) return;
     refreshData();
     clear();
   };

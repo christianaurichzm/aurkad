@@ -197,6 +197,7 @@ export const NpcEditor: React.FC<NpcEditorProps> = ({
     for (const warning of result?.warnings ?? []) {
       chatResultMsg(false, '', warning);
     }
+    if (!result) return;
     refreshData();
     clear();
   };
@@ -207,6 +208,7 @@ export const NpcEditor: React.FC<NpcEditorProps> = ({
       .then(() => true)
       .catch(() => false);
     chatResultMsg(ok, t('npc.deleted'), t('npc.deleteError'));
+    if (!ok) return;
     refreshData();
     clear();
   };

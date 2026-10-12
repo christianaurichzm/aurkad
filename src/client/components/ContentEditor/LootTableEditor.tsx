@@ -169,14 +169,18 @@ export const LootTableEditor: React.FC<LootTableEditorProps> = ({
     for (const warning of result?.warnings ?? []) {
       chatResultMsg(false, '', warning);
     }
+    if (!result) return;
     refreshData();
     clear();
   };
 
   const remove = async () => {
     if (!selectedId) return;
-    await deleteLootTable(selectedId);
-    chatResultMsg(true, t('loot.deleted'), t('loot.deleteError'));
+    const ok = await deleteLootTable(selectedId)
+      .then(() => true)
+      .catch(() => false);
+    chatResultMsg(ok, t('loot.deleted'), t('loot.deleteError'));
+    if (!ok) return;
     refreshData();
     clear();
   };

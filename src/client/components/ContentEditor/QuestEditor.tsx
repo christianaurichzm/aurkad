@@ -202,14 +202,18 @@ export const QuestEditor: React.FC<QuestEditorProps> = ({
     for (const warning of result?.warnings ?? []) {
       chatResultMsg(false, '', warning);
     }
+    if (!result) return;
     refreshData();
     clear();
   };
 
   const remove = async () => {
     if (!selectedId) return;
-    await deleteQuest(selectedId);
-    chatResultMsg(true, t('questEditor.deleted'), t('questEditor.deleteError'));
+    const ok = await deleteQuest(selectedId)
+      .then(() => true)
+      .catch(() => false);
+    chatResultMsg(ok, t('questEditor.deleted'), t('questEditor.deleteError'));
+    if (!ok) return;
     refreshData();
     clear();
   };

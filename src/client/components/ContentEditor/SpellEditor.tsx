@@ -103,6 +103,7 @@ export const SpellEditor: React.FC<EditorGuardProps> = (guard) => {
           .catch(() => false)
       : !!(await createSpell(data).catch(() => null));
     chatResultMsg(!!result, t('spell.saved'), t('spell.saveError'));
+    if (!result) return;
     clear();
   };
 
@@ -112,6 +113,7 @@ export const SpellEditor: React.FC<EditorGuardProps> = (guard) => {
       .then(() => true)
       .catch(() => false);
     chatResultMsg(ok, t('spell.deleted'), t('spell.deleteError'));
+    if (!ok) return;
     clear();
   };
 

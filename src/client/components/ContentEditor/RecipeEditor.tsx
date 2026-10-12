@@ -122,14 +122,18 @@ export const RecipeEditor: React.FC<RecipeEditorProps> = ({
     for (const warning of result?.warnings ?? []) {
       chatResultMsg(false, '', warning);
     }
+    if (!result) return;
     refreshData();
     clear();
   };
 
   const remove = async () => {
     if (!selectedId) return;
-    await deleteRecipe(selectedId);
-    chatResultMsg(true, t('recipe.deleted'), t('recipe.deleteError'));
+    const ok = await deleteRecipe(selectedId)
+      .then(() => true)
+      .catch(() => false);
+    chatResultMsg(ok, t('recipe.deleted'), t('recipe.deleteError'));
+    if (!ok) return;
     refreshData();
     clear();
   };

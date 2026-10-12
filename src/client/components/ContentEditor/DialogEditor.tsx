@@ -323,14 +323,18 @@ export const DialogEditor: React.FC<DialogEditorProps> = ({
     for (const warning of result?.warnings ?? []) {
       chatResultMsg(false, '', warning);
     }
+    if (!result) return;
     refreshData();
     clear();
   };
 
   const remove = async () => {
     if (!selectedId) return;
-    await deleteDialog(selectedId);
-    chatResultMsg(true, t('dialog.deleted'), t('dialog.deleteError'));
+    const ok = await deleteDialog(selectedId)
+      .then(() => true)
+      .catch(() => false);
+    chatResultMsg(ok, t('dialog.deleted'), t('dialog.deleteError'));
+    if (!ok) return;
     refreshData();
     clear();
   };

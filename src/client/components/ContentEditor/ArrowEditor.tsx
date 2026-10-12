@@ -92,6 +92,7 @@ export const ArrowEditor: React.FC<EditorGuardProps> = (guard) => {
           .catch(() => false)
       : !!(await createArrow(payload).catch(() => null));
     chatResultMsg(!!result, t('arrow.saved'), t('arrow.saveError'));
+    if (!result) return;
     clear();
   };
 
@@ -101,6 +102,7 @@ export const ArrowEditor: React.FC<EditorGuardProps> = (guard) => {
       .then(() => true)
       .catch(() => false);
     chatResultMsg(ok, t('arrow.deleted'), t('arrow.deleteError'));
+    if (!ok) return;
     clear();
   };
 

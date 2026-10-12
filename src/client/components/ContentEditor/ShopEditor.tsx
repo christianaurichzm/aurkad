@@ -92,14 +92,18 @@ export const ShopEditor: React.FC<ShopEditorProps> = ({
           .then((r) => !!r)
           .catch(() => false);
     chatResultMsg(ok, t('shopEditor.saved'), t('shopEditor.saveError'));
+    if (!ok) return;
     refreshData();
     clear();
   };
 
   const removeShop = async () => {
     if (!selectedId) return;
-    await deleteShop(selectedId);
-    chatResultMsg(true, t('shopEditor.deleted'), t('shopEditor.deleteError'));
+    const ok = await deleteShop(selectedId)
+      .then(() => true)
+      .catch(() => false);
+    chatResultMsg(ok, t('shopEditor.deleted'), t('shopEditor.deleteError'));
+    if (!ok) return;
     refreshData();
     clear();
   };

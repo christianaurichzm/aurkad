@@ -21,8 +21,8 @@ export function useEntrySelection(
     onDirtyChange(isDirty);
   }, [isDirty, onDirtyChange]);
 
-  // Clears without asking: it follows a save or delete, so the dropped
-  // edits were just written.
+  // Clears without asking: it follows a save or delete that went through, so
+  // the dropped edits were just written.
   const clear = () => {
     setSelectedId('');
     resetForm();
