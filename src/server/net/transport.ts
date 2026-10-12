@@ -27,6 +27,7 @@ import {
   warpToMap,
 } from '../services/world/movementService.js';
 import { getMap, getRuntimeState } from '../sim/world.js';
+import { isInstanceTemplate } from '../services/world/instanceService.js';
 import { handleItemAction } from '../services/economy/inventoryService.js';
 import { handleCustomAction } from '../services/comms/customEventService.js';
 import { updateNpcs } from '../services/npc/index.js';
@@ -215,6 +216,7 @@ function handleServerAction(action: ServerAction) {
       // path search, is what actually costs.
       const tick = getTick();
       Object.values(getRuntimeState().maps).forEach((map) => {
+        if (isInstanceTemplate(map)) return;
         const livePlayers = Object.values(map.players).filter(
           (player) => player.health > 0,
         );

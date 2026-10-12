@@ -47,31 +47,14 @@ const byOwner = new Map<string, string>();
 const entrances = new Map<string, { mapId: string; position: Position }>();
 
 /**
- * The npcs a fresh copy starts with, taken once from the template. Read at
- * boot rather than per entry: rebuilding them from the catalogue is a
- * database round trip per npc, and a copy is created inside the tick a
- * player steps on the warp. Nothing plays on the template, since an
- * instanced map is only ever entered through a copy.
+ * The map a copy is made from, as opposed to a copy (which carries the flag
+ * too, spread from it). Its npcs are the blueprint each new copy starts
+ * from. Edits keep them current like any map's, and nothing plays there,
+ * since an instanced map is only entered through a copy, so the npc update
+ * skips a template.
  */
-const blueprints = new Map<string, RuntimeNpc[]>();
-
-/**
- * Taken at boot, and here if the map was made after it: an operator who
- * adds a dungeon in the editor should not have to restart to open it.
- */
-function blueprintFor(
-  templateId: string,
-  template: MapStateServer,
-): RuntimeNpc[] {
-  const known = blueprints.get(templateId);
-  if (known) return known;
-
-  const fresh = Object.values(template.npcs).map((npc) => ({
-    ...npc,
-    position: { ...npc.position },
-  }));
-  blueprints.set(templateId, fresh);
-  return fresh;
+export function isInstanceTemplate(map: MapStateServer): boolean {
+  return map.instanced === true && !isInstanceKey(map.id);
 }
 
 /**
@@ -118,7 +101,7 @@ function createInstance(templateId: string, owner: string): string | undefined {
     key = `${templateId}${SEPARATOR}${suffix}`;
   } while (runtimeState.maps[key]);
   const npcs: Record<string, RuntimeNpc> = {};
-  for (const npc of blueprintFor(templateId, template)) {
+  for (const npc of Object.values(template.npcs)) {
     // The id carries the map, because the replication cache is keyed by entity
     // id alone: two copies of one dungeon with the same npc ids would inherit
     // each other's diff history.
@@ -266,16 +249,11 @@ export function sweepInstances(): void {
 
 /** Called at boot, once the maps are loaded and before anyone can walk in. */
 export function startInstances(): void {
-  for (const template of Object.values(runtimeState.maps)) {
-    if (template.instanced) blueprintFor(template.id, template);
-  }
-
   scheduleEvery(msToTicks(1_000), sweepInstances, 'instances');
 }
 
 /** Test seam: the three maps above are process state, like every cache. */
 export function clearInstancesForTest(): void {
   for (const key of [...instances.keys()]) closeInstance(key);
-  blueprints.clear();
   entrances.clear();
 }

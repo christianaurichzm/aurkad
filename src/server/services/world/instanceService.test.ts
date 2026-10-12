@@ -128,6 +128,37 @@ describe('walking into an instanced map', () => {
     expect(runtimeState.maps.dungeon!.npcs['goblin:5:5']!.health).toBe(12);
   });
 
+  it('builds a new copy from the npcs the template has now', () => {
+    sim.addPlayer({ name: 'Alice', position: { x: TILE_SIZE, y: TILE_SIZE } });
+    walkIn('Alice');
+    // What a map edit does to the template: the spawn moved to (2,2).
+    const template = runtimeState.maps.dungeon!;
+    const goblin = template.npcs['goblin:5:5']!;
+    delete template.npcs['goblin:5:5'];
+    template.npcs['goblin:2:2'] = {
+      ...goblin,
+      id: 'goblin:2:2',
+      position: { x: 2 * TILE_SIZE, y: 2 * TILE_SIZE },
+    };
+
+    sim.addPlayer({ name: 'Bob', position: { x: TILE_SIZE, y: TILE_SIZE } });
+    walkIn('Bob');
+
+    const copy = runtimeState.maps[sim.getPlayer('Bob').mapId]!;
+    expect(Object.values(copy.npcs).map((npc) => npc.position)).toEqual([
+      { x: 2 * TILE_SIZE, y: 2 * TILE_SIZE },
+    ]);
+  });
+
+  it('leaves the template npcs where they stand while copies play', () => {
+    const goblin = runtimeState.maps.dungeon!.npcs['goblin:5:5']!;
+    goblin.behavior = 'hostile';
+
+    sim.step(200);
+
+    expect(goblin.position).toEqual({ x: 5 * TILE_SIZE, y: 5 * TILE_SIZE });
+  });
+
   it('opens a door in one copy only', () => {
     sim.addPlayer({ name: 'Alice', position: { x: TILE_SIZE, y: TILE_SIZE } });
     sim.addPlayer({ name: 'Bob', position: { x: TILE_SIZE, y: TILE_SIZE } });
