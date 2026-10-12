@@ -67,6 +67,7 @@ import {
   registerInstance,
 } from '../persistence/instanceRegistry.js';
 import PlayerModel from '../model/Player.js';
+import { pressedKeysMap } from '../services/world/movementService.js';
 
 // An opening socket reads its player's document, so the database is real.
 let mongod: MongoMemoryServer;
@@ -637,6 +638,31 @@ describe('a socket that comes back without a login', () => {
       url: 'ws://far.example/ws',
     });
     expect(getPlayerByName('Boss')).toBeUndefined();
+  });
+
+  it('lets a key release past the message limit', async () => {
+    const limits = config.limits as { wsMaxMessagesPerSecond: number };
+    const limit = limits.wsMaxMessagesPerSecond;
+    limits.wsMaxMessagesPerSecond = 3;
+    try {
+      const ws = await open();
+      await settle();
+      const key = (type: 'press' | 'release') =>
+        JSON.stringify({
+          type: 'keyboard',
+          keyboardAction: { key: Key.ArrowRight, type },
+        });
+
+      ws.send(key('press'));
+      for (let i = 0; i < 5; i++) ws.send('{}');
+      ws.send(key('release'));
+      await settle();
+      processActions();
+
+      expect(pressedKeysMap.get('Boss')?.has(Key.ArrowRight)).toBe(false);
+    } finally {
+      limits.wsMaxMessagesPerSecond = limit;
+    }
   });
 
   it('leaves nobody behind when the socket drops while the character loads', async () => {

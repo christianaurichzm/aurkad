@@ -9,6 +9,8 @@ import {
   ServerActionType,
 } from '../engine/actions.js';
 import { ClientMessageSchema } from './clientMessage.js';
+import type { z } from 'zod';
+import type { Key } from '../../shared/types.js';
 import { config } from '../config.js';
 import type { ExtendedRequest } from '../http/session.js';
 import { handleChatAction } from '../services/comms/chatService.js';
@@ -44,6 +46,8 @@ type RateState = {
   windowStartMs: number;
   count: number;
   dropped: number;
+  /** Keys whose release this window was let past the limit. */
+  released: Set<Key>;
 };
 
 class FastQueue<T> {
@@ -118,7 +122,12 @@ function isRateLimited(username: string): boolean {
   const state = messageRate.get(username);
 
   if (!state || now - state.windowStartMs >= 1000) {
-    messageRate.set(username, { windowStartMs: now, count: 1, dropped: 0 });
+    messageRate.set(username, {
+      windowStartMs: now,
+      count: 1,
+      dropped: 0,
+      released: new Set(),
+    });
     return false;
   }
 
@@ -130,6 +139,29 @@ function isRateLimited(username: string): boolean {
 
   return false;
 }
+
+/**
+ * Whether a message past the limit is a key release to keep anyway.
+ *
+ * Dropped, a release leaves the key held here and the character walking with
+ * nobody pressing anything. Once per key per window is every release an honest
+ * client can owe, and keeps a flood of them bounded.
+ */
+function releasePastLimit(
+  username: string,
+  message: z.infer<typeof ClientMessageSchema>,
+): boolean {
+  if (message.type !== 'keyboard' || message.keyboardAction.type !== 'release')
+    return false;
+  const released = messageRate.get(username)?.released;
+  const key = message.keyboardAction.key;
+  if (!released || released.has(key)) return false;
+  released.add(key);
+  return true;
+}
+
+/** Longer than any release, which is the only thing parsed past the limit. */
+const RELEASE_MAX_BYTES = 256;
 
 function applyDroppedRelease(action: ActionQueueItem | undefined) {
   if (
@@ -476,7 +508,7 @@ export const startWebSocketServer = (
 
       ws.on('message', (message, isBinary) => {
         if (isBinary) return;
-        if (isRateLimited(username)) return;
+        const limited = isRateLimited(username);
 
         let raw: unknown;
         try {
@@ -488,6 +520,7 @@ export const startWebSocketServer = (
             : Array.isArray(message)
               ? Buffer.concat(message.map((part) => new Uint8Array(part)))
               : Buffer.from(message);
+          if (limited && bytes.length > RELEASE_MAX_BYTES) return;
           raw = JSON.parse(bytes.toString('utf8'));
         } catch {
           return;
@@ -495,6 +528,7 @@ export const startWebSocketServer = (
 
         const result = ClientMessageSchema.safeParse(raw);
         if (!result.success) return;
+        if (limited && !releasePastLimit(username, result.data)) return;
 
         enqueueAction({ username, ...result.data }, ws);
       });
