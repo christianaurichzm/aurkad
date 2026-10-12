@@ -169,6 +169,8 @@ async function acceptTrade(player, fromName) {
     if (to) push(to);
     return refused('Trade partner is offline.');
   }
+  if (from.mapId !== to.mapId)
+    return refused('You must be in the same map to trade.');
 
   if (!hasItem(from, offer.give.itemId, offer.give.quantity))
     return refused('Offer is no longer valid.');
@@ -195,7 +197,10 @@ async function acceptTrade(player, fromName) {
   /** @type {boolean | undefined} */
   let moved;
   const saved = await commitInventories([from, to], ([giver, taker]) => {
+    // Asked again here: the commit first waits out any save in flight, and
+    // the world goes on ticking meanwhile.
     moved =
+      from.mapId === to.mapId &&
       moveItem(giver, taker, offer.give.itemId, offer.give.quantity).ok &&
       (!offer.want ||
         moveItem(taker, giver, offer.want.itemId, offer.want.quantity).ok);

@@ -22,6 +22,7 @@ import { createFixture, tile } from '../../sim/simFixture.js';
 import { awardExperience } from '../../services/player/playerService.js';
 import { equipItem } from '../../services/economy/inventoryService.js';
 import { resolveDamage } from '../../services/combat/index.js';
+import { teleportPlayer } from '../../services/world/movementService.js';
 import type { PlayerServer } from '../../../shared/types.js';
 
 interface PartyApi {
@@ -142,6 +143,33 @@ describe('gameplay modules', () => {
     expect(
       bob.inventory.items.find((entry) => entry.item === 40),
     ).toBeUndefined();
+  });
+
+  it('trade refuses an accept once the two are on different maps', async () => {
+    const connected = vi
+      .spyOn(mongoose.connection, 'readyState', 'get')
+      .mockReturnValue(mongoose.ConnectionStates.connected);
+    const save = vi.spyOn(playerRepository, 'save').mockResolvedValue(true);
+    onTestFinished(() => {
+      connected.mockRestore();
+      save.mockRestore();
+    });
+    const sim = createFixture(0);
+    sim.addMap({ id: 'cave' });
+    const alice = sim.addPlayer({
+      name: 'Alice',
+      inventory: { items: [{ item: 30, quantity: 1 }], maxCapacity: 10 },
+    });
+    const bob = sim.addPlayer({ name: 'Bob' });
+    handleChatCommand(alice, '/trade offer Bob 30 1');
+
+    teleportPlayer(bob, 'cave', tile(1, 1));
+    handleChatCommand(bob, '/trade accept Alice');
+    await new Promise((resolve) => setTimeout(resolve, 0));
+
+    expect(save).not.toHaveBeenCalled();
+    expect(alice.inventory.items).toEqual([{ item: 30, quantity: 1 }]);
+    expect(bob.inventory.items).toEqual([]);
   });
 
   it('bank deposits and withdraws item stacks on the player document', () => {
