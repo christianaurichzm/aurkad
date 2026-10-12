@@ -181,3 +181,46 @@ describe('the fence on the write itself', () => {
     expect(await playerRepository.save(character('w3'))).toBe(true);
   });
 });
+
+describe('a write to an account nobody is playing', () => {
+  const gains = { attack: 2, unspentPoints: -2 };
+
+  it('lands on a free account, and only while it has the points', async () => {
+    await PlayerModel.create({
+      id: 'f1',
+      name: 'f1',
+      password: 'x',
+      attack: 1,
+      unspentPoints: 3,
+    });
+
+    const saved = await playerRepository.addStatsOffline('f1', gains);
+
+    expect(saved?.attack).toBe(3);
+    expect(saved?.unspentPoints).toBe(1);
+    expect(saved).not.toHaveProperty('lease');
+    expect(await playerRepository.addStatsOffline('f1', gains)).toBeNull();
+  });
+
+  // The holder saves the whole character from memory on its next snapshot,
+  // which would put the points back and take the attack away.
+  it('matches nothing while an instance is playing it, this one included', async () => {
+    await PlayerModel.create({
+      id: 'f2',
+      name: 'f2',
+      password: 'x',
+      unspentPoints: 5,
+    });
+    await heldByOther('f2', Date.now() + 60_000);
+    expect(await playerRepository.addStatsOffline('f2', gains)).toBeNull();
+
+    await heldByOther('f2', Date.now() - 1);
+    await acquirePresence('f2', 'f2');
+    expect(await playerRepository.addStatsOffline('f2', gains)).toBeNull();
+
+    await releasePresence('f2');
+    expect(
+      (await playerRepository.addStatsOffline('f2', gains))?.unspentPoints,
+    ).toBe(3);
+  });
+});

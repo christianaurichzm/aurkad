@@ -84,6 +84,14 @@ export async function getPlayerById(id: string): Promise<PlayerRecord | null> {
   return playerRepository.findById(id);
 }
 
+/** See `playerRepository.addStatsOffline`. */
+export async function addStatsOffline(
+  id: string,
+  gains: Partial<Record<keyof PlayerServer, number>>,
+): Promise<PlayerRecord | null> {
+  return playerRepository.addStatsOffline(id, gains);
+}
+
 /** The generation a session must carry, or null when the account is gone. */
 export async function authEpochOf(name: string): Promise<number | null> {
   return playerRepository.authEpochOf(name);

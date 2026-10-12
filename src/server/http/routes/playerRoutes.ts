@@ -3,8 +3,14 @@ import { WebSocket } from 'ws';
 import { Access } from '../../../shared/types.js';
 import { parseBody, AssignPointsBodySchema } from '../bodySchemas.js';
 import checkAccess from '../middleware/checkAccess.js';
-import { updatePlayer } from '../../sim/world.js';
-import { getPlayerById } from '../../services/player/playerService.js';
+import {
+  getPlayerById as getLivePlayer,
+  updatePlayer,
+} from '../../sim/world.js';
+import {
+  addStatsOffline,
+  getPlayerById,
+} from '../../services/player/playerService.js';
 import { playersWsMap } from '../../net/connections.js';
 import { listOnlineEverywhere } from '../../persistence/presence.js';
 import { registerStrings, translateFor } from '../../engine/i18n.js';
@@ -13,6 +19,8 @@ registerStrings({
   pt: {
     'No points assigned': 'Nenhum ponto distribuído',
     'Not enough unspent points': 'Não há pontos livres suficientes',
+    'That character is playing on another server':
+      'Esse personagem está jogando em outro servidor',
   },
 });
 
@@ -53,7 +61,12 @@ export function createPlayerRouter() {
           .json({ error: translateFor(req, 'No points assigned') });
       }
 
-      const player = await getPlayerById(req.params['id']);
+      // The character in the world when there is one, and never a copy read
+      // from the database: the document trails the world by a snapshot, and
+      // writing a copy back would undo everything played since.
+      const id = req.params['id'];
+      const live = getLivePlayer(id);
+      const player = live ?? (await getPlayerById(id));
       if (!player) {
         return res.status(404).json({ error: 'Player not found' });
       }
@@ -71,29 +84,46 @@ export function createPlayerRouter() {
           .json({ error: translateFor(req, 'Not enough unspent points') });
       }
 
-      player.vitality += vitality;
-      player.attack += attack;
-      player.strength += strength;
-      player.defense += defense;
-      player.agility += agility;
-      player.unspentPoints -= totalAssigned;
+      const gains = {
+        vitality,
+        attack,
+        strength,
+        defense,
+        agility,
+        // Added to the ceiling the player has, which is not only vitality's: a
+        // GM, a script or the seed can set it too, and a recomputed one would
+        // throw that away on the first point spent.
+        maxHealth: vitality * 10,
+        unspentPoints: -totalAssigned,
+      };
 
-      // Added to the ceiling the player has, which is not only vitality's: a
-      // GM, a script or the seed can set it too, and a recomputed one would
-      // throw that away on the first point spent.
-      player.maxHealth += vitality * 10;
-
-      updatePlayer(player);
+      if (live) {
+        for (const [stat, gain] of Object.entries(gains)) {
+          live[stat as keyof typeof gains] += gain;
+        }
+        updatePlayer(live);
+      }
+      const result = live ?? (await addStatsOffline(id, gains));
+      if (!result) {
+        // In the world on another instance, the only one that may change it,
+        // as the shop's buy route also holds.
+        return res.status(409).json({
+          error: translateFor(
+            req,
+            'That character is playing on another server',
+          ),
+        });
+      }
 
       return res.json({
         success: true,
-        unspentPoints: player.unspentPoints,
-        vitality: player.vitality,
-        attack: player.attack,
-        strength: player.strength,
-        defense: player.defense,
-        agility: player.agility,
-        maxHealth: player.maxHealth,
+        unspentPoints: result.unspentPoints,
+        vitality: result.vitality,
+        attack: result.attack,
+        strength: result.strength,
+        defense: result.defense,
+        agility: result.agility,
+        maxHealth: result.maxHealth,
       });
     },
   );

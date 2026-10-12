@@ -80,6 +80,21 @@ export function presenceFence(id: string): Record<string, unknown> {
   return lease ? { 'lease.token': lease.token } : {};
 }
 
+/**
+ * The filter for a write to an account nobody is playing: no live lease, this
+ * instance's included. A character in the world is saved whole from memory by
+ * whoever holds it, so a change written under it is undone by the next
+ * snapshot; such a write has to match nothing instead.
+ */
+export function unleasedFence(): Record<string, unknown> {
+  return {
+    $or: [
+      { 'lease.until': { $exists: false } },
+      { 'lease.until': { $lte: Date.now() } },
+    ],
+  };
+}
+
 /** Pushes the expiry of everything this instance holds, once per heartbeat. */
 export async function renewPresence(): Promise<void> {
   if (!owner || held.size === 0) return;

@@ -1,6 +1,6 @@
 import type { ClientSession } from 'mongoose';
 import PlayerModel from '../model/Player.js';
-import { presenceFence } from './presence.js';
+import { presenceFence, unleasedFence } from './presence.js';
 import { Access, PlayerRecord, PlayerServer } from '../../shared/types.js';
 import { gameConfig } from '../gameConfig.js';
 
@@ -97,6 +97,30 @@ export const playerRepository = {
       { upsert: false, ...(session ? { session } : {}) },
     );
     return written !== null;
+  },
+
+  /**
+   * Adds `gains` to a character that is not in the world, in one conditional
+   * update: only while it still has the points the gains spend
+   * (`unspentPoints` is negative in them) and no instance is playing it.
+   * Null when either no longer holds.
+   */
+  async addStatsOffline(
+    id: string,
+    gains: Partial<Record<keyof PlayerServer, number>>,
+  ): Promise<PlayerRecord | null> {
+    const doc = await PlayerModel.findOneAndUpdate(
+      {
+        id,
+        unspentPoints: { $gte: -(gains.unspentPoints ?? 0) },
+        ...unleasedFence(),
+      },
+      { $inc: gains },
+      { returnDocument: 'after' },
+    )
+      .lean<PlayerRecord>()
+      .exec();
+    return doc ? normalizePlayerRecord(doc) : null;
   },
 
   async insert(record: PlayerRecord): Promise<void> {
