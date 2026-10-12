@@ -166,6 +166,28 @@ describe('reset tokens', () => {
     );
   });
 
+  // The hash is slow enough for the owner's change to land while a link that
+  // was spent before it is still on its way to the write.
+  it('does not undo a change that lands while a link is being spent', async () => {
+    const minted = await createResetToken('Alice');
+    const hash = bcrypt.hash.bind(bcrypt) as (
+      data: string,
+      rounds: number,
+    ) => Promise<string>;
+    vi.spyOn(bcrypt, 'hash').mockImplementationOnce((async (
+      data: string,
+      rounds: number,
+    ) => {
+      await changePassword('Alice', 'old-password', 'owner-password');
+      return hash(data, rounds);
+    }) as never);
+
+    expect(await consumeResetToken(minted!.token, 'stale-password')).toBe(
+      'invalid-token',
+    );
+    expect(await canLogInWith('owner-password')).toBe(true);
+  });
+
   // A link in flight is a way back into an account whose owner just moved it.
   it('drops every outstanding link when the password changes', async () => {
     const first = await createResetToken('Alice');
