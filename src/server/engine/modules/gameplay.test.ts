@@ -167,6 +167,31 @@ describe('gameplay modules', () => {
     ).toBeUndefined();
   });
 
+  it('trade swaps between two full bags', async () => {
+    vi.spyOn(mongoose.connection, 'readyState', 'get').mockReturnValue(
+      mongoose.ConnectionStates.connected,
+    );
+    vi.spyOn(playerRepository, 'save').mockResolvedValue(true);
+    onTestFinished(() => void vi.restoreAllMocks());
+    const sim = createFixture(0);
+    const alice = sim.addPlayer({
+      name: 'Alice',
+      inventory: { items: [{ item: 30, quantity: 1 }], maxCapacity: 1 },
+    });
+    const bob = sim.addPlayer({
+      name: 'Bob',
+      inventory: { items: [{ item: 40, quantity: 1 }], maxCapacity: 1 },
+    });
+
+    handleChatCommand(alice, '/trade offer Bob 30 1 40 1');
+    handleChatCommand(bob, '/trade accept Alice');
+
+    await vi.waitFor(() =>
+      expect(alice.inventory.items).toEqual([{ item: 40, quantity: 1 }]),
+    );
+    expect(bob.inventory.items).toEqual([{ item: 30, quantity: 1 }]);
+  });
+
   it('trade refuses an accept once the two are on different maps', async () => {
     const connected = vi
       .spyOn(mongoose.connection, 'readyState', 'get')

@@ -197,13 +197,17 @@ async function acceptTrade(player, fromName) {
   /** @type {boolean | undefined} */
   let moved;
   const saved = await commitInventories([from, to], ([giver, taker]) => {
-    // Asked again here: the commit first waits out any save in flight, and
-    // the world goes on ticking meanwhile.
+    // Checked again, since the commit waits out saves while the world ticks.
+    // Both sides leave before either arrives, as wouldFit judged them.
+    const given = scratch();
+    const paid = scratch();
+    const { give, want } = offer;
     moved =
       from.mapId === to.mapId &&
-      moveItem(giver, taker, offer.give.itemId, offer.give.quantity).ok &&
-      (!offer.want ||
-        moveItem(taker, giver, offer.want.itemId, offer.want.quantity).ok);
+      moveItem(giver, given, give.itemId, give.quantity).ok &&
+      (!want || moveItem(taker, paid, want.itemId, want.quantity).ok) &&
+      moveItem(given, taker, give.itemId, give.quantity).ok &&
+      (!want || moveItem(paid, giver, want.itemId, want.quantity).ok);
     return moved;
   });
   if (!saved) {
