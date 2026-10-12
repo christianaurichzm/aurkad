@@ -22,8 +22,9 @@ import {
   handleKeyAction,
   handleMoveTo,
   clearPressedKeys,
+  warpToMap,
 } from '../services/world/movementService.js';
-import { getRuntimeState } from '../sim/world.js';
+import { getMap, getRuntimeState } from '../sim/world.js';
 import { handleItemAction } from '../services/economy/inventoryService.js';
 import { handleCustomAction } from '../services/comms/customEventService.js';
 import { updateNpcs } from '../services/npc/index.js';
@@ -455,6 +456,13 @@ export const startWebSocketServer = (
           if (refused && ws.readyState === WebSocket.OPEN) {
             ws.send(JSON.stringify({ type: 'kick', message: refused }));
             ws.close();
+          } else if (!refused) {
+            // Saved on a map another instance runs (a logout there, a login
+            // here), the character is in no map until that instance has
+            // them, and the warp's redirect is the way there.
+            const player = getPlayerByName(username);
+            if (player && !getMap(player.mapId))
+              warpToMap(player, player.mapId, player.position);
           }
         } catch (err) {
           ws.close(1011, 'Session validation unavailable');

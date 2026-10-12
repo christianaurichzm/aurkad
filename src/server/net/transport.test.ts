@@ -62,6 +62,11 @@ import { banPlayer } from '../services/player/banService.js';
 import { getPlayerByName } from '../sim/world.js';
 import { runtimeState } from '../sim/state.js';
 import { playerRepository } from '../persistence/playerRepository.js';
+import {
+  refreshRegistry,
+  registerInstance,
+} from '../persistence/instanceRegistry.js';
+import PlayerModel from '../model/Player.js';
 
 // An opening socket reads its player's document, so the database is real.
 let mongod: MongoMemoryServer;
@@ -589,6 +594,30 @@ describe('a socket that comes back without a login', () => {
 
     expect(said.type).toBe('kick');
     expect(said.message).toMatch(/banned/);
+    expect(getPlayerByName('Boss')).toBeUndefined();
+  });
+
+  it('sends a character saved on a map another instance runs over there', async () => {
+    await PlayerModel.updateOne({ name: 'Boss' }, { mapId: 'far' }).exec();
+    await registerInstance('ws://far.example/ws', ['far']);
+    await refreshRegistry();
+
+    const ws = await open();
+    const said = await new Promise<{ type: string; url: string }>((resolve) =>
+      ws.once('message', (data) =>
+        resolve(
+          JSON.parse((data as Buffer).toString()) as {
+            type: string;
+            url: string;
+          },
+        ),
+      ),
+    );
+
+    expect(said).toMatchObject({
+      type: 'redirect',
+      url: 'ws://far.example/ws',
+    });
     expect(getPlayerByName('Boss')).toBeUndefined();
   });
 
