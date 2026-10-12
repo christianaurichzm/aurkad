@@ -22,7 +22,7 @@ function mkPlayer(id: string, name: string, mapId: string): PlayerServer {
 }
 
 function mkMap(id: string): MapStateServer {
-  return { id, players: {} } as unknown as MapStateServer;
+  return { id, players: {}, tiles: [] } as unknown as MapStateServer;
 }
 
 beforeEach(() => {

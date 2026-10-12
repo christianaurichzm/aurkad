@@ -73,6 +73,9 @@ export const hasCollision = (character: CombatTarget): boolean => {
   const characterCollision = nearby.some(
     (other) =>
       other.id !== character.id &&
+      // The tree is rebuilt once a tick and holds live entities, so one that
+      // warped away since is still in it, at its new position on another map.
+      (other as CombatTarget).mapId === character.mapId &&
       // NPCs pass through each other unless the one moving is solid; players
       // block every NPC.
       !(character.kind === 'npc' && !character.solid && other.kind === 'npc') &&

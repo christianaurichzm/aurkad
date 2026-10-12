@@ -1,7 +1,8 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { CharacterAction, Direction, Key } from '../../shared/types.js';
 import { TILE_SIZE } from '../../shared/constants.js';
-import { createFixture, makeTiles } from './simFixture.js';
+import { createFixture, makeTiles, tile } from './simFixture.js';
+import { teleportPlayer } from '../services/world/movementService.js';
 import {
   clearLootTableCache,
   createOrUpdateLootTable,
@@ -523,6 +524,32 @@ describe('map warp', () => {
     sim.step(10);
 
     expect(sim.getPlayer('Alice').mapId).toBe(dest.id);
+  });
+
+  // The spatial index is rebuilt once a tick, before anyone moves.
+  it('lands two players arriving on one tile in the same tick side by side', () => {
+    sim.addMap({ id: 'cave' });
+    const alice = sim.addPlayer({ name: 'Alice', position: tile(1, 1) });
+    const bob = sim.addPlayer({ name: 'Bob', position: tile(3, 1) });
+    sim.step(1);
+
+    teleportPlayer(alice, 'cave', tile(5, 5));
+    teleportPlayer(bob, 'cave', tile(5, 5));
+
+    expect(alice.position).toEqual(tile(5, 5));
+    expect(bob.position).not.toEqual(alice.position);
+  });
+
+  it('does not keep a tile taken by someone who warped off it this tick', () => {
+    sim.addMap({ id: 'cave' });
+    const alice = sim.addPlayer({ name: 'Alice', position: tile(5, 5) });
+    const bob = sim.addPlayer({ name: 'Bob', position: tile(1, 1) });
+    sim.step(1);
+
+    teleportPlayer(alice, 'cave', tile(2, 2));
+    teleportPlayer(bob, sim.mapId, tile(2, 2));
+
+    expect(bob.position).toEqual(tile(2, 2));
   });
 });
 

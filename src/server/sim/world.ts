@@ -2,6 +2,7 @@ import { GameState, MapStateServer, PlayerServer } from '../../shared/types.js';
 import { markPlayerDirty } from '../persistence/dirtyPlayers.js';
 import { players, playersByName, runtimeState } from './state.js';
 import { logger } from '../logger.js';
+import { indexArrival } from './spatialManager.js';
 
 export function getPlayerById(id: string): PlayerServer | undefined {
   return players[id];
@@ -57,6 +58,7 @@ export function placePlayerOnMap(
   const nextMap = runtimeState.maps[player.mapId];
   if (!nextMap) return undefined;
   nextMap.players[player.id] = player;
+  if (prevMapId !== player.mapId) indexArrival(nextMap, player);
   return nextMap;
 }
 
