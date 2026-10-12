@@ -402,7 +402,15 @@ describe('gameplay modules', () => {
     expect(alice.data?.['bank']).toBeUndefined();
   });
 
-  it('an accepted trade is rejected if the item became bound after the offer', () => {
+  it('an accepted trade is rejected if the item became bound after the offer', async () => {
+    const connected = vi
+      .spyOn(mongoose.connection, 'readyState', 'get')
+      .mockReturnValue(mongoose.ConnectionStates.connected);
+    const save = vi.spyOn(playerRepository, 'save').mockResolvedValue(true);
+    onTestFinished(() => {
+      connected.mockRestore();
+      save.mockRestore();
+    });
     const sim = createFixture(0);
     sim.addItem({
       id: 60,
@@ -427,7 +435,9 @@ describe('gameplay modules', () => {
       bound: true,
     });
     handleChatCommand(bob, '/trade accept Alice');
+    await new Promise((resolve) => setTimeout(resolve, 0));
 
+    expect(save).not.toHaveBeenCalled();
     expect(
       alice.inventory.items.find((entry) => entry.item === 60)?.quantity,
     ).toBe(1);
