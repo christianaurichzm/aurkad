@@ -203,6 +203,25 @@ describe('resyncBody', () => {
     });
   });
 
+  // An npc serializer spreads the entity, so a field the editor cleared is
+  // left out rather than undefined, and a viewer back from a long gap may
+  // still hold it.
+  it('clears a field the state left out since the viewer last heard', () => {
+    beginTick();
+    recordEntity('a', { id: 'a', dialogId: 'greet' });
+    beginTick();
+    recordEntity('a', { id: 'a' });
+    for (let i = 0; i < 10; i++) {
+      beginTick();
+      recordEntity('a', { id: 'a' });
+    }
+
+    expect(JSON.parse(resyncBody(fragmentAt('a')!))).toEqual({
+      id: 'a',
+      dialogId: null,
+    });
+  });
+
   it('builds the body once per entity per tick', () => {
     beginTick();
     recordEntity('a', { id: 'a', health: 10 });

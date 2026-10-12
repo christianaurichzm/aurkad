@@ -36,6 +36,8 @@ export interface Fragment {
   changedAt: number;
   /** This tick's public state, kept for `resyncBody`. Not copied. */
   pub: PublicState;
+  /** Fields this entity has had and dropped since it took its id. */
+  dropped: Set<string> | undefined;
   /** Built on demand by `resyncBody`, at most once per entity per tick. */
   resync?: string;
   /** Merged deltas by gap, built on demand by `gapDelta`. Null = no answer. */
@@ -44,6 +46,11 @@ export interface Fragment {
 
 // Last state broadcast for each entity, kept across ticks to diff against.
 const previous = new Map<string, PublicState>();
+
+// Keys an entity's public state has dropped, for `resyncBody`. A serializer
+// that spreads the entity leaves an unset field out rather than undefined, so
+// this tick's state alone cannot say a viewer may still hold it.
+const droppedKeys = new Map<string, Set<string>>();
 
 /**
  * How many entities still have a diff baseline.
@@ -197,6 +204,11 @@ export function recordEntity(id: string, pub: PublicState): void {
 
   const changed = prev ? fieldDelta(prev, pub) : null;
   const delta = changed ? JSON.stringify(changed) : undefined;
+  for (const key in changed) {
+    if (changed[key] !== CLEARED || key in pub) continue;
+    const dropped = droppedKeys.get(id) ?? new Set<string>();
+    droppedKeys.set(id, dropped.add(key));
+  }
 
   const slot = claimSlot(id);
   // No baseline means this is the entity's first tick under its current id, so
@@ -215,6 +227,7 @@ export function recordEntity(id: string, pub: PublicState): void {
     born: slotBorn[slot] ?? tick,
     changedAt: slotChangedAt[slot] ?? tick,
     pub,
+    dropped: droppedKeys.get(id),
   });
   previous.set(id, pub);
 }
@@ -263,7 +276,8 @@ export function gapDelta(fragment: Fragment, gap: number): string | null {
  * current state after missed ticks. Unlike `full`, which a client inserts
  * whole, this is merged, and a merge cannot express "this field went away"
  * since `JSON.stringify` drops undefined keys. So absent fields are spelled
- * out as CLEARED, as the deltas do. Built on demand, as at the default
+ * out as CLEARED, as the deltas do: those set to undefined and those the
+ * entity once had and left out since. Built on demand, as at the default
  * cadence nobody needs it.
  */
 export function resyncBody(fragment: Fragment): string {
@@ -272,6 +286,9 @@ export function resyncBody(fragment: Fragment): string {
     for (const key of Object.keys(fragment.pub)) {
       const value = fragment.pub[key];
       cleared[key] = value === undefined ? CLEARED : value;
+    }
+    for (const key of fragment.dropped ?? []) {
+      if (!(key in fragment.pub)) cleared[key] = CLEARED;
     }
     fragment.resync = JSON.stringify(cleared);
   }
@@ -296,6 +313,7 @@ export function fragmentFor(
 /** Drop an entity's history (despawn/disconnect) so ids cannot leak state. */
 export function forgetEntity(id: string): void {
   previous.delete(id);
+  droppedKeys.delete(id);
   fragments.delete(id);
 
   const slot = slotOf.get(id);
@@ -312,6 +330,7 @@ export function forgetEntity(id: string): void {
 
 export function resetEntityReplication(): void {
   previous.clear();
+  droppedKeys.clear();
   fragments = new Map();
   slotOf.clear();
   slotOwner.length = 0;
