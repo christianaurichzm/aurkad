@@ -10,6 +10,7 @@ import {
   getPlayerById,
   getPlayerByName,
   getAllPlayers,
+  updatePlayer,
 } from './world.js';
 
 function mkPlayer(id: string, name: string, mapId: string): PlayerServer {
@@ -44,6 +45,7 @@ describe('world registry', () => {
   it('attaches a player to its current map on upsert', () => {
     runtimeState.maps['1'] = mkMap('1');
     const p = mkPlayer('a', 'Alice', '1');
+    registerPlayer(p);
 
     upsertOnCurrentMap(p);
 
@@ -51,9 +53,38 @@ describe('world registry', () => {
     expect(getPlayerById('a')).toBe(p);
   });
 
+  it('does not bring back a player through an object kept past logout', () => {
+    runtimeState.maps['1'] = mkMap('1');
+    const p = mkPlayer('a', 'Alice', '1');
+    registerPlayer(p);
+    unregisterPlayer('a');
+
+    updatePlayer(p);
+    placePlayerOnMap(p);
+
+    expect(getPlayerById('a')).toBeUndefined();
+    expect(runtimeState.maps['1'].players['a']).toBeUndefined();
+  });
+
+  it('does not let the object of an old session replace the next one', () => {
+    runtimeState.maps['1'] = mkMap('1');
+    const old = mkPlayer('a', 'Alice', '1');
+    registerPlayer(old);
+    unregisterPlayer('a');
+    const next = mkPlayer('a', 'Alice', '1');
+    registerPlayer(next);
+    upsertOnCurrentMap(next);
+
+    updatePlayer(old);
+
+    expect(getPlayerByName('Alice')).toBe(next);
+    expect(runtimeState.maps['1'].players['a']).toBe(next);
+  });
+
   it('unregisters from the registry, name index and all maps', () => {
     runtimeState.maps['1'] = mkMap('1');
     const p = mkPlayer('a', 'Alice', '1');
+    registerPlayer(p);
     upsertOnCurrentMap(p);
 
     unregisterPlayer('a');
@@ -69,6 +100,7 @@ describe('world map membership', () => {
     runtimeState.maps['1'] = mkMap('1');
     runtimeState.maps['2'] = mkMap('2');
     const p = mkPlayer('a', 'Alice', '1');
+    registerPlayer(p);
     upsertOnCurrentMap(p);
 
     p.mapId = '2';
@@ -81,6 +113,7 @@ describe('world map membership', () => {
   it('detaches from the current map but keeps the player registered', () => {
     runtimeState.maps['1'] = mkMap('1');
     const p = mkPlayer('a', 'Alice', '1');
+    registerPlayer(p);
     upsertOnCurrentMap(p);
 
     detachFromMap('a');

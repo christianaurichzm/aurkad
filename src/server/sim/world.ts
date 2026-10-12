@@ -30,8 +30,15 @@ export function unregisterPlayer(id: string): void {
   }
 }
 
+/**
+ * Only the object `enterWorld` registered counts. A stale reference (an
+ * arrow, a timer) must not write a logged-out player back into the world.
+ */
+const inWorld = (player: PlayerServer): boolean =>
+  players[player.id] === player;
+
 export function upsertOnCurrentMap(player: PlayerServer): void {
-  registerPlayer(player);
+  if (!inWorld(player)) return;
   const map = runtimeState.maps[player.mapId];
   if (map) {
     map.players[player.id] = player;
@@ -44,9 +51,8 @@ export function placePlayerOnMap(
   player: PlayerServer,
   previousMapId?: string,
 ): MapStateServer | undefined {
+  if (!inWorld(player)) return undefined;
   const prevMapId = previousMapId ?? getPlayerById(player.id)?.mapId;
-
-  registerPlayer(player);
 
   if (prevMapId && prevMapId !== player.mapId) {
     const prevMap = runtimeState.maps[prevMapId];
@@ -97,6 +103,7 @@ export function getPlayer(playerId: string): PlayerServer | undefined {
 
 // Synchronous: write-behind only marks the player dirty.
 export function updatePlayer(player: PlayerServer): void {
+  if (!inWorld(player)) return;
   upsertOnCurrentMap(player);
   markPlayerDirty(player.id);
 }
