@@ -520,7 +520,9 @@ function toggleTrigger(
   numParam?: number,
   params?: ScriptParams,
 ) {
-  const triggers = tile.triggers ?? [];
+  // A new array: undo snapshots and the discard copy share the tile's arrays,
+  // so an in-place removal would reach them too.
+  const triggers = [...(tile.triggers ?? [])];
   const i = triggers.findIndex((t) => t.action === action);
   if (i >= 0) {
     triggers.splice(i, 1);

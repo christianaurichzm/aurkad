@@ -12,6 +12,7 @@ import {
   resetToOriginalMap,
   setEditorTiles,
   toggleBlocking,
+  toggleKill,
   toggleMapEditor,
   toggleMask,
   undo,
@@ -253,6 +254,31 @@ describe('a drag in a toggle mode', () => {
     undo();
 
     expect(getEditorTiles()[0]?.[0]).toEqual({ tileIndex: 2 });
+  });
+
+  // A snapshot's tile copy shares its triggers with the tile, so removing one
+  // in place would reach the snapshot.
+  it('brings a removed trigger back on undo, and on discard', () => {
+    const tiles = mapOf(1);
+    tiles[0][0].triggers = [{ action: 'kill' }];
+    setEditorTiles(tiles);
+    toggleBlocking();
+    toggleKill();
+
+    mouse('mousedown', 10);
+    mouse('mouseup', 10);
+    expect(getEditorTiles()[0]?.[0]?.triggers).toBeUndefined();
+
+    undo();
+    expect(getEditorTiles()[0]?.[0]?.triggers).toEqual([{ action: 'kill' }]);
+
+    mouse('mousedown', 10);
+    mouse('mouseup', 10);
+    resetToOriginalMap();
+    expect(getEditorTiles()[0]?.[0]?.triggers).toEqual([{ action: 'kill' }]);
+
+    toggleKill();
+    toggleBlocking();
   });
 });
 
