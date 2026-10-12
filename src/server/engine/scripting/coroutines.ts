@@ -182,11 +182,11 @@ export function startCoroutine(
       return;
     }
 
-    // Switched off by the budget. Finishing rather than leaving it parked is
-    // the honest outcome: a coroutine that will never be resumed again is a
-    // ghost holding a hook subscription.
+    // Switched off by the budget, so it will never resume: end it rather than
+    // leave a ghost holding a hook subscription. Ended through cancel, as it is
+    // suspended at a yield and its finally blocks release what it took.
     if (!ran) {
-      finish();
+      handle.cancel();
       return;
     }
     if (!advanced) return; // the predicate said no; keep waiting
@@ -202,7 +202,7 @@ export function startCoroutine(
   const arm = (value: unknown): void => {
     const instruction = asInstruction(value);
     if (!instruction) {
-      finish();
+      handle.cancel();
       fail(
         script,
         label,

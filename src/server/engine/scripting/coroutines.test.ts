@@ -284,11 +284,17 @@ describe('failures', () => {
   // A yielded value that is not an instruction would otherwise park the
   // coroutine on nothing at all, which looks exactly like a hang.
   it('refuses a yield that is not wait() or waitFor()', () => {
+    let released = false;
     const handle = startCoroutine('s.js', function* () {
-      yield 42;
+      try {
+        yield 42;
+      } finally {
+        released = true;
+      }
     });
 
     expect(handle.done).toBe(true);
+    expect(released).toBe(true);
     expect(getScriptErrors()[0]).toMatchObject({ source: 'coroutine' });
   });
 
@@ -361,6 +367,29 @@ describe('the time a resume costs', () => {
     expect(handle.done).toBe(true);
     expect(activeCoroutineCount()).toBe(0);
     expect(scheduledTaskCount()).toBe(0);
+  });
+
+  it('runs the finally blocks of a coroutine the budget switched off', () => {
+    const overBudget = config.scripting.handlerBudgetMs + 1;
+    let frozen = false;
+
+    startCoroutine('hog.js', function* hog() {
+      frozen = true;
+      try {
+        for (;;) {
+          const until = performance.now() + overBudget;
+          while (performance.now() < until) {
+            /* burn past the budget */
+          }
+          yield wait(1);
+        }
+      } finally {
+        frozen = false;
+      }
+    });
+    tick(config.scripting.handlerBudgetStrikes + 1);
+
+    expect(frozen).toBe(false);
   });
 });
 
