@@ -65,6 +65,16 @@ export const setEditorMapId = (id: string) => {
   editorMapId = id;
 };
 
+/**
+ * Set while a save is out and its map is read back. That load replaces the
+ * buffer, so strokes meanwhile are refused.
+ */
+let saving = false;
+
+export const setEditorSaving = (value: boolean) => {
+  saving = value;
+};
+
 const snapshotForUndo = () => {
   undoStack.push(map.map((row) => row.map((tile) => ({ ...tile }))));
   if (undoStack.length > MAX_UNDO) undoStack.shift();
@@ -74,7 +84,7 @@ const snapshotForUndo = () => {
 export const getEditorTiles = (): Tile[][] => map;
 
 export const undo = () => {
-  if (!undoStack.length) return;
+  if (saving || !undoStack.length) return;
   redoStack.push(map.map((row) => row.map((tile) => ({ ...tile }))));
   map = undoStack.pop()!;
   setMapEdited(true);
@@ -82,7 +92,7 @@ export const undo = () => {
 };
 
 export const redo = () => {
-  if (!redoStack.length) return;
+  if (saving || !redoStack.length) return;
   undoStack.push(map.map((row) => row.map((tile) => ({ ...tile }))));
   map = redoStack.pop()!;
   setMapEdited(true);
@@ -810,13 +820,14 @@ const strokeSelection = () => {
 const strokeTiles = new Set<string>();
 
 const startPlacing = (event: MouseEvent) => {
+  if (saving) return;
   isPlacing = true;
   strokeTiles.clear();
   snapshotForUndo();
   placeTile(event);
 };
 const placeTileWhileDragging = (event: MouseEvent) => {
-  if (isPlacing) placeTile(event);
+  if (isPlacing && !saving) placeTile(event);
 };
 const stopPlacing = () => {
   isPlacing = false;
@@ -933,7 +944,7 @@ const drawTileOnCanvas = (
 };
 
 export const fillMap = () => {
-  if (!tilesetCanvas) return;
+  if (saving || !tilesetCanvas) return;
   const kit = activeKit();
   if (kit) {
     const piece = selectedPiece;

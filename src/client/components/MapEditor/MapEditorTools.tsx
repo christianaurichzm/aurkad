@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import {
   saveCurrentMap,
+  setEditorSaving,
   fillMap,
   toggleBlocking,
   toggleWarping,
@@ -206,6 +207,7 @@ const MapEditorToolsComponent: React.FC = () => {
 
   const handleSave = async () => {
     if (!mapEdited) return;
+    setEditorSaving(true);
     try {
       const result = await saveCurrentMap(mapName, mapType);
       if (!result?.success) {
@@ -231,6 +233,8 @@ const MapEditorToolsComponent: React.FC = () => {
         message: t('mapEditor.saveFailedMessage'),
         kind: 'error',
       });
+    } finally {
+      setEditorSaving(false);
     }
   };
 

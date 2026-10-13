@@ -10,6 +10,7 @@ import {
   readKit,
   renderEditorLayer,
   resetToOriginalMap,
+  setEditorSaving,
   setEditorTiles,
   toggleBlocking,
   toggleKill,
@@ -242,6 +243,20 @@ describe('a drag in a toggle mode', () => {
     mouse('mouseup', 10);
     mouse('mousedown', 10);
     mouse('mouseup', 10);
+
+    expect(blocked(0)[0]).toBe(false);
+  });
+
+  // The load that follows a save replaces the buffer, so a stroke in between
+  // would be drawn and never sent.
+  it('takes no stroke while a save is out', () => {
+    setEditorSaving(true);
+    try {
+      mouse('mousedown', 10);
+      mouse('mouseup', 10);
+    } finally {
+      setEditorSaving(false);
+    }
 
     expect(blocked(0)[0]).toBe(false);
   });
