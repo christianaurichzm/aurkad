@@ -18,6 +18,8 @@ const COLORS = {
 // The tile layer is redrawn only for rows whose array changed, since a map
 // is thousands of rectangles and a frame is 16 ms.
 let cache = null;
+// What the corner holds, as last published (see the draw).
+let reserved = '';
 
 function tileLayerFor(map) {
   if (cache && cache.tiles === map.tiles) return cache;
@@ -77,6 +79,14 @@ engine.registerOverlay((ctx, cam) => {
   ctx.translate(cam.x, cam.y);
   const x = view.x + view.width - w - MARGIN / shown;
   const y = view.y + MARGIN / shown;
+  // The quest tracker sits below this, moved by the height published here,
+  // which is written only when it changes.
+  const taken = `${Math.ceil(MARGIN + (h + 2) * shown)}px`;
+  if (taken !== reserved)
+    document.documentElement.style.setProperty(
+      '--hud-top-right',
+      (reserved = taken),
+    );
 
   ctx.fillStyle = COLORS.frame;
   ctx.fillRect(x - 2, y - 2, w + 4, h + 4);

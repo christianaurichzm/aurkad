@@ -31,7 +31,8 @@ export const QuestTracker: React.FC = () => {
     <div
       style={{
         position: 'absolute',
-        top: 12,
+        // Below whatever a module draws in this corner (the minimap).
+        top: 'calc(12px + var(--hud-top-right, 0px))',
         right: 12,
         background: colors.overlay,
         color: colors.text,

@@ -105,6 +105,15 @@ describe('minimap overlay', () => {
     expect(h).toBeCloseTo((40 * 80) / 60);
   });
 
+  it('tells the quest tracker how much of the corner it takes', () => {
+    document.documentElement.style.removeProperty('--hud-top-right');
+    draw(mapOf(60, 40));
+    // The margin, the map's 160 * 40 / 60 and the frame's 2 px below it.
+    expect(
+      document.documentElement.style.getPropertyValue('--hud-top-right'),
+    ).toBe(`${Math.ceil(8 + (160 * 40) / 60 + 2)}px`);
+  });
+
   it('draws on the hud layer, so a night tint cannot dim it', () => {
     const { mod } = draw(mapOf(20, 14));
 
