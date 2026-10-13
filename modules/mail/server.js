@@ -87,11 +87,18 @@ async function inbox(name) {
   });
 }
 
-// With the queue goes what a letter may carry and cost, so the form can say
-// both before the send is refused for them.
+// Sends the queue with the letter limits and postage, so the form can show
+// them. Never rejects, since it is fired unawaited from other replies.
 async function push(player) {
+  let letters;
+  try {
+    letters = await inbox(player.name);
+  } catch (e) {
+    error('mail inbox read failed: ' + e);
+    return;
+  }
   sendEvent(player, 'mail:update', {
-    letters: await inbox(player.name),
+    letters,
     maxMessageLength,
     postage:
       costPerLetter > 0
@@ -196,17 +203,15 @@ command(
 
     if (sub === 'send') {
       const message = args.slice(4).join(' ');
-      void send(player, args[1], args[2], args[3], message).then(reply);
-      return;
+      return send(player, args[1], args[2], args[3], message).then(reply);
     }
 
     if (sub === 'claim') {
-      void claim(player).then(reply);
-      return;
+      return claim(player).then(reply);
     }
 
     if (sub === 'list') {
-      void inbox(player.name).then((letters) => {
+      return inbox(player.name).then((letters) => {
         if (letters.length === 0) return reply('Your mailbox is empty.');
         reply(
           letters
@@ -218,7 +223,6 @@ command(
             .join('\n'),
         );
       });
-      return;
     }
 
     reply(
@@ -227,14 +231,17 @@ command(
   },
 );
 
+// The promises go back to the hook and command wrappers, which log a
+// rejection they are handed; one dropped here would end the process.
 on('customAction', ({ player, channel, payload }) => {
   const data = /** @type {any} */ (payload) || {};
-  if (channel === 'mail:request') void push(player);
-  else if (channel === 'mail:claim') {
+  if (channel === 'mail:request') return push(player);
+  if (channel === 'mail:claim') {
     const ids = Array.isArray(data.ids) ? data.ids.map(String) : undefined;
-    void claim(player, ids).then(answer(player));
-  } else if (channel === 'mail:send') {
-    void send(player, data.to, data.itemId, data.quantity, data.message).then(
+    return claim(player, ids).then(answer(player));
+  }
+  if (channel === 'mail:send') {
+    return send(player, data.to, data.itemId, data.quantity, data.message).then(
       answer(player),
     );
   }
@@ -242,8 +249,8 @@ on('customAction', ({ player, channel, payload }) => {
 
 // Tells the player about waiting mail on arrival, since a full bag could
 // leave it queued unseen.
-on('playerJoin', ({ player }) => {
-  void delivery.count(player.name).then((waiting) => {
+on('playerJoin', ({ player }) =>
+  delivery.count(player.name).then((waiting) => {
     if (waiting > 0) {
       sendMessage(
         player,
@@ -254,8 +261,8 @@ on('playerJoin', ({ player }) => {
         ),
       );
     }
-  });
-});
+  }),
+);
 
 provide('mail', {
   send,

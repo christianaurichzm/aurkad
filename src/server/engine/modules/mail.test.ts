@@ -7,6 +7,7 @@ import {
   afterAll,
   beforeEach,
   afterEach,
+  vi,
 } from 'vitest';
 import mongoose from 'mongoose';
 import type { MongoMemoryServer } from 'mongodb-memory-server';
@@ -18,7 +19,7 @@ import { unloadAllModules } from './moduleLoader.js';
 import { loadModulesForTest } from '../../../test/modules.js';
 import { clearProvides, useApi } from './registry.js';
 import { clearCommands } from '../commands.js';
-import { clearAll } from '../hooks.js';
+import { clearAll, emit } from '../hooks.js';
 import { createFixture } from '../../sim/simFixture.js';
 import type { PlayerServer } from '../../../shared/types.js';
 
@@ -101,5 +102,35 @@ describe('postage', () => {
 
     expect(sent).toBeGreaterThan(0);
     expect(gold(ana)).toBe(100 - 10 * sent);
+  });
+});
+
+describe('a database that fails', () => {
+  // The server ends on an unhandled rejection, so every handler has to hand
+  // its promise to a wrapper that logs it.
+  it('is logged rather than left to reject unobserved', async () => {
+    const ana = await playerWith('Ana', []);
+    const unhandled = vi.fn();
+    process.on('unhandledRejection', unhandled);
+    const down = () => {
+      throw new Error('database down');
+    };
+    vi.spyOn(DeliveryModel, 'find').mockImplementation(down);
+    vi.spyOn(DeliveryModel, 'countDocuments').mockImplementation(down);
+    try {
+      emit('playerJoin', { player: ana });
+      for (const channel of ['mail:request', 'mail:claim', 'mail:send']) {
+        emit('customAction', {
+          player: ana,
+          channel,
+          payload: { to: 'Bea', itemId: SWORD },
+        });
+      }
+      await new Promise((resolve) => setTimeout(resolve, 20));
+      expect(unhandled).not.toHaveBeenCalled();
+    } finally {
+      process.off('unhandledRejection', unhandled);
+      vi.restoreAllMocks();
+    }
   });
 });
