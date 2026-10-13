@@ -79,15 +79,15 @@ export function resetCoroutines(): void {
 const deadHandle: CoroutineHandle = { cancel: () => {}, done: true };
 
 /**
- * Starts `fn` as a coroutine owned by `script`.
- *
- * It runs immediately up to its first yield rather than waiting a tick, so the
- * opening of a cutscene lands on the frame that triggered it. Everything after
- * a yield is resumed by the tick.
+ * Starts `fn` as a coroutine owned by `script`. It runs at once up to its
+ * first yield, so a cutscene opens on the frame that triggered it, and the
+ * tick resumes the rest. `onEnd` is called exactly once, however it ends,
+ * and possibly before this function returns.
  */
 export function startCoroutine(
   script: string,
   fn: () => Generator<unknown, unknown, unknown>,
+  onEnd?: (handle: CoroutineHandle) => void,
 ): CoroutineHandle {
   if (typeof fn !== 'function') {
     fail(
@@ -133,6 +133,7 @@ export function startCoroutine(
       finished = true;
       clearWait();
       live.delete(handle);
+      onEnd?.(handle);
       // `return()` runs the generator's own finally blocks, which is how a
       // script releases what the sequence took (a frozen player, a spawned
       // npc) instead of leaking it on every reload.
@@ -152,6 +153,7 @@ export function startCoroutine(
     finished = true;
     clearWait();
     live.delete(handle);
+    onEnd?.(handle);
   };
 
   /**

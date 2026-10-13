@@ -123,7 +123,12 @@ import {
   type HttpRequestOptions,
   type HttpResponse,
 } from './httpOut.js';
-import { startCoroutine, wait, waitFor } from './coroutines.js';
+import {
+  startCoroutine,
+  wait,
+  waitFor,
+  type CoroutineHandle,
+} from './coroutines.js';
 import {
   registerEntityBehavior,
   type EntityBehavior,
@@ -251,6 +256,18 @@ export function buildApi(
     trackUnsub(unsub);
     return unsub;
   }
+
+  // What the script scheduled or started and is still pending, cancelled with
+  // it. A task leaves when it fires and a coroutine when it ends, so a script
+  // that starts one per event and never reloads holds only the pending ones.
+  // Coroutines go first, because their finally blocks may schedule.
+  const liveTasks = new Set<number>();
+  const liveCoroutines = new Set<CoroutineHandle>();
+  trackUnsub(() => {
+    for (const handle of [...liveCoroutines]) handle.cancel();
+    for (const id of liveTasks) cancelScheduled(id);
+    liveTasks.clear();
+  });
 
   return {
     // Hooks
@@ -901,12 +918,16 @@ export function buildApi(
     // scheduled this way is captured by the replay recorder and reproduces
     // exactly on re-run. Use msToTicks() when you think in seconds.
     after: (ticks: number, fn: () => void): number => {
+      const run = attributed(fn, 'schedule', 'after');
       const id = scheduleAfter(
         ticks,
-        attributed(fn, 'schedule', 'after'),
+        () => {
+          liveTasks.delete(id);
+          run();
+        },
         scriptName,
       );
-      trackUnsub(() => cancelScheduled(id));
+      liveTasks.add(id);
       return id;
     },
     every: (ticks: number, fn: () => void): number => {
@@ -915,10 +936,13 @@ export function buildApi(
         attributed(fn, 'schedule', 'every'),
         scriptName,
       );
-      trackUnsub(() => cancelScheduled(id));
+      liveTasks.add(id);
       return id;
     },
-    cancel: (id: number): void => cancelScheduled(id),
+    cancel: (id: number): void => {
+      cancelScheduled(id);
+      liveTasks.delete(id);
+    },
     msToTicks,
     TICK_RATE: config.gameLoop.tickRate,
 
@@ -926,8 +950,10 @@ export function buildApi(
     // Cancelled on reload like everything else, or a coroutine from a file
     // that no longer exists would run old code against the new world.
     coroutine: (fn: () => Generator<unknown, unknown, unknown>) => {
-      const handle = startCoroutine(scriptName, fn);
-      trackUnsub(() => handle.cancel());
+      const handle = startCoroutine(scriptName, fn, (ended) =>
+        liveCoroutines.delete(ended),
+      );
+      if (!handle.done) liveCoroutines.add(handle);
       return handle;
     },
     wait,

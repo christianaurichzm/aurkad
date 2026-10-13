@@ -26,6 +26,7 @@ import {
 } from './handlerBudget.js';
 import { clearScriptErrors, getScriptErrors } from './scriptErrors.js';
 import { runInSandbox } from './sandbox.js';
+import { buildApi } from './api.js';
 import { config } from '../../config.js';
 
 // One simulated tick: advance the clock, then drain what is due.
@@ -451,6 +452,27 @@ describe('a script reload takes its coroutines with it', () => {
 
     handle.cleanup();
     expect(activeCoroutineCount()).toBe(0);
+  });
+
+  // A script that starts a sequence per event never reloads in between.
+  it('holds nothing for the reload past a sequence that ended or a task that fired', () => {
+    const cleanups: (() => void)[] = [];
+    const api = buildApi(
+      'busy.js',
+      (fn) => cleanups.push(fn),
+      () => {},
+    );
+    const registered = cleanups.length;
+
+    for (let i = 0; i < 3; i++) {
+      api.coroutine(function* () {
+        yield wait(1);
+      });
+      api.after(1, () => {});
+    }
+    tick(2);
+
+    expect(cleanups.length).toBe(registered);
   });
 
   it('runs the sequence written the way a script would write it', () => {
