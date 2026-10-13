@@ -1,7 +1,11 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { TILE_SIZE, MOVEMENT_DURATION } from '../../../../shared/constants';
 import { CharacterAction, Direction, Position } from '../../../../shared/types';
-import { setStaticMap, setPlayerStats } from '../../../core/gameState';
+import {
+  setStaticMap,
+  setPlayerStats,
+  getPlayer,
+} from '../../../core/gameState';
 import {
   getAnimatedState,
   clearMovementQueues,
@@ -233,5 +237,16 @@ describe('floating numbers', () => {
       320 - 4,
       '17',
     ]);
+  });
+});
+
+describe('a hidden tab', () => {
+  // No frame runs to drain the queue while the tab is in the background.
+  it('applies each update as it arrives', () => {
+    vi.spyOn(document, 'hidden', 'get').mockReturnValue(true);
+
+    enqueueFull({ x: TILE_SIZE * 3, y: 0 });
+
+    expect(getPlayer()?.position).toEqual({ x: TILE_SIZE * 3, y: 0 });
   });
 });

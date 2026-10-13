@@ -124,6 +124,9 @@ onServerEvent('spell:visual', (payload) => {
 
 export function enqueueGameStateMessage(message: GameStateMessage) {
   gameStateQueue.push(message);
+  // A hidden tab draws no frames, and frames drain this queue: without this a
+  // background tab holds every update and applies them all when it comes back.
+  if (document.hidden) updateWebSocket();
 }
 
 /**
