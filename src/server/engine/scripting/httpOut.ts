@@ -256,9 +256,12 @@ export async function httpRequest(
     attributes: { 'script.name': scriptName },
   });
 
+  let target: URL | undefined;
+  // The host and not the URL, for the reason the span above carries only the
+  // host: whoever reads the log would otherwise hold the webhook.
   const failed = (error: string): HttpResponse => {
     logger.warn(`[script:${scriptName}] http request failed`, {
-      url: rawUrl,
+      host: target?.host,
       error,
     });
     span.fail(error);
@@ -266,7 +269,6 @@ export async function httpRequest(
     return { ok: false, status: 0, body: '', error };
   };
 
-  let target: URL;
   try {
     target = new URL(String(rawUrl));
   } catch {

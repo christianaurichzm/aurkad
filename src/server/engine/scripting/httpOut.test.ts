@@ -12,6 +12,7 @@ import {
 } from 'vitest';
 import { createServer, type IncomingMessage, type Server } from 'node:http';
 import type { AddressInfo } from 'node:net';
+import { logger } from '../../logger.js';
 import { httpRequest, send } from './httpOut.js';
 
 /**
@@ -247,6 +248,21 @@ describe('httpRequest', () => {
 
     expect(res).toMatchObject({ ok: false, status: 0 });
     expect(res.error).toBeTruthy();
+  });
+
+  // A webhook address is its own secret: a Discord one is a token in the path.
+  it('logs the host of a failed request and not the rest of its address', async () => {
+    const warn = vi.spyOn(logger, 'warn');
+
+    await httpRequest('s.js', 'http://user:pw@192.0.2.1/hooks/secret?t=key', {
+      timeoutMs: 1,
+    });
+
+    expect(warn).toHaveBeenCalled();
+    const logged = JSON.stringify(warn.mock.calls);
+    expect(logged).toContain('192.0.2.1');
+    expect(logged).not.toMatch(/secret|key|pw/);
+    warn.mockRestore();
   });
 
   it('reports an unserializable json body instead of throwing', async () => {
