@@ -12,6 +12,7 @@ import { clearKvStoreMemory } from '../../persistence/kvStore.js';
 import { handleCustomAction } from '../../services/comms/customEventService.js';
 import { createFixture, tile } from '../../sim/simFixture.js';
 import { gameConfig } from '../../gameConfig.js';
+import { config } from '../../config.js';
 import { useItem } from '../../services/economy/inventoryService.js';
 import { items } from '../../services/content/itemService.js';
 import { registeredBehaviors } from '../scripting/entityScripts.js';
@@ -172,6 +173,37 @@ describe('magic module', () => {
 
     expect(caster.health).toBe(40); // not healed
     expect(caster.data?.mana).toBe(5); // unchanged
+  });
+
+  it('refuses to cast when the mana it costs cannot be stored', () => {
+    const sim = createFixture(0);
+    const caster = sim.addPlayer({ name: 'Alice', health: 40, maxHealth: 100 });
+    // A bag at its key limit, with no mana key yet to update.
+    caster.data = Object.fromEntries(
+      Array.from({ length: config.scriptData.maxKeys }, (_, i) => [`k${i}`, 0]),
+    );
+    sim.step(1);
+
+    castVia('spell:cast', 'Alice', 'heal');
+
+    expect(caster.health).toBe(40);
+  });
+
+  it('gives the mana back when the spell throws', () => {
+    const sim = createFixture(0);
+    const caster = sim.addPlayer({ name: 'Alice' });
+    const magic = useApi<MagicApi>('magic')!;
+    magic.defineSpell({
+      id: 'broken',
+      name: 'Broken',
+      cost: 10,
+      cast: () => {
+        throw new Error('broken spell');
+      },
+    } as never);
+
+    expect(magic.cast(caster, 'broken')).toBe(false);
+    expect(caster.data?.mana ?? 100).toBe(100);
   });
 
   it('pushes a magic:update to the client on request', () => {

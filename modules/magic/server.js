@@ -101,11 +101,15 @@ function cast(player, spellId) {
 
   const mana = getMana(player);
   if (mana < spell.cost) return false; // not enough mana
+  // Paid before the effect, since player data can refuse the write and the
+  // spell would then be free.
+  if (!setMana(player, mana - spell.cost)) return false;
 
   try {
     spell.cast(player);
   } catch (e) {
     error('spell "' + spellId + '" threw: ' + e);
+    setMana(player, mana);
     return false;
   }
 
@@ -119,7 +123,6 @@ function cast(player, spellId) {
     });
   }
 
-  setMana(player, mana - spell.cost);
   cd[spellId] = tickNow + msToTicks(spell.cooldownMs || 0);
   pushState(player);
   return true;
