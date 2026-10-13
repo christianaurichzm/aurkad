@@ -1,6 +1,7 @@
 import ArrowModel from '../../model/Arrow.js';
 import type { Arrow } from '../../../shared/types.js';
 import { CreateArrowBodySchema, unsetAbsent } from '../../http/bodySchemas.js';
+import { getNextIdAbove } from '../dbService.js';
 
 export const arrows = new Map<number, Arrow>();
 
@@ -22,7 +23,7 @@ export async function createOrUpdateArrow(
       .sort({ id: -1 })
       .lean<Arrow>()
       .exec();
-    arrow.id = (max?.id ?? 0) + 1;
+    arrow.id = await getNextIdAbove('arrow', max?.id ?? 0);
   }
   const result = await ArrowModel.findOneAndUpdate(
     { id: arrow.id },

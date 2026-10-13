@@ -104,7 +104,7 @@ export async function getNextMapId(): Promise<number> {
  * pack's. Never lowers it, since a gap is harmless and a reused id is not.
  */
 export async function raiseCounter(
-  name: 'item' | 'npc' | 'map',
+  name: 'item' | 'npc' | 'map' | 'arrow' | 'spell',
   highestId: number,
 ): Promise<void> {
   if (!Number.isFinite(highestId) || highestId <= 0) return;
@@ -113,4 +113,26 @@ export async function raiseCounter(
     { $max: { seq: Math.floor(highestId) } },
     { upsert: true },
   );
+}
+
+/**
+ * The next id for a collection that predates its counter, given the highest
+ * id already in it.
+ *
+ * The highest id alone is no allocator: two creations at once read the same
+ * one, and the second upsert overwrites the first. The counter is raised to it
+ * and then incremented, each an atomic write, so two at once get two ids, and
+ * documents that came with their own (a pack, a seed) are stepped over.
+ */
+export async function getNextIdAbove(
+  name: 'arrow' | 'spell',
+  highestId: number,
+): Promise<number> {
+  await raiseCounter(name, highestId);
+  const result = await Counter.findByIdAndUpdate(
+    name,
+    { $inc: { seq: 1 } },
+    { upsert: true, returnDocument: 'after' },
+  );
+  return result.seq;
 }

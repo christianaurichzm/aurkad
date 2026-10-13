@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import SpellModel from '../../model/Spell.js';
 import type { Spell } from '../../../shared/types.js';
+import { getNextIdAbove } from '../dbService.js';
 
 /**
  * What a spell has to be to reach the database. In the service because the
@@ -57,7 +58,7 @@ export async function createOrUpdateSpell(
       .sort({ id: -1 })
       .lean<Spell>()
       .exec();
-    id = (max?.id ?? 0) + 1;
+    id = await getNextIdAbove('spell', max?.id ?? 0);
   }
   const result = await SpellModel.findOneAndUpdate(
     { id },
