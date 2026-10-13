@@ -109,6 +109,15 @@ describe('scheduler', () => {
       tick(3);
       expect(fn).toHaveBeenCalledTimes(1);
     });
+
+    it('does not run a task another one cancelled earlier in the same tick', () => {
+      const cancelled = vi.fn();
+      let id = 0;
+      scheduleAfter(1, () => cancelScheduled(id));
+      id = scheduleAfter(1, cancelled);
+      tick();
+      expect(cancelled).not.toHaveBeenCalled();
+    });
   });
 
   describe('isolation', () => {

@@ -89,6 +89,8 @@ export function runScheduledTasks(): void {
   if (dueBuffer.length === 0) return;
 
   for (const task of dueBuffer) {
+    // Cancelled by a task that ran earlier in this drain.
+    if (tasks.get(task.id) !== task) continue;
     // Re-arm (or retire) before running, so a throwing repeat task still
     // advances instead of firing every tick forever.
     if (task.intervalTicks > 0) task.dueTick = tick + task.intervalTicks;
