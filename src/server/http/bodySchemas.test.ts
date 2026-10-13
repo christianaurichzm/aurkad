@@ -59,6 +59,14 @@ describe('RegisterBodySchema', () => {
       RegisterBodySchema.safeParse({ username: '', password: 'pass' }).success,
     ).toBe(false);
   });
+  it('rejects a name an object inherits', () => {
+    for (const username of ['__proto__', 'constructor', 'toString']) {
+      expect(
+        RegisterBodySchema.safeParse({ username, password: 'password' })
+          .success,
+      ).toBe(false);
+    }
+  });
 });
 
 describe('BanBodySchema', () => {

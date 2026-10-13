@@ -182,12 +182,14 @@ const passwordShort = `Passwords are at least ${account.passwordMinLength} chara
 const nameShort = `Names are at least ${account.usernameMinLength} characters`;
 const nameLong = `Names are at most ${account.usernameMaxLength} characters`;
 const nameChars = 'That name has characters this game does not allow';
+const nameReserved = 'That name is reserved';
 registerStrings({
   pt: {
     [passwordShort]: `Senhas têm pelo menos ${account.passwordMinLength} caracteres`,
     [nameShort]: `Nomes têm pelo menos ${account.usernameMinLength} caracteres`,
     [nameLong]: `Nomes têm no máximo ${account.usernameMaxLength} caracteres`,
     [nameChars]: 'Esse nome tem caracteres que este jogo não aceita',
+    [nameReserved]: 'Esse nome é reservado',
   },
 });
 
@@ -201,7 +203,10 @@ export const RegisterBodySchema = z.object({
     .string()
     .min(account.usernameMinLength, nameShort)
     .max(account.usernameMaxLength, nameLong)
-    .regex(new RegExp(account.usernamePattern, 'u'), nameChars),
+    .regex(new RegExp(account.usernamePattern, 'u'), nameChars)
+    // Modules and scripts key plain objects by player name, where `__proto__`
+    // or `constructor` would reach the object every other entry inherits from.
+    .refine((name) => !(name in Object.prototype), nameReserved),
   password: NewPassword,
 });
 
