@@ -24,6 +24,7 @@ import {
   refuseEntry,
 } from '../../services/player/playerService.js';
 import { toMapMeta } from '../../net/serialization.js';
+import { getMapById, ownsMap } from '../../services/world/mapService.js';
 import { serverState } from '../../services/serverState.js';
 import { playersWsMap } from '../../net/connections.js';
 import { WebSocket } from 'ws';
@@ -145,6 +146,14 @@ export function createAuthRouter() {
         });
       }
 
+      // A character saved on a map another instance runs enters no map here:
+      // the socket the client opens next is what sends it there. The client
+      // opens that socket only once it has a map to open the game on, so the
+      // answer carries this one's outline, read before anything is held.
+      const awayMap = ownsMap(runtimePlayer.mapId)
+        ? null
+        : await getMapById(runtimePlayer.mapId);
+
       // The socket above is this process only; the lease asks every
       // instance. Whoever holds it may write this character, so a second
       // session elsewhere would lose its progress to the first one's flush.
@@ -174,7 +183,7 @@ export function createAuthRouter() {
       req.session.accessLevel = player.access ?? Access.USER;
       req.session.authEpoch = authEpoch;
 
-      const map = enterWorld(runtimePlayer);
+      const map = enterWorld(runtimePlayer) ?? awayMap;
 
       const mapMeta = map ? toMapMeta(map) : null;
       req.session.save((err) => {

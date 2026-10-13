@@ -25,6 +25,8 @@ import { getPlayerByName } from '../../sim/world.js';
 import { runtimeState } from '../../sim/state.js';
 import { createFixture, makeTiles } from '../../sim/simFixture.js';
 import { gameConfig } from '../../gameConfig.js';
+import { config } from '../../config.js';
+import GameMapModel from '../../model/Map.js';
 import { Access } from '../../../shared/types.js';
 import {
   enableTwoFactor,
@@ -247,6 +249,31 @@ describe('POST /login', () => {
     expect(res.body.map?.id).toBe(gameConfig.world.startMapId);
     expect(res.headers['set-cookie']).toBeDefined();
     expect(getPlayerByName('Alice')).toBeDefined();
+  });
+
+  // The client opens the socket that redirects it only once it has a map to
+  // open the game on.
+  it('answers with the map another instance runs when the character is on it', async () => {
+    await createPlayer('Alice', await hashPw('correcthorse'));
+    await PlayerModel.updateOne({ name: 'Alice' }, { mapId: 'away' });
+    await GameMapModel.create({
+      id: 'away',
+      name: 'Away',
+      type: 'normal',
+      tiles: makeTiles(6, 4),
+    });
+    const instance = config.instance as { mapIds?: string[] };
+    instance.mapIds = [gameConfig.world.startMapId];
+    try {
+      const res = await request(app)
+        .post('/login')
+        .send({ username: 'Alice', password: 'correcthorse' });
+
+      expect(res.status).toBe(200);
+      expect(res.body.map).toMatchObject({ id: 'away', name: 'Away' });
+    } finally {
+      instance.mapIds = undefined;
+    }
   });
 
   // Default: the cookie dies with the browser. Closing the client should not
