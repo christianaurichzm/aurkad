@@ -9,7 +9,7 @@ const PasswordResetSchema = new mongoose.Schema({
   tokenHash: { type: String, required: true, unique: true },
   expiresAt: { type: Date, required: true },
   email: { type: String, lowercase: true, trim: true },
-  // A reset link's account generation when it was minted. A password written
+  // The account's generation when the link was minted. A password written
   // after that is a reason the link must not work, even mid-spend.
   authEpoch: Number,
 });

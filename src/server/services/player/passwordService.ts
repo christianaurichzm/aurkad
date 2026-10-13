@@ -33,7 +33,7 @@ const hashToken = (token: string) =>
 
 async function mintToken(
   username: string,
-  bound: { email: string } | { authEpoch: number },
+  bound: { authEpoch: number; email?: string },
 ) {
   const token = crypto.randomBytes(32).toString('base64url');
   const expiresAt = new Date(Date.now() + RESET_TOKEN_TTL_MS);
@@ -66,6 +66,12 @@ async function spendToken(token: string, withAddress: boolean) {
   }).exec();
 }
 
+// An account written before the generation existed has no field, and the
+// session check reads that as 0.
+const inEpoch = (authEpoch: number) => ({
+  authEpoch: authEpoch === 0 ? { $in: [0, null] } : authEpoch,
+});
+
 /**
  * `proof` is what the caller's right to write was checked against: the
  * hash a change proved knowledge of, or the generation a reset link was
@@ -79,12 +85,7 @@ async function writePassword(
   proof: { password: string } | { authEpoch: number },
 ): Promise<boolean> {
   const hash = await bcrypt.hash(password, SALT_ROUNDS);
-  // An account written before the generation existed has no field, and the
-  // session check reads that as 0.
-  const guard =
-    'authEpoch' in proof && proof.authEpoch === 0
-      ? { authEpoch: { $in: [0, null] } }
-      : proof;
+  const guard = 'authEpoch' in proof ? inEpoch(proof.authEpoch) : proof;
   // One write, because a changed password with the earlier sessions still
   // alive is what an interruption must not leave behind: whoever is being
   // locked out is exactly who those sessions belong to.
@@ -147,12 +148,18 @@ export async function createResetToken(username: string): Promise<{
  * token and is copied to the account when the link comes back: one stored
  * before it answers is a typo that mails the next reset link, and so the
  * account, to a stranger.
+ *
+ * `authEpoch` is the generation the caller's password check read. The link
+ * dies with any password change after it, so somebody who had the
+ * account cannot point its recovery at their own inbox while the owner is
+ * taking it back.
  */
 export async function createEmailToken(
   username: string,
   email: string,
+  authEpoch: number,
 ): Promise<{ token: string; expiresAt: Date }> {
-  return mintToken(username, { email });
+  return mintToken(username, { email, authEpoch });
 }
 
 /**
@@ -163,13 +170,15 @@ export async function createEmailToken(
  */
 export async function confirmEmailToken(token: string): Promise<ResetResult> {
   const row = await spendToken(token, true);
-  if (!row?.email) return 'invalid-token';
+  if (!row?.email || typeof row.authEpoch !== 'number') return 'invalid-token';
 
-  await PlayerModel.updateOne(
-    { name: row.username },
+  // Conditional on the generation for the same reason a password write is: a
+  // change can land between the spend above and this write.
+  const written = await PlayerModel.updateOne(
+    { name: row.username, ...inEpoch(row.authEpoch) },
     { email: row.email },
   ).exec();
-  return 'ok';
+  return written.matchedCount === 1 ? 'ok' : 'invalid-token';
 }
 
 /** Spends a token. One use, and only while it is still in date. */

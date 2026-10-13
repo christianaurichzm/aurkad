@@ -289,7 +289,9 @@ export function createAuthRouter() {
       const body = parseBody(SetEmailBodySchema, req.body, res);
       if (!body) return;
 
-      const record = await getPlayerByNameFromDb(username);
+      // Read with the generation, so the link is bound to the password that
+      // was checked rather than to whatever is current once the hash returns.
+      const record = await getPlayerForAuthentication(username);
       if (!record)
         return res
           .status(404)
@@ -300,7 +302,11 @@ export function createAuthRouter() {
           .json({ message: translateFor(req, 'Current password is wrong') });
       }
 
-      const { token } = await createEmailToken(record.name, body.email);
+      const { token } = await createEmailToken(
+        record.name,
+        body.email,
+        record.authEpoch ?? 0,
+      );
       const sent = await sendMail({
         to: body.email,
         subject: 'Confirm your address',
