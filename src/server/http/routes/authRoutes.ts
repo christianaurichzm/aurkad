@@ -187,22 +187,25 @@ export function createAuthRouter() {
       req.session.accessLevel = player.access ?? Access.USER;
       req.session.authEpoch = authEpoch;
 
-      const map = enterWorld(character) ?? awayMap;
+      // Saved before the character enters the world: a failure here answers
+      // 500 and lets go of the lease, and a character already in would stay
+      // there with no socket and no session to ever close it.
+      const saveError = await new Promise<unknown>((resolve) =>
+        req.session.save(resolve),
+      );
+      if (saveError) {
+        logger.error('Session save failed', { err: saveError });
+        // The lease was taken for a session that does not exist: held, it
+        // would keep this account out of every instance until it expired.
+        void releasePresence(player.id);
+        return res.status(500).json({ message: 'Failed to save session' });
+      }
 
-      const mapMeta = map ? toMapMeta(map) : null;
-      req.session.save((err) => {
-        if (err) {
-          logger.error('Session save failed', { err });
-          // The lease was taken for a session that does not exist: held, it
-          // would keep this account out of every instance until it expired.
-          void releasePresence(player.id);
-          return res.status(500).json({ message: 'Failed to save session' });
-        }
-        res.status(200).json({
-          player,
-          map: mapMeta,
-          ...(serverState.motd ? { motd: serverState.motd } : {}),
-        });
+      const map = enterWorld(character) ?? awayMap;
+      res.status(200).json({
+        player,
+        map: map ? toMapMeta(map) : null,
+        ...(serverState.motd ? { motd: serverState.motd } : {}),
       });
     },
   );

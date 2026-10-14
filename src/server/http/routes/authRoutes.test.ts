@@ -275,6 +275,30 @@ describe('POST /login', () => {
     }
   });
 
+  it('leaves the character out of the world when the session cannot be saved', async () => {
+    await createPlayer('Alice', await hashPw('correcthorse'));
+    const store = new session.MemoryStore();
+    store.set = (_sid, _session, done) => done?.(new Error('store down'));
+    const failing = express();
+    failing.use(express.json());
+    failing.use(
+      session({
+        secret: 'test-secret',
+        resave: false,
+        saveUninitialized: false,
+        store,
+      }),
+    );
+    failing.use(createAuthRouter());
+
+    const res = await request(failing)
+      .post('/login')
+      .send({ username: 'Alice', password: 'correcthorse' });
+
+    expect(res.status).toBe(500);
+    expect(getPlayerByName('Alice')).toBeUndefined();
+  });
+
   // The client opens the socket that redirects it only once it has a map to
   // open the game on.
   it('answers with the map another instance runs when the character is on it', async () => {
