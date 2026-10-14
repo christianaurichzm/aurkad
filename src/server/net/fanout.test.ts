@@ -5,6 +5,7 @@ import { emitGameEvent } from '../engine/eventBus.js';
 import { createFixture } from '../sim/simFixture.js';
 import { setIgnored } from '../services/serverState.js';
 import { playersWsMap } from './connections.js';
+import { config } from '../config.js';
 import {
   broadcastChat,
   broadcastMapChat,
@@ -14,10 +15,11 @@ import {
 
 type FakeSocket = WebSocket & { sent: string[] };
 
-function connect(name: string, readyState = 1): FakeSocket {
+function connect(name: string, readyState = 1, bufferedAmount = 0): FakeSocket {
   const sent: string[] = [];
   const ws = {
     readyState,
+    bufferedAmount,
     sent,
     send: (data: string) => sent.push(data),
   } as unknown as FakeSocket;
@@ -52,6 +54,24 @@ describe('broadcastChat', () => {
 
     expect(parsed(open)).toEqual([chat('hello')]);
     expect(closing.sent).toEqual([]);
+  });
+});
+
+// What a socket has not sent yet sits in this process's memory, and a client
+// that stops reading keeps it there.
+describe('a socket too far behind', () => {
+  it('is sent nothing more, by chat or by event, until it drains', () => {
+    fx.addPlayer({ name: 'a' });
+    const behind = connect('a', 1, config.ws.maxBufferedBytes + 1);
+    const reading = connect('b');
+
+    broadcastChat(chat('hello'));
+    emitGameEvent({ type: 'customAll', channel: 'ch', payload: {} });
+    emitGameEvent({ type: 'chatPlayer', username: 'a', payload: chat('dm') });
+    flushGameEvents();
+
+    expect(behind.sent).toEqual([]);
+    expect(reading.sent).toHaveLength(2);
   });
 });
 

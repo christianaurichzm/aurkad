@@ -5,18 +5,27 @@ import { drainGameEvents } from '../engine/eventBus.js';
 import { getPlayerByName } from '../services/player/playerService.js';
 import { hearsFrom } from '../services/serverState.js';
 import { playersWsMap } from './connections.js';
+import { config } from '../config.js';
 
 // Chat and custom-event fan-out to connected clients. Kept separate from the
 // per-player game-state snapshot in snapshot.ts: these functions hold no
 // snapshot/delta state, they just route a message to the relevant sockets.
 
+// The snapshot's backpressure rule, for everything else that goes out. A
+// socket this far behind is sent nothing more until it drains: a client that
+// reads slowly, or never, would otherwise hold the server's whole chat in
+// this process's memory.
+function deliver(ws: WebSocket | undefined, data: string): void {
+  if (ws?.readyState !== WebSocket.OPEN) return;
+  if (ws.bufferedAmount > config.ws.maxBufferedBytes) return;
+  ws.send(data);
+}
+
 export function broadcastChat(message: ChatMessagePayload) {
   const data = JSON.stringify(message);
 
   playersWsMap.forEach((ws, name) => {
-    if (ws.readyState === WebSocket.OPEN && hearsFrom(name, message.username)) {
-      ws.send(data);
-    }
+    if (hearsFrom(name, message.username)) deliver(ws, data);
   });
 }
 
@@ -28,13 +37,8 @@ export function broadcastMapChat(
   const map = getMap(player?.mapId);
 
   Object.values(map?.players ?? {}).forEach((p) => {
-    const ws = playersWsMap.get(p.name);
-    if (
-      ws?.readyState === WebSocket.OPEN &&
-      hearsFrom(p.name, message.username)
-    ) {
-      ws.send(JSON.stringify(message));
-    }
+    if (hearsFrom(p.name, message.username))
+      deliver(playersWsMap.get(p.name), JSON.stringify(message));
   });
 }
 
@@ -43,13 +47,8 @@ export function broadcastToMap(mapId: string, message: ChatMessagePayload) {
   if (!map) return;
 
   Object.values(map.players).forEach((player) => {
-    const ws = playersWsMap.get(player.name);
-    if (
-      ws?.readyState === WebSocket.OPEN &&
-      hearsFrom(player.name, message.username)
-    ) {
-      ws.send(JSON.stringify(message));
-    }
+    if (hearsFrom(player.name, message.username))
+      deliver(playersWsMap.get(player.name), JSON.stringify(message));
   });
 }
 
@@ -59,13 +58,12 @@ export function flushGameEvents() {
 
   for (const event of events) {
     switch (event.type) {
-      case 'openShop': {
-        const ws = playersWsMap.get(event.username);
-        if (ws?.readyState === WebSocket.OPEN) {
-          ws.send(JSON.stringify({ type: 'openShop', shopId: event.shopId }));
-        }
+      case 'openShop':
+        deliver(
+          playersWsMap.get(event.username),
+          JSON.stringify({ type: 'openShop', shopId: event.shopId }),
+        );
         break;
-      }
       case 'chatGlobal':
         broadcastChat(event.payload);
         break;
@@ -75,29 +73,23 @@ export function flushGameEvents() {
       case 'chatMapId':
         broadcastToMap(event.mapId, event.payload);
         break;
-      case 'chatPlayer': {
-        const ws = playersWsMap.get(event.username);
-        if (
-          ws?.readyState === WebSocket.OPEN &&
-          hearsFrom(event.username, event.payload.username)
-        ) {
-          ws.send(JSON.stringify(event.payload));
-        }
-        break;
-      }
-      case 'customPlayer': {
-        const ws = playersWsMap.get(event.username);
-        if (ws?.readyState === WebSocket.OPEN) {
-          ws.send(
-            JSON.stringify({
-              type: 'custom',
-              channel: event.channel,
-              payload: event.payload,
-            }),
+      case 'chatPlayer':
+        if (hearsFrom(event.username, event.payload.username))
+          deliver(
+            playersWsMap.get(event.username),
+            JSON.stringify(event.payload),
           );
-        }
         break;
-      }
+      case 'customPlayer':
+        deliver(
+          playersWsMap.get(event.username),
+          JSON.stringify({
+            type: 'custom',
+            channel: event.channel,
+            payload: event.payload,
+          }),
+        );
+        break;
       case 'customMap':
         sendCustomToMap(event.mapId, event.channel, event.payload);
         break;
@@ -110,17 +102,14 @@ export function flushGameEvents() {
 
 function broadcastCustom(channel: string, payload: unknown) {
   const data = JSON.stringify({ type: 'custom', channel, payload });
-  playersWsMap.forEach((ws) => {
-    if (ws.readyState === WebSocket.OPEN) ws.send(data);
-  });
+  playersWsMap.forEach((ws) => deliver(ws, data));
 }
 
 function sendCustomToMap(mapId: string, channel: string, payload: unknown) {
   const map = getMap(mapId);
   if (!map) return;
   const data = JSON.stringify({ type: 'custom', channel, payload });
-  Object.values(map.players).forEach((player) => {
-    const ws = playersWsMap.get(player.name);
-    if (ws?.readyState === WebSocket.OPEN) ws.send(data);
-  });
+  Object.values(map.players).forEach((player) =>
+    deliver(playersWsMap.get(player.name), data),
+  );
 }

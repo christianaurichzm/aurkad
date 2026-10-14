@@ -379,8 +379,8 @@ export const config = {
       min: 5_000,
       max: 120_000,
     }),
-    // A client whose outbound buffer exceeds this is skipped for the tick
-    // rather than sent more snapshots, bounding memory for slow consumers.
+    // A client whose outbound buffer exceeds this is sent nothing, not even a
+    // snapshot, until it drains, bounding memory for slow consumers.
     maxBufferedBytes: parseIntEnv('WS_MAX_BUFFERED_BYTES', 256 * 1024, {
       min: 16 * 1024,
       max: 16 * 1024 * 1024,
