@@ -8,7 +8,7 @@ import {
   RuntimeNpc,
   MapStateServer,
 } from '../../../shared/types.js';
-import { hasCollision } from '../world/physicsService.js';
+import { hasCollision, tileBlocks } from '../world/physicsService.js';
 import { resolveDamage, swing } from '../combat/index.js';
 import { queryEntitiesInRadius } from '../../sim/spatialManager.js';
 import { randomInt } from '../../sim/rng.js';
@@ -64,15 +64,16 @@ const BFS_DIRS = [
 // to targetPos, or null at the goal or with no path within maxDepth. Only
 // static tiles block here; entities are checked by hasCollision at move
 // time. A player walking to a clicked cell takes the same path, passing in
-// `avoid` the cells it found occupied, and `forNpc` false: `avoidNpc` fences
-// npcs in and lets players through, as collision does (isTileBlocked).
+// `avoid` the cells it found occupied. Tiles are judged for `walker` by
+// tileBlocks: `avoidNpc` fences npcs in, and a script's conditionalBlock
+// lets players by.
 export function bfsNextStep(
   npcPos: Position,
   targetPos: Position,
   map: MapStateServer,
   maxDepth: number,
+  walker: CombatTarget,
   avoid: readonly Position[] = [],
-  forNpc = true,
 ): { x: number; y: number; dir: Direction } | null {
   const sc = Math.floor(npcPos.x / TILE_SIZE);
   const sr = Math.floor(npcPos.y / TILE_SIZE);
@@ -111,7 +112,7 @@ export function bfsNextStep(
       const isGoal = nc === gc && nr === gr;
       if (!isGoal) {
         const tile = map.tiles[nr]?.[nc];
-        if (!tile || tile.blocked || (forNpc && tile.avoidNpc)) continue;
+        if (!tile || tileBlocks(tile, walker)) continue;
       }
 
       visited.add(key);
@@ -165,7 +166,7 @@ export function stepNpcToward(
   const depth = npc.pathDepth ?? DEFAULT_PATH_DEPTH;
   const step =
     depth > 0
-      ? bfsNextStep(npc.position, target.position, map, depth)
+      ? bfsNextStep(npc.position, target.position, map, depth, npc)
       : greedyStep(npc.position, target.position);
 
   if (!step) {

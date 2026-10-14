@@ -514,8 +514,8 @@ function followPath(
       goalAt,
       map,
       CLICK_PATH_DEPTH,
+      player,
       goal.avoid,
-      false,
     );
   let step = plan();
   if (step && occupied(step)) {

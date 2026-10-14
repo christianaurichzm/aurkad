@@ -61,14 +61,17 @@ const isTileBlocked = (
   }
 
   const tile = map.tiles[row]?.[col];
-  if (!tile) return false;
-
-  if (character.kind === 'npc') {
-    return !!tile.blocked || !!tile.avoidNpc;
-  }
-
-  return !!tile.blocked && !passesCondition(tile, character);
+  return !!tile && tileBlocks(tile, character);
 };
+
+/**
+ * Whether this tile stops `character`, map edges aside. Also what a path is
+ * planned against, so a click finds the way the keys can walk.
+ */
+export const tileBlocks = (tile: Tile, character: CombatTarget): boolean =>
+  character.kind === 'npc'
+    ? !!tile.blocked || !!tile.avoidNpc
+    : !!tile.blocked && !passesCondition(tile, character);
 
 const isTileWarp = (
   map: MapStateServer,

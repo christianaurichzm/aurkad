@@ -119,6 +119,17 @@ describe('a conditionally blocked tile', () => {
     expect(sim.getPlayer('Bob').position).toEqual(tile(3, 1));
   });
 
+  it('is a way through for a click as well as for the keys', () => {
+    gate((player) => player.name === 'Alice');
+    for (const row of sim.map.tiles) row[2]!.blocked = true;
+    sim.addPlayer({ name: 'Alice', position: tile(1, 1) });
+
+    sim.moveTo('Alice', 3, 1);
+    sim.step(30);
+
+    expect(sim.getPlayer('Alice').position).toEqual(tile(3, 1));
+  });
+
   it('does not let a second player onto someone standing in it', () => {
     gate(() => true);
     sim.addPlayer({ name: 'Alice', position: tile(1, 1) });
