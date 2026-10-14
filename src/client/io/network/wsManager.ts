@@ -11,6 +11,7 @@ import {
 } from './sync/gameStateSync';
 import { enqueueChatMessage, setChatSocketSender } from './sync/chatSync';
 import { dispatchServerEvent } from './customEvents';
+import { followInstance } from './http/httpClient';
 import { getLanguage, onLanguageChange, t } from '../../i18n';
 
 const clientWsProtocol = window.location.protocol === 'https:' ? 'wss' : 'ws';
@@ -131,6 +132,7 @@ export const initializeWebSocket = (url = currentWsUrl) => {
           const next = data.traceparent
             ? `${data.url}${data.url.includes('?') ? '&' : '?'}traceparent=${encodeURIComponent(data.traceparent)}`
             : data.url;
+          followInstance(data.url);
           setTimeout(() => initializeWebSocket(next), 200);
           break;
         }

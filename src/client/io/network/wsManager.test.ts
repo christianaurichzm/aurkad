@@ -9,6 +9,7 @@ class FakeSocket {
   readyState = FakeSocket.CONNECTING;
   sent: { type: string; channel?: string }[] = [];
   onopen?: () => void;
+  onmessage?: (event: { data: string }) => void;
   constructor() {
     FakeSocket.last = this;
   }
@@ -49,6 +50,35 @@ describe('sendAction before the socket is open', () => {
       'quest:request',
       'magic:request',
     ]);
+    vi.unstubAllGlobals();
+  });
+});
+
+describe('a redirect to another instance', () => {
+  it('sends the HTTP calls where the socket went', async () => {
+    vi.stubGlobal('WebSocket', FakeSocket);
+    const fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      headers: new Headers({ 'Content-Type': 'application/json' }),
+      json: () => Promise.resolve({}),
+    });
+    vi.stubGlobal('fetch', fetch);
+    const { initializeWebSocket } = await import('./wsManager');
+    const { httpClient } = await import('./http/httpClient');
+
+    initializeWebSocket('ws://test/ws');
+    FakeSocket.last.onmessage?.({
+      data: JSON.stringify({
+        type: 'redirect',
+        url: 'wss://b.example.com:8443/ws',
+      }),
+    });
+    await httpClient('/assign-points', { method: 'POST' });
+
+    expect(fetch.mock.calls[0]?.[0]).toBe(
+      'https://b.example.com:8443/assign-points',
+    );
     vi.unstubAllGlobals();
   });
 });

@@ -46,8 +46,20 @@ export const friendlyHttpError = (e: unknown): string => {
 export const httpError = (e: unknown): Partial<HttpError> =>
   typeof e === 'object' && e !== null ? e : {};
 
+// Where a warp sent the socket. The character lives on that instance
+// alone, so a purchase or point spent asked of another finds no one.
+let instanceOrigin: string | undefined;
+
+export function followInstance(wsUrl: string): void {
+  instanceOrigin = new URL(wsUrl.replace(/^ws/, 'http')).origin;
+}
+
 const buildUrl = (endpoint: string): string =>
-  API_URL && REST_PROTO ? `${REST_PROTO}://${API_URL}${endpoint}` : endpoint;
+  instanceOrigin
+    ? `${instanceOrigin}${endpoint}`
+    : API_URL && REST_PROTO
+      ? `${REST_PROTO}://${API_URL}${endpoint}`
+      : endpoint;
 
 const hex = (bytes: number): string =>
   Array.from(crypto.getRandomValues(new Uint8Array(bytes)), (b) =>
