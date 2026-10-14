@@ -679,3 +679,34 @@ describe('resuming a session', () => {
     expect(getPlayerByName('Ann')?.inventory.items).toEqual([]);
   });
 });
+
+describe('writes of one player', () => {
+  it('land in the order they were asked for, so a logout is the last word', async () => {
+    const sim = createFixture(0);
+    const alice = sim.addPlayer({ name: 'Alice' });
+    const landed: number[] = [];
+    let releaseSweep!: () => void;
+    const sweepHeld = new Promise<void>((resolve) => (releaseSweep = resolve));
+    const save = vi
+      .spyOn(playerRepository, 'save')
+      .mockImplementationOnce(async (state) => {
+        await sweepHeld;
+        landed.push(state.experience);
+        return true;
+      })
+      .mockImplementation((state) => {
+        landed.push(state.experience);
+        return Promise.resolve(true);
+      });
+    onTestFinished(() => void save.mockRestore());
+
+    const sweep = persistPlayerSessionState(alice);
+    alice.experience = 25;
+    const logout = disconnectPlayer('Alice');
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    releaseSweep();
+    await Promise.all([sweep, logout]);
+
+    expect(landed.at(-1)).toBe(25);
+  });
+});

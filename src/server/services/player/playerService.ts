@@ -234,10 +234,16 @@ export function persistPlayerSessionState(
 ): Promise<void> {
   const writes = playerWrites.get(player.id) ?? new Set<Promise<void>>();
   playerWrites.set(player.id, writes);
-  const pending = writePlayerSessionState(player, session).finally(() => {
-    writes.delete(pending);
-    if (!writes.size) playerWrites.delete(player.id);
-  });
+  // One at a time per player, in the order asked: two in flight can land in
+  // either order, and a sweep that started before a logout would put the
+  // older character back over its last save. Waiting also means the state is
+  // read when the write starts, so a queued write carries the newest one.
+  const pending = Promise.allSettled([...writes])
+    .then(() => writePlayerSessionState(player, session))
+    .finally(() => {
+      writes.delete(pending);
+      if (!writes.size) playerWrites.delete(player.id);
+    });
   writes.add(pending);
   return pending;
 }
