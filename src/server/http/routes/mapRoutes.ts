@@ -129,6 +129,11 @@ export function createMapRouter() {
     const { name, type, music, instanced, borderLinks, orientation } = body;
 
     try {
+      // Only a whole map is a map: one made from these few fields has no
+      // tiles, and the next broadcast throws on it.
+      if (!(await getMapById(id))) {
+        return res.status(404).json({ error: 'Map not found.' });
+      }
       await createOrUpdateMap({
         id,
         ...(name && { name }),
