@@ -126,7 +126,8 @@ export function createMapRouter() {
     const body = parseBody(UpdateMapBodySchema, req.body, res);
     if (!body) return;
     const id = req.params['id'];
-    const { name, type, music, instanced, borderLinks, orientation } = body;
+    const { name, type, pvp, music, instanced, borderLinks, orientation } =
+      body;
 
     try {
       // Only a whole map is a map: one made from these few fields has no
@@ -138,6 +139,7 @@ export function createMapRouter() {
         id,
         ...(name && { name }),
         ...(type && { type }),
+        ...(pvp && { pvp }),
         ...(orientation && { orientation }),
         ...(music !== undefined && { music }),
         ...(instanced !== undefined && { instanced }),

@@ -89,4 +89,23 @@ describe('PUT /maps/:id', () => {
     expect(res.status).toBe(200);
     expect(runtimeState.maps[sim.mapId]?.name).toBe('Renamed');
   });
+
+  // Combat reads the live map, and the client shows the zone from the meta it
+  // was sent, which only goes out again for a new revision.
+  it('makes a map safe for everyone already on it', async () => {
+    const sim = await storedMap();
+    const revision = sim.map.tilesRevision ?? 0;
+
+    const res = await request(app())
+      .put(`/maps/${sim.mapId}`)
+      .send({ pvp: 'safe' });
+
+    expect(res.status).toBe(200);
+    const live = runtimeState.maps[sim.mapId];
+    expect(live?.pvp).toBe('safe');
+    expect(live?.tilesRevision).toBe(revision + 1);
+    expect((await GameMapModel.findOne({ id: sim.mapId }).lean())?.pvp).toBe(
+      'safe',
+    );
+  });
 });

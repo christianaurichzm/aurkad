@@ -98,10 +98,13 @@ export async function createOrUpdateMap(
 
   const merged = { ...previous, ...map } as MapStateServer;
 
+  // Whatever toMapMeta sends: a client already on the map is sent it again
+  // only for a new revision.
   const staticChanged =
     map.tiles !== undefined ||
     map.name !== undefined ||
     map.type !== undefined ||
+    map.pvp !== undefined ||
     map.orientation !== undefined;
   if (staticChanged) {
     merged.tilesRevision = (previous?.tilesRevision ?? 0) + 1;
