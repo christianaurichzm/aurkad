@@ -37,6 +37,7 @@ const scriptGlobals = [
   'getItems',
   'getMapSize',
   'getMapTile',
+  'canStand',
   'setMapTile',
   'getMapPvp',
   'spawnNpc',

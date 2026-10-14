@@ -23,6 +23,7 @@ import { awardExperience } from '../../services/player/playerService.js';
 import { equipItem } from '../../services/economy/inventoryService.js';
 import { resolveDamage } from '../../services/combat/index.js';
 import { teleportPlayer } from '../../services/world/movementService.js';
+import { rebuildQuadtree } from '../../sim/spatialManager.js';
 import type { PlayerServer } from '../../../shared/types.js';
 
 interface PartyApi {
@@ -77,6 +78,29 @@ afterEach(() => {
   clearCommands();
   clearProvides();
   clearKvStoreMemory();
+});
+
+describe('knockback', () => {
+  const hit = (attacker: PlayerServer, target: PlayerServer) =>
+    emit('afterDamage', { attacker, target, damage: 1, lethal: false });
+
+  it('pushes the target a tile away, and never onto someone else', () => {
+    unloadAllModules();
+    loadModulesForTest('knockback');
+    const sim = createFixture(0);
+    const alice = sim.addPlayer({ name: 'Alice', position: tile(1, 1) });
+    const bob = sim.addPlayer({ name: 'Bob', position: tile(2, 1) });
+    const carol = sim.addPlayer({ name: 'Carol', position: tile(3, 1) });
+    rebuildQuadtree(sim.mapId, sim.map);
+
+    hit(alice, bob);
+    expect(bob.position).toEqual(tile(2, 1));
+
+    carol.position = tile(3, 5);
+    rebuildQuadtree(sim.mapId, sim.map);
+    hit(alice, bob);
+    expect(bob.position).toEqual(tile(3, 1));
+  });
 });
 
 describe('gameplay modules', () => {

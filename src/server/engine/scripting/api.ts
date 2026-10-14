@@ -89,7 +89,10 @@ import { queryEntitiesInRadius } from '../../sim/spatialManager.js';
 import type { SpawnNpcOptions } from '../../services/npc/spawn.js';
 import { resolveDamage } from '../../services/combat/index.js';
 import { mapPvpMorale } from '../../../shared/utils.js';
-import { findPlacement } from '../../services/world/physicsService.js';
+import {
+  findPlacement,
+  hasCollision,
+} from '../../services/world/physicsService.js';
 import type {
   CombatTarget,
   Dialog,
@@ -359,6 +362,12 @@ export function buildApi(
           }
         : null;
     },
+
+    // Whether `entity` could stand at pixel (x, y) on its own map, as a step
+    // is checked: the tiles under its whole box, a gate a script opens for some
+    // players, and anyone already standing there.
+    canStand: (entity: CombatTarget, x: number, y: number): boolean =>
+      !hasCollision({ ...entity, position: { x: Number(x), y: Number(y) } }),
 
     // Changes what a tile shows and whether it blocks while the server runs,
     // like a door a script opens. Not saved; see setMapTile in mapService.

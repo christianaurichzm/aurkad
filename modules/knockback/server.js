@@ -1,7 +1,6 @@
 // @ts-check
-// Knockback module: pushes the target 1 tile away from the attacker on damage.
-// Hooked into afterDamage; skips lethal hits so dead entities don't get moved.
-// Tile blocking is checked via getMapTile before applying the push.
+// Knockback module: on afterDamage, pushes the target a tile away from the
+// attacker, skipping lethal hits, and only where it could stand (canStand).
 
 var force = config && typeof config.force === 'number' ? config.force : 1;
 var toPlayers =
@@ -37,11 +36,16 @@ on('afterDamage', function (payload) {
 
   var col = Math.floor(nx / TILE_SIZE);
   var row = Math.floor(ny / TILE_SIZE);
-  var tile = getMapTile(target.mapId, col, row);
-  if (!tile || tile.blocked) return;
+  if (!canStand(target, col * TILE_SIZE, row * TILE_SIZE)) return;
 
-  target.position.x = col * TILE_SIZE;
-  target.position.y = row * TILE_SIZE;
+  // teleportPlayer ends a step in progress, so the client draws the push
+  // rather than the walk.
+  if (target.kind === 'player') {
+    teleportPlayer(target, target.mapId, col, row);
+  } else {
+    target.position.x = col * TILE_SIZE;
+    target.position.y = row * TILE_SIZE;
+  }
 });
 
 log('Knockback module loaded');

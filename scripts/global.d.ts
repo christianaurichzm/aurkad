@@ -627,6 +627,13 @@ declare function getMapTile(
 ): { blocked: boolean; tileIndex: number; maskIndex?: number } | null;
 
 /**
+ * Whether `entity` could stand at pixel (x, y) on its map, judged as a step
+ * is: tiles under its box, gates, map edges and anyone there. Ask it before
+ * moving something by hand.
+ */
+declare function canStand(entity: CombatTarget, x: number, y: number): boolean;
+
+/**
  * Changes the tile at (col, row) at runtime: its ground picture
  * (`tileIndex`), whether it blocks, or both. Never saved, and each instance
  * copy keeps its own. Fires `mapChange` when something changed; false when

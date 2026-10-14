@@ -7,6 +7,7 @@ import { runInSandbox } from './sandbox.js';
 import { renderContentDts } from './contentConstants.js';
 import { clearAll, emit, on } from '../hooks.js';
 import { createFixture, tile } from '../../sim/simFixture.js';
+import { rebuildQuadtree } from '../../sim/spatialManager.js';
 import { Direction, Key } from '../../../shared/types.js';
 import { msToTicks } from '../../sim/clock.js';
 import { seedRng, nextRandom } from '../../sim/rng.js';
@@ -669,6 +670,36 @@ describe('getMapTile', () => {
     });
     expect(player.data?.off).toBeNull();
 
+    handle.cleanup();
+  });
+});
+
+describe('canStand', () => {
+  it('judges a spot the way a step is judged', () => {
+    const sim = createFixture(0);
+    sim.map.tiles[2]![4]!.blocked = true;
+    const player = sim.addPlayer({ name: 'Alice', position: tile(2, 2) });
+    sim.addPlayer({ name: 'Bob', position: tile(3, 3) });
+    rebuildQuadtree(sim.mapId, sim.map);
+
+    const handle = runInSandbox(
+      `
+      on('playerJoin', ({ player }) => {
+        setPlayerData(player, 'spots', [
+          canStand(player, 3 * TILE_SIZE, 2 * TILE_SIZE),
+          canStand(player, 4 * TILE_SIZE, 2 * TILE_SIZE),
+          canStand(player, 3 * TILE_SIZE, 3 * TILE_SIZE),
+          canStand(player, -TILE_SIZE, 0),
+        ]);
+      });
+    `,
+      'can-stand.js',
+    );
+
+    emit('playerJoin', { player });
+
+    // Free, a wall, someone standing there, off the map.
+    expect(player.data?.spots).toEqual([true, false, false, false]);
     handle.cleanup();
   });
 });
