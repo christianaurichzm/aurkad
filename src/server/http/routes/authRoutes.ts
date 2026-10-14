@@ -13,7 +13,6 @@ import {
 } from '../bodySchemas.js';
 import { logger } from '../../logger.js';
 import {
-  authEpochOf,
   createPlayer,
   disconnectPlayer,
   enrichPlayer,
@@ -133,8 +132,7 @@ export function createAuthRouter() {
         req.session.cookie.maxAge = REMEMBERED_SESSION_MS;
       }
 
-      const { password: _pw, authEpoch = 0, ...runtimePlayer } = playerDoc;
-      const player = enrichPlayer(runtimePlayer);
+      const { authEpoch = 0 } = playerDoc;
 
       const existingWs = playersWsMap.get(username);
       if (existingWs?.readyState === WebSocket.OPEN) {
@@ -150,14 +148,14 @@ export function createAuthRouter() {
       // the socket the client opens next is what sends it there. The client
       // opens that socket only once it has a map to open the game on, so the
       // answer carries this one's outline, read before anything is held.
-      const awayMap = ownsMap(runtimePlayer.mapId)
+      const awayMap = ownsMap(playerDoc.mapId)
         ? null
-        : await getMapById(runtimePlayer.mapId);
+        : await getMapById(playerDoc.mapId);
 
       // The socket above is this process only; the lease asks every
       // instance. Whoever holds it may write this character, so a second
       // session elsewhere would lose its progress to the first one's flush.
-      const presence = await acquirePresence(player.id, username);
+      const presence = await acquirePresence(playerDoc.id, username);
       if (!presence.ok) {
         logger.warn('[presence] login refused, account held elsewhere', {
           player: username,
@@ -171,19 +169,25 @@ export function createAuthRouter() {
         });
       }
 
-      // Credentials and privileges must belong to the generation we read
-      // before bcrypt and the second factor, both of which yield to revocation.
-      if ((await authEpochOf(username)) !== authEpoch) {
-        await releasePresence(player.id);
+      // Read again under the lease: the instance that let go of it wrote its
+      // last save on the way out, and that can land after the read the
+      // password was checked against. Credentials and privileges must still
+      // belong to the generation read then, before bcrypt and the second
+      // factor, both of which yield to revocation.
+      const current = await getPlayerForAuthentication(username);
+      if (current?.authEpoch !== authEpoch) {
+        await releasePresence(playerDoc.id);
         return res
           .status(401)
           .json({ message: translateFor(req, 'Invalid username or password') });
       }
+      const { password: _pw, authEpoch: _epoch, ...character } = current;
+      const player = enrichPlayer(character);
       req.session.username = username;
       req.session.accessLevel = player.access ?? Access.USER;
       req.session.authEpoch = authEpoch;
 
-      const map = enterWorld(runtimePlayer) ?? awayMap;
+      const map = enterWorld(character) ?? awayMap;
 
       const mapMeta = map ? toMapMeta(map) : null;
       req.session.save((err) => {

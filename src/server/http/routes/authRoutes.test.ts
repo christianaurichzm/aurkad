@@ -36,12 +36,19 @@ import {
 // The other instance, which only exists as an answer here: whether a lease can
 // be taken is decided in Mongo and tested in persistence/presence.test.ts, and
 // what this file owns is what the route does with the answer.
+// `taking` stands for whatever that instance writes on its way out, which can
+// land between the reads this route makes and the lease it takes.
 type PresenceAnswer = { ok: true } | { ok: false; owner: string };
-const presence = vi.hoisted((): { answer: PresenceAnswer } => ({
-  answer: { ok: true },
-}));
+const presence = vi.hoisted(
+  (): { answer: PresenceAnswer; taking?: () => Promise<unknown> } => ({
+    answer: { ok: true },
+  }),
+);
 vi.mock('../../persistence/presence.js', () => ({
-  acquirePresence: () => Promise.resolve(presence.answer),
+  acquirePresence: async () => {
+    await presence.taking?.();
+    return presence.answer;
+  },
   releasePresence: () => Promise.resolve(),
   releaseAllPresence: () => Promise.resolve(),
   renewPresence: () => Promise.resolve(),
@@ -249,6 +256,23 @@ describe('POST /login', () => {
     expect(res.body.map?.id).toBe(gameConfig.world.startMapId);
     expect(res.headers['set-cookie']).toBeDefined();
     expect(getPlayerByName('Alice')).toBeDefined();
+  });
+
+  it('enters with what the instance letting go of the account wrote last', async () => {
+    await createPlayer('Alice', await hashPw('correcthorse'));
+    presence.taking = () =>
+      PlayerModel.updateOne({ name: 'Alice' }, { $set: { experience: 25 } });
+    try {
+      const res = await request(app)
+        .post('/login')
+        .send({ username: 'Alice', password: 'correcthorse' });
+
+      expect(res.status).toBe(200);
+      expect(res.body.player.experience).toBe(25);
+      expect(getPlayerByName('Alice')?.experience).toBe(25);
+    } finally {
+      presence.taking = undefined;
+    }
   });
 
   // The client opens the socket that redirects it only once it has a map to

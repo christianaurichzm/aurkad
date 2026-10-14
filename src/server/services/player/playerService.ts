@@ -1025,7 +1025,15 @@ export async function resumePlayer(username: string): Promise<string | null> {
     return 'This account is already logged in from another session.';
   }
 
-  const { password: _pw, ...player } = record;
+  // Read again under the lease: the instance that let go of it wrote its last
+  // save on the way out, and that can land after the read above. Entering
+  // with the older copy brings back whatever that session gave away.
+  const current = await getPlayerByNameFromDb(username);
+  if (!current) {
+    await releasePresence(record.id);
+    return 'This account no longer exists.';
+  }
+  const { password: _pw, ...player } = current;
   enterWorld(player);
   return null;
 }

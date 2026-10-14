@@ -14,6 +14,7 @@ import {
   enterWorld,
   disconnectPlayer,
   persistPlayerSessionState,
+  resumePlayer,
   setAccess,
 } from './playerService.js';
 import { on, clearAll } from '../../engine/hooks.js';
@@ -62,6 +63,12 @@ vi.mock('../../persistence/playerRepository.js', async (importOriginal) => {
     },
   };
 });
+
+// No database in this file: a resumed session asks about bans on the way in.
+vi.mock('./banService.js', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('./banService.js')>()),
+  getBan: () => Promise.resolve(null),
+}));
 
 function mkPlayer(overrides: Partial<PlayerServer> = {}): PlayerServer {
   return {
@@ -647,5 +654,28 @@ describe('a departure the database cannot take', () => {
     await vi.advanceTimersByTimeAsync(5_000);
     expect(save).toHaveBeenCalledTimes(2);
     expect(save.mock.calls[1]![0]).toMatchObject({ name: 'Alice' });
+  });
+});
+
+describe('resuming a session', () => {
+  it('enters with what the instance letting go of the account wrote last', async () => {
+    const fx = createFixture();
+    const sword = { item: 2, quantity: 1 };
+    const before = {
+      ...mkPlayer({ name: 'Ann', mapId: fx.mapId }),
+      inventory: { items: [sword], maxCapacity: 10 },
+      password: 'hash',
+    };
+    // The sword went to another character in that session's last write,
+    // which landed after the first read.
+    const after = { ...before, inventory: { items: [], maxCapacity: 10 } };
+    const read = vi
+      .spyOn(playerRepository, 'findByName')
+      .mockResolvedValueOnce(before)
+      .mockResolvedValueOnce(after);
+    onTestFinished(() => void read.mockRestore());
+
+    expect(await resumePlayer('Ann')).toBeNull();
+    expect(getPlayerByName('Ann')?.inventory.items).toEqual([]);
   });
 });
