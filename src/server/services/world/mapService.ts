@@ -105,6 +105,7 @@ export async function createOrUpdateMap(
     map.name !== undefined ||
     map.type !== undefined ||
     map.pvp !== undefined ||
+    map.music !== undefined ||
     map.orientation !== undefined;
   if (staticChanged) {
     merged.tilesRevision = (previous?.tilesRevision ?? 0) + 1;

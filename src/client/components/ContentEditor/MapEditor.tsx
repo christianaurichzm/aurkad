@@ -182,7 +182,9 @@ export const MapEditor: React.FC<MapEditorProps> = ({
             name,
             type,
             orientation,
-            music: music || undefined,
+            // Sent even when empty: the server keeps what a request leaves out,
+            // and '' means no music.
+            music,
             instanced,
             borderLinks,
           })

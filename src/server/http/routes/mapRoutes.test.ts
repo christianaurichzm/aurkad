@@ -108,4 +108,16 @@ describe('PUT /maps/:id', () => {
       'safe',
     );
   });
+
+  it('stops the music for everyone already on the map when it is cleared', async () => {
+    const sim = await storedMap();
+    sim.map.music = 'theme.mp3';
+    const revision = sim.map.tilesRevision ?? 0;
+
+    await request(app()).put(`/maps/${sim.mapId}`).send({ music: '' });
+
+    const live = runtimeState.maps[sim.mapId];
+    expect(live?.music).toBe('');
+    expect(live?.tilesRevision).toBe(revision + 1);
+  });
 });

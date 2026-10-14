@@ -193,3 +193,33 @@ describe('border links', () => {
     );
   });
 });
+
+describe('the music field', () => {
+  it('clears the music when emptied, rather than leaving it out', async () => {
+    vi.mocked(updateMap).mockResolvedValueOnce(map());
+    const { container } = render(
+      <MapEditor
+        maps={[{ ...map(), music: 'theme.mp3' }]}
+        loadMaps={() => Promise.resolve([{ value: '1', label: '1 - m' }])}
+        refreshData={vi.fn()}
+        onDirtyChange={vi.fn()}
+        requestDiscard={() => Promise.resolve(true)}
+      />,
+    );
+    await screen.findByRole('option', { name: '1 - m' });
+    fireEvent.change(container.querySelector('select')!, {
+      target: { value: '1' },
+    });
+    const music = await screen.findByPlaceholderText('music.mp3');
+    await waitFor(() => expect(music).toHaveValue('theme.mp3'));
+    fireEvent.change(music, { target: { value: '' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Save Map' }));
+
+    await waitFor(() =>
+      expect(updateMap).toHaveBeenCalledWith(
+        '1',
+        expect.objectContaining({ music: '' }),
+      ),
+    );
+  });
+});
