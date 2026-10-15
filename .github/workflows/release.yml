@@ -49,6 +49,35 @@ jobs:
           sed "s|ghcr.io/christianaurichzm/aurkad:latest|$IMAGE:${GITHUB_REF_NAME#v}|" compose.game.yml > compose.yml
           gh release create "$GITHUB_REF_NAME" --title "$GITHUB_REF_NAME" --notes-file notes.md compose.yml
 
+  # The quick start, typed the way a creator types it: on a fresh runner with
+  # no registry login, so an image whose package is still private, or a
+  # "latest" that is not this release, fails here and not on someone's first
+  # try. Nothing is checked out: the workspace is the empty folder the quick
+  # start begins in, and the runner's user is not uid 1000, which is the case
+  # the entrypoint's ownership check exists for.
+  install:
+    needs: release
+    runs-on: ubuntu-latest
+    steps:
+      - name: quick start
+        run: |
+          curl -fLO "https://github.com/$GITHUB_REPOSITORY/releases/latest/download/compose.yml"
+          grep -q "aurkad:${GITHUB_REF_NAME#v}$" compose.yml
+          echo "ADMIN=smoke" > .env
+          docker compose up -d
+
+      - name: the admin signs in
+        run: |
+          for _ in $(seq 60); do curl -skf https://localhost/readyz && break; sleep 2; done
+          body='{"username":"smoke","password":"smoke-check-password"}'
+          json='Content-Type: application/json'
+          curl -skf -c jar -H "$json" -d "$body" https://localhost/register
+          curl -skf -b jar -c jar -H "$json" -d "$body" https://localhost/admin/login
+          test "$(stat -c %u game/game.json)" = "$(id -u)"
+
+      - if: failure()
+        run: docker compose logs
+
   # Pages has to be set to "GitHub Actions" as its source once, in the
   # repository settings, or this job has nothing to deploy to and fails.
   docs:

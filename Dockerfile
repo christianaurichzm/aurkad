@@ -26,6 +26,7 @@ COPY --from=builder /app/dist ./dist
 COPY modules ./modules
 COPY templates ./templates
 COPY scripts/global.d.ts scripts/tsconfig.json ./scripts/
+COPY compose-entrypoint.sh ./
 
 # The game itself is a bind mount - one folder with GAME_DIR pointing at it
 # (compose.game.yml, docker-compose.yml) - so creators edit it without

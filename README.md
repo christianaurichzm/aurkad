@@ -11,11 +11,7 @@ empty folder:
 
 ```bash
 curl -LO https://github.com/christianaurichzm/aurkad/releases/latest/download/compose.yml
-echo "SESSION_SECRET=$(openssl rand -hex 32)" > .env
-echo "ADMIN=yourname" >> .env      # registering this username makes you admin
-echo "UID=$(id -u)" >> .env && echo "GID=$(id -g)" >> .env   # the engine runs as you
-mkdir game
-docker compose run --rm new-game "My Game"
+echo "ADMIN=yourname" > .env      # registering this username makes you admin
 docker compose up -d
 ```
 
@@ -25,12 +21,14 @@ signs `localhost` itself. On a server, point a domain at it, add
 `PUBLIC_URL=https://your.domain` to `.env` and run `docker compose up -d`
 again; Caddy fetches a real certificate.
 
-`new-game` writes a small playable game into `game/`: a map, a few monsters and
-items, a `game.json` with the name the login screen shows and every official
-module switched off, and art rendered from Kay Lousberg's KayKit models (CC0;
-`templates/new-game/build` makes it). Add `--isometric` after
-the name for a map drawn in 2:1 diamonds; the map editor then starts new maps
-the same way. The folder is yours to edit on the host - scripts hot-reload,
+The first `up` writes a small playable game into `game/`: a map, a few
+monsters and items, a `game.json` with the name the login screen shows and
+every official module switched off, and art rendered from Kay Lousberg's KayKit
+models (CC0; `templates/new-game/build` makes it). For another name, or a map
+drawn in 2:1 diamonds, make it yourself before that first `up` with
+`docker compose run --rm new-game "My Game" --isometric`; the map editor then
+starts new maps the same way. The folder is yours to edit on the host - the
+engine runs as whoever owns the folder `compose.yml` is in, scripts hot-reload,
 the rest applies on `docker compose restart app` - and the world (maps,
 players, items) lives in MongoDB. Upgrading the engine is changing the version on the `image:` lines of
 `compose.yml` and `docker compose up -d`; `game/` is never touched.

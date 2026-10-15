@@ -60,8 +60,11 @@ same reason the list above says what it says.
 
 ## Deployment hardening checklist
 
-- Set a strong `SESSION_SECRET` (`openssl rand -hex 32`).
+- Leave `SESSION_SECRET` unset to have the first boot generate one and keep it
+  in the database, or set a strong one (`openssl rand -hex 32`) to keep it out
+  of the database and its backups.
 - Require `CORS_ALLOWED_ORIGINS` in production (enforced).
 - Do not expose MongoDB to the public network.
-- Run the container as a non-root user (the provided image does).
+- Run the container as a non-root user (the provided image does; `compose.yml`
+  starts it as root only to switch to the owner of its folder).
 - Keep dependencies current; `npm audit` is expected to be clean.

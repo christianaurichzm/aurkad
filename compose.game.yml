@@ -3,18 +3,21 @@
 # version: upgrading the engine is changing that tag and `docker compose up -d`,
 # and the game folder is never touched.
 #
-#   echo "SESSION_SECRET=$(openssl rand -hex 32)" > .env
-#   echo "ADMIN=yourname" >> .env                 # this username becomes admin
-#   echo "UID=$(id -u)" >> .env && echo "GID=$(id -g)" >> .env
-#   mkdir game
-#   docker compose run --rm new-game "My Game"
+#   echo "ADMIN=yourname" > .env                  # this username becomes admin
 #   docker compose up -d                          # https://localhost
+#
+# The first `up` writes a small playable game into game/. For another name, or
+# a map drawn in 2:1 diamonds, make it yourself before that first `up`:
+# `docker compose run --rm new-game "My Game" --isometric`.
 #
 # game/ is yours: edit it on the host, scripts hot-reload, the rest applies on
 # `docker compose restart app`. The world (maps, players, items) lives in
-# MongoDB, not in the folder. The engine runs as your user (UID and GID), so
-# what it writes there - the Appearance page's theme/, scripts saved in the
-# editor - is yours too, and it can write into a folder you made.
+# MongoDB, not in the folder. The engine runs as whoever owns this folder
+# (compose-entrypoint.sh in the image), so what it writes into game/ (the
+# Appearance page's theme/, scripts saved in the editor) is yours too.
+#
+# Login cookies are signed with SESSION_SECRET when .env sets one, and
+# otherwise with a secret the first boot generates and keeps in the database.
 #
 # The login cookie is only ever sent over HTTPS (USE_SECURE_COOKIES), so Caddy
 # sits in front even on your own computer. There it signs localhost with an
@@ -48,29 +51,37 @@ services:
   app:
     image: ghcr.io/christianaurichzm/aurkad:latest
     restart: unless-stopped
-    user: ${UID:?set UID and GID in .env, see the top of this file}:${GID:?set GID in .env}
+    # Root only until the entrypoint becomes the owner of this folder.
+    user: root
+    entrypoint: [/app/compose-entrypoint.sh]
     depends_on:
       mongo:
         condition: service_healthy
     environment:
       PORT: '8080'
-      GAME_DIR: /app/game
+      GAME_DIR: /srv/game
       MONGO_URI: mongodb://mongo:27017/?directConnection=true
-      SESSION_SECRET: ${SESSION_SECRET:?set SESSION_SECRET in .env}
+      SESSION_SECRET: ${SESSION_SECRET:-}
       BOOTSTRAP_ADMIN_USERNAME: ${ADMIN:-}
       CORS_ALLOWED_ORIGINS: ${PUBLIC_URL:-https://localhost}
       USE_SECURE_COOKIES: 'true'
       TRUST_PROXY: '1'
     volumes:
-      - ./game:/app/game
+      - .:/srv
 
   new-game:
     image: ghcr.io/christianaurichzm/aurkad:latest
     profiles: [tools]
-    user: ${UID:?set UID and GID in .env, see the top of this file}:${GID:?set GID in .env}
-    entrypoint: ['node', 'dist/server/contentPack/newGame.js', '/app/game']
+    user: root
+    entrypoint:
+      - /app/compose-entrypoint.sh
+      - node
+      - dist/server/contentPack/newGame.js
+      - /srv/game
+    environment:
+      GAME_DIR: /srv/game
     volumes:
-      - ./game:/app/game
+      - .:/srv
 
   caddy:
     image: caddy:2
