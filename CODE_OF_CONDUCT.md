@@ -33,7 +33,7 @@ Examples of unacceptable behavior:
 ## Enforcement
 
 Instances of abusive, harassing, or otherwise unacceptable behavior may be
-reported privately to **hello@aurkad.com**. All complaints will be reviewed
+reported privately to **contact@aurkad.com**. All complaints will be reviewed
 and investigated promptly and fairly.
 
 ## Attribution

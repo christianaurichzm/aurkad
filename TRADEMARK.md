@@ -19,4 +19,4 @@ A modified version must be distributed under a different name. This keeps the
 name meaningful as a signal of what the official project actually is, which is
 the only thing Apache-2.0 leaves the author.
 
-Questions: hello@aurkad.com
+Questions: contact@aurkad.com

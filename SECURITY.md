@@ -4,7 +4,7 @@
 
 Please report security issues **privately**. Do not open a public GitHub issue.
 
-Email **hello@aurkad.com** with:
+Email **contact@aurkad.com** with:
 
 - a description of the issue and its impact,
 - steps to reproduce (a proof of concept if possible),
@@ -15,8 +15,8 @@ fix before any public disclosure.
 
 ## Supported versions
 
-The engine is pre-1.0. Security fixes land on `main` and in the latest release.
-Older tags are not backported.
+Security fixes land on `main` and in the latest release. Older tags are not
+backported.
 
 ## Scripting trust model: read before hosting
 
