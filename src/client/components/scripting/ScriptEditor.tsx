@@ -15,6 +15,7 @@ import {
   type ScriptError,
 } from '../../io/network';
 import { colors, radius } from '../../theme';
+import { themeToken } from '../../graphics/floatingText';
 import { useT } from '../../i18n';
 
 // Self-hosted Monaco: the wrapper loads the bundled package instead of the
@@ -46,6 +47,83 @@ async function configureJsDefaults(): Promise<void> {
   });
   defaults.addExtraLib(globalDts, 'file:///scripts/global.d.ts');
   defaults.addExtraLib(contentDts, 'file:///scripts/content.generated.d.ts');
+}
+
+const GAME_THEME = 'aurkad-game';
+
+let probe: CanvasRenderingContext2D | null = null;
+
+/**
+ * A CSS colour as the hex Monaco needs, parsed by painting one canvas pixel
+ * and reading it back, so color-mix() works too.
+ */
+function hex(color: string): string {
+  probe ??= document
+    .createElement('canvas')
+    .getContext('2d', { willReadFrequently: true });
+  if (!probe) return '#000000';
+  probe.fillStyle = '#000';
+  probe.fillStyle = color;
+  probe.fillRect(0, 0, 1, 1);
+  const [r = 0, g = 0, b = 0] = probe.getImageData(0, 0, 1, 1).data;
+  return `#${[r, g, b].map((v) => v.toString(16).padStart(2, '0')).join('')}`;
+}
+
+// The code in the game's colours from the UI tokens, defined on every mount
+// since the theme may have changed.
+function defineGameTheme(): void {
+  const token = (name: string, fallback: string) =>
+    hex(themeToken(name, fallback));
+  const mix = (a: string, b: string, aPercent: number) =>
+    hex(`color-mix(in srgb, ${a} ${aPercent}%, ${b})`);
+  const bare = (color: string) => color.slice(1);
+
+  const code = token('--color-surface-muted', '#141a20');
+  const surface = token('--color-surface', '#1b232b');
+  const text = token('--color-text', '#e8eef4');
+  const muted = token('--color-text-muted', '#94a3b0');
+  const border = token('--color-border', '#34424f');
+  const primary = token('--color-primary', '#3b82f6');
+  const accent = token('--color-accent', '#4ea8de');
+  const info = token('--color-info', '#7cc4e4');
+  const soft = token('--color-danger-text', '#f2a6ae');
+  const [r, g, b] = [1, 3, 5].map((i) => parseInt(code.slice(i, i + 2), 16));
+  const dark = 0.299 * r + 0.587 * g + 0.114 * b < 128;
+
+  monaco.editor.defineTheme(GAME_THEME, {
+    base: dark ? 'vs-dark' : 'vs',
+    inherit: true,
+    rules: [
+      { token: 'comment', foreground: bare(muted), fontStyle: 'italic' },
+      { token: 'keyword', foreground: bare(accent) },
+      { token: 'string', foreground: bare(info) },
+      { token: 'number', foreground: bare(soft) },
+      { token: 'type.identifier', foreground: bare(mix(accent, text, 50)) },
+    ],
+    colors: {
+      'editor.background': code,
+      'editor.foreground': text,
+      'editorLineNumber.foreground': mix(muted, code, 70),
+      'editorLineNumber.activeForeground': text,
+      'editorCursor.foreground': accent,
+      'editor.selectionBackground': mix(primary, code, 45),
+      'editor.lineHighlightBackground': mix(text, code, 5),
+      'editor.lineHighlightBorder': mix(text, code, 5),
+      'editorIndentGuide.background1': border,
+      'editorIndentGuide.activeBackground1': mix(muted, code, 60),
+      'editorBracketHighlight.foreground1': accent,
+      'editorBracketHighlight.foreground2': info,
+      'editorBracketHighlight.foreground3': soft,
+      'editorWidget.background': surface,
+      'editorWidget.border': border,
+      'editorSuggestWidget.background': surface,
+      'editorSuggestWidget.border': border,
+      'editorSuggestWidget.selectedBackground': mix(primary, surface, 40),
+      'editorSuggestWidget.highlightForeground': accent,
+      'editorHoverWidget.background': surface,
+      'editorHoverWidget.border': border,
+    },
+  });
 }
 
 // Own marker namespace, so runtime failures sit alongside Monaco's static
@@ -90,9 +168,11 @@ function applyRuntimeMarkers(name: string, errors: ScriptError[]): void {
 // Monaco script editor, admin only and behind SCRIPT_EDITOR_ENABLED.
 // Saving writes to scripts/, which the server runs with full host access;
 // see the trust model in engine/scripting/sandbox.ts.
-export const ScriptEditor: React.FC<{ height?: number }> = ({
-  height = 520,
-}) => {
+export const ScriptEditor: React.FC<{
+  height?: number;
+  /** The file with unsaved edits, or null, for a host that can close this. */
+  onDirtyChange?: (file: string | null) => void;
+}> = ({ height = 520, onDirtyChange }) => {
   const t = useT();
   const [files, setFiles] = useState<ScriptFileInfo[]>([]);
   const [selected, setSelected] = useState<string | null>(null);
@@ -143,6 +223,10 @@ export const ScriptEditor: React.FC<{ height?: number }> = ({
       }
     };
   }, []);
+
+  useEffect(() => {
+    onDirtyChange?.(dirty ? selected : null);
+  }, [dirty, selected, onDirtyChange]);
 
   // Switching files prompts on its own; this covers closing/reloading the tab.
   useEffect(() => {
@@ -308,7 +392,8 @@ export const ScriptEditor: React.FC<{ height?: number }> = ({
               path={`file:///scripts/${selected}`}
               defaultLanguage="javascript"
               defaultValue={savedContent}
-              theme="vs-dark"
+              theme={GAME_THEME}
+              beforeMount={defineGameTheme}
               onChange={(v) => setDirty((v ?? '') !== savedContent)}
               onMount={handleMount}
               options={{ minimap: { enabled: false }, fontSize: 13 }}

@@ -66,6 +66,7 @@ export const pt: Record<keyof typeof en, string> = {
   'actions.mapEditor': 'Editor de mapa',
   'actions.content': 'Conteúdo',
   'actions.gmPanel': 'Painel de GM',
+  'actions.scripts': 'Scripts',
   'actions.open': 'Abrir {panel}',
   'actions.opening': 'Abrindo…',
   'actions.accessDenied': 'Acesso negado',

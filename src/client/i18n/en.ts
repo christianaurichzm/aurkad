@@ -63,6 +63,7 @@ export const en = {
   'actions.mapEditor': 'Map editor',
   'actions.content': 'Content',
   'actions.gmPanel': 'GM panel',
+  'actions.scripts': 'Scripts',
   'actions.open': 'Open {panel}',
   'actions.opening': 'Opening…',
   'actions.accessDenied': 'Access denied',

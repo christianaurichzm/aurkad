@@ -31,7 +31,7 @@ type PlayerAction = {
 type CreatorAction = {
   id: string;
   label: TranslationKey;
-  keyLabel: string;
+  keyLabel?: string;
   eventName: string;
   minAccess: Access;
   authorize: () => Promise<boolean>;
@@ -88,6 +88,15 @@ const creatorActions: CreatorAction[] = [
     eventName: 'toggleGMPanel',
     minAccess: Access.MOD,
     authorize: openModEditor,
+  },
+  {
+    id: 'scripts',
+    label: 'actions.scripts',
+    eventName: 'toggleScriptEditor',
+    minAccess: Access.ADMIN,
+    // The editor's own requests are the check: the server refuses them below
+    // ADMIN, and the editor says so itself when SCRIPT_EDITOR_ENABLED is off.
+    authorize: () => Promise.resolve(true),
   },
 ];
 
@@ -228,7 +237,7 @@ export const CreatorTools: React.FC = () => {
               title={t('actions.open', { panel: t(action.label) })}
               aria-keyshortcuts={action.keyLabel}
             >
-              <KeyChip keyLabel={action.keyLabel} />
+              {action.keyLabel && <KeyChip keyLabel={action.keyLabel} />}
               <span>
                 {loadingPanel === action.id
                   ? t('actions.opening')

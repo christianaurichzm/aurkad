@@ -12,6 +12,7 @@ import { ShopModal } from './components/Shop/ShopModal';
 import { QuestTracker } from './components/Quest/QuestTracker';
 import { MapEditorWindow } from './components/MapEditor/MapEditorWindow';
 import { GMPanel } from './components/GMPanel';
+import { ScriptEditorWindow } from './components/scripting/ScriptEditorWindow';
 import { ChatPanel, ChatPeek } from './components/ChatPanel';
 import { ActionPanel, CreatorTools } from './components/ActionPanel';
 import { useGame } from './GameContext';
@@ -125,6 +126,7 @@ function App() {
           {brand?.inventory !== false && <InventoryPanel />}
           <MapEditorWindow />
           <ContentEditor />
+          <ScriptEditorWindow />
           <div id="module-ui" />
         </div>
       ) : resetToken ? (
