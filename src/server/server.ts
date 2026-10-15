@@ -17,7 +17,7 @@ import { fileURLToPath } from 'node:url';
 import path from 'node:path';
 
 import { createServer } from 'node:http';
-import express from 'express';
+import express, { type RequestHandler } from 'express';
 import mongoose from 'mongoose';
 import app, { handleRouteError } from './app.js';
 import { config } from './config.js';
@@ -67,6 +67,7 @@ import {
 } from './net/transport.js';
 import { startGameLoops } from './sim/loop.js';
 import { connectToDatabase, loadInitialData } from './initDb.js';
+import { storedSessionSecret } from './services/dbService.js';
 import { startLiveOps } from './services/liveOpsService.js';
 import {
   importContentPack,
@@ -106,8 +107,11 @@ const port = config.port;
 app.use(createHealthRouter());
 app.use(createGameRouter());
 
-const sessionMiddleware = createSessionMiddleware();
-app.use(sessionMiddleware);
+// Made once the database is up, which is where the secret is kept when
+// SESSION_SECRET is not set. Nothing gets here sooner: the server only listens
+// at the end of startServer.
+let sessionMiddleware: RequestHandler;
+app.use((req, res, next) => sessionMiddleware(req, res, next));
 
 const clientDist = path.join(__dirname, '../client');
 
@@ -221,6 +225,9 @@ function registerInstanceEvents(): void {
 async function startServer() {
   try {
     await connectToDatabase();
+    sessionMiddleware = createSessionMiddleware(
+      config.session.secret ?? (await storedSessionSecret()),
+    );
     await importContentPack();
     await loadKvStore();
     await loadInitialData();

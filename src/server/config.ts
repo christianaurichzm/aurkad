@@ -1,4 +1,3 @@
-import crypto from 'node:crypto';
 import fs from 'node:fs';
 import { createRequire } from 'node:module';
 import path from 'node:path';
@@ -79,12 +78,6 @@ function parseCsvEnv(key: string): string[] | undefined {
 }
 
 const corsAllowedOrigins = parseCsvEnv('CORS_ALLOWED_ORIGINS') ?? ['*'];
-
-if (nodeEnv === 'production' && !process.env.SESSION_SECRET) {
-  throw new Error(
-    '[config] SESSION_SECRET must be set in production. Use a secure random string (e.g. openssl rand -hex 32).',
-  );
-}
 
 // The session cookie is the whole login, and without Secure a browser also
 // sends it over plain http. Opt-in by variable rather than from NODE_ENV,
@@ -187,8 +180,6 @@ if (process.env.WS_PUBLIC_URL && mapIds) {
   );
 }
 
-const sessionSecret =
-  process.env.SESSION_SECRET ?? crypto.randomBytes(32).toString('hex');
 const dbName = mongoDbName(process.env.MONGO_URI ?? '');
 
 export const config = {
@@ -197,7 +188,8 @@ export const config = {
   mongoUri: process.env.MONGO_URI || 'mongodb://localhost:27017',
   mongoDbName: dbName,
   session: {
-    secret: sessionSecret,
+    // Unset, storedSessionSecret keeps one in the database to sign with.
+    secret: process.env.SESSION_SECRET || undefined,
   },
   limits: {
     actionQueueMaxSize: parseIntEnv('ACTION_QUEUE_MAX_SIZE', 5000, {

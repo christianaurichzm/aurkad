@@ -34,7 +34,7 @@ const account = (authEpoch: number, access = 2) => ({ authEpoch, access });
 function createApp(store: session.Store = new session.MemoryStore()) {
   const app = express();
   app.use(express.json());
-  app.use(createSessionMiddleware(store));
+  app.use(createSessionMiddleware('test-secret', store));
   app.post('/login', (req: ExtendedRequest, res) => {
     req.session.username = 'Alice';
     req.session.accessLevel = 2;
@@ -117,7 +117,7 @@ describe('session identity against the account generation', () => {
     // everyone out on a deploy would be worse than what the generation fixes.
     authOf.mockResolvedValue(account(0));
     const app = express();
-    app.use(createSessionMiddleware(new session.MemoryStore()));
+    app.use(createSessionMiddleware('test-secret', new session.MemoryStore()));
     app.post('/legacy-login', (req: ExtendedRequest, res) => {
       req.session.username = 'Alice';
       req.session.accessLevel = 2;

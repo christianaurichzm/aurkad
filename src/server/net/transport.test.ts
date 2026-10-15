@@ -698,7 +698,10 @@ describe('revoking established sessions', () => {
       await import('../services/player/passwordService.js');
     await createPlayer('Online', await bcrypt.hash('old-password', 4));
     const app = createApp();
-    const middleware = createSessionMiddleware(new session.MemoryStore());
+    const middleware = createSessionMiddleware(
+      'test-secret',
+      new session.MemoryStore(),
+    );
     app.use(middleware);
     app.use(createAuthRouter());
     const login = await request(app)

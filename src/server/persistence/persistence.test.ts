@@ -13,6 +13,7 @@ import { playerRepository } from './playerRepository.js';
 import {
   DB_SCHEMA_VERSION,
   checkDatabaseSchemaVersion,
+  storedSessionSecret,
 } from '../services/dbService.js';
 import {
   createPlayer,
@@ -184,6 +185,24 @@ describe('database schema version', () => {
     // The throw has to happen before the stamp, or one refused boot rewrites
     // the version down and the next one comes up happy on the same data.
     expect(await readVersion()).toMatchObject({ value: ahead });
+  });
+});
+
+describe('stored session secret', () => {
+  it('is generated once, then read back on every boot', async () => {
+    const first = await storedSessionSecret();
+
+    expect(first).toMatch(/^[0-9a-f]{64}$/);
+    expect(await storedSessionSecret()).toBe(first);
+  });
+
+  it('is the same for instances booting together', async () => {
+    const [a, b] = await Promise.all([
+      storedSessionSecret(),
+      storedSessionSecret(),
+    ]);
+
+    expect(a).toBe(b);
   });
 });
 

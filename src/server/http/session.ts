@@ -62,6 +62,7 @@ async function accountStillBacks(
  * front of the WebSocket upgrade, where there is no response to write.
  */
 export function createSessionMiddleware(
+  secret: string,
   store: session.Store = MongoStore.create({
     mongoUrl: config.mongoUri,
     dbName: config.mongoDbName,
@@ -70,7 +71,7 @@ export function createSessionMiddleware(
   }),
 ): RequestHandler {
   const withSession = session({
-    secret: config.session.secret,
+    secret,
     resave: false,
     saveUninitialized: false,
     store,
