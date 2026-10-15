@@ -89,6 +89,15 @@ CHARS = {  # name: (model, meshes shown, held, walk, attack, the attack's hit at
     'bone_knight': (SKEL + 'Characters/gltf/Skeleton_Warrior.glb', ['Skeleton_Warrior_Helmet'],
                     [held('Skeleton_Blade'), held('Skeleton_Shield_Small_A', 'shield')],
                     'Walking_D_Skeletons', '1H_Melee_Attack_Chop', 0.42),
+    'barbarian': (HERO + 'Characters/gltf/Barbarian.glb', ['2H_Axe', 'Barbarian_Hat', 'Barbarian_Cape'], [],
+                  'Walking_A', '2H_Melee_Attack_Chop', 0.42),
+    'hunter': (HERO + 'Characters/gltf/Rogue.glb', ['Rogue_Cape', '1H_Crossbow'], [],
+                  'Walking_A', '1H_Ranged_Shoot', 0.3),
+    'skeleton_rogue': (SKEL + 'Characters/gltf/Skeleton_Rogue.glb', ['Skeleton_Rogue_Hood', 'Skeleton_Rogue_Cape'],
+                       [held('Skeleton_Blade'), held('Skeleton_Blade', 'left')],
+                       'Walking_D_Skeletons', 'Dualwield_Melee_Attack_Stab', 0.42),
+    'skeleton_mage': (SKEL + 'Characters/gltf/Skeleton_Mage.glb', ['Skeleton_Mage_Hat'], [held('Skeleton_Staff')],
+                      'Walking_D_Skeletons', 'Spellcast_Shoot', 0.3),
 }
 
 ITEMS = {  # name: (model, rotation in degrees, only this mesh, hue)

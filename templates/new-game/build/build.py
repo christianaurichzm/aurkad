@@ -344,13 +344,14 @@ PATH = [(-3, 18), (-1, 17), (3, 15.5), (8, 16), (12, 13.5), (15.5, 11), (19.5, 9
         (28, 4.5), (32, 1.5), (34, 0)]
 POND = (6.5, 5.5, 3.2, 2.3)  # centre column and row, half width and height
 RESPAWN = (15, 11)
-# Skeletons wander the meadow, alone or near one another. A hostile npc strays
+# The dead wander the meadow, alone or near one another. A hostile npc strays
 # 3 tiles from its spawn and notices a player 4 from there, so each spawn is
 # further than 7 from the respawn: the camp is somewhere to stand and read the
 # screen. The bone knight comes at a player from 8, so it is roped to the far
 # corner, and a player who has just died walks back into the camp, not into it.
 SPAWNS = {'skeleton': [(23, 3), (24, 15), (25, 10), (6, 13)], 'bone-knight': [(26, 4)],
-          'mage': [(13, 10)]}
+          'skeleton-rogue': [(5, 18), (27, 17)], 'skeleton-mage': [(11, 3), (23, 18)],
+          'mage': [(13, 10)], 'barbarian': [(17, 9)], 'hunter': [(10, 8)]}
 CAMP = [('barrel', 12, 10), ('crates', 13, 9)]
 
 
@@ -408,8 +409,9 @@ def lay_out(ids):
     taken = path | pond | {(c, r) for cells in SPAWNS.values() for c, r in cells}
     taken |= {(c, r) for _, c, r in CAMP}
     assert not (taken - path - pond) & (path | pond), 'an npc or the camp on the path or the pond'
-    for c, r in SPAWNS['skeleton']:
-        assert max(abs(c - RESPAWN[0]), abs(r - RESPAWN[1])) > 7, f'skeleton {(c, r)} reaches the camp'
+    for npc in NPCS:
+        for c, r in SPAWNS.get(npc['id'], []) if npc['behavior'] == 'hostile' else []:
+            assert max(abs(c - RESPAWN[0]), abs(r - RESPAWN[1])) > 7, f"{npc['id']} {(c, r)} reaches the camp"
     near_spawn = lambda c, r: abs(c - RESPAWN[0]) <= 2 and abs(r - RESPAWN[1]) <= 2
     border = lambda c, r: c < 2 or r < 2 or c >= COLS - 2 or r >= ROWS - 2
 
@@ -462,7 +464,8 @@ def lay_out(ids):
 
 
 # ─── characters ──────────────────────────────────────────────────────────────
-CHARACTERS = ['knight', 'mage', 'rogue', 'skeleton', 'bone_knight']  # sprite ids; 0 is every new player
+CHARACTERS = ['knight', 'mage', 'rogue', 'skeleton', 'bone_knight', 'barbarian', 'hunter', 'skeleton_rogue',
+              'skeleton_mage']  # sprite ids; 0 is every new player
 SPRITE = {name: i for i, name in enumerate(CHARACTERS)}
 PER_ROW = 3
 
@@ -593,7 +596,17 @@ NPCS = [
      'behavior': 'aggressive', 'leash': 5, 'experienceValue': 40,
      'itemsToDrop': [{'itemId': 2, 'chance': 1, 'quantity': 8}, {'itemId': 3, 'chance': 0.15, 'quantity': 1},
                      {'itemId': 4, 'chance': 0.2, 'quantity': 1}]},
+    {'id': 'skeleton-rogue', 'name': 'Skeleton Rogue', 'sprite': SPRITE['skeleton_rogue'], 'maxHealth': 14,
+     'attack': 3, 'behavior': 'hostile', 'moveIntervalMs': 600, 'experienceValue': 12,
+     'itemsToDrop': [{'itemId': 2, 'chance': 0.8, 'quantity': 4}, {'itemId': 1, 'chance': 0.15, 'quantity': 1}]},
+    {'id': 'skeleton-mage', 'name': 'Skeleton Mage', 'sprite': SPRITE['skeleton_mage'], 'maxHealth': 16,
+     'attack': 3, 'attackRange': 3 * T, 'behavior': 'hostile', 'experienceValue': 15,
+     'itemsToDrop': [{'itemId': 2, 'chance': 0.8, 'quantity': 4}, {'itemId': 1, 'chance': 0.3, 'quantity': 1}]},
     {'id': 'mage', 'name': 'Mage', 'sprite': SPRITE['mage'], 'maxHealth': 50, 'attack': 0,
+     'behavior': 'friendly'},
+    {'id': 'barbarian', 'name': 'Barbarian', 'sprite': SPRITE['barbarian'], 'maxHealth': 80, 'attack': 0,
+     'behavior': 'guard'},
+    {'id': 'hunter', 'name': 'Hunter', 'sprite': SPRITE['hunter'], 'maxHealth': 30, 'attack': 0,
      'behavior': 'friendly'},
 ]
 

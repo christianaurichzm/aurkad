@@ -53,10 +53,70 @@
     ]
   },
   {
+    "id": "skeleton-rogue",
+    "name": "Skeleton Rogue",
+    "sprite": 7,
+    "maxHealth": 14,
+    "attack": 3,
+    "behavior": "hostile",
+    "moveIntervalMs": 600,
+    "experienceValue": 12,
+    "itemsToDrop": [
+      {
+        "itemId": 2,
+        "chance": 0.8,
+        "quantity": 4
+      },
+      {
+        "itemId": 1,
+        "chance": 0.15,
+        "quantity": 1
+      }
+    ]
+  },
+  {
+    "id": "skeleton-mage",
+    "name": "Skeleton Mage",
+    "sprite": 8,
+    "maxHealth": 16,
+    "attack": 3,
+    "attackRange": 192,
+    "behavior": "hostile",
+    "experienceValue": 15,
+    "itemsToDrop": [
+      {
+        "itemId": 2,
+        "chance": 0.8,
+        "quantity": 4
+      },
+      {
+        "itemId": 1,
+        "chance": 0.3,
+        "quantity": 1
+      }
+    ]
+  },
+  {
     "id": "mage",
     "name": "Mage",
     "sprite": 1,
     "maxHealth": 50,
+    "attack": 0,
+    "behavior": "friendly"
+  },
+  {
+    "id": "barbarian",
+    "name": "Barbarian",
+    "sprite": 5,
+    "maxHealth": 80,
+    "attack": 0,
+    "behavior": "guard"
+  },
+  {
+    "id": "hunter",
+    "name": "Hunter",
+    "sprite": 6,
+    "maxHealth": 30,
     "attack": 0,
     "behavior": "friendly"
   }
