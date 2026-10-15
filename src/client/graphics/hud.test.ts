@@ -274,6 +274,16 @@ describe('renderHUD', () => {
     expect(rec.of('strokeText')).toHaveLength(0);
   });
 
+  it('sets a tag under the name, as an npc role is', () => {
+    const rec = recordingContext();
+
+    renderHUD(player(Access.USER, { nameTag: 'Bonebreaker' }), rec.ctx);
+
+    const y = (text: string) =>
+      rec.of('fillText').find((c) => c.args[0] === text)?.args[2] as number;
+    expect(y('Bonebreaker')).toBeGreaterThan(y('Nyx (3)'));
+  });
+
   it('keeps the outline for a name that reads over black', () => {
     const rec = recordingContext();
 

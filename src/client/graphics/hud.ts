@@ -98,6 +98,8 @@ export const renderHUD = (
   const y = spriteTop(player.sprite, position.x, position.y) - NAME_CLEARANCE;
   const cx = x + TILE_SIZE / 2; // sprite center: names are centered over it
   const { world } = hudTheme();
+  // A tag sits under the name, as an NPC's role does (renderNpcLabel).
+  const nameY = nameTag ? y - 14 : y;
 
   worldText(ctx, cx, y, () => {
     if (nameTag) {
@@ -105,7 +107,7 @@ export const renderHUD = (
         ctx,
         nameTag,
         cx,
-        y - 16,
+        y,
         `bold 12px ${world}`,
         nameTagColor ?? '#ffd24d',
       );
@@ -114,12 +116,12 @@ export const renderHUD = (
       ctx,
       getPlayerHudText(name, level, getGameBrand()?.levels !== false),
       cx,
-      y,
+      nameY,
       `bold 15px ${world}`,
       nameColor ?? playerNameColorRecord[access],
     );
 
-    renderSpeechBubble(ctx, name, cx, y - 2);
+    renderSpeechBubble(ctx, name, cx, nameY - 2);
   });
 };
 
