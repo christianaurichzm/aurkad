@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react';
+import { render, screen, within } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { AdminApp } from './AdminApp';
 import { Access } from '../../shared/types';
@@ -58,8 +58,12 @@ describe('AdminApp', () => {
   it('shows the dashboard when an operator session exists', async () => {
     mocks.adminSession.mockResolvedValue({ username: 'Boss', access: 2 });
     render(<AdminApp />);
-    expect(await screen.findByText('Online players')).toBeInTheDocument();
-    expect(screen.getByText('Console')).toBeInTheDocument();
+    expect(
+      await screen.findByRole('heading', { name: 'Online players' }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('heading', { name: 'Console' }),
+    ).toBeInTheDocument();
   });
 
   it('hides the Scripts panel when the flag is off', async () => {
@@ -69,7 +73,7 @@ describe('AdminApp', () => {
       scriptEditorEnabled: false,
     });
     render(<AdminApp />);
-    await screen.findByText('Online players');
+    await screen.findByRole('heading', { name: 'Online players' });
     expect(screen.queryByText('Scripts')).not.toBeInTheDocument();
   });
 
@@ -80,7 +84,9 @@ describe('AdminApp', () => {
       scriptEditorEnabled: true,
     });
     render(<AdminApp />);
-    expect(await screen.findByText('Scripts')).toBeInTheDocument();
+    expect(
+      await screen.findByRole('heading', { name: 'Scripts' }),
+    ).toBeInTheDocument();
   });
 
   // The panel does not put the operator in the world, so moderating while
@@ -105,7 +111,9 @@ describe('AdminApp', () => {
       scriptEditorEnabled: false,
     });
     render(<AdminApp />);
-    expect(await screen.findByText('Audit trail')).toBeInTheDocument();
+    expect(
+      await screen.findByRole('heading', { name: 'Audit trail' }),
+    ).toBeInTheDocument();
   });
 
   // A moderator can be the subject of the trail, so they do not get to read it.
@@ -116,8 +124,29 @@ describe('AdminApp', () => {
       scriptEditorEnabled: false,
     });
     render(<AdminApp />);
-    await screen.findByText('Online players');
+    await screen.findByRole('heading', { name: 'Online players' });
     expect(screen.queryByText('Audit trail')).not.toBeInTheDocument();
+  });
+
+  it('links every section from the header, and only those', async () => {
+    mocks.adminSession.mockResolvedValue({
+      username: 'Gm',
+      access: Access.MOD,
+      scriptEditorEnabled: false,
+    });
+    const { container } = render(<AdminApp />);
+    await screen.findByRole('heading', { name: 'Online players' });
+
+    const links = within(screen.getByRole('navigation')).getAllByRole('link');
+    const sections = [...container.querySelectorAll('main > section')];
+    expect(links.map((a) => a.getAttribute('href'))).toEqual(
+      sections.map((section) => `#${section.id}`),
+    );
+    expect(links.map((a) => a.textContent)).toEqual([
+      'Online players',
+      'Console',
+      'Two-factor authentication',
+    ]);
   });
 
   // styles.css pins the body to 100vh with overflow hidden for the game
@@ -130,7 +159,7 @@ describe('AdminApp', () => {
       scriptEditorEnabled: true,
     });
     const { container } = render(<AdminApp />);
-    await screen.findByText('Online players');
+    await screen.findByRole('heading', { name: 'Online players' });
 
     const page = container.firstChild as HTMLElement;
     expect(page.style.overflowY).toBe('auto');

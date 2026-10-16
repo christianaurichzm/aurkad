@@ -50,84 +50,135 @@ export const AdminApp: React.FC = () => {
     return <AdminLogin onLogin={setSession} />;
   }
 
-  return (
-    <div style={page}>
-      <header className="admin-header" style={header}>
-        <div style={brand}>
-          {game && (
-            <>
-              <img src={game.logo} alt="" style={brandLogo} />
-              <span>{game.name}</span>
-            </>
-          )}
-          <span style={brandPanel}>{t('admin.title')}</span>
-        </div>
-        <div className="admin-header-actions" style={headerRight}>
-          <span style={who}>
-            {session.username} · {Access[session.access]}
-          </span>
-          {/* A new tab, not a navigation: an operator who moderates while
-              playing keeps both, and the panel session survives either way. */}
-          <a style={gameLink} href="/" target="_blank" rel="noreferrer">
-            {t('admin.openGame')}
-          </a>
-          <button
-            style={logoutBtn}
-            onClick={() =>
-              void adminLogout().then(() => {
-                setSession(null);
-              })
-            }
-          >
-            {t('admin.logout')}
-          </button>
-        </div>
-      </header>
-      <main style={grid}>
-        <section style={panel}>
-          <h2 style={panelTitle}>{t('online.title')}</h2>
+  const admin = session.access >= Access.ADMIN;
+  // In task order: the people in the game, then how the game looks and
+  // behaves. One list feeds the page and the links to it.
+  const sections: Section[] = [
+    {
+      id: 'players',
+      title: t('online.title'),
+      body: (
+        <>
           <PlayerModeration access={session.access} onResult={setStatus} />
           {status && <div style={statusLine}>{status}</div>}
-        </section>
-        <section style={panel}>
-          <h2 style={panelTitle}>{t('admin.console')}</h2>
-          <CommandConsole height={260} />
-        </section>
-        <section style={{ ...panel, alignSelf: 'start' }}>
-          <h2 style={panelTitle}>{t('twofa.title')}</h2>
-          <TwoFactorPanel />
-        </section>
-        {session.access >= Access.ADMIN && (
-          <section style={{ ...panel, ...wideSection }}>
-            <h2 style={panelTitle}>{t('admin.appearance')}</h2>
-            <AppearancePanel />
-          </section>
-        )}
-        {session.access >= Access.ADMIN && (
-          <section style={{ ...panel, ...wideSection }}>
-            <h2 style={panelTitle}>{t('admin.art')}</h2>
-            <ArtPanel />
-          </section>
-        )}
-        {session.scriptEditorEnabled && (
-          <section style={{ ...panel, ...wideSection }}>
-            <h2 style={panelTitle}>{t('admin.scripts')}</h2>
-            <React.Suspense
-              fallback={<div style={statusLine}>{t('common.loading')}</div>}
+        </>
+      ),
+    },
+    {
+      id: 'console',
+      title: t('admin.console'),
+      body: <CommandConsole height={260} />,
+    },
+    {
+      id: 'two-factor',
+      title: t('twofa.title'),
+      wide: true,
+      body: <TwoFactorPanel />,
+    },
+    ...(admin
+      ? [
+          {
+            id: 'audit',
+            title: t('admin.audit'),
+            wide: true,
+            body: <AuditLog height={260} />,
+          },
+          {
+            id: 'appearance',
+            title: t('admin.appearance'),
+            wide: true,
+            body: <AppearancePanel />,
+          },
+          {
+            id: 'art',
+            title: t('admin.art'),
+            wide: true,
+            body: <ArtPanel />,
+          },
+        ]
+      : []),
+    ...(session.scriptEditorEnabled
+      ? [
+          {
+            id: 'scripts',
+            title: t('admin.scripts'),
+            wide: true,
+            body: (
+              <React.Suspense
+                fallback={<div style={statusLine}>{t('common.loading')}</div>}
+              >
+                <ScriptEditor height={520} />
+              </React.Suspense>
+            ),
+          },
+        ]
+      : []),
+  ];
+
+  return (
+    <div style={page}>
+      <header style={header}>
+        <div className="admin-header" style={headerRow}>
+          <div style={brand}>
+            {game && (
+              <>
+                <img src={game.logo} alt="" style={brandLogo} />
+                <span>{game.name}</span>
+              </>
+            )}
+            <span style={brandPanel}>{t('admin.title')}</span>
+          </div>
+          <div className="admin-header-actions" style={headerRight}>
+            <span style={who}>
+              {session.username} · {Access[session.access]}
+            </span>
+            {/* A new tab, not a navigation: an operator who moderates while
+                playing keeps both, and the panel session survives either way. */}
+            <a style={gameLink} href="/" target="_blank" rel="noreferrer">
+              {t('admin.openGame')}
+            </a>
+            <button
+              style={logoutBtn}
+              onClick={() =>
+                void adminLogout().then(() => {
+                  setSession(null);
+                })
+              }
             >
-              <ScriptEditor height={520} />
-            </React.Suspense>
+              {t('admin.logout')}
+            </button>
+          </div>
+        </div>
+        <nav className="admin-nav" style={navRow} aria-label={t('admin.title')}>
+          {sections.map(({ id, title }) => (
+            <a key={id} href={`#${id}`}>
+              {title}
+            </a>
+          ))}
+        </nav>
+      </header>
+      <main style={grid}>
+        {sections.map(({ id, title, wide, body }) => (
+          <section
+            key={id}
+            id={id}
+            className="admin-section"
+            style={wide ? { ...panel, ...wideSection } : panel}
+          >
+            <h2 style={panelTitle}>{title}</h2>
+            {body}
           </section>
-        )}
-        {session.access >= Access.ADMIN && (
-          <section style={{ ...panel, ...wideSection }}>
-            <h2 style={panelTitle}>{t('admin.audit')}</h2>
-            <AuditLog height={260} />
-          </section>
-        )}
+        ))}
       </main>
     </div>
   );
+};
+
+type Section = {
+  id: string;
+  title: string;
+  wide?: boolean;
+  body: React.ReactNode;
 };
 
 const AdminLogin: React.FC<{ onLogin: (s: AdminSession) => void }> = ({
@@ -223,12 +274,23 @@ const header: React.CSSProperties = {
   position: 'sticky',
   top: 0,
   zIndex: 1,
-  display: 'flex',
-  alignItems: 'center',
-  justifyContent: 'space-between',
-  padding: '14px 20px',
   background: colors.surface,
   borderBottom: `1px solid ${colors.border}`,
+};
+// The grid's width and gutter, so the header lines up with the panels.
+const headerRow: React.CSSProperties = {
+  display: 'flex',
+  alignItems: 'center',
+  maxWidth: 1300,
+  margin: '0 auto',
+  padding: '12px 20px 6px',
+};
+// Short of the gutter by a link's own padding, so the first one's text starts
+// under the logo.
+const navRow: React.CSSProperties = {
+  maxWidth: 1300,
+  margin: '0 auto',
+  padding: '0 10px 6px',
 };
 const brand: React.CSSProperties = {
   display: 'flex',
@@ -248,6 +310,7 @@ const headerRight: React.CSSProperties = {
   display: 'flex',
   alignItems: 'center',
   gap: 12,
+  marginLeft: 'auto',
 };
 const who: React.CSSProperties = { color: colors.textMuted, fontSize: 13 };
 const gameLink: React.CSSProperties = {
@@ -269,7 +332,7 @@ const logoutBtn: React.CSSProperties = {
 };
 const grid: React.CSSProperties = {
   display: 'grid',
-  gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 340px), 1fr))',
+  gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 420px), 1fr))',
   gap: 16,
   padding: 20,
   maxWidth: 1300,

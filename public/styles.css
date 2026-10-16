@@ -2052,6 +2052,36 @@ button.item-slot:hover::after {
 .admin-header-actions {
   flex-wrap: wrap;
 }
+/* One line at any width: a phone scrolls it sideways. */
+.admin-nav {
+  display: flex;
+  gap: 2px;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.admin-nav a {
+  padding: 6px 10px;
+  border-radius: var(--radius-control);
+  color: var(--color-text-muted);
+  font-size: 13px;
+  white-space: nowrap;
+  text-decoration: none;
+}
+.admin-nav a:hover,
+.admin-nav a:focus-visible {
+  background: var(--surface-control);
+  color: var(--color-text);
+}
+/* A link in the sticky header lands the section's title below it; on a
+   phone the header wraps to a line more. */
+.admin-section {
+  scroll-margin-top: 110px;
+}
+@media (max-width: 600px) {
+  .admin-section {
+    scroll-margin-top: 140px;
+  }
+}
 
 /* The Appearance page of the admin panel: what is chosen on one side, the
    game's own classes under those choices on the other. */
