@@ -481,6 +481,18 @@ describe('a replaced connection', () => {
     expect(second.readyState).toBe(WebSocket.OPEN);
   });
 
+  it('drops the keys the old client was holding', async () => {
+    await open();
+    pressedKeysMap.set('Boss', new Set([Key.ArrowRight]));
+
+    await open();
+    await settle();
+
+    // The new client sends what it holds itself; a key it never pressed
+    // would walk the character with nobody at the keyboard.
+    expect(pressedKeysMap.get('Boss')?.has(Key.ArrowRight)).toBeFalsy();
+  });
+
   it('forgets the socket on an ordinary departure', async () => {
     const only = await open();
 

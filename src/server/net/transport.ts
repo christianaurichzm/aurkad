@@ -472,6 +472,9 @@ export const startWebSocketServer = (
       // here has to carry everything in view rather than a delta against a
       // history that went down with the old one.
       resetPlayerNetState(username);
+      // Same for input: the keys held are the old client's, and its releases
+      // will never arrive. This one sends its own once it is up.
+      clearPressedKeys(username);
       // The socket edges are recorded too (recordSession): actions alone
       // cannot tell "stopped playing" from "kept walking".
       recordSession(username, 'join');
