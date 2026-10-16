@@ -1257,7 +1257,9 @@ export const saveCurrentMap = async (
       map,
       name,
       type,
-      editorMusic || undefined,
+      // Sent even when empty: the server keeps the music unless told, and ''
+      // means no music.
+      editorMusic,
       editorMapId || undefined,
     );
     if (result?.success) {

@@ -45,7 +45,7 @@ export const saveMap = async (
     tiles: newMapTiles,
     name,
     type,
-    music: music || undefined,
+    music,
   };
 
   return httpClient<SaveMapResponse>('/saveMap', {
