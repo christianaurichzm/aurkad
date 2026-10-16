@@ -121,3 +121,23 @@ describe('PUT /maps/:id', () => {
     expect(live?.tilesRevision).toBe(revision + 1);
   });
 });
+
+describe('POST /maps/:id/resize', () => {
+  it('fails, rather than reporting a resize nobody applied, for a map this instance does not run', async () => {
+    const sim = await storedMap();
+    await GameMapModel.create({
+      id: 'elsewhere',
+      name: 'Far',
+      type: 'normal',
+      tiles: sim.map.tiles,
+    });
+
+    const res = await request(app())
+      .post('/maps/elsewhere/resize')
+      .send({ cols: 3, rows: 3 });
+
+    expect(res.status).toBe(500);
+    const stored = await GameMapModel.findOne({ id: 'elsewhere' }).lean();
+    expect(stored?.tiles).toHaveLength(sim.map.tiles.length);
+  });
+});

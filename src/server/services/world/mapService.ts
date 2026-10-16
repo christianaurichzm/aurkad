@@ -18,7 +18,6 @@ import {
   detachFromMap,
 } from '../../sim/world.js';
 import { runtimeState } from '../../sim/state.js';
-import { logger } from '../../logger.js';
 import { config } from '../../config.js';
 
 import { emit } from '../../engine/hooks.js';
@@ -48,11 +47,13 @@ export function createDefaultTiles(cols = 20, rows = 14): Tile[][] {
 
 export const updateMapById = async (
   mapState: MapStateServer,
-): Promise<MapStateServer | undefined> => {
+): Promise<MapStateServer> => {
   const previous = runtimeState.maps[mapState.id];
+  // Not live here: another instance runs it under MAP_IDS, or there is no such
+  // map. Written to the document alone, the edit would be undone by the next
+  // write of the instance that holds the map in memory.
   if (!previous) {
-    logger.warn('updateMap: Map not found', { mapId: mapState.id });
-    return;
+    throw new Error(`[map] ${mapState.id} is not running on this instance`);
   }
 
   mapState = { ...previous, ...mapState, players: previous.players };
