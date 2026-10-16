@@ -1939,6 +1939,9 @@ button.item-slot:hover::after {
   inset: 0;
   display: flex;
   overflow: auto;
+  /* A card taller than the window scrolls, and the scrollbar would push it
+     off centre: the same gutter on both sides keeps it in the middle. */
+  scrollbar-gutter: stable both-edges;
   padding: 32px 16px;
   background:
     radial-gradient(ellipse at 50% 20%, var(--color-selected), transparent 65%),
