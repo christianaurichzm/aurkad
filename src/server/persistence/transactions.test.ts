@@ -310,6 +310,7 @@ describe('replica set', () => {
     await createPlayer('Bob', 'hash');
     alice.inventory.items.push({ item: SWORD, quantity: 1 });
     await persistPlayersNow([alice]);
+    registerPlayer(alice);
     items.set(SWORD, {
       id: SWORD,
       name: 'Sword',
@@ -374,6 +375,7 @@ describe('replica set', () => {
 
   it('aborts a delivery when the sender write is refused', async () => {
     const [alice] = await tradingPair();
+    registerPlayer(alice);
     items.set(SWORD, {
       id: SWORD,
       name: 'Sword',
@@ -434,6 +436,7 @@ describe('replica set', () => {
 
   it('lets only one overlapping delivery debit the sender inventory', async () => {
     const [alice] = await tradingPair();
+    registerPlayer(alice);
     items.set(SWORD, {
       id: SWORD,
       name: 'Sword',

@@ -33,7 +33,8 @@ import {
   getPlayerByNameFromDb,
   persistPlayerSessionState,
 } from '../player/playerService.js';
-import { playersByName } from '../../sim/state.js';
+import { players, playersByName } from '../../sim/state.js';
+import { registerPlayer, unregisterPlayer } from '../../sim/world.js';
 import type { PlayerServer } from '../../../shared/types.js';
 
 // The database write is the half of a claim that can fail on its own, and
@@ -70,6 +71,7 @@ const SWORD = 2;
 beforeEach(async () => {
   const cols = mongoose.connection.collections;
   await Promise.all(Object.values(cols).map((c) => c.deleteMany({})));
+  for (const id of Object.keys(players)) unregisterPlayer(id);
   playersByName.clear();
   hooks.persistFails = false;
   items.clear();
@@ -89,10 +91,14 @@ beforeEach(async () => {
   });
 });
 
-/** A player who exists in the database, as a recipient must. */
+/**
+ * A player who exists in the database, as a recipient must, and is in the
+ * world, as a sender must.
+ */
 async function makePlayer(name: string, capacity = 10): Promise<PlayerServer> {
   const player = await createPlayer(name, 'hash');
   player.inventory = { items: [], maxCapacity: capacity };
+  registerPlayer(player);
   return player;
 }
 
@@ -188,6 +194,26 @@ describe('sendDelivery without transactions', () => {
     expect(alice.inventory.items).toEqual([{ item: SWORD, quantity: 1 }]);
     expect(await countDeliveries('Bob')).toBe(0);
     vi.restoreAllMocks();
+  });
+
+  it('takes nothing from a session that ended while the send was queued', async () => {
+    const alice = await withSword('Alice');
+    await makePlayer('Bob');
+
+    const sending = sendDelivery(alice, {
+      to: 'Bob',
+      itemId: SWORD,
+      source: 'mail',
+    });
+    // Out and back in before the send reached the inventory: the account is
+    // another object now, loaded with the sword.
+    unregisterPlayer(alice.id);
+    const relogged = structuredClone(alice);
+    registerPlayer(relogged);
+
+    expect(await sending).toEqual({ ok: false, reason: 'not-committed' });
+    expect(relogged.inventory.items).toEqual([{ item: SWORD, quantity: 1 }]);
+    expect(await countDeliveries('Bob')).toBe(0);
   });
 
   it('takes the fee with the item, or neither', async () => {

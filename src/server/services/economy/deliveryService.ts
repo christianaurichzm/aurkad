@@ -30,7 +30,11 @@ import {
   withTransaction,
 } from '../../persistence/transactions.js';
 import { getItemById, items } from '../content/itemService.js';
-import { getPlayerByName, updatePlayer } from '../../sim/world.js';
+import {
+  getPlayerById,
+  getPlayerByName,
+  updatePlayer,
+} from '../../sim/world.js';
 import {
   getPlayerByNameFromDb,
   persistPlayerSessionState,
@@ -229,7 +233,11 @@ async function sendHeld(
   const prepared = await prepareRow(input);
   if (!prepared.ok) return prepared;
   const { row } = prepared;
-  if (isPlayerCommitting(from.id)) return fail('not-committed');
+  // The queue and the lookups above yield. A logout in between saves `from`
+  // and a login loads the account into another object; debiting this one would
+  // take the item out of a document the new session then rewrites with it.
+  if (getPlayerById(from.id) !== from || isPlayerCommitting(from.id))
+    return fail('not-committed');
   beginPlayerCommit([from.id]);
   lockInventory(from.inventory);
   try {
