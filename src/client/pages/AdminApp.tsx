@@ -13,6 +13,7 @@ import { CommandConsole } from '../components/moderation/CommandConsole';
 import { AuditLog } from '../components/moderation/AuditLog';
 import { TwoFactorPanel } from '../components/moderation/TwoFactorPanel';
 import { AppearancePanel } from '../components/moderation/AppearancePanel';
+import { ArtPanel } from '../components/moderation/ArtPanel';
 import { colors, radius } from '../theme';
 import { useT } from '../i18n';
 
@@ -100,6 +101,12 @@ export const AdminApp: React.FC = () => {
           <section style={{ ...panel, ...wideSection }}>
             <h2 style={panelTitle}>{t('admin.appearance')}</h2>
             <AppearancePanel />
+          </section>
+        )}
+        {session.access >= Access.ADMIN && (
+          <section style={{ ...panel, ...wideSection }}>
+            <h2 style={panelTitle}>{t('admin.art')}</h2>
+            <ArtPanel />
           </section>
         )}
         {session.scriptEditorEnabled && (

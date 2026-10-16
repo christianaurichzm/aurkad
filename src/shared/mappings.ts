@@ -44,3 +44,42 @@ export const SHEETS = [
   'arrows',
   'attackeffect',
 ] as const;
+
+type SheetFrames = {
+  width: number;
+  height: number;
+  columns: number;
+  idleColumn: number;
+  attackColumn: number;
+  scale: number;
+};
+
+/**
+ * The character sheets the admin's Art page takes as they come, each with the
+ * sprites.json it is read by. `aurkad` is the README's 64 px grid; the
+ * others are blocks of three frames over the same four rows (RPG Maker's
+ * layout), walked 0-1-2-1 and scaled up to fill a 64 px cell.
+ */
+export const SPRITE_LAYOUTS: Record<
+  'aurkad' | 'three-48' | 'three-32',
+  Partial<SheetFrames>
+> = {
+  aurkad: {},
+  'three-48': {
+    width: 48,
+    height: 48,
+    columns: 3,
+    idleColumn: 1,
+    attackColumn: 2,
+    scale: 4 / 3,
+  },
+  'three-32': {
+    width: 32,
+    height: 32,
+    columns: 3,
+    idleColumn: 1,
+    attackColumn: 2,
+    scale: 2,
+  },
+};
+export type SpriteLayoutName = keyof typeof SPRITE_LAYOUTS;

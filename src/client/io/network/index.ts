@@ -123,6 +123,9 @@ export {
   removeThemeImage,
 } from './http/themeClient';
 
+// Art (admin panel)
+export { uploadSheet } from './http/assetsClient';
+
 // Scripts (Monaco editor)
 export {
   listScripts,

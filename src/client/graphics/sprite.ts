@@ -10,8 +10,8 @@ const TOTAL_CHARACTER_ROWS = 4;
 /**
  * How a game's sprites.png is cut, from assets/sprites.json. A character is
  * four rows (directions) of `columns` frames; the first four are the walk,
- * and idle and attack name the frames those actions hold. The anchor is the
- * frame pixel on the foot point, so a frame can be larger than the figure.
+ * 0-1-2-1 with three columns (RPG Maker's layout). The anchor is the frame
+ * pixel on the foot point, so a frame can be larger than the figure.
  */
 type Frames = {
   width: number;
@@ -61,7 +61,7 @@ const FramesSchema = z
     height: frameSide,
     anchorX: z.number().nonnegative(),
     anchorY: z.number().nonnegative(),
-    columns: z.number().int().min(4).max(32),
+    columns: z.number().int().min(3).max(32),
     idleColumn: column,
     attackColumn: column,
     scale: z.number().positive().max(4),

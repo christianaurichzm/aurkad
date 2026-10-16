@@ -1,15 +1,25 @@
 /**
- * The files a player pulls from the game's asset folder: the image sheets,
- * their atlas metadata, and sounds and music. Express does the transfer, so
- * a track streams and a Range request works; these pin who may ask, what
- * may be asked for, and that no name leaves the folder.
+ * The files a player pulls from the game's asset folder (image sheets, their
+ * atlas metadata, sounds and music), and the sheets an admin replaces from
+ * the Art page, which must never leave one the client cannot cut. Express
+ * does the transfer, so a track streams and a Range request works; these
+ * pin who may ask, what may be asked for, and that no name leaves the folder.
  */
-import { describe, it, expect, beforeAll, afterAll } from 'vitest';
+import { describe, it, expect, beforeAll, afterAll, vi } from 'vitest';
 import express from 'express';
 import request from 'supertest';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
+import { SPRITE_LAYOUTS } from '../../../shared/mappings.js';
+import { Access } from '../../../shared/types.js';
+
+// checkAccess pulls in the audit trail, which registers a mongoose model at
+// import time. The trail has its own tests.
+vi.mock('../../services/auditService.js', () => ({
+  recordAdminAction: vi.fn(),
+  summarizeDetails: () => undefined,
+}));
 
 const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'aurkad-assets-'));
 process.env['ASSETS_PATH'] = dir;
@@ -22,7 +32,7 @@ const sheet = Buffer.from(
 );
 const body = 'ID3 not really, but bytes are bytes'.repeat(20);
 
-let session: { username?: string } = {};
+let session: { username?: string; accessLevel?: Access } = {};
 let app: express.Express;
 
 beforeAll(() => {
@@ -160,5 +170,106 @@ describe('optional isometric atlas metadata', () => {
     expect((await request(app).get('/assets/sprites.json')).body).toEqual(
       sprites,
     );
+  });
+});
+
+/** The signature and IHDR of a w x h PNG: all the route reads of one. */
+const png = (width: number, height: number) => {
+  const size = Buffer.alloc(8);
+  size.writeUInt32BE(width, 0);
+  size.writeUInt32BE(height, 4);
+  return Buffer.concat([
+    Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0, 0, 0, 13]),
+    Buffer.from('IHDR'),
+    size,
+    Buffer.from([8, 6, 0, 0, 0, 0, 0, 0, 0]),
+  ]);
+};
+const put = (url: string, bytes: Buffer) =>
+  request(app).put(url).set('Content-Type', 'image/png').send(bytes);
+const onDisk = (name: string) => fs.readFileSync(path.join(dir, name));
+
+describe('PUT /admin/assets/:sheet', () => {
+  it.each([
+    ['nobody', {}, 401],
+    ['a moderator', { username: 'Mo', accessLevel: Access.MOD }, 403],
+  ])('is closed to %s', async (_, who, status) => {
+    session = who;
+
+    expect((await put('/admin/assets/items', png(64, 64))).status).toBe(status);
+    expect(fs.existsSync(path.join(dir, 'items.png'))).toBe(false);
+  });
+
+  it('replaces a sheet cut on its grid, and refuses one that is not', async () => {
+    session = { username: 'Op', accessLevel: Access.ADMIN };
+
+    expect((await put('/admin/assets/items', png(320, 64))).status).toBe(204);
+    const refused = await put('/admin/assets/items', png(300, 64));
+
+    expect(refused.status).toBe(422);
+    expect(refused.body.error).toContain('64 px');
+    expect(onDisk('items.png')).toEqual(png(320, 64));
+  });
+
+  it('refuses what is not a PNG, and a sheet or a layout it does not know', async () => {
+    session = { username: 'Op', accessLevel: Access.ADMIN };
+
+    expect((await put('/admin/assets/spells', sheet)).status).toBe(422);
+    expect(
+      (
+        await request(app)
+          .put('/admin/assets/spells')
+          .set('Content-Type', 'image/gif')
+          .send(sheet)
+      ).status,
+    ).toBe(415);
+    expect((await put('/admin/assets/music', png(32, 32))).status).toBe(404);
+    expect(
+      (await put('/admin/assets/sprites?layout=three-16', png(32, 32))).status,
+    ).toBe(400);
+    expect(
+      (await put('/admin/assets/items?layout=aurkad', png(64, 64))).status,
+    ).toBe(400);
+    expect(fs.existsSync(path.join(dir, 'spells.png'))).toBe(false);
+  });
+
+  it('writes the sprites.json of the layout a character sheet was drawn in', async () => {
+    session = { username: 'Op', accessLevel: Access.ADMIN };
+    const kept = onDisk('sprites.json');
+
+    // Eight characters of three 32 px frames, sent as if they were 48 px.
+    const wrong = await put(
+      '/admin/assets/sprites?layout=three-48',
+      png(384, 256),
+    );
+    expect(wrong.status).toBe(422);
+    expect(onDisk('sprites.json')).toEqual(kept);
+
+    expect(
+      (await put('/admin/assets/sprites?layout=three-32', png(384, 256)))
+        .status,
+    ).toBe(204);
+    expect(JSON.parse(onDisk('sprites.json').toString())).toEqual(
+      SPRITE_LAYOUTS['three-32'],
+    );
+
+    // Without a layout the one there stays, whatever the sheet measures.
+    expect((await put('/admin/assets/sprites', png(100, 100))).status).toBe(
+      204,
+    );
+    expect(JSON.parse(onDisk('sprites.json').toString())).toEqual(
+      SPRITE_LAYOUTS['three-32'],
+    );
+  });
+
+  it('refuses tiles that would leave a frame of tiles.json outside the sheet', async () => {
+    session = { username: 'Op', accessLevel: Access.ADMIN };
+    // tiles.json places frame 0 at 0,64 and 128 x 256 (the test above).
+
+    const small = await put('/admin/assets/tiles', png(128, 256));
+    expect(small.status).toBe(422);
+    expect(onDisk('tiles.png')).toEqual(sheet);
+
+    expect((await put('/admin/assets/tiles', png(130, 320))).status).toBe(204);
   });
 });

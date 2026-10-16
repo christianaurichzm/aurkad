@@ -620,6 +620,7 @@ export const en = {
   'admin.signingIn': 'Signing in…',
 
   'admin.appearance': 'Appearance',
+  'admin.art': 'Art',
   'appearance.handwritten':
     'This game also has a theme.css, written by hand, and what it sets wins over the choices here: those are locked, and the preview draws the game as theme.css does.',
   'appearance.presets': 'Start from',
@@ -679,6 +680,34 @@ export const en = {
   'appearance.sample.progress': '3 of 8',
   'appearance.sample.accept': 'Accept',
   'appearance.sample.abandon': 'Abandon',
+  'art.hint':
+    'Download a sheet, change it in any image editor and send it back as PNG. Players see it the next time they load the game.',
+  'art.sheet.tiles': 'Map tiles',
+  'art.sheet.sprites': 'Characters',
+  'art.sheet.items': 'Item icons',
+  'art.sheet.spells': 'Spell effects',
+  'art.sheet.arrows': 'Arrows',
+  'art.sheet.attackeffect': 'Melee swing',
+  'art.grid.tiles':
+    'Maps remember a tile by its place on the sheet: keep the places, or every map that uses one changes.',
+  'art.grid.sprites':
+    'Four rows per character, facing down, left, right and up.',
+  'art.grid.items': '64 px squares, one icon in each.',
+  'art.grid.spells': "32 px squares, a spell's frames side by side.",
+  'art.grid.arrows': '32 px squares, four per arrow: down, up, right, left.',
+  'art.grid.attackeffect': '64 px squares, the six frames of the swing.',
+  'art.layout': 'Drawn as',
+  'art.layout.keep': 'Keep the current layout',
+  'art.layout.aurkad': 'Aurkad: 64 px, four frames per row',
+  'art.layout.three-48':
+    '3 frames per direction, 48 px (the RPG Maker MV/MZ format)',
+  'art.layout.three-32':
+    '3 frames per direction, 32 px (the RPG Maker VX Ace format)',
+  'art.download': 'Download',
+  'art.replace': 'Replace',
+  'art.replaceLabel': 'Replace {name}',
+  'art.tooLarge': 'That sheet is larger than 16 MB.',
+  'art.saved': 'Sent. Players see it the next time they load the game.',
 
   'twofa.title': 'Two-factor authentication',
   'twofa.off': 'Off. A stolen password is enough to reach this panel.',

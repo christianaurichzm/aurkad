@@ -58,6 +58,10 @@ const WALK_CYCLE_LENGTH = 4;
 // the time a step takes.
 const IDLE_FRAME_MS = 180;
 
+// A three-frame block (RPG Maker's layout) steps either side of standing.
+const walkColumn = (sprite: number, step: number) =>
+  characterLayout(sprite).columns === 3 && step === 3 ? 1 : step;
+
 const animationColumn = (
   id: string,
   sprite: number,
@@ -68,11 +72,17 @@ const animationColumn = (
     const layout = characterLayout(sprite);
     if (action === CharacterAction.Attack) return layout.attackColumn;
     return getSpriteLayout().characters[sprite]?.loop
-      ? Math.floor(performance.now() / IDLE_FRAME_MS) % WALK_CYCLE_LENGTH
+      ? walkColumn(
+          sprite,
+          Math.floor(performance.now() / IDLE_FRAME_MS) % WALK_CYCLE_LENGTH,
+        )
       : layout.idleColumn;
   }
   const slideT = slideTById.get(id) ?? 0;
-  return Math.floor(slideT * WALK_CYCLE_LENGTH) % WALK_CYCLE_LENGTH;
+  return walkColumn(
+    sprite,
+    Math.floor(slideT * WALK_CYCLE_LENGTH) % WALK_CYCLE_LENGTH,
+  );
 };
 
 const renderEntity = (entity: SpriteEntity) => {

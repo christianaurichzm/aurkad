@@ -2126,6 +2126,78 @@ button.item-slot:hover::after {
 .appearance-note[data-tone='danger'] {
   color: var(--color-danger-text);
 }
+.art {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 320px), 1fr));
+  gap: 24px;
+  border: 0;
+}
+.art > p {
+  grid-column: 1 / -1;
+}
+.art-sheet {
+  display: flex;
+  gap: 14px;
+  align-items: start;
+}
+.art-sheet > img {
+  flex: none;
+  width: 96px;
+  height: 96px;
+  object-fit: contain;
+  image-rendering: pixelated;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-control);
+  background: var(--surface-control);
+}
+.art-sheet-body {
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+}
+.art-field {
+  display: grid;
+  gap: 4px;
+  font-size: 13px;
+}
+/* As wide as the card, not as its longest option. */
+.art-field select {
+  width: 100%;
+  min-width: 0;
+}
+.art-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.art-action {
+  position: relative;
+  padding: 5px 12px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-control);
+  background: var(--surface-control);
+  color: var(--color-text);
+  font-size: 12px;
+  text-decoration: none;
+  cursor: pointer;
+}
+.art-action:hover {
+  border-color: var(--color-accent);
+}
+.art-action:focus-visible,
+.art-action:focus-within {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+}
+/* The label is the button and opens the picker; the input stays in the tab
+   order, unseen, so the keyboard reaches it too. */
+.art-action > input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  pointer-events: none;
+}
 .appearance-swatches {
   display: inline-flex;
   align-self: center;

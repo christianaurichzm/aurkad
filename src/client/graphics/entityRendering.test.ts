@@ -164,6 +164,44 @@ it('plays the walk cycle of a figure that loops, even standing still', async () 
   setSpriteLayout(DEFAULT_SPRITE_LAYOUT);
 });
 
+it("walks a block of three frames 0-1-2-1 (RPG Maker's layout)", async () => {
+  const { setSpriteLayout, parseSpriteLayout, DEFAULT_SPRITE_LAYOUT } =
+    await import('./sprite');
+  const { drawSprite } = await import('./spriteDrawing');
+  setSpriteLayout(
+    parseSpriteLayout({
+      width: 48,
+      height: 48,
+      columns: 3,
+      idleColumn: 1,
+      characters: { 7: { x: 0, y: 0, loop: true } },
+    }),
+  );
+  const columns: number[] = [];
+  vi.mocked(drawSprite).mockImplementation((_, column) => {
+    columns.push(column);
+  });
+  const slime = {
+    id: 's',
+    sprite: 7,
+    behavior: 'neutral',
+    health: 1,
+    maxHealth: 1,
+    width: 64,
+    height: 64,
+    action: CharacterAction.Idle,
+    position: { x: 0, y: 0 },
+  } as never;
+  const now = vi.spyOn(performance, 'now');
+  for (const t of [0, 180, 360, 540, 720]) {
+    now.mockReturnValue(t);
+    renderEntitiesSorted({}, { s: slime });
+  }
+  expect(columns).toEqual([0, 1, 2, 1, 0]);
+  now.mockRestore();
+  setSpriteLayout(DEFAULT_SPRITE_LAYOUT);
+});
+
 it('names a monster only once the pointer has found it, and every other npc always', () => {
   const npc = (id: string, behavior: string): EntityHudEntry =>
     ({

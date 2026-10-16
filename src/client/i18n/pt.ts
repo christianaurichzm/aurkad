@@ -618,6 +618,7 @@ export const pt: Record<keyof typeof en, string> = {
   'admin.signingIn': 'Entrando…',
 
   'admin.appearance': 'Aparência',
+  'admin.art': 'Arte',
   'appearance.handwritten':
     'Este jogo também tem um theme.css, escrito à mão, e o que ele define ganha das escolhas daqui: essas ficam travadas, e a prévia desenha o jogo como o theme.css desenha.',
   'appearance.presets': 'Começar de',
@@ -678,6 +679,36 @@ export const pt: Record<keyof typeof en, string> = {
   'appearance.sample.progress': '3 de 8',
   'appearance.sample.accept': 'Aceitar',
   'appearance.sample.abandon': 'Abandonar',
+  'art.hint':
+    'Baixe uma folha, mude num editor de imagem qualquer e envie de volta em PNG. Os jogadores veem na próxima vez que carregarem o jogo.',
+  'art.sheet.tiles': 'Tiles dos mapas',
+  'art.sheet.sprites': 'Personagens',
+  'art.sheet.items': 'Ícones dos itens',
+  'art.sheet.spells': 'Efeitos das magias',
+  'art.sheet.arrows': 'Flechas',
+  'art.sheet.attackeffect': 'Golpe corpo a corpo',
+  'art.grid.tiles':
+    'Os mapas lembram cada tile pelo lugar dele na folha: mantenha os lugares, ou todo mapa que usa um deles muda.',
+  'art.grid.sprites':
+    'Quatro linhas por personagem, virado para baixo, esquerda, direita e cima.',
+  'art.grid.items': 'Quadrados de 64 px, um ícone em cada.',
+  'art.grid.spells': 'Quadrados de 32 px, os quadros de uma magia lado a lado.',
+  'art.grid.arrows':
+    'Quadrados de 32 px, quatro por flecha: baixo, cima, direita, esquerda.',
+  'art.grid.attackeffect': 'Quadrados de 64 px, os seis quadros do golpe.',
+  'art.layout': 'Desenhada como',
+  'art.layout.keep': 'Manter o formato atual',
+  'art.layout.aurkad': 'Aurkad: 64 px, quatro quadros por linha',
+  'art.layout.three-48':
+    '3 quadros por direção, 48 px (o formato do RPG Maker MV/MZ)',
+  'art.layout.three-32':
+    '3 quadros por direção, 32 px (o formato do RPG Maker VX Ace)',
+  'art.download': 'Baixar',
+  'art.replace': 'Substituir',
+  'art.replaceLabel': 'Substituir {name}',
+  'art.tooLarge': 'Essa folha tem mais de 16 MB.',
+  'art.saved':
+    'Enviada. Os jogadores veem na próxima vez que carregarem o jogo.',
 
   'twofa.title': 'Autenticação em duas etapas',
   'twofa.off': 'Desligada. Uma senha roubada basta para chegar neste painel.',
