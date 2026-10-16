@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { MapStateServer, PlayerServer } from '../../shared/types.js';
 import { players, playersByName, runtimeState } from './state.js';
+import { drainDirtyPlayerIds } from '../persistence/dirtyPlayers.js';
 import {
   registerPlayer,
   unregisterPlayer,
@@ -108,6 +109,18 @@ describe('world map membership', () => {
 
     expect(runtimeState.maps['1'].players['a']).toBeUndefined();
     expect(runtimeState.maps['2'].players['a']).toBe(p);
+  });
+
+  it('puts where a player moved to in the next snapshot', () => {
+    runtimeState.maps['1'] = mkMap('1');
+    const p = mkPlayer('a', 'Alice', '1');
+    registerPlayer(p);
+    drainDirtyPlayerIds();
+
+    p.position = { x: 64, y: 0 };
+    placePlayerOnMap(p);
+
+    expect(drainDirtyPlayerIds()).toEqual(['a']);
   });
 
   it('detaches from the current map but keeps the player registered', () => {

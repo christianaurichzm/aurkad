@@ -47,11 +47,16 @@ export function upsertOnCurrentMap(player: PlayerServer): void {
   }
 }
 
+/**
+ * Every step, turn and warp ends here. Marks the player dirty so the
+ * position is saved.
+ */
 export function placePlayerOnMap(
   player: PlayerServer,
   previousMapId?: string,
 ): MapStateServer | undefined {
   if (!inWorld(player)) return undefined;
+  markPlayerDirty(player.id);
   const prevMapId = previousMapId ?? getPlayerById(player.id)?.mapId;
 
   if (prevMapId && prevMapId !== player.mapId) {
