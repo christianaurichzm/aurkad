@@ -25,6 +25,10 @@ interface PlayerXpState {
   max: number;
 }
 
+// Lines kept, and so drawn: a long session in a busy game says far more than
+// anyone scrolls back through, and every line kept is a node in the panel.
+const MAX_CHAT_LINES = 500;
+
 interface ChatState {
   messages: ChatMessagePayload[];
   inputValue: string;
@@ -154,7 +158,7 @@ export const useUIStore = create<UIState>((set) => ({
     set((state) => ({
       chat: {
         ...state.chat,
-        messages: [...state.chat.messages, message],
+        messages: [...state.chat.messages, message].slice(-MAX_CHAT_LINES),
       },
     })),
   setChatInput: (value) =>

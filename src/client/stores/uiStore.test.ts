@@ -276,3 +276,19 @@ describe('UIStore - Dialog State', () => {
     expect(useUIStore.getState().dialog.visible).toBe(false);
   });
 });
+
+describe('UIStore - Chat', () => {
+  it('keeps the latest lines of a long session, not every line ever said', () => {
+    useUIStore.setState((state) => ({ chat: { ...state.chat, messages: [] } }));
+    const { addChatMessage } = useUIStore.getState();
+
+    for (let i = 0; i < 600; i++) {
+      addChatMessage({ type: 'chat', scope: 'global', message: `line ${i}` });
+    }
+
+    const { messages } = useUIStore.getState().chat;
+    expect(messages).toHaveLength(500);
+    expect(messages[0]?.message).toBe('line 100');
+    expect(messages.at(-1)?.message).toBe('line 599');
+  });
+});
