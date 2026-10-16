@@ -61,10 +61,13 @@ export function isInstanceTemplate(map: MapStateServer): boolean {
  * Whether this map is entered as a copy. The flag is on the map document,
  * so every door gets the same answer; a map both public and private would
  * be a meeting place and a blueprint at once. False for a map this process
- * lacks, so the caller falls back to its cross-instance redirect.
+ * lacks, so the caller falls back to its cross-instance redirect, and for
+ * a copy, which carries its template's flag but is the room itself: a warp
+ * to it (a GM going to a player inside) lands there.
  */
 export function isInstancedMap(mapId: string): boolean {
-  return getMap(mapId)?.instanced === true;
+  const map = getMap(mapId);
+  return map !== undefined && isInstanceTemplate(map);
 }
 
 export function isInstanceKey(mapId?: string): boolean {

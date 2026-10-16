@@ -17,10 +17,8 @@ import {
 import { getMap, updatePlayer } from '../../sim/world.js';
 import { handleChatAction } from '../../services/comms/chatService.js';
 import { setIgnored } from '../../services/serverState.js';
-import {
-  updatePlayerMap,
-  setMapTile,
-} from '../../services/world/mapService.js';
+import { setMapTile } from '../../services/world/mapService.js';
+import { warpToMap } from '../../services/world/movementService.js';
 import {
   checkDataWrite,
   copyStoredValue,
@@ -89,10 +87,7 @@ import { queryEntitiesInRadius } from '../../sim/spatialManager.js';
 import type { SpawnNpcOptions } from '../../services/npc/spawn.js';
 import { resolveDamage } from '../../services/combat/index.js';
 import { mapPvpMorale } from '../../../shared/utils.js';
-import {
-  findPlacement,
-  hasCollision,
-} from '../../services/world/physicsService.js';
+import { hasCollision } from '../../services/world/physicsService.js';
 import type {
   CombatTarget,
   Dialog,
@@ -117,7 +112,6 @@ import {
   randomChance,
   randomPick,
 } from '../../sim/rng.js';
-import { CharacterAction } from '../../../shared/types.js';
 import { logger } from '../../logger.js';
 import { recordScriptError, type ScriptErrorSource } from './scriptErrors.js';
 import { runWithBudget } from './handlerBudget.js';
@@ -785,28 +779,18 @@ export function buildApi(
         flagNumber(String(name), fallback),
     },
 
-    // Teleport (same map or cross-map)
+    // Teleport (same map, cross-map, into a copy of an instanced map, or to
+    // the instance that runs the map). Gone to another instance, the player
+    // is no longer here to write.
     teleportPlayer: (
       player: PlayerServer,
       mapId: string,
       col: number,
       row: number,
     ): void => {
-      const previousMapId = player.mapId;
-      player.mapId = mapId;
-      // Lands beside the tile when it is taken rather than on top of whoever
-      // is standing there; still lands when nothing is free.
-      player.position = findPlacement(player, mapId, {
-        x: col * TILE_SIZE,
-        y: row * TILE_SIZE,
-      });
-      player.targetPosition = undefined;
-      player.moving = false;
-      player.action = CharacterAction.Idle;
-      player.moveTick = undefined;
-      player.moveDurationTicks = undefined;
-      updatePlayerMap(player.id, player, previousMapId);
-      persist(scriptName, player);
+      const position = { x: col * TILE_SIZE, y: row * TILE_SIZE };
+      if (!warpToMap(player, String(mapId), position))
+        persist(scriptName, player);
     },
 
     // Messaging

@@ -18,6 +18,8 @@ const { createFixture } = await import('../../sim/simFixture.js');
 const { on } = await import('../../engine/hooks.js');
 const { setMapTile } = await import('./mapService.js');
 const { runtimeState } = await import('../../sim/state.js');
+const { warpToMap } = await import('./movementService.js');
+const { buildApi } = await import('../../engine/scripting/api.js');
 const {
   clearInstancesForTest,
   isInstanceKey,
@@ -157,6 +159,35 @@ describe('walking into an instanced map', () => {
     sim.step(200);
 
     expect(goblin.position).toEqual({ x: 5 * TILE_SIZE, y: 5 * TILE_SIZE });
+  });
+
+  it('sends a warp naming a copy into that copy, not a copy of it', () => {
+    sim.addPlayer({ name: 'Alice', position: { x: TILE_SIZE, y: TILE_SIZE } });
+    sim.addPlayer({
+      name: 'Bob',
+      position: { x: TILE_SIZE, y: 3 * TILE_SIZE },
+    });
+    walkIn('Alice');
+    const room = sim.getPlayer('Alice').mapId;
+
+    // What `tp Bob Alice` resolves to: the map Alice stands on.
+    warpToMap(sim.getPlayer('Bob'), room, { x: 2 * TILE_SIZE, y: TILE_SIZE });
+
+    expect(sim.getPlayer('Bob').mapId).toBe(room);
+  });
+
+  it('puts a script teleport into a copy as well', () => {
+    sim.addPlayer({ name: 'Alice', position: { x: TILE_SIZE, y: TILE_SIZE } });
+    const api = buildApi(
+      'portal.js',
+      () => {},
+      () => {},
+    );
+
+    api.teleportPlayer(sim.getPlayer('Alice'), 'dungeon', 1, 1);
+
+    expect(isInstanceKey(sim.getPlayer('Alice').mapId)).toBe(true);
+    expect(Object.keys(runtimeState.maps.dungeon!.players)).toEqual([]);
   });
 
   it('opens a door in one copy only', () => {
