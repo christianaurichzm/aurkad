@@ -14,6 +14,7 @@ import {
   enterWorld,
   disconnectPlayer,
   persistPlayerSessionState,
+  persistPlayersOnShutdown,
   resumePlayer,
   setAccess,
 } from './playerService.js';
@@ -61,6 +62,19 @@ vi.mock('../../persistence/playerRepository.js', async (importOriginal) => {
       ...actual.playerRepository,
       save: () => Promise.resolve(true),
     },
+  };
+});
+
+const presence = vi.hoisted(() => ({ releaseFails: false }));
+vi.mock('../../persistence/presence.js', async (importOriginal) => {
+  const actual =
+    await importOriginal<typeof import('../../persistence/presence.js')>();
+  return {
+    ...actual,
+    releasePresence: (id: string) =>
+      presence.releaseFails
+        ? Promise.reject(new Error('database unavailable'))
+        : actual.releasePresence(id),
   };
 });
 
@@ -654,6 +668,37 @@ describe('a departure the database cannot take', () => {
     await vi.advanceTimersByTimeAsync(5_000);
     expect(save).toHaveBeenCalledTimes(2);
     expect(save.mock.calls[1]![0]).toMatchObject({ name: 'Alice' });
+  });
+
+  it('is written by the shutdown sweep when the process stops before the retry', async () => {
+    vi.useFakeTimers();
+    onTestFinished(() => void vi.useRealTimers());
+    const sim = createFixture(0);
+    sim.addPlayer({ name: 'Alice' });
+    const save = vi
+      .spyOn(playerRepository, 'save')
+      .mockRejectedValueOnce(new Error('database unavailable'));
+    onTestFinished(() => void save.mockRestore());
+
+    await disconnectPlayer('Alice');
+
+    expect(await persistPlayersOnShutdown(getAllPlayers())).toEqual({
+      saved: 1,
+      failed: 0,
+    });
+    expect(save.mock.calls[1]![0]).toMatchObject({ name: 'Alice' });
+    await vi.advanceTimersByTimeAsync(5_000);
+  });
+
+  it('leaves the world when the lease cannot be handed back', async () => {
+    const sim = createFixture(0);
+    sim.addPlayer({ name: 'Alice' });
+    presence.releaseFails = true;
+    onTestFinished(() => void (presence.releaseFails = false));
+
+    await disconnectPlayer('Alice');
+
+    expect(getPlayerByName('Alice')).toBeUndefined();
   });
 });
 

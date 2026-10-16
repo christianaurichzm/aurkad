@@ -288,7 +288,9 @@ function presenceLost(player: PlayerServer): void {
 }
 
 /**
- * Final write of every connected player during shutdown.
+ * Final write of every connected player during shutdown, and of everyone
+ * who left before their last write landed: a departure awaiting its retry
+ * is in no player list, and its timer dies with the process.
  *
  * Not a sequential `for...await`: one rejected write would abort the loop
  * and drop every player after it, and N round trips in series outrun the
@@ -297,9 +299,10 @@ function presenceLost(player: PlayerServer): void {
  * writes at once only queue behind the mongoose pool and invite timeouts.
  */
 export async function persistPlayersOnShutdown(
-  playersToSave: PlayerServer[],
+  connected: PlayerServer[],
   concurrency = 32,
 ): Promise<{ saved: number; failed: number }> {
+  const playersToSave = [...connected, ...unsavedDepartures.values()];
   let cursor = 0;
   let failed = 0;
 
@@ -886,10 +889,17 @@ export const disconnectPlayer = async (username?: string) => {
       return;
     }
   }
-  // After the last write of this session, never before it: the lease is what
-  // makes that write land, and the instance the player moves to reads the
-  // document as soon as it takes over.
-  await releasePresence(player.id);
+  // After the last write of this session, never before: the lease makes that
+  // write land, and the next instance reads the document as soon as it takes
+  // over. A failed release still leaves the world, since the lease is out of
+  // `held` and a character kept here would be saved with no fence, over
+  // whoever takes the account when the lease expires.
+  await releasePresence(player.id).catch((err) =>
+    logger.error('[presence] release after logout failed', {
+      player: player.name,
+      err,
+    }),
+  );
   removePlayerSessionState(player);
 };
 
@@ -900,11 +910,11 @@ export const disconnectPlayer = async (username?: string) => {
  * lease stays held and renewed until the write lands, so no instance loads
  * the stale document, and refuseEntry turns this one's own login away.
  */
-const unsavedDepartures = new Set<string>();
+const unsavedDepartures = new Map<string, PlayerServer>();
 const DEPARTURE_RETRY_MS = 5_000;
 
 function retryDeparture(player: PlayerServer): void {
-  unsavedDepartures.add(player.id);
+  unsavedDepartures.set(player.id, player);
   setTimeout(() => void settleDeparture(player), DEPARTURE_RETRY_MS).unref();
 }
 
