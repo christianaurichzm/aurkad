@@ -65,6 +65,7 @@ const OFFERS = {
   player: 'Ana',
   offers: [
     {
+      id: 11,
       from: 'Bo',
       to: 'Ana',
       give: { itemId: 3, name: 'Sword', sprite: 4, quantity: 1 },
@@ -111,7 +112,7 @@ describe('trade window', () => {
       within(incoming).getByRole('img', { name: 'Potion x2' }),
     ).toBeTruthy();
     fireEvent.click(within(incoming).getByRole('button', { name: 'Accept' }));
-    expect(sent()).toContainEqual(['trade:accept', { from: 'Bo' }]);
+    expect(sent()).toContainEqual(['trade:accept', { from: 'Bo', id: 11 }]);
     fireEvent.click(within(incoming).getByRole('button', { name: 'Decline' }));
     expect(sent()).toContainEqual(['trade:cancel', { player: 'Bo' }]);
 

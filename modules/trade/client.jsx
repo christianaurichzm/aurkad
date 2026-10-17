@@ -286,7 +286,9 @@ function TradeWindow({ me, offers, form, catalogue, result }) {
                         ? t("You don't have enough of what is asked for.")
                         : undefined
                     }
-                    onClick={() => act('trade:accept', { from: offer.from })}
+                    onClick={() =>
+                      act('trade:accept', { from: offer.from, id: offer.id })
+                    }
                   >
                     {lacking ? t('Not enough') : t('Accept')}
                   </button>

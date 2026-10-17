@@ -36,6 +36,9 @@ i18n({
 });
 
 const offers = new Map(); // "from->to" -> offer
+// Each offer's own number. A new offer to the same player replaces the old
+// one, so the window accepts by number the offer the player saw.
+let nextOfferId = 1;
 
 // An action's answer: whether it happened and the sentence saying so,
 // which the window needs to tell apart.
@@ -144,6 +147,7 @@ function offerTrade(
     );
 
   const offer = {
+    id: nextOfferId++,
     from: player.name,
     to: target.name,
     give,
@@ -156,10 +160,12 @@ function offerTrade(
   return done(t(player, 'Trade offered to {player}.', { player: target.name }));
 }
 
-async function acceptTrade(player, fromName) {
+async function acceptTrade(player, fromName, offerId) {
   const key = keyOf(String(fromName || ''), player.name);
   const offer = offers.get(key);
   if (!offer) return refused('No trade offer from that player.');
+  if (offerId !== undefined && offerId !== offer.id)
+    return refused('Offer is no longer valid.');
 
   const from = getPlayer(offer.from);
   const to = getPlayer(offer.to);
@@ -291,7 +297,7 @@ on('customAction', async ({ player, channel, payload }) => {
       ),
     );
   } else if (channel === 'trade:accept') {
-    answer(player, await acceptTrade(player, data.from));
+    answer(player, await acceptTrade(player, data.from, data.id));
   } else if (channel === 'trade:cancel') {
     answer(player, cancelTrade(player, data.player));
   } else if (channel === 'trade:request') {

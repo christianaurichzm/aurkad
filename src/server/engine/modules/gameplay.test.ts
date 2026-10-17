@@ -405,6 +405,46 @@ describe('gameplay modules', () => {
     ]);
   });
 
+  it('trade accepts the offer the window showed, not one swapped in after it', async () => {
+    vi.spyOn(mongoose.connection, 'readyState', 'get').mockReturnValue(
+      mongoose.ConnectionStates.connected,
+    );
+    const save = vi.spyOn(playerRepository, 'save').mockResolvedValue(true);
+    onTestFinished(() => void vi.restoreAllMocks());
+    const sim = createFixture(0);
+    const alice = sim.addPlayer({
+      name: 'Alice',
+      inventory: { items: [{ item: 30, quantity: 100 }], maxCapacity: 10 },
+    });
+    const bob = sim.addPlayer({
+      name: 'Bob',
+      inventory: { items: [{ item: 40, quantity: 1 }], maxCapacity: 10 },
+    });
+    const shown = () => {
+      const update = drainGameEvents().findLast(
+        (e) =>
+          e.type === 'customPlayer' &&
+          e.channel === 'trade:update' &&
+          e.username === 'Bob',
+      ) as { payload: { offers: Array<{ id: number }> } } | undefined;
+      return update!.payload.offers[0]!;
+    };
+
+    drainGameEvents();
+    handleChatCommand(alice, '/trade offer Bob 30 100 40 1');
+    const seen = shown();
+    handleChatCommand(alice, '/trade offer Bob 30 1 40 1');
+    emit('customAction', {
+      player: bob,
+      channel: 'trade:accept',
+      payload: { from: 'Alice', id: seen.id },
+    });
+    await new Promise((resolve) => setTimeout(resolve, 0));
+
+    expect(save).not.toHaveBeenCalled();
+    expect(bob.inventory.items).toEqual([{ item: 40, quantity: 1 }]);
+  });
+
   it('trade lists what can be asked for, without what is bound', () => {
     const sim = createFixture(0);
     const base = { description: '', sprite: 2, type: 'weapon' as const };
