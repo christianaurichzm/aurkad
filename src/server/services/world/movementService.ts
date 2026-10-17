@@ -344,6 +344,8 @@ const tryOpenDoor = (
   map.tilesRevision = (map.tilesRevision ?? 0) + 1;
 
   updatePlayer(player);
+  // A dungeon copy is never saved: the door is this run's.
+  if (isInstanceKey(map.id)) return true;
   void createOrUpdateMap({
     id: map.id,
     tiles: map.tiles,

@@ -209,6 +209,36 @@ describe('walking into an instanced map', () => {
       expect(runtimeState.maps[other]!.tiles[3]![3]!.blocked).toBeFalsy();
     }
   });
+
+  // A copy lives in memory only: the door it opens is the run's, and there is
+  // no map document of the copy for it to be written to.
+  it('opens a locked door in the copy without trying to save the copy', async () => {
+    const { logger } = await import('../../logger.js');
+    const errors = vi.spyOn(logger, 'error');
+    runtimeState.maps.dungeon!.tiles[1]![2] = {
+      tileIndex: 0,
+      blocked: true,
+      door: { requiresItem: 77, openTileIndex: 5 },
+    };
+    sim.addPlayer({
+      name: 'Alice',
+      position: { x: TILE_SIZE, y: TILE_SIZE },
+      inventory: { items: [{ item: 77, quantity: 1 }], maxCapacity: 10 },
+    });
+    walkIn('Alice');
+    const room = sim.getPlayer('Alice').mapId;
+
+    walkIn('Alice');
+    await Promise.resolve();
+
+    expect(runtimeState.maps[room]!.tiles[1]![2]).toMatchObject({
+      tileIndex: 5,
+      blocked: false,
+    });
+    expect(runtimeState.maps.dungeon!.tiles[1]![2].door).toBeDefined();
+    expect(errors).not.toHaveBeenCalled();
+    errors.mockRestore();
+  });
 });
 
 describe('what is written down about a player inside one', () => {
