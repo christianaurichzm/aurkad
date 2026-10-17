@@ -127,6 +127,31 @@ describe('POST /admin/login', () => {
     expect(session.status).toBe(200);
     expect(session.body.username).toBe('Helper');
   });
+
+  it('signs in on a new session, so a cookie planted before it names nobody', async () => {
+    await createPlayer('Mallory', await hashPw('pw'));
+    await setAccess('Mallory', Access.MOD);
+    await createPlayer('Boss', await hashPw('pw2'));
+    await setAccess('Boss', Access.ADMIN);
+    const planted = String(
+      (
+        await request(app)
+          .post('/admin/login')
+          .send({ username: 'Mallory', password: 'pw' })
+      ).headers['set-cookie'],
+    ).split(';')[0]!;
+
+    const login = await request(app)
+      .post('/admin/login')
+      .set('Cookie', planted)
+      .send({ username: 'Boss', password: 'pw2' });
+    expect(login.status).toBe(200);
+
+    const after = await request(app)
+      .get('/admin/session')
+      .set('Cookie', planted);
+    expect(after.status).toBe(401);
+  });
 });
 
 describe('GET /admin/session', () => {

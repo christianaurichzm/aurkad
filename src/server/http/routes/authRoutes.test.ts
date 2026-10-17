@@ -348,6 +348,35 @@ describe('POST /login', () => {
     expect(String(res.headers['set-cookie'])).toMatch(/Expires=|Max-Age=/i);
   });
 
+  // A cookie planted in the victim's browser (a sibling subdomain, plain http)
+  // is the attacker's own session; logging in on it would hand them the account.
+  it('signs in on a new session, so a cookie planted before it names nobody', async () => {
+    await createPlayer('Mallory', await hashPw('correcthorse'));
+    await createPlayer('Vic', await hashPw('batterystaple'));
+    const planted = String(
+      (
+        await request(app)
+          .post('/login')
+          .send({ username: 'Mallory', password: 'correcthorse' })
+      ).headers['set-cookie'],
+    ).split(';')[0]!;
+
+    const res = await request(app)
+      .post('/login')
+      .set('Cookie', planted)
+      .send({ username: 'Vic', password: 'batterystaple' });
+    expect(res.status).toBe(200);
+    const own = String(res.headers['set-cookie']).split(';')[0]!;
+
+    expect(own).not.toBe(planted);
+    expect(
+      (await request(app).get('/email').set('Cookie', planted)).status,
+    ).toBe(401);
+    expect((await request(app).get('/email').set('Cookie', own)).status).toBe(
+      200,
+    );
+  });
+
   // The flag is not a way in: it is read after the password, not instead of it.
   it('ignores remember on a failed login', async () => {
     await createPlayer('Cleo', await hashPw('correcthorse'));

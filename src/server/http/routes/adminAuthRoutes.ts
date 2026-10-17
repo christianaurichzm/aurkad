@@ -91,18 +91,28 @@ export function createAdminAuthRouter() {
           .status(401)
           .json({ message: 'Invalid username or password' });
       }
-      req.session.username = username;
-      req.session.accessLevel = access;
-      req.session.authEpoch = authEpoch;
-      req.session.save((err) => {
-        if (err) {
-          logger.error('admin session save failed', { err });
+      // A new session, for the reason the game's login takes one: a cookie
+      // planted beforehand must not become an operator's.
+      req.session.regenerate((regenerateError) => {
+        if (regenerateError) {
+          logger.error('admin session regenerate failed', {
+            err: regenerateError,
+          });
           return res.status(500).json({ message: 'Session error' });
         }
-        res.json({
-          username,
-          access,
-          scriptEditorEnabled: config.scripting.editorEnabled,
+        req.session.username = username;
+        req.session.accessLevel = access;
+        req.session.authEpoch = authEpoch;
+        req.session.save((err) => {
+          if (err) {
+            logger.error('admin session save failed', { err });
+            return res.status(500).json({ message: 'Session error' });
+          }
+          res.json({
+            username,
+            access,
+            scriptEditorEnabled: config.scripting.editorEnabled,
+          });
         });
       });
     },

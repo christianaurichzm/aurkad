@@ -124,14 +124,6 @@ export function createAuthRouter() {
         return res.status(refused.status).json({ message: refused.message });
       }
 
-      // Only now, with the password checked and the ban cleared: a cookie that
-      // outlives the browser is worth having only for a session that exists.
-      // The week matches the store's own TTL, so the row and the cookie expire
-      // together instead of one outliving the other.
-      if (body.remember) {
-        req.session.cookie.maxAge = REMEMBERED_SESSION_MS;
-      }
-
       const { authEpoch = 0 } = playerDoc;
 
       const existingWs = playersWsMap.get(username);
@@ -183,15 +175,25 @@ export function createAuthRouter() {
       }
       const { password: _pw, authEpoch: _epoch, ...character } = current;
       const player = enrichPlayer(character);
-      req.session.username = username;
-      req.session.accessLevel = player.access ?? Access.USER;
-      req.session.authEpoch = authEpoch;
 
-      // Saved before the character enters the world: a failure here answers
-      // 500 and lets go of the lease, and a character already in would stay
-      // there with no socket and no session to ever close it.
+      // A new session, not the request's: a cookie planted beforehand (a
+      // sibling subdomain, plain http) is someone else's, and signing in on it
+      // signs them in too. Saved before the character enters the world, so a
+      // failure answers 500 and lets go of the lease with nobody left inside.
       const saveError = await new Promise<unknown>((resolve) =>
-        req.session.save(resolve),
+        req.session.regenerate((err) => {
+          if (err) return resolve(err);
+          // A cookie that outlives the browser, only for a session that
+          // exists. The week matches the store's own TTL, so the row and the
+          // cookie expire together instead of one outliving the other.
+          if (body.remember) {
+            req.session.cookie.maxAge = REMEMBERED_SESSION_MS;
+          }
+          req.session.username = username;
+          req.session.accessLevel = player.access ?? Access.USER;
+          req.session.authEpoch = authEpoch;
+          req.session.save(resolve);
+        }),
       );
       if (saveError) {
         logger.error('Session save failed', { err: saveError });
