@@ -102,6 +102,13 @@ describe('a file that cannot be trusted', () => {
     expect(() => loadGameConfig(dir)).toThrow(/xpGrowthRate/);
   });
 
+  // Under one, a floored level can cost 0 XP and the level-up loop never ends.
+  it('refuses a base XP below one', () => {
+    write({ leveling: { baseXp: 0.5 } });
+
+    expect(() => loadGameConfig(dir)).toThrow(/baseXp/);
+  });
+
   it('refuses a minimum damage below one, which never ends a fight', () => {
     write({ combat: { minimumDamage: 0 } });
 
