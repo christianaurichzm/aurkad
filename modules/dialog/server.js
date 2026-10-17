@@ -142,6 +142,9 @@ function openNode(player, dialog, nodeId, npc, seen) {
       // No choices means a single "Continue": nothing to run and nowhere to go.
       const choice = choices[index];
       if (!choice) return;
+      // Checked again, since the player can spend what the condition saw while
+      // the box is open.
+      if (!conditionAllows(choice, base)) return;
       if (!runAction(choice, Object.assign({ choice }, base))) return;
       if (choice.next) openNode(player, dialog, choice.next, npc, seen);
     },

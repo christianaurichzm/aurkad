@@ -281,6 +281,34 @@ describe('dialog module walking an authored conversation', () => {
     expect(lastShow().text).toBe('The key is under the rock.');
   });
 
+  it('runs no action whose condition stopped holding while the box was open', async () => {
+    await createOrUpdateDialog({
+      id: 'sale',
+      name: 'Sale',
+      nodes: [
+        {
+          id: 'offer',
+          text: 'A sword for 100 gold.',
+          choices: [{ label: 'Buy', condition: 'rich', action: 'sell' }],
+        },
+      ],
+    });
+    let rich = true;
+    const sold: string[] = [];
+    provideApi('dialogCondition.rich', () => rich);
+    provideApi('dialogAction.sell', (ctx: { player: PlayerServer }) =>
+      sold.push(ctx.player.name),
+    );
+    const { alice } = await talk({ dialogId: 'sale' });
+    const offer = lastShow();
+    expect(offer.choices).toEqual(['Buy']);
+
+    rich = false;
+    choose(alice, offer.id, 0);
+
+    expect(sold).toEqual([]);
+  });
+
   it('runs the action a choice names, with the player who picked it', async () => {
     const seen: string[] = [];
     provideApi('dialogAction.reward', (ctx: { player: PlayerServer }) =>
