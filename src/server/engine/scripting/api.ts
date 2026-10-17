@@ -168,6 +168,20 @@ function persist(_scriptName: string, player: PlayerServer): void {
   updatePlayer(player);
 }
 
+/**
+ * The copy of a script's value that storage keeps, or undefined when it has
+ * none. Keeping the script's own object would carry its later changes into
+ * storage unmeasured, and in the shared store unflushed. A value holding a
+ * function passes the size check (JSON drops it) but cannot be copied.
+ */
+function storable(value: unknown): { value: unknown } | undefined {
+  try {
+    return { value: copyStoredValue(value) };
+  } catch {
+    return undefined;
+  }
+}
+
 type Cleanup = () => void;
 type TimerId = ReturnType<typeof setInterval>;
 type AnyHandler = (payload: unknown) => void;
@@ -740,29 +754,41 @@ export function buildApi(
       }
 
       const check = checkDataWrite(player.data, String(key), value);
-      if (!check.ok) {
+      const copy = check.ok ? storable(value) : undefined;
+      if (!copy) {
         logger.warn(
-          `[script:${scriptName}] setPlayerData("${key}") refused: ${explainLimit(check)}`,
+          `[script:${scriptName}] setPlayerData("${key}") refused: ${explainLimit(check.ok ? { reason: 'not-serializable' } : check)}`,
         );
         return false;
       }
-      (player.data ??= {})[String(key)] = value;
+      (player.data ??= {})[String(key)] = copy.value;
       persist(scriptName, player);
       return true;
     },
 
     // Scoped key-value store (shared, persisted). Reads/writes are synchronous.
-    // `get` copies for the same reason getPlayerData does.
+    // Values go in and come out as copies, for the reason player data does.
     store: {
       get: <T = unknown>(scope: string, key: string): T | undefined =>
         copyStoredValue(kvGet(String(scope), String(key))),
-      set: (scope: string, key: string, value: unknown): boolean =>
-        kvSet(String(scope), String(key), value),
+      set: (scope: string, key: string, value: unknown): boolean => {
+        const copy = storable(value);
+        if (!copy) {
+          logger.warn(
+            `[script:${scriptName}] store.set("${scope}/${key}") refused: ${explainLimit({ reason: 'not-serializable' })}`,
+          );
+          return false;
+        }
+        return kvSet(String(scope), String(key), copy.value);
+      },
       delete: (scope: string, key: string): void =>
         kvDelete(String(scope), String(key)),
       keys: (scope: string): string[] => kvKeys(String(scope)),
       entries: <T = unknown>(scope: string): Array<[string, T]> =>
-        kvEntries<T>(String(scope)),
+        kvEntries<T>(String(scope)).map(([key, value]) => [
+          key,
+          copyStoredValue(value),
+        ]),
     },
 
     // Live-ops flags an operator changes while the server runs, read-only here.

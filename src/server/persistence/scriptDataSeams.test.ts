@@ -77,6 +77,27 @@ describe('setPlayerData', () => {
     handle.cleanup();
   });
 
+  // JSON measures it by dropping the function, but there is no copy of it to
+  // keep, and a read of it would throw.
+  it('refuses a value with a function inside, in both stores', () => {
+    const sim = createFixture(0);
+    const player = sim.addPlayer({ name: 'Alice' });
+    const handle = script(`
+      on('playerJoin', ({ player }) => {
+        const withFn = { name: 'x', run() {} };
+        record(setPlayerData(player, 'fn', withFn));
+        record(store.set('s', 'fn', withFn));
+      });
+    `);
+
+    emit('playerJoin', { player });
+
+    expect(results.log).toEqual([false, false]);
+    expect(player.data?.['fn']).toBeUndefined();
+    expect(kvGet('s', 'fn')).toBeUndefined();
+    handle.cleanup();
+  });
+
   it('refuses a new key once the key cap is reached', () => {
     const sim = createFixture(0);
     const player = sim.addPlayer({ name: 'Alice' });
@@ -189,6 +210,30 @@ describe('setPlayerData', () => {
     handle.cleanup();
   });
 
+  // The other end of the same alias: a write keeping the script's own object
+  // would let every later change reach storage unmeasured.
+  it('does not let a mutation after a write reach storage', () => {
+    const sim = createFixture(0);
+    const player = sim.addPlayer({ name: 'Alice' });
+    const handle = runInSandbox(
+      `
+      on('playerJoin', () => {
+        const list = [1, 2];
+        setPlayerData(target, 'list', list);
+        list.push(3);
+        record(getPlayerData(target, 'list').length);
+      });
+    `,
+      'alias.js',
+      { target: player, record: (v: unknown) => results.log.push(v) },
+    );
+
+    emit('playerJoin', { player });
+
+    expect(results.log).toEqual([2]);
+    handle.cleanup();
+  });
+
   // The shape that causes this in real code: append to a value every tick
   // and write it back.
   it('stops a value that grows every tick before it can break the save', () => {
@@ -247,6 +292,26 @@ describe('the shared store', () => {
 
     expect(kvSet('guild', 'alpha', undefined)).toBe(true);
     expect(kvGet('guild', 'alpha')).toBeUndefined();
+  });
+
+  // A change that reached the stored value without a write is never marked
+  // dirty, so it lives until the next restart and is then gone.
+  it('keeps what a script holds apart from what is stored', () => {
+    const sim = createFixture(0);
+    const player = sim.addPlayer({ name: 'Alice' });
+    const handle = script(`
+      on('playerJoin', () => {
+        const guild = { members: ['a'] };
+        store.set('guild', 'alpha', guild);
+        guild.members.push('b');
+        for (const [, g] of store.entries('guild')) g.members.push('c');
+      });
+    `);
+
+    emit('playerJoin', { player });
+
+    expect(kvGet('guild', 'alpha')).toEqual({ members: ['a'] });
+    handle.cleanup();
   });
 
   it('reports back through the script api', () => {
