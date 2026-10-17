@@ -2,7 +2,6 @@ import { on as hookOn } from '../hooks.js';
 import { emitGameEvent } from '../eventBus.js';
 import {
   getPlayerByName,
-  respawnPlayer,
   awardExperience,
   persistPlayersNow,
   commitInventories,
@@ -85,7 +84,10 @@ import {
 import { cachedRecipes } from '../../services/content/recipeService.js';
 import { queryEntitiesInRadius } from '../../sim/spatialManager.js';
 import type { SpawnNpcOptions } from '../../services/npc/spawn.js';
-import { resolveDamage } from '../../services/combat/index.js';
+import {
+  killPlayer as killPlayerNow,
+  resolveDamage,
+} from '../../services/combat/index.js';
 import { mapPvpMorale } from '../../../shared/utils.js';
 import { hasCollision } from '../../services/world/physicsService.js';
 import type {
@@ -647,8 +649,7 @@ export function buildApi(
       persist(scriptName, player);
     },
     killPlayer: (player: PlayerServer): void => {
-      player.health = 0;
-      if (!respawnPlayer(player)) persist(scriptName, player);
+      if (!killPlayerNow(player)) persist(scriptName, player);
     },
     dealDamage: (
       target: CombatTarget | null | undefined,

@@ -40,8 +40,8 @@ import {
   getPlayerByNameFromDb,
   kickPlayer,
   levelUpPlayer,
-  respawnPlayer,
 } from '../services/player/playerService.js';
+import { killPlayer } from '../services/combat/index.js';
 import {
   cancelDelivery,
   listDeliveries,
@@ -323,8 +323,7 @@ export function registerPlayerCommands(): void {
       if (!player) return;
 
       const reason = args.slice(1).join(' ');
-      player.health = 0;
-      if (!respawnPlayer(player)) saveAndBroadcast([player]);
+      if (!killPlayer(player)) saveAndBroadcast([player]);
       sendPrivateMessage(
         player.name,
         reason

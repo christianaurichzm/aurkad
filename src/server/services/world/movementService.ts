@@ -29,17 +29,13 @@ import { emitGameEvent } from '../../engine/eventBus.js';
 import { emit } from '../../engine/hooks.js';
 import { dispatchEntityScript } from '../../engine/scripting/entityScripts.js';
 import { removeItem } from '../economy/economyService.js';
-import { handleAttack, swing } from '../combat/index.js';
+import { handleAttack, killPlayer, swing } from '../combat/index.js';
 import { pickUpItem } from '../economy/inventoryService.js';
 import { handleInteract } from './interactionService.js';
 import { bfsNextStep } from '../npc/behaviors.js';
 import { updatePlayerMap, createOrUpdateMap } from './mapService.js';
 import { findPlacement, hasCollision, hasWarp } from './physicsService.js';
-import {
-  getPlayerByName,
-  respawnPlayer,
-  disconnectPlayer,
-} from '../player/playerService.js';
+import { getPlayerByName, disconnectPlayer } from '../player/playerService.js';
 import { handleChatAction } from '../comms/chatService.js';
 import { logger } from '../../logger.js';
 import { lookupInstanceUrl } from '../../persistence/instanceRegistry.js';
@@ -226,9 +222,7 @@ const runTileTriggers = (
       player.health = player.maxHealth;
       updatePlayerMap(player.id, player);
     } else if (trigger.action === 'kill') {
-      player.health = 0;
-      emit('playerDeath', { player });
-      const left = respawnPlayer(player);
+      const left = killPlayer(player);
       handleChatAction({
         scope: 'global',
         type: 'chat',

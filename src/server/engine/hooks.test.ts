@@ -211,6 +211,25 @@ describe('playerDeath hook', () => {
 
     expect(deaths).toContain('Alice');
   });
+
+  it('fires when a script kills a player, who comes back at full health', async () => {
+    const deaths: string[] = [];
+    on('playerDeath', ({ player, killer }) =>
+      deaths.push(`${player.name}:${killer?.name ?? '-'}`),
+    );
+    const { buildApi } = await import('./scripting/api.js');
+    const sim = createFixture(0);
+    const alice = sim.addPlayer({ name: 'Alice', health: 40, maxHealth: 100 });
+
+    buildApi(
+      'trap.js',
+      () => {},
+      () => {},
+    ).killPlayer(alice);
+
+    expect(deaths).toEqual(['Alice:-']);
+    expect(alice.health).toBe(100);
+  });
 });
 
 describe('beforeDamage hook', () => {

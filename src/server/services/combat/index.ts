@@ -230,6 +230,23 @@ function rollNpcLoot(
   return dropped;
 }
 
+/**
+ * A player's death, whatever ended them: a blow, a trap tile, a script, an
+ * operator's `kill`. One path, so a `playerDeath` listener (a death counter,
+ * a penalty, the pk flag) hears every death. True when the respawn took them
+ * to another instance.
+ */
+export const killPlayer = (
+  player: PlayerServer,
+  killer?: CombatTarget,
+): boolean => {
+  player.health = 0;
+  emit('playerDeath', { player, killer });
+  // Keyed by the victim; a respawn keeps the id.
+  clearDamageContributions(player.id);
+  return respawnPlayer(player);
+};
+
 export const resolveDamage = (
   target: CombatTarget,
   amount: number,
@@ -272,9 +289,7 @@ export const resolveDamage = (
 
   switch (target.kind) {
     case 'player': {
-      emit('playerDeath', { player: target, killer: attacker });
-      clearDamageContributions(target.id);
-      if (!respawnPlayer(target)) updatePlayer(target);
+      if (!killPlayer(target, attacker)) updatePlayer(target);
 
       if (attacker?.kind === 'player') {
         handleChatAction({
