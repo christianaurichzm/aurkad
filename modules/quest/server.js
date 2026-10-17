@@ -221,9 +221,11 @@ on('itemPickup', ({ player, itemId }) => {
 on('tileEnter', ({ player, map }) => {
   const row = Math.round(player.position.y / TILE_SIZE);
   const col = Math.round(player.position.x / TILE_SIZE);
+  // A dungeon copy is keyed "<map>#<suffix>", and the objective names the map.
+  const mapId = String(map.id).split('#')[0];
   for (const { id, objective } of activeObjectives(player, 'reach')) {
     if (
-      objective.mapId === map.id &&
+      objective.mapId === mapId &&
       objective.row === row &&
       objective.col === col
     ) {

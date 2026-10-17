@@ -19,6 +19,9 @@ import { clearCommands } from '../commands.js';
 import { clearAll, emit } from '../hooks.js';
 import { drainGameEvents } from '../eventBus.js';
 import { createFixture, tile } from '../../sim/simFixture.js';
+import { getMap } from '../../sim/world.js';
+import { warpToMap } from '../../services/world/movementService.js';
+import { clearInstancesForTest } from '../../services/world/instanceService.js';
 import type { Quest, PlayerServer } from '../../../shared/types.js';
 
 // Authored quests live in the content cache the editor writes to; the model
@@ -368,6 +371,26 @@ describe('quest module with authored quests', () => {
     alice.position = tile(6, 4);
     emit('tileEnter', { player: alice, tile: emptyTile, map });
     expect(quest.get(alice, 'scout')?.status).toBe('completed');
+  });
+
+  it('completes a reach objective inside a copy of an instanced map', async () => {
+    const quest = await bootWith({
+      id: 'depths',
+      name: 'Reach the depths',
+      objective: { type: 'reach', mapId: 'crypt', row: 4, col: 6 },
+    });
+    const sim = createFixture(0);
+    onTestFinished(clearInstancesForTest);
+    sim.addMap({ id: 'crypt', instanced: true });
+    const alice = sim.addPlayer({ name: 'Alice' });
+    quest.start(alice, 'depths');
+
+    warpToMap(alice, 'crypt', tile(6, 4));
+    const copy = getMap(alice.mapId)!;
+    expect(copy.id).not.toBe('crypt');
+    emit('tileEnter', { player: alice, tile: {} as never, map: copy });
+
+    expect(quest.get(alice, 'depths')?.status).toBe('completed');
   });
 
   // A script definition has to win, or the escape hatch is not one.
