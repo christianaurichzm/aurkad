@@ -183,11 +183,15 @@ export function createShopRouter() {
     if (!body) return;
     const { shopId, itemId } = body;
 
+    // Read before the player is looked at: during the read they can walk
+    // off the tile or log out, and the purchase would land on whoever they
+    // were before it.
+    const shop = await getShopById(shopId);
+
     const player = atShop(req as ExtendedRequest, shopId, res);
     if (!player) return;
 
     // Reachable through a tile naming a shop that content deleted since.
-    const shop = await getShopById(shopId);
     if (!shop) {
       return res.status(404).json({ error: 'Shop or player not found' });
     }
