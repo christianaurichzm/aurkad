@@ -5,6 +5,7 @@ import {
   beforeAll,
   afterAll,
   beforeEach,
+  onTestFinished,
   vi,
 } from 'vitest';
 import express from 'express';
@@ -25,6 +26,7 @@ vi.mock('../../config.js', async (importOriginal) => {
   };
 });
 
+import { config } from '../../config.js';
 import { createAdminAuthRouter } from './adminAuthRoutes.js';
 import {
   totpCode,
@@ -57,10 +59,10 @@ afterAll(async () => {
 // shared by the whole file leaves each test only the budget the ones before
 // it did not spend, and the file as a whole has to fit in
 // AUTH_RATE_LIMIT_MAX (20 by default).
-beforeEach(async () => {
-  app = express();
-  app.use(express.json());
-  app.use(
+function adminApp() {
+  const built = express();
+  built.use(express.json());
+  built.use(
     session({
       secret: 'test-secret',
       resave: false,
@@ -68,7 +70,12 @@ beforeEach(async () => {
       cookie: { secure: false },
     }),
   );
-  app.use(createAdminAuthRouter());
+  built.use(createAdminAuthRouter());
+  return built;
+}
+
+beforeEach(async () => {
+  app = adminApp();
 
   const cols = mongoose.connection.collections;
   await Promise.all(Object.values(cols).map((c) => c.deleteMany({})));
@@ -201,6 +208,23 @@ describe('the second factor on the panel', () => {
       (await agent.post('/admin/2fa/setup').send({ currentPassword: 'nope' }))
         .status,
     ).toBe(403);
+  });
+
+  it('lets an open session guess the password only as often as a login', async () => {
+    // Pinned: a local .env can raise the login limit out of the way.
+    const limits = config.auth as { rateLimitMax: number };
+    const was = limits.rateLimitMax;
+    limits.rateLimitMax = 3;
+    onTestFinished(() => {
+      limits.rateLimitMax = was;
+    });
+    app = adminApp();
+    const agent = await signedIn();
+
+    const guess = () =>
+      agent.post('/admin/2fa/setup').send({ currentPassword: 'nope' });
+    for (let i = 0; i < 3; i++) expect((await guess()).status).toBe(403);
+    expect((await guess()).status).toBe(429);
   });
 
   it('needs a session: setup is not reachable unauthenticated', async () => {

@@ -354,35 +354,42 @@ export function createAuthRouter() {
     res.send(translateFor(req, 'Address confirmed. You can close this tab.'));
   });
 
-  // Changing a password you know. The session says who, so there is no username
-  // in the body to disagree with it.
-  router.post('/password', async (req: ExtendedRequest, res: Response) => {
-    const username = req.session.username;
-    if (!username)
-      return res
-        .status(401)
-        .json({ message: translateFor(req, 'Not logged in') });
+  // Changing a password you know. The session says who, so there is no
+  // username in the body to disagree with it. Behind the login bucket because
+  // the current password is a guess here too: a session left open is not the
+  // password, and at the general limit it would be a few hundred tries a
+  // minute at it.
+  router.post(
+    '/password',
+    authLimiter,
+    async (req: ExtendedRequest, res: Response) => {
+      const username = req.session.username;
+      if (!username)
+        return res
+          .status(401)
+          .json({ message: translateFor(req, 'Not logged in') });
 
-    const body = parseBody(ChangePasswordBodySchema, req.body, res);
-    if (!body) return;
+      const body = parseBody(ChangePasswordBodySchema, req.body, res);
+      if (!body) return;
 
-    const result = await changePassword(
-      username,
-      body.currentPassword,
-      body.newPassword,
-    );
-    if (result === 'wrong-password') {
-      return res
-        .status(403)
-        .json({ message: translateFor(req, 'Current password is wrong') });
-    }
-    if (result === 'no-account') {
-      return res
-        .status(404)
-        .json({ message: translateFor(req, 'No such account') });
-    }
-    res.json({ success: true });
-  });
+      const result = await changePassword(
+        username,
+        body.currentPassword,
+        body.newPassword,
+      );
+      if (result === 'wrong-password') {
+        return res
+          .status(403)
+          .json({ message: translateFor(req, 'Current password is wrong') });
+      }
+      if (result === 'no-account') {
+        return res
+          .status(404)
+          .json({ message: translateFor(req, 'No such account') });
+      }
+      res.json({ success: true });
+    },
+  );
 
   // Asking for a link. The answer never varies: a different reply for a name
   // that exists turns this into a way to enumerate accounts, and the rate limit

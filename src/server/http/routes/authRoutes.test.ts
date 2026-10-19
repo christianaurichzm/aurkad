@@ -5,6 +5,7 @@ import {
   beforeAll,
   afterAll,
   beforeEach,
+  onTestFinished,
   vi,
 } from 'vitest';
 import express from 'express';
@@ -89,10 +90,10 @@ afterAll(async () => {
 // shared by the whole file leaves each test only the budget the ones before
 // it did not spend, and the file as a whole has to fit in
 // AUTH_RATE_LIMIT_MAX (20 by default).
-beforeEach(async () => {
-  app = express();
-  app.use(express.json());
-  app.use(
+function authApp() {
+  const built = express();
+  built.use(express.json());
+  built.use(
     session({
       secret: 'test-secret',
       resave: false,
@@ -100,7 +101,12 @@ beforeEach(async () => {
       cookie: { secure: false },
     }),
   );
-  app.use(createAuthRouter());
+  built.use(createAuthRouter());
+  return built;
+}
+
+beforeEach(async () => {
+  app = authApp();
 
   const cols = mongoose.connection.collections;
   await Promise.all(Object.values(cols).map((c) => c.deleteMany({})));
@@ -487,6 +493,32 @@ describe('POST /logout', () => {
     // disconnectPlayer runs fire-and-forget after the session is destroyed
     await new Promise((resolve) => setTimeout(resolve, 100));
     expect(getPlayerByName('Alice')).toBeUndefined();
+  });
+});
+
+describe('POST /password', () => {
+  it('lets an open session guess the current password only as often as a login', async () => {
+    // Pinned: a local .env can raise the login limit out of the way.
+    const limits = config.auth as { rateLimitMax: number };
+    const was = limits.rateLimitMax;
+    limits.rateLimitMax = 3;
+    onTestFinished(() => {
+      limits.rateLimitMax = was;
+    });
+    const agent = request.agent(authApp());
+    await createPlayer('Alice', await hashPw('correcthorse'));
+    await agent
+      .post('/login')
+      .send({ username: 'Alice', password: 'correcthorse' });
+
+    const guess = () =>
+      agent
+        .post('/password')
+        .send({ currentPassword: 'guessing', newPassword: 'batterystaple' });
+    for (let i = 0; i < 3; i++) {
+      expect((await guess()).status).toBe(403);
+    }
+    expect((await guess()).status).toBe(429);
   });
 });
 

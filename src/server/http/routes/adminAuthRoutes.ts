@@ -160,8 +160,12 @@ export function createAdminAuthRouter() {
     },
   );
 
+  // Setup and disable check the current password, and disable a code as well:
+  // the login's bucket, not the general one, or an open session could guess at
+  // them a few hundred times a minute.
   router.post(
     '/admin/2fa/setup',
+    adminLimiter,
     checkAccess(Access.MOD),
     async (req: ExtendedRequest, res: Response) => {
       const body = parseBody(TwoFactorSetupBodySchema, req.body, res);
@@ -228,6 +232,7 @@ export function createAdminAuthRouter() {
 
   router.post(
     '/admin/2fa/disable',
+    adminLimiter,
     checkAccess(Access.MOD),
     async (req: ExtendedRequest, res: Response) => {
       const body = parseBody(TwoFactorDisableBodySchema, req.body, res);
