@@ -67,9 +67,10 @@ function handleProtocolMismatch(serverVersion: number) {
 
 export const initializeWebSocket = (url = currentWsUrl) => {
   currentWsUrl = url;
+  let ws: WebSocket;
   try {
     kicked = false;
-    socket = new WebSocket(url);
+    ws = socket = new WebSocket(url);
   } catch (err) {
     console.error('Failed to create WebSocket:', err);
     scheduleReconnect();
@@ -78,7 +79,14 @@ export const initializeWebSocket = (url = currentWsUrl) => {
 
   showConnectionStatus(t('net.connecting'), true);
 
-  socket.onopen = () => {
+  // A replaced socket still fires: the one closed for a redirect can report
+  // its close after its successor opened, and read through `socket` that
+  // close would tear the new connection down.
+  ws.onopen = () => {
+    if (ws !== socket) {
+      ws.close();
+      return;
+    }
     console.log('Connected to WebSocket server');
     reconnectAttempts = 0;
     startOverOnNewSocket();
@@ -93,7 +101,8 @@ export const initializeWebSocket = (url = currentWsUrl) => {
     window.dispatchEvent(new Event('socketOpen'));
   };
 
-  socket.onmessage = (event: MessageEvent<string>) => {
+  ws.onmessage = (event: MessageEvent<string>) => {
+    if (ws !== socket) return;
     try {
       const data = JSON.parse(event.data) as WsServerMessage;
 
@@ -160,16 +169,17 @@ export const initializeWebSocket = (url = currentWsUrl) => {
     }
   };
 
-  socket.onclose = () => {
+  ws.onclose = () => {
+    if (ws !== socket) return;
     console.warn('WebSocket closed');
     if (kicked) return;
     showConnectionStatus(t('net.reconnecting'), true);
     scheduleReconnect();
   };
 
-  socket.onerror = (error) => {
+  ws.onerror = (error) => {
     console.error('WebSocket error:', error);
-    socket.close();
+    ws.close();
   };
 
   setChatSocketSender(sendAction);

@@ -10,6 +10,7 @@ class FakeSocket {
   sent: { type: string; channel?: string }[] = [];
   onopen?: () => void;
   onmessage?: (event: { data: string }) => void;
+  onclose?: () => void;
   constructor() {
     FakeSocket.last = this;
   }
@@ -79,6 +80,32 @@ describe('a redirect to another instance', () => {
     expect(fetch.mock.calls[0]?.[0]).toBe(
       'https://b.example.com:8443/assign-points',
     );
+    vi.unstubAllGlobals();
+  });
+});
+
+describe('a socket replaced by a redirect', () => {
+  it('leaves the new connection alone when the old one reports its close late', async () => {
+    vi.useFakeTimers();
+    vi.stubGlobal('WebSocket', FakeSocket);
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: true }));
+    const { initializeWebSocket } = await import('./wsManager');
+
+    initializeWebSocket('ws://test/ws');
+    const old = FakeSocket.last;
+    old.onmessage?.({
+      data: JSON.stringify({ type: 'redirect', url: 'ws://b.test/ws' }),
+    });
+    vi.advanceTimersByTime(200);
+    const next = FakeSocket.last;
+    next.readyState = FakeSocket.OPEN;
+    next.onopen?.();
+    old.onclose?.();
+    vi.runAllTimers();
+
+    expect(FakeSocket.last).toBe(next);
+    expect(next.readyState).toBe(FakeSocket.OPEN);
+    vi.useRealTimers();
     vi.unstubAllGlobals();
   });
 });
