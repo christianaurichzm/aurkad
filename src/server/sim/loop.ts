@@ -7,33 +7,16 @@ import {
 } from '../services/world/movementService.js';
 import { rebuildQuadtree } from './spatialManager.js';
 import { getRuntimeState } from './world.js';
-import { ServerActionType } from '../engine/actions.js';
-import {
-  processActions,
-  enqueueServerAction,
-  getActionQueueSize,
-} from '../net/transport.js';
+import { processActions, getActionQueueSize } from '../net/transport.js';
+import { updateDueNpcs } from '../services/npc/index.js';
+import { regenerateHealth } from '../services/combat/index.js';
 import { broadcastGameState } from '../net/snapshot.js';
 import { flushGameEvents } from '../net/fanout.js';
-import { advanceTick, getTick, msToTicks } from './clock.js';
+import { advanceTick, getTick } from './clock.js';
 import { runScheduledTasks } from './scheduler.js';
-import { gameConfig } from '../gameConfig.js';
 import { emit } from '../engine/hooks.js';
 
 type TimeoutHandle = ReturnType<typeof setTimeout>;
-
-const REGEN_TICKS = msToTicks(gameConfig.combat.regenIntervalMs);
-
-function scheduledServerActions() {
-  const tick = getTick();
-  // Every tick, because each npc now carries its own interval and the handler
-  // asks each one whether it is due (see npcMoveTicks). Gating here again would
-  // cap every npc at the slowest common cadence.
-  enqueueServerAction(ServerActionType.UpdateNpcPositions);
-  if (tick % REGEN_TICKS === 0) {
-    enqueueServerAction(ServerActionType.RegeneratePlayersHP);
-  }
-}
 
 function rebuildSpatialIndexes() {
   try {
@@ -65,9 +48,11 @@ type TickSystem = { name: string; run: () => unknown };
 // sees systems in the order the server runs them.
 export const tickSystems: readonly TickSystem[] = [
   { name: 'advanceTick', run: advanceTick },
-  { name: 'scheduledServerActions', run: scheduledServerActions },
   { name: 'rebuildSpatialIndexes', run: rebuildSpatialIndexes },
   { name: 'processActions', run: processActions },
+  // After the players' input, so within a tick players act before npcs.
+  { name: 'updateNpcs', run: updateDueNpcs },
+  { name: 'regenerateHealth', run: regenerateHealth },
   { name: 'processMovementCompletion', run: processMovementCompletion },
   { name: 'processMovementIntent', run: processMovementIntent },
   // Same slot as the tick hook, for the same reason. Runs first so tasks can

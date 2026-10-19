@@ -7,9 +7,9 @@ import {
   RuntimeNpc,
   PlayerServer,
 } from '../../../shared/types.js';
-import { getMap } from '../../sim/world.js';
+import { getMap, getRuntimeState } from '../../sim/world.js';
 import { getOrInitNpcAi, transitionNpcAi, resetNpcAi } from './aiBrain.js';
-import { isHunter, type NpcAiState } from './types.js';
+import { isHunter, npcMoveTicks, type NpcAiState } from './types.js';
 import { getTick, msToTicks } from '../../sim/clock.js';
 import { scheduleAfter } from '../../sim/scheduler.js';
 import { indexPlacement } from '../../sim/spatialManager.js';
@@ -26,6 +26,7 @@ import {
 } from './behaviors.js';
 import { selector, act, type BtNode } from './bt.js';
 import { useApi } from '../../engine/modules/registry.js';
+import { isInstanceTemplate } from '../world/instanceService.js';
 
 const STUCK_ESCAPE_TICKS = 2;
 
@@ -273,4 +274,23 @@ export function updateNpcs(
   };
 
   hunterBt(ctx);
+}
+
+/**
+ * The npc tick system. It runs every tick and asks each npc whether it is
+ * due, since speed is per npc (moveIntervalMs). The modulo is cheap; the
+ * sight query and path search it guards are what cost.
+ */
+export function updateDueNpcs(): void {
+  const tick = getTick();
+  Object.values(getRuntimeState().maps).forEach((map) => {
+    if (isInstanceTemplate(map)) return;
+    const livePlayers = Object.values(map.players).filter(
+      (player) => player.health > 0,
+    );
+    Object.values(map.npcs).forEach((npc) => {
+      if (tick % npcMoveTicks(npc) !== 0) return;
+      updateNpcs(npc, map, livePlayers);
+    });
+  });
 }

@@ -43,9 +43,9 @@ The authoritative loop runs at a fixed **20 Hz** (`src/server/sim/loop.ts`). Eac
 tick runs an ordered pipeline of systems:
 
 ```
-advanceTick → scheduledServerActions → rebuildSpatialIndexes → processActions
-  → processMovementCompletion → processMovementIntent → runScheduledTasks
-  → tickHook → flushGameEvents → broadcastGameState
+advanceTick → rebuildSpatialIndexes → processActions → updateNpcs
+  → regenerateHealth → processMovementCompletion → processMovementIntent
+  → runScheduledTasks → tickHook → flushGameEvents → broadcastGameState
 ```
 
 Design properties:

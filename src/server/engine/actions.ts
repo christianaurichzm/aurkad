@@ -44,15 +44,6 @@ export interface ClientMoveToAction extends ClientActionBase {
   row: number;
 }
 
-export enum ServerActionType {
-  UpdateNpcPositions = 'UpdateNpcPositions',
-  RegeneratePlayersHP = 'RegeneratePlayersHP',
-}
-
-export interface ServerAction {
-  action: ServerActionType;
-}
-
 /** Everything a client can ask for: the six the tick drains and records. */
 export type ClientAction =
   | ClientKeyboardAction
@@ -61,5 +52,3 @@ export type ClientAction =
   | ClientCustomAction
   | ClientLanguageAction
   | ClientMoveToAction;
-
-export type ActionQueueItem = ClientAction | ServerAction;

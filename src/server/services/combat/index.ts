@@ -10,7 +10,7 @@ import {
   CharacterAction,
 } from '../../../shared/types.js';
 import { TILE_SIZE } from '../../../shared/constants.js';
-import { getMap, updatePlayer } from '../../sim/world.js';
+import { getMap, getRuntimeState, updatePlayer } from '../../sim/world.js';
 import { logger } from '../../logger.js';
 import { getTick, msToTicks } from '../../sim/clock.js';
 import { cancelScheduled, scheduleAfter } from '../../sim/scheduler.js';
@@ -390,3 +390,22 @@ export const handleAttack = (attacker: PlayerServer): void => {
 
   resolveDamage(attackTarget, attacker.attack, { attacker, map });
 };
+
+const REGEN_TICKS = msToTicks(gameConfig.combat.regenIntervalMs);
+
+/** Regen system: each interval, a hurt player heals a share of its pool. */
+export function regenerateHealth(): void {
+  if (getTick() % REGEN_TICKS !== 0) return;
+  const { regenPercent, minRegen } = gameConfig.combat;
+  Object.values(getRuntimeState().maps).forEach((map) => {
+    Object.values(map.players).forEach((player) => {
+      if (player.health >= player.maxHealth) return;
+      const regenAmount = Math.max(
+        Math.floor(player.maxHealth * regenPercent),
+        minRegen,
+      );
+      player.health = Math.min(player.health + regenAmount, player.maxHealth);
+      updatePlayer(player);
+    });
+  });
+}

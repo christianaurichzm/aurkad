@@ -2,12 +2,7 @@ import { RequestHandler, Response } from 'express';
 import WebSocket, { WebSocketServer } from 'ws';
 import type { IncomingMessage, Server } from 'node:http';
 import { logger } from '../logger.js';
-import {
-  ActionQueueItem,
-  ClientAction,
-  ServerAction,
-  ServerActionType,
-} from '../engine/actions.js';
+import type { ClientAction } from '../engine/actions.js';
 import { ClientMessageSchema } from './clientMessage.js';
 import type { z } from 'zod';
 import type { Key } from '../../shared/types.js';
@@ -26,13 +21,9 @@ import {
   clearPressedKeys,
   warpToMap,
 } from '../services/world/movementService.js';
-import { getMap, getRuntimeState } from '../sim/world.js';
-import { isInstanceTemplate } from '../services/world/instanceService.js';
+import { getMap } from '../sim/world.js';
 import { handleItemAction } from '../services/economy/inventoryService.js';
 import { handleCustomAction } from '../services/comms/customEventService.js';
-import { updateNpcs } from '../services/npc/index.js';
-import { npcMoveTicks } from '../services/npc/types.js';
-import { gameConfig } from '../gameConfig.js';
 import { playersWsMap } from './connections.js';
 import { resetPlayerNetState } from './snapshot.js';
 import { parseTraceparent, startSpan } from '../tracing.js';
@@ -87,7 +78,7 @@ let shuttingDown = false;
 let heartbeatInterval: IntervalHandle | undefined;
 
 const actionQueue = new FastQueue<{
-  action: ActionQueueItem;
+  action: ClientAction;
   socket?: WebSocket;
 }>();
 const socketEpochs = new WeakMap<WebSocket, number>();
@@ -164,18 +155,13 @@ function releasePastLimit(
 /** Longer than any release, which is the only thing parsed past the limit. */
 const RELEASE_MAX_BYTES = 256;
 
-function applyDroppedRelease(action: ActionQueueItem | undefined) {
-  if (
-    action &&
-    'type' in action &&
-    action.type === 'keyboard' &&
-    action.keyboardAction.type === 'release'
-  ) {
+function applyDroppedRelease(action: ClientAction | undefined) {
+  if (action?.type === 'keyboard' && action.keyboardAction.type === 'release') {
     handleKeyAction(action);
   }
 }
 
-function enqueueAction(action: ActionQueueItem, socket?: WebSocket) {
+function enqueueAction(action: ClientAction, socket?: WebSocket) {
   const maxSize = config.limits.actionQueueMaxSize;
   if (maxSize > 0 && actionQueue.size >= maxSize) {
     const dropped = actionQueue.dequeue();
@@ -197,54 +183,6 @@ function enqueueAction(action: ActionQueueItem, socket?: WebSocket) {
   }
 
   actionQueue.enqueue({ action, socket });
-}
-
-function isClientAction(action: ActionQueueItem): action is ClientAction {
-  return 'username' in action;
-}
-
-function isServerAction(action: ActionQueueItem): action is ServerAction {
-  return 'action' in action;
-}
-
-function handleServerAction(action: ServerAction) {
-  switch (action.action) {
-    case ServerActionType.UpdateNpcPositions: {
-      // Queued every tick, and each npc answers for itself: speed is per npc
-      // (moveIntervalMs), so there is no single cadence to gate on. The check
-      // is a modulo per npc per tick; what it guards, the sight query and the
-      // path search, is what actually costs.
-      const tick = getTick();
-      Object.values(getRuntimeState().maps).forEach((map) => {
-        if (isInstanceTemplate(map)) return;
-        const livePlayers = Object.values(map.players).filter(
-          (player) => player.health > 0,
-        );
-        Object.values(map.npcs).forEach((npc) => {
-          if (tick % npcMoveTicks(npc) !== 0) return;
-          updateNpcs(npc, map, livePlayers);
-        });
-      });
-      break;
-    }
-    case ServerActionType.RegeneratePlayersHP:
-      Object.values(getRuntimeState().maps).forEach((map) => {
-        Object.values(map.players).forEach((player) => {
-          if (player.health < player.maxHealth) {
-            const { regenPercent, minRegen } = gameConfig.combat;
-            const regenAmount = Math.max(
-              Math.floor(player.maxHealth * regenPercent),
-              minRegen,
-            );
-            player.health = Math.min(
-              player.health + regenAmount,
-              player.maxHealth,
-            );
-          }
-        });
-      });
-      break;
-  }
 }
 
 function dispatchClientAction(action: ClientAction): void {
@@ -276,33 +214,24 @@ export function processActions() {
     if (
       socket &&
       (socket.readyState !== WebSocket.OPEN ||
-        (isClientAction(action) &&
-          playersWsMap.get(action.username) !== socket))
+        playersWsMap.get(action.username) !== socket)
     )
       continue;
 
-    if (action) {
-      if (isClientAction(action)) {
-        // Recorded before the handler, here where every client action passes,
-        // so a recording holds the item use and chat line as well as the arrow
-        // key, and an action that makes a handler throw is in the file too.
-        recordAction(action);
-        // Everything logged while this action is handled (a script that threw,
-        // a warp with no map) names the action's player and tick. The id is a
-        // counter, cheaper than a uuid and keyed to the tick like every other
-        // line. `run` takes the action as an argument, so the hot path
-        // allocates only the context object.
-        reqCtx.run(
-          { requestId: `${getTick()}.${n++}`, username: action.username },
-          dispatchClientAction,
-          action,
-        );
-      } else if (isServerAction(action)) {
-        // No username to name: these are the tick's own work (npc update,
-        // regen), not somebody's request.
-        handleServerAction(action);
-      }
-    }
+    // Recorded before the handler, here where every client action passes, so a
+    // recording holds the item use and chat line as well as the arrow key, and
+    // an action that makes a handler throw is in the file too.
+    recordAction(action);
+    // Everything logged while this action is handled (a script that threw, a
+    // warp with no map) names the action's player and tick. The id is a
+    // counter, cheaper than a uuid and keyed to the tick like every other
+    // line. `run` takes the action as an argument, so the hot path allocates
+    // only the context object.
+    reqCtx.run(
+      { requestId: `${getTick()}.${n++}`, username: action.username },
+      dispatchClientAction,
+      action,
+    );
   }
 }
 
@@ -598,10 +527,6 @@ export function getActionQueueSize(): number {
 
 export function markServerShuttingDown() {
   shuttingDown = true;
-}
-
-export function enqueueServerAction(action: ServerActionType) {
-  enqueueAction({ action });
 }
 
 /**

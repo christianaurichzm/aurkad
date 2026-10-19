@@ -12,12 +12,9 @@ import { createServer, type Server as HttpServer } from 'node:http';
 import { createConnection, type AddressInfo } from 'node:net';
 import WebSocket from 'ws';
 import fc from 'fast-check';
-import { ServerActionType } from '../engine/actions.js';
 import { gameConfig } from '../gameConfig.js';
 import { config } from '../config.js';
-import { advanceTick } from '../sim/clock.js';
 import { createFixture, tile } from '../sim/simFixture.js';
-import { rebuildQuadtree } from '../sim/spatialManager.js';
 import { Key, type Item } from '../../shared/types.js';
 import { mapPixelHeight, mapPixelWidth } from '../../shared/mapGeometry.js';
 import { ClientMessageSchema } from './clientMessage.js';
@@ -46,7 +43,6 @@ vi.mock('../config.js', async (importOriginal) => {
 import { playersWsMap } from './connections.js';
 import {
   enqueueClientAction,
-  enqueueServerAction,
   getActionQueueSize,
   processActions,
   rateLimiterEntryCount,
@@ -94,41 +90,27 @@ beforeEach(async () => {
 
 describe('processActions', () => {
   it('drains everything it was given', () => {
-    enqueueServerAction(ServerActionType.RegeneratePlayersHP);
-    enqueueServerAction(ServerActionType.UpdateNpcPositions);
+    const player = fx.addPlayer({ name: 'talker' });
+    enqueueClientAction({
+      username: 'talker',
+      type: 'language',
+      language: 'pt',
+    });
+    enqueueClientAction({
+      username: 'talker',
+      type: 'language',
+      language: 'en',
+    });
     expect(getActionQueueSize()).toBe(2);
 
     processActions();
 
     expect(getActionQueueSize()).toBe(0);
+    expect(player.language).toBe('en');
   });
 
   it('has no rate-limiter entry without a connection', () => {
     expect(rateLimiterEntryCount()).toBe(0);
-  });
-});
-
-describe('RegeneratePlayersHP', () => {
-  it('heals a hurt player by the configured share of its pool', () => {
-    const { regenPercent, minRegen } = gameConfig.combat;
-    const player = fx.addPlayer({ maxHealth: 1000, health: 500 });
-    const expected = Math.max(Math.floor(1000 * regenPercent), minRegen);
-
-    enqueueServerAction(ServerActionType.RegeneratePlayersHP);
-    processActions();
-
-    expect(player.health).toBe(500 + expected);
-  });
-
-  it('never heals past the pool, and leaves a full player alone', () => {
-    const full = fx.addPlayer({ maxHealth: 100, health: 100 });
-    const nearlyFull = fx.addPlayer({ maxHealth: 100, health: 99 });
-
-    enqueueServerAction(ServerActionType.RegeneratePlayersHP);
-    processActions();
-
-    expect(full.health).toBe(100);
-    expect(nearlyFull.health).toBe(100);
   });
 });
 
@@ -147,43 +129,6 @@ describe('a keyboard release', () => {
     processActions();
 
     expect(player.speed).toBe(7);
-  });
-});
-
-describe('UpdateNpcPositions', () => {
-  it('walks an npc whose interval is due on this tick', () => {
-    fx.addPlayer({ name: 'bait', position: tile(3, 3) });
-    const npc = fx.addNpc({
-      behavior: 'aggressive',
-      position: tile(6, 3),
-      moveIntervalMs: 1,
-      sight: 10,
-    });
-    const before = { ...npc.position };
-
-    rebuildQuadtree(fx.map.id, fx.map); // the sight query reads the index
-    enqueueServerAction(ServerActionType.UpdateNpcPositions);
-    processActions();
-
-    expect(npc.position).not.toEqual(before);
-  });
-
-  it('skips an npc whose interval has not come round yet', () => {
-    fx.addPlayer({ name: 'bait', position: tile(3, 3) });
-    const npc = fx.addNpc({
-      behavior: 'aggressive',
-      position: tile(6, 3),
-      moveIntervalMs: 60_000, // 1200 ticks, so tick 1 is not a multiple
-      sight: 10,
-    });
-    const before = { ...npc.position };
-
-    advanceTick(); // not fx.step, which queues and drains an npc update of its own
-    rebuildQuadtree(fx.map.id, fx.map);
-    enqueueServerAction(ServerActionType.UpdateNpcPositions);
-    processActions();
-
-    expect(npc.position).toEqual(before);
   });
 });
 

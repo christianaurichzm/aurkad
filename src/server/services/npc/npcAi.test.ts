@@ -1,14 +1,15 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { CharacterAction, Direction } from '../../../shared/types.js';
 import { createFixture, tile } from '../../sim/simFixture.js';
-import { msToTicks } from '../../sim/clock.js';
+import { advanceTick, msToTicks } from '../../sim/clock.js';
+import { rebuildQuadtree } from '../../sim/spatialManager.js';
 import { getOrInitNpcAi, resetNpcAi, transitionNpcAi } from './aiBrain.js';
 import {
   calculateDirection,
   isPlayerInAttackRange,
   stepNpcToward,
 } from './behaviors.js';
-import { respawnNpc } from './index.js';
+import { respawnNpc, updateDueNpcs } from './index.js';
 import { spawnNpc } from './spawn.js';
 import { npcMoveTicks } from './types.js';
 import { gameConfig } from '../../gameConfig.js';
@@ -288,6 +289,41 @@ describe('updateNpcs', () => {
     const npc = sim.addNpc({ behavior: 'aggressive', position: tile(5, 5) });
     sim.step(1);
     expect(npc.action).toBe(CharacterAction.Idle);
+  });
+});
+
+describe('updateDueNpcs', () => {
+  it('walks an npc whose interval is due on this tick', () => {
+    sim.addPlayer({ name: 'bait', position: tile(3, 3) });
+    const npc = sim.addNpc({
+      behavior: 'aggressive',
+      position: tile(6, 3),
+      moveIntervalMs: 1,
+      sight: 10,
+    });
+    const before = { ...npc.position };
+
+    rebuildQuadtree(sim.map.id, sim.map); // the sight query reads the index
+    updateDueNpcs();
+
+    expect(npc.position).not.toEqual(before);
+  });
+
+  it('skips an npc whose interval has not come round yet', () => {
+    sim.addPlayer({ name: 'bait', position: tile(3, 3) });
+    const npc = sim.addNpc({
+      behavior: 'aggressive',
+      position: tile(6, 3),
+      moveIntervalMs: 60_000, // 1200 ticks, so tick 1 is not a multiple
+      sight: 10,
+    });
+    const before = { ...npc.position };
+
+    advanceTick();
+    rebuildQuadtree(sim.map.id, sim.map);
+    updateDueNpcs();
+
+    expect(npc.position).toEqual(before);
   });
 });
 
