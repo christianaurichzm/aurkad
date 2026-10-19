@@ -127,8 +127,8 @@ describe('server ops commands', () => {
     await run('motd Event at 8pm');
     expect(serverState.motd).toBe('Event at 8pm');
 
-    // Reading it must not lose it: a bare `motd` shows the notice and
-    // leaves it set.
+    // Reading it must not be a way of losing it: a bare `motd` reads the notice
+    // on every surface and never clears it.
     expect((await run('motd')).out[0]).toContain('Event at 8pm');
     expect(serverState.motd).toBe('Event at 8pm');
 
@@ -240,8 +240,8 @@ describe('flag', () => {
   it('schedules for the next time the clock reads that hour', async () => {
     const { out } = await run('flag xpMultiplier 2 at 20:00 for 120 saturday');
 
-    // Local time: an operator types the clock on the wall, and the server's
-    // wall is the one that counts.
+    // Local time: an operator types the clock on the wall, and the
+    // server's wall is the one that counts.
     const startsAt = listFlags()[0]?.startsAt ?? 0;
     expect(startsAt).toBeGreaterThan(Date.now());
     expect(new Date(startsAt).getHours()).toBe(20);

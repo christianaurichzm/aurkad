@@ -47,12 +47,9 @@ for (const id of Object.keys(builtIns)) define(id, builtIns[id]);
 for (const id of Object.keys((config && config.effects) || {}))
   define(id, config.effects[id]);
 
-// Expiry is a tick, and ticks count from each process's boot: a status saved
-// before a restart, or on another instance, can name an expiry this clock
-// will not reach for hours. None outlasts its duration from now, so that is
-// where one like it is brought back to.
-// After a restart a status may run its whole duration again; keep
-// the time left on the player at logout if that ever matters.
+// Expiry is a tick counted from this process's boot, so a status saved
+// before a restart or on another instance may name a far-off tick. None
+// outlasts its duration from now; after a restart one may run it again.
 function list(player) {
   const stored = getPlayerData(player, dataKey);
   return (Array.isArray(stored) ? stored : [])

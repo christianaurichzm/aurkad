@@ -39,9 +39,8 @@ describe('config multi-instance mode', () => {
     await expect(import('./config.js')).resolves.toBeDefined();
   });
 
-  // The lease keeps two instances from losing an account's progress; what
-  // is left is the talking, which degrades rather than corrupts, so it is
-  // said, not refused.
+  // The presence lease keeps two instances off one account; what is left is
+  // talking, which degrades rather than corrupts, so it is warned, not refused.
   it('boots when both are set, and names what does not cross instances', async () => {
     process.env.WS_PUBLIC_URL = 'ws://localhost:8080';
     process.env.MAP_IDS = '1,2';

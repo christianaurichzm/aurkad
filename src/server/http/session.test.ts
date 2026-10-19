@@ -1,11 +1,8 @@
 /**
- * Whether a session still speaks for the account it was minted from.
- *
- * The middleware is mounted here the way `server.ts` mounts it, with only the
- * store swapped, because the whole point of the check is where it sits: it is
- * the one handler both the HTTP app and the WebSocket upgrade already run, so
- * a test that mounted the guard by itself would prove nothing about the app
- * the server actually builds.
+ * Whether a session still speaks for the account it was minted from. The
+ * middleware is mounted as `server.ts` mounts it, store aside, since the
+ * check relies on being the one handler both the HTTP app and the
+ * WebSocket upgrade run.
  */
 import express from 'express';
 import session from 'express-session';

@@ -169,11 +169,11 @@ describe('awardExperience', () => {
   });
 });
 
-// F-4: handlePlayerUpdates must not swap the registered player object's
+// handlePlayerUpdates must not swap the registered player object's
 // identity. A reference held elsewhere (in-flight combat, a script, an async
 // op mid-await) would otherwise become detached and its later mutations
 // would be lost.
-describe('handlePlayerUpdates identity (F-4)', () => {
+describe('handlePlayerUpdates identity', () => {
   it('keeps the registered object identity stable across an update', () => {
     const sim = createFixture(0);
     const alice = sim.addPlayer({ name: 'Alice', sprite: 0 });

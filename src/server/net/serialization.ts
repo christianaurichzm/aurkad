@@ -61,8 +61,8 @@ export function toMapMeta(map: MapStateServer): MapMetaClient {
 }
 
 // Named rather than inlined so the list of what a player may know about a tile
-// is one thing to read. A field added to `Tile` does not join it by default,
-// which is the point: the last one that did was a script trigger.
+// is one thing to read. A field added to `Tile` does not join it by default:
+// a script trigger or a door requirement must not reach the client unasked.
 function toTilePublic(tile: Tile): TilePublic {
   return {
     tileIndex: tile.tileIndex,

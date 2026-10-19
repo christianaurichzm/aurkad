@@ -64,9 +64,9 @@ const MAX_PENDING_PER_PLAYER = 100;
  * either inserts both fit. Sends to one recipient therefore run one after the
  * other, from the count to the insert.
  *
- * In-process only; two instances sending to one recipient can still
- * pass the cap together. A per-recipient counter document with a conditional
- * $inc if multi-instance mail ever matters.
+ * In-process only: two instances sending to one recipient can still pass the
+ * cap together. Closing that across instances takes a per-recipient counter
+ * document with a conditional $inc.
  */
 const recipientTails = new Map<string, Promise<unknown>>();
 

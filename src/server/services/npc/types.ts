@@ -21,8 +21,8 @@ export type NpcAiState = {
   home: Position;
   /**
    * Player this npc is fighting because that player hit it. Survives outside
-   * the sight radius and through walls, which is the whole point: it is the
-   * only way an npc answers a blow it never saw coming.
+   * the sight radius and through walls: it is the only way an npc answers a
+   * blow it never saw coming.
    */
   aggroPlayerId?: string;
 };

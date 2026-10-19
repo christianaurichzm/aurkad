@@ -1,7 +1,7 @@
 /**
- * The commands whose subject is a player, run as the terminal runs them.
- * This pins that one command answers every surface and that a privileged
- * one leaves an entry in the audit trail.
+ * The commands whose subject is a player, run the way the terminal runs
+ * them: the same command answers every surface (terminal, web console,
+ * in-game chat), and a privileged one leaves an audit trail entry.
  */
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { clearCommands, handleReplCommand } from '../engine/commands.js';

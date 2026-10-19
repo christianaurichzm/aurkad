@@ -259,9 +259,9 @@ const AdminLogin: React.FC<{ onLogin: (s: AdminSession) => void }> = ({
   );
 };
 
-// Scrolls inside itself rather than the document: styles.css pins the
-// body to 100vh with overflow hidden for the game canvas, which this page
-// inherits, so anything below the fold could not be reached otherwise.
+// Scrolls inside itself rather than letting the document scroll: styles.css
+// pins the body to 100vh with overflow hidden, which the game canvas needs and
+// this page inherits. Without this, anything below the fold cannot be reached.
 const page: React.CSSProperties = {
   height: '100vh',
   overflowY: 'auto',

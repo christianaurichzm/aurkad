@@ -166,7 +166,7 @@ function sendPlayerStatsIfNeeded(player: PlayerServer, ws: WebSocket) {
 // Phase 1 of the tick: build every live entity's public state ONCE and cache
 // its serialized fragments. Runs per map, not per viewer: an entity's public
 // state is identical for everyone who can see it, so building it per viewer is
-// the same work repeated, and that inversion is the whole point.
+// the same work repeated.
 function recordMapEntities(map: MapStateServer) {
   for (const player of Object.values(map.players)) {
     recordEntity(player.id, toPlayerPublic(player) as unknown as PublicRecord);

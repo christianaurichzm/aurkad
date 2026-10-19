@@ -537,7 +537,7 @@ export function buildApi(
     getItems: (): ItemData[] => [...items.values()].map(itemData),
 
     // Inventory. These return whether they happened, so a script can tell a
-    // delivered reward from one lost to a full bag or a short stack.
+    // delivered reward from one a full inventory or a short stack refused.
     giveItem: (player: PlayerServer, itemId: number, quantity = 1): boolean => {
       // Handing out an id no item defines puts an unresolvable entry in the
       // inventory, which then throws while building the stats payload and
@@ -794,8 +794,8 @@ export function buildApi(
 
     // Live-ops flags an operator changes while the server runs, read-only here.
     // Mutation stays on the `flag` command: that path is access-gated and lands
-    // in the audit trail, and "who turned this on" is the whole point of a
-    // switch that changes the game for everyone at once.
+    // in the audit trail, which has to answer "who turned this on" for a switch
+    // that changes the game for everyone at once.
     flags: {
       /** The raw value, or undefined when unset or expired. */
       get: (name: string): FlagValue | undefined =>

@@ -792,9 +792,9 @@ export function registerPlayerCommands(): void {
       const days = await forgetPlayer(username);
       await deletePlayer(record.id);
 
-      // The ban stays: it is keyed by name and is all that stops the account
-      // being made again to escape it. Erasing a banned account on request
-      // means unbanning first.
+      // The ban stays: it is keyed by name and it is the only
+      // thing stopping the account being made again to escape it. An operator
+      // erasing a banned account on request should unban first.
       const banned = await getBan(username);
       reply(
         style.ok(

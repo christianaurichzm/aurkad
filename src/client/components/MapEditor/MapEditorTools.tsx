@@ -160,8 +160,8 @@ const MapEditorToolsComponent: React.FC = () => {
     }
   }, []);
 
-  // Re-fetched when the player walks into another map, so the editor
-  // follows the game.
+  // Re-fetched when the player walks into another map, so the editor always
+  // shows the map the player is on.
   useEffect(() => {
     void loadMapData();
   }, [loadMapData, currentMapId]);

@@ -141,8 +141,8 @@ export const setMapMeta = (meta: MapMetaClient) => {
     tiles: known ?? createEmptyGrid(meta.cols, meta.rows),
   };
   staticMapRevision = meta.revision;
-  // A map we still have needs no cover: it is on screen in the same frame the
-  // player arrives, which is the whole point of keeping it.
+  // A map we still have needs no cover: it is on screen in the same frame
+  // the player arrives.
   mapPending = !known;
   receivedChunks.clear();
 };

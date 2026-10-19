@@ -60,8 +60,7 @@ describe('planning where bots stand', () => {
     const large = planPlacements(world, names(180), 9);
 
     expect(new Set(small.map((p) => `${p.tileX},${p.tileY}`)).size).toBe(90);
-    // Twice the population over twice the screens: the neighbours each bot has
-    // are the same, which is the point of the knob.
+    // Twice the bots over twice the screens keeps the same neighbours.
     expect(new Set(large.map((p) => `${p.tileX},${p.tileY}`)).size).toBe(180);
   });
 

@@ -165,13 +165,9 @@ const rawMapIds = parseCsvEnv('MAP_IDS');
 const mapIds = rawMapIds?.length ? rawMapIds : undefined;
 
 // Multi-instance mode boots: the presence lease (persistence/presence.ts)
-// keeps two instances from overwriting one account, and the instance bus
-// (persistence/instanceBus.ts) carries what an operator says.
-//
-// Still per-process: the modules' own state, so a party or a trade only
-// forms between players on one instance. That degrades in the open, the
-// command saying the player is not here, so it is said once at boot
-// instead of refusing to start.
+// keeps two instances off one account, and the instance bus carries what an
+// operator says. Module state is still per process, so a party or trade
+// forms only on one instance; that degrades in the open, so it is a warning.
 if (process.env.WS_PUBLIC_URL && mapIds) {
   console.warn(
     '[config] Multi-instance mode: accounts, operator announcements, moderation and the ' +
@@ -299,9 +295,10 @@ export const config = {
     }),
   },
   economy: {
-    // How often every item in the world is counted, and how long counts are
-    // kept. The job walks every player document, so it runs rarely: whether a
-    // total moved beyond what loot and spending explain is asked in hours.
+    // How often every item in the world is counted, and how long the counts
+    // are kept. The job walks every player document, so it is
+    // infrequent: the question it answers ("did a total move in a way loot and
+    // spending cannot explain") is asked in hours, not seconds.
     censusIntervalMinutes: parseIntEnv('ECONOMY_CENSUS_INTERVAL_MINUTES', 60, {
       min: 5,
       max: 24 * 60,
@@ -350,9 +347,10 @@ export const config = {
     }),
   },
   auth: {
-    // Login and register throttle, per IP. Strict by default against
-    // credential stuffing, so load-test bots from one machine trip it after
-    // twenty. Raise it for a local benchmark; leave it in production.
+    // Login/register throttle, per IP. The default is strict
+    // (credential stuffing is the threat), which also means every load-test
+    // bot logging in from one machine trips it after twenty. Raise it for a
+    // local benchmark run; leave it alone in production.
     rateLimitWindowMs: parseIntEnv('AUTH_RATE_LIMIT_WINDOW_MS', 15 * 60_000, {
       min: 1_000,
       max: 60 * 60_000,

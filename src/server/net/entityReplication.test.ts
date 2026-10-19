@@ -96,7 +96,7 @@ describe('fragmentAt', () => {
   it('serializes each entity once and reuses it across viewers', () => {
     beginTick();
     recordEntity('a', { id: 'a', health: 10 });
-    // Identical string instance is the whole point: no per-viewer work.
+    // The same string instance, so no viewer pays to build it again.
     expect(fragmentAt('a')).toBe(fragmentAt('a'));
   });
 });

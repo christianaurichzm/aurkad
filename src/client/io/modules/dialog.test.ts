@@ -109,8 +109,8 @@ it('walks the choices with the arrows, answers with Enter and keeps Tab inside',
   );
 });
 
-// Escape closes without answering; taking the last choice is only
-// harmless while that choice is a goodbye.
+// Escape must not answer with the last choice, which is only harmless while
+// the last choice is a goodbye.
 it('leaves on Escape without answering anything', async () => {
   show(LINE);
   await userEvent.keyboard('{Escape}');

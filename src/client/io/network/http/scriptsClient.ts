@@ -32,7 +32,8 @@ export interface ScriptError {
   message: string;
   line?: number;
   column?: number;
-  // The server's ScriptErrorSource. Only ever displayed, so it is a label.
+  // The server's ScriptErrorSource, typed as a plain string so the client keeps
+  // no copy to drift from it. Only ever displayed.
   source: string;
   context?: string;
   stack?: string;

@@ -63,11 +63,9 @@ async function tradingPair(): Promise<[PlayerServer, PlayerServer]> {
 }
 
 /**
- * The first document is written for real and the second one fails.
- *
- * The real first write is the whole point: it is what has to be rolled back on
- * a replica set, and what stays behind without one. A stubbed no-op would make
- * both cases pass and prove nothing.
+ * The first document is written for real and the second one fails. The
+ * first write must be real, as it is what a replica set rolls back and what
+ * stays behind without one.
  */
 function failSecondWrite(): void {
   const real = playerRepository.save.bind(playerRepository);

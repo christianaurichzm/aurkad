@@ -150,8 +150,8 @@ describe('AdminApp', () => {
   });
 
   // styles.css pins the body to 100vh with overflow hidden for the game
-  // canvas, so the dashboard scrolls inside itself, or the panels below the
-  // fold cannot be reached.
+  // canvas, so the dashboard has to scroll inside itself, or the panels
+  // below the fold are unreachable.
   it('scrolls inside itself, since the document cannot', async () => {
     mocks.adminSession.mockResolvedValue({
       username: 'Boss',

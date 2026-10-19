@@ -134,9 +134,8 @@ function pushGuild(name, gone) {
   }
 }
 
-// The guilds anyone may walk into, largest first, for a player who is in none.
-// Reads every guild per request; keep a list of the public ones if a
-// game grows past a few hundred guilds.
+// Public guilds, largest first, for a player in none. Reads every guild per
+// request, which holds up to a few hundred.
 function pushOpenGuilds(player) {
   const guilds = store
     .keys('guild')

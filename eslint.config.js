@@ -175,9 +175,7 @@ export default tseslint.config(
       // warns; await-thenable stays an error.
       '@typescript-eslint/require-await': 'warn',
       // The REST client rejects with `HttpError`, a plain `{ status, message }`
-      // read through `httpError()`. Making it an Error subclass would help the
-      // stack trace but changes the client's error handling, so the shape is
-      // named here instead of switching the rule off.
+      // read through `httpError()`, so the shape is allowed by name.
       '@typescript-eslint/only-throw-error': [
         'error',
         { allow: [{ from: 'file', name: 'HttpError' }] },
@@ -185,8 +183,7 @@ export default tseslint.config(
     },
   },
 
-  // React, only where there is React. The old config ran the react plugin over
-  // the server too and then switched rules-of-hooks back off per directory.
+  // React, only where there is React.
   {
     files: ['src/client/**/*.{ts,tsx}'],
     extends: [
@@ -197,9 +194,9 @@ export default tseslint.config(
     settings: { react: { version: 'detect' } },
     rules: {
       'react/prop-types': 'off',
-      // The two rules this repo runs. eslint-plugin-react-hooks 7 also ships
-      // the React Compiler set (immutability, purity, use-memo and more) in its
-      // recommended config, and adopting it changes how the client is written.
+      // The two classic hook rules. The React Compiler set that
+      // eslint-plugin-react-hooks 7 also ships (immutability, purity, use-memo,
+      // ...) would change how the client is written, so it stays off.
       'react-hooks/rules-of-hooks': 'error',
       'react-hooks/exhaustive-deps': 'warn',
       // Every sentence a player or operator reads goes through src/client/i18n,

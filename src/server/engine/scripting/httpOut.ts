@@ -284,7 +284,7 @@ export async function httpRequest(
 
   const headers: Record<string, string> = {
     // The receiving service joins this trace if it is instrumented; a Discord
-    // webhook simply ignores the header.
+    // webhook ignores the header.
     ...traceHeaders(span.context),
     ...options.headers,
   };

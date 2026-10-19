@@ -292,8 +292,8 @@ export function registerServerCommands(): void {
       description: 'Get, set or clear the message of the day',
     },
     ({ args, reply, style }) => {
-      // A bare `motd` reads it, the same as in the terminal, so the one word
-      // never wipes the notice on one surface and prints it on another.
+      // Bare `motd` reads it, on every surface: the same word must not wipe the
+      // notice in one place and print it in another.
       if (args.length === 0) {
         return reply(
           serverState.motd

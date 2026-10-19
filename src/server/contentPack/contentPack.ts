@@ -92,9 +92,9 @@ const SpellSchema = SpellFieldsSchema.extend({
 // the pre-loot-table drop list.
 const NpcSchema = NpcFieldsSchema.extend({
   id: z.string().min(1),
-  // One tile, like every other way an npc enters the world (seed,
-  // spawnNpc); smaller, the health bar is narrower than the sprite and a
-  // melee npc cannot reach the next tile.
+  // One tile, like every other way an npc enters the world (seed, spawnNpc):
+  // any other size draws a health bar out of proportion to its sprite and
+  // leaves a melee npc unable to reach the tile next to it.
   width: z.number().int().positive().default(SPRITE_WIDTH),
   height: z.number().int().positive().default(SPRITE_HEIGHT),
   attackRange: z.number().int().positive().default(TILE_SIZE),
@@ -347,9 +347,11 @@ async function syncIdCounters(): Promise<void> {
 }
 
 /**
- * Cross-checks the imported content and reports what points at nothing,
- * rather than rejecting: a dangling drop id should not make the NPC vanish
- * or one typo brick the server. The creator gets a precise list at boot.
+ * Cross-checks the imported content and reports what points at nothing.
+ *
+ * Reports rather than rejects: a dangling drop id should not make the NPC
+ * vanish, and aborting the import would brick a server whose content has
+ * one typo. The creator gets a precise list at boot, not surprises in game.
  */
 async function reportBrokenReferences(): Promise<void> {
   try {
