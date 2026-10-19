@@ -15,7 +15,6 @@ import {
   getPlayer,
   updatePlayer,
   placePlayerOnMap,
-  detachFromMap,
 } from '../../sim/world.js';
 import { runtimeState } from '../../sim/state.js';
 import { config } from '../../config.js';
@@ -380,8 +379,4 @@ export const addPlayerOnMap = (playerId: string) => {
   const player = getPlayer(playerId);
   if (!player) return;
   return placePlayerOnMap(player);
-};
-
-export const removePlayerFromMap = (playerId: string) => {
-  return detachFromMap(playerId);
 };

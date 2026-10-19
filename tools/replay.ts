@@ -7,8 +7,8 @@ import type {
   ReplayFile,
 } from '../src/server/sim/replayRecorder.js';
 import type { Key } from '../src/shared/types.js';
+import { TICK_RATE } from '../src/shared/constants.js';
 
-const TICK_RATE = 20;
 const MS_PER_TICK = 1000 / TICK_RATE;
 const TIMELINE_TICKS_PER_COL = 10;
 const TIMELINE_MAX_COLS = 150;

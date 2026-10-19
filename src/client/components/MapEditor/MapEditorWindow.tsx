@@ -6,15 +6,13 @@ import {
 } from '../../graphics/mapEditor';
 import { useUIStore } from '../../stores/uiStore';
 import { MapEditorTools } from './MapEditorTools';
-import { useDraggable } from '../../hooks/useDraggable';
+import { PHONE, useDraggable } from '../../hooks/useDraggable';
 import { useEscapeClose } from '../../hooks/useEscapeClose';
 import { useMediaQuery } from '../../hooks/useMediaQuery';
 import { colors, zIndex } from '../../theme';
 import { Icon } from '../common/Icon';
 import { useT } from '../../i18n';
 
-// Where useDraggable stops dragging: a phone, upright or on its side.
-const PHONE = '(max-width: 700px), (pointer: coarse) and (max-height: 600px)';
 const MARGIN = 8;
 const NARROWEST = 160;
 

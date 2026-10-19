@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import fs from 'node:fs';
 import path from 'node:path';
 import ts from 'typescript';
-import { on, off, emit, clearAll } from './hooks.js';
+import { on, emit, clearAll } from './hooks.js';
 import { createFixture, tile } from '../sim/simFixture.js';
 import { Direction, Key } from '../../shared/types.js';
 import { msToTicks } from '../sim/clock.js';
@@ -92,24 +92,6 @@ describe('hooks bus', () => {
     expect(calls).toHaveLength(1);
 
     unsub();
-    player.experience = player.experienceToNextLevel;
-    levelUpPlayer(player);
-    expect(calls).toHaveLength(1);
-  });
-
-  it('off() removes a specific handler', () => {
-    const calls: number[] = [];
-    const handler = ({ level }: { player: any; level: number }) =>
-      calls.push(level);
-    on('playerLevelUp', handler);
-
-    const sim = createFixture(0);
-    const player = sim.addPlayer({ name: 'Alice' });
-    player.experience = 100;
-    levelUpPlayer(player);
-    expect(calls).toHaveLength(1);
-
-    off('playerLevelUp', handler);
     player.experience = player.experienceToNextLevel;
     levelUpPlayer(player);
     expect(calls).toHaveLength(1);

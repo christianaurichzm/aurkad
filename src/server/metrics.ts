@@ -14,6 +14,7 @@ import {
   scriptTimeShares,
 } from './engine/scripting/handlerBudget.js';
 import { tracingStats } from './tracing.js';
+import { percentile, round2 } from '../shared/utils.js';
 
 export interface TickMetrics {
   tickMs: number;
@@ -52,16 +53,6 @@ export function recordCatchUpTick(): void {
 export function getLastTickAt(): number {
   return lastTickAt;
 }
-
-// Nearest-rank percentile over the current window. `sorted` must be ascending.
-function percentile(sorted: number[], p: number): number {
-  if (sorted.length === 0) return 0;
-  const rank = Math.ceil((p / 100) * sorted.length);
-  const idx = Math.min(sorted.length - 1, Math.max(0, rank - 1));
-  return sorted[idx]!;
-}
-
-const round2 = (n: number) => Math.round(n * 100) / 100;
 
 export function getTickStats() {
   const ms: number[] = [];

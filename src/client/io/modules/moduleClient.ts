@@ -1,6 +1,7 @@
 import * as React from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { claimEscape } from '../../hooks/useEscapeClose';
+import { PHONE } from '../../hooks/useDraggable';
 import { focusDialog } from '../../hooks/useDialogFocus';
 import { isInputActive } from '../../utils/domHelpers';
 import { onServerEvent, sendServerEvent } from '../network/customEvents';
@@ -324,13 +325,7 @@ function makeUi(id: string, container: HTMLElement) {
       el.style.top = `${y}px`;
     };
     header.addEventListener('pointerdown', (e) => {
-      if (
-        e.target === closeEl ||
-        window.matchMedia(
-          '(max-width: 700px), (pointer: coarse) and (max-height: 600px)',
-        ).matches
-      )
-        return;
+      if (e.target === closeEl || window.matchMedia(PHONE).matches) return;
       const r = el.getBoundingClientRect();
       dragging = true;
       offX = e.clientX - r.left;

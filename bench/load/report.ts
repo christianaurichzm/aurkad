@@ -1,6 +1,8 @@
 // Aggregates a load run. Client numbers come from the bots and tick
 // percentiles from scraping /metrics. Pure, so it is testable.
 
+import { percentile } from '../../src/shared/utils.js';
+
 export interface BotSample {
   bytesReceived: number;
   messagesReceived: number;
@@ -58,18 +60,6 @@ export interface LoadReport {
   };
 }
 
-/**
- * Nearest-rank percentile. No interpolation, so every value reported is one
- * a tick or a login actually took, which makes "p95 was 41ms" a statement
- * about the run rather than the estimator.
- */
-export function percentile(values: number[], p: number): number {
-  if (values.length === 0) return 0;
-  const sorted = [...values].sort((a, b) => a - b);
-  const rank = Math.ceil((p / 100) * sorted.length);
-  return sorted[Math.min(sorted.length - 1, Math.max(0, rank - 1))]!;
-}
-
 export function buildReport(input: {
   scenario: string;
   requestedBots: number;
@@ -85,10 +75,12 @@ export function buildReport(input: {
   const totalBytes = sum(samples.map((s) => s.bytesReceived));
   const totalMessages = sum(samples.map((s) => s.messagesReceived));
   const totalWorldUpdates = sum(samples.map((s) => s.worldUpdates));
-  const authTimes = samples.map((s) => s.authMs);
+  const ascending = (a: number, b: number) => a - b;
+  const authTimes = samples.map((s) => s.authMs).sort(ascending);
   const firstStateTimes = samples
     .map((s) => s.firstStateMs)
-    .filter((ms) => ms > 0);
+    .filter((ms) => ms > 0)
+    .sort(ascending);
 
   const report: LoadReport = {
     scenario: input.scenario,

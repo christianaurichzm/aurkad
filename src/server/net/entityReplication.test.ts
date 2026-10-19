@@ -3,7 +3,6 @@ import {
   beginTick,
   recordEntity,
   fragmentAt,
-  fragmentFor,
   gapDelta,
   fieldDelta,
   forgetEntity,
@@ -55,12 +54,12 @@ describe('fieldDelta', () => {
   });
 });
 
-describe('fragmentFor', () => {
+describe('fragmentAt', () => {
   it('gives a viewer that does not know the entity the full state', () => {
     beginTick();
     recordEntity('a', { id: 'a', health: 10 });
 
-    const fragment = fragmentFor('a', false);
+    const fragment = fragmentAt('a')?.full;
     expect(fragment).toBeDefined();
     expect(JSON.parse(fragment!)).toEqual({ id: 'a', health: 10 });
   });
@@ -71,9 +70,9 @@ describe('fragmentFor', () => {
     beginTick();
     recordEntity('a', { id: 'a', health: 4, action: 'Idle' });
 
-    expect(JSON.parse(fragmentFor('a', true)!)).toEqual({ health: 4 });
+    expect(JSON.parse(fragmentAt('a')!.delta!)).toEqual({ health: 4 });
     // Someone seeing it for the first time still needs all of it.
-    expect(JSON.parse(fragmentFor('a', false)!)).toEqual({
+    expect(JSON.parse(fragmentAt('a')!.full)).toEqual({
       id: 'a',
       health: 4,
       action: 'Idle',
@@ -86,19 +85,19 @@ describe('fragmentFor', () => {
     beginTick();
     recordEntity('a', { id: 'a', health: 10 });
 
-    expect(fragmentFor('a', true)).toBeUndefined();
+    expect(fragmentAt('a')?.delta).toBeUndefined();
   });
 
   it('returns nothing for an entity not recorded this tick', () => {
     beginTick();
-    expect(fragmentFor('ghost', false)).toBeUndefined();
+    expect(fragmentAt('ghost')).toBeUndefined();
   });
 
   it('serializes each entity once and reuses it across viewers', () => {
     beginTick();
     recordEntity('a', { id: 'a', health: 10 });
     // Identical string instance is the whole point: no per-viewer work.
-    expect(fragmentFor('a', false)).toBe(fragmentFor('a', false));
+    expect(fragmentAt('a')).toBe(fragmentAt('a'));
   });
 });
 
@@ -240,8 +239,8 @@ describe('forgetEntity', () => {
     beginTick();
     recordEntity('a', { id: 'a', health: 99 });
     // With no history the entity must be treated as new: full state, no delta.
-    expect(fragmentFor('a', true)).toBeUndefined();
-    expect(JSON.parse(fragmentFor('a', false)!)).toEqual({
+    expect(fragmentAt('a')?.delta).toBeUndefined();
+    expect(JSON.parse(fragmentAt('a')!.full)).toEqual({
       id: 'a',
       health: 99,
     });

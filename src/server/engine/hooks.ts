@@ -116,13 +116,6 @@ export function on<K extends keyof HookMap>(
   };
 }
 
-export function off<K extends keyof HookMap>(
-  event: K,
-  handler: Handler<K>,
-): void {
-  registry.get(event)?.delete(handler);
-}
-
 export function emit<K extends keyof HookMap>(
   event: K,
   payload: HookMap[K],

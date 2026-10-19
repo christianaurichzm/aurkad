@@ -6,6 +6,10 @@ const isInteractiveTarget = (target: EventTarget | null) =>
 
 const MARGIN = 8;
 
+/** Where panels stop dragging: a phone, upright or on its side. */
+export const PHONE =
+  '(max-width: 700px), (pointer: coarse) and (max-height: 600px)';
+
 // Keeps a panel where a finger can reach it: not dragged past an edge, and
 // not opened at a desktop offset off a phone screen.
 const clampToViewport = (
@@ -59,12 +63,7 @@ export const useDraggable = (initialX = 0, initialY = 0) => {
     pointerId: number | null,
   ) => {
     if (!node.current || isInteractiveTarget(target)) return false;
-    if (
-      window.matchMedia(
-        '(max-width: 700px), (pointer: coarse) and (max-height: 600px)',
-      ).matches
-    )
-      return false;
+    if (window.matchMedia(PHONE).matches) return false;
     const rect = node.current.getBoundingClientRect();
     dragRef.current = {
       dragging: true,

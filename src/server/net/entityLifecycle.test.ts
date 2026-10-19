@@ -6,7 +6,7 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import {
   recordEntity,
-  fragmentFor,
+  fragmentAt,
   resetEntityReplication,
   beginTick,
 } from './entityReplication.js';
@@ -28,7 +28,7 @@ describe('forgetReplicatedEntity', () => {
     beginTick();
     recordEntity('e1', { health: 10 });
     // Unchanged between ticks, so a viewer that knows it gets no delta.
-    expect(fragmentFor('e1', true)).toBeUndefined();
+    expect(fragmentAt('e1')?.delta).toBeUndefined();
 
     forgetReplicatedEntity('e1');
 
@@ -36,8 +36,8 @@ describe('forgetReplicatedEntity', () => {
     recordEntity('e1', { health: 10 });
     // With no baseline there is nothing to diff against, so no delta; the
     // viewer is given full state instead.
-    expect(fragmentFor('e1', true)).toBeUndefined();
-    expect(fragmentFor('e1', false)).toBe('{"health":10}');
+    expect(fragmentAt('e1')?.delta).toBeUndefined();
+    expect(fragmentAt('e1')?.full).toBe('{"health":10}');
   });
 });
 
@@ -62,8 +62,8 @@ describe('despawnNpc', () => {
     beginTick();
     recordEntity(npc.id, { health: 5 });
     // A baseline left behind would make this a no-change delta instead.
-    expect(fragmentFor(npc.id, false)).toBe('{"health":5}');
-    expect(fragmentFor(npc.id, true)).toBeUndefined();
+    expect(fragmentAt(npc.id)?.full).toBe('{"health":5}');
+    expect(fragmentAt(npc.id)?.delta).toBeUndefined();
   });
 
   // The AI key includes mapId, so passing the caller's bare `{ id }` through

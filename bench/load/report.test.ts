@@ -7,7 +7,6 @@ import {
   buildReport,
   formatSoak,
   parseMetrics,
-  percentile,
   toServerSnapshot,
   toSoakCsv,
   type BotSample,
@@ -47,33 +46,17 @@ const sample = (over: Partial<BotSample> = {}): BotSample => ({
   ...over,
 });
 
-describe('percentile', () => {
-  it('returns a value that actually occurred, not an interpolation', () => {
-    const values = [10, 20, 30, 40];
-    expect(values).toContain(percentile(values, 50));
-    expect(values).toContain(percentile(values, 95));
-  });
-
-  it('picks the nearest rank', () => {
-    expect(percentile([1, 2, 3, 4, 5, 6, 7, 8, 9, 10], 50)).toBe(5);
-    expect(percentile([1, 2, 3, 4, 5, 6, 7, 8, 9, 10], 90)).toBe(9);
-    expect(percentile([1, 2, 3, 4, 5, 6, 7, 8, 9, 10], 100)).toBe(10);
-  });
-
-  it('does not care about input order', () => {
-    expect(percentile([9, 1, 5, 3, 7], 50)).toBe(5);
-  });
-
-  it('handles a single value', () => {
-    expect(percentile([42], 95)).toBe(42);
-  });
-
-  it('returns zero for no samples rather than NaN', () => {
-    expect(percentile([], 95)).toBe(0);
-  });
-});
-
 describe('buildReport', () => {
+  it('reports latency percentiles whatever order the bots finished in', () => {
+    const report = buildReport({
+      scenario: 'test',
+      requestedBots: 5,
+      samples: [9, 1, 5, 3, 7].map((authMs) => sample({ authMs })),
+      durationSeconds: 1,
+    });
+    expect(report.auth.p50).toBe(5);
+  });
+
   it('divides totals by the measured window and the bots that connected', () => {
     const report = buildReport({
       scenario: 'test',

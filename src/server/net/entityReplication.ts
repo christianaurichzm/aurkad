@@ -7,7 +7,8 @@
 // object-graph walking and measured at 70% of broadcast CPU.
 //
 // Usage per tick: beginTick() -> recordEntity() for every live entity ->
-// fragmentFor() per viewer.
+// fragmentAt() per viewer, then gapDelta()/resyncBody() for one that already
+// knows the entity.
 
 type PublicState = Record<string, unknown>;
 
@@ -293,21 +294,6 @@ export function resyncBody(fragment: Fragment): string {
     fragment.resync = JSON.stringify(cleared);
   }
   return fragment.resync;
-}
-
-/**
- * Serialized fragment to send to one viewer, or undefined when there is
- * nothing to send. A viewer that already knows the entity gets only the
- * changed fields; a viewer seeing it for the first time gets the full state,
- * which is what lets the client merge-or-insert without a marker on the wire.
- */
-export function fragmentFor(
-  id: string,
-  viewerKnowsEntity: boolean,
-): string | undefined {
-  const fragment = fragments.get(id);
-  if (!fragment) return undefined;
-  return viewerKnowsEntity ? fragment.delta : fragment.full;
 }
 
 /** Drop an entity's history (despawn/disconnect) so ids cannot leak state. */

@@ -93,3 +93,17 @@ export const canInteract = (
   Math.abs(npc.position.x - player.position.x) <= TILE_SIZE &&
   Math.abs(npc.position.y - player.position.y) <= TILE_SIZE &&
   isFacing(player, npc);
+
+/**
+ * Nearest-rank percentile of an ascending array; 0 when it is empty. No
+ * interpolation, so every value reported is one a tick, frame or login
+ * actually took. Tick metrics, the client frame profile and the load test
+ * all report through this, so their numbers compare directly.
+ */
+export function percentile(sorted: readonly number[], p: number): number {
+  if (sorted.length === 0) return 0;
+  const rank = Math.ceil((p / 100) * sorted.length);
+  return sorted[Math.min(sorted.length - 1, Math.max(0, rank - 1))]!;
+}
+
+export const round2 = (n: number) => Math.round(n * 100) / 100;

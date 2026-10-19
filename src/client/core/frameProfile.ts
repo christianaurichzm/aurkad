@@ -3,6 +3,8 @@
  * (`server/metrics.ts`). Only on when the page has `?frameprof` in its URL.
  */
 
+import { percentile, round2 } from '../../shared/utils';
+
 // Ten seconds of frames at 60 fps, like the server's window, enough for a
 // p99 that is not just the maximum.
 const WINDOW = 600;
@@ -34,16 +36,6 @@ export function recordFrame(gapMs: number, drawMs: number): void {
     );
   }
 }
-
-// Nearest-rank, the same definition the server's percentiles use, so a number
-// from here can be compared with one from /metrics without a footnote.
-function percentile(sorted: number[], p: number): number {
-  if (sorted.length === 0) return 0;
-  const rank = Math.ceil((p / 100) * sorted.length);
-  return sorted[Math.min(sorted.length - 1, Math.max(0, rank - 1))];
-}
-
-const round2 = (n: number) => Math.round(n * 100) / 100;
 
 function summarize(series: Float64Array) {
   const values: number[] = [];
