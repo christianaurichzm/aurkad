@@ -6,16 +6,14 @@ import {
   SPRITE_WIDTH,
   TILE_SIZE,
 } from '../../../shared/constants.js';
-import {
-  parseBody,
-  CreateNpcBodySchema,
-  CreateItemBodySchema,
-  CreateLootTableBodySchema,
-  CreateDialogBodySchema,
-  CreateQuestBodySchema,
-  CreateRecipeBodySchema,
-  CreateArrowBodySchema,
-} from '../bodySchemas.js';
+import { parseBody } from '../bodySchemas.js';
+import { NpcSchema } from '../../services/content/npcService.js';
+import { ItemSchema } from '../../services/content/itemService.js';
+import { LootTableSchema } from '../../services/content/lootTableService.js';
+import { DialogSchema } from '../../services/content/dialogService.js';
+import { QuestSchema } from '../../services/content/questService.js';
+import { RecipeSchema } from '../../services/content/recipeService.js';
+import { ArrowSchema } from '../../services/content/arrowService.js';
 import checkAccess from '../middleware/checkAccess.js';
 import { listMaps } from '../../services/world/mapService.js';
 import {
@@ -117,7 +115,7 @@ export function createContentRouter() {
   });
 
   router.post('/npcs', checkAccess(Access.ADMIN), async (req, res) => {
-    const body = parseBody(CreateNpcBodySchema, req.body, res);
+    const body = parseBody(NpcSchema, req.body, res);
     if (!body) return;
 
     const npcData = {
@@ -144,7 +142,7 @@ export function createContentRouter() {
   });
 
   router.put('/npcs/:id', checkAccess(Access.ADMIN), async (req, res) => {
-    const body = parseBody(CreateNpcBodySchema, req.body, res);
+    const body = parseBody(NpcSchema, req.body, res);
     if (!body) return;
     const id = req.params['id'];
     // Editing an existing npc is the common path, so the create route's checks
@@ -183,7 +181,7 @@ export function createContentRouter() {
   });
 
   router.post('/items', checkAccess(Access.ADMIN), async (req, res) => {
-    const body = parseBody(CreateItemBodySchema, req.body, res);
+    const body = parseBody(ItemSchema, req.body, res);
     if (!body) return;
     try {
       const { warnings } = validateScriptReferences(
@@ -202,7 +200,7 @@ export function createContentRouter() {
     if (Number.isNaN(id)) {
       return res.status(400).json({ error: 'Invalid item id.' });
     }
-    const body = parseBody(CreateItemBodySchema, req.body, res);
+    const body = parseBody(ItemSchema, req.body, res);
     if (!body) return;
     try {
       const { warnings } = validateScriptReferences(
@@ -234,7 +232,7 @@ export function createContentRouter() {
   });
 
   router.post('/loot', checkAccess(Access.ADMIN), async (req, res) => {
-    const body = parseBody(CreateLootTableBodySchema, req.body, res);
+    const body = parseBody(LootTableSchema, req.body, res);
     if (!body) return;
     try {
       // Same contract as the other content editors: a dangling item id is a
@@ -277,7 +275,7 @@ export function createContentRouter() {
   });
 
   router.post('/dialogs', checkAccess(Access.ADMIN), async (req, res) => {
-    const body = parseBody(CreateDialogBodySchema, req.body, res);
+    const body = parseBody(DialogSchema, req.body, res);
     if (!body) return;
     try {
       // A choice pointing at a missing node is a warning, not a rejected save,
@@ -310,7 +308,7 @@ export function createContentRouter() {
   });
 
   router.post('/quests', checkAccess(Access.ADMIN), async (req, res) => {
-    const body = parseBody(CreateQuestBodySchema, req.body, res);
+    const body = parseBody(QuestSchema, req.body, res);
     if (!body) return;
     try {
       // The objective names npcs, items and maps, resolved as ids only, like
@@ -351,7 +349,7 @@ export function createContentRouter() {
   });
 
   router.post('/recipes', checkAccess(Access.ADMIN), async (req, res) => {
-    const body = parseBody(CreateRecipeBodySchema, req.body, res);
+    const body = parseBody(RecipeSchema, req.body, res);
     if (!body) return;
     try {
       // Items only: a recipe names nothing else, and the item list is what
@@ -432,7 +430,7 @@ export function createContentRouter() {
   });
 
   router.post('/arrows', checkAccess(Access.ADMIN), async (req, res) => {
-    const body = parseBody(CreateArrowBodySchema, req.body, res);
+    const body = parseBody(ArrowSchema, req.body, res);
     if (!body) return;
     try {
       const arrow = await createOrUpdateArrow(body);
@@ -445,7 +443,7 @@ export function createContentRouter() {
   router.put('/arrows/:id', checkAccess(Access.ADMIN), async (req, res) => {
     const id = Number(req.params.id);
     if (Number.isNaN(id)) return res.status(400).json({ error: 'Invalid id.' });
-    const body = parseBody(CreateArrowBodySchema, req.body, res);
+    const body = parseBody(ArrowSchema, req.body, res);
     if (!body) return;
     try {
       await createOrUpdateArrow({ ...body, id });

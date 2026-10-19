@@ -11,6 +11,7 @@ import {
   createOrUpdateNpc,
   deleteNpc,
   getNpcById,
+  NpcSchema,
   refreshNpcInRuntime,
 } from './npcService.js';
 
@@ -89,5 +90,82 @@ describe('deleteNpc', () => {
     expect(Object.keys(sim.map.npcs)).toEqual([orc.id]);
     expect(replicatedEntityCount()).toBe(1);
     expect(await getNpcById('goblin')).toBeNull();
+  });
+});
+
+describe('NpcSchema', () => {
+  it('accepts valid NPC', () => {
+    const result = NpcSchema.safeParse({
+      name: 'Goblin',
+      sprite: 1,
+      maxHealth: 100,
+      attack: 10,
+      behavior: 'aggressive',
+    });
+    expect(result.success).toBe(true);
+  });
+  it('accepts all valid behaviors', () => {
+    const behaviors = [
+      'aggressive',
+      'hostile',
+      'neutral',
+      'friendly',
+      'shopkeeper',
+      'guard',
+    ] as const;
+    for (const behavior of behaviors) {
+      expect(
+        NpcSchema.safeParse({
+          name: 'X',
+          sprite: 0,
+          maxHealth: 1,
+          attack: 0,
+          behavior,
+        }).success,
+      ).toBe(true);
+    }
+  });
+  it('rejects unknown behavior', () => {
+    expect(
+      NpcSchema.safeParse({
+        name: 'X',
+        sprite: 0,
+        maxHealth: 1,
+        attack: 0,
+        behavior: 'boss',
+      }).success,
+    ).toBe(false);
+  });
+  // z.object strips what it does not declare, so a field missing here is
+  // saved by the editor and never reaches the database: the npc would come
+  // back with no quest.
+  it('keeps the content references an npc points at', () => {
+    const result = NpcSchema.safeParse({
+      name: 'X',
+      sprite: 0,
+      maxHealth: 1,
+      attack: 0,
+      behavior: 'neutral',
+      lootTableId: 'common',
+      dialogId: 'greet',
+      questId: 'orcs',
+    });
+    expect(result.success).toBe(true);
+    expect(result.data).toMatchObject({
+      lootTableId: 'common',
+      dialogId: 'greet',
+      questId: 'orcs',
+    });
+  });
+  it('rejects zero or negative maxHealth', () => {
+    expect(
+      NpcSchema.safeParse({
+        name: 'X',
+        sprite: 0,
+        maxHealth: 0,
+        attack: 0,
+        behavior: 'neutral',
+      }).success,
+    ).toBe(false);
   });
 });

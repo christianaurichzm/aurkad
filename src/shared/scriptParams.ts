@@ -12,6 +12,7 @@
 // and the editor renders a form from the same declaration: both must agree
 // on what `{ type: 'number', min: 1 }` means.
 
+import { z } from 'zod';
 import { EQUIPMENT_SLOTS } from './constants.js';
 
 /**
@@ -363,3 +364,23 @@ export function checkStoredParams(
 
   return problems;
 }
+
+/**
+ * Values a designer filled in for a behaviour's declared params, bounded:
+ * this lands in a Mixed Mongoose field loaded on every content read. Keys
+ * are checked against the declaration in contentValidation and undeclared
+ * ones dropped at dispatch; this only keeps the blob small.
+ */
+export const ScriptParamsSchema = z
+  .record(
+    z.string().min(1).max(SCRIPT_PARAM_LIMITS.maxKeyLength),
+    z.union([
+      z.string().max(SCRIPT_PARAM_LIMITS.maxStringLength),
+      z.number().finite(),
+      z.boolean(),
+    ]),
+  )
+  .refine(
+    (params) => Object.keys(params).length <= SCRIPT_PARAM_LIMITS.maxKeys,
+    `at most ${SCRIPT_PARAM_LIMITS.maxKeys} script params`,
+  );

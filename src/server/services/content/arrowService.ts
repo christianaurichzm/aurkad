@@ -1,7 +1,16 @@
+import { z } from 'zod';
 import ArrowModel from '../../model/Arrow.js';
 import type { Arrow } from '../../../shared/types.js';
-import { CreateArrowBodySchema, unsetAbsent } from '../../http/bodySchemas.js';
-import { getNextIdAbove } from '../dbService.js';
+import { getNextIdAbove, unsetAbsent } from '../dbService.js';
+
+export const ArrowSchema = z.object({
+  name: z.string().min(1),
+  description: z.string().default(''),
+  sprite: z.number().int().nonnegative(),
+  damage: z.number().int().nonnegative().default(0),
+  rangeTiles: z.number().int().positive().optional(),
+  tileSpeed: z.number().positive().optional(),
+});
 
 export const arrows = new Map<number, Arrow>();
 
@@ -27,7 +36,7 @@ export async function createOrUpdateArrow(
   }
   const result = await ArrowModel.findOneAndUpdate(
     { id: arrow.id },
-    { $set: arrow, ...unsetAbsent(CreateArrowBodySchema, arrow) },
+    { $set: arrow, ...unsetAbsent(ArrowSchema, arrow) },
     { upsert: true, returnDocument: 'after' },
   )
     .lean<Arrow>()

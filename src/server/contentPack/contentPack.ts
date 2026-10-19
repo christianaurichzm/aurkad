@@ -3,17 +3,14 @@ import path from 'node:path';
 import { z } from 'zod';
 import { gamePath } from '../config.js';
 import { logger } from '../logger.js';
-import {
-  BorderLinksSchema,
-  CreateArrowBodySchema,
-  CreateDialogBodySchema,
-  CreateItemBodySchema,
-  CreateLootTableBodySchema,
-  CreateNpcBodySchema,
-  CreateQuestBodySchema,
-  CreateRecipeBodySchema,
-  TileSchema,
-} from '../http/bodySchemas.js';
+import { BorderLinksSchema, TileSchema } from '../services/world/mapService.js';
+import { ArrowSchema as ArrowFieldsSchema } from '../services/content/arrowService.js';
+import { DialogSchema } from '../services/content/dialogService.js';
+import { ItemSchema as ItemFieldsSchema } from '../services/content/itemService.js';
+import { LootTableSchema } from '../services/content/lootTableService.js';
+import { NpcSchema as NpcFieldsSchema } from '../services/content/npcService.js';
+import { QuestSchema } from '../services/content/questService.js';
+import { RecipeSchema } from '../services/content/recipeService.js';
 import {
   SPRITE_HEIGHT,
   SPRITE_WIDTH,
@@ -78,13 +75,13 @@ const contentDir = (): string =>
     ? path.resolve(process.env.CONTENT_PATH)
     : gamePath('content');
 
-const ItemSchema = CreateItemBodySchema.extend({
+const ItemSchema = ItemFieldsSchema.extend({
   // Not 0: an item saved without an id is given the next one, and 0 reads as
   // none, so an item 0 in a file would come in renumbered and every loot
   // table, shop and tile naming it would point at nothing.
   id: z.number().int().positive(),
 });
-const ArrowSchema = CreateArrowBodySchema.extend({
+const ArrowSchema = ArrowFieldsSchema.extend({
   id: z.number().int().positive(),
 });
 const SpellSchema = SpellFieldsSchema.extend({
@@ -93,7 +90,7 @@ const SpellSchema = SpellFieldsSchema.extend({
 
 // The editor's npc plus what only a file sets: the id, the size, the reach and
 // the pre-loot-table drop list.
-const NpcSchema = CreateNpcBodySchema.extend({
+const NpcSchema = NpcFieldsSchema.extend({
   id: z.string().min(1),
   // One tile, like every other way an npc enters the world (seed,
   // spawnNpc); smaller, the health bar is narrower than the sprite and a
@@ -189,28 +186,28 @@ export const SPECS = {
   } as FileSpec<typeof ItemSchema>,
   loot: {
     file: 'loot.json',
-    schema: CreateLootTableBodySchema,
+    schema: LootTableSchema,
     upsert: (e) => createOrUpdateLootTable(e),
     list: listLootTables,
-  } as FileSpec<typeof CreateLootTableBodySchema>,
+  } as FileSpec<typeof LootTableSchema>,
   dialogs: {
     file: 'dialogs.json',
-    schema: CreateDialogBodySchema,
+    schema: DialogSchema,
     upsert: (e) => createOrUpdateDialog(e),
     list: listDialogs,
-  } as FileSpec<typeof CreateDialogBodySchema>,
+  } as FileSpec<typeof DialogSchema>,
   quests: {
     file: 'quests.json',
-    schema: CreateQuestBodySchema,
+    schema: QuestSchema,
     upsert: (e) => createOrUpdateQuest(e),
     list: listQuests,
-  } as FileSpec<typeof CreateQuestBodySchema>,
+  } as FileSpec<typeof QuestSchema>,
   recipes: {
     file: 'recipes.json',
-    schema: CreateRecipeBodySchema,
+    schema: RecipeSchema,
     upsert: (e) => createOrUpdateRecipe(e),
     list: listRecipes,
-  } as FileSpec<typeof CreateRecipeBodySchema>,
+  } as FileSpec<typeof RecipeSchema>,
   npcs: {
     file: 'npcs.json',
     schema: NpcSchema,

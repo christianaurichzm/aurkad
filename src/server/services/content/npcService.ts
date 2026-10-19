@@ -1,15 +1,50 @@
+import { z } from 'zod';
 import { CharacterAction, PersistentNpc } from '../../../shared/types.js';
 import { runtimeState } from '../../sim/state.js';
 import NpcModel from '../../model/Npc.js';
-import { getNextNpcId } from '../dbService.js';
+import { absentOptionalKeys, getNextNpcId, unsetAbsent } from '../dbService.js';
 import { resetNpcAi } from '../npc/aiBrain.js';
 import { despawnNpc } from '../npc/spawn.js';
 import { logger } from '../../logger.js';
-import {
-  CreateNpcBodySchema,
-  absentOptionalKeys,
-  unsetAbsent,
-} from '../../http/bodySchemas.js';
+import { ScriptParamsSchema } from '../../../shared/scriptParams.js';
+
+const NpcBehaviorSchema = z.enum([
+  'aggressive',
+  'hostile',
+  'neutral',
+  'friendly',
+  'shopkeeper',
+  'guard',
+]);
+
+export const NpcSchema = z.object({
+  name: z.string().min(1),
+  sprite: z.number().int().nonnegative(),
+  maxHealth: z.number().int().positive(),
+  attack: z.number().int().nonnegative(),
+  behavior: NpcBehaviorSchema,
+  experienceValue: z.number().int().nonnegative().optional(),
+  lootTableId: z.string().optional(),
+  dialogId: z.string().optional(),
+  // Declared here or the field never reaches mongoose: z.object strips what it
+  // does not know, so the editor would save and the npc would come back
+  // without the quest it offers.
+  questId: z.string().optional(),
+  scriptId: z.string().optional(),
+  scriptParams: ScriptParamsSchema.optional(),
+  // AI tuning in tiles. Clamped here rather than defaulted: absent has to stay
+  // absent so the engine default for the behaviour keeps applying, and a sight
+  // of 200 tiles would make every npc query the whole map.
+  sight: z.number().int().min(1).max(20).optional(),
+  pathDepth: z.number().int().min(0).max(40).optional(),
+  leash: z.number().int().min(0).max(60).optional(),
+  // Milliseconds between steps. Floored at one tick at 20 Hz; a minute is
+  // already a statue that twitches.
+  moveIntervalMs: z.number().int().min(50).max(60_000).optional(),
+  // Milliseconds dead before coming back. An hour is a raid boss; past that it
+  // is a one-off, which is a script's job, not a timer's.
+  respawnMs: z.number().int().min(0).max(3_600_000).optional(),
+});
 
 // Without the document's _id and __v: callers spread this into live npcs,
 // which serialization sends almost whole, so _id would be stringified for
@@ -29,7 +64,7 @@ export async function createOrUpdateNpc(
 
   await NpcModel.findOneAndUpdate(
     { id: npc.id },
-    { $set: npc, ...unsetAbsent(CreateNpcBodySchema, npc) },
+    { $set: npc, ...unsetAbsent(NpcSchema, npc) },
     { upsert: true },
   );
 }
@@ -42,7 +77,7 @@ export async function updateNpcAll(
 
   const updated = await NpcModel.findOneAndUpdate(
     { id },
-    { $set: updates, ...unsetAbsent(CreateNpcBodySchema, updates) },
+    { $set: updates, ...unsetAbsent(NpcSchema, updates) },
     { returnDocument: 'after' },
   )
     .lean<PersistentNpc>()
@@ -79,7 +114,7 @@ export async function refreshNpcInRuntime(id: string): Promise<void> {
         // The spread cannot express removal, as with the $unset above: a
         // field the editor cleared is absent, and the live npc would keep the
         // old value until the next restart.
-        for (const field of absentOptionalKeys(CreateNpcBodySchema, updated)) {
+        for (const field of absentOptionalKeys(NpcSchema, updated)) {
           delete (merged as Record<string, unknown>)[field];
         }
         map.npcs[runtimeId] = merged;

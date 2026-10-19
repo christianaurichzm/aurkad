@@ -138,8 +138,8 @@ properties:
 ### Where each content type lives
 
 Each kind of content the admin tools edit and a content pack carries has one
-service, which owns its reads and writes and, when the tick reads it, its
-in-memory cache:
+service, which owns its reads and writes, the zod schema a write has to pass
+and, when the tick reads it, its in-memory cache:
 
 | Content                                                            | Service                             |
 | ------------------------------------------------------------------ | ----------------------------------- |

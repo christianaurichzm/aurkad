@@ -9,6 +9,8 @@ import {
   defaultParamValue,
   normalizeParamSpecs,
   resolveScriptParams,
+  SCRIPT_PARAM_LIMITS,
+  ScriptParamsSchema,
   type ScriptParamSpec,
 } from './scriptParams.js';
 
@@ -232,5 +234,37 @@ describe('checkStoredParams', () => {
   it('reports a value the declared type cannot hold', () => {
     const problems = checkStoredParams([spec()], { itemId: 'potion' });
     expect(problems[0]).toContain('not a valid number');
+  });
+});
+
+// The write boundary for behaviour params. A script's declaration is not a
+// licence to write anything into a content document: these land in a Mixed
+// Mongoose field that is loaded on every content read.
+describe('ScriptParamsSchema', () => {
+  it('accepts the scalars a form field can hold', () => {
+    const params = { itemId: 3, message: 'hi', once: true };
+    const result = ScriptParamsSchema.safeParse(params);
+    expect(result.success && result.data).toEqual(params);
+  });
+
+  it('rejects a nested object, which no param type can hold', () => {
+    expect(
+      ScriptParamsSchema.safeParse({ reward: { itemId: 3 } }).success,
+    ).toBe(false);
+  });
+
+  it('rejects a string over the length cap', () => {
+    const message = 'x'.repeat(SCRIPT_PARAM_LIMITS.maxStringLength + 1);
+    expect(ScriptParamsSchema.safeParse({ message }).success).toBe(false);
+  });
+
+  it('rejects more keys than any declaration can have', () => {
+    const tooMany = Object.fromEntries(
+      Array.from({ length: SCRIPT_PARAM_LIMITS.maxKeys + 1 }, (_, i) => [
+        `k${i}`,
+        1,
+      ]),
+    );
+    expect(ScriptParamsSchema.safeParse(tooMany).success).toBe(false);
   });
 });

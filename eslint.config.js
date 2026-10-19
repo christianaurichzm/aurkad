@@ -285,6 +285,43 @@ export default tseslint.config(
   },
 
   {
+    // Gameplay may use net's state modules, which import no service, but not
+    // transport, snapshot, fanout or http/, which read the services back. The
+    // tick loop and the sim fixture wire the two together.
+    files: [
+      'src/server/{services,sim,engine,persistence,model,contentPack}/**/*.ts',
+    ],
+    ignores: [
+      '**/*.test.ts',
+      'src/server/sim/loop.ts',
+      'src/server/sim/simFixture.ts',
+    ],
+    rules: {
+      'no-restricted-imports': [
+        'error',
+        {
+          ...nodePrefixOnly,
+          patterns: [
+            {
+              group: [
+                '**/net/transport.js',
+                '**/net/snapshot.js',
+                '**/net/fanout.js',
+              ],
+              message:
+                'Net systems read the services; call a net state module (connections, entityReplication, viewerState) instead.',
+            },
+            {
+              group: ['**/http/**'],
+              message: 'HTTP sits above gameplay; move what is shared down.',
+            },
+          ],
+        },
+      ],
+    },
+  },
+
+  {
     // Tests read HTTP bodies, KV documents and sandbox results as the untyped
     // values they are.
     files: ['**/*.test.ts', '**/*.test.tsx'],

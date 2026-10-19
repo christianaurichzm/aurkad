@@ -26,13 +26,15 @@ vi.mock('../../services/world/mapValidation.js', () => ({
   validateMapTiles: () => Promise.resolve({ errors: [], warnings: [] }),
   resizeTiles: (tiles: unknown) => tiles,
 }));
-vi.mock('../../services/world/mapService.js', () => ({
+vi.mock('../../services/world/mapService.js', async (importOriginal) => ({
+  ...(await importOriginal<object>()),
   mapSave: () => Promise.resolve(),
   createOrUpdateMap: () => Promise.resolve('map1'),
   getMapById: () => Promise.resolve(null),
   listMaps: () => Promise.resolve([]),
 }));
-vi.mock('../../services/content/itemService.js', () => ({
+vi.mock('../../services/content/itemService.js', async (importOriginal) => ({
+  ...(await importOriginal<object>()),
   createOrUpdateItem: () => Promise.resolve(),
   deleteItem: () => Promise.reject(new Error('gone')),
   getItemById: () => undefined,
@@ -40,7 +42,8 @@ vi.mock('../../services/content/itemService.js', () => ({
 }));
 // The two gameplay writes: they reply without a database, so the assertion is
 // about the middleware and not about how far the handler got.
-vi.mock('../../services/economy/shopService.js', () => ({
+vi.mock('../../services/economy/shopService.js', async (importOriginal) => ({
+  ...(await importOriginal<object>()),
   getShopById: () => Promise.resolve(null),
   listShops: () => Promise.resolve([]),
   createOrUpdateShop: () => Promise.resolve(),

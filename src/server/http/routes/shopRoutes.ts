@@ -2,11 +2,8 @@ import { Router, type Request, type Response } from 'express';
 import type { ExtendedRequest } from '../session.js';
 import { Access, type PlayerServer } from '../../../shared/types.js';
 import { logger } from '../../logger.js';
-import {
-  parseBody,
-  CreateShopBodySchema,
-  BuyShopItemBodySchema,
-} from '../bodySchemas.js';
+import { parseBody, BuyShopItemBodySchema } from '../bodySchemas.js';
+import { ShopSchema } from '../../services/economy/shopService.js';
 import checkAccess from '../middleware/checkAccess.js';
 import { validateContentReferences } from '../../services/content/contentValidation.js';
 import {
@@ -136,7 +133,7 @@ export function createShopRouter() {
   });
 
   router.post('/shops', checkAccess(Access.ADMIN), async (req, res) => {
-    const body = parseBody(CreateShopBodySchema, req.body, res);
+    const body = parseBody(ShopSchema, req.body, res);
     if (!body) return;
     try {
       const { warnings } = validateContentReferences({
@@ -152,7 +149,7 @@ export function createShopRouter() {
 
   router.put('/shops/:id', checkAccess(Access.ADMIN), async (req, res) => {
     const id = req.params['id'];
-    const body = parseBody(CreateShopBodySchema, req.body, res);
+    const body = parseBody(ShopSchema, req.body, res);
     if (!body) return;
     try {
       const { warnings } = validateContentReferences({

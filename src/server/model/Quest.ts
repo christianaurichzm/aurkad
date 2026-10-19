@@ -2,7 +2,7 @@ import mongoose from 'mongoose';
 
 // One schema for every objective arm rather than a discriminator per type:
 // mongoose would drop a field it does not declare, and the arms disagree on
-// which fields exist. The zod schema in bodySchemas.ts is what refuses a
+// which fields exist. The zod schema in questService.ts is what refuses a
 // half-filled objective; this layer only has to keep the values.
 const QuestObjectiveSchema = new mongoose.Schema(
   {

@@ -1,3 +1,4 @@
+import { z } from 'zod';
 import { TILE_SIZE } from '../../../shared/constants.js';
 import {
   Tile,
@@ -28,6 +29,69 @@ import { getItemById } from '../content/itemService.js';
 import { getNpcById } from '../content/npcService.js';
 import { onMap, onTiles } from './physicsService.js';
 import { resetNpcAi } from '../npc/aiBrain.js';
+import { ScriptParamsSchema } from '../../../shared/scriptParams.js';
+
+export const MapTypeSchema = z.enum(['pvp', 'normal']);
+export const PvpMoraleSchema = z.enum(['safe', 'normal', 'no-penalty']);
+
+const PositionSchema = z.object({ x: z.number(), y: z.number() });
+
+const WarpSchema = z.object({
+  to: z.string().min(1),
+  position: PositionSchema,
+});
+
+const BorderLinkSchema = z.object({
+  to: z.string().min(1),
+  offset: z.number().int().optional(),
+  position: PositionSchema.optional(),
+});
+
+export const BorderLinksSchema = z
+  .object({
+    up: BorderLinkSchema.optional(),
+    down: BorderLinkSchema.optional(),
+    left: BorderLinkSchema.optional(),
+    right: BorderLinkSchema.optional(),
+  })
+  .optional();
+
+const TileActionSchema = z.discriminatedUnion('action', [
+  z.object({ action: z.literal('heal') }),
+  z.object({ action: z.literal('kill') }),
+  z.object({ action: z.literal('message'), text: z.string() }),
+  z.object({ action: z.literal('sound'), file: z.string().min(1) }),
+  z.object({
+    action: z.literal('changeSprite'),
+    spriteId: z.number().int().nonnegative(),
+  }),
+  z.object({
+    action: z.literal('script'),
+    scriptId: z.string().min(1),
+    scriptParams: ScriptParamsSchema.optional(),
+  }),
+]);
+
+const DoorSchema = z.object({
+  requiresItem: z.number().int().nonnegative(),
+  openTileIndex: z.number().int().nonnegative(),
+});
+
+export const TileSchema = z.object({
+  tileIndex: z.number().int().min(-1).default(0),
+  blocked: z.boolean().optional(),
+  warp: WarpSchema.optional(),
+  npcSpawn: z.string().optional(),
+  item: z.number().optional(),
+  shop: z.string().optional(),
+  bank: z.boolean().optional(),
+  avoidNpc: z.boolean().optional(),
+  fringeIndex: z.number().int().nonnegative().optional(),
+  maskIndex: z.number().int().nonnegative().optional(),
+  triggers: z.array(TileActionSchema).optional(),
+  door: DoorSchema.optional(),
+  conditionalBlock: z.string().optional(),
+});
 
 const GROUND_ITEM_BOX = { width: TILE_SIZE, height: TILE_SIZE };
 

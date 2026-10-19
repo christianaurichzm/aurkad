@@ -9,12 +9,11 @@ import {
   SetSpriteBodySchema,
   GoMapBodySchema,
   SaveMapBodySchema,
-  CreateNpcBodySchema,
-  CreateItemBodySchema,
-  CreateRecipeBodySchema,
   AssignPointsBodySchema,
   BuyShopItemBodySchema,
 } from './bodySchemas.js';
+import { NpcSchema } from '../services/content/npcService.js';
+import { ItemSchema } from '../services/content/itemService.js';
 
 describe('LoginBodySchema', () => {
   it('accepts valid credentials', () => {
@@ -226,110 +225,6 @@ describe('SaveMapBodySchema', () => {
   });
 });
 
-describe('CreateNpcBodySchema', () => {
-  it('accepts valid NPC', () => {
-    const result = CreateNpcBodySchema.safeParse({
-      name: 'Goblin',
-      sprite: 1,
-      maxHealth: 100,
-      attack: 10,
-      behavior: 'aggressive',
-    });
-    expect(result.success).toBe(true);
-  });
-  it('accepts all valid behaviors', () => {
-    const behaviors = [
-      'aggressive',
-      'hostile',
-      'neutral',
-      'friendly',
-      'shopkeeper',
-      'guard',
-    ] as const;
-    for (const behavior of behaviors) {
-      expect(
-        CreateNpcBodySchema.safeParse({
-          name: 'X',
-          sprite: 0,
-          maxHealth: 1,
-          attack: 0,
-          behavior,
-        }).success,
-      ).toBe(true);
-    }
-  });
-  it('rejects unknown behavior', () => {
-    expect(
-      CreateNpcBodySchema.safeParse({
-        name: 'X',
-        sprite: 0,
-        maxHealth: 1,
-        attack: 0,
-        behavior: 'boss',
-      }).success,
-    ).toBe(false);
-  });
-  // z.object strips what it does not declare, so a field missing here is
-  // saved by the editor and never reaches the database: the npc would come
-  // back with no quest.
-  it('keeps the content references an npc points at', () => {
-    const result = CreateNpcBodySchema.safeParse({
-      name: 'X',
-      sprite: 0,
-      maxHealth: 1,
-      attack: 0,
-      behavior: 'neutral',
-      lootTableId: 'common',
-      dialogId: 'greet',
-      questId: 'orcs',
-    });
-    expect(result.success).toBe(true);
-    expect(result.data).toMatchObject({
-      lootTableId: 'common',
-      dialogId: 'greet',
-      questId: 'orcs',
-    });
-  });
-  it('rejects zero or negative maxHealth', () => {
-    expect(
-      CreateNpcBodySchema.safeParse({
-        name: 'X',
-        sprite: 0,
-        maxHealth: 0,
-        attack: 0,
-        behavior: 'neutral',
-      }).success,
-    ).toBe(false);
-  });
-});
-
-describe('CreateItemBodySchema', () => {
-  it('accepts valid item', () => {
-    expect(
-      CreateItemBodySchema.safeParse({
-        name: 'Sword',
-        sprite: 0,
-        type: 'weapon',
-      }).success,
-    ).toBe(true);
-  });
-  it('rejects invalid item type', () => {
-    expect(
-      CreateItemBodySchema.safeParse({ name: 'X', sprite: 0, type: 'trash' })
-        .success,
-    ).toBe(false);
-  });
-  it('defaults description to empty string', () => {
-    const result = CreateItemBodySchema.safeParse({
-      name: 'X',
-      sprite: 0,
-      type: 'consumable',
-    });
-    expect(result.success).toBe(true);
-    if (result.success) expect(result.data.description).toBe('');
-  });
-});
-
 describe('AssignPointsBodySchema', () => {
   it('accepts zero points', () => {
     expect(AssignPointsBodySchema.safeParse({}).success).toBe(true);
@@ -374,69 +269,31 @@ describe('BuyShopItemBodySchema', () => {
   });
 });
 
-// The write boundary for behaviour params. A script's declaration is not a
-// licence to write anything into a content document: these land in a Mixed
-// Mongoose field that is loaded on every content read.
+// Behaviour params are bounded by ScriptParamsSchema (shared/scriptParams.ts);
+// these check that every content schema carrying them applies it.
 describe('script params on content', () => {
-  const npc = {
-    name: 'Goblin',
-    sprite: 1,
-    maxHealth: 100,
-    attack: 10,
-    behavior: 'aggressive',
-    scriptId: 'chest',
-  };
+  const scriptParams = { itemId: 3, message: 'hi', once: true };
 
-  it('accepts the scalars a form field can hold', () => {
-    const result = CreateNpcBodySchema.safeParse({
-      ...npc,
-      scriptParams: { itemId: 3, message: 'hi', once: true },
+  it('keeps them on an npc, an item and a script tile', () => {
+    const npc = NpcSchema.safeParse({
+      name: 'Goblin',
+      sprite: 1,
+      maxHealth: 100,
+      attack: 10,
+      behavior: 'aggressive',
+      scriptId: 'chest',
+      scriptParams,
     });
-    expect(result.success).toBe(true);
-    expect(result.success && result.data.scriptParams).toEqual({
-      itemId: 3,
-      message: 'hi',
-      once: true,
+    expect(npc.success && npc.data.scriptParams).toEqual(scriptParams);
+
+    const item = ItemSchema.safeParse({
+      name: 'Scroll',
+      sprite: 1,
+      type: 'consumable',
+      scriptId: 'teleport',
+      scriptParams,
     });
-  });
-
-  it('rejects a nested object, which no param type can hold', () => {
-    expect(
-      CreateNpcBodySchema.safeParse({
-        ...npc,
-        scriptParams: { reward: { itemId: 3 } },
-      }).success,
-    ).toBe(false);
-  });
-
-  it('rejects a string over the length cap', () => {
-    expect(
-      CreateNpcBodySchema.safeParse({
-        ...npc,
-        scriptParams: { message: 'x'.repeat(513) },
-      }).success,
-    ).toBe(false);
-  });
-
-  it('rejects more keys than any declaration can have', () => {
-    const tooMany = Object.fromEntries(
-      Array.from({ length: 33 }, (_, i) => [`k${i}`, 1]),
-    );
-    expect(
-      CreateNpcBodySchema.safeParse({ ...npc, scriptParams: tooMany }).success,
-    ).toBe(false);
-  });
-
-  it('accepts the same values on an item and a script tile', () => {
-    expect(
-      CreateItemBodySchema.safeParse({
-        name: 'Scroll',
-        sprite: 1,
-        type: 'consumable',
-        scriptId: 'teleport',
-        scriptParams: { mapId: 'town', col: 9 },
-      }).success,
-    ).toBe(true);
+    expect(item.success && item.data.scriptParams).toEqual(scriptParams);
 
     expect(
       SaveMapBodySchema.safeParse({
@@ -447,62 +304,24 @@ describe('script params on content', () => {
           [
             {
               tileIndex: 0,
-              triggers: [
-                {
-                  action: 'script',
-                  scriptId: 'chest',
-                  scriptParams: { itemId: 3 },
-                },
-              ],
+              triggers: [{ action: 'script', scriptId: 'chest', scriptParams }],
             },
           ],
         ],
       }).success,
     ).toBe(true);
   });
-});
 
-describe('CreateRecipeBodySchema', () => {
-  const valid = {
-    id: 'steel-sword',
-    name: 'Steel Sword',
-    inputs: [{ itemId: 2, quantity: 1 }],
-    output: { itemId: 8, quantity: 1 },
-  };
-
-  it('accepts a recipe with inputs and an output', () => {
-    expect(CreateRecipeBodySchema.safeParse(valid).success).toBe(true);
-  });
-
-  // A recipe consuming nothing prints items out of thin air, the one thing
-  // the economy may not do, so it is refused rather than warned about.
-  it('rejects a recipe with no inputs', () => {
+  it('refuses a value the params schema refuses', () => {
     expect(
-      CreateRecipeBodySchema.safeParse({ ...valid, inputs: [] }).success,
-    ).toBe(false);
-  });
-
-  it('rejects a zero or negative quantity on either side', () => {
-    expect(
-      CreateRecipeBodySchema.safeParse({
-        ...valid,
-        inputs: [{ itemId: 2, quantity: 0 }],
+      NpcSchema.safeParse({
+        name: 'Goblin',
+        sprite: 1,
+        maxHealth: 100,
+        attack: 10,
+        behavior: 'aggressive',
+        scriptParams: { reward: { itemId: 3 } },
       }).success,
     ).toBe(false);
-    expect(
-      CreateRecipeBodySchema.safeParse({
-        ...valid,
-        output: { itemId: 8, quantity: -1 },
-      }).success,
-    ).toBe(false);
-  });
-
-  it('keeps the condition, which names a script predicate', () => {
-    const result = CreateRecipeBodySchema.safeParse({
-      ...valid,
-      condition: 'knowsSmithing',
-    });
-    expect(result.success).toBe(true);
-    expect(result.data).toMatchObject({ condition: 'knowsSmithing' });
   });
 });

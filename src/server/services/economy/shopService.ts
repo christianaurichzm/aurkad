@@ -1,3 +1,4 @@
+import { z } from 'zod';
 import ShopModel from '../../model/Shop.js';
 import { PlayerServer, ProductRaw, Shop } from '../../../shared/types.js';
 import { tileAt } from '../../../shared/mapGeometry.js';
@@ -8,6 +9,18 @@ import {
   exchangeItems,
   type EconomyResult,
 } from './economyService.js';
+
+const ProductSchema = z.object({
+  itemId: z.number().int().nonnegative(),
+  currency: z.number().int().nonnegative(),
+  price: z.number().int().nonnegative(),
+});
+
+export const ShopSchema = z.object({
+  id: z.string().min(1),
+  name: z.string().min(1),
+  products: z.array(ProductSchema).default([]),
+});
 
 export async function getShopById(id: string): Promise<Shop | null> {
   return ShopModel.findOne({ id }).lean<Shop>().exec();
