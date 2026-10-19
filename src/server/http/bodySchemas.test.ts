@@ -48,6 +48,18 @@ describe('RegisterBodySchema', () => {
         .success,
     ).toBe(false);
   });
+  // bcrypt's limit is in bytes: 'é' is two of them.
+  it.each([
+    ['a'.repeat(71), true],
+    ['a'.repeat(72), true],
+    ['a'.repeat(73), false],
+    ['é'.repeat(36), true],
+    ['é'.repeat(36) + 'a', false],
+  ])('takes a password bcrypt reads whole (%#)', (password, ok) => {
+    expect(
+      RegisterBodySchema.safeParse({ username: 'bob', password }).success,
+    ).toBe(ok);
+  });
   it('rejects username over 24 chars', () => {
     expect(
       RegisterBodySchema.safeParse({ username: 'a'.repeat(25), password: 'p' })

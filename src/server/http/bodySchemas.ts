@@ -179,6 +179,7 @@ export const TwoFactorDisableBodySchema = z.object({
 // table can hold the sentences whole.
 const { account } = gameConfig;
 const passwordShort = `Passwords are at least ${account.passwordMinLength} characters`;
+const passwordLong = 'That password is too long';
 const nameShort = `Names are at least ${account.usernameMinLength} characters`;
 const nameLong = `Names are at most ${account.usernameMaxLength} characters`;
 const nameChars = 'That name has characters this game does not allow';
@@ -186,6 +187,7 @@ const nameReserved = 'That name is reserved';
 registerStrings({
   pt: {
     [passwordShort]: `Senhas têm pelo menos ${account.passwordMinLength} caracteres`,
+    [passwordLong]: 'Essa senha é longa demais',
     [nameShort]: `Nomes têm pelo menos ${account.usernameMinLength} caracteres`,
     [nameLong]: `Nomes têm no máximo ${account.usernameMaxLength} caracteres`,
     [nameChars]: 'Esse nome tem caracteres que este jogo não aceita',
@@ -193,10 +195,12 @@ registerStrings({
   },
 });
 
+// bcrypt reads no further than 72 bytes. Past them two passwords are the same
+// one, and a change that only touches the end leaves the old one working.
 const NewPassword = z
   .string()
   .min(account.passwordMinLength, passwordShort)
-  .max(200);
+  .refine((password) => Buffer.byteLength(password) <= 72, passwordLong);
 
 export const RegisterBodySchema = z.object({
   username: z
