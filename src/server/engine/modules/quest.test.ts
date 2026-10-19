@@ -34,6 +34,26 @@ vi.mock('../../model/Quest.js', () => ({
   },
 }));
 
+// No database here: the write that makes a completion durable and the mailbox
+// row are what the reward tests below steer.
+const { persistPlayersNow, queueDelivery } = vi.hoisted(() => ({
+  persistPlayersNow: vi.fn(() => Promise.resolve(true)),
+  queueDelivery: vi.fn((): Promise<{ ok: boolean; reason?: string }> =>
+    Promise.resolve({ ok: true }),
+  ),
+}));
+vi.mock('../../services/player/playerService.js', async (importOriginal) => ({
+  ...(await importOriginal<object>()),
+  persistPlayersNow,
+}));
+vi.mock(
+  '../../services/economy/deliveryService.js',
+  async (importOriginal) => ({
+    ...(await importOriginal<object>()),
+    queueDelivery,
+  }),
+);
+
 const { createOrUpdateQuest, clearQuestCache } =
   await import('../../services/content/questService.js');
 
@@ -247,6 +267,93 @@ describe('quest module with authored quests', () => {
 
     expect(quest.get(alice, 'orcs')?.status).toBe('completed');
     expect(alice.experience).toBe(50);
+  });
+
+  describe('an item reward the bag cannot hold', () => {
+    async function fullBag() {
+      const quest = await bootWith({
+        ...killOrcs,
+        reward: { items: [{ itemId: 3, quantity: 2 }] },
+      });
+      const sim = createFixture(0);
+      sim.addItem({
+        id: 3,
+        name: 'Gem',
+        type: 'consumable',
+        sprite: 0,
+      } as Parameters<typeof sim.addItem>[0]);
+      const alice = sim.addPlayer({
+        name: 'Alice',
+        inventory: { items: [], maxCapacity: 0 },
+      });
+      quest.start(alice, 'orcs');
+      const orc = sim.addNpc({ id: 'orc:1:1', templateId: 'orc' });
+      const win = async () => {
+        emit('npcDeath', { npc: orc, killer: alice, contributors: [] });
+        emit('npcDeath', { npc: orc, killer: alice, contributors: [] });
+        await vi.waitFor(() => expect(persistPlayersNow).toHaveBeenCalled());
+        await new Promise((resolve) => setTimeout(resolve, 0));
+      };
+      return { quest, alice, win };
+    }
+
+    beforeEach(() => {
+      persistPlayersNow.mockClear();
+      queueDelivery.mockClear();
+    });
+
+    it('is mailed only once the completion is written', async () => {
+      const { alice, win } = await fullBag();
+      let statusWritten: unknown;
+      persistPlayersNow.mockImplementationOnce(((players: PlayerServer[]) => {
+        statusWritten = (players[0]!.data?.quests as Record<string, QuestState>)
+          .orcs?.status;
+        return Promise.resolve(true);
+      }) as never);
+
+      await win();
+
+      expect(statusWritten).toBe('completed');
+      expect(queueDelivery).toHaveBeenCalledOnce();
+      expect(persistPlayersNow.mock.invocationCallOrder[0]).toBeLessThan(
+        queueDelivery.mock.invocationCallOrder[0]!,
+      );
+      expect(queueDelivery.mock.calls[0]).toMatchObject([
+        { to: alice.name, itemId: 3, quantity: 2 },
+      ]);
+    });
+
+    it('stays owed when the mailbox refuses it, and is paid at the next login', async () => {
+      const { quest, alice, win } = await fullBag();
+      queueDelivery.mockResolvedValueOnce({
+        ok: false,
+        reason: 'mailbox-full',
+      });
+
+      await win();
+      expect(quest.get(alice, 'orcs')).toMatchObject({
+        status: 'completed',
+        owed: [{ itemId: 3, quantity: 2 }],
+      });
+
+      alice.inventory.maxCapacity = 10;
+      emit('playerJoin', { player: alice });
+
+      expect(alice.inventory.items).toEqual([{ item: 3, quantity: 2 }]);
+      expect(quest.get(alice, 'orcs')).not.toHaveProperty('owed');
+    });
+
+    it('stays owed, unmailed, when the completion cannot be written', async () => {
+      const { quest, alice, win } = await fullBag();
+      persistPlayersNow.mockResolvedValueOnce(false);
+
+      await win();
+
+      expect(queueDelivery).not.toHaveBeenCalled();
+      expect(quest.get(alice, 'orcs')).toMatchObject({
+        owed: [{ itemId: 3, quantity: 2 }],
+      });
+    });
   });
 
   it('tells the client what a quest pays, items by name and picture', async () => {

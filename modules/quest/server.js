@@ -71,20 +71,49 @@ function save(player, bag) {
   return true;
 }
 
-// A reward the player cannot hold is the failure this guards: the quest is
-// completed either way, so an item that does not fit goes to the mailbox rather
-// than nowhere. Queueing is a database write, hence the promise in a hook.
-function payItems(player, items) {
+// The quest completes either way: an item that does not fit is mailed, and
+// one the mailbox refuses stays owed until the next login.
+function payItems(player, id, items) {
+  const unpaid = [];
   for (const entry of items) {
     const quantity = entry.quantity || 1;
-    if (giveItem(player, entry.itemId, quantity)) continue;
-    sendMessage(player, 'Your bag is full - the reward was mailed to you.');
-    delivery
-      .queue({ to: player.name, itemId: entry.itemId, quantity })
-      .then((r) => {
-        if (!r.ok) error('quest reward delivery refused: ' + r.reason);
-      })
-      .catch((e) => error('quest reward delivery threw: ' + e));
+    if (!giveItem(player, entry.itemId, quantity))
+      unpaid.push({ itemId: entry.itemId, quantity });
+  }
+  if (unpaid.length) void mail(player, id, unpaid);
+}
+
+// The completion is written before the mail row, so a crash loses the item
+// rather than paying it twice.
+async function mail(player, id, items) {
+  sendMessage(player, 'Your bag is full - the reward was mailed to you.');
+  if (!(await persistNow(player))) return owe(player, id, items);
+  for (const entry of items) {
+    const r = await delivery
+      .queue({ to: player.name, ...entry })
+      .catch((e) => ({ ok: false, reason: String(e) }));
+    if (r.ok) continue;
+    error('quest reward delivery refused: ' + r.reason);
+    owe(player, id, [entry]);
+  }
+}
+
+function owe(player, id, items) {
+  const bag = bagOf(player);
+  if (!bag[id]) return;
+  bag[id].owed = [...(bag[id].owed || []), ...items];
+  if (save(player, bag)) void persistNow(player);
+  else error('quest ' + id + ' reward lost: player data refused it');
+}
+
+function payOwed(player) {
+  const bag = bagOf(player);
+  for (const id of Object.keys(bag)) {
+    const owed = bag[id].owed;
+    if (!owed) continue;
+    delete bag[id].owed;
+    if (!save(player, bag)) return;
+    payItems(player, id, owed);
   }
 }
 
@@ -106,7 +135,7 @@ function finish(player, id, bag) {
   }
   if (!def.reward) return;
   if (def.reward.experience) giveExperience(player, def.reward.experience);
-  if (def.reward.items) payItems(player, def.reward.items);
+  if (def.reward.items) payItems(player, id, def.reward.items);
   if (def.reward.script) {
     const handler = use('questReward.' + def.reward.script);
     if (typeof handler !== 'function') {
@@ -168,6 +197,7 @@ provide('quest', { define, start, advance, complete, get });
 on('playerJoin', ({ player }) => {
   const bag = bagOf(player);
   if (Object.keys(bag).length > 0) save(player, bag);
+  payOwed(player);
 });
 
 on('customAction', ({ player, channel }) => {
