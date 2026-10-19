@@ -8,11 +8,8 @@
  */
 import { describe, it, expect, afterEach, vi } from 'vitest';
 import WebSocket from 'ws';
-import {
-  broadcastGameState,
-  recordHealthChange,
-  resetPlayerNetState,
-} from './snapshot.js';
+import { broadcastGameState } from './snapshot.js';
+import { recordHealthChange, resetPlayerNetState } from './viewerState.js';
 import { resetEntityReplication } from './entityReplication.js';
 import { playersWsMap } from './connections.js';
 import { createFixture, tile, makeTiles } from '../sim/simFixture.js';

@@ -10,9 +10,9 @@ import {
   createColdSnapshot,
   updateColdSnapshot,
   type ColdSnapshot,
-} from './playerService.js';
-import { createFixture } from '../../sim/simFixture.js';
-import type { PlayerServer } from '../../../shared/types.js';
+} from './viewerState.js';
+import { createFixture } from '../sim/simFixture.js';
+import type { PlayerServer } from '../../shared/types.js';
 
 function tracked(overrides: Partial<PlayerServer> = {}): {
   player: PlayerServer;

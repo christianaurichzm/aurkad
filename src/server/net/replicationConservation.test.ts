@@ -1,7 +1,8 @@
 import { describe, it, expect, afterEach } from 'vitest';
 import fc from 'fast-check';
 import WebSocket from 'ws';
-import { broadcastGameState, resetPlayerNetState } from './snapshot.js';
+import { broadcastGameState } from './snapshot.js';
+import { resetPlayerNetState } from './viewerState.js';
 import { resetEntityReplication, slotCapacity } from './entityReplication.js';
 import { spawnNpc, despawnNpc } from '../services/npc/spawn.js';
 import { playersWsMap } from './connections.js';

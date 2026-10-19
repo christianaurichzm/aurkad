@@ -50,7 +50,6 @@ vi.mock('../../services/economy/shopService.js', () => ({
 vi.mock('../../services/player/playerService.js', () => ({
   getPlayerById: () => Promise.resolve(null),
   getPlayerByName: () => undefined,
-  enrichPlayer: (p: unknown) => p,
 }));
 
 import { contentRefresh } from './contentRefresh.js';

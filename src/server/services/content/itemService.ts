@@ -1,7 +1,7 @@
 import type { Item } from '../../../shared/types.js';
 import ItemModel from '../../model/Item.js';
 import { getNextItemId } from '../dbService.js';
-import { forgetSentItem } from '../../net/snapshot.js';
+import { forgetSentItem } from '../../net/viewerState.js';
 import { sweepUnclaimableDeliveries } from '../economy/deliveryService.js';
 import { CreateItemBodySchema, unsetAbsent } from '../../http/bodySchemas.js';
 

@@ -21,7 +21,8 @@ import { config } from '../../config.js';
 
 import { emit } from '../../engine/hooks.js';
 import GameMapModel from '../../model/Map.js';
-import { forgetReplicatedEntity, resendChunkAt } from '../../net/snapshot.js';
+import { forgetReplicatedEntity } from '../../net/entityReplication.js';
+import { resendChunkAt } from '../../net/viewerState.js';
 import { getNextMapId } from '../dbService.js';
 import { getItemById } from '../content/itemService.js';
 import { getNpcById } from '../content/npcService.js';

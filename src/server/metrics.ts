@@ -1,6 +1,6 @@
 import { getRuntimeState } from './sim/world.js';
 import { openConnectionCount } from './net/connections.js';
-import { viewerCacheSizes } from './net/snapshot.js';
+import { viewerCacheSizes } from './net/viewerState.js';
 import { replicatedEntityCount } from './net/entityReplication.js';
 import { rateLimiterEntryCount } from './net/transport.js';
 import { dirtyPlayerCount } from './persistence/dirtyPlayers.js';

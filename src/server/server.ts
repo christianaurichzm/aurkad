@@ -30,7 +30,10 @@ import {
 import { receiveGlobalLine } from './services/comms/chatService.js';
 import { startInstances } from './services/world/instanceService.js';
 import { startDropSweep } from './services/economy/inventoryService.js';
-import { kickLocally } from './services/player/playerService.js';
+import {
+  kickLocally,
+  revokeLocalSessions,
+} from './services/player/playerService.js';
 import {
   applyFlagFromInstance,
   forgetFlagFromInstance,
@@ -79,7 +82,6 @@ import { persistPlayersOnShutdown } from './services/player/playerService.js';
 import { startPlayerSnapshotLoop } from './persistence/playerSnapshot.js';
 import { startCensusJob } from './services/economy/economyCensus.js';
 import { logger } from './logger.js';
-import { revokePlayerSessions } from './net/transport.js';
 import { startAdminRepl } from './admin/repl.js';
 import { loadScripts, unloadAllScripts } from './engine/scripting/index.js';
 import {
@@ -184,7 +186,7 @@ function registerInstanceEvents(): void {
   onInstanceEvent<{ username: string; epoch: number }>(
     'sessionRevoked',
     ({ username, epoch }) => {
-      revokePlayerSessions(username, epoch);
+      revokeLocalSessions(username, epoch);
     },
   );
   onInstanceEvent<ChatMessagePayload>('chat', receiveGlobalLine);

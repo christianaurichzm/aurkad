@@ -15,13 +15,13 @@ import { logger } from '../../logger.js';
 import {
   createPlayer,
   disconnectPlayer,
-  enrichPlayer,
   enterWorld,
   getPlayerByNameFromDb,
   getPlayerForAuthentication,
   nameTaken,
   refuseEntry,
 } from '../../services/player/playerService.js';
+import { enrichPlayer } from '../../net/serialization.js';
 import { toMapMeta } from '../../net/serialization.js';
 import { getMapById, ownsMap } from '../../services/world/mapService.js';
 import { serverState } from '../../services/serverState.js';

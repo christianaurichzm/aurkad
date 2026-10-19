@@ -10,7 +10,7 @@ import { getMap } from '../../sim/world.js';
 import { runtimeState } from '../../sim/state.js';
 import { indexPlacement } from '../../sim/spatialManager.js';
 import { findPlacement } from '../world/physicsService.js';
-import { forgetReplicatedEntity } from '../../net/snapshot.js';
+import { forgetReplicatedEntity } from '../../net/entityReplication.js';
 import { clearDamageContributions } from '../combat/damage.js';
 import { resetNpcAi } from './aiBrain.js';
 import { logger } from '../../logger.js';

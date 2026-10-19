@@ -10,7 +10,7 @@ import {
   resetEntityReplication,
   beginTick,
 } from './entityReplication.js';
-import { forgetReplicatedEntity } from './snapshot.js';
+import { forgetReplicatedEntity } from './entityReplication.js';
 import { spawnNpc, despawnNpc } from '../services/npc/spawn.js';
 import { getOrInitNpcAi, clearAllNpcAiState } from '../services/npc/aiBrain.js';
 import { createFixture } from '../sim/simFixture.js';

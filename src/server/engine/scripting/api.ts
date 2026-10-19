@@ -134,7 +134,7 @@ import {
 } from './entityScripts.js';
 import type { HookMap } from '../hooks.js';
 import type { InventoryLike, PlayerServer } from '../../../shared/types.js';
-import { recordHealthChange } from '../../net/snapshot.js';
+import { recordHealthChange } from '../../net/viewerState.js';
 import {
   createAuction,
   listAuctions,

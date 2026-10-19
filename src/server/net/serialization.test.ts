@@ -7,8 +7,9 @@
  */
 import { describe, it, expect, afterEach } from 'vitest';
 import WebSocket from 'ws';
-import { toMapChunk } from './serialization.js';
-import { broadcastGameState, resetPlayerNetState } from './snapshot.js';
+import { toMapChunk, toPlayerCold } from './serialization.js';
+import { broadcastGameState } from './snapshot.js';
+import { resetPlayerNetState } from './viewerState.js';
 import { resetEntityReplication } from './entityReplication.js';
 import { playersWsMap } from './connections.js';
 import { createFixture } from '../sim/simFixture.js';
@@ -93,5 +94,42 @@ describe('the chunk an ordinary player actually receives', () => {
     expect(wire).not.toContain('secret-map');
     expect(wire).not.toContain('quest-gate');
     expect(wire).not.toContain('boss-npc');
+  });
+});
+
+describe('toPlayerCold', () => {
+  const fx = createFixture();
+
+  it('handles a player whose equipped/inventory were dropped by mongoose minimize', () => {
+    const player = fx.addPlayer({
+      equipped: undefined,
+      inventory: undefined,
+    });
+
+    const cold = toPlayerCold(player);
+
+    expect(cold.equipped).toEqual({});
+    expect(cold.inventory).toEqual([]);
+  });
+
+  it('says how much the bag holds', () => {
+    const cold = toPlayerCold(
+      fx.addPlayer({ inventory: { items: [], maxCapacity: 24 } }),
+    );
+
+    expect(cold.inventoryCapacity).toBe(24);
+  });
+
+  it('carries nameColor, nameTag and its colour through serialization', () => {
+    const cold = toPlayerCold(
+      fx.addPlayer({
+        nameColor: 'gold',
+        nameTag: '[Dragons]',
+        nameTagColor: 'purple',
+      }),
+    );
+    expect(cold.nameColor).toBe('gold');
+    expect(cold.nameTag).toBe('[Dragons]');
+    expect(cold.nameTagColor).toBe('purple');
   });
 });

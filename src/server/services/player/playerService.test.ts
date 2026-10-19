@@ -8,7 +8,6 @@ import {
   PlayerServer,
 } from '../../../shared/types.js';
 import {
-  toPlayerCold,
   awardExperience,
   handlePlayerUpdates,
   enterWorld,
@@ -30,7 +29,7 @@ import {
   replicatedEntityCount,
   resetEntityReplication,
 } from '../../net/entityReplication.js';
-import { resetPlayerNetState } from '../../net/snapshot.js';
+import { resetPlayerNetState } from '../../net/viewerState.js';
 import { enqueueClientAction } from '../../net/transport.js';
 import { clearPlayerDirty } from '../../persistence/dirtyPlayers.js';
 import { playerRepository } from '../../persistence/playerRepository.js';
@@ -116,41 +115,6 @@ function mkPlayer(overrides: Partial<PlayerServer> = {}): PlayerServer {
     ...overrides,
   };
 }
-
-describe('toPlayerCold', () => {
-  it('handles a player whose equipped/inventory were dropped by mongoose minimize', () => {
-    const player = mkPlayer({
-      equipped: undefined as unknown as PlayerServer['equipped'],
-      inventory: undefined as unknown as PlayerServer['inventory'],
-    });
-
-    const cold = toPlayerCold(player);
-
-    expect(cold.equipped).toEqual({});
-    expect(cold.inventory).toEqual([]);
-  });
-
-  it('says how much the bag holds', () => {
-    const cold = toPlayerCold(
-      mkPlayer({ inventory: { items: [], maxCapacity: 24 } }),
-    );
-
-    expect(cold.inventoryCapacity).toBe(24);
-  });
-
-  it('carries nameColor, nameTag and its colour through serialization', () => {
-    const cold = toPlayerCold(
-      mkPlayer({
-        nameColor: 'gold',
-        nameTag: '[Dragons]',
-        nameTagColor: 'purple',
-      }),
-    );
-    expect(cold.nameColor).toBe('gold');
-    expect(cold.nameTag).toBe('[Dragons]');
-    expect(cold.nameTagColor).toBe('purple');
-  });
-});
 
 describe('awardExperience', () => {
   beforeEach(() => clearAll());

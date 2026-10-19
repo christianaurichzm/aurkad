@@ -36,7 +36,7 @@ import { emit } from '../../engine/hooks.js';
 import { dispatchEntityScript } from '../../engine/scripting/entityScripts.js';
 import { sendCustomEvent } from '../comms/customEventService.js';
 import { useApi } from '../../engine/modules/registry.js';
-import { recordHealthChange } from '../../net/snapshot.js';
+import { recordHealthChange } from '../../net/viewerState.js';
 
 export type ResolveDamageOptions = {
   attacker?: CombatTarget;

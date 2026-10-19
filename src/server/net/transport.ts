@@ -24,8 +24,8 @@ import {
 import { getMap } from '../sim/world.js';
 import { handleItemAction } from '../services/economy/inventoryService.js';
 import { handleCustomAction } from '../services/comms/customEventService.js';
-import { playersWsMap } from './connections.js';
-import { resetPlayerNetState } from './snapshot.js';
+import { playersWsMap, socketEpochs } from './connections.js';
+import { resetPlayerNetState } from './viewerState.js';
 import { parseTraceparent, startSpan } from '../tracing.js';
 import { recordAction, recordSession } from '../sim/replayRecorder.js';
 import { getTick } from '../sim/clock.js';
@@ -81,15 +81,6 @@ const actionQueue = new FastQueue<{
   action: ClientAction;
   socket?: WebSocket;
 }>();
-const socketEpochs = new WeakMap<WebSocket, number>();
-
-export function revokePlayerSessions(username: string, epoch: number): void {
-  const ws = playersWsMap.get(username);
-  if (ws && (socketEpochs.get(ws) ?? 0) < epoch) {
-    clearPressedKeys(username);
-    ws.close(1008, 'Session revoked');
-  }
-}
 let droppedQueuedActions = 0;
 let lastQueueDropLogTime = 0;
 

@@ -19,7 +19,7 @@ import { emit } from '../../engine/hooks.js';
 import { dispatchEntityScript } from '../../engine/scripting/entityScripts.js';
 import { addItem, canFit, removeItem } from './economyService.js';
 import { isPlayerCommitting } from '../../persistence/dirtyPlayers.js';
-import { recordHealthChange } from '../../net/snapshot.js';
+import { recordHealthChange } from '../../net/viewerState.js';
 import { gameConfig } from '../../gameConfig.js';
 import { getTick, msToTicks } from '../../sim/clock.js';
 import { scheduleEvery } from '../../sim/scheduler.js';

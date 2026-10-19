@@ -3,7 +3,6 @@ import {
   MapStateServer,
   PlayerServer,
   type DroppedItem,
-  type Position,
 } from '../../shared/types.js';
 import {
   PROTOCOL_VERSION,
@@ -18,6 +17,8 @@ import {
   toNpcPublic,
   toMapMeta,
   toMapChunk,
+  toPlayerCold,
+  toPlayerHot,
 } from './serialization.js';
 import {
   beginTick,
@@ -28,17 +29,21 @@ import {
   slotCapacity,
   recordEntity,
   resyncBody,
-  forgetEntity,
 } from './entityReplication.js';
 import { queryEntitiesInRect } from '../sim/spatialManager.js';
 import {
-  type ColdSnapshot,
-  coldSnapshotHolds,
+  type InterestState,
+  chunkKey,
   createColdSnapshot,
+  lastSentDroppedItems,
+  lastSentPlayerCold,
+  lastSentSelf,
+  NO_HEALTH_CHANGES,
+  pendingHealthChanges,
+  playerChunkState,
+  playerInterestSets,
   updateColdSnapshot,
-  toPlayerCold,
-  toPlayerHot,
-} from '../services/player/playerService.js';
+} from './viewerState.js';
 import { CHUNK_SIZE, TILE_SIZE } from '../../shared/constants.js';
 import {
   type Viewport,
@@ -57,46 +62,6 @@ import {
   nsFlushTick,
 } from './netStats.js';
 
-// Cold state as last sent to each viewer, compared in place every tick.
-const lastSentPlayerCold = new Map<string, ColdSnapshot>();
-// Serialized droppedItems last sent to each viewer. Drops have no stable id to
-// diff per entity, but the list is small, so a string compare is enough to
-// avoid resending it every tick.
-const lastSentDroppedItems = new Map<string, string>();
-// Last `self` payload sent to each viewer, so an idle player stops receiving
-// identical hot state every tick.
-const lastSentSelf = new Map<string, string>();
-
-interface ChunkState {
-  mapId: string;
-  revision: number;
-  sent: Set<string>;
-}
-const playerChunkState = new Map<string, ChunkState>();
-
-/**
- * What one viewer currently has on screen, indexed by entity slot.
- *
- * `seen[slot]` is the tick this viewer was last told about that slot's
- * occupant, so "does the viewer know this entity" is an array read instead of
- * a string hash. `knownIds`/`knownSlots` are the same membership in the order
- * it was built, because the leave list has to name ids and a slot alone cannot
- * (it may have changed hands since).
- *
- * `lastTick` is per viewer rather than global: a congested client
- * is skipped for a tick or more, and its knowledge is still whatever it was
- * when it was last served.
- */
-interface InterestState {
-  seen: Int32Array;
-  knownIds: string[];
-  knownSlots: number[];
-  lastTick: number;
-  /** Which tick of the cadence cycle this viewer is served on. */
-  phase: number;
-}
-const playerInterestSets = new Map<string, InterestState>();
-
 // Handed out in creation order so viewers spread evenly over the cycle instead
 // of all landing on the same tick, which would keep the peak this is meant to
 // flatten and just make it happen half as often.
@@ -104,96 +69,7 @@ let nextPhase = 0;
 
 const MAX_CHUNKS_PER_TICK = 8;
 
-// Hits and heals since the last broadcast, per map. They ride the world update
-// of each viewer that has the spot in view instead of a message of their own
-// to the whole map, and are dropped once broadcast: a viewer skipped that tick
-// (backpressure, cadence) loses the numbers, never any state.
-const pendingHealthChanges = new Map<string, HealthChange[]>();
-const NO_HEALTH_CHANGES: HealthChange[] = [];
-
-/** A number to draw over `entity`: what it just lost (negative) or gained. */
-export function recordHealthChange(
-  entity: { id: string; mapId: string; position: Position },
-  delta: number,
-): void {
-  const whole = Math.round(delta);
-  if (!whole) return;
-  let changes = pendingHealthChanges.get(entity.mapId);
-  if (!changes) pendingHealthChanges.set(entity.mapId, (changes = []));
-  changes.push({
-    id: entity.id,
-    x: entity.position.x,
-    y: entity.position.y,
-    delta: whole,
-  });
-}
-
 let lastCongestionLogMs = 0;
-
-export function resetPlayerNetState(name: string) {
-  lastSentPlayerCold.delete(name);
-  lastSentDroppedItems.delete(name);
-  lastSentSelf.delete(name);
-  playerChunkState.delete(name);
-  playerInterestSets.delete(name);
-}
-
-/**
- * Drops the cold state cached for every viewer last sent `itemId`, so the next
- * tick resends it with the item's current definition. The snapshot compares
- * held ids and quantities, never what an item is, so an edit or deletion in
- * the catalogue is invisible to it.
- */
-export function forgetSentItem(itemId: number) {
-  for (const [name, snapshot] of lastSentPlayerCold) {
-    if (coldSnapshotHolds(snapshot, itemId)) lastSentPlayerCold.delete(name);
-  }
-}
-
-/**
- * Entries held per viewer, published as metrics. All five are keyed by
- * player name and emptied only by `resetPlayerNetState`, so a disconnect
- * path that misses it leaks an entry per session, seen only as these
- * numbers drifting above the online count over hours.
- */
-export function viewerCacheSizes(): {
-  cold: number;
-  drops: number;
-  self: number;
-  chunks: number;
-  interest: number;
-} {
-  return {
-    cold: lastSentPlayerCold.size,
-    drops: lastSentDroppedItems.size,
-    self: lastSentSelf.size,
-    chunks: playerChunkState.size,
-    interest: playerInterestSets.size,
-  };
-}
-
-// Called when an entity stops existing (disconnect/despawn) so a recycled id
-// can never inherit another entity's diff history.
-export function forgetReplicatedEntity(id: string) {
-  forgetEntity(id);
-}
-
-const chunkKey = (cx: number, cy: number) => `${cx}:${cy}`;
-
-/**
- * Has every viewer on `mapId` receive the chunk holding (col, row) again, for
- * one tile changed while the map is live. Bumping the map's revision would do
- * it too, by resending the whole map to everyone on it.
- */
-export function resendChunkAt(mapId: string, col: number, row: number) {
-  const key = chunkKey(
-    Math.floor(col / CHUNK_SIZE),
-    Math.floor(row / CHUNK_SIZE),
-  );
-  for (const state of playerChunkState.values()) {
-    if (state.mapId === mapId) state.sent.delete(key);
-  }
-}
 
 function sendMapMetaIfNeeded(
   player: PlayerServer,

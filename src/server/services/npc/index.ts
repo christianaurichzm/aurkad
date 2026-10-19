@@ -13,7 +13,7 @@ import { isHunter, npcMoveTicks, type NpcAiState } from './types.js';
 import { getTick, msToTicks } from '../../sim/clock.js';
 import { scheduleAfter } from '../../sim/scheduler.js';
 import { indexPlacement } from '../../sim/spatialManager.js';
-import { forgetReplicatedEntity } from '../../net/snapshot.js';
+import { forgetReplicatedEntity } from '../../net/entityReplication.js';
 import { gameConfig } from '../../gameConfig.js';
 import {
   findClosestPlayer,

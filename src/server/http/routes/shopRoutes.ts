@@ -18,10 +18,8 @@ import {
   shopOpenFor,
 } from '../../services/economy/shopService.js';
 import { getItemById, listItems } from '../../services/content/itemService.js';
-import {
-  enrichPlayer,
-  getPlayerByName,
-} from '../../services/player/playerService.js';
+import { getPlayerByName } from '../../services/player/playerService.js';
+import { enrichPlayer } from '../../net/serialization.js';
 import { registerStrings, translateFor } from '../../engine/i18n.js';
 
 // What a shopper reads, in the language their page asked in.

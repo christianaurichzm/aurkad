@@ -1,7 +1,12 @@
 import type {
+  EquippedItemsDetailed,
+  InventoryItemDetailed,
   MapChunkPayload,
   MapMetaClient,
   MapStateServer,
+  Player,
+  PlayerCold,
+  PlayerHot,
   PlayerPublic,
   PlayerServer,
   RuntimeNpc,
@@ -9,12 +14,13 @@ import type {
   TilePublic,
 } from '../../shared/types.js';
 import { mapTileWidth, mapTileHeight } from '../../shared/mapGeometry.js';
-import { CHUNK_SIZE } from '../../shared/constants.js';
+import { CHUNK_SIZE, EQUIPMENT_SLOTS } from '../../shared/constants.js';
 import { config } from '../config.js';
 import { npcMoveTicks } from '../services/npc/types.js';
+import { getItemById } from '../services/content/itemService.js';
 
-// Server -> client shaping for the live wire format: entity public state,
-// map metadata, and tile chunks.
+// Server -> client shaping for the live wire format: entity public state, the
+// hot/cold halves of a player's own state, map metadata, and tile chunks.
 
 export function toPlayerPublic(player: PlayerServer): PlayerPublic {
   return {
@@ -107,5 +113,83 @@ export function toNpcPublic(npc: RuntimeNpc): RuntimeNpc {
     moveIntervalMs: npcMoveTicks(npc) * (1000 / config.gameLoop.tickRate),
     position: { ...npc.position },
     targetPosition: npc.targetPosition ? { ...npc.targetPosition } : undefined,
+  };
+}
+
+export function toPlayerHot(player: PlayerServer): PlayerHot {
+  return {
+    id: player.id,
+    position: { ...player.position },
+    targetPosition: player.targetPosition
+      ? { ...player.targetPosition }
+      : undefined,
+    moving: player.moving,
+    moveTick: player.moveTick,
+    moveDurationTicks: player.moveDurationTicks,
+    direction: player.direction,
+    action: player.action,
+    health: player.health,
+    lastProcessedSeq: player.lastProcessedSeq,
+  };
+}
+
+export function toPlayerCold(player: PlayerServer): PlayerCold {
+  // An id the catalogue no longer has (deleted in the editor, lost to a
+  // restore, skipped at boot as malformed) is left out, never thrown on or
+  // dropped: every stats payload, login and purchase crosses here, and the
+  // entry itself survives, so recreating the item under that id returns it to
+  // whoever held it.
+  // The hidden entry still takes an inventory slot the player can neither see
+  // nor empty; freeing it would take deleteItem stripping it from holders.
+  const inventory: InventoryItemDetailed[] = [];
+  for (const entry of player.inventory?.items ?? []) {
+    const item = getItemById(entry.item);
+    if (item) inventory.push({ item, quantity: entry.quantity });
+  }
+
+  const equippedSource = player.equipped ?? {};
+  const equipped: EquippedItemsDetailed = {};
+  for (const slot of EQUIPMENT_SLOTS) {
+    const itemId = equippedSource[slot];
+    if (itemId) {
+      const item = getItemById(itemId);
+      if (item) equipped[slot] = item;
+    }
+  }
+
+  return {
+    id: player.id,
+    name: player.name,
+    sprite: player.sprite,
+    width: player.width,
+    height: player.height,
+    maxHealth: player.maxHealth,
+    attack: player.attack,
+    attackRange: player.attackRange,
+    level: player.level,
+    experience: player.experience,
+    experienceToNextLevel: player.experienceToNextLevel,
+    inventory,
+    inventoryCapacity: player.inventory?.maxCapacity ?? 0,
+    equipped,
+    access: player.access,
+    strength: player.strength,
+    defense: player.defense,
+    agility: player.agility,
+    vitality: player.vitality,
+    unspentPoints: player.unspentPoints,
+    speed: player.speed,
+    mapId: player.mapId,
+    nameColor: player.nameColor,
+    nameTag: player.nameTag,
+    nameTagColor: player.nameTagColor,
+    kind: 'player',
+  };
+}
+
+export function enrichPlayer(player: PlayerServer): Player {
+  return {
+    ...toPlayerCold(player),
+    ...toPlayerHot(player),
   };
 }

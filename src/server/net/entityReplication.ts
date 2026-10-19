@@ -296,8 +296,11 @@ export function resyncBody(fragment: Fragment): string {
   return fragment.resync;
 }
 
-/** Drop an entity's history (despawn/disconnect) so ids cannot leak state. */
-export function forgetEntity(id: string): void {
+/**
+ * Drops an entity's history on despawn or disconnect, so a recycled id can
+ * never inherit another entity's diff baseline.
+ */
+export function forgetReplicatedEntity(id: string): void {
   previous.delete(id);
   droppedKeys.delete(id);
   fragments.delete(id);

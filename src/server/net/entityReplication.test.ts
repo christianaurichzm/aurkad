@@ -5,7 +5,7 @@ import {
   fragmentAt,
   gapDelta,
   fieldDelta,
-  forgetEntity,
+  forgetReplicatedEntity,
   resetEntityReplication,
   resyncBody,
 } from './entityReplication.js';
@@ -168,7 +168,7 @@ describe('gapDelta', () => {
     recordEntity('gone', { id: 'gone', health: 10 });
     beginTick();
     recordEntity('gone', { id: 'gone', health: 3 });
-    forgetEntity('gone');
+    forgetReplicatedEntity('gone');
 
     beginTick();
     recordEntity('new', { id: 'new', health: 50 });
@@ -230,11 +230,11 @@ describe('resyncBody', () => {
   });
 });
 
-describe('forgetEntity', () => {
+describe('forgetReplicatedEntity', () => {
   it('drops history so a recycled id cannot inherit another entity state', () => {
     beginTick();
     recordEntity('a', { id: 'a', health: 10 });
-    forgetEntity('a');
+    forgetReplicatedEntity('a');
 
     beginTick();
     recordEntity('a', { id: 'a', health: 99 });

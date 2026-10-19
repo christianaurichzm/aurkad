@@ -70,7 +70,8 @@ interest (AOI)**.
 
 - **Hot/cold split.** Fast-changing state (`PlayerHot`: position, action) is
   separated from slow state (`PlayerCold`: stats, inventory). Cold state is sent
-  only when a signature changes (`playerColdSignature`).
+  only when one of its fields changes, compared in place against what the
+  viewer was last sent (`net/viewerState.ts`).
 - **AOI by camera viewport.** Each player receives only entities within their
   viewport plus a configurable margin (`NET_AOI_MARGIN_TILES`).
 - **Static map chunking.** Tiles are delivered as 16×16 chunks on demand as the
@@ -94,6 +95,15 @@ interest (AOI)**.
 
 Input is validated at the boundary with a Zod discriminated union
 (`net/clientMessage.ts`) before it reaches the simulation.
+
+`net/` has two halves. The **systems** (`transport.ts` inbound, `snapshot.ts`
+and `fanout.ts` outbound) read the world and the services, and only the tick
+loop and the server bootstrap call them. The **state** modules
+(`connections.ts`, `entityReplication.ts`, `viewerState.ts`) hold sockets and
+replication caches and import no gameplay, so a service can tell replication
+that something changed (an entity despawned, an item definition was edited, a
+tile was retiled) without a dependency cycle. A lint rule keeps gameplay off the
+systems.
 
 ## World and state
 
