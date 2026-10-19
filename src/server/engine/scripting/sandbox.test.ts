@@ -648,7 +648,12 @@ describe('API helpers', () => {
 describe('getMapTile', () => {
   it('tells a script what is painted on the tile, not only whether it blocks', () => {
     const sim = createFixture(0);
-    sim.map.tiles[2]![3] = { tileIndex: 5, maskIndex: 9, blocked: true };
+    sim.map.tiles[2]![3] = {
+      tileIndex: 5,
+      maskIndex: 9,
+      blocked: true,
+      bank: true,
+    };
     const player = sim.addPlayer({ name: 'Alice' });
 
     const handle = runInSandbox(
@@ -667,6 +672,7 @@ describe('getMapTile', () => {
       blocked: true,
       tileIndex: 5,
       maskIndex: 9,
+      bank: true,
     });
     expect(player.data?.off).toBeNull();
 

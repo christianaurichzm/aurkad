@@ -357,9 +357,9 @@ export function buildApi(
     // Tile size in pixels (positions are in pixels; tiles are TILE_SIZE apart).
     TILE_SIZE,
 
-    // { blocked, tileIndex, maskIndex } for the tile at (col, row) on the
-    // map, or null out of bounds. For modules that check walkability
-    // (knockback, LOS) or read what the map shows.
+    // Returns { blocked, tileIndex, maskIndex, bank } for the tile at (col, row)
+    // in the given map, or null if out of bounds. Useful for modules that need
+    // walkability checks (knockback, LOS) or read what the map shows.
     getMapTile: (mapId: string, col: number, row: number) => {
       const tile = getMap(String(mapId))?.tiles[Math.floor(row)]?.[
         Math.floor(col)
@@ -369,6 +369,7 @@ export function buildApi(
             blocked: tile.blocked ?? false,
             tileIndex: tile.tileIndex,
             maskIndex: tile.maskIndex,
+            bank: tile.bank ?? false,
           }
         : null;
     },

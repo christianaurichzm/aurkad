@@ -249,6 +249,7 @@ describe('gameplay modules', () => {
       name: 'Alice',
       inventory: { items: [{ item: 30, quantity: 5 }], maxCapacity: 10 },
     });
+    sim.map.tiles[1]![1]!.bank = true;
 
     handleChatCommand(alice, '/bank deposit 30 3');
 
@@ -304,6 +305,7 @@ describe('gameplay modules', () => {
       name: 'Alice',
       inventory: { items: [{ item: 30, quantity: 5 }], maxCapacity: 10 },
     });
+    sim.map.tiles[1]![1]!.bank = true;
     const ask = (channel: string, payload?: unknown) => {
       drainGameEvents();
       handleCustomAction({
@@ -335,12 +337,42 @@ describe('gameplay modules', () => {
     ]);
   });
 
+  it('bank moves nothing for a player who is not standing at one', () => {
+    const sim = createFixture(0);
+    const alice = sim.addPlayer({
+      name: 'Alice',
+      position: tile(3, 3),
+      inventory: { items: [{ item: 30, quantity: 5 }], maxCapacity: 10 },
+    });
+    sim.map.tiles[1]![1]!.bank = true;
+    alice.data = {
+      bank: { maxCapacity: 50, items: [{ item: 31, quantity: 1 }] },
+    };
+    drainGameEvents();
+
+    handleChatCommand(alice, '/bank deposit 30 3');
+    handleCustomAction({
+      type: 'custom',
+      username: 'Alice',
+      channel: 'bank:withdraw',
+      payload: { itemId: 31, quantity: 1 },
+    });
+
+    expect(alice.inventory.items).toEqual([{ item: 30, quantity: 5 }]);
+    expect((alice.data['bank'] as BankState).items).toEqual([
+      { item: 31, quantity: 1 },
+    ]);
+    const said = drainGameEvents().map((e) => JSON.stringify(e));
+    expect(said.filter((e) => e.includes('Stand at a bank'))).toHaveLength(2);
+  });
+
   it('bank conserves the total item count across any deposit/withdraw sequence', () => {
     const sim = createFixture(0);
     const alice = sim.addPlayer({
       name: 'Alice',
       inventory: { items: [{ item: 30, quantity: 10 }], maxCapacity: 10 },
     });
+    sim.map.tiles[1]![1]!.bank = true;
     const total = () => {
       const inv =
         alice.inventory.items.find((entry) => entry.item === 30)?.quantity ?? 0;
@@ -505,12 +537,15 @@ describe('gameplay modules', () => {
       bob.inventory.items.find((entry) => entry.item === 50),
     ).toBeUndefined();
 
+    sim.map.tiles[1]![1]!.bank = true;
+    drainGameEvents();
     handleChatCommand(alice, '/bank deposit 50 1');
 
     expect(
       alice.inventory.items.find((entry) => entry.item === 50)?.quantity,
     ).toBe(1);
     expect(alice.data?.['bank']).toBeUndefined();
+    expect(JSON.stringify(drainGameEvents())).toContain('bound');
   });
 
   it('an accepted trade is rejected if the item became bound after the offer', async () => {
@@ -563,6 +598,7 @@ describe('gameplay modules', () => {
       name: 'Alice',
       inventory: { items: [{ item: 30, quantity: 5 }], maxCapacity: 10 },
     });
+    sim.map.tiles[1]![1]!.bank = true;
     handleChatCommand(alice, '/bank deposit 30 2');
     refusePlayerData();
 

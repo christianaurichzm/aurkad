@@ -17,6 +17,7 @@ i18n({
     'Your inventory is full.': 'Seu inventário está cheio.',
     'Bank commands must be used in-game.':
       'Os comandos de banco só funcionam dentro do jogo.',
+    'Stand at a bank to use it.': 'Fique num banco para usá-lo.',
     'Bank: {summary}': 'Banco: {summary}',
     empty: 'vazio',
     'Usage: /bank deposit|withdraw <item> [qty] or /bank list':
@@ -133,12 +134,29 @@ function push(player) {
   sendEvent(player, 'bank:update', view(getBank(player)));
 }
 
+/**
+ * Whether the player stands on a bank tile, the only place a player moves
+ * items in or out. `provide('bank')` callers are not held to it.
+ */
+function atBank(player) {
+  const tile = getMapTile(
+    player.mapId,
+    Math.round(player.position.x / TILE_SIZE),
+    Math.round(player.position.y / TILE_SIZE),
+  );
+  return !!(tile && tile.bank);
+}
+
+const AWAY = 'Stand at a bank to use it.';
+
 command(
   'bank',
   { description: 'Bank: /bank deposit|withdraw <item> [qty] or /bank list' },
   ({ player, args, reply }) => {
     if (!player) return reply('Bank commands must be used in-game.');
     const sub = String(args[0] || '').toLowerCase();
+    if ((sub === 'deposit' || sub === 'withdraw') && !atBank(player))
+      return reply(AWAY);
     if (sub === 'deposit') return reply(deposit(player, args[1], args[2]));
     if (sub === 'withdraw') return reply(withdraw(player, args[1], args[2]));
     if (sub === 'list') {
@@ -156,7 +174,12 @@ command(
 on('customAction', ({ player, channel, payload }) => {
   const data = /** @type {any} */ (payload);
   let said;
-  if (channel === 'bank:deposit')
+  if (
+    (channel === 'bank:deposit' || channel === 'bank:withdraw') &&
+    !atBank(player)
+  )
+    said = AWAY;
+  else if (channel === 'bank:deposit')
     said = deposit(player, data && data.itemId, data && data.quantity);
   else if (channel === 'bank:withdraw')
     said = withdraw(player, data && data.itemId, data && data.quantity);
