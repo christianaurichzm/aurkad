@@ -16,6 +16,7 @@ import {
 } from '../../services/player/playerService.js';
 import checkAccess from '../middleware/checkAccess.js';
 import { listAuditLog } from '../../services/auditService.js';
+import { activeBan } from '../../services/player/banService.js';
 import {
   checkSecondFactor,
   disableTwoFactor,
@@ -83,6 +84,15 @@ export function createAdminAuthRouter() {
               ? 'This account needs its authentication code.'
               : 'That code is wrong or already used.',
         });
+      }
+
+      // Where the game's login asks it, after the factor: the panel is the
+      // stronger of the two doors, and a ban that only shut the weaker one
+      // would leave a banned moderator their powers.
+      if (await activeBan(username)) {
+        return res
+          .status(403)
+          .json({ message: 'This account is banned from this game.' });
       }
 
       const authEpoch = doc.authEpoch ?? 0;

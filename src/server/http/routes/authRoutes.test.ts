@@ -18,7 +18,11 @@ import { startMemoryMongo } from '../../../test/mongo.js';
 import { WebSocket } from 'ws';
 import { createAuthRouter } from './authRoutes.js';
 import PlayerModel from '../../model/Player.js';
-import { createPlayer } from '../../services/player/playerService.js';
+import {
+  authEpochOf,
+  banAccount,
+  createPlayer,
+} from '../../services/player/playerService.js';
 import { banPlayer, getBan } from '../../services/player/banService.js';
 import { serverState } from '../../services/serverState.js';
 import { playersWsMap } from '../../net/connections.js';
@@ -405,6 +409,24 @@ describe('POST /login', () => {
 
     expect(res.status).toBe(403);
     expect(res.body.message).toContain('banned');
+  });
+
+  it('refuses an account banned under another spelling of its name', async () => {
+    await createPlayer('Banned', await hashPw('pw'));
+
+    expect(await banAccount('banned', 'spamming')).toBe('Banned');
+
+    const res = await request(app)
+      .post('/login')
+      .send({ username: 'Banned', password: 'pw' });
+    expect(res.status).toBe(403);
+    // The generation moved on, which is what ends a session opened before.
+    expect(await authEpochOf('Banned')).toBe(1);
+  });
+
+  it('bans nobody under a name no account has', async () => {
+    expect(await banAccount('Ghost')).toBeNull();
+    expect(await getBan('Ghost')).toBeNull();
   });
 
   it('auto-clears an expired ban and allows login', async () => {

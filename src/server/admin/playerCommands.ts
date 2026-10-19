@@ -11,11 +11,7 @@ import {
   type CommandContext,
   type CommandStyle,
 } from '../engine/commands.js';
-import {
-  banPlayer,
-  unbanPlayer,
-  getBan,
-} from '../services/player/banService.js';
+import { unbanPlayer, getBan } from '../services/player/banService.js';
 import { broadcast } from '../net/snapshot.js';
 import { playersWsMap } from '../net/connections.js';
 import { warpToMap } from '../services/world/movementService.js';
@@ -34,6 +30,7 @@ import { publishToInstances } from '../persistence/instanceBus.js';
 import { leaseHolderOf } from '../persistence/presence.js';
 import { lookupInstanceUrl } from '../persistence/instanceRegistry.js';
 import {
+  banAccount,
   deletePlayer,
   disconnectPlayer,
   getPlayerByName,
@@ -553,18 +550,11 @@ export function registerPlayerCommands(): void {
       const until =
         hours !== undefined ? Date.now() + hours * 3600_000 : undefined;
 
-      await banPlayer(username, reason, until);
-      await kickPlayer(
-        username,
-        reason
-          ? `You were banned: ${reason}`
-          : 'You were banned from the game.',
-      );
+      const banned = await banAccount(username, reason, until);
+      if (!banned) return reply(style.error(`No account named ${username}.`));
       const duration = hours !== undefined ? `for ${hours}h` : 'permanently';
       reply(
-        style.ok(
-          `Banned ${username} ${duration}${reason ? `: ${reason}` : ''}.`,
-        ),
+        style.ok(`Banned ${banned} ${duration}${reason ? `: ${reason}` : ''}.`),
       );
     },
   );

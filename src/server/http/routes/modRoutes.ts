@@ -18,8 +18,8 @@ import { getMap } from '../../sim/world.js';
 import checkAccess from '../middleware/checkAccess.js';
 import { broadcast } from '../../net/snapshot.js';
 import { teleportPlayer } from '../../services/world/movementService.js';
-import { banPlayer } from '../../services/player/banService.js';
 import {
+  banAccount,
   getPlayerByName,
   changeSprite,
   handlePlayerUpdates,
@@ -90,13 +90,8 @@ export function createModRouter() {
       const body = parseBody(BanBodySchema, req.body, res);
       if (!body) return;
       const { playerName, reason, until } = body;
-      await banPlayer(playerName, reason, until);
-      await kickPlayer(
-        playerName,
-        reason
-          ? `You were banned: ${reason}`
-          : 'You were banned from the game.',
-      );
+      if (!(await banAccount(playerName, reason, until)))
+        return res.status(404).json({ error: 'Player not found' });
       res.status(200).json({ success: true });
     },
   );

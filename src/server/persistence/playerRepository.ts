@@ -140,10 +140,34 @@ export const playerRepository = {
    * "Admin". Lookups by name stay exact; this is only asked before making one.
    */
   async nameTaken(name: string): Promise<boolean> {
+    return (await playerRepository.nameOf(name)) !== null;
+  },
+
+  /** The account's own spelling of `name`, matched ignoring case. */
+  async nameOf(name: string): Promise<string | null> {
     // The collation of the model's name_ci index, so the query can use it.
-    return !!(await PlayerModel.exists({ name }).collation({
-      locale: 'en',
-      strength: 2,
-    }));
+    const doc = await PlayerModel.findOne({ name })
+      .collation({ locale: 'en', strength: 2 })
+      .select({ name: 1 })
+      .lean<{ name: string }>()
+      .exec();
+    return doc?.name ?? null;
+  },
+
+  /**
+   * Moves the account's generation on, which ends every session minted
+   * before it at its next request. The new generation, or null when there is
+   * no such account.
+   */
+  async endSessions(name: string): Promise<number | null> {
+    const doc = await PlayerModel.findOneAndUpdate(
+      { name },
+      { $inc: { authEpoch: 1 } },
+      { returnDocument: 'after' },
+    )
+      .select({ authEpoch: 1 })
+      .lean<{ authEpoch: number }>()
+      .exec();
+    return doc?.authEpoch ?? null;
   },
 };

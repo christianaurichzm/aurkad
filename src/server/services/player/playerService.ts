@@ -55,7 +55,7 @@ import {
   acquirePresence,
   releasePresence,
 } from '../../persistence/presence.js';
-import { getBan, unbanPlayer } from './banService.js';
+import { activeBan, banPlayer } from './banService.js';
 import { serverState } from '../serverState.js';
 import { publishToInstances } from '../../persistence/instanceBus.js';
 import { forgetEntrance, persistedLocation } from '../world/instanceService.js';
@@ -828,6 +828,40 @@ export async function kickLocally(
   return true;
 }
 
+/**
+ * Bans an account and ends everything it is signed in with. Returns the
+ * account's own spelling of the name, or null when there is no account.
+ *
+ * A ban is checked where an account comes in (game login, a socket
+ * resuming, the panel's login), and an open session came in before it.
+ * Moving the generation on ends those at their next request on every
+ * instance, as a password change does; otherwise a banned moderator keeps
+ * the panel and console for as long as the cookie lasts.
+ *
+ * The name is matched ignoring case, as registration matches it, and the
+ * ban is stored under the spelling every check reads; "alice" typed at the
+ * console would otherwise store a ban that never refuses Alice.
+ */
+export async function banAccount(
+  name: string,
+  reason?: string,
+  until?: number,
+): Promise<string | null> {
+  const username = await playerRepository.nameOf(name);
+  if (!username) return null;
+
+  // Stored before the sessions end, so a client redialling the moment it is
+  // dropped is refused rather than let back in.
+  await banPlayer(username, reason, until);
+  const epoch = await playerRepository.endSessions(username);
+  await kickPlayer(
+    username,
+    reason ? `You were banned: ${reason}` : 'You were banned from the game.',
+  );
+  if (epoch !== null) notifySessionRevoked(username, epoch);
+  return username;
+}
+
 function removePlayerSessionState(player: PlayerServer): void {
   clearPressedKeys(player.name);
   clearPlayerDirty(player.id);
@@ -951,8 +985,8 @@ export async function refuseEntry(
       ),
     };
   }
-  const ban = await getBan(record.name);
-  if (ban && (!ban.until || Date.now() < ban.until)) {
+  const ban = await activeBan(record.name);
+  if (ban) {
     return {
       status: 403,
       message: [
@@ -966,8 +1000,6 @@ export async function refuseEntry(
         .filter(Boolean)
         .join(' '),
     };
-  } else if (ban) {
-    await unbanPlayer(record.name);
   }
 
   if (serverState.mode === 'maintenance' && record.access < Access.ADMIN) {

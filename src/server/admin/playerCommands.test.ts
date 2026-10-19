@@ -19,9 +19,7 @@ vi.mock('../services/auditService.js', () => ({
   summarizeDetails: () => undefined,
 }));
 // Bans live in Mongo; what matters here is that the command reaches them.
-const banPlayer = vi.fn();
 vi.mock('../services/player/banService.js', () => ({
-  banPlayer: (...args: unknown[]) => banPlayer(...args),
   unbanPlayer: () => Promise.resolve(),
   getBan: () => Promise.resolve(null),
 }));
@@ -42,9 +40,14 @@ vi.mock('../services/analyticsService.js', () => ({
 const stored = new Map<string, Record<string, unknown>>();
 const deletePlayer = vi.fn();
 const disconnectPlayer = vi.fn().mockResolvedValue(undefined);
+// The account's own spelling, as the real one reads it from Mongo.
+const banAccount = vi.fn((name: string) =>
+  Promise.resolve(name === 'alice' ? 'Alice' : null),
+);
 vi.mock('../services/player/playerService.js', async () => {
   const world = await import('../sim/world.js');
   return {
+    banAccount: (...args: [string]) => banAccount(...args),
     getPlayerByName: world.getPlayerByName,
     getPlayerByNameFromDb: (name: string) =>
       Promise.resolve(stored.get(name) ?? null),
@@ -96,7 +99,7 @@ beforeEach(() => {
   registerPlayerCommands();
   serverState.mutes.clear();
   recordAdminAction.mockClear();
-  banPlayer.mockClear();
+  banAccount.mockClear();
   deletePlayer.mockClear();
   disconnectPlayer.mockClear();
   cancelDelivery.mockClear();
@@ -161,16 +164,23 @@ describe('acting on a player', () => {
     expect(out).toContain('Killed Alice');
   });
 
-  it('bans with a reason and a duration, hours last', async () => {
+  it('bans with a reason and a duration, hours last, under the account name', async () => {
     createFixture(0);
 
-    await run('ban Alice being rude 3');
+    const { out } = await run('ban alice being rude 3');
 
-    expect(banPlayer).toHaveBeenCalledWith(
-      'Alice',
+    expect(banAccount).toHaveBeenCalledWith(
+      'alice',
       'being rude',
       expect.any(Number),
     );
+    expect(out).toContain('Banned Alice for 3h');
+  });
+
+  it('says so when there is no account to ban', async () => {
+    createFixture(0);
+
+    expect((await run('ban Ghost')).out).toContain('No account named Ghost');
   });
 
   it('mutes for minutes, and permanently when none are given', async () => {

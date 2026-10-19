@@ -27,13 +27,17 @@ vi.mock('../../config.js', async (importOriginal) => {
 });
 
 import { config } from '../../config.js';
+import { createSessionMiddleware } from '../session.js';
 import { createAdminAuthRouter } from './adminAuthRoutes.js';
 import {
   totpCode,
   twoFactorStatus,
 } from '../../services/player/twoFactorService.js';
 import PlayerModel from '../../model/Player.js';
-import { createPlayer } from '../../services/player/playerService.js';
+import {
+  banAccount,
+  createPlayer,
+} from '../../services/player/playerService.js';
 import { Access } from '../../../shared/types.js';
 
 let mongod: MongoMemoryServer;
@@ -158,6 +162,35 @@ describe('POST /admin/login', () => {
       .get('/admin/session')
       .set('Cookie', planted);
     expect(after.status).toBe(401);
+  });
+});
+
+describe('a banned operator', () => {
+  it('loses the panel session they had, and cannot sign in to it again', async () => {
+    // The session guard as server.ts mounts it: a session ends when the
+    // account's generation moves past the one it was minted in.
+    const guarded = express();
+    guarded.use(express.json());
+    guarded.use(
+      createSessionMiddleware('test-secret', new session.MemoryStore()),
+    );
+    guarded.use(createAdminAuthRouter());
+    await createPlayer('Helper', await hashPw('pw'));
+    await setAccess('Helper', Access.MOD);
+    const agent = request.agent(guarded);
+    await agent
+      .post('/admin/login')
+      .send({ username: 'Helper', password: 'pw' })
+      .expect(200);
+    await agent.get('/admin/session').expect(200);
+
+    await banAccount('helper', 'abuse');
+
+    await agent.get('/admin/session').expect(401);
+    const again = await agent
+      .post('/admin/login')
+      .send({ username: 'Helper', password: 'pw' });
+    expect(again.status).toBe(403);
   });
 });
 

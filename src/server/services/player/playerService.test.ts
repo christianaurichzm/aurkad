@@ -82,6 +82,7 @@ vi.mock('../../persistence/presence.js', async (importOriginal) => {
 vi.mock('./banService.js', async (importOriginal) => ({
   ...(await importOriginal<typeof import('./banService.js')>()),
   getBan: () => Promise.resolve(null),
+  activeBan: () => Promise.resolve(null),
 }));
 
 function mkPlayer(overrides: Partial<PlayerServer> = {}): PlayerServer {
