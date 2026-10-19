@@ -6,6 +6,8 @@
 i18n({
   pt: {
     'Provide a guild name.': 'Informe um nome de guilda.',
+    'Guild names are 3 to 24 letters and numbers, with one space or dash between words.':
+      'Nomes de guilda têm de 3 a 24 letras e números, com um espaço ou hífen entre as palavras.',
     'Leave your current guild first.': 'Saia da sua guilda atual primeiro.',
     'That guild name is taken.': 'Esse nome de guilda já existe.',
     'Guild "{name}" created ({privacy}).':
@@ -140,8 +142,20 @@ function onlineMemberCount(g) {
 
 // ---------- operations -------------------------------------------------------
 
+// A guild name is drawn over every member's head, so it is held to words
+// of letters and numbers: no fake "[GM]" tag, line break or wall of text.
+const GUILD_NAME = /^[\p{L}\p{N}]+(?:[ '_-][\p{L}\p{N}]+)*$/u;
+const GUILD_NAME_MIN = 3;
+const GUILD_NAME_MAX = 24;
+
 function createGuild(player, name, privacy) {
   if (!name) return 'Provide a guild name.';
+  if (
+    name.length < GUILD_NAME_MIN ||
+    name.length > GUILD_NAME_MAX ||
+    !GUILD_NAME.test(name)
+  )
+    return 'Guild names are 3 to 24 letters and numbers, with one space or dash between words.';
   if (myGuildName(player)) return 'Leave your current guild first.';
   if (getGuild(name)) return 'That guild name is taken.';
   const p = privacy === 'private' ? 'private' : 'public';

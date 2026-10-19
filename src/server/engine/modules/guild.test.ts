@@ -98,6 +98,27 @@ describe('guild module', () => {
     ).toEqual(['Alice']);
   });
 
+  it('takes a name in the shape of one, and nothing to pass for a tag or a wall of text', () => {
+    const sim = createFixture(0);
+    const alice = sim.addPlayer({ name: 'Alice' });
+    const create = (name: string) =>
+      handleCustomAction({
+        type: 'custom',
+        username: 'Alice',
+        channel: 'guild:create',
+        payload: { name },
+      });
+
+    for (const name of ['[GM] Staff', 'Two\nLines', 'x'.repeat(25), 'Ab']) {
+      create(name);
+      expect(alice.data?.guild).toBeUndefined();
+      expect(alice.nameTag).toBeUndefined();
+    }
+
+    create("Knight's Order");
+    expect(alice.data?.guild).toBe("Knight's Order");
+  });
+
   it('pushes guild:update to members (drives the client panel)', () => {
     const sim = createFixture(0);
     const alice = sim.addPlayer({ name: 'Alice' });
