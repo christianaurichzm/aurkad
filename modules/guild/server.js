@@ -10,6 +10,7 @@ i18n({
       'Nomes de guilda têm de 3 a 24 letras e números, com um espaço ou hífen entre as palavras.',
     'Leave your current guild first.': 'Saia da sua guilda atual primeiro.',
     'That guild name is taken.': 'Esse nome de guilda já existe.',
+    'The guild could not be saved.': 'Não foi possível salvar a guilda.',
     'Guild "{name}" created ({privacy}).':
       'Guilda "{name}" criada ({privacy}).',
     'You are not in a guild.': 'Você não está em uma guilda.',
@@ -89,6 +90,17 @@ const myGuildName = (player) => {
 };
 const saveGuild = (g) => store.set('guild', g.name, g);
 
+/**
+ * Saves `g` with `player` in it and their data naming it, or neither, so a
+ * refused data write never leaves a half member.
+ */
+function enlist(player, g) {
+  if (!setPlayerData(player, 'guild', g.name)) return false;
+  if (saveGuild(g)) return true;
+  setPlayerData(player, 'guild', undefined);
+  return false;
+}
+
 const roleOf = (g, name) => (g.members.find((m) => m.name === name) || {}).role;
 const isOwner = (g, name) => roleOf(g, name) === 'owner';
 const isMod = (g, name) => roleOf(g, name) === 'moderator';
@@ -166,8 +178,7 @@ function createGuild(player, name, privacy) {
     members: [{ name: player.name, role: 'owner' }],
     invites: [],
   };
-  saveGuild(g);
-  setPlayerData(player, 'guild', name);
+  if (!enlist(player, g)) return 'The guild could not be saved.';
   setNameTag(player, name);
   sendEvent(player, 'guild:update', guildFor(g, player.name));
   return t(player, 'Guild "{name}" created ({privacy}).', {
@@ -188,7 +199,7 @@ function inviteToGuild(player, targetName) {
   if (g.members.length >= maxMembers) return 'Your guild is full.';
   if (!g.invites.includes(target.name)) {
     g.invites.push(target.name);
-    saveGuild(g);
+    if (!saveGuild(g)) return 'The guild could not be saved.';
   }
   sendEvent(target, 'guild:invite', { guildName: gn, from: player.name });
   return t(player, 'Invited {player} to {guild}.', {
@@ -206,8 +217,7 @@ function joinGuild(player, name) {
     return 'That guild is invite-only. Ask a member to invite you.';
   if (g.members.length >= maxMembers) return 'That guild is full.';
   g.members.push({ name: player.name, role: 'member' });
-  saveGuild(g);
-  setPlayerData(player, 'guild', name);
+  if (!enlist(player, g)) return 'The guild could not be saved.';
   setNameTag(player, name);
   pushGuild(name);
   return t(player, 'Joined "{name}".', { name });
@@ -223,8 +233,7 @@ function acceptInvite(player, guildName) {
   if (g.members.length >= maxMembers) return 'That guild is full.';
   g.members.push({ name: player.name, role: 'member' });
   g.invites = g.invites.filter((n) => n !== player.name);
-  saveGuild(g);
-  setPlayerData(player, 'guild', name);
+  if (!enlist(player, g)) return 'The guild could not be saved.';
   setNameTag(player, name);
   pushGuild(name);
   return t(player, 'Joined "{name}".', { name });

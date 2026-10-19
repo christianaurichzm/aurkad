@@ -1,6 +1,14 @@
 // Exercises the real shipped guild module (modules/guild) end to end, so the
 // proof module can't silently rot.
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import {
+  describe,
+  it,
+  expect,
+  beforeEach,
+  afterEach,
+  onTestFinished,
+} from 'vitest';
+import { config } from '../../config.js';
 import { unloadAllModules } from './moduleLoader.js';
 import { loadModulesForTest } from '../../../test/modules.js';
 import { handleChatCommand, clearCommands } from '../commands.js';
@@ -96,6 +104,30 @@ describe('guild module', () => {
     expect(
       kvGet<Guild>('guild', 'Dragons')?.members.map((m) => m.name),
     ).toEqual(['Alice']);
+  });
+
+  it('founds and joins nothing for a player whose data cannot name the guild', () => {
+    const limits = config.scriptData as { maxKeys: number };
+    const was = limits.maxKeys;
+    limits.maxKeys = 1;
+    onTestFinished(() => {
+      limits.maxKeys = was;
+    });
+    const sim = createFixture(0);
+    const alice = sim.addPlayer({ name: 'Alice', data: { tutorial: true } });
+    const bob = sim.addPlayer({ name: 'Bob' });
+    const carol = sim.addPlayer({ name: 'Carol', data: { tutorial: true } });
+
+    handleChatCommand(alice, '/guild create Dragons');
+    expect(kvGet('guild', 'Dragons')).toBeUndefined();
+
+    handleChatCommand(bob, '/guild create Dragons');
+    handleChatCommand(carol, '/guild join Dragons');
+
+    expect(
+      kvGet<Guild>('guild', 'Dragons')?.members.map((m) => m.name),
+    ).toEqual(['Bob']);
+    expect(carol.data?.guild).toBeUndefined();
   });
 
   it('takes a name in the shape of one, and nothing to pass for a tag or a wall of text', () => {
