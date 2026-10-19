@@ -695,6 +695,34 @@ describe('gameplay modules', () => {
     }
   });
 
+  it('equipment takes the health a set held up off with the set', () => {
+    useApi<EquipmentApi>('equipment')?.defineSet({
+      id: 'giant',
+      pieces: [101],
+      effects: [{ attribute: 'maxHealth', type: 'add', value: 100 }],
+    });
+    const sim = createFixture(0);
+    sim.addItem({
+      id: 101,
+      name: 'Helm',
+      description: '',
+      sprite: 0,
+      type: 'helmet',
+    });
+    const alice = sim.addPlayer({
+      name: 'Alice',
+      health: 100,
+      maxHealth: 100,
+      inventory: { items: [{ item: 101, quantity: 1 }], maxCapacity: 10 },
+    });
+
+    equipItem(alice, 101);
+    alice.health = alice.maxHealth;
+    equipItem(alice, 101);
+
+    expect([alice.health, alice.maxHealth]).toEqual([100, 100]);
+  });
+
   // What is stored is what the next reconcile takes off, so a bonus applied
   // under a refused write went on again at every equip.
   it('equipment applies no set bonus it could not record', () => {

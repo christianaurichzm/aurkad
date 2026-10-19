@@ -119,6 +119,7 @@ function reconcile(player, { forceSync = false } = {}) {
     for (const { attribute } of bonus.applied || [])
       player[attribute] = stats[attribute];
   }
+  player.health = Math.max(0, Math.min(player.health, player.maxHealth));
 
   sendEvent(player, 'equipment:update', {
     activeSets: next,
