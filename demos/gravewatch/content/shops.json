@@ -1,0 +1,28 @@
+[
+ {
+  "id": "hobb",
+  "name": "Hobb's Grave Goods",
+  "products": [
+   {
+    "itemId": 1,
+    "currency": 2,
+    "price": 10
+   },
+   {
+    "itemId": 3,
+    "currency": 2,
+    "price": 4
+   },
+   {
+    "itemId": 4,
+    "currency": 2,
+    "price": 25
+   },
+   {
+    "itemId": 5,
+    "currency": 2,
+    "price": 120
+   }
+  ]
+ }
+]

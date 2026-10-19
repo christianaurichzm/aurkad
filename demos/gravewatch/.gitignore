@@ -1,0 +1,4 @@
+# Blender's renders, kept between runs of build.py so an unchanged job is
+# not rendered twice.
+.cache/
+__pycache__/

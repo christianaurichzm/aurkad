@@ -1,0 +1,40 @@
+[
+ {
+  "id": "lay-them-down",
+  "name": "Lay Them Down",
+  "description": "Sister Agathe wants six Risen back in the ground.",
+  "objective": {
+   "type": "kill",
+   "npcId": "risen",
+   "count": 6
+  },
+  "reward": {
+   "experience": 60,
+   "items": [
+    {
+     "itemId": 1,
+     "quantity": 2
+    }
+   ]
+  }
+ },
+ {
+  "id": "bone-knights",
+  "name": "The Bone Knights",
+  "description": "Captain Brand wants the woods cleared of Bone Knights before the bell.",
+  "objective": {
+   "type": "kill",
+   "npcId": "bone-knight",
+   "count": 3
+  },
+  "reward": {
+   "experience": 120,
+   "items": [
+    {
+     "itemId": 2,
+     "quantity": 40
+    }
+   ]
+  }
+ }
+]

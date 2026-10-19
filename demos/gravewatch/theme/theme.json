@@ -1,0 +1,17 @@
+{
+ "colors": {
+  "primary": "#5b5f8f",
+  "accent": "#f2a44b",
+  "background": "#0d0e16",
+  "surface": "#1a1b27",
+  "text": "#ece8dc",
+  "danger": "#b3313f"
+ },
+ "corners": "soft",
+ "font": "system",
+ "layout": "overlay",
+ "art": "smooth",
+ "dialogDim": true,
+ "logo": "logo-b26adea3.png",
+ "background": "background-8dafed5a.jpg"
+}

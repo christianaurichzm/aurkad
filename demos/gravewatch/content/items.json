@@ -1,0 +1,65 @@
+[
+ {
+  "id": 1,
+  "name": "Holy Water",
+  "type": "consumable",
+  "description": "Blessed at the shrine. It closes what the dead open.",
+  "effects": [
+   {
+    "attribute": "health",
+    "type": "add",
+    "value": 40
+   }
+  ],
+  "sprite": 0
+ },
+ {
+  "id": 2,
+  "name": "Gold Coin",
+  "type": "money",
+  "description": "Currency.",
+  "sprite": 1
+ },
+ {
+  "id": 3,
+  "name": "Hot Cider",
+  "type": "consumable",
+  "description": "Warm, and sweeter than the night.",
+  "effects": [
+   {
+    "attribute": "health",
+    "type": "add",
+    "value": 15
+   }
+  ],
+  "sprite": 2
+ },
+ {
+  "id": 4,
+  "name": "Rusted Axe",
+  "type": "weapon",
+  "description": "Pried from a Risen. It still bites.",
+  "effects": [
+   {
+    "attribute": "attack",
+    "type": "add",
+    "value": 3
+   }
+  ],
+  "sprite": 3
+ },
+ {
+  "id": 5,
+  "name": "Knight's Blade",
+  "type": "weapon",
+  "description": "Steel that remembers a better order.",
+  "effects": [
+   {
+    "attribute": "attack",
+    "type": "add",
+    "value": 7
+   }
+  ],
+  "sprite": 4
+ }
+]

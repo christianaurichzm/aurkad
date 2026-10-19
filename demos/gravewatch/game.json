@@ -1,0 +1,65 @@
+{
+  "brand": {
+    "name": "Gravewatch"
+  },
+  "world": {
+    "startMapId": "1",
+    "respawnTile": {
+      "col": 22,
+      "row": 24
+    }
+  },
+  "modules": {
+    "gravewatch": {
+      "enabled": true
+    },
+    "dialog": {
+      "enabled": true
+    },
+    "quest": {
+      "enabled": true
+    },
+    "lighting": {
+      "enabled": true
+    },
+    "minimap": {
+      "enabled": true
+    },
+    "archery": {
+      "enabled": false
+    },
+    "bank": {
+      "enabled": false
+    },
+    "crafting": {
+      "enabled": false
+    },
+    "equipment": {
+      "enabled": false
+    },
+    "guild": {
+      "enabled": false
+    },
+    "magic": {
+      "enabled": false
+    },
+    "mail": {
+      "enabled": false
+    },
+    "party": {
+      "enabled": false
+    },
+    "pet": {
+      "enabled": false
+    },
+    "pk": {
+      "enabled": false
+    },
+    "status": {
+      "enabled": false
+    },
+    "trade": {
+      "enabled": false
+    }
+  }
+}

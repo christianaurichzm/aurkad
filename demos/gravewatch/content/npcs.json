@@ -1,0 +1,118 @@
+[
+ {
+  "id": "agathe",
+  "name": "Sister Agathe",
+  "sprite": 1,
+  "maxHealth": 100,
+  "attack": 0,
+  "behavior": "friendly",
+  "dialogId": "agathe"
+ },
+ {
+  "id": "hobb",
+  "name": "Hobb, gravedigger",
+  "sprite": 2,
+  "maxHealth": 100,
+  "attack": 0,
+  "behavior": "friendly",
+  "dialogId": "hobb"
+ },
+ {
+  "id": "brand",
+  "name": "Captain Brand",
+  "sprite": 3,
+  "maxHealth": 100,
+  "attack": 0,
+  "behavior": "friendly",
+  "dialogId": "brand"
+ },
+ {
+  "name": "Risen",
+  "maxHealth": 30,
+  "attack": 3,
+  "behavior": "hostile",
+  "experienceValue": 10,
+  "itemsToDrop": [
+   {
+    "itemId": 2,
+    "chance": 0.6,
+    "quantity": 2
+   },
+   {
+    "itemId": 1,
+    "chance": 0.08,
+    "quantity": 1
+   }
+  ],
+  "id": "risen",
+  "sprite": 4,
+  "respawnMs": 30000
+ },
+ {
+  "name": "Bone Knight",
+  "maxHealth": 70,
+  "attack": 7,
+  "behavior": "hostile",
+  "experienceValue": 30,
+  "itemsToDrop": [
+   {
+    "itemId": 2,
+    "chance": 1,
+    "quantity": 4
+   },
+   {
+    "itemId": 4,
+    "chance": 0.15,
+    "quantity": 1
+   },
+   {
+    "itemId": 1,
+    "chance": 0.2,
+    "quantity": 1
+   }
+  ],
+  "id": "bone-knight",
+  "sprite": 5,
+  "respawnMs": 30000
+ },
+ {
+  "name": "Grave Robber",
+  "maxHealth": 45,
+  "attack": 6,
+  "behavior": "aggressive",
+  "experienceValue": 25,
+  "moveIntervalMs": 700,
+  "itemsToDrop": [
+   {
+    "itemId": 2,
+    "chance": 1,
+    "quantity": 6
+   }
+  ],
+  "id": "grave-robber",
+  "sprite": 6,
+  "respawnMs": 30000
+ },
+ {
+  "name": "Bone Warlock",
+  "maxHealth": 55,
+  "attack": 9,
+  "behavior": "hostile",
+  "experienceValue": 35,
+  "itemsToDrop": [
+   {
+    "itemId": 1,
+    "chance": 0.4,
+    "quantity": 1
+   },
+   {
+    "itemId": 2,
+    "chance": 1,
+    "quantity": 5
+   }
+  ],
+  "id": "warlock",
+  "sprite": 7,
+  "respawnMs": 30000
+ }
+]

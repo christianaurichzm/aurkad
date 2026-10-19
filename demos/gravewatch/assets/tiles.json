@@ -1,0 +1,3195 @@
+{
+ "0": {
+  "x": 971,
+  "y": 1399,
+  "width": 128,
+  "height": 64,
+  "drawWidth": 64,
+  "drawHeight": 32,
+  "anchorX": 32,
+  "anchorY": 16,
+  "piece": {
+   "name": "grass",
+   "group": "Ground",
+   "layer": "ground"
+  }
+ },
+ "1": {
+  "x": 1099,
+  "y": 1399,
+  "width": 128,
+  "height": 64,
+  "drawWidth": 64,
+  "drawHeight": 32,
+  "anchorX": 32,
+  "anchorY": 16,
+  "piece": {
+   "name": "grass",
+   "group": "Ground",
+   "layer": "ground",
+   "at": [
+    1,
+    0
+   ]
+  }
+ },
+ "2": {
+  "x": 1227,
+  "y": 1399,
+  "width": 128,
+  "height": 64,
+  "drawWidth": 64,
+  "drawHeight": 32,
+  "anchorX": 32,
+  "anchorY": 16,
+  "piece": {
+   "name": "grass",
+   "group": "Ground",
+   "layer": "ground",
+   "at": [
+    2,
+    0
+   ]
+  }
+ },
+ "3": {
+  "x": 1355,
+  "y": 1399,
+  "width": 128,
+  "height": 64,
+  "drawWidth": 64,
+  "drawHeight": 32,
+  "anchorX": 32,
+  "anchorY": 16,
+  "piece": {
+   "name": "grass",
+   "group": "Ground",
+   "layer": "ground",
+   "at": [
+    3,
+    0
+   ]
+  }
+ },
+ "4": {
+  "x": 1483,
+  "y": 1399,
+  "width": 128,
+  "height": 64,
+  "drawWidth": 64,
+  "drawHeight": 32,
+  "anchorX": 32,
+  "anchorY": 16,
+  "piece": {
+   "name": "grass",
+   "group": "Ground",
+   "layer": "ground",
+   "at": [
+    4,
+    0
+   ]
+  }
+ },
+ "5": {
+  "x": 1611,
+  "y": 1399,
+  "width": 128,
+  "height": 64,
+  "drawWidth": 64,
+  "drawHeight": 32,
+  "anchorX": 32,
+  "anchorY": 16,
+  "piece": {
+   "name": "grass",
+   "group": "Ground",
+   "layer": "ground",
+   "at": [
+    5,
+    0
+   ]
+  }
+ },
+ "6": {
+  "x": 1739,
+  "y": 1399,
+  "width": 128,
+  "height": 64,
+  "drawWidth": 64,
+  "drawHeight": 32,
+  "anchorX": 32,
+  "anchorY": 16,
+  "piece": {
+   "name": "grass",
+   "group": "Ground",
+   "layer": "ground",
+   "at": [
+    6,
+    0
+   ]
+  }
+ },
+ "7": {
+  "x": 1867,
+  "y": 1399,
+  "width": 128,
+  "height": 64,
+  "drawWidth": 64,
+  "drawHeight": 32,
+  "anchorX": 32,
+  "anchorY": 16,
+  "piece": {
+   "name": "grass",
+   "group": "Ground",
+   "layer": "ground",
+   "at": [
+    7,
+    0
+   ]
+  }
+ },
+ "8": {
+  "x": 0,
+  "y": 1508,
+  "width": 128,
+  "height": 64,
+  "drawWidth": 64,
+  "drawHeight": 32,
+  "anchorX": 32,
+  "anchorY": 16,
+  "piece": {
+   "name": "grass",
+   "group": "Ground",
+   "layer": "ground",
+   "at": [
+    0,
+    1
+   ]
+  }
+ },
+ "9": {
+  "x": 128,
+  "y": 1508,
+  "width": 128,
+  "height": 64,
+  "drawWidth": 64,
+  "drawHeight": 32,
+  "anchorX": 32,
+  "anchorY": 16,
+  "piece": {
+   "name": "grass",
+   "group": "Ground",
+   "layer": "ground",
+   "at": [
+    1,
+    1
+   ]
+  }
+ },
+ "10": {
+  "x": 256,
+  "y": 1508,
+  "width": 128,
+  "height": 64,
+  "drawWidth": 64,
+  "drawHeight": 32,
+  "anchorX": 32,
+  "anchorY": 16,
+  "piece": {
+   "name": "grass",
+   "group": "Ground",
+   "layer": "ground",
+   "at": [
+    2,
+    1
+   ]
+  }
+ },
+ "11": {
+  "x": 384,
+  "y": 1508,
+  "width": 128,
+  "height": 64,
+  "drawWidth": 64,
+  "drawHeight": 32,
+  "anchorX": 32,
+  "anchorY": 16,
+  "piece": {
+   "name": "grass",
+   "group": "Ground",
+   "layer": "ground",
+   "at": [
+    3,
+    1
+   ]
+  }
+ },
+ "12": {
+  "x": 512,
+  "y": 1508,
+  "width": 128,
+  "height": 64,
+  "drawWidth": 64,
+  "drawHeight": 32,
+  "anchorX": 32,
+  "anchorY": 16,
+  "piece": {
+   "name": "grass",
+   "group": "Ground",
+   "layer": "ground",
+   "at": [
+    4,
+    1
+   ]
+  }
+ },
+ "13": {
+  "x": 640,
+  "y": 1508,
+  "width": 128,
+  "height": 64,
+  "drawWidth": 64,
+  "drawHeight": 32,
+  "anchorX": 32,
+  "anchorY": 16,
+  "piece": {
+   "name": "grass",
+   "group": "Ground",
+   "layer": "ground",
+   "at": [
+    5,
+    1
+   ]
+  }
+ },
+ "14": {
+  "x": 768,
+  "y": 1508,
+  "width": 128,
+  "height": 64,
+  "drawWidth": 64,
+  "drawHeight": 32,
+  "anchorX": 32,
+  "anchorY": 16,
+  "piece": {
+   "name": "grass",
+   "group": "Ground",
+   "layer": "ground",
+   "at": [
+    6,
+    1
+   ]
+  }
+ },
+ "15": {
+  "x": 896,
+  "y": 1508,
+  "width": 128,
+  "height": 64,
+  "drawWidth": 64,
+  "drawHeight": 32,
+  "anchorX": 32,
+  "anchorY": 16,
+  "piece": {
+   "name": "grass",
+   "group": "Ground",
+   "layer": "ground",
+   "at": [
+    7,
+    1
+   ]
+  }
+ },
+ "16": {
+  "x": 1024,
+  "y": 1508,
+  "width": 128,
+  "height": 64,
+  "drawWidth": 64,
+  "drawHeight": 32,
+  "anchorX": 32,
+  "anchorY": 16,
+  "piece": {
+   "name": "grass",
+   "group": "Ground",
+   "layer": "ground",
+   "at": [
+    0,
+    2
+   ]
+  }
+ },
+ "17": {
+  "x": 1152,
+  "y": 1508,
+  "width": 128,
+  "height": 64,
+  "drawWidth": 64,
+  "drawHeight": 32,
+  "anchorX": 32,
+  "anchorY": 16,
+  "piece": {
+   "name": "grass",
+   "group": "Ground",
+   "layer": "ground",
+   "at": [
+    1,
+    2
+   ]
+  }
+ },
+ "18": {
+  "x": 1280,
+  "y": 1508,
+  "width": 128,
+  "height": 64,
+  "drawWidth": 64,
+  "drawHeight": 32,
+  "anchorX": 32,
+  "anchorY": 16,
+  "piece": {
+   "name": "grass",
+   "group": "Ground",
+   "layer": "ground",
+   "at": [
+    2,
+    2
+   ]
+  }
+ },
+ "19": {
+  "x": 1408,
+  "y": 1508,
+  "width": 128,
+  "height": 64,
+  "drawWidth": 64,
+  "drawHeight": 32,
+  "anchorX": 32,
+  "anchorY": 16,
+  "piece": {
+   "name": "grass",
+   "group": "Ground",
+   "layer": "ground",
+   "at": [
+    3,
+    2
+   ]
+  }
+ },
+ "20": {
+  "x": 1536,
+  "y": 1508,
+  "width": 128,
+  "height": 64,
+  "drawWidth": 64,
+  "drawHeight": 32,
+  "anchorX": 32,
+  "anchorY": 16,
+  "piece": {
+   "name": "grass",
+   "group": "Ground",
+   "layer": "ground",
+   "at": [
+    4,
+    2
+   ]
+  }
+ },
+ "21": {
+  "x": 1664,
+  "y": 1508,
+  "width": 128,
+  "height": 64,
+  "drawWidth": 64,
+  "drawHeight": 32,
+  "anchorX": 32,
+  "anchorY": 16,
+  "piece": {
+   "name": "grass",
+   "group": "Ground",
+   "layer": "ground",
+   "at": [
+    5,
+    2
+   ]
+  }
+ },
+ "22": {
+  "x": 1792,
+  "y": 1508,
+  "width": 128,
+  "height": 64,
+  "drawWidth": 64,
+  "drawHeight": 32,
+  "anchorX": 32,
+  "anchorY": 16,
+  "piece": {
+   "name": "grass",
+   "group": "Ground",
+   "layer": "ground",
+   "at": [
+    6,
+    2
+   ]
+  }
+ },
+ "23": {
+  "x": 1920,
+  "y": 1508,
+  "width": 128,
+  "height": 64,
+  "drawWidth": 64,
+  "drawHeight": 32,
+  "anchorX": 32,
+  "anchorY": 16,
+  "piece": {
+   "name": "grass",
+   "group": "Ground",
+   "layer": "ground",
+   "at": [
+    7,
+    2
+   ]
+  }
+ },
+ "24": {
+  "x": 0,
+  "y": 1572,
+  "width": 128,
+  "height": 64,
+  "drawWidth": 64,
+  "drawHeight": 32,
+  "anchorX": 32,
+  "anchorY": 16,
+  "piece": {
+   "name": "grass",
+   "group": "Ground",
+   "layer": "ground",
+   "at": [
+    0,
+    3
+   ]
+  }
+ },
+ "25": {
+  "x": 128,
+  "y": 1572,
+  "width": 128,
+  "height": 64,
+  "drawWidth": 64,
+  "drawHeight": 32,
+  "anchorX": 32,
+  "anchorY": 16,
+  "piece": {
+   "name": "grass",
+   "group": "Ground",
+   "layer": "ground",
+   "at": [
+    1,
+    3
+   ]
+  }
+ },
+ "26": {
+  "x": 256,
+  "y": 1572,
+  "width": 128,
+  "height": 64,
+  "drawWidth": 64,
+  "drawHeight": 32,
+  "anchorX": 32,
+  "anchorY": 16,
+  "piece": {
+   "name": "grass",
+   "group": "Ground",
+   "layer": "ground",
+   "at": [
+    2,
+    3
+   ]
+  }
+ },
+ "27": {
+  "x": 384,
+  "y": 1572,
+  "width": 128,
+  "height": 64,
+  "drawWidth": 64,
+  "drawHeight": 32,
+  "anchorX": 32,
+  "anchorY": 16,
+  "piece": {
+   "name": "grass",
+   "group": "Ground",
+   "layer": "ground",
+   "at": [
+    3,
+    3
+   ]
+  }
+ },
+ "28": {
+  "x": 512,
+  "y": 1572,
+  "width": 128,
+  "height": 64,
+  "drawWidth": 64,
+  "drawHeight": 32,
+  "anchorX": 32,
+  "anchorY": 16,
+  "piece": {
+   "name": "grass",
+   "group": "Ground",
+   "layer": "ground",
+   "at": [
+    4,
+    3
+   ]
+  }
+ },
+ "29": {
+  "x": 640,
+  "y": 1572,
+  "width": 128,
+  "height": 64,
+  "drawWidth": 64,
+  "drawHeight": 32,
+  "anchorX": 32,
+  "anchorY": 16,
+  "piece": {
+   "name": "grass",
+   "group": "Ground",
+   "layer": "ground",
+   "at": [
+    5,
+    3
+   ]
+  }
+ },
+ "30": {
+  "x": 768,
+  "y": 1572,
+  "width": 128,
+  "height": 64,
+  "drawWidth": 64,
+  "drawHeight": 32,
+  "anchorX": 32,
+  "anchorY": 16,
+  "piece": {
+   "name": "grass",
+   "group": "Ground",
+   "layer": "ground",
+   "at": [
+    6,
+    3
+   ]
+  }
+ },
+ "31": {
+  "x": 896,
+  "y": 1572,
+  "width": 128,
+  "height": 64,
+  "drawWidth": 64,
+  "drawHeight": 32,
+  "anchorX": 32,
+  "anchorY": 16,
+  "piece": {
+   "name": "grass",
+   "group": "Ground",
+   "layer": "ground",
+   "at": [
+    7,
+    3
+   ]
+  }
+ },
+ "32": {
+  "x": 1024,
+  "y": 1572,
+  "width": 128,
+  "height": 64,
+  "drawWidth": 64,
+  "drawHeight": 32,
+  "anchorX": 32,
+  "anchorY": 16,
+  "piece": {
+   "name": "grass",
+   "group": "Ground",
+   "layer": "ground",
+   "at": [
+    0,
+    4
+   ]
+  }
+ },
+ "33": {
+  "x": 1152,
+  "y": 1572,
+  "width": 128,
+  "height": 64,
+  "drawWidth": 64,
+  "drawHeight": 32,
+  "anchorX": 32,
+  "anchorY": 16,
+  "piece": {
+   "name": "grass",
+   "group": "Ground",
+   "layer": "ground",
+   "at": [
+    1,
+    4
+   ]
+  }
+ },
+ "34": {
+  "x": 1280,
+  "y": 1572,
+  "width": 128,
+  "height": 64,
+  "drawWidth": 64,
+  "drawHeight": 32,
+  "anchorX": 32,
+  "anchorY": 16,
+  "piece": {
+   "name": "grass",
+   "group": "Ground",
+   "layer": "ground",
+   "at": [
+    2,
+    4
+   ]
+  }
+ },
+ "35": {
+  "x": 1408,
+  "y": 1572,
+  "width": 128,
+  "height": 64,
+  "drawWidth": 64,
+  "drawHeight": 32,
+  "anchorX": 32,
+  "anchorY": 16,
+  "piece": {
+   "name": "grass",
+   "group": "Ground",
+   "layer": "ground",
+   "at": [
+    3,
+    4
+   ]
+  }
+ },
+ "36": {
+  "x": 1536,
+  "y": 1572,
+  "width": 128,
+  "height": 64,
+  "drawWidth": 64,
+  "drawHeight": 32,
+  "anchorX": 32,
+  "anchorY": 16,
+  "piece": {
+   "name": "grass",
+   "group": "Ground",
+   "layer": "ground",
+   "at": [
+    4,
+    4
+   ]
+  }
+ },
+ "37": {
+  "x": 1664,
+  "y": 1572,
+  "width": 128,
+  "height": 64,
+  "drawWidth": 64,
+  "drawHeight": 32,
+  "anchorX": 32,
+  "anchorY": 16,
+  "piece": {
+   "name": "grass",
+   "group": "Ground",
+   "layer": "ground",
+   "at": [
+    5,
+    4
+   ]
+  }
+ },
+ "38": {
+  "x": 1792,
+  "y": 1572,
+  "width": 128,
+  "height": 64,
+  "drawWidth": 64,
+  "drawHeight": 32,
+  "anchorX": 32,
+  "anchorY": 16,
+  "piece": {
+   "name": "grass",
+   "group": "Ground",
+   "layer": "ground",
+   "at": [
+    6,
+    4
+   ]
+  }
+ },
+ "39": {
+  "x": 1920,
+  "y": 1572,
+  "width": 128,
+  "height": 64,
+  "drawWidth": 64,
+  "drawHeight": 32,
+  "anchorX": 32,
+  "anchorY": 16,
+  "piece": {
+   "name": "grass",
+   "group": "Ground",
+   "layer": "ground",
+   "at": [
+    7,
+    4
+   ]
+  }
+ },
+ "40": {
+  "x": 0,
+  "y": 1636,
+  "width": 128,
+  "height": 64,
+  "drawWidth": 64,
+  "drawHeight": 32,
+  "anchorX": 32,
+  "anchorY": 16,
+  "piece": {
+   "name": "grass",
+   "group": "Ground",
+   "layer": "ground",
+   "at": [
+    0,
+    5
+   ]
+  }
+ },
+ "41": {
+  "x": 128,
+  "y": 1636,
+  "width": 128,
+  "height": 64,
+  "drawWidth": 64,
+  "drawHeight": 32,
+  "anchorX": 32,
+  "anchorY": 16,
+  "piece": {
+   "name": "grass",
+   "group": "Ground",
+   "layer": "ground",
+   "at": [
+    1,
+    5
+   ]
+  }
+ },
+ "42": {
+  "x": 256,
+  "y": 1636,
+  "width": 128,
+  "height": 64,
+  "drawWidth": 64,
+  "drawHeight": 32,
+  "anchorX": 32,
+  "anchorY": 16,
+  "piece": {
+   "name": "grass",
+   "group": "Ground",
+   "layer": "ground",
+   "at": [
+    2,
+    5
+   ]
+  }
+ },
+ "43": {
+  "x": 384,
+  "y": 1636,
+  "width": 128,
+  "height": 64,
+  "drawWidth": 64,
+  "drawHeight": 32,
+  "anchorX": 32,
+  "anchorY": 16,
+  "piece": {
+   "name": "grass",
+   "group": "Ground",
+   "layer": "ground",
+   "at": [
+    3,
+    5
+   ]
+  }
+ },
+ "44": {
+  "x": 512,
+  "y": 1636,
+  "width": 128,
+  "height": 64,
+  "drawWidth": 64,
+  "drawHeight": 32,
+  "anchorX": 32,
+  "anchorY": 16,
+  "piece": {
+   "name": "grass",
+   "group": "Ground",
+   "layer": "ground",
+   "at": [
+    4,
+    5
+   ]
+  }
+ },
+ "45": {
+  "x": 640,
+  "y": 1636,
+  "width": 128,
+  "height": 64,
+  "drawWidth": 64,
+  "drawHeight": 32,
+  "anchorX": 32,
+  "anchorY": 16,
+  "piece": {
+   "name": "grass",
+   "group": "Ground",
+   "layer": "ground",
+   "at": [
+    5,
+    5
+   ]
+  }
+ },
+ "46": {
+  "x": 768,
+  "y": 1636,
+  "width": 128,
+  "height": 64,
+  "drawWidth": 64,
+  "drawHeight": 32,
+  "anchorX": 32,
+  "anchorY": 16,
+  "piece": {
+   "name": "grass",
+   "group": "Ground",
+   "layer": "ground",
+   "at": [
+    6,
+    5
+   ]
+  }
+ },
+ "47": {
+  "x": 896,
+  "y": 1636,
+  "width": 128,
+  "height": 64,
+  "drawWidth": 64,
+  "drawHeight": 32,
+  "anchorX": 32,
+  "anchorY": 16,
+  "piece": {
+   "name": "grass",
+   "group": "Ground",
+   "layer": "ground",
+   "at": [
+    7,
+    5
+   ]
+  }
+ },
+ "48": {
+  "x": 1024,
+  "y": 1636,
+  "width": 128,
+  "height": 64,
+  "drawWidth": 64,
+  "drawHeight": 32,
+  "anchorX": 32,
+  "anchorY": 16,
+  "piece": {
+   "name": "grass",
+   "group": "Ground",
+   "layer": "ground",
+   "at": [
+    0,
+    6
+   ]
+  }
+ },
+ "49": {
+  "x": 1152,
+  "y": 1636,
+  "width": 128,
+  "height": 64,
+  "drawWidth": 64,
+  "drawHeight": 32,
+  "anchorX": 32,
+  "anchorY": 16,
+  "piece": {
+   "name": "grass",
+   "group": "Ground",
+   "layer": "ground",
+   "at": [
+    1,
+    6
+   ]
+  }
+ },
+ "50": {
+  "x": 1280,
+  "y": 1636,
+  "width": 128,
+  "height": 64,
+  "drawWidth": 64,
+  "drawHeight": 32,
+  "anchorX": 32,
+  "anchorY": 16,
+  "piece": {
+   "name": "grass",
+   "group": "Ground",
+   "layer": "ground",
+   "at": [
+    2,
+    6
+   ]
+  }
+ },
+ "51": {
+  "x": 1408,
+  "y": 1636,
+  "width": 128,
+  "height": 64,
+  "drawWidth": 64,
+  "drawHeight": 32,
+  "anchorX": 32,
+  "anchorY": 16,
+  "piece": {
+   "name": "grass",
+   "group": "Ground",
+   "layer": "ground",
+   "at": [
+    3,
+    6
+   ]
+  }
+ },
+ "52": {
+  "x": 1536,
+  "y": 1636,
+  "width": 128,
+  "height": 64,
+  "drawWidth": 64,
+  "drawHeight": 32,
+  "anchorX": 32,
+  "anchorY": 16,
+  "piece": {
+   "name": "grass",
+   "group": "Ground",
+   "layer": "ground",
+   "at": [
+    4,
+    6
+   ]
+  }
+ },
+ "53": {
+  "x": 1664,
+  "y": 1636,
+  "width": 128,
+  "height": 64,
+  "drawWidth": 64,
+  "drawHeight": 32,
+  "anchorX": 32,
+  "anchorY": 16,
+  "piece": {
+   "name": "grass",
+   "group": "Ground",
+   "layer": "ground",
+   "at": [
+    5,
+    6
+   ]
+  }
+ },
+ "54": {
+  "x": 1792,
+  "y": 1636,
+  "width": 128,
+  "height": 64,
+  "drawWidth": 64,
+  "drawHeight": 32,
+  "anchorX": 32,
+  "anchorY": 16,
+  "piece": {
+   "name": "grass",
+   "group": "Ground",
+   "layer": "ground",
+   "at": [
+    6,
+    6
+   ]
+  }
+ },
+ "55": {
+  "x": 1920,
+  "y": 1636,
+  "width": 128,
+  "height": 64,
+  "drawWidth": 64,
+  "drawHeight": 32,
+  "anchorX": 32,
+  "anchorY": 16,
+  "piece": {
+   "name": "grass",
+   "group": "Ground",
+   "layer": "ground",
+   "at": [
+    7,
+    6
+   ]
+  }
+ },
+ "56": {
+  "x": 0,
+  "y": 1700,
+  "width": 128,
+  "height": 64,
+  "drawWidth": 64,
+  "drawHeight": 32,
+  "anchorX": 32,
+  "anchorY": 16,
+  "piece": {
+   "name": "grass",
+   "group": "Ground",
+   "layer": "ground",
+   "at": [
+    0,
+    7
+   ]
+  }
+ },
+ "57": {
+  "x": 128,
+  "y": 1700,
+  "width": 128,
+  "height": 64,
+  "drawWidth": 64,
+  "drawHeight": 32,
+  "anchorX": 32,
+  "anchorY": 16,
+  "piece": {
+   "name": "grass",
+   "group": "Ground",
+   "layer": "ground",
+   "at": [
+    1,
+    7
+   ]
+  }
+ },
+ "58": {
+  "x": 256,
+  "y": 1700,
+  "width": 128,
+  "height": 64,
+  "drawWidth": 64,
+  "drawHeight": 32,
+  "anchorX": 32,
+  "anchorY": 16,
+  "piece": {
+   "name": "grass",
+   "group": "Ground",
+   "layer": "ground",
+   "at": [
+    2,
+    7
+   ]
+  }
+ },
+ "59": {
+  "x": 384,
+  "y": 1700,
+  "width": 128,
+  "height": 64,
+  "drawWidth": 64,
+  "drawHeight": 32,
+  "anchorX": 32,
+  "anchorY": 16,
+  "piece": {
+   "name": "grass",
+   "group": "Ground",
+   "layer": "ground",
+   "at": [
+    3,
+    7
+   ]
+  }
+ },
+ "60": {
+  "x": 512,
+  "y": 1700,
+  "width": 128,
+  "height": 64,
+  "drawWidth": 64,
+  "drawHeight": 32,
+  "anchorX": 32,
+  "anchorY": 16,
+  "piece": {
+   "name": "grass",
+   "group": "Ground",
+   "layer": "ground",
+   "at": [
+    4,
+    7
+   ]
+  }
+ },
+ "61": {
+  "x": 640,
+  "y": 1700,
+  "width": 128,
+  "height": 64,
+  "drawWidth": 64,
+  "drawHeight": 32,
+  "anchorX": 32,
+  "anchorY": 16,
+  "piece": {
+   "name": "grass",
+   "group": "Ground",
+   "layer": "ground",
+   "at": [
+    5,
+    7
+   ]
+  }
+ },
+ "62": {
+  "x": 768,
+  "y": 1700,
+  "width": 128,
+  "height": 64,
+  "drawWidth": 64,
+  "drawHeight": 32,
+  "anchorX": 32,
+  "anchorY": 16,
+  "piece": {
+   "name": "grass",
+   "group": "Ground",
+   "layer": "ground",
+   "at": [
+    6,
+    7
+   ]
+  }
+ },
+ "63": {
+  "x": 896,
+  "y": 1700,
+  "width": 128,
+  "height": 64,
+  "drawWidth": 64,
+  "drawHeight": 32,
+  "anchorX": 32,
+  "anchorY": 16,
+  "piece": {
+   "name": "grass",
+   "group": "Ground",
+   "layer": "ground",
+   "at": [
+    7,
+    7
+   ]
+  }
+ },
+ "64": {
+  "x": 1024,
+  "y": 1700,
+  "width": 128,
+  "height": 64,
+  "drawWidth": 64,
+  "drawHeight": 32,
+  "anchorX": 32,
+  "anchorY": 16,
+  "piece": {
+   "name": "earth",
+   "group": "Ground",
+   "layer": "ground"
+  }
+ },
+ "65": {
+  "x": 1152,
+  "y": 1700,
+  "width": 128,
+  "height": 64,
+  "drawWidth": 64,
+  "drawHeight": 32,
+  "anchorX": 32,
+  "anchorY": 16,
+  "piece": {
+   "name": "earth",
+   "group": "Ground",
+   "layer": "ground",
+   "at": [
+    1,
+    0
+   ]
+  }
+ },
+ "66": {
+  "x": 1280,
+  "y": 1700,
+  "width": 128,
+  "height": 64,
+  "drawWidth": 64,
+  "drawHeight": 32,
+  "anchorX": 32,
+  "anchorY": 16,
+  "piece": {
+   "name": "earth",
+   "group": "Ground",
+   "layer": "ground",
+   "at": [
+    2,
+    0
+   ]
+  }
+ },
+ "67": {
+  "x": 1408,
+  "y": 1700,
+  "width": 128,
+  "height": 64,
+  "drawWidth": 64,
+  "drawHeight": 32,
+  "anchorX": 32,
+  "anchorY": 16,
+  "piece": {
+   "name": "earth",
+   "group": "Ground",
+   "layer": "ground",
+   "at": [
+    3,
+    0
+   ]
+  }
+ },
+ "68": {
+  "x": 1536,
+  "y": 1700,
+  "width": 128,
+  "height": 64,
+  "drawWidth": 64,
+  "drawHeight": 32,
+  "anchorX": 32,
+  "anchorY": 16,
+  "piece": {
+   "name": "earth",
+   "group": "Ground",
+   "layer": "ground",
+   "at": [
+    0,
+    1
+   ]
+  }
+ },
+ "69": {
+  "x": 1664,
+  "y": 1700,
+  "width": 128,
+  "height": 64,
+  "drawWidth": 64,
+  "drawHeight": 32,
+  "anchorX": 32,
+  "anchorY": 16,
+  "piece": {
+   "name": "earth",
+   "group": "Ground",
+   "layer": "ground",
+   "at": [
+    1,
+    1
+   ]
+  }
+ },
+ "70": {
+  "x": 1792,
+  "y": 1700,
+  "width": 128,
+  "height": 64,
+  "drawWidth": 64,
+  "drawHeight": 32,
+  "anchorX": 32,
+  "anchorY": 16,
+  "piece": {
+   "name": "earth",
+   "group": "Ground",
+   "layer": "ground",
+   "at": [
+    2,
+    1
+   ]
+  }
+ },
+ "71": {
+  "x": 1920,
+  "y": 1700,
+  "width": 128,
+  "height": 64,
+  "drawWidth": 64,
+  "drawHeight": 32,
+  "anchorX": 32,
+  "anchorY": 16,
+  "piece": {
+   "name": "earth",
+   "group": "Ground",
+   "layer": "ground",
+   "at": [
+    3,
+    1
+   ]
+  }
+ },
+ "72": {
+  "x": 0,
+  "y": 1764,
+  "width": 128,
+  "height": 64,
+  "drawWidth": 64,
+  "drawHeight": 32,
+  "anchorX": 32,
+  "anchorY": 16,
+  "piece": {
+   "name": "earth",
+   "group": "Ground",
+   "layer": "ground",
+   "at": [
+    0,
+    2
+   ]
+  }
+ },
+ "73": {
+  "x": 128,
+  "y": 1764,
+  "width": 128,
+  "height": 64,
+  "drawWidth": 64,
+  "drawHeight": 32,
+  "anchorX": 32,
+  "anchorY": 16,
+  "piece": {
+   "name": "earth",
+   "group": "Ground",
+   "layer": "ground",
+   "at": [
+    1,
+    2
+   ]
+  }
+ },
+ "74": {
+  "x": 256,
+  "y": 1764,
+  "width": 128,
+  "height": 64,
+  "drawWidth": 64,
+  "drawHeight": 32,
+  "anchorX": 32,
+  "anchorY": 16,
+  "piece": {
+   "name": "earth",
+   "group": "Ground",
+   "layer": "ground",
+   "at": [
+    2,
+    2
+   ]
+  }
+ },
+ "75": {
+  "x": 384,
+  "y": 1764,
+  "width": 128,
+  "height": 64,
+  "drawWidth": 64,
+  "drawHeight": 32,
+  "anchorX": 32,
+  "anchorY": 16,
+  "piece": {
+   "name": "earth",
+   "group": "Ground",
+   "layer": "ground",
+   "at": [
+    3,
+    2
+   ]
+  }
+ },
+ "76": {
+  "x": 512,
+  "y": 1764,
+  "width": 128,
+  "height": 64,
+  "drawWidth": 64,
+  "drawHeight": 32,
+  "anchorX": 32,
+  "anchorY": 16,
+  "piece": {
+   "name": "earth",
+   "group": "Ground",
+   "layer": "ground",
+   "at": [
+    0,
+    3
+   ]
+  }
+ },
+ "77": {
+  "x": 640,
+  "y": 1764,
+  "width": 128,
+  "height": 64,
+  "drawWidth": 64,
+  "drawHeight": 32,
+  "anchorX": 32,
+  "anchorY": 16,
+  "piece": {
+   "name": "earth",
+   "group": "Ground",
+   "layer": "ground",
+   "at": [
+    1,
+    3
+   ]
+  }
+ },
+ "78": {
+  "x": 768,
+  "y": 1764,
+  "width": 128,
+  "height": 64,
+  "drawWidth": 64,
+  "drawHeight": 32,
+  "anchorX": 32,
+  "anchorY": 16,
+  "piece": {
+   "name": "earth",
+   "group": "Ground",
+   "layer": "ground",
+   "at": [
+    2,
+    3
+   ]
+  }
+ },
+ "79": {
+  "x": 896,
+  "y": 1764,
+  "width": 128,
+  "height": 64,
+  "drawWidth": 64,
+  "drawHeight": 32,
+  "anchorX": 32,
+  "anchorY": 16,
+  "piece": {
+   "name": "earth",
+   "group": "Ground",
+   "layer": "ground",
+   "at": [
+    3,
+    3
+   ]
+  }
+ },
+ "80": {
+  "x": 1024,
+  "y": 1764,
+  "width": 128,
+  "height": 64,
+  "drawWidth": 64,
+  "drawHeight": 32,
+  "anchorX": 32,
+  "anchorY": 16,
+  "piece": {
+   "name": "path",
+   "group": "Ground",
+   "layer": "ground"
+  }
+ },
+ "81": {
+  "x": 1152,
+  "y": 1764,
+  "width": 128,
+  "height": 64,
+  "drawWidth": 64,
+  "drawHeight": 32,
+  "anchorX": 32,
+  "anchorY": 16,
+  "piece": {
+   "name": "path",
+   "group": "Ground",
+   "layer": "ground",
+   "at": [
+    1,
+    0
+   ]
+  }
+ },
+ "82": {
+  "x": 1280,
+  "y": 1764,
+  "width": 128,
+  "height": 64,
+  "drawWidth": 64,
+  "drawHeight": 32,
+  "anchorX": 32,
+  "anchorY": 16,
+  "piece": {
+   "name": "path",
+   "group": "Ground",
+   "layer": "ground",
+   "at": [
+    2,
+    0
+   ]
+  }
+ },
+ "83": {
+  "x": 1408,
+  "y": 1764,
+  "width": 128,
+  "height": 64,
+  "drawWidth": 64,
+  "drawHeight": 32,
+  "anchorX": 32,
+  "anchorY": 16,
+  "piece": {
+   "name": "path",
+   "group": "Ground",
+   "layer": "ground",
+   "at": [
+    3,
+    0
+   ]
+  }
+ },
+ "84": {
+  "x": 1536,
+  "y": 1764,
+  "width": 128,
+  "height": 64,
+  "drawWidth": 64,
+  "drawHeight": 32,
+  "anchorX": 32,
+  "anchorY": 16,
+  "piece": {
+   "name": "path",
+   "group": "Ground",
+   "layer": "ground",
+   "at": [
+    0,
+    1
+   ]
+  }
+ },
+ "85": {
+  "x": 1664,
+  "y": 1764,
+  "width": 128,
+  "height": 64,
+  "drawWidth": 64,
+  "drawHeight": 32,
+  "anchorX": 32,
+  "anchorY": 16,
+  "piece": {
+   "name": "path",
+   "group": "Ground",
+   "layer": "ground",
+   "at": [
+    1,
+    1
+   ]
+  }
+ },
+ "86": {
+  "x": 1792,
+  "y": 1764,
+  "width": 128,
+  "height": 64,
+  "drawWidth": 64,
+  "drawHeight": 32,
+  "anchorX": 32,
+  "anchorY": 16,
+  "piece": {
+   "name": "path",
+   "group": "Ground",
+   "layer": "ground",
+   "at": [
+    2,
+    1
+   ]
+  }
+ },
+ "87": {
+  "x": 1920,
+  "y": 1764,
+  "width": 128,
+  "height": 64,
+  "drawWidth": 64,
+  "drawHeight": 32,
+  "anchorX": 32,
+  "anchorY": 16,
+  "piece": {
+   "name": "path",
+   "group": "Ground",
+   "layer": "ground",
+   "at": [
+    3,
+    1
+   ]
+  }
+ },
+ "88": {
+  "x": 0,
+  "y": 1828,
+  "width": 128,
+  "height": 64,
+  "drawWidth": 64,
+  "drawHeight": 32,
+  "anchorX": 32,
+  "anchorY": 16,
+  "piece": {
+   "name": "path",
+   "group": "Ground",
+   "layer": "ground",
+   "at": [
+    0,
+    2
+   ]
+  }
+ },
+ "89": {
+  "x": 128,
+  "y": 1828,
+  "width": 128,
+  "height": 64,
+  "drawWidth": 64,
+  "drawHeight": 32,
+  "anchorX": 32,
+  "anchorY": 16,
+  "piece": {
+   "name": "path",
+   "group": "Ground",
+   "layer": "ground",
+   "at": [
+    1,
+    2
+   ]
+  }
+ },
+ "90": {
+  "x": 256,
+  "y": 1828,
+  "width": 128,
+  "height": 64,
+  "drawWidth": 64,
+  "drawHeight": 32,
+  "anchorX": 32,
+  "anchorY": 16,
+  "piece": {
+   "name": "path",
+   "group": "Ground",
+   "layer": "ground",
+   "at": [
+    2,
+    2
+   ]
+  }
+ },
+ "91": {
+  "x": 384,
+  "y": 1828,
+  "width": 128,
+  "height": 64,
+  "drawWidth": 64,
+  "drawHeight": 32,
+  "anchorX": 32,
+  "anchorY": 16,
+  "piece": {
+   "name": "path",
+   "group": "Ground",
+   "layer": "ground",
+   "at": [
+    3,
+    2
+   ]
+  }
+ },
+ "92": {
+  "x": 512,
+  "y": 1828,
+  "width": 128,
+  "height": 64,
+  "drawWidth": 64,
+  "drawHeight": 32,
+  "anchorX": 32,
+  "anchorY": 16,
+  "piece": {
+   "name": "path",
+   "group": "Ground",
+   "layer": "ground",
+   "at": [
+    0,
+    3
+   ]
+  }
+ },
+ "93": {
+  "x": 640,
+  "y": 1828,
+  "width": 128,
+  "height": 64,
+  "drawWidth": 64,
+  "drawHeight": 32,
+  "anchorX": 32,
+  "anchorY": 16,
+  "piece": {
+   "name": "path",
+   "group": "Ground",
+   "layer": "ground",
+   "at": [
+    1,
+    3
+   ]
+  }
+ },
+ "94": {
+  "x": 768,
+  "y": 1828,
+  "width": 128,
+  "height": 64,
+  "drawWidth": 64,
+  "drawHeight": 32,
+  "anchorX": 32,
+  "anchorY": 16,
+  "piece": {
+   "name": "path",
+   "group": "Ground",
+   "layer": "ground",
+   "at": [
+    2,
+    3
+   ]
+  }
+ },
+ "95": {
+  "x": 896,
+  "y": 1828,
+  "width": 128,
+  "height": 64,
+  "drawWidth": 64,
+  "drawHeight": 32,
+  "anchorX": 32,
+  "anchorY": 16,
+  "piece": {
+   "name": "path",
+   "group": "Ground",
+   "layer": "ground",
+   "at": [
+    3,
+    3
+   ]
+  }
+ },
+ "96": {
+  "x": 1024,
+  "y": 1828,
+  "width": 128,
+  "height": 64,
+  "drawWidth": 64,
+  "drawHeight": 32,
+  "anchorX": 32,
+  "anchorY": 16,
+  "piece": {
+   "name": "flagstones",
+   "group": "Ground",
+   "layer": "ground"
+  }
+ },
+ "97": {
+  "x": 1152,
+  "y": 1828,
+  "width": 128,
+  "height": 64,
+  "drawWidth": 64,
+  "drawHeight": 32,
+  "anchorX": 32,
+  "anchorY": 16,
+  "piece": {
+   "name": "flagstones",
+   "group": "Ground",
+   "layer": "ground",
+   "variant": 1
+  }
+ },
+ "98": {
+  "x": 1280,
+  "y": 1828,
+  "width": 128,
+  "height": 64,
+  "drawWidth": 64,
+  "drawHeight": 32,
+  "anchorX": 32,
+  "anchorY": 16,
+  "piece": {
+   "name": "flagstones",
+   "group": "Ground",
+   "layer": "ground",
+   "variant": 2
+  }
+ },
+ "99": {
+  "x": 1408,
+  "y": 1828,
+  "width": 128,
+  "height": 64,
+  "drawWidth": 64,
+  "drawHeight": 32,
+  "anchorX": 32,
+  "anchorY": 16,
+  "piece": {
+   "name": "planks",
+   "group": "Ground",
+   "layer": "ground"
+  }
+ },
+ "100": {
+  "x": 1536,
+  "y": 1828,
+  "width": 128,
+  "height": 64,
+  "drawWidth": 64,
+  "drawHeight": 32,
+  "anchorX": 32,
+  "anchorY": 16,
+  "piece": {
+   "name": "planks",
+   "group": "Ground",
+   "layer": "ground",
+   "variant": 1
+  }
+ },
+ "101": {
+  "x": 467,
+  "y": 1238,
+  "width": 148,
+  "height": 156,
+  "drawWidth": 74,
+  "drawHeight": 78,
+  "anchorX": 24,
+  "anchorY": 63,
+  "piece": {
+   "name": "grave",
+   "group": "Graves",
+   "blocks": true
+  }
+ },
+ "102": {
+  "x": 165,
+  "y": 1238,
+  "width": 148,
+  "height": 159,
+  "drawWidth": 74,
+  "drawHeight": 79.5,
+  "anchorX": 24,
+  "anchorY": 64.5,
+  "piece": {
+   "name": "grave",
+   "group": "Graves",
+   "variant": 1,
+   "blocks": true
+  }
+ },
+ "103": {
+  "x": 1483,
+  "y": 1238,
+  "width": 102,
+  "height": 116,
+  "drawWidth": 51,
+  "drawHeight": 58,
+  "anchorX": 14.5,
+  "anchorY": 48,
+  "piece": {
+   "name": "grave",
+   "group": "Graves",
+   "variant": 2,
+   "blocks": true
+  }
+ },
+ "104": {
+  "x": 1585,
+  "y": 1238,
+  "width": 121,
+  "height": 116,
+  "drawWidth": 60.5,
+  "drawHeight": 58,
+  "anchorX": 18,
+  "anchorY": 48.5,
+  "piece": {
+   "name": "grave with a candle",
+   "group": "Graves",
+   "blocks": true
+  }
+ },
+ "105": {
+  "x": 1909,
+  "y": 1828,
+  "width": 40,
+  "height": 39,
+  "drawWidth": 20,
+  "drawHeight": 19.5,
+  "anchorX": 0,
+  "anchorY": 14,
+  "piece": {
+   "name": "grave with a candle",
+   "group": "Graves",
+   "at": [
+    0,
+    1
+   ]
+  }
+ },
+ "106": {
+  "x": 1354,
+  "y": 1238,
+  "width": 129,
+  "height": 117,
+  "drawWidth": 64.5,
+  "drawHeight": 58.5,
+  "anchorX": 19.5,
+  "anchorY": 48.5,
+  "piece": {
+   "name": "grave with a candle",
+   "group": "Graves",
+   "variant": 1,
+   "blocks": true
+  }
+ },
+ "107": {
+  "x": 1949,
+  "y": 1828,
+  "width": 40,
+  "height": 39,
+  "drawWidth": 20,
+  "drawHeight": 19.5,
+  "anchorX": 0,
+  "anchorY": 14,
+  "piece": {
+   "name": "grave with a candle",
+   "group": "Graves",
+   "at": [
+    0,
+    1
+   ],
+   "variant": 1
+  }
+ },
+ "108": {
+  "x": 1145,
+  "y": 1238,
+  "width": 91,
+  "height": 133,
+  "drawWidth": 45.5,
+  "drawHeight": 66.5,
+  "anchorX": 8.5,
+  "anchorY": 38.5,
+  "piece": {
+   "name": "grave with a candle",
+   "group": "Graves",
+   "variant": 2,
+   "blocks": true
+  }
+ },
+ "109": {
+  "x": 1989,
+  "y": 1828,
+  "width": 40,
+  "height": 39,
+  "drawWidth": 20,
+  "drawHeight": 19.5,
+  "anchorX": 0,
+  "anchorY": 14,
+  "piece": {
+   "name": "grave with a candle",
+   "group": "Graves",
+   "at": [
+    0,
+    1
+   ],
+   "variant": 2
+  }
+ },
+ "110": {
+  "x": 313,
+  "y": 1238,
+  "width": 154,
+  "height": 159,
+  "drawWidth": 77,
+  "drawHeight": 79.5,
+  "anchorX": 24,
+  "anchorY": 64,
+  "piece": {
+   "name": "old grave",
+   "group": "Graves",
+   "blocks": true
+  }
+ },
+ "111": {
+  "x": 233,
+  "y": 1399,
+  "width": 74,
+  "height": 89,
+  "drawWidth": 37,
+  "drawHeight": 44.5,
+  "anchorX": 8.5,
+  "anchorY": 37.5,
+  "piece": {
+   "name": "old grave",
+   "group": "Graves",
+   "variant": 1,
+   "blocks": true
+  }
+ },
+ "112": {
+  "x": 154,
+  "y": 1399,
+  "width": 79,
+  "height": 90,
+  "drawWidth": 39.5,
+  "drawHeight": 45,
+  "anchorX": 12.5,
+  "anchorY": 36,
+  "piece": {
+   "name": "old grave",
+   "group": "Graves",
+   "variant": 2,
+   "blocks": true
+  }
+ },
+ "113": {
+  "x": 307,
+  "y": 1399,
+  "width": 74,
+  "height": 89,
+  "drawWidth": 37,
+  "drawHeight": 44.5,
+  "anchorX": 15,
+  "anchorY": 34.5,
+  "piece": {
+   "name": "grave marker",
+   "group": "Graves",
+   "blocks": true
+  }
+ },
+ "114": {
+  "x": 75,
+  "y": 1399,
+  "width": 79,
+  "height": 91,
+  "drawWidth": 39.5,
+  "drawHeight": 45.5,
+  "anchorX": 19,
+  "anchorY": 33,
+  "piece": {
+   "name": "grave marker",
+   "group": "Graves",
+   "variant": 1,
+   "blocks": true
+  }
+ },
+ "115": {
+  "x": 615,
+  "y": 1238,
+  "width": 196,
+  "height": 140,
+  "drawWidth": 98,
+  "drawHeight": 70,
+  "anchorX": 46,
+  "anchorY": 44,
+  "piece": {
+   "name": "coffin",
+   "group": "Graves",
+   "blocks": true
+  }
+ },
+ "116": {
+  "x": 811,
+  "y": 1238,
+  "width": 196,
+  "height": 140,
+  "drawWidth": 98,
+  "drawHeight": 70,
+  "anchorX": 46,
+  "anchorY": 44,
+  "piece": {
+   "name": "coffin",
+   "group": "Graves",
+   "variant": 1,
+   "blocks": true
+  }
+ },
+ "117": {
+  "x": 1849,
+  "y": 1828,
+  "width": 60,
+  "height": 44,
+  "drawWidth": 30,
+  "drawHeight": 22,
+  "anchorX": 5,
+  "anchorY": 12.5,
+  "piece": {
+   "name": "bones",
+   "group": "Graves"
+  }
+ },
+ "118": {
+  "x": 1726,
+  "y": 1828,
+  "width": 45,
+  "height": 47,
+  "drawWidth": 22.5,
+  "drawHeight": 23.5,
+  "anchorX": 20.5,
+  "anchorY": 13.5,
+  "piece": {
+   "name": "bones",
+   "group": "Graves",
+   "variant": 1
+  }
+ },
+ "119": {
+  "x": 1771,
+  "y": 1828,
+  "width": 78,
+  "height": 47,
+  "drawWidth": 39,
+  "drawHeight": 23.5,
+  "anchorX": 19,
+  "anchorY": 5.5,
+  "piece": {
+   "name": "bones",
+   "group": "Graves",
+   "variant": 2
+  }
+ },
+ "120": {
+  "x": 1664,
+  "y": 1828,
+  "width": 62,
+  "height": 62,
+  "drawWidth": 31,
+  "drawHeight": 31,
+  "anchorX": 13.5,
+  "anchorY": 21,
+  "piece": {
+   "name": "bones",
+   "group": "Graves",
+   "variant": 3
+  }
+ },
+ "121": {
+  "x": 698,
+  "y": 1399,
+  "width": 76,
+  "height": 80,
+  "drawWidth": 38,
+  "drawHeight": 40,
+  "anchorX": 21,
+  "anchorY": 23,
+  "piece": {
+   "name": "bones",
+   "group": "Graves",
+   "variant": 4
+  }
+ },
+ "122": {
+  "x": 774,
+  "y": 1399,
+  "width": 77,
+  "height": 80,
+  "drawWidth": 38.5,
+  "drawHeight": 40,
+  "anchorX": 17.5,
+  "anchorY": 17,
+  "piece": {
+   "name": "bones",
+   "group": "Graves",
+   "variant": 5
+  }
+ },
+ "123": {
+  "x": 0,
+  "y": 806,
+  "width": 112,
+  "height": 256,
+  "drawWidth": 56,
+  "drawHeight": 128,
+  "anchorX": 32,
+  "anchorY": 127.5,
+  "piece": {
+   "name": "crypt",
+   "group": "Churchyard",
+   "blocks": true
+  }
+ },
+ "124": {
+  "x": 266,
+  "y": 460,
+  "width": 135,
+  "height": 326,
+  "drawWidth": 67.5,
+  "drawHeight": 163,
+  "anchorX": 24,
+  "anchorY": 162.5,
+  "piece": {
+   "name": "crypt",
+   "group": "Churchyard",
+   "at": [
+    1,
+    0
+   ],
+   "blocks": true
+  }
+ },
+ "125": {
+  "x": 742,
+  "y": 0,
+  "width": 238,
+  "height": 433,
+  "drawWidth": 119,
+  "drawHeight": 216.5,
+  "anchorX": 32,
+  "anchorY": 146.5,
+  "piece": {
+   "name": "crypt",
+   "group": "Churchyard",
+   "at": [
+    2,
+    0
+   ],
+   "blocks": true
+  }
+ },
+ "126": {
+  "x": 306,
+  "y": 806,
+  "width": 51,
+  "height": 234,
+  "drawWidth": 25.5,
+  "drawHeight": 117,
+  "anchorX": 25,
+  "anchorY": 116.5,
+  "piece": {
+   "name": "crypt",
+   "group": "Churchyard",
+   "at": [
+    0,
+    1
+   ],
+   "blocks": true
+  }
+ },
+ "127": {
+  "x": 573,
+  "y": 460,
+  "width": 111,
+  "height": 303,
+  "drawWidth": 55.5,
+  "drawHeight": 151.5,
+  "anchorX": 24,
+  "anchorY": 151,
+  "piece": {
+   "name": "crypt",
+   "group": "Churchyard",
+   "at": [
+    1,
+    1
+   ],
+   "blocks": true
+  }
+ },
+ "128": {
+  "x": 980,
+  "y": 0,
+  "width": 261,
+  "height": 388,
+  "drawWidth": 130.5,
+  "drawHeight": 194,
+  "anchorX": 32,
+  "anchorY": 140,
+  "piece": {
+   "name": "crypt",
+   "group": "Churchyard",
+   "at": [
+    2,
+    1
+   ],
+   "blocks": true
+  }
+ },
+ "129": {
+  "x": 659,
+  "y": 806,
+  "width": 69,
+  "height": 214,
+  "drawWidth": 34.5,
+  "drawHeight": 107,
+  "anchorX": 34,
+  "anchorY": 106.5,
+  "piece": {
+   "name": "crypt",
+   "group": "Churchyard",
+   "at": [
+    0,
+    2
+   ],
+   "blocks": true
+  }
+ },
+ "130": {
+  "x": 684,
+  "y": 460,
+  "width": 112,
+  "height": 303,
+  "drawWidth": 56,
+  "drawHeight": 151.5,
+  "anchorX": 24,
+  "anchorY": 151,
+  "piece": {
+   "name": "crypt",
+   "group": "Churchyard",
+   "at": [
+    1,
+    2
+   ],
+   "blocks": true
+  }
+ },
+ "131": {
+  "x": 1666,
+  "y": 0,
+  "width": 267,
+  "height": 352,
+  "drawWidth": 133.5,
+  "drawHeight": 176,
+  "anchorX": 32,
+  "anchorY": 138,
+  "piece": {
+   "name": "crypt",
+   "group": "Churchyard",
+   "at": [
+    2,
+    2
+   ],
+   "blocks": true
+  }
+ },
+ "132": {
+  "x": 1476,
+  "y": 460,
+  "width": 126,
+  "height": 274,
+  "drawWidth": 63,
+  "drawHeight": 137,
+  "anchorX": 38,
+  "anchorY": 120,
+  "piece": {
+   "name": "crypt",
+   "group": "Churchyard",
+   "at": [
+    0,
+    3
+   ],
+   "blocks": true
+  }
+ },
+ "133": {
+  "x": 1539,
+  "y": 0,
+  "width": 127,
+  "height": 353,
+  "drawWidth": 63.5,
+  "drawHeight": 176.5,
+  "anchorX": 32,
+  "anchorY": 159.5,
+  "piece": {
+   "name": "crypt",
+   "group": "Churchyard",
+   "at": [
+    1,
+    3
+   ],
+   "blocks": true
+  }
+ },
+ "134": {
+  "x": 401,
+  "y": 460,
+  "width": 172,
+  "height": 324,
+  "drawWidth": 86,
+  "drawHeight": 162,
+  "anchorX": 32,
+  "anchorY": 140,
+  "piece": {
+   "name": "crypt",
+   "group": "Churchyard",
+   "at": [
+    2,
+    3
+   ],
+   "blocks": true
+  }
+ },
+ "135": {
+  "x": 0,
+  "y": 1399,
+  "width": 75,
+  "height": 109,
+  "drawWidth": 37.5,
+  "drawHeight": 54.5,
+  "anchorX": 9.5,
+  "anchorY": 44.5,
+  "piece": {
+   "name": "fence",
+   "group": "Churchyard",
+   "connect": 0,
+   "blocks": true
+  }
+ },
+ "136": {
+  "x": 1706,
+  "y": 1238,
+  "width": 105,
+  "height": 115,
+  "drawWidth": 52.5,
+  "drawHeight": 57.5,
+  "anchorX": 14,
+  "anchorY": 47.5,
+  "piece": {
+   "name": "fence",
+   "group": "Churchyard",
+   "connect": 1,
+   "blocks": true
+  }
+ },
+ "137": {
+  "x": 1445,
+  "y": 1062,
+  "width": 116,
+  "height": 168,
+  "drawWidth": 58,
+  "drawHeight": 84,
+  "anchorX": 10.5,
+  "anchorY": 45,
+  "piece": {
+   "name": "fence",
+   "group": "Churchyard",
+   "connect": 2,
+   "blocks": true
+  }
+ },
+ "138": {
+  "x": 135,
+  "y": 1062,
+  "width": 123,
+  "height": 173,
+  "drawWidth": 61.5,
+  "drawHeight": 86.5,
+  "anchorX": 14,
+  "anchorY": 47.5,
+  "piece": {
+   "name": "fence",
+   "group": "Churchyard",
+   "connect": 3,
+   "blocks": true
+  }
+ },
+ "139": {
+  "x": 1690,
+  "y": 1062,
+  "width": 90,
+  "height": 166,
+  "drawWidth": 45,
+  "drawHeight": 83,
+  "anchorX": 17.5,
+  "anchorY": 44,
+  "piece": {
+   "name": "fence",
+   "group": "Churchyard",
+   "connect": 4,
+   "blocks": true
+  }
+ },
+ "140": {
+  "x": 258,
+  "y": 1062,
+  "width": 157,
+  "height": 173,
+  "drawWidth": 78.5,
+  "drawHeight": 86.5,
+  "anchorX": 18,
+  "anchorY": 47.5,
+  "piece": {
+   "name": "fence",
+   "group": "Churchyard",
+   "connect": 5,
+   "blocks": true
+  }
+ },
+ "141": {
+  "x": 1561,
+  "y": 1062,
+  "width": 129,
+  "height": 167,
+  "drawWidth": 64.5,
+  "drawHeight": 83.5,
+  "anchorX": 17,
+  "anchorY": 44.5,
+  "piece": {
+   "name": "fence",
+   "group": "Churchyard",
+   "connect": 6,
+   "blocks": true
+  }
+ },
+ "142": {
+  "x": 1313,
+  "y": 1062,
+  "width": 132,
+  "height": 171,
+  "drawWidth": 66,
+  "drawHeight": 85.5,
+  "anchorX": 18.5,
+  "anchorY": 46.5,
+  "piece": {
+   "name": "fence",
+   "group": "Churchyard",
+   "connect": 7,
+   "blocks": true
+  }
+ },
+ "143": {
+  "x": 1811,
+  "y": 1238,
+  "width": 88,
+  "height": 115,
+  "drawWidth": 44,
+  "drawHeight": 57.5,
+  "anchorX": 16.5,
+  "anchorY": 47.5,
+  "piece": {
+   "name": "fence",
+   "group": "Churchyard",
+   "connect": 8,
+   "blocks": true
+  }
+ },
+ "144": {
+  "x": 1899,
+  "y": 1238,
+  "width": 109,
+  "height": 115,
+  "drawWidth": 54.5,
+  "drawHeight": 57.5,
+  "anchorX": 16.5,
+  "anchorY": 47.5,
+  "piece": {
+   "name": "fence",
+   "group": "Churchyard",
+   "connect": 9,
+   "blocks": true
+  }
+ },
+ "145": {
+  "x": 415,
+  "y": 1062,
+  "width": 201,
+  "height": 173,
+  "drawWidth": 100.5,
+  "drawHeight": 86.5,
+  "anchorX": 16.5,
+  "anchorY": 47.5,
+  "piece": {
+   "name": "fence",
+   "group": "Churchyard",
+   "connect": 10,
+   "blocks": true
+  }
+ },
+ "146": {
+  "x": 616,
+  "y": 1062,
+  "width": 128,
+  "height": 173,
+  "drawWidth": 64,
+  "drawHeight": 86.5,
+  "anchorX": 16.5,
+  "anchorY": 47.5,
+  "piece": {
+   "name": "fence",
+   "group": "Churchyard",
+   "connect": 11,
+   "blocks": true
+  }
+ },
+ "147": {
+  "x": 1225,
+  "y": 1062,
+  "width": 88,
+  "height": 172,
+  "drawWidth": 44,
+  "drawHeight": 86,
+  "anchorX": 16.5,
+  "anchorY": 47,
+  "piece": {
+   "name": "fence",
+   "group": "Churchyard",
+   "connect": 12,
+   "blocks": true
+  }
+ },
+ "148": {
+  "x": 744,
+  "y": 1062,
+  "width": 152,
+  "height": 173,
+  "drawWidth": 76,
+  "drawHeight": 86.5,
+  "anchorX": 16.5,
+  "anchorY": 47.5,
+  "piece": {
+   "name": "fence",
+   "group": "Churchyard",
+   "connect": 13,
+   "blocks": true
+  }
+ },
+ "149": {
+  "x": 896,
+  "y": 1062,
+  "width": 201,
+  "height": 173,
+  "drawWidth": 100.5,
+  "drawHeight": 86.5,
+  "anchorX": 16.5,
+  "anchorY": 47.5,
+  "piece": {
+   "name": "fence",
+   "group": "Churchyard",
+   "connect": 14,
+   "blocks": true
+  }
+ },
+ "150": {
+  "x": 1097,
+  "y": 1062,
+  "width": 128,
+  "height": 173,
+  "drawWidth": 64,
+  "drawHeight": 86.5,
+  "anchorX": 16.5,
+  "anchorY": 47.5,
+  "piece": {
+   "name": "fence",
+   "group": "Churchyard",
+   "connect": 15,
+   "blocks": true
+  }
+ },
+ "151": {
+  "x": 998,
+  "y": 460,
+  "width": 239,
+  "height": 277,
+  "drawWidth": 119.5,
+  "drawHeight": 138.5,
+  "anchorX": 46,
+  "anchorY": 112.5,
+  "piece": {
+   "name": "gate arch",
+   "group": "Churchyard"
+  }
+ },
+ "152": {
+  "x": 1237,
+  "y": 460,
+  "width": 239,
+  "height": 277,
+  "drawWidth": 119.5,
+  "drawHeight": 138.5,
+  "anchorX": 46,
+  "anchorY": 112.5,
+  "piece": {
+   "name": "gate arch, turned",
+   "group": "Churchyard"
+  }
+ },
+ "153": {
+  "x": 1236,
+  "y": 1238,
+  "width": 118,
+  "height": 130,
+  "drawWidth": 59,
+  "drawHeight": 65,
+  "anchorX": 24,
+  "anchorY": 50,
+  "piece": {
+   "name": "shrine",
+   "group": "Churchyard",
+   "blocks": true
+  }
+ },
+ "154": {
+  "x": 728,
+  "y": 806,
+  "width": 132,
+  "height": 187,
+  "drawWidth": 66,
+  "drawHeight": 93.5,
+  "anchorX": 32.5,
+  "anchorY": 74.5,
+  "piece": {
+   "name": "post lantern",
+   "group": "Churchyard",
+   "blocks": true
+  }
+ },
+ "155": {
+  "x": 995,
+  "y": 806,
+  "width": 129,
+  "height": 186,
+  "drawWidth": 64.5,
+  "drawHeight": 93,
+  "anchorX": 13,
+  "anchorY": 74.5,
+  "piece": {
+   "name": "post lantern",
+   "group": "Churchyard",
+   "variant": 1,
+   "blocks": true
+  }
+ },
+ "156": {
+  "x": 1124,
+  "y": 806,
+  "width": 129,
+  "height": 186,
+  "drawWidth": 64.5,
+  "drawHeight": 93,
+  "anchorX": 13,
+  "anchorY": 83.5,
+  "piece": {
+   "name": "post lantern",
+   "group": "Churchyard",
+   "variant": 2,
+   "blocks": true
+  }
+ },
+ "157": {
+  "x": 1253,
+  "y": 806,
+  "width": 132,
+  "height": 186,
+  "drawWidth": 66,
+  "drawHeight": 93,
+  "anchorX": 32.5,
+  "anchorY": 83.5,
+  "piece": {
+   "name": "post lantern",
+   "group": "Churchyard",
+   "variant": 3,
+   "blocks": true
+  }
+ },
+ "158": {
+  "x": 621,
+  "y": 1399,
+  "width": 77,
+  "height": 82,
+  "drawWidth": 38.5,
+  "drawHeight": 41,
+  "anchorX": 16.5,
+  "anchorY": 29.5,
+  "piece": {
+   "name": "lantern",
+   "group": "Churchyard"
+  }
+ },
+ "159": {
+  "x": 909,
+  "y": 1399,
+  "width": 62,
+  "height": 71,
+  "drawWidth": 31,
+  "drawHeight": 35.5,
+  "anchorX": 12,
+  "anchorY": 25.5,
+  "piece": {
+   "name": "candles",
+   "group": "Churchyard"
+  }
+ },
+ "160": {
+  "x": 381,
+  "y": 1399,
+  "width": 120,
+  "height": 89,
+  "drawWidth": 60,
+  "drawHeight": 44.5,
+  "anchorX": 28.5,
+  "anchorY": 27,
+  "piece": {
+   "name": "bench",
+   "group": "Churchyard",
+   "blocks": true
+  }
+ },
+ "161": {
+  "x": 501,
+  "y": 1399,
+  "width": 120,
+  "height": 89,
+  "drawWidth": 60,
+  "drawHeight": 44.5,
+  "anchorX": 28.5,
+  "anchorY": 27,
+  "piece": {
+   "name": "bench, turned",
+   "group": "Churchyard",
+   "blocks": true
+  }
+ },
+ "162": {
+  "x": 860,
+  "y": 806,
+  "width": 135,
+  "height": 187,
+  "drawWidth": 67.5,
+  "drawHeight": 93.5,
+  "anchorX": 34,
+  "anchorY": 74.5,
+  "piece": {
+   "name": "skull post",
+   "group": "Churchyard",
+   "blocks": true
+  }
+ },
+ "163": {
+  "x": 1385,
+  "y": 806,
+  "width": 133,
+  "height": 186,
+  "drawWidth": 66.5,
+  "drawHeight": 93,
+  "anchorX": 13,
+  "anchorY": 74.5,
+  "piece": {
+   "name": "skull post",
+   "group": "Churchyard",
+   "variant": 1,
+   "blocks": true
+  }
+ },
+ "164": {
+  "x": 1518,
+  "y": 806,
+  "width": 133,
+  "height": 186,
+  "drawWidth": 66.5,
+  "drawHeight": 93,
+  "anchorX": 13,
+  "anchorY": 83.5,
+  "piece": {
+   "name": "skull post",
+   "group": "Churchyard",
+   "variant": 2,
+   "blocks": true
+  }
+ },
+ "165": {
+  "x": 0,
+  "y": 1238,
+  "width": 165,
+  "height": 161,
+  "drawWidth": 82.5,
+  "drawHeight": 80.5,
+  "anchorX": 35,
+  "anchorY": 60,
+  "piece": {
+   "name": "barrel",
+   "group": "Camp",
+   "blocks": true
+  }
+ },
+ "166": {
+  "x": 1007,
+  "y": 1238,
+  "width": 138,
+  "height": 140,
+  "drawWidth": 69,
+  "drawHeight": 70,
+  "anchorX": 29,
+  "anchorY": 52.5,
+  "piece": {
+   "name": "barrels",
+   "group": "Camp",
+   "blocks": true
+  }
+ },
+ "167": {
+  "x": 1787,
+  "y": 806,
+  "width": 184,
+  "height": 176,
+  "drawWidth": 92,
+  "drawHeight": 88,
+  "anchorX": 40,
+  "anchorY": 65.5,
+  "piece": {
+   "name": "crates",
+   "group": "Camp",
+   "blocks": true
+  }
+ },
+ "168": {
+  "x": 1780,
+  "y": 1062,
+  "width": 176,
+  "height": 163,
+  "drawWidth": 88,
+  "drawHeight": 81.5,
+  "anchorX": 38,
+  "anchorY": 59,
+  "piece": {
+   "name": "table",
+   "group": "Camp",
+   "blocks": true
+  }
+ },
+ "169": {
+  "x": 851,
+  "y": 1399,
+  "width": 58,
+  "height": 76,
+  "drawWidth": 29,
+  "drawHeight": 38,
+  "anchorX": 5,
+  "anchorY": 19.5,
+  "piece": {
+   "name": "candle",
+   "group": "Camp"
+  }
+ },
+ "170": {
+  "x": 0,
+  "y": 0,
+  "width": 396,
+  "height": 460,
+  "drawWidth": 198,
+  "drawHeight": 230,
+  "anchorX": 77.5,
+  "anchorY": 177,
+  "piece": {
+   "name": "pine",
+   "group": "Woods",
+   "blocks": true
+  }
+ },
+ "171": {
+  "x": 396,
+  "y": 0,
+  "width": 346,
+  "height": 446,
+  "drawWidth": 173,
+  "drawHeight": 223,
+  "anchorX": 65.5,
+  "anchorY": 174,
+  "piece": {
+   "name": "pine",
+   "group": "Woods",
+   "variant": 1,
+   "blocks": true
+  }
+ },
+ "172": {
+  "x": 1241,
+  "y": 0,
+  "width": 298,
+  "height": 358,
+  "drawWidth": 149,
+  "drawHeight": 179,
+  "anchorX": 61.5,
+  "anchorY": 136,
+  "piece": {
+   "name": "pine",
+   "group": "Woods",
+   "variant": 2,
+   "blocks": true
+  }
+ },
+ "173": {
+  "x": 0,
+  "y": 460,
+  "width": 266,
+  "height": 346,
+  "drawWidth": 133,
+  "drawHeight": 173,
+  "anchorX": 45.5,
+  "anchorY": 135,
+  "piece": {
+   "name": "pine",
+   "group": "Woods",
+   "variant": 3,
+   "blocks": true
+  }
+ },
+ "174": {
+  "x": 1807,
+  "y": 460,
+  "width": 217,
+  "height": 257,
+  "drawWidth": 108.5,
+  "drawHeight": 128.5,
+  "anchorX": 42,
+  "anchorY": 96.5,
+  "piece": {
+   "name": "pine",
+   "group": "Woods",
+   "variant": 4,
+   "blocks": true
+  }
+ },
+ "175": {
+  "x": 112,
+  "y": 806,
+  "width": 194,
+  "height": 249,
+  "drawWidth": 97,
+  "drawHeight": 124.5,
+  "anchorX": 38.5,
+  "anchorY": 94,
+  "piece": {
+   "name": "pine",
+   "group": "Woods",
+   "variant": 5,
+   "blocks": true
+  }
+ },
+ "176": {
+  "x": 796,
+  "y": 460,
+  "width": 202,
+  "height": 282,
+  "drawWidth": 101,
+  "drawHeight": 141,
+  "anchorX": 38,
+  "anchorY": 116.5,
+  "piece": {
+   "name": "dead tree",
+   "group": "Woods",
+   "blocks": true
+  }
+ },
+ "177": {
+  "x": 1602,
+  "y": 460,
+  "width": 205,
+  "height": 274,
+  "drawWidth": 102.5,
+  "drawHeight": 137,
+  "anchorX": 33.5,
+  "anchorY": 111.5,
+  "piece": {
+   "name": "dead tree",
+   "group": "Woods",
+   "variant": 1,
+   "blocks": true
+  }
+ },
+ "178": {
+  "x": 357,
+  "y": 806,
+  "width": 146,
+  "height": 225,
+  "drawWidth": 73,
+  "drawHeight": 112.5,
+  "anchorX": 18,
+  "anchorY": 88,
+  "piece": {
+   "name": "dead tree",
+   "group": "Woods",
+   "variant": 2,
+   "blocks": true
+  }
+ },
+ "179": {
+  "x": 503,
+  "y": 806,
+  "width": 156,
+  "height": 216,
+  "drawWidth": 78,
+  "drawHeight": 108,
+  "anchorX": 35.5,
+  "anchorY": 91,
+  "piece": {
+   "name": "dead tree",
+   "group": "Woods",
+   "variant": 3,
+   "blocks": true
+  }
+ },
+ "180": {
+  "x": 1651,
+  "y": 806,
+  "width": 136,
+  "height": 181,
+  "drawWidth": 68,
+  "drawHeight": 90.5,
+  "anchorX": 29,
+  "anchorY": 75,
+  "piece": {
+   "name": "dead tree",
+   "group": "Woods",
+   "variant": 4,
+   "blocks": true
+  }
+ },
+ "181": {
+  "x": 0,
+  "y": 1062,
+  "width": 135,
+  "height": 176,
+  "drawWidth": 67.5,
+  "drawHeight": 88,
+  "anchorX": 18,
+  "anchorY": 62,
+  "piece": {
+   "name": "dead tree",
+   "group": "Woods",
+   "variant": 5,
+   "blocks": true
+  }
+ }
+}

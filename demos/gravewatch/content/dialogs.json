@@ -1,0 +1,128 @@
+[
+ {
+  "id": "agathe",
+  "name": "Sister Agathe",
+  "nodes": [
+   {
+    "id": "hello",
+    "text": "While the shrine burns, this ground is ours. Fall out there and you wake here, by its candles - the living, anyway.",
+    "choices": [
+     {
+      "label": "What walks the woods?",
+      "next": "woods"
+     },
+     {
+      "label": "Can I help?",
+      "next": "help"
+     },
+     {
+      "label": "Goodbye."
+     }
+    ]
+   },
+   {
+    "id": "woods",
+    "text": "Risen, mostly. Bone Knights along the east road. Robbers who were robbers before they died, and the warlocks who raised them.",
+    "choices": [
+     {
+      "label": "Can I help?",
+      "next": "help"
+     },
+     {
+      "label": "Goodbye."
+     }
+    ]
+   },
+   {
+    "id": "help",
+    "text": "Put six Risen back in the ground. Holy water for your trouble.",
+    "choices": [
+     {
+      "label": "I'll do it.",
+      "action": "questStart:lay-them-down"
+     },
+     {
+      "label": "Goodbye."
+     }
+    ]
+   }
+  ]
+ },
+ {
+  "id": "hobb",
+  "name": "Hobb, gravedigger",
+  "nodes": [
+   {
+    "id": "hello",
+    "text": "I dig by day and sell by night. Stand on the planks by my table and see what the dead left me.",
+    "choices": [
+     {
+      "label": "Business is good?",
+      "next": "trade"
+     },
+     {
+      "label": "Goodbye."
+     }
+    ]
+   },
+   {
+    "id": "trade",
+    "text": "Never better. Nobody stays buried round here.",
+    "choices": [
+     {
+      "label": "Goodbye."
+     }
+    ]
+   }
+  ]
+ },
+ {
+  "id": "brand",
+  "name": "Captain Brand",
+  "nodes": [
+   {
+    "id": "hello",
+    "text": "Two gates, one fence and whoever answers the bell. When it tolls, the Ossuary Lord sends all he has.",
+    "choices": [
+     {
+      "label": "What happens then?",
+      "next": "siege"
+     },
+     {
+      "label": "Anything I can do now?",
+      "next": "work"
+     },
+     {
+      "label": "Goodbye."
+     }
+    ]
+   },
+   {
+    "id": "siege",
+    "text": "The night goes black and they come in waves, more for every blade on the wall. Hold both gates until the Lord himself walks out of the trees.",
+    "choices": [
+     {
+      "label": "Anything I can do now?",
+      "next": "work"
+     },
+     {
+      "label": "Goodbye."
+     }
+    ]
+   },
+   {
+    "id": "work",
+    "text": "Thin them out. Three Bone Knights off the east road, and there is gold in it.",
+    "choices": [
+     {
+      "label": "Consider it done.",
+      "action": "questStart:bone-knights"
+     },
+     {
+      "label": "Goodbye."
+     }
+    ]
+   }
+  ]
+ }
+]
