@@ -9,7 +9,7 @@ import {
   vi,
 } from 'vitest';
 import { createServer, type Server as HttpServer } from 'node:http';
-import type { AddressInfo } from 'node:net';
+import { createConnection, type AddressInfo } from 'node:net';
 import WebSocket from 'ws';
 import fc from 'fast-check';
 import { ServerActionType } from '../engine/actions.js';
@@ -420,6 +420,21 @@ describe('the handshake origin', () => {
 
   it('turns away any other page', async () => {
     expect(await opens('https://evil.game.example')).toBe(false);
+  });
+
+  it('drops a request line that is no URL and keeps serving', async () => {
+    await new Promise<void>((resolve) => {
+      const raw = createConnection(port, '127.0.0.1', () =>
+        raw.write(
+          'GET // HTTP/1.1\r\nHost: x\r\nUpgrade: websocket\r\n' +
+            'Connection: Upgrade\r\nSec-WebSocket-Version: 13\r\n' +
+            'Sec-WebSocket-Key: dGhlIHNhbXBsZSBub25jZQ==\r\n\r\n',
+        ),
+      );
+      raw.on('close', () => resolve());
+    });
+
+    expect(await opens('https://game.example')).toBe(true);
   });
 });
 

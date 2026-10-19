@@ -406,8 +406,10 @@ export const startWebSocketServer = (
     // Parsed rather than compared: the warp hand-off puts the trace it started
     // on the query string, because a browser cannot set a header on a
     // WebSocket. The path is still the only thing that decides the upgrade.
-    const url = new URL(request.url ?? '', 'http://localhost');
-    if (url.pathname !== '/ws') {
+    // A throw here is an uncaughtException, before any login: a request line
+    // that is no URL (`//`) gets the same answer as a wrong path.
+    const url = URL.parse(request.url ?? '', 'http://localhost');
+    if (url?.pathname !== '/ws') {
       socket.destroy();
       return;
     }
