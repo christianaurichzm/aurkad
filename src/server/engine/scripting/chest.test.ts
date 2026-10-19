@@ -5,7 +5,15 @@
  */
 import fs from 'node:fs';
 import path from 'node:path';
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import {
+  describe,
+  it,
+  expect,
+  beforeEach,
+  afterEach,
+  onTestFinished,
+} from 'vitest';
+import { config } from '../../config.js';
 import { runInSandbox, type ScriptHandle } from './sandbox.js';
 import { clearEntityBehaviors } from './entityScripts.js';
 import { clearAll } from '../hooks.js';
@@ -61,6 +69,55 @@ describe('an npc chest', () => {
 
     expect(gems(player)).toBe(2);
     expect(chest.sprite).toBe(395);
+  });
+
+  it('stays shut for a player whose data cannot take the mark', () => {
+    const limits = config.scriptData as { maxKeys: number };
+    const was = limits.maxKeys;
+    limits.maxKeys = 1;
+    onTestFinished(() => {
+      limits.maxKeys = was;
+    });
+    sim.addNpc({
+      behavior: 'friendly',
+      position: tile(5, 5),
+      scriptId: 'chest',
+      scriptParams: { itemId: GEM, once: true },
+    });
+    const player = sim.addPlayer({
+      name: 'Alice',
+      position: tile(5, 6),
+      direction: Direction.Up,
+      data: { tutorial: true },
+    });
+    rebuildQuadtree(sim.mapId, sim.map);
+
+    handleInteract(player);
+    handleInteract(player);
+
+    expect(gems(player)).toBe(0);
+  });
+
+  it('stays full for a player whose bag is', () => {
+    sim.addNpc({
+      behavior: 'friendly',
+      position: tile(5, 5),
+      scriptId: 'chest',
+      scriptParams: { itemId: GEM, once: true },
+    });
+    const player = sim.addPlayer({
+      name: 'Alice',
+      position: tile(5, 6),
+      direction: Direction.Up,
+      inventory: { items: [], maxCapacity: 0 },
+    });
+    rebuildQuadtree(sim.mapId, sim.map);
+
+    handleInteract(player);
+    player.inventory.maxCapacity = 10;
+    handleInteract(player);
+
+    expect(gems(player)).toBe(1);
   });
 });
 

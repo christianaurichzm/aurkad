@@ -47,16 +47,21 @@ attach('chest', {
 
 /** Hands the reward over; false when there was nothing to take. */
 function loot(player, key, params) {
-  if (params.once && getPlayerData(player, key)) return false;
+  if (params.once) {
+    if (getPlayerData(player, key)) return false;
+    // Marked before the item moves: a player at the data limit is refused the
+    // mark, and a chest that paid out unmarked would pay again on every step.
+    if (!setPlayerData(player, key, true)) return false;
+  }
 
   // giveItem reports whether it happened; a full bag would otherwise use up
   // the chest and hand over nothing.
   if (!giveItem(player, params.itemId, params.quantity)) {
+    if (params.once) setPlayerData(player, key, undefined);
     sendMessage(player, 'Your bag is full.');
     return false;
   }
 
   sendMessage(player, params.message);
-  if (params.once) setPlayerData(player, key, true);
   return true;
 }
