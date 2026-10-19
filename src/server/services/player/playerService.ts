@@ -922,8 +922,11 @@ export const disconnectPlayer = async (username?: string) => {
         player: player.name,
         err,
       });
+      // Taken while the way out of a dungeon copy is still known: leaving the
+      // world forgets it, and the retry would write the respawn point instead.
+      const location = persistedLocation(player);
       removePlayerSessionState(player);
-      retryDeparture(player);
+      retryDeparture(Object.assign(player, location));
       return;
     }
   }

@@ -671,6 +671,28 @@ describe('a departure the database cannot take', () => {
     expect(save.mock.calls[1]![0]).toMatchObject({ name: 'Alice' });
   });
 
+  it('is written at the doorway of the dungeon it left from', async () => {
+    vi.useFakeTimers();
+    onTestFinished(() => void vi.useRealTimers());
+    clearInstancesForTest();
+    const sim = createFixture(0);
+    sim.addMap({ id: 'dungeon', instanced: true });
+    const alice = sim.addPlayer({ name: 'Alice', position: tile(4, 7) });
+    warpToMap(alice, 'dungeon', tile(1, 1));
+    const save = vi
+      .spyOn(playerRepository, 'save')
+      .mockRejectedValueOnce(new Error('database unavailable'));
+    onTestFinished(() => void save.mockRestore());
+
+    await disconnectPlayer('Alice');
+    await vi.advanceTimersByTimeAsync(5_000);
+
+    expect(save.mock.calls[1]![0]).toMatchObject({
+      mapId: sim.mapId,
+      position: tile(4, 7),
+    });
+  });
+
   it('is written by the shutdown sweep when the process stops before the retry', async () => {
     vi.useFakeTimers();
     onTestFinished(() => void vi.useRealTimers());
