@@ -1,7 +1,15 @@
 // Exercises the real shipped magic module (modules/magic) end to end: casting
 // via the spell:cast custom action applies effects through dealDamage and
 // healPlayer and spends mana, bounded by cooldowns.
-import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+import {
+  describe,
+  it,
+  expect,
+  beforeEach,
+  afterEach,
+  onTestFinished,
+  vi,
+} from 'vitest';
 import { unloadAllModules } from './moduleLoader.js';
 import { loadModulesForTest } from '../../../test/modules.js';
 import { useApi, clearProvides } from './registry.js';
@@ -370,6 +378,23 @@ describe('magic module', () => {
       expect(carol.health).toBe(40); // not in the group
     },
   );
+
+  it('regenerates the same mana per second at another tick rate', () => {
+    const gameLoop = config.gameLoop as { tickRate: number };
+    const rate = gameLoop.tickRate;
+    gameLoop.tickRate = 10;
+    onTestFinished(() => {
+      gameLoop.tickRate = rate;
+    });
+    unloadAllModules();
+    loadModulesForTest('magic');
+    const sim = createFixture(0);
+    const alice = sim.addPlayer({ name: 'Alice', data: { mana: 50 } });
+
+    sim.step(20); // two seconds
+
+    expect(alice.data?.mana).toBe(60);
+  });
 });
 
 describe('learning spells', () => {

@@ -273,9 +273,10 @@ on('customAction', ({ player, channel, payload }) => {
 });
 
 // Regenerate mana ~once per second.
+const regenTicks = msToTicks(1000);
 on('tick', ({ tick }) => {
   tickNow = tick;
-  if (tick % 20 !== 0) return;
+  if (tick % regenTicks !== 0) return;
   for (const p of getPlayers()) {
     const m = getMana(p);
     if (m < manaMax) {
