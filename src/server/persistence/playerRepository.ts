@@ -135,6 +135,10 @@ export const playerRepository = {
     return !!(await PlayerModel.exists({}));
   },
 
+  async adminExists(): Promise<boolean> {
+    return !!(await PlayerModel.exists({ access: { $gte: Access.ADMIN } }));
+  },
+
   /**
    * Whether a name is in use ignoring case, so "admin" cannot sign up beside
    * "Admin". Lookups by name stay exact; this is only asked before making one.

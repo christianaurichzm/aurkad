@@ -119,12 +119,16 @@ export const createPlayer = async (
   username: string,
   password: string,
 ): Promise<PlayerServer> => {
+  // The named account is how a deployment gets its first admin, not a grant
+  // that stands while the variable is set: once one exists, the name
+  // registered again (its account deleted, say) is an ordinary signup, and
+  // whoever claims it first is not handed the server.
   const bootstrapAdminUsername = process.env.BOOTSTRAP_ADMIN_USERNAME;
-  const isAdmin =
-    bootstrapAdminUsername === username ||
-    (!bootstrapAdminUsername &&
-      process.env.NODE_ENV !== 'production' &&
-      !(await playerRepository.anyExists()));
+  const isAdmin = bootstrapAdminUsername
+    ? bootstrapAdminUsername === username &&
+      !(await playerRepository.adminExists())
+    : process.env.NODE_ENV !== 'production' &&
+      !(await playerRepository.anyExists());
 
   const {
     startingAttack,

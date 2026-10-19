@@ -10,6 +10,8 @@ import mongoose from 'mongoose';
 import type { MongoMemoryServer } from 'mongodb-memory-server';
 import { startMemoryMongo } from '../../test/mongo.js';
 import { playerRepository } from './playerRepository.js';
+import PlayerModel from '../model/Player.js';
+import { Access } from '../../shared/types.js';
 import {
   DB_SCHEMA_VERSION,
   checkDatabaseSchemaVersion,
@@ -84,6 +86,25 @@ describe('player persistence', () => {
       const other = await createPlayer('SomeoneElse', 'hash');
       expect(chosen.access).toBeGreaterThan(0);
       expect(other.access).toBe(0);
+    } finally {
+      if (previous === undefined) delete process.env.BOOTSTRAP_ADMIN_USERNAME;
+      else process.env.BOOTSTRAP_ADMIN_USERNAME = previous;
+    }
+  });
+
+  it('makes the bootstrap name an ordinary account once there is an admin', async () => {
+    const previous = process.env.BOOTSTRAP_ADMIN_USERNAME;
+    process.env.BOOTSTRAP_ADMIN_USERNAME = 'TheOperator';
+    try {
+      const first = await createPlayer('TheOperator', 'hash');
+      await PlayerModel.deleteOne({ name: 'TheOperator' });
+      await createPlayer('Other', 'hash');
+      await PlayerModel.updateOne({ name: 'Other' }, { access: Access.ADMIN });
+      // The account gone, its name registered again by someone else.
+      const again = await createPlayer('TheOperator', 'hash');
+
+      expect(first.access).toBeGreaterThan(0);
+      expect(again.access).toBe(0);
     } finally {
       if (previous === undefined) delete process.env.BOOTSTRAP_ADMIN_USERNAME;
       else process.env.BOOTSTRAP_ADMIN_USERNAME = previous;
