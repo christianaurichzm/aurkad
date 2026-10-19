@@ -10,7 +10,11 @@ import { getMap, updatePlayer, updateMap } from '../../sim/world.js';
 import { getItemById } from '../content/itemService.js';
 import { logger } from '../../logger.js';
 import { EQUIPMENT_SLOTS } from '../../../shared/constants.js';
-import { getPlayerByName, levelUpPlayer } from '../player/playerService.js';
+import {
+  getPlayerByName,
+  levelUpPlayer,
+  persistPlayersNow,
+} from '../player/playerService.js';
 import { emit } from '../../engine/hooks.js';
 import { dispatchEntityScript } from '../../engine/scripting/entityScripts.js';
 import { addItem, canFit, removeItem } from './economyService.js';
@@ -137,6 +141,11 @@ export function dropItemFromInventory(
   updateMap(map);
 
   updatePlayer(player);
+  // Written off the player now rather than at the next snapshot. The ground is
+  // never saved, and whoever picks the item up may be written first (a logout,
+  // a purchase): a crash in between left it in both accounts. Lost with the
+  // ground instead, as a restart loses everything lying there.
+  void persistPlayersNow([player]);
   return true;
 }
 
@@ -259,7 +268,8 @@ export function unequipItem(player: PlayerServer, slot: EquipmentSlot): void {
 
   // A full inventory sends it to the ground rather than deleting it. Bound
   // items never get here, as the check above refuses the unequip.
-  if (!addItem(player.inventory, itemId, 1).ok) {
+  const grounded = !addItem(player.inventory, itemId, 1).ok;
+  if (grounded) {
     const map = getMap(player.mapId);
     if (unequipped && map) {
       dropOnGround(map, {
@@ -274,6 +284,8 @@ export function unequipItem(player: PlayerServer, slot: EquipmentSlot): void {
 
   player.equipped[slot] = undefined;
   delete player.equippedEffects?.[slot];
+  // For the reason dropItemFromInventory writes at once.
+  if (grounded) void persistPlayersNow([player]);
 
   // After the slot is cleared, and only on the paths that got here: the refusal
   // above is not an unequip, and a listener told about one would take away a

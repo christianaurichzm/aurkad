@@ -1,4 +1,6 @@
-import { describe, it, expect, afterEach, vi } from 'vitest';
+import { describe, it, expect, afterEach, onTestFinished, vi } from 'vitest';
+import mongoose from 'mongoose';
+import { playerRepository } from '../../persistence/playerRepository.js';
 import fc from 'fast-check';
 import { createFixture } from '../../sim/simFixture.js';
 import type { Item, PlayerServer } from '../../../shared/types.js';
@@ -14,6 +16,23 @@ import {
   unequipItem,
 } from './inventoryService.js';
 import { deleteItem } from '../content/itemService.js';
+
+// No database: a connection that reports itself up, and the writes handed to
+// it, for the tests about what is written at once.
+function spyOnWrites() {
+  const ready = vi
+    .spyOn(mongoose.connection, 'readyState', 'get')
+    .mockReturnValue(mongoose.ConnectionStates.connected);
+  const save = vi.spyOn(playerRepository, 'save').mockResolvedValue(true);
+  // Each spy restored by name: vi.restoreAllMocks leaves the readyState getter
+  // mocked (it is inherited from a non-configurable accessor), and every later
+  // write in the file goes to a database that is not there.
+  onTestFinished(() => {
+    ready.mockRestore();
+    save.mockRestore();
+  });
+  return save;
+}
 
 // 40 ticks at 20 Hz.
 vi.mock('../../gameConfig.js', async (importOriginal) => {
@@ -160,6 +179,28 @@ describe('items on the ground', () => {
     ]);
   });
 
+  // The ground is not saved. Left to the next snapshot, the dropper's stored
+  // bag still held what another player had been written with already.
+  it('are written off the player who dropped them at once', async () => {
+    const sim = createFixture(0);
+    sim.addItem(item(70, { type: 'consumable' }));
+    const alice = sim.addPlayer({
+      name: 'Alice',
+      inventory: { items: [{ item: 70, quantity: 1 }], maxCapacity: 10 },
+    });
+    const saved = spyOnWrites();
+
+    dropItemFromInventory('Alice', 70);
+
+    await vi.waitFor(() =>
+      expect(saved).toHaveBeenCalledWith(
+        expect.objectContaining({ name: 'Alice', inventory: alice.inventory }),
+        undefined,
+      ),
+    );
+    expect(alice.inventory.items).toEqual([]);
+  });
+
   it('vanish once their time is up, counted from the last drop on the pile', () => {
     const sim = createFixture(0);
     sim.addItem(item(70, { type: 'consumable' }));
@@ -234,6 +275,7 @@ describe('equipping over a worn item with a full bag', () => {
 
   it('puts the old piece in the slot a lone new piece leaves', () => {
     const { sim, alice } = fullBag(1);
+    const saved = spyOnWrites();
 
     equipItem(alice, 60);
 
@@ -242,6 +284,7 @@ describe('equipping over a worn item with a full bag', () => {
     expect(countItem(alice.inventory, 60)).toBe(0);
     expect(alice.inventory.items).toHaveLength(10);
     expect(sim.map.droppedItems).toHaveLength(0);
+    expect(saved).not.toHaveBeenCalled();
     expect(alice.attack).toBe(13);
     expect(alice.equippedEffects?.weapon).toEqual([
       { attribute: 'attack', type: 'add', value: 3 },
@@ -260,8 +303,9 @@ describe('equipping over a worn item with a full bag', () => {
     expect(sim.map.droppedItems).toHaveLength(0);
   });
 
-  it('drops the old piece when the new one comes off a stack', () => {
+  it('drops the old piece when the new one comes off a stack', async () => {
     const { sim, alice } = fullBag(2);
+    const saved = spyOnWrites();
 
     equipItem(alice, 60);
 
@@ -272,6 +316,7 @@ describe('equipping over a worn item with a full bag', () => {
     expect(sim.map.droppedItems).toMatchObject([
       { itemId: 50, sprite: 0, position: alice.position, quantity: 1 },
     ]);
+    await vi.waitFor(() => expect(saved).toHaveBeenCalledOnce());
   });
 
   it('shows each hook the state it announces', () => {
