@@ -58,7 +58,8 @@ const droppedKeys = new Map<string, Set<string>>();
  * Published as a metric because this map is keyed by entity id and only
  * `forgetReplicatedEntity` removes an entry: if a despawn path forgets to call
  * it, the leak is invisible until memory runs out, and a recycled id inherits
- * another entity's history. Compared with live entities, this is the check.
+ * another entity's history. Only entities on a map somebody stands on are
+ * recorded, so this is at most the number alive: above that, something leaks.
  */
 export function replicatedEntityCount(): number {
   return previous.size;

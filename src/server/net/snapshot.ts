@@ -390,13 +390,19 @@ export function broadcastGameState() {
 
   for (const map of Object.values(gameState.maps)) {
     const mapRevision = map.tilesRevision ?? 0;
+    const viewers = Object.values(map.players);
 
-    // Phase 1 runs even if no one is watching this map: it keeps each entity's
-    // diff baseline current, so a viewer arriving later gets a correct full
-    // state rather than a delta against a stale baseline.
+    // A map nobody stands on is not serialized at all: there is no one to send
+    // its entities to and no one holding them. Whoever arrives starts from an
+    // empty interest state and is sent every entity whole; a viewer coming back
+    // with an older one spans ticks the history never recorded, which
+    // `gapDelta` answers with null, and so gets the resync body. Its entities
+    // keep their last baseline and diff against it once the map has a player.
+    if (viewers.length === 0) continue;
+
     recordMapEntities(map);
 
-    for (const player of Object.values(map.players)) {
+    for (const player of viewers) {
       const ws = playersWsMap.get(player.name);
       if (!ws || ws.readyState !== WebSocket.OPEN) continue;
 

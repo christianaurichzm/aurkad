@@ -2,7 +2,7 @@ import { describe, it, expect, afterEach, vi } from 'vitest';
 import WebSocket from 'ws';
 import { broadcastGameState } from './snapshot.js';
 import { recordHealthChange, resetPlayerNetState } from './viewerState.js';
-import { resetEntityReplication } from './entityReplication.js';
+import { fragmentAt, resetEntityReplication } from './entityReplication.js';
 import { playersWsMap } from './connections.js';
 import { config } from '../config.js';
 import { createFixture, tile } from '../sim/simFixture.js';
@@ -61,6 +61,34 @@ describe('broadcast backpressure', () => {
     playersWsMap.set('Alice', healthy as unknown as WebSocket);
     broadcastGameState();
     expect(healthy.send).toHaveBeenCalled();
+  });
+});
+
+describe('a map nobody stands on', () => {
+  it('is not serialized, and whoever arrives is sent its entities whole', () => {
+    resetEntityReplication();
+    const sim = createFixture(0);
+    const npc = sim.addNpc({ position: tile(3, 3) });
+    rebuildQuadtree(sim.mapId, sim.map);
+
+    broadcastGameState();
+    broadcastGameState();
+    expect(fragmentAt(npc.id)).toBeUndefined();
+
+    npc.position = tile(4, 3);
+    sim.addPlayer({ name: 'Alice', position: tile(1, 1) });
+    rebuildQuadtree(sim.mapId, sim.map);
+    const ws = fakeWs(0);
+    playersWsMap.set('Alice', ws as unknown as WebSocket);
+    broadcastGameState();
+
+    const update = ws.send.mock.calls
+      .map((c) => JSON.parse(String(c[0])))
+      .find((f) => f.type === 'worldUpdate');
+    expect(update?.payload.entities[npc.id]).toMatchObject({
+      name: npc.name,
+      position: tile(4, 3),
+    });
   });
 });
 

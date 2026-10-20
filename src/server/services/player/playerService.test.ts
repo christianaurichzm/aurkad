@@ -552,9 +552,11 @@ describe('leaving the world', () => {
       }
       case 'tick':
         sim.step(o.ticks);
-        // A tick records every entity on a map, so a baseline beyond those is
-        // one nothing will ever look up again.
-        expect(replicatedEntityCount()).toBe(
+        // A tick records every entity on a map somebody stands on, and a
+        // baseline goes only with its entity, so one beyond those alive is one
+        // nothing will ever look up again. The sweep at the end is the exact
+        // check: with everybody gone, no baseline may be left.
+        expect(replicatedEntityCount()).toBeLessThanOrEqual(
           getAllPlayers().length + npcsOnMaps().length,
         );
         return;

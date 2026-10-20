@@ -47,10 +47,15 @@ beforeEach(async () => {
   await createOrUpdateNpc(goblin);
 });
 
-/** Two goblins from one template, as a map with two spawn tiles has them. */
+/**
+ * Two goblins from one template, as a map with two spawn tiles has them, and
+ * a player out of their sight: a map nobody stands on is not replicated, so
+ * without one there would be no baselines to count.
+ */
 function placeGoblins() {
   sim.addNpc({ id: 'goblin:3:3', templateId: 'goblin', position: tile(3, 3) });
   sim.addNpc({ id: 'goblin:6:6', templateId: 'goblin', position: tile(6, 6) });
+  sim.addPlayer({ name: 'Watcher', position: tile(19, 19) });
 }
 
 describe('getNpcById', () => {
@@ -74,7 +79,8 @@ describe('refreshNpcInRuntime', () => {
     for (const id of ['goblin:3:3', 'goblin:6:6']) {
       expect(sim.map.npcs[id]).toMatchObject({ id, name: 'Hobgoblin' });
     }
-    expect(replicatedEntityCount()).toBe(2);
+    // The two goblins and the watcher.
+    expect(replicatedEntityCount()).toBe(3);
   });
 });
 
@@ -88,7 +94,8 @@ describe('deleteNpc', () => {
     sim.step(1);
 
     expect(Object.keys(sim.map.npcs)).toEqual([orc.id]);
-    expect(replicatedEntityCount()).toBe(1);
+    // The orc and the watcher.
+    expect(replicatedEntityCount()).toBe(2);
     expect(await getNpcById('goblin')).toBeNull();
   });
 });
