@@ -173,6 +173,12 @@ export function teleportPlayer(
   // Out of the dungeon and back into the world: the way in is only worth
   // remembering while they are inside it.
   if (!isInstanceKey(toMapId)) forgetEntrance(player.id);
+  // A landing is an arrival on the tile, as a step is: a quest waiting at the
+  // far end of a warp is reached there. The tile's own triggers stay with the
+  // step, or a warp landing on another warp would take it too.
+  const map = getMap(toMapId);
+  const tile = map ? tileAt(map.tiles, player.position) : undefined;
+  if (map && tile) emit('tileEnter', { player, tile, map });
 }
 
 /**

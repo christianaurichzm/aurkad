@@ -19,10 +19,9 @@ import { clearCommands } from '../commands.js';
 import { clearAll, emit } from '../hooks.js';
 import { drainGameEvents } from '../eventBus.js';
 import { createFixture, tile } from '../../sim/simFixture.js';
-import { getMap } from '../../sim/world.js';
 import { warpToMap } from '../../services/world/movementService.js';
 import { clearInstancesForTest } from '../../services/world/instanceService.js';
-import type { Quest, PlayerServer } from '../../../shared/types.js';
+import { Key, type Quest, type PlayerServer } from '../../../shared/types.js';
 
 // Authored quests live in the content cache the editor writes to; the model
 // behind it is mocked so seeding one needs no database.
@@ -493,11 +492,28 @@ describe('quest module with authored quests', () => {
     quest.start(alice, 'depths');
 
     warpToMap(alice, 'crypt', tile(6, 4));
-    const copy = getMap(alice.mapId)!;
-    expect(copy.id).not.toBe('crypt');
-    emit('tileEnter', { player: alice, tile: {} as never, map: copy });
+    expect(alice.mapId).not.toBe('crypt');
 
     expect(quest.get(alice, 'depths')?.status).toBe('completed');
+  });
+
+  it('completes a reach objective at the far end of a warp tile', async () => {
+    const quest = await bootWith({
+      id: 'ridge',
+      name: 'Reach the ridge',
+      objective: { type: 'reach', mapId: 'ridge', row: 4, col: 6 },
+    });
+    const sim = createFixture(0);
+    sim.addMap({ id: 'ridge' });
+    sim.map.tiles[5]![5]!.warp = { to: 'ridge', position: tile(6, 4) };
+    const alice = sim.addPlayer({ name: 'Alice', position: tile(5, 4) });
+    quest.start(alice, 'ridge');
+
+    sim.press('Alice', Key.ArrowDown);
+    sim.step(5);
+
+    expect(alice.mapId).toBe('ridge');
+    expect(quest.get(alice, 'ridge')?.status).toBe('completed');
   });
 
   // A script definition has to win, or the escape hatch is not one.

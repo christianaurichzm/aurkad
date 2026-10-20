@@ -27,6 +27,10 @@ export type HookMap = {
     contributors: DamageContributor[];
   };
   npcInteract: { player: PlayerServer; npc: RuntimeNpc };
+  /**
+   * A player came to stand on a tile: a step that ended there, or a teleport
+   * that landed there (a warp, a border, a respawn, an operator's tp).
+   */
   tileEnter: { player: PlayerServer; tile: Tile; map: MapStateServer };
   itemUse: { player: PlayerServer; itemId: number };
   itemPickup: { player: PlayerServer; itemId: number; quantity: number };
