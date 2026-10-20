@@ -284,6 +284,21 @@ describe('a map that is still arriving', () => {
     expect(getGameState()?.tiles[0]?.[0]?.tileIndex).toBe(5);
   });
 
+  // A revision counts from the server's boot: after a restart the same id
+  // and revision can describe a map resized while it was down.
+  it('takes the size from the meta when id and revision repeat', () => {
+    setMapMeta(meta('resized'));
+    applyMapChunk(chunk('resized', 0, 0));
+    setMapMeta({ ...meta('resized'), cols: 64, rows: 48 });
+
+    expect(getGameState()?.tiles).toHaveLength(48);
+    expect(getGameState()?.tiles[0]).toHaveLength(64);
+
+    setMapMeta(meta('elsewhere'));
+    setMapMeta(meta('resized'));
+    expect(getGameState()?.tiles).toHaveLength(32);
+  });
+
   // After a map change the server inserts everything in view and names
   // nobody as leaving, so old entities must be dropped here.
   it("leaves the old map's entities behind with it", () => {

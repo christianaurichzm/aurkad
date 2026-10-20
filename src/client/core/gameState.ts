@@ -106,11 +106,20 @@ function remember(map: MapStaticClient, revision: number | null): void {
  */
 export const isMapPending = (): boolean => mapPending;
 
+// Revisions count from boot, so the same id and revision can name a map
+// resized since; a grid of the wrong size is not reused.
+const fits = (tiles: Tile[][] | undefined, meta: MapMetaClient): boolean =>
+  tiles?.length === meta.rows && tiles[0]?.length === meta.cols;
+
 export const setMapMeta = (meta: MapMetaClient) => {
   cachedMapW = meta.cols * TILE_SIZE;
   cachedMapH = meta.rows * TILE_SIZE;
 
-  if (staticMap?.id === meta.id && staticMapRevision === meta.revision) {
+  if (
+    staticMap?.id === meta.id &&
+    staticMapRevision === meta.revision &&
+    fits(staticMap.tiles, meta)
+  ) {
     staticMap = {
       ...staticMap,
       name: meta.name,
@@ -131,7 +140,8 @@ export const setMapMeta = (meta: MapMetaClient) => {
     };
   }
 
-  const known = visited.get(visitedKey(meta.id, meta.revision));
+  const cached = visited.get(visitedKey(meta.id, meta.revision));
+  const known = fits(cached, meta) ? cached : undefined;
   staticMap = {
     id: meta.id,
     name: meta.name,
