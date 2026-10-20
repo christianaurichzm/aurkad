@@ -12,6 +12,7 @@ import { countItem } from './economyService.js';
 import {
   dropItemFromInventory,
   equipItem,
+  pickUpItem,
   startDropSweep,
   unequipItem,
 } from './inventoryService.js';
@@ -199,6 +200,33 @@ describe('items on the ground', () => {
       ),
     );
     expect(alice.inventory.items).toEqual([]);
+  });
+
+  it('cannot be picked up until the dropper has been written without them', async () => {
+    const sim = createFixture(0);
+    sim.addItem(item(70, { type: 'consumable' }));
+    const alice = sim.addPlayer({
+      name: 'Alice',
+      inventory: { items: [{ item: 70, quantity: 1 }], maxCapacity: 10 },
+    });
+    const bob = sim.addPlayer({ name: 'Bob', position: { ...alice.position } });
+    const saved = spyOnWrites();
+    let land = () => {};
+    saved.mockImplementationOnce(
+      () => new Promise((resolve) => (land = () => resolve(true))),
+    );
+    onTestFinished(() => land());
+
+    dropItemFromInventory('Alice', 70);
+    await vi.waitFor(() => expect(saved).toHaveBeenCalled());
+    pickUpItem(sim.map, bob);
+    expect(countItem(bob.inventory, 70)).toBe(0);
+
+    land();
+    await vi.waitFor(() => {
+      pickUpItem(sim.map, bob);
+      expect(countItem(bob.inventory, 70)).toBe(1);
+    });
   });
 
   it('vanish once their time is up, counted from the last drop on the pile', () => {

@@ -26,12 +26,36 @@ import { scheduleEvery } from '../../sim/scheduler.js';
 import { runtimeState } from '../../sim/state.js';
 
 /**
- * Puts items on the ground, on top of a pile of the same item on that tile when
- * there is one, and restarts the pile's lifetime. One entry per drop let a
- * player who dropped a stack one at a time put thousands of entries on a tile,
- * each serialized for every player in view, every tick.
+ * Piles holding something a player dropped whose write is still out, and
+ * how many such writes each waits on. The ground is never saved: picked up
+ * before the dropper's document lost the item, the taker can be written
+ * first, and a crash in between leaves it in both accounts. A failed write
+ * lets go too, since the dirty flag retries it and a pile held for good is
+ * one nobody can pick up.
  */
-export function dropOnGround(map: MapStateServer, drop: DroppedItem): void {
+const unsaved = new WeakMap<DroppedItem, number>();
+
+/** Writes `player` off what they dropped, holding the pile until then. */
+function writeOffDrop(player: PlayerServer, pile: DroppedItem | undefined) {
+  if (pile) unsaved.set(pile, (unsaved.get(pile) ?? 0) + 1);
+  void persistPlayersNow([player]).finally(() => {
+    if (!pile) return;
+    const left = (unsaved.get(pile) ?? 1) - 1;
+    if (left > 0) unsaved.set(pile, left);
+    else unsaved.delete(pile);
+  });
+}
+
+/**
+ * Puts items on the ground, on a pile of the same item on that tile when
+ * there is one, and restarts the pile's lifetime. A stack dropped one at a
+ * time stays one entry, not thousands each serialized for every viewer
+ * every tick. Returns the pile.
+ */
+export function dropOnGround(
+  map: MapStateServer,
+  drop: DroppedItem,
+): DroppedItem {
   const lifetimeMs = gameConfig.world.dropLifetimeMs;
   const expiresAtTick = lifetimeMs
     ? getTick() + msToTicks(lifetimeMs)
@@ -45,13 +69,11 @@ export function dropOnGround(map: MapStateServer, drop: DroppedItem): void {
   if (pile) {
     pile.quantity += drop.quantity;
     pile.expiresAtTick = expiresAtTick;
-  } else {
-    map.droppedItems.push({
-      ...drop,
-      position: { ...drop.position },
-      expiresAtTick,
-    });
+    return pile;
   }
+  const placed = { ...drop, position: { ...drop.position }, expiresAtTick };
+  map.droppedItems.push(placed);
+  return placed;
 }
 
 export function sweepExpiredDrops(): void {
@@ -76,7 +98,8 @@ export const pickUpItem = (map: MapStateServer, player: PlayerServer) => {
   const dropIndex = map.droppedItems.findLastIndex(
     (drop) =>
       drop.position.x === player.position.x &&
-      drop.position.y === player.position.y,
+      drop.position.y === player.position.y &&
+      !unsaved.has(drop),
   );
 
   if (dropIndex === -1) return;
@@ -132,7 +155,7 @@ export function dropItemFromInventory(
 
   if (!removeItem(player.inventory, itemId, quantity).ok) return false;
 
-  dropOnGround(map, {
+  const pile = dropOnGround(map, {
     itemId,
     sprite: item.sprite,
     position: player.position,
@@ -141,11 +164,7 @@ export function dropItemFromInventory(
   updateMap(map);
 
   updatePlayer(player);
-  // Written off the player now rather than at the next snapshot. The ground is
-  // never saved, and whoever picks the item up may be written first (a logout,
-  // a purchase): a crash in between left it in both accounts. Lost with the
-  // ground instead, as a restart loses everything lying there.
-  void persistPlayersNow([player]);
+  writeOffDrop(player, pile);
   return true;
 }
 
@@ -269,10 +288,11 @@ export function unequipItem(player: PlayerServer, slot: EquipmentSlot): void {
   // A full inventory sends it to the ground rather than deleting it. Bound
   // items never get here, as the check above refuses the unequip.
   const grounded = !addItem(player.inventory, itemId, 1).ok;
+  let pile: DroppedItem | undefined;
   if (grounded) {
     const map = getMap(player.mapId);
     if (unequipped && map) {
-      dropOnGround(map, {
+      pile = dropOnGround(map, {
         itemId,
         sprite: unequipped.sprite,
         position: player.position,
@@ -284,8 +304,7 @@ export function unequipItem(player: PlayerServer, slot: EquipmentSlot): void {
 
   player.equipped[slot] = undefined;
   delete player.equippedEffects?.[slot];
-  // For the reason dropItemFromInventory writes at once.
-  if (grounded) void persistPlayersNow([player]);
+  if (grounded) writeOffDrop(player, pile);
 
   // After the slot is cleared, and only on the paths that got here: the refusal
   // above is not an unequip, and a listener told about one would take away a
