@@ -382,6 +382,13 @@ export const config = {
       min: 1,
       max: 20,
     }),
+    // How long the loop may go without a tick before the watchdog takes the
+    // process down for its supervisor to restart; 0 turns it off. A tick is
+    // 50 ms and the longest honest pause, a major GC, is hundreds of ms.
+    stallTimeoutMs: parseIntEnv('TICK_STALL_TIMEOUT_MS', 15_000, {
+      min: 0,
+      max: 600_000,
+    }),
   },
   net: {
     aoiMarginTiles: parseIntEnv('NET_AOI_MARGIN_TILES', 2, {

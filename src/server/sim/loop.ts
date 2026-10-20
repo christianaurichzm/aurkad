@@ -1,6 +1,12 @@
+import { Worker } from 'node:worker_threads';
 import { config } from '../config.js';
 import { logger } from '../logger.js';
-import { recordTick, recordCatchUpTick } from '../metrics.js';
+import {
+  recordTick,
+  recordCatchUpTick,
+  recordDroppedTicks,
+  recordSystemTime,
+} from '../metrics.js';
 import {
   processMovementIntent,
   processMovementCompletion,
@@ -63,48 +69,62 @@ export const tickSystems: readonly TickSystem[] = [
   { name: 'broadcastGameState', run: broadcastGameState },
 ];
 
+function systemFailed(name: string, err: unknown) {
+  logger.errorThrottled(`tick:${name}`, `[tick] system failed: ${name}`, {
+    tick: getTick(),
+    err,
+  });
+}
+
 function runTickSystems() {
   for (const system of tickSystems) {
+    const startedAt = performance.now();
     try {
       const result = system.run();
       if (result instanceof Promise) {
-        result.catch((e) => {
-          logger.error(`[tick] system failed: ${system.name}`, {
-            tick: getTick(),
-            err: e,
-          });
-        });
+        result.catch((e) => systemFailed(system.name, e));
       }
     } catch (e) {
-      logger.error(`[tick] system failed: ${system.name}`, {
-        tick: getTick(),
-        err: e,
-      });
+      systemFailed(system.name, e);
     }
+    recordSystemTime(system.name, performance.now() - startedAt);
   }
 }
+
+// Lag the loop still catches up on, a few ticks per fire. Past this the
+// extra ticks are dropped instead of fast-forwarding the world.
+const MAX_BACKLOG_MS = 250;
+
+// Bumped on every loop fire, read by the watchdog thread.
+const heartbeat = new Int32Array(new SharedArrayBuffer(4));
 
 export function startGameLoops(): () => void {
   const TICK_RATE = config.gameLoop.tickRate;
   const MAX_UPDATES_PER_TICK = config.gameLoop.maxUpdatesPerTick;
 
   const tickInterval = 1000 / TICK_RATE;
-  let lastUpdateTime = Date.now();
+  // Monotonic, so an NTP step back doesn't delay the next fire.
+  let lastUpdateTime = performance.now();
   let running = true;
   let tickTimeout: TimeoutHandle | undefined;
 
   const tick = () => {
     if (!running) return;
-    const now = Date.now();
-    let updates = 0;
+    Atomics.add(heartbeat, 0, 1);
+    const now = performance.now();
 
+    const excess = now - lastUpdateTime - MAX_BACKLOG_MS;
+    if (excess > 0) {
+      const dropped = Math.ceil(excess / tickInterval);
+      lastUpdateTime += dropped * tickInterval;
+      recordDroppedTicks(dropped);
+    }
+
+    let updates = 0;
     while (
       now - lastUpdateTime >= tickInterval &&
       updates < MAX_UPDATES_PER_TICK
     ) {
-      // performance.now() rather than Date.now(): a healthy tick runs well
-      // under 1 ms, and integer-millisecond timing would collapse the
-      // percentiles to 0/1.
       const tickStart = performance.now();
       runTickSystems();
       recordTick(performance.now() - tickStart, getActionQueueSize());
@@ -114,7 +134,10 @@ export function startGameLoops(): () => void {
       updates++;
     }
 
-    const delay = Math.max(0, tickInterval - (Date.now() - lastUpdateTime));
+    const delay = Math.max(
+      0,
+      tickInterval - (performance.now() - lastUpdateTime),
+    );
     tickTimeout = setTimeout(tick, delay);
   };
 
@@ -123,5 +146,83 @@ export function startGameLoops(): () => void {
   return () => {
     running = false;
     if (tickTimeout) clearTimeout(tickTimeout);
+  };
+}
+
+/**
+ * Watchdog thread source. A handler that never returns freezes the main
+ * thread, so this thread watches the heartbeat and, after `stallMs` without
+ * a beat, logs the stuck stack via the inspector and kills the process for
+ * the supervisor to restart.
+ *
+ * Plain CommonJS in a string so it needs no TS loader or build output. It
+ * writes to fd 2 because a worker's console goes through the main thread.
+ */
+export const WATCHDOG_SOURCE = `
+const { workerData } = require('node:worker_threads');
+const { Session } = require('node:inspector');
+const { writeSync } = require('node:fs');
+const beat = new Int32Array(workerData.heartbeat);
+let seen = Atomics.load(beat, 0);
+let movedAt = performance.now();
+
+function exit(stalledMs, stack) {
+  const msg = '[tick] loop stalled; exiting for the supervisor to restart';
+  const ctx = { stalledMs: Math.round(stalledMs), stack };
+  const line = workerData.json
+    ? JSON.stringify({ ts: new Date().toISOString(), level: 'error', msg, ...ctx })
+    : '[ERROR] ' + msg + ' ' + JSON.stringify(ctx);
+  writeSync(2, line + '\\n');
+  process.kill(process.pid, 'SIGKILL');
+}
+
+const poll = setInterval(() => {
+  const now = Atomics.load(beat, 0);
+  if (now !== seen) {
+    seen = now;
+    movedAt = performance.now();
+    return;
+  }
+  const stalledMs = performance.now() - movedAt;
+  if (stalledMs < workerData.stallMs) return;
+  clearInterval(poll);
+
+  // A thread blocked outside JavaScript never reaches a pause point.
+  const fallback = setTimeout(() => exit(stalledMs, []), 2000);
+  const urls = new Map();
+  const session = new Session();
+  session.connectToMainThread();
+  session.on('Debugger.scriptParsed', ({ params }) => {
+    urls.set(params.scriptId, params.url);
+  });
+  session.on('Debugger.paused', ({ params }) => {
+    clearTimeout(fallback);
+    exit(
+      stalledMs,
+      params.callFrames.slice(0, 10).map((f) =>
+        (f.functionName || '<anonymous>') + ' ' +
+        (urls.get(f.location.scriptId) || '?') + ':' +
+        (f.location.lineNumber + 1),
+      ),
+    );
+  });
+  session.post('Debugger.enable', () => session.post('Debugger.pause'));
+}, 1000);
+`;
+
+/** Starts the watchdog thread over the loop's heartbeat; returns its stop. */
+export function startTickWatchdog(stallMs: number): () => void {
+  const worker = new Worker(WATCHDOG_SOURCE, {
+    eval: true,
+    execArgv: [],
+    workerData: {
+      heartbeat: heartbeat.buffer,
+      stallMs,
+      json: process.env.NODE_ENV === 'production',
+    },
+  });
+  worker.unref();
+  return () => {
+    void worker.terminate();
   };
 }

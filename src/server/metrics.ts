@@ -15,14 +15,14 @@ import {
 } from './engine/scripting/handlerBudget.js';
 import { tracingStats } from './tracing.js';
 import { percentile, round2 } from '../shared/utils.js';
+import { PerformanceObserver, constants } from 'node:perf_hooks';
 
 export interface TickMetrics {
   tickMs: number;
   queueSize: number;
 }
 
-// 600 ticks = ~30 s at 20 Hz. The old 100-tick window held only ~5 s, which is
-// too few samples for a meaningful p99 (it was effectively the max).
+// 600 ticks is ~30 s at 20 Hz, enough samples for a p99 that is not the max.
 const WINDOW = 600;
 const tickWindow: TickMetrics[] = Array.from({ length: WINDOW }, () => ({
   tickMs: 0,
@@ -32,7 +32,33 @@ let tickHead = 0;
 let tickFilled = 0;
 let lastTickAt = 0;
 let catchUpTicks = 0;
+let droppedTicks = 0;
 let totalTicks = 0;
+
+// Milliseconds each tick system has spent since start, by name. The tick
+// percentiles say the frame got slower; this says which part of it.
+const systemMs = new Map<string, number>();
+
+// Collector pauses by kind, since start. A major collection stops the world
+// mid-tick and its time lands on whichever system happened to be running, so
+// the per-system totals cannot tell a slow system from an unlucky one; this
+// can. Observed from load: a counter has to cover the whole process lifetime.
+const GC_KINDS: Record<number, string> = {
+  [constants.NODE_PERFORMANCE_GC_MINOR]: 'minor',
+  [constants.NODE_PERFORMANCE_GC_MAJOR]: 'major',
+  [constants.NODE_PERFORMANCE_GC_INCREMENTAL]: 'incremental',
+  [constants.NODE_PERFORMANCE_GC_WEAKCB]: 'weakcb',
+};
+const gcMs = new Map<string, number>();
+new PerformanceObserver((list) => {
+  for (const entry of list.getEntries()) {
+    const { detail } = entry as PerformanceEntry & {
+      detail?: { kind?: number };
+    };
+    const kind = GC_KINDS[detail?.kind ?? -1] ?? 'other';
+    gcMs.set(kind, (gcMs.get(kind) ?? 0) + entry.duration);
+  }
+}).observe({ entryTypes: ['gc'] });
 
 export function recordTick(ms: number, queueSize: number): void {
   tickWindow[tickHead] = { tickMs: ms, queueSize };
@@ -46,6 +72,15 @@ export function recordTick(ms: number, queueSize: number): void {
 // fire). A rising rate means the loop is not keeping pace with the tick rate.
 export function recordCatchUpTick(): void {
   catchUpTicks++;
+}
+
+// Ticks the loop let go instead of running late: owed past its backlog cap.
+export function recordDroppedTicks(count: number): void {
+  droppedTicks += count;
+}
+
+export function recordSystemTime(name: string, ms: number): void {
+  systemMs.set(name, (systemMs.get(name) ?? 0) + ms);
 }
 
 // Wall-clock time of the last recorded tick; 0 before the loop starts.
@@ -83,7 +118,12 @@ export function getTickStats() {
     p95QueueSize: percentile(queue, 95),
     maxQueueSize: queue[queue.length - 1] ?? 0,
     catchUpTicks,
+    droppedTicks,
     totalTicks,
+    systems: [...systemMs].map(([system, totalMs]) => ({
+      system,
+      totalMs: round2(totalMs),
+    })),
   };
 }
 
@@ -119,6 +159,10 @@ export function getMetrics() {
     maps: maps.length,
     byMap,
     tick: getTickStats(),
+    gc: [...gcMs].map(([kind, totalMs]) => ({
+      kind,
+      totalMs: round2(totalMs),
+    })),
     // Read straight from the process rather than sampled into a window: a soak
     // reads memory as a slope over hours, and the sampling belongs to whoever
     // is scraping, not here.
@@ -167,5 +211,7 @@ export function resetMetricsForTest(): void {
   tickFilled = 0;
   lastTickAt = 0;
   catchUpTicks = 0;
+  droppedTicks = 0;
   totalTicks = 0;
+  systemMs.clear();
 }

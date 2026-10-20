@@ -17,6 +17,7 @@ import { fileURLToPath } from 'node:url';
 import path from 'node:path';
 
 import { createServer } from 'node:http';
+import inspector from 'node:inspector';
 import express, { type RequestHandler } from 'express';
 import mongoose from 'mongoose';
 import app, { handleRouteError } from './app.js';
@@ -68,7 +69,7 @@ import {
   startWebSocketServer,
   stopWebSocketServer,
 } from './net/transport.js';
-import { startGameLoops } from './sim/loop.js';
+import { startGameLoops, startTickWatchdog } from './sim/loop.js';
 import { connectToDatabase, loadInitialData } from './initDb.js';
 import { storedSessionSecret } from './services/dbService.js';
 import { startLiveOps } from './services/liveOpsService.js';
@@ -169,6 +170,7 @@ app.use(handleRouteError);
 
 const server = createServer(app);
 let stopGameLoops: (() => void) | undefined;
+let stopWatchdog: (() => void) | undefined;
 let stopSnapshots: (() => void) | undefined;
 let stopCensus: (() => void) | undefined;
 let stopAnalytics: (() => void) | undefined;
@@ -282,6 +284,9 @@ async function startServer() {
     await reportUnknownBehaviors();
     startWebSocketServer(server, sessionMiddleware);
     stopGameLoops = startGameLoops();
+    // A debugger paused on a breakpoint stalls the loop as surely as a hang.
+    if (config.gameLoop.stallTimeoutMs > 0 && !inspector.url())
+      stopWatchdog = startTickWatchdog(config.gameLoop.stallTimeoutMs);
     stopSnapshots = startPlayerSnapshotLoop();
     stopCensus = startCensusJob();
     // After the modules and scripts are loaded, like every other subscriber:
@@ -317,6 +322,9 @@ async function shutdown(signal: string, exitCode = 0) {
 
   logger.info('[Shutdown] Received signal; closing server', { signal });
 
+  // Before the loop: the flush below can outlast the stall timeout, and a
+  // stopped loop no longer beats.
+  stopWatchdog?.();
   stopGameLoops?.();
   stopSnapshots?.();
   stopCensus?.();

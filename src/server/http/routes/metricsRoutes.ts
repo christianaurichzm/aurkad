@@ -153,6 +153,26 @@ export function buildMetricsSamples(): Sample[] {
       value: m.tick.catchUpTicks,
     },
     {
+      name: 'engine_tick_dropped_total',
+      help: 'Ticks dropped after a stall longer than the loop pays back.',
+      type: 'counter',
+      value: m.tick.droppedTicks,
+    },
+    ...m.tick.systems.map((s) => ({
+      name: 'engine_tick_system_ms_total',
+      help: 'Time spent inside a tick system since process start.',
+      type: 'counter' as const,
+      value: s.totalMs,
+      labels: { system: s.system },
+    })),
+    ...m.gc.map((g) => ({
+      name: 'engine_gc_pause_ms_total',
+      help: 'Garbage collector pause time since process start, by kind.',
+      type: 'counter' as const,
+      value: g.totalMs,
+      labels: { kind: g.kind },
+    })),
+    {
       name: 'engine_action_queue_size_avg',
       help: 'Mean pending action-queue size over the sample window.',
       type: 'gauge',

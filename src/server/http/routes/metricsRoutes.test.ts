@@ -30,7 +30,12 @@ vi.mock('../../logger.js', () => ({
 }));
 
 import { createMetricsRouter, metricsAuth } from './metricsRoutes.js';
-import { recordTick, resetMetricsForTest } from '../../metrics.js';
+import {
+  recordDroppedTicks,
+  recordSystemTime,
+  recordTick,
+  resetMetricsForTest,
+} from '../../metrics.js';
 import {
   clearHandlerBudget,
   runWithBudget,
@@ -176,6 +181,31 @@ describe('GET /metrics', () => {
       const res = await request(appAs(Access.ADMIN)).get('/metrics');
       expect(res.text).not.toContain('engine_script_handler_ms_total');
     });
+  });
+});
+
+describe('tick systems', () => {
+  it('publishes the time each system has taken, one series per system', async () => {
+    recordSystemTime('processActions', 1.25);
+    recordSystemTime('processActions', 0.5);
+    recordSystemTime('broadcastGameState', 3);
+
+    const res = await request(appAs(Access.ADMIN)).get('/metrics');
+
+    expect(res.text).toContain(
+      'engine_tick_system_ms_total{system="processActions"} 1.75',
+    );
+    expect(res.text).toContain(
+      'engine_tick_system_ms_total{system="broadcastGameState"} 3',
+    );
+  });
+
+  it('counts the ticks a stall dropped', async () => {
+    recordDroppedTicks(40);
+
+    const res = await request(appAs(Access.ADMIN)).get('/metrics');
+
+    expect(res.text).toContain('engine_tick_dropped_total 40');
   });
 });
 
