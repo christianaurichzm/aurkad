@@ -3,7 +3,12 @@ import path from 'node:path';
 import { z } from 'zod';
 import { gamePath } from '../config.js';
 import { logger } from '../logger.js';
-import { BorderLinksSchema, TileSchema } from '../services/world/mapService.js';
+import {
+  BorderLinksSchema,
+  MapTypeSchema,
+  PvpMoraleSchema,
+  TileSchema,
+} from '../services/world/mapService.js';
 import { ArrowSchema as ArrowFieldsSchema } from '../services/content/arrowService.js';
 import { DialogSchema } from '../services/content/dialogService.js';
 import { ItemSchema as ItemFieldsSchema } from '../services/content/itemService.js';
@@ -25,6 +30,7 @@ import { createOrUpdateMap, listMaps } from '../services/world/mapService.js';
 import {
   createOrUpdateShop,
   listShops,
+  ShopSchema,
 } from '../services/economy/shopService.js';
 import {
   createOrUpdateLootTable,
@@ -120,9 +126,9 @@ const MapSchema = z.object({
     .min(1)
     .regex(/^[^#]+$/, 'a # marks a dungeon copy, which is never saved'),
   name: z.string().min(1),
-  type: z.enum(['pvp', 'normal']),
+  type: MapTypeSchema,
   orientation: z.enum(['orthogonal', 'isometric']).optional(),
-  pvp: z.enum(['safe', 'normal', 'no-penalty']).optional(),
+  pvp: PvpMoraleSchema.optional(),
   instanced: z.boolean().optional(),
   // What joins one map to the next. Undeclared here, `z.object` would drop it
   // between the file and the database and adjacent maps would arrive as
@@ -140,18 +146,6 @@ const MapSchema = z.object({
       }),
     )
     .optional(),
-});
-
-const ShopSchema = z.object({
-  id: z.string().min(1),
-  name: z.string().min(1),
-  products: z.array(
-    z.object({
-      itemId: z.number().int().nonnegative(),
-      currency: z.number().int().nonnegative(),
-      price: z.number().int().nonnegative(),
-    }),
-  ),
 });
 
 type FileSpec<T extends z.ZodType> = {

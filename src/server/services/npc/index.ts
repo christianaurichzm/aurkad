@@ -24,7 +24,6 @@ import {
   faceToward,
   escapeMove,
 } from './behaviors.js';
-import { selector, act, type BtNode } from './bt.js';
 import { useApi } from '../../engine/modules/registry.js';
 import { logger } from '../../logger.js';
 import { isInstanceTemplate } from '../world/instanceService.js';
@@ -59,31 +58,25 @@ type LosApi = {
   hasLOS: (from: Position, to: Position, map: MapStateServer) => boolean;
 };
 
-type NpcBtCtx = {
-  npc: RuntimeNpc;
-  player: PlayerServer;
-  map: MapStateServer;
-  ai: NpcAiState;
-  tick: number;
-  attackCooldownTicks: number;
-};
-
-// ---- shared leaf nodes ----
-
-// If player is in attack range, either attack (cooldown ready) or idle-wait in
-// position. Returns 'failure' only when out of range, letting the selector fall
-// through to the chase branch.
-const inRangeHandler: BtNode<NpcBtCtx> = (ctx) => {
-  if (!isPlayerInAttackRange(ctx.npc, ctx.player)) return 'failure';
-  if (ctx.tick - ctx.ai.lastAttackTick >= ctx.attackCooldownTicks) {
-    transitionNpcAi(ctx.ai, 'attack');
-    ctx.ai.lastAttackTick = ctx.tick;
-    attackPlayer(ctx.npc, ctx.player);
+// With the player in attack range, attack (cooldown ready) or wait in
+// place. False only when out of range, the chase's cue.
+function attackInRange(
+  npc: RuntimeNpc,
+  player: PlayerServer,
+  ai: NpcAiState,
+): boolean {
+  if (!isPlayerInAttackRange(npc, player)) return false;
+  const tick = getTick();
+  const cooldownTicks = msToTicks(gameConfig.combat.npcAttackCooldownMs);
+  if (tick - ai.lastAttackTick >= cooldownTicks) {
+    transitionNpcAi(ai, 'attack');
+    ai.lastAttackTick = tick;
+    attackPlayer(npc, player);
   } else {
-    ctx.npc.action = CharacterAction.Idle;
+    npc.action = CharacterAction.Idle;
   }
-  return 'success';
-};
+  return true;
+}
 
 // One step toward a destination, with an escape hatch for the step the path
 // could not know about: a player standing on the tile it wants. Shared by the
@@ -105,18 +98,6 @@ function stepWithEscape(
     escapeMove(npc);
   }
 }
-
-const chaseWithStuck: BtNode<NpcBtCtx> = act((ctx) => {
-  transitionNpcAi(ctx.ai, 'chase');
-  stepWithEscape(ctx.npc, ctx.ai, ctx.player.position, ctx.map);
-});
-
-// ---- behavior tree (built once, reused every tick) ----
-
-// Same tree for both hunting behaviors: attack what is in range, otherwise
-// close the distance. What separates aggressive from hostile is acquisition
-// (sight radius and line of sight), which happens before the tree runs.
-const hunterBt: BtNode<NpcBtCtx> = selector(inRangeHandler, chaseWithStuck);
 
 // ---- target acquisition ----
 
@@ -265,16 +246,13 @@ export function updateNpcs(
   // direction never delays the first hit by a full update interval.
   faceToward(npc, target);
 
-  const ctx: NpcBtCtx = {
-    npc,
-    player: target,
-    map,
-    ai,
-    tick: getTick(),
-    attackCooldownTicks: msToTicks(gameConfig.combat.npcAttackCooldownMs),
-  };
-
-  hunterBt(ctx);
+  // Both hunting behaviors do the same from here: attack what is in range,
+  // otherwise close the distance. What separates aggressive from hostile is
+  // acquisition (sight radius and line of sight), done above.
+  if (!attackInRange(npc, target, ai)) {
+    transitionNpcAi(ai, 'chase');
+    stepWithEscape(npc, ai, target.position, map);
+  }
 }
 
 /**

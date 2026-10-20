@@ -42,45 +42,11 @@ type RateState = {
   released: Set<Key>;
 };
 
-class FastQueue<T> {
-  private items: T[] = [];
-  private head = 0;
-
-  enqueue(item: T) {
-    this.items.push(item);
-  }
-
-  dequeue(): T | undefined {
-    if (this.head >= this.items.length) return undefined;
-    const item = this.items[this.head];
-    this.head++;
-
-    if (this.head > 1024 && this.head * 2 > this.items.length) {
-      this.items = this.items.slice(this.head);
-      this.head = 0;
-    }
-
-    return item;
-  }
-
-  get size() {
-    return this.items.length - this.head;
-  }
-
-  clear() {
-    this.items = [];
-    this.head = 0;
-  }
-}
-
 let wss: WebSocketServer;
 let shuttingDown = false;
 let heartbeatInterval: IntervalHandle | undefined;
 
-const actionQueue = new FastQueue<{
-  action: ClientAction;
-  socket?: WebSocket;
-}>();
+let actionQueue: { action: ClientAction; socket?: WebSocket }[] = [];
 let droppedQueuedActions = 0;
 let lastQueueDropLogTime = 0;
 
@@ -154,8 +120,8 @@ function applyDroppedRelease(action: ClientAction | undefined) {
 
 function enqueueAction(action: ClientAction, socket?: WebSocket) {
   const maxSize = config.limits.actionQueueMaxSize;
-  if (maxSize > 0 && actionQueue.size >= maxSize) {
-    const dropped = actionQueue.dequeue();
+  if (maxSize > 0 && actionQueue.length >= maxSize) {
+    const dropped = actionQueue.shift();
     if (
       dropped &&
       (!dropped.socket || dropped.socket.readyState === WebSocket.OPEN)
@@ -173,7 +139,7 @@ function enqueueAction(action: ClientAction, socket?: WebSocket) {
     }
   }
 
-  actionQueue.enqueue({ action, socket });
+  actionQueue.push({ action, socket });
 }
 
 function dispatchClientAction(action: ClientAction): void {
@@ -211,11 +177,10 @@ function dispatchIsolated(action: ClientAction): void {
 }
 
 export function processActions() {
+  const batch = actionQueue;
+  actionQueue = [];
   let n = 0;
-  while (actionQueue.size > 0) {
-    const queued = actionQueue.dequeue();
-    if (!queued) continue;
-    const { action, socket } = queued;
+  for (const { action, socket } of batch) {
     if (
       socket &&
       (socket.readyState !== WebSocket.OPEN ||
@@ -527,7 +492,7 @@ export async function stopWebSocketServer(): Promise<void> {
 }
 
 export function getActionQueueSize(): number {
-  return actionQueue.size;
+  return actionQueue.length;
 }
 
 export function markServerShuttingDown() {
@@ -544,5 +509,5 @@ export function enqueueClientAction(action: ClientAction) {
 }
 
 export function clearActionQueue() {
-  actionQueue.clear();
+  actionQueue = [];
 }

@@ -1,4 +1,5 @@
 import readline from 'node:readline';
+import { styleText } from 'node:util';
 import { Access } from '../../shared/types.js';
 import {
   handleReplCommand,
@@ -16,33 +17,22 @@ import { serverState } from '../services/serverState.js';
  */
 
 const COLOR_ENABLED = process.stdout.isTTY && !process.env.NO_COLOR;
-const ansi = {
-  reset: '\x1b[0m',
-  bold: '\x1b[1m',
-  dim: '\x1b[2m',
-  red: '\x1b[31m',
-  green: '\x1b[32m',
-  yellow: '\x1b[33m',
-  blue: '\x1b[34m',
-  magenta: '\x1b[35m',
-  cyan: '\x1b[36m',
-  gray: '\x1b[90m',
-} as const;
 
-function paint(text: string, ...codes: string[]): string {
-  if (!COLOR_ENABLED) return text;
-  return `${codes.join('')}${text}${ansi.reset}`;
+function paint(text: string, format: Parameters<typeof styleText>[0]): string {
+  return COLOR_ENABLED
+    ? styleText(format, text, { validateStream: false })
+    : text;
 }
 
 const style: CommandStyle = {
-  title: (text) => paint(text, ansi.bold, ansi.cyan),
-  player: (text) => paint(text, ansi.bold, ansi.magenta),
-  map: (text) => paint(text, ansi.blue),
-  ok: (text) => paint(text, ansi.green),
-  warn: (text) => paint(text, ansi.yellow),
-  error: (text) => paint(text, ansi.red),
-  muted: (text) => paint(text, ansi.gray),
-  value: (text) => paint(text, ansi.bold),
+  title: (text) => paint(text, ['bold', 'cyan']),
+  player: (text) => paint(text, ['bold', 'magenta']),
+  map: (text) => paint(text, 'blue'),
+  ok: (text) => paint(text, 'green'),
+  warn: (text) => paint(text, 'yellow'),
+  error: (text) => paint(text, 'red'),
+  muted: (text) => paint(text, 'gray'),
+  value: (text) => paint(text, 'bold'),
 };
 
 const accessLabel: Record<Access, string> = {
@@ -60,12 +50,12 @@ function out(line: string) {
 function prompt(): string {
   const modeColor =
     serverState.mode === 'normal'
-      ? ansi.green
+      ? 'green'
       : serverState.mode === 'maintenance'
-        ? ansi.yellow
-        : ansi.magenta;
+        ? 'yellow'
+        : 'magenta';
 
-  return `${paint('admin', ansi.bold, ansi.cyan)}:${paint(serverState.mode, ansi.bold, modeColor)}> `;
+  return `${paint('admin', ['bold', 'cyan'])}:${paint(serverState.mode, ['bold', modeColor])}> `;
 }
 
 /**
