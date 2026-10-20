@@ -346,12 +346,20 @@ function readClaimedHistory(
   player: PlayerServer,
   pending: PendingDelivery[],
 ): string[] {
+  const queued = new Set(pending.map((row) => row.id));
+  return claimedDeliveryIds(player).filter((id) => queued.has(id));
+}
+
+/**
+ * Deliveries already in `player`'s inventory. Their rows can still be queued,
+ * after a delete that failed, and are not waiting for anyone.
+ */
+export function claimedDeliveryIds(
+  player: Pick<PlayerServer, 'data'>,
+): string[] {
   const stored = player.data?.[CLAIMED_KEY];
   if (!Array.isArray(stored)) return [];
-  const queued = new Set(pending.map((row) => row.id));
-  return stored.filter(
-    (v): v is string => typeof v === 'string' && queued.has(v),
-  );
+  return stored.filter((v): v is string => typeof v === 'string');
 }
 
 /**

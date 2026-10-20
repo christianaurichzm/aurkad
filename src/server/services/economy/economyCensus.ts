@@ -13,6 +13,7 @@ import mongoose from 'mongoose';
 import DeliveryModel from '../../model/Delivery.js';
 import AuctionModel from '../../model/Auction.js';
 import type { AuctionListing } from './auctionService.js';
+import { claimedDeliveryIds } from './deliveryService.js';
 import EconomyCensusModel from '../../model/EconomyCensus.js';
 import { runtimeState } from '../../sim/state.js';
 import { playerRepository } from '../../persistence/playerRepository.js';
@@ -110,10 +111,13 @@ class Tally {
   }
 }
 
+/** Counts what `player` holds; their claimed deliveries go into `claimed`. */
 function countPlayer(
   tally: Tally,
   player: Pick<PlayerServer, 'name' | 'inventory' | 'equipped' | 'data'>,
+  claimed: Set<string>,
 ): void {
+  for (const id of claimedDeliveryIds(player)) claimed.add(id);
   for (const slot of player.inventory?.items ?? []) {
     tally.add(Number(slot.item), slot.quantity, 'inventory', player.name);
   }
@@ -153,19 +157,22 @@ export async function takeCensus(): Promise<EconomyCensus> {
     }
   }
 
+  const claimed = new Set<string>();
   const stored = await playerRepository.list();
   for (const record of stored) {
-    countPlayer(tally, online.get(record.name) ?? record);
+    countPlayer(tally, online.get(record.name) ?? record, claimed);
     online.delete(record.name);
   }
   // A session whose document has not been written yet still holds items.
-  for (const player of online.values()) countPlayer(tally, player);
+  for (const player of online.values()) countPlayer(tally, player, claimed);
 
   const pending = await DeliveryModel.find()
-    .select('itemId quantity to -_id')
-    .lean<Array<{ itemId: number; quantity: number; to: string }>>()
+    .select('id itemId quantity to -_id')
+    .lean<Array<{ id: string; itemId: number; quantity: number; to: string }>>()
     .exec();
   for (const row of pending) {
+    // Counted already, in the inventory that claimed it.
+    if (claimed.has(row.id)) continue;
     tally.add(Number(row.itemId), row.quantity, 'delivery', row.to);
   }
 

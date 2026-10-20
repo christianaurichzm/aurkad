@@ -14,6 +14,7 @@ import {
   describe,
   it,
   expect,
+  vi,
 } from 'vitest';
 import mongoose from 'mongoose';
 import fc from 'fast-check';
@@ -46,6 +47,7 @@ import DeliveryModel from '../../model/Delivery.js';
 import AuctionModel from '../../model/Auction.js';
 import EconomyCensusModel from '../../model/EconomyCensus.js';
 import { compareCensus, isSuspicious, takeCensus } from './economyCensus.js';
+import { claimDeliveries, queueDelivery } from './deliveryService.js';
 import { createFixture } from '../../sim/simFixture.js';
 import { createPlayer } from '../player/playerService.js';
 import { playerRepository } from '../../persistence/playerRepository.js';
@@ -201,6 +203,31 @@ describe('takeCensus', () => {
     expect(
       census.items.find((i) => i.itemId === GOLD)?.byLocation.delivery,
     ).toBe(500);
+  });
+
+  // A claim saves the item and its claim record together, then deletes the
+  // row; a failed delete leaves a row that is no longer waiting for anyone.
+  it('counts a claimed delivery once when its row could not be deleted', async () => {
+    const sim = createFixture(0);
+    sim.addItem({
+      id: SWORD,
+      name: 'Sword',
+      description: '',
+      sprite: 0,
+      type: 'weapon',
+    });
+    const alice = await createPlayer('Alice', 'hash');
+    enterWorld(alice);
+    await queueDelivery({ to: 'Alice', itemId: SWORD, source: 'mail' });
+    vi.spyOn(DeliveryModel, 'deleteMany').mockRejectedValueOnce(
+      new Error('db down'),
+    );
+
+    await claimDeliveries(alice);
+
+    expect(alice.inventory.items).toEqual([{ item: SWORD, quantity: 1 }]);
+    expect(await DeliveryModel.countDocuments()).toBe(1);
+    expect(totalOf(await takeCensus(), SWORD)).toBe(1);
   });
 
   it('counts what is lying on the ground', async () => {
