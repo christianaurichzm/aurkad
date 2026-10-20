@@ -3,7 +3,9 @@ FROM node:24-bookworm-slim AS builder
 WORKDIR /app
 
 COPY package*.json ./
-RUN npm ci
+# The build needs the dev tools, not the MongoDB binary mongodb-memory-server
+# downloads on install for the test suite.
+RUN MONGOMS_DISABLE_POSTINSTALL=1 npm ci
 
 COPY tsconfig*.json vite.config.* index.html ./
 COPY src ./src
