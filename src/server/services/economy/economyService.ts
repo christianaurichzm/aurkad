@@ -90,11 +90,9 @@ export function addItem(
 }
 
 /**
- * Removes the full amount or nothing.
- *
- * The all-or-nothing part is the fix: the previous version subtracted whatever
- * it was asked for, went negative, deleted the slot and told the caller
- * nothing, so asking for more than the player had quietly destroyed the rest.
+ * Removes the full amount or nothing. Subtracting whatever was asked would
+ * go negative and delete the slot, so asking for more than the player has
+ * would destroy the rest.
  */
 export function removeItem(
   container: InventoryLike,
