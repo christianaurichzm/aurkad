@@ -55,6 +55,50 @@ refactor: split chat/custom fan-out out of net/snapshot
 
 Types: `feat`, `fix`, `perf`, `refactor`, `test`, `docs`, `chore`.
 
+A `!` after the type or scope (`feat(script)!: ...`) marks a breaking change.
+Release notes are built from commit subjects alone, so the `!` has to be in the
+subject, not in a footer.
+
+## Compatibility
+
+A game made on one release has to keep running on the next one with nothing
+changed in its folder: scripts and modules written against
+`scripts/global.d.ts` and `modules/clientEngine.d.ts`, `content/*.json`,
+`game.json`, a `.env`, and a database. Anything that stops accepting what the
+previous release accepted is a breaking change and needs a major version:
+
+- a script global, type, hook or hook payload field removed or renamed, a new
+  required parameter, a return that can now be `undefined`;
+- a content or `game.json` field that becomes required, a range that narrows,
+  a key that goes away;
+- an official module removed, or its `enabledByDefault` changed. A new module
+  ships with `"enabledByDefault": false`: a `game.json` only names the modules
+  that existed when the game was made, so one that defaults to on starts
+  running in every existing game;
+- a variable dropped from `.env.example`.
+
+Prefer the compatible path: an optional parameter instead of a required one, a
+default for a new field, and for a renamed API the old name kept as a shim that
+logs a deprecation warning, removed in the next major.
+
+`npm run compat` checks all of the above against the latest release tag and
+prints the upgrade notes. `npm version` runs it first and refuses a bump smaller
+than the changes need; the release workflow runs it again, puts its output at
+the top of the release notes, and boots a game made on the previous release on
+the new image before publishing.
+
+Two changes are not breaking but still show up in the notes. A
+`DB_SCHEMA_VERSION` bump (`src/server/services/dbService.ts`, with its upgrade
+step) needs at least a minor, because the previous build refuses the upgraded
+database. A change to `compose.game.yml` means existing installs have to
+download the new `compose.yml`. Changing a default that games do not override
+(a balance number, a module's config) is a judgment call: if it changes how
+existing games play, mark the commit with `!`.
+
+`PROTOCOL_VERSION` (`src/shared/wsProtocol.ts`) is separate from all of this.
+It counts wire format changes between the server and the browser, and only
+ever goes up.
+
 ## Pull requests
 
 1. Branch from `main`.

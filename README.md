@@ -27,11 +27,12 @@ every official module switched off, and art rendered from Kay Lousberg's KayKit
 models (CC0; `templates/new-game/build` makes it). For another name, or a map
 drawn in 2:1 diamonds, make it yourself before that first `up` with
 `docker compose run --rm new-game "My Game" --isometric`; the map editor then
-starts new maps the same way. The folder is yours to edit on the host - the
+starts new maps the same way. The folder is yours to edit on the host: the
 engine runs as whoever owns the folder `compose.yml` is in, scripts hot-reload,
-the rest applies on `docker compose restart app` - and the world (maps,
-players, items) lives in MongoDB. Upgrading the engine is changing the version on the `image:` lines of
-`compose.yml` and `docker compose up -d`; `game/` is never touched.
+and the rest applies on `docker compose restart app`. The world (maps, players,
+items) lives in MongoDB. Upgrading the engine is changing the version on the
+`image:` lines of `compose.yml` and running `docker compose up -d`; `game/` is
+never touched (see [Upgrading](#upgrading)).
 
 The art is six PNG sheets in `game/assets/`. Each is cut on the grid below
 unless a JSON file beside it says otherwise, as the new game's do for two:
@@ -47,6 +48,42 @@ bigger than a cell:
 | `spells.png`       | 32px | a spell's frames side by side                                    |
 | `arrows.png`       | 32px | four per arrow: down, up, right, left                            |
 | `attackeffect.png` | 64px | six frames of the melee swing                                    |
+
+## Upgrading
+
+The engine and your game are separate. The server, the web client and the
+official modules are inside the image. `game/` and the database are yours, and
+an upgrade never writes to `game/`.
+
+1. Read the release notes. Each one opens with "Upgrading from" the previous
+   release: whether to back up first, whether `compose.yml` changed, and
+   anything a game made on that release may have to change.
+2. Back up the database:
+   `docker compose exec -T mongo mongodump --archive --gzip > backup.gz`
+3. Change the version on the `image:` lines of `compose.yml` and run
+   `docker compose up -d`.
+
+Players' browsers pick up the new client on their next load, and a tab whose
+client no longer matches the server reloads by itself.
+
+Version numbers are measured against games that already exist:
+
+- **Patch** (`1.0.x`): fixes. You can always go back to the previous patch.
+- **Minor** (`1.x.0`): additions. Your scripts, content and `game.json` keep
+  working, and a new official module ships switched off. A minor may move the
+  database to a new schema version, and the notes say so: the older version
+  refuses to start on it, so going back means restoring the backup.
+- **Major** (`x.0.0`): something a game relied on changed. The notes list each
+  change.
+
+To go back: `docker compose stop app`, restore the backup if the notes said the
+schema moved
+(`docker compose exec -T mongo mongorestore --archive --gzip --drop < backup.gz`),
+put the old version back on the `image:` lines and `docker compose up -d`.
+
+An upgrade does not change what `new-game` copied into `game/` when you made
+it. Improvements to the starter scripts and art reach new games only; compare
+with `templates/new-game` in the release if you want them.
 
 ## Changing the engine
 
