@@ -56,6 +56,12 @@ function log(level: Level, msg: string, ctx?: LogCtx): void {
   }
 }
 
+const THROTTLE_MS = 5_000;
+
+// Keyed by call site rather than by entity, so it holds a handful of entries
+// for the life of the process.
+const throttled = new Map<string, { at: number; held: number }>();
+
 export const logger = {
   debug: (msg: string, ctx?: LogCtx) => {
     if (process.env.LOG_LEVEL === 'debug') log('debug', msg, ctx);
@@ -63,4 +69,20 @@ export const logger = {
   info: (msg: string, ctx?: LogCtx) => log('info', msg, ctx),
   warn: (msg: string, ctx?: LogCtx) => log('warn', msg, ctx),
   error: (msg: string, ctx?: LogCtx) => log('error', msg, ctx),
+  /**
+   * An error that can repeat every tick: the first is written, then at most
+   * one per `key` every five seconds, carrying how many were held back. A
+   * fault that persists at 20 Hz otherwise writes twenty stack traces a second
+   * and buries every other line in the log.
+   */
+  errorThrottled: (key: string, msg: string, ctx?: LogCtx) => {
+    const now = Date.now();
+    const entry = throttled.get(key);
+    if (entry && now - entry.at < THROTTLE_MS) {
+      entry.held++;
+      return;
+    }
+    logger.error(msg, entry?.held ? { ...ctx, suppressed: entry.held } : ctx);
+    throttled.set(key, { at: now, held: 0 });
+  },
 };

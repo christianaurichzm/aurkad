@@ -124,3 +124,33 @@ describe('request context', () => {
     expect(line).not.toContain('username');
   });
 });
+
+describe('errorThrottled', () => {
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it('writes the first error, holds repeats back, then reports how many', () => {
+    vi.useFakeTimers();
+    const lines: string[] = [];
+    vi.spyOn(logger, 'error').mockImplementation((msg, ctx) => {
+      lines.push(`${msg} ${JSON.stringify(ctx ?? {})}`);
+    });
+
+    for (let i = 0; i < 20; i++) logger.errorThrottled('t1', 'failed');
+    expect(lines).toEqual(['failed {}']);
+
+    vi.advanceTimersByTime(5_000);
+    logger.errorThrottled('t1', 'failed');
+    expect(lines).toEqual(['failed {}', 'failed {"suppressed":19}']);
+  });
+
+  it('throttles each key on its own', () => {
+    const error = vi.spyOn(logger, 'error').mockImplementation(() => {});
+
+    logger.errorThrottled('t2', 'npc failed');
+    logger.errorThrottled('t3', 'movement failed');
+
+    expect(error).toHaveBeenCalledTimes(2);
+  });
+});
