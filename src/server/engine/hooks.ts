@@ -26,6 +26,13 @@ export type HookMap = {
      */
     contributors: DamageContributor[];
   };
+  /**
+   * An npc left its map: despawned, killed and waiting on its respawn, taken
+   * away by a map save, or closed with its instance. State a module keeps
+   * under an npc id is let go here, which `npcDeath` alone does not cover. A
+   * respawn brings it back under the same id, as a fresh arrival.
+   */
+  npcRemoved: { npc: RuntimeNpc };
   npcInteract: { player: PlayerServer; npc: RuntimeNpc };
   /**
    * A player came to stand on a tile: a step that ended there, or a teleport

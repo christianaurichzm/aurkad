@@ -295,4 +295,22 @@ describe('closing a copy', () => {
 
     expect(runtimeState.maps[room]).toBeUndefined();
   });
+
+  it('takes its npcs out of the world with it', () => {
+    sim.addPlayer({ name: 'Alice', position: { x: TILE_SIZE, y: TILE_SIZE } });
+    walkIn('Alice');
+    const room = sim.getPlayer('Alice').mapId;
+    const inside = Object.values(runtimeState.maps[room]!.npcs);
+    const removed: RuntimeNpc[] = [];
+    unsubscribes.push(on('npcRemoved', ({ npc }) => void removed.push(npc)));
+
+    delete runtimeState.maps[room]!.players[sim.getPlayer('Alice').id];
+    sim.getPlayer('Alice').mapId = 'map1';
+    sweepInstances();
+    sim.step(41);
+    sweepInstances();
+
+    expect(inside).toHaveLength(1);
+    expect(removed).toEqual(inside);
+  });
 });

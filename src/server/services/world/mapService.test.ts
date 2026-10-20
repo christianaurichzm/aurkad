@@ -3,6 +3,7 @@ import { TILE_SIZE } from '../../../shared/constants.js';
 import type {
   MapStateServer,
   PersistentNpc,
+  RuntimeNpc,
   Tile,
 } from '../../../shared/types.js';
 import { createFixture, makeTiles, tile } from '../../sim/simFixture.js';
@@ -26,6 +27,8 @@ const { runtimeState } = await import('../../sim/state.js');
 const { spawnNpc } = await import('../npc/spawn.js');
 const { respawnNpc } = await import('../npc/index.js');
 const { msToTicks } = await import('../../sim/clock.js');
+const { damageContributors, recordDamageContribution } =
+  await import('../combat/damage.js');
 
 const tiles = (npcId: string): Tile[][] => [
   [{ tileIndex: 0 }, { tileIndex: 0, npcSpawn: npcId }],
@@ -324,6 +327,42 @@ describe('saving a map from the editor while it is played', () => {
     const npcs = Object.values(getMap(sim.mapId)!.npcs);
     expect(npcs).not.toContain(old);
     expect(npcs.map((n) => n.position)).toEqual([tile(7, 7)]);
+  });
+
+  it('lets go of what was kept under the id of the npc it takes away', async () => {
+    const sim = await loaded(grid(10, [[2, 2]]));
+    const old = Object.values(sim.map.npcs)[0]!;
+    recordDamageContribution(old.id, 'p1', 5);
+    const removed: RuntimeNpc[] = [];
+    const off = on('npcRemoved', ({ npc }) => void removed.push(npc));
+
+    try {
+      await save(sim.mapId, grid(10, [[7, 7]]));
+    } finally {
+      off();
+    }
+
+    // The id names the spawn tile, so the same spawn put back by a later save
+    // comes up under it again, and would inherit who hurt the one before.
+    expect(damageContributors(old.id)).toEqual([]);
+    expect(removed).toEqual([old]);
+  });
+
+  it('keeps what a handler of that removal spawns on the map', async () => {
+    const sim = await loaded(grid(10, [[2, 2]]));
+    let pup: RuntimeNpc | undefined;
+    const off = on('npcRemoved', () => {
+      pup = spawnNpc({ mapId: sim.mapId, col: 5, row: 5, name: 'Pup' });
+    });
+
+    try {
+      await save(sim.mapId, grid(10, [[7, 7]]));
+    } finally {
+      off();
+    }
+
+    expect(pup).toBeDefined();
+    expect(getMap(sim.mapId)!.npcs[pup!.id]).toBe(pup);
   });
 
   it('leaves a killed npc to its respawn instead of raising it', async () => {

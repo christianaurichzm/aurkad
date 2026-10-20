@@ -13,9 +13,8 @@ import { getTick, msToTicks } from '../../sim/clock.js';
 import { randomInt } from '../../sim/rng.js';
 import { scheduleEvery } from '../../sim/scheduler.js';
 import { dropQuadtree } from '../../sim/spatialManager.js';
-import { forgetReplicatedEntity } from '../../net/entityReplication.js';
 import { forgetNpcAiForMap } from '../npc/aiBrain.js';
-import { clearDamageContributions } from '../combat/damage.js';
+import { removeNpcFromWorld } from '../npc/spawn.js';
 import { getMap } from '../../sim/world.js';
 
 /**
@@ -209,10 +208,7 @@ function closeInstance(key: string): void {
   if (map) {
     // Its npcs go with it, and so does everything kept under their ids: a
     // copy's ids are never handed out again, so nothing would clear it later.
-    for (const npc of Object.values(map.npcs)) {
-      forgetReplicatedEntity(npc.id);
-      clearDamageContributions(npc.id);
-    }
+    for (const npc of Object.values(map.npcs)) removeNpcFromWorld(npc, map);
     delete runtimeState.maps[key];
   }
   forgetNpcAiForMap(key);

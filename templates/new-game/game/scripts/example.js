@@ -529,6 +529,7 @@ command(
 //   playerDeath                    { player, killer? }
 //   playerLevelUp                  { player, level }
 //   npcDeath                       { npc, killer }
+//   npcRemoved                     { npc }                 - off its map: despawn, map save, a kill that waits to respawn
 //   npcInteract                    { player, npc }         - player pressed F
 //   tileEnter                      { player, tile, map }
 //   itemUse / itemPickup           { player, itemId, quantity? }

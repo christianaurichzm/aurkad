@@ -13,7 +13,7 @@ import { isHunter, npcMoveTicks, type NpcAiState } from './types.js';
 import { getTick, msToTicks } from '../../sim/clock.js';
 import { scheduleAfter } from '../../sim/scheduler.js';
 import { indexPlacement } from '../../sim/spatialManager.js';
-import { forgetReplicatedEntity } from '../../net/entityReplication.js';
+import { removeNpcFromWorld } from './spawn.js';
 import { gameConfig } from '../../gameConfig.js';
 import {
   findClosestPlayer,
@@ -167,10 +167,7 @@ export const respawnNpc = (mapId: string, npc: RuntimeNpc) => {
   // targeting, collision and the ai all walk map.npcs, and a viewer is sent
   // the id as gone. Replication forgets it because the id comes back, and
   // a returning entity is sent whole, not diffed against the corpse.
-  const map = getMap(mapId);
-  if (map?.npcs[npc.id] === npc) delete map.npcs[npc.id];
-  forgetReplicatedEntity(npc.id);
-  resetNpcAi(npc);
+  removeNpcFromWorld(npc, getMap(mapId));
   // No spawn tile is nowhere to come back to, which is every npc a script
   // spawned. Left on the map, a dead one is skipped by the snapshot and the
   // quadtree but not by the ai, and goes on chasing and hitting players as

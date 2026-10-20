@@ -1,5 +1,6 @@
 import {
   RuntimeNpc,
+  MapStateServer,
   NpcBehavior,
   CharacterAction,
   Direction,
@@ -13,6 +14,7 @@ import { findPlacement } from '../world/physicsService.js';
 import { forgetReplicatedEntity } from '../../net/entityReplication.js';
 import { clearDamageContributions } from '../combat/damage.js';
 import { resetNpcAi } from './aiBrain.js';
+import { emit } from '../../engine/hooks.js';
 import { logger } from '../../logger.js';
 
 // Runtime NPC spawning for scripts and modules (pets, summons, event
@@ -135,22 +137,34 @@ export function spawnNpc(opts: SpawnNpcOptions): RuntimeNpc | undefined {
   return npc;
 }
 
+/**
+ * Takes an npc off its map and lets go of everything kept under its id.
+ * Every exit comes through here (a despawn, a death awaiting respawn, a map
+ * save that dropped its spawn, an instance closing), so state keyed by npc
+ * id is released in one place. A missed exit is silent: pet and summon
+ * scripts pile up a replication baseline, a damage ledger and an ai state
+ * per exit, and a respawn keeping the id is diffed against the corpse.
+ */
+export function removeNpcFromWorld(
+  npc: RuntimeNpc,
+  map: MapStateServer | undefined,
+): void {
+  if (map?.npcs[npc.id] === npc) delete map.npcs[npc.id];
+  forgetReplicatedEntity(npc.id);
+  clearDamageContributions(npc.id);
+  resetNpcAi(npc);
+  emit('npcRemoved', { npc });
+}
+
 // Remove a spawned NPC. Scans maps by id so it works even if the NPC's mapId
-// drifted (e.g. a pet that followed its owner across a warp).
+// drifted (e.g. a pet that followed its owner across a warp). The live object
+// is what gets removed: the AI key includes mapId, which the caller's `{ id }`
+// does not carry.
 export function despawnNpc(npc: { id: string }): void {
   for (const map of Object.values(runtimeState.maps)) {
     const live = map.npcs[npc.id];
     if (!live) continue;
-
-    delete map.npcs[npc.id];
-    // Everything keyed by this id has to go with it. Without this a server
-    // running pet or summon scripts accumulates a public-state snapshot and an
-    // AI state per despawn, for the life of the process. The live object is
-    // what gets passed on: the AI key includes mapId, which the caller's
-    // `{ id }` does not carry.
-    forgetReplicatedEntity(npc.id);
-    clearDamageContributions(npc.id);
-    resetNpcAi(live);
+    removeNpcFromWorld(live, map);
     return;
   }
 }

@@ -1,5 +1,17 @@
 import { describe, it, expect } from 'vitest';
+import type { RuntimeNpc } from '../../../shared/types.js';
 import { spawnNpc, despawnNpc } from './spawn.js';
+import { respawnNpc } from './index.js';
+import { getOrInitNpcAi, npcAiStateCount } from './aiBrain.js';
+import { on } from '../../engine/hooks.js';
+import {
+  recordEntity,
+  replicatedEntityCount,
+} from '../../net/entityReplication.js';
+import {
+  damageLedgerSize,
+  recordDamageContribution,
+} from '../combat/damage.js';
 import { createFixture, tile } from '../../sim/simFixture.js';
 import { hasCollision } from '../world/physicsService.js';
 import { TILE_SIZE } from '../../../shared/constants.js';
@@ -140,5 +152,42 @@ describe('despawnNpc', () => {
   it('is a no-op for an NPC that is not present', () => {
     createFixture(0);
     expect(() => despawnNpc({ id: 'ghost' })).not.toThrow();
+  });
+});
+
+describe('removeNpcFromWorld', () => {
+  // Leaving the map is the part anyone sees. What a missed exit leaves behind
+  // is not: each of these is keyed by npc id and has no other way out.
+  const held = () => [
+    replicatedEntityCount(),
+    damageLedgerSize(),
+    npcAiStateCount(),
+  ];
+
+  it.each([
+    ['a despawn', (npc: RuntimeNpc) => despawnNpc(npc)],
+    [
+      'a death waiting on its respawn',
+      (npc: RuntimeNpc) => respawnNpc(npc.mapId, npc),
+    ],
+  ])('lets go of everything kept under the id on %s', (_exit, leave) => {
+    const sim = createFixture(0);
+    const npc = spawnNpc({ mapId: sim.mapId, col: 2, row: 2 })!;
+    const before = held();
+    recordEntity(npc.id, { id: npc.id });
+    recordDamageContribution(npc.id, 'p1', 5);
+    getOrInitNpcAi(npc);
+
+    const removed: RuntimeNpc[] = [];
+    const off = on('npcRemoved', ({ npc: gone }) => void removed.push(gone));
+    try {
+      leave(npc);
+    } finally {
+      off();
+    }
+
+    expect(sim.map.npcs[npc.id]).toBeUndefined();
+    expect(held()).toEqual(before);
+    expect(removed).toEqual([npc]);
   });
 });

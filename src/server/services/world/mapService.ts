@@ -22,13 +22,13 @@ import { config } from '../../config.js';
 
 import { emit } from '../../engine/hooks.js';
 import GameMapModel from '../../model/Map.js';
-import { forgetReplicatedEntity } from '../../net/entityReplication.js';
 import { resendChunkAt } from '../../net/viewerState.js';
 import { getNextMapId } from '../dbService.js';
 import { getItemById } from '../content/itemService.js';
 import { getNpcById } from '../content/npcService.js';
 import { onMap, onTiles } from './physicsService.js';
 import { resetNpcAi } from '../npc/aiBrain.js';
+import { removeNpcFromWorld } from '../npc/spawn.js';
 import { ScriptParamsSchema } from '../../../shared/scriptParams.js';
 
 export const MapTypeSchema = z.enum(['pvp', 'normal']);
@@ -268,14 +268,7 @@ const keepLiveNpcs = (
 ): Record<string, RuntimeNpc> => {
   const npcs: Record<string, RuntimeNpc> = {};
   for (const npc of Object.values(live?.npcs ?? {})) {
-    if (!npc.templateId || spawned[npc.id]) {
-      npcs[npc.id] = npc;
-      continue;
-    }
-    // The damage ledger is left alone: it is keyed by id alone, and a copy of
-    // this map fighting its own npc of the same id would lose who hurt it.
-    forgetReplicatedEntity(npc.id);
-    resetNpcAi(npc);
+    if (!npc.templateId || spawned[npc.id]) npcs[npc.id] = npc;
   }
   for (const npc of Object.values(spawned)) {
     if (npcs[npc.id]) continue;
@@ -322,7 +315,13 @@ export const mapSave = async (
   // Read after the save, and nothing awaits until the map is live: the tick
   // ran meanwhile, and the save keeps a kill or a pick-up in between.
   const live = getMap(mapId)!;
-  runtimeState.maps[mapId] = insertModeCell(live, tiles, spawned.npcs ?? {});
+  const merged = insertModeCell(live, tiles, spawned.npcs ?? {});
+  runtimeState.maps[mapId] = merged;
+  // After the swap, so a handler of the removal that spawns on this map
+  // spawns on the map that stays.
+  for (const npc of Object.values(live.npcs)) {
+    if (merged.npcs[npc.id] !== npc) removeNpcFromWorld(npc, merged);
+  }
   await publishMap(saved);
 };
 

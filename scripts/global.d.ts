@@ -203,6 +203,12 @@ interface HookPayloads {
     killer: PlayerServer;
     contributors: DamageContributor[];
   };
+  /**
+   * The npc left its map: despawned, killed before respawning, removed by a
+   * map save or closed with its instance. Release anything kept under its id;
+   * a respawn returns as a new arrival with the same id.
+   */
+  npcRemoved: { npc: RuntimeNpc };
   /** Player pressed interact (F) while facing this NPC. */
   npcInteract: { player: PlayerServer; npc: RuntimeNpc };
   tileEnter: { player: PlayerServer; tile: Tile; map: MapState };
