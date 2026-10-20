@@ -7,7 +7,6 @@ import {
   SetAccessBodySchema,
   ChangeSpriteBodySchema,
   SetSpriteBodySchema,
-  GoMapBodySchema,
   SaveMapBodySchema,
   AssignPointsBodySchema,
   BuyShopItemBodySchema,
@@ -170,15 +169,6 @@ describe('SetSpriteBodySchema', () => {
       false,
     );
     expect(SetSpriteBodySchema.safeParse({ spriteId: 3 }).success).toBe(false);
-  });
-});
-
-describe('GoMapBodySchema', () => {
-  it('accepts non-empty mapId', () => {
-    expect(GoMapBodySchema.safeParse({ mapId: '1' }).success).toBe(true);
-  });
-  it('rejects empty mapId', () => {
-    expect(GoMapBodySchema.safeParse({ mapId: '' }).success).toBe(false);
   });
 });
 

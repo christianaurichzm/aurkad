@@ -7,7 +7,6 @@ import {
   unregisterPlayer,
   upsertOnCurrentMap,
   placePlayerOnMap,
-  detachFromMap,
   getPlayerById,
   getPlayerByName,
   getAllPlayers,
@@ -121,17 +120,5 @@ describe('world map membership', () => {
     placePlayerOnMap(p);
 
     expect(drainDirtyPlayerIds()).toEqual(['a']);
-  });
-
-  it('detaches from the current map but keeps the player registered', () => {
-    runtimeState.maps['1'] = mkMap('1');
-    const p = mkPlayer('a', 'Alice', '1');
-    registerPlayer(p);
-    upsertOnCurrentMap(p);
-
-    detachFromMap('a');
-
-    expect(runtimeState.maps['1'].players['a']).toBeUndefined();
-    expect(getPlayerById('a')).toBe(p);
   });
 });

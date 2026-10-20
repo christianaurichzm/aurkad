@@ -73,14 +73,6 @@ export function placePlayerOnMap(
   return nextMap;
 }
 
-export function detachFromMap(id: string): MapStateServer | undefined {
-  const player = players[id];
-  const map = player && runtimeState.maps[player.mapId];
-  if (!map) return undefined;
-  delete map.players[id];
-  return map;
-}
-
 export function getRuntimeState(): GameState {
   return runtimeState;
 }

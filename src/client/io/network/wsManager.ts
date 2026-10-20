@@ -18,7 +18,6 @@ const clientWsProtocol = window.location.protocol === 'https:' ? 'wss' : 'ws';
 const clientHost = window.location.host;
 
 const DEFAULT_WS_URL = `${clientWsProtocol}://${clientHost}/ws`;
-export const WS_URL = DEFAULT_WS_URL;
 
 let currentWsUrl = DEFAULT_WS_URL;
 let socket: WebSocket;

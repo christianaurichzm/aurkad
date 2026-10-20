@@ -10,7 +10,6 @@ import {
   BanBodySchema,
   SetSpriteBodySchema,
   SetAccessBodySchema,
-  GoMapBodySchema,
   SetMyAccessBodySchema,
   WarpPlayerBodySchema,
 } from '../bodySchemas.js';
@@ -30,9 +29,9 @@ import {
 
 /**
  * The operator's own live character, or null with the reason already sent.
- * bring, goto, gomap and setMyAccess need the operator in the world, and an
- * admin dashboard session never is, so the refusal says that rather than
- * "Player not found", which would read as a mistyped target.
+ * bring, goto and setMyAccess need the operator in the world, and an admin
+ * dashboard session never is, so the refusal says that rather than "Player
+ * not found", which would read as a mistyped target.
  */
 function requireSelfInWorld(
   req: ExtendedRequest,
@@ -188,23 +187,6 @@ export function createModRouter() {
       broadcast();
 
       res.status(200).send('Access updated');
-    },
-  );
-
-  router.post(
-    '/mod/gomap',
-    checkAccess(Access.MOD),
-    (req: ExtendedRequest, res: Response) => {
-      const body = parseBody(GoMapBodySchema, req.body, res);
-      if (!body) return;
-      const { mapId } = body;
-      const me = requireSelfInWorld(req, res);
-      if (!me) return;
-
-      teleportPlayer(me, mapId, { x: 9 * TILE_SIZE, y: 6 * TILE_SIZE });
-      broadcast();
-
-      res.status(200).send('Moved to map');
     },
   );
 

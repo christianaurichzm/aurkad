@@ -4,8 +4,6 @@ import { getLanguage, t } from '../../../i18n';
 const API_URL = import.meta.env.VITE_APP_API_URL as string | undefined;
 const REST_PROTO = import.meta.env.VITE_REST_PROTOCOL as string | undefined;
 
-export { API_URL, REST_PROTO };
-
 /**
  * What every rejected httpClient call throws. Not an Error: callers branch
  * on `status` (silentAction swallows 401/403) and show `message` as is. Read

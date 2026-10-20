@@ -71,17 +71,7 @@ describe('acting from the operator position', () => {
     expect(alice.position).toEqual(boss.position);
   });
 
-  it('answers the same way for a teleport to a map', async () => {
-    const res = await request(app)
-      .post('/mod/gomap')
-      .set('x-user', 'Boss')
-      .set('x-access', '2')
-      .send({ mapId: 'map1' });
-
-    expect(res.status).toBe(409);
-  });
-
-  it('and for changing your own access', async () => {
+  it('refuses changing your own access the same way', async () => {
     const res = await request(app)
       .post('/mod/setMyAccess')
       .set('x-user', 'Boss')

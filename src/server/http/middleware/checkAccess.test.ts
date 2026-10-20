@@ -324,7 +324,6 @@ const GATES: Record<string, 'public' | 'session' | Access> = {
   'POST /mod/warp': Access.MOD,
   'POST /mod/setSprite': Access.MOD,
   'POST /mod/setAccess': Access.ADMIN,
-  'POST /mod/gomap': Access.MOD,
   'POST /mod/setMyAccess': Access.ADMIN,
 
   'GET /modules': 'public',

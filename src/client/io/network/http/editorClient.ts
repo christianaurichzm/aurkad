@@ -95,9 +95,3 @@ export const resizeMap = async (
   rows: number,
 ): Promise<{ success: boolean; cols: number; rows: number } | null> =>
   httpClient(`/maps/${id}/resize`, { method: 'POST', body: { cols, rows } });
-
-export const modMoveMap = async (mapId: string) =>
-  httpClient<Response>('/mod/gomap', {
-    method: 'POST',
-    body: { mapId },
-  });

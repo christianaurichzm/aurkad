@@ -9,7 +9,6 @@ const mocks = vi.hoisted(() => ({
   openContentEditor: vi.fn(),
   openMapEditor: vi.fn(),
   openModEditor: vi.fn(),
-  openConsole: vi.fn(),
   useGame: vi.fn(),
   usePlayerForceUpdate: vi.fn(),
   fetchGameBrand: vi.fn(),
@@ -27,7 +26,6 @@ vi.mock('../io/network', () => ({
   openContentEditor: mocks.openContentEditor,
   openMapEditor: mocks.openMapEditor,
   openModEditor: mocks.openModEditor,
-  openConsole: mocks.openConsole,
   fetchGameBrand: mocks.fetchGameBrand,
 }));
 

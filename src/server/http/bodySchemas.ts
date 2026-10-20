@@ -136,8 +136,6 @@ export const SetAccessBodySchema = z.object({
   accessLevel: AccessSchema,
 });
 
-export const GoMapBodySchema = z.object({ mapId: z.string().min(1) });
-
 export const WarpPlayerBodySchema = z.object({
   playerName: z.string().min(1),
   mapId: z.string().min(1),

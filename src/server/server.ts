@@ -84,7 +84,7 @@ import { startPlayerSnapshotLoop } from './persistence/playerSnapshot.js';
 import { startCensusJob } from './services/economy/economyCensus.js';
 import { logger } from './logger.js';
 import { startAdminRepl } from './admin/repl.js';
-import { loadScripts, unloadAllScripts } from './engine/scripting/index.js';
+import { loadScripts, unloadAllScripts } from './engine/scripting/loader.js';
 import {
   rebuildContentConstants,
   writeContentDts,

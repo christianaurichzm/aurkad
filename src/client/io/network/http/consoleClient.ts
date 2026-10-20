@@ -1,20 +1,10 @@
 import { httpClient } from './httpClient';
 import { Access } from '../../../../shared/types';
-import { silentAction } from './authClient';
 
 export interface CommandInfo {
   name: string;
   access: Access;
   description: string;
-}
-
-// Authorize opening the console (admin only). Reuses the gated commands
-// endpoint so no separate authorize route is needed.
-export async function openConsole(): Promise<boolean> {
-  const res = await silentAction(
-    httpClient('/admin/commands', { method: 'GET' }),
-  );
-  return !!res;
 }
 
 export async function fetchCommands(): Promise<CommandInfo[]> {

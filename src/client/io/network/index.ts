@@ -1,18 +1,12 @@
 // WebSocket
-export { WS_URL, initializeWebSocket, sendAction } from './wsManager';
+export { initializeWebSocket, sendAction } from './wsManager';
 
 // Sync
 export { updateWebSocket } from './sync/gameStateSync';
 export { updateChat, sendChatMessage } from './sync/chatSync';
 
 // HTTP Base
-export {
-  httpClient,
-  friendlyHttpError,
-  httpError,
-  API_URL,
-  REST_PROTO,
-} from './http/httpClient';
+export { httpClient, friendlyHttpError, httpError } from './http/httpClient';
 
 // Authentication
 export {
@@ -28,7 +22,6 @@ export {
   register,
   requestPasswordReset,
   setEmail,
-  silentAction,
 } from './http/authClient';
 
 // Editors
@@ -42,7 +35,6 @@ export {
   fetchMap,
   updateMap,
   createMap,
-  modMoveMap,
   type SaveMapResponse,
 } from './http/editorClient';
 
@@ -89,7 +81,6 @@ export {
 
 // Admin console
 export {
-  openConsole,
   fetchCommands,
   runConsoleCommand,
   type CommandInfo,
@@ -157,5 +148,3 @@ export { buyShopItem } from './http/shopClient';
 
 // Player
 export { assignPointsPlayer, fetchOnlinePlayers } from './http/playerClient';
-
-// File Loader

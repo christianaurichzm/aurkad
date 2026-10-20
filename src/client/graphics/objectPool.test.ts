@@ -10,7 +10,6 @@ const make = (size: number) =>
 describe('ObjectPool', () => {
   it('hands out a free slot and counts it once claimed', () => {
     const pool = make(2);
-    expect(pool.capacity).toBe(2);
     expect(pool.activeCount()).toBe(0);
 
     const a = pool.acquire()!;
@@ -25,7 +24,6 @@ describe('ObjectPool', () => {
     pool.acquire()!.active = true;
 
     expect(pool.acquire()).toBeNull();
-    expect(pool.capacity).toBe(2);
   });
 
   it('walks only the active slots', () => {

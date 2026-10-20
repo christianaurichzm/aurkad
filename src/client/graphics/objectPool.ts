@@ -19,10 +19,6 @@ export class ObjectPool<T extends { active: boolean }> {
     }
   }
 
-  get capacity(): number {
-    return this.pool.length;
-  }
-
   activeCount(): number {
     let n = 0;
     for (let i = 0; i < this.pool.length; i++) {
