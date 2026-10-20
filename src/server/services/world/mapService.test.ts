@@ -6,9 +6,9 @@ import type {
   Tile,
 } from '../../../shared/types.js';
 import { createFixture, makeTiles, tile } from '../../sim/simFixture.js';
-import { updateMapById } from './mapService.js';
 import { getMap } from '../../sim/world.js';
 import { config } from '../../config.js';
+import GameMapModel from '../../model/Map.js';
 
 const getNpcById = vi.fn();
 vi.mock('../content/npcService.js', () => ({
@@ -138,6 +138,33 @@ describe('a map another instance owns', () => {
 });
 
 describe('editing a populated map', () => {
+  it('changes nothing live when the database refuses the save', async () => {
+    const sim = createFixture();
+    const alice = sim.addPlayer({ position: tile(19, 19) });
+    const live = getMap(sim.mapId)!;
+    const changed = vi.fn();
+    const stop = on('mapChange', changed);
+    vi.mocked(GameMapModel.findOneAndUpdate).mockRejectedValueOnce(
+      new Error('db down'),
+    );
+    try {
+      await expect(
+        createOrUpdateMap({
+          id: sim.mapId,
+          name: 'Unsaved',
+          tiles: makeTiles(3, 4),
+        }),
+      ).rejects.toThrow('db down');
+    } finally {
+      stop();
+    }
+
+    expect(getMap(sim.mapId)).toBe(live);
+    expect(live.name).toBe('Test');
+    expect(alice.position).toEqual(tile(19, 19));
+    expect(changed).not.toHaveBeenCalled();
+  });
+
   it('keeps an in-bounds step running when a tile edit leaves room for it', async () => {
     const sim = createFixture();
     const alice = sim.addPlayer({
@@ -157,19 +184,12 @@ describe('editing a populated map', () => {
     expect(alice.moveDurationTicks).toBe(5);
   });
 
-  it('retains the live roster when an update comes from a stored map document', async () => {
+  it('retains the live roster when the editor saves the map', async () => {
     const sim = createFixture();
     const alice = sim.addPlayer({ name: 'Alice', position: tile(5, 5) });
     const npc = sim.addNpc({ position: tile(2, 2) });
-    const document = {
-      id: sim.mapId,
-      name: 'Renamed',
-      type: 'normal',
-      tiles: makeTiles(20, 20),
-      droppedItems: [],
-    } as unknown as MapStateServer;
 
-    await updateMapById(document);
+    await mapSave(sim.mapId, makeTiles(20, 20), 'Renamed', 'normal');
 
     const live = getMap(sim.mapId)!;
     expect(live.players[alice.id]).toBe(alice);
@@ -336,6 +356,43 @@ describe('saving a map from the editor while it is played', () => {
     // Picked up, then the map is saved again for something else.
     getMap(sim.mapId)!.droppedItems.length = 0;
     await save(sim.mapId, grid(10, [], [[4, 4, 9]]));
+    expect(getMap(sim.mapId)!.droppedItems).toEqual([]);
+  });
+
+  it('changes nothing live when the database refuses the save', async () => {
+    const sim = await loaded(grid(10, [[1, 1]]));
+    const npc = Object.values(sim.map.npcs)[0]!;
+    npc.position = tile(8, 8);
+    const drop = { itemId: 7, sprite: 1, quantity: 1, position: tile(9, 9) };
+    sim.map.droppedItems.push(drop);
+    const live = getMap(sim.mapId)!;
+    vi.mocked(GameMapModel.findOneAndUpdate).mockRejectedValueOnce(
+      new Error('db down'),
+    );
+
+    await expect(save(sim.mapId, grid(4))).rejects.toThrow('db down');
+
+    expect(getMap(sim.mapId)).toBe(live);
+    expect(live.npcs[npc.id]).toBe(npc);
+    expect(npc.position).toEqual(tile(8, 8));
+    expect(drop.position).toEqual(tile(9, 9));
+  });
+
+  it('keeps a pick-up the tick ran while the save was out', async () => {
+    const sim = await loaded(grid(10));
+    sim.map.droppedItems.push({
+      itemId: 7,
+      sprite: 1,
+      quantity: 1,
+      position: tile(4, 4),
+    });
+    vi.mocked(GameMapModel.findOneAndUpdate).mockImplementationOnce((() => {
+      getMap(sim.mapId)!.droppedItems.length = 0;
+      return Promise.resolve(null);
+    }) as never);
+
+    await save(sim.mapId, grid(10));
+
     expect(getMap(sim.mapId)!.droppedItems).toEqual([]);
   });
 

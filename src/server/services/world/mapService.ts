@@ -109,38 +109,23 @@ export function createDefaultTiles(cols = 20, rows = 14): Tile[][] {
   );
 }
 
-export const updateMapById = async (
-  mapState: MapStateServer,
-): Promise<MapStateServer> => {
-  const previous = runtimeState.maps[mapState.id];
-  // Not live here: another instance runs it under MAP_IDS, or there is no such
-  // map. Written to the document alone, the edit would be undone by the next
-  // write of the instance that holds the map in memory.
-  if (!previous) {
-    throw new Error(`[map] ${mapState.id} is not running on this instance`);
-  }
-
-  mapState = { ...previous, ...mapState, players: previous.players };
-  mapState.tilesRevision = previous.tilesRevision;
-  runtimeState.maps[mapState.id] = mapState;
-
-  await createOrUpdateMap({
-    id: mapState.id,
-    name: mapState.name,
-    type: mapState.type,
-    pvp: mapState.pvp,
-    orientation: mapState.orientation,
-    tiles: mapState.tiles,
-    music: mapState.music,
-    instanced: mapState.instanced,
-    borderLinks: mapState.borderLinks,
-  });
-  return mapState;
-};
-
 export async function createOrUpdateMap(
   map: Partial<MapStateServer>,
 ): Promise<string> {
+  const id = await saveMap(map);
+  // Another instance's map is only stored. In memory here it would be a copy
+  // nobody simulates, and a warp would step into it instead of being
+  // redirected to the instance that owns it.
+  if (ownsMap(id)) await publishMap({ ...map, id });
+  return id;
+}
+
+/**
+ * Writes the map document and leaves the live map alone. What changes the
+ * live map comes after this resolves: a world ahead of its document shows an
+ * edit the next restart takes back, while whoever saved it was told it failed.
+ */
+export async function saveMap(map: Partial<MapStateServer>): Promise<string> {
   // A dungeon copy is runtime only; saving one would write a map document
   // whose id nobody can reach, or overwrite the template with whatever one
   // run did to it.
@@ -150,15 +135,14 @@ export async function createOrUpdateMap(
   if (!map.id) {
     map.id = (await getNextMapId()).toString();
   }
+  await GameMapModel.findOneAndUpdate({ id: map.id }, map, { upsert: true });
+  return map.id;
+}
 
-  // Another instance's map is only stored. In memory here it would be a copy
-  // nobody simulates, and a warp would step into it instead of being
-  // redirected to the instance that owns it.
-  if (!ownsMap(map.id)) {
-    await GameMapModel.findOneAndUpdate({ id: map.id }, map, { upsert: true });
-    return map.id;
-  }
-
+/** Applies a saved change to the live map. */
+async function publishMap(
+  map: Partial<MapStateServer> & { id: string },
+): Promise<void> {
   const previous = runtimeState.maps[map.id];
 
   const merged = { ...previous, ...map } as MapStateServer;
@@ -208,10 +192,6 @@ export async function createOrUpdateMap(
     }
     emit('mapChange', { mapId: map.id });
   }
-
-  await GameMapModel.findOneAndUpdate({ id: map.id }, map, { upsert: true });
-
-  return map.id;
 }
 
 /**
@@ -254,25 +234,23 @@ export async function listMaps(): Promise<MapStateServer[]> {
  * players dropped things, scripts spawned pets), so the save applies what
  * the grid changed and keeps the rest.
  */
-export const insertModeCell = async (mapId: string, tiles: Tile[][]) => {
-  const spawned: Partial<MapStateServer> = {};
-  await insertNpcs(spawned, mapId, tiles);
-
-  // Read after the await: the tick ran meanwhile, and a kill or a pick-up in
-  // between is part of what the save keeps.
-  const live = getMap(mapId);
+export const insertModeCell = (
+  live: MapStateServer,
+  tiles: Tile[][],
+  spawned: Record<string, RuntimeNpc>,
+): MapStateServer => {
   // A drop on tiles a resize took away goes to the nearest edge rather than
   // out of the economy.
-  for (const drop of live?.droppedItems ?? []) {
+  for (const drop of live.droppedItems) {
     drop.position = onTiles(GROUND_ITEM_BOX, tiles, drop.position);
   }
   return {
     ...live,
     tiles,
-    npcs: keepLiveNpcs(live, spawned.npcs ?? {}),
+    npcs: keepLiveNpcs(live, spawned),
     droppedItems: [
-      ...(live?.droppedItems ?? []),
-      ...newlyPlacedItems(live?.tiles, tiles),
+      ...live.droppedItems,
+      ...newlyPlacedItems(live.tiles, tiles),
     ],
   };
 };
@@ -318,14 +296,34 @@ export const mapSave = async (
   music?: string,
   orientation?: MapOrientation,
 ) => {
-  const newMap = await insertModeCell(mapId, tiles);
-  await updateMapById({
-    ...newMap,
+  const spawned: Partial<MapStateServer> = {};
+  await insertNpcs(spawned, mapId, tiles);
+
+  // Not live here: another instance runs it under MAP_IDS, or there is no such
+  // map. Written to the document alone, the edit would be undone by the next
+  // write of the instance that holds the map in memory.
+  const before = getMap(mapId);
+  if (!before) {
+    throw new Error(`[map] ${mapId} is not running on this instance`);
+  }
+  const saved = {
+    id: mapId,
     name,
     type,
+    pvp: before.pvp,
+    orientation: orientation || before.orientation,
+    tiles,
     music,
-    ...(orientation && { orientation }),
-  } as MapStateServer);
+    instanced: before.instanced,
+    borderLinks: before.borderLinks,
+  };
+  await saveMap(saved);
+
+  // Read after the save, and nothing awaits until the map is live: the tick
+  // ran meanwhile, and the save keeps a kill or a pick-up in between.
+  const live = getMap(mapId)!;
+  runtimeState.maps[mapId] = insertModeCell(live, tiles, spawned.npcs ?? {});
+  await publishMap(saved);
 };
 
 /**

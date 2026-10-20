@@ -33,7 +33,7 @@ import { handleAttack, killPlayer, swing } from '../combat/index.js';
 import { pickUpItem } from '../economy/inventoryService.js';
 import { handleInteract } from './interactionService.js';
 import { bfsNextStep } from '../npc/behaviors.js';
-import { updatePlayerMap, createOrUpdateMap } from './mapService.js';
+import { updatePlayerMap, saveMap } from './mapService.js';
 import { findPlacement, hasCollision, hasWarp } from './physicsService.js';
 import { getPlayerByName, disconnectPlayer } from '../player/playerService.js';
 import { handleChatAction } from '../comms/chatService.js';
@@ -346,7 +346,8 @@ const tryOpenDoor = (
   updatePlayer(player);
   // A dungeon copy is never saved: the door is this run's.
   if (isInstanceKey(map.id)) return true;
-  void createOrUpdateMap({
+  emit('mapChange', { mapId: map.id });
+  void saveMap({
     id: map.id,
     tiles: map.tiles,
     tilesRevision: map.tilesRevision,
