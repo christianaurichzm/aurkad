@@ -164,8 +164,8 @@ export function createColdSnapshot(): ColdSnapshot {
  * Syncs `snapshot` to the player's current cold state, returning whether
  * anything differed. Every field is compared and written in one pass with
  * no early return, so a caller ignoring the result still leaves it
- * consistent. The field list must match `toPlayerCold`: a field sent but not
- * compared here stops updating on the client.
+ * consistent. The field list must match `toPlayerCold`; the tests read the
+ * fields off it and fail on one this misses.
  */
 export function updateColdSnapshot(
   player: PlayerServer,

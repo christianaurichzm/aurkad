@@ -11,8 +11,31 @@ import {
   updateColdSnapshot,
   type ColdSnapshot,
 } from './viewerState.js';
+import { toPlayerCold } from './serialization.js';
 import { createFixture } from '../sim/simFixture.js';
 import type { PlayerServer } from '../../shared/types.js';
+
+// Payload fields compared on their own (inventory, equipped) or that never
+// change for a player (id, kind). Everything else toPlayerCold sends is a
+// scalar copied off the player.
+const NOT_SCALAR = new Set([
+  'id',
+  'kind',
+  'inventory',
+  'inventoryCapacity',
+  'equipped',
+]);
+
+function sentScalars(): (keyof PlayerServer)[] {
+  const sim = createFixture(0);
+  return Object.keys(toPlayerCold(sim.addPlayer())).filter(
+    (key) => !NOT_SCALAR.has(key),
+  ) as (keyof PlayerServer)[];
+}
+
+function setField(player: PlayerServer, field: string, value: unknown) {
+  (player as unknown as Record<string, unknown>)[field] = value;
+}
 
 function tracked(overrides: Partial<PlayerServer> = {}): {
   player: PlayerServer;
@@ -46,36 +69,31 @@ describe('updateColdSnapshot', () => {
     expect(updateColdSnapshot(player, snapshot)).toBe(false);
   });
 
-  // Every field in the payload has to be watched: one that is sent but not
-  // compared is a field the client silently stops receiving updates for.
-  const scalarCases: Array<[string, (p: PlayerServer) => void]> = [
-    ['name', (p) => void (p.name = 'Renamed')],
-    ['sprite', (p) => void (p.sprite = 7)],
-    ['width', (p) => void (p.width = 999)],
-    ['height', (p) => void (p.height = 999)],
-    ['maxHealth', (p) => void (p.maxHealth = 250)],
-    ['attack', (p) => void (p.attack = 42)],
-    ['attackRange', (p) => void (p.attackRange = 128)],
-    ['level', (p) => void (p.level = 30)],
-    ['experience', (p) => void (p.experience = 1234)],
-    ['experienceToNextLevel', (p) => void (p.experienceToNextLevel = 5000)],
-    ['access', (p) => void (p.access = 2)],
-    ['strength', (p) => void (p.strength = 11)],
-    ['defense', (p) => void (p.defense = 12)],
-    ['agility', (p) => void (p.agility = 13)],
-    ['vitality', (p) => void (p.vitality = 14)],
-    ['unspentPoints', (p) => void (p.unspentPoints = 5)],
-    ['speed', (p) => void (p.speed = 8)],
-    ['mapId', (p) => void (p.mapId = 'elsewhere')],
-    ['nameColor', (p) => void (p.nameColor = '#ff0000')],
-    ['nameTag', (p) => void (p.nameTag = 'Champion')],
-    ['nameTagColor', (p) => void (p.nameTagColor = 'purple')],
-  ];
+  // Every scalar in the payload has to be watched: one that is sent but not
+  // compared is a field the client silently stops receiving updates for. Read
+  // off toPlayerCold itself, so a field added there is held to this as well.
+  const scalars = sentScalars();
 
-  it.each(scalarCases)('detects a change to %s', (_field, mutate) => {
+  it.each(scalars)('detects a change to %s', (field) => {
     const { player, snapshot } = tracked();
-    mutate(player);
+    const was = player[field];
+    setField(player, field, typeof was === 'number' ? was + 1 : 'changed');
     expect(updateColdSnapshot(player, snapshot)).toBe(true);
+  });
+
+  it('gives every scalar a slot of its own', () => {
+    // Values no two fields share: two fields on one slot overwrite each other
+    // on every call and never read as unchanged.
+    const { player, snapshot } = tracked();
+    scalars.forEach((field, i) =>
+      setField(
+        player,
+        field,
+        typeof player[field] === 'number' ? 1000 + i : `v${i}`,
+      ),
+    );
+    updateColdSnapshot(player, snapshot);
+    expect(updateColdSnapshot(player, snapshot)).toBe(false);
   });
 
   it('ignores hot fields, which travel in the per-tick self payload', () => {
