@@ -97,9 +97,9 @@ GAME_DIR=games/my-game npm run dev   # server (8080) + client dev server with HM
 ```
 
 In development the first account registered becomes the admin.
-`docker build -t aurkad:dev .` packs your changes into an image, and naming it
-on the `image:` lines of `compose.game.yml` runs a game on it the same way as
-above.
+`npm run docker:up` runs your changes the way a release runs: it builds an
+image from the checkout and starts `compose.game.yml` on it, with `game/` at
+the root of the checkout and a database of its own.
 
 ## Customizing your game
 
@@ -236,7 +236,41 @@ WS_PUBLIC_URL=ws://host:8080 MAP_IDS=map1,map2 PORT=8080 npm start
 WS_PUBLIC_URL=ws://host:8081 MAP_IDS=map3,map4 PORT=8081 npm start
 ```
 
-See `docker-compose.yml` for a commented two-instance Docker example.
+In Docker, each instance is one more service in `compose.yml`, beside `app`
+and on the same image. Each needs its own `WS_PUBLIC_URL` and a `MAP_IDS` that
+overlaps no other's, so `app` gets the first pair too:
+
+```yaml
+  app-b:
+    image: ghcr.io/christianaurichzm/aurkad:<the version app runs>
+    restart: unless-stopped
+    user: root
+    entrypoint: [/app/compose-entrypoint.sh]
+    depends_on:
+      mongo:
+        condition: service_healthy
+    environment:
+      PORT: '8081'
+      GAME_DIR: /srv/game
+      MONGO_URI: mongodb://mongo:27017/?directConnection=true
+      SESSION_SECRET: ${SESSION_SECRET:-}
+      CORS_ALLOWED_ORIGINS: https://localhost,https://localhost:8444
+      USE_SECURE_COOKIES: 'true'
+      TRUST_PROXY: '1'
+      WS_PUBLIC_URL: wss://localhost:8444
+      MAP_IDS: map3,map4
+    volumes:
+      - .:/srv
+```
+
+Caddy then serves one site per instance, so its `command` gives way to a
+Caddyfile mounted at `/etc/caddy/Caddyfile`, with `'8444:8444'` added to its
+ports:
+
+```
+https://localhost { reverse_proxy app:8080 }
+https://localhost:8444 { reverse_proxy app-b:8081 }
+```
 
 ## Tests
 

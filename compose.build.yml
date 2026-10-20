@@ -1,0 +1,23 @@
+# compose.game.yml on an image built from this checkout instead of a published
+# release, so the engine's own changes run the way creators run the engine:
+#
+#   npm run docker:up      # build, then start Mongo, the engine and Caddy
+#   npm run docker:logs
+#   npm run docker:down
+#
+# A project of its own, so its database is not the one `npm run db:up` keeps
+# for development. The game is game/ at the root of the checkout, written on
+# the first `up` like a release writes it; the official modules are mounted
+# from the checkout, so editing one takes a `docker compose restart app`
+# rather than a rebuild.
+name: aurkad-stack
+
+services:
+  app:
+    build: .
+    image: aurkad:dev
+    volumes:
+      - ./modules:/app/modules:ro
+
+  new-game:
+    image: aurkad:dev

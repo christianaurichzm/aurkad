@@ -1,6 +1,6 @@
 // How often one caller may hit HTTP, and what "one caller" means. With
 // nothing configured, Express reports the socket's address, which behind
-// the proxy docker-compose.yml recommends is the proxy for every request:
+// the proxy compose.game.yml puts in front is the proxy for every request:
 // one shared bucket, where any client can lock out everyone at login. Hence
 // `config.http.trustProxy`, and one key function for every limiter.
 //

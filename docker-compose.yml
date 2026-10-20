@@ -1,3 +1,10 @@
+# MongoDB for working on the engine from source: `npm run db:up` starts it and a
+# server run on the host (`npm run dev`) connects to 127.0.0.1:27017.
+#
+# The whole game in Docker (engine, Mongo and Caddy) is compose.game.yml, the
+# file each release publishes as compose.yml. `npm run docker:up` runs that
+# same file on an image built from this checkout (compose.build.yml), so the
+# stack tested here is the one creators run.
 services:
   # A replica set of one node: MongoDB only offers transactions on a replica
   # set, and an economic commit that spans two documents (a trade, or mailing an
@@ -6,11 +13,9 @@ services:
   # standalone volume converts in place on the next `up`.
   #
   # The healthcheck initiates the set the first time and is healthy once the
-  # node is primary. The member is named 127.0.0.1, which is where a server run
-  # on the host (npm run dev) finds it; a container cannot reach it by that
-  # name, so the app below connects with directConnection=true and never asks
-  # the set where its members are. The boot line "[DB] ..." says which of the
-  # two the server got.
+  # node is primary, which is what `npm run db:up` waits for. The member is
+  # named 127.0.0.1, which is where a server run on the host finds it. The boot
+  # line "[DB] ..." says whether the server got transactions.
   mongo:
     image: mongo:7
     container_name: engine-mongo
@@ -33,86 +38,5 @@ services:
       start_period: 20s
       start_interval: 1s
 
-  app:
-    build: .
-    container_name: engine-app
-    restart: unless-stopped
-    # As the owner of the folders mounted below, which the server writes to.
-    user: ${UID:?set UID and GID in .env (id -u, id -g)}:${GID:?set GID in .env}
-    depends_on:
-      mongo:
-        condition: service_healthy
-    environment:
-      NODE_ENV: production
-      PORT: '8080'
-      MONGO_URI: mongodb://mongo:27017/game?directConnection=true
-      SESSION_SECRET: ${SESSION_SECRET:-}
-      BOOTSTRAP_ADMIN_USERNAME: ${BOOTSTRAP_ADMIN_USERNAME:-}
-      CORS_ALLOWED_ORIGINS: ${PUBLIC_URL:-https://localhost}
-      USE_SECURE_COOKIES: 'true'
-      TRUST_PROXY: '1'
-      GAME_DIR: /app/game
-    volumes:
-      # The game folder, edited on the host with no image rebuild: scripts/
-      # hot-reloads, the rest applies on restart. Make it first with
-      # `npm run new-game -- game`, or point this at a demo. Writable: the boot
-      # writes content.generated.d.ts into scripts/ for your editor, the script
-      # editor saves there, and the Appearance page saves into theme/.
-      - ./game:/app/game
-      - ./modules:/app/modules:ro
-
-  # The session cookie is Secure in production, and a browser never stores one
-  # sent over plain http, so the game is only reachable through TLS - on your
-  # own computer too, where Caddy signs https://localhost itself and the
-  # browser warns once. On a server, set PUBLIC_URL=https://your.domain in
-  # .env and Caddy fetches a real certificate.
-  caddy:
-    image: caddy:2
-    container_name: engine-caddy
-    restart: unless-stopped
-    depends_on:
-      - app
-    command: caddy reverse-proxy --from ${PUBLIC_URL:-https://localhost} --to app:8080
-    ports:
-      - '80:80'
-      - '443:443'
-    volumes:
-      - caddy-data:/data
-
-  # --- Multi-instance example (sharding by map) ---
-  # Uncomment and adjust to run two server instances splitting maps between them.
-  # Each instance must have a unique WS_PUBLIC_URL and a non-overlapping MAP_IDS.
-  # Caddy then serves one site per instance, so its command becomes a Caddyfile
-  # mounted at /etc/caddy/Caddyfile:
-  #
-  #   https://localhost { reverse_proxy app:8080 }
-  #   https://localhost:8444 { reverse_proxy app-b:8081 }
-  #
-  # with '8444:8444' added to its ports.
-  #
-  # app-b:
-  #   build: .
-  #   container_name: engine-app-b
-  #   restart: unless-stopped
-  #   user: ${UID}:${GID}
-  #   depends_on:
-  #     mongo:
-  #       condition: service_healthy
-  #   environment:
-  #     NODE_ENV: production
-  #     PORT: '8081'
-  #     MONGO_URI: mongodb://mongo:27017/game?directConnection=true
-  #     SESSION_SECRET: ${SESSION_SECRET:-}
-  #     CORS_ALLOWED_ORIGINS: https://localhost,https://localhost:8444
-  #     USE_SECURE_COOKIES: 'true'
-  #     TRUST_PROXY: '1'
-  #     WS_PUBLIC_URL: wss://localhost:8444
-  #     MAP_IDS: map3,map4
-  #     GAME_DIR: /app/game
-  #   volumes:
-  #     - ./game:/app/game
-  #     - ./modules:/app/modules:ro
-
 volumes:
   mongo-data:
-  caddy-data:
