@@ -27,6 +27,8 @@
     "loadtest": "cross-env TS_NODE_PROJECT=bench/tsconfig.json node --loader ts-node/esm bench/loadTest.ts",
     "replay": "cross-env TS_NODE_PROJECT=tools/tsconfig.json node --loader ts-node/esm tools/replay.ts",
     "profile": "cross-env TS_NODE_PROJECT=tools/tsconfig.json node --loader ts-node/esm tools/profileServer.ts",
+    "compat": "cross-env TS_NODE_PROJECT=tools/tsconfig.json node --loader ts-node/esm tools/compat.ts",
+    "preversion": "npm run --silent compat -- --base v$npm_old_version --next $npm_new_version",
     "new-game": "cross-env TS_NODE_PROJECT=tsconfig.server.json node --loader ts-node/esm src/server/contentPack/newGame.ts",
     "dev:seed": "npm run db:reset && sleep 2 && npm run seed && npm run dev",
     "fresh": "npm run db:reset && npm run build && npm start",

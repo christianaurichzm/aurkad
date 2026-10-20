@@ -243,14 +243,49 @@ const IMPORT_ORDER: (keyof typeof SPECS)[] = [
   'maps',
 ];
 
-function readArray(file: string): unknown[] | null {
-  const full = path.join(contentDir(), file);
+function readArray(dir: string, file: string): unknown[] | null {
+  const full = path.join(dir, file);
   if (!fs.existsSync(full)) return null;
   const parsed: unknown = JSON.parse(fs.readFileSync(full, 'utf-8'));
   if (!Array.isArray(parsed)) {
     throw new Error(`${file} must contain a JSON array`);
   }
   return parsed as unknown[];
+}
+
+/**
+ * Every file of a pack, parsed in import order, and every problem found in
+ * it, with nothing written. `npm run compat` reads an earlier release's packs
+ * through this, so what it accepts is exactly what the boot accepts.
+ */
+export function readContentPack(dir = contentDir()): {
+  batches: { key: keyof typeof SPECS; entries: unknown[] }[];
+  problems: string[];
+} {
+  const problems: string[] = [];
+  const batches: { key: keyof typeof SPECS; entries: unknown[] }[] = [];
+  for (const key of IMPORT_ORDER) {
+    const spec = SPECS[key];
+    let rows: unknown[] | null;
+    try {
+      rows = readArray(dir, spec.file);
+    } catch (e) {
+      problems.push(`${spec.file}: ${(e as Error).message}`);
+      continue;
+    }
+    if (rows === null) continue;
+
+    const entries: unknown[] = [];
+    rows.forEach((row, i) => {
+      const result = spec.schema.safeParse(row);
+      if (result.success) entries.push(result.data);
+      else
+        for (const x of result.error.issues)
+          problems.push(`${spec.file}[${i}] ${x.path.join('.')}: ${x.message}`);
+    });
+    batches.push({ key, entries });
+  }
+  return { batches, problems };
 }
 
 /**
@@ -270,29 +305,7 @@ export async function importContentPack(): Promise<boolean> {
   // Every file is read and every entry checked before the first write, since
   // a pack imported in part is a world nobody authored. A bad pack leaves the
   // database as it was, and the server still boots on it.
-  const problems: string[] = [];
-  const batches: { key: keyof typeof SPECS; entries: unknown[] }[] = [];
-  for (const key of IMPORT_ORDER) {
-    const spec = SPECS[key];
-    let rows: unknown[] | null;
-    try {
-      rows = readArray(spec.file);
-    } catch (e) {
-      problems.push(`${spec.file}: ${(e as Error).message}`);
-      continue;
-    }
-    if (rows === null) continue;
-
-    const entries: unknown[] = [];
-    rows.forEach((row, i) => {
-      const result = spec.schema.safeParse(row);
-      if (result.success) entries.push(result.data);
-      else
-        for (const x of result.error.issues)
-          problems.push(`${spec.file}[${i}] ${x.path.join('.')}: ${x.message}`);
-    });
-    batches.push({ key, entries });
-  }
+  const { batches, problems } = readContentPack();
 
   if (problems.length > 0) {
     for (const problem of problems) logger.error(`[content] ${problem}`);

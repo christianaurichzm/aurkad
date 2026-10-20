@@ -22,20 +22,82 @@ jobs:
       REPOSITORY: ${{ github.repository }}
       ACTOR: ${{ github.actor }}
     steps:
-      # Full history: the changelog is the commit range since the previous tag.
+      # Full history: the changelog and the compatibility check both read the
+      # range since the previous tag.
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+
+      - run: npm ci
+
+      # What a game made on the previous release has to know, which opens the
+      # release notes, and the gate that keeps a breaking change out of a minor
+      # or a patch. `npm version` runs the same check before it tags, so this
+      # fails only for a tag made some other way. The previous release is the
+      # newest one published, not the newest tag: a tag whose run failed never
+      # reached anyone, and has no compose.yml to upgrade from.
+      - name: compatibility
+        run: |
+          prev=$(gh release view --json tagName --jq .tagName 2>/dev/null || true)
+          echo "PREV=$prev" >> "$GITHUB_ENV"
+          : > upgrade.md
+          if [ -n "$prev" ]; then
+            npm run --silent compat -- --base "$prev" --next "${GITHUB_REF_NAME#v}" | tee upgrade.md
+          fi
+
       # GHCR rejects an uppercase path, and the owner segment is spelled the way
       # GitHub spells the account.
-      - name: image and push
+      - name: image
         run: |
           IMAGE="ghcr.io/$(echo "$REPOSITORY" | tr '[:upper:]' '[:lower:]')"
-          echo "$GH_TOKEN" | docker login ghcr.io -u "$ACTOR" --password-stdin
           docker build -t "$IMAGE:${GITHUB_REF_NAME#v}" -t "$IMAGE:latest" .
-          docker push --all-tags "$IMAGE"
           echo "IMAGE=$IMAGE" >> "$GITHUB_ENV"
+
+      # A game made on the previous release, moved onto this image the way the
+      # notes tell creators to: the same folder, database and account, only
+      # the version on the image lines changed. Before the push, so a release
+      # that cannot boot an existing game is never published. Not logged in to
+      # the registry, like a creator.
+      - name: upgrade from the previous release
+        if: env.PREV != ''
+        run: |
+          mkdir "$RUNNER_TEMP/upgrade" && cd "$RUNNER_TEMP/upgrade"
+          curl -fLO "https://github.com/$REPOSITORY/releases/download/$PREV/compose.yml"
+          echo "ADMIN=smoke" > .env
+          ready() {
+            for _ in $(seq 60); do curl -skf https://localhost/readyz && return; sleep 2; done
+            return 1
+          }
+          body='{"username":"smoke","password":"smoke-check-password"}'
+          json='Content-Type: application/json'
+          docker compose up -d
+          ready
+          curl -skf -H "$json" -d "$body" https://localhost/register
+
+          sed -i "s|$IMAGE:${PREV#v}\$|$IMAGE:${GITHUB_REF_NAME#v}|" compose.yml
+          grep -q "$IMAGE:${GITHUB_REF_NAME#v}$" compose.yml
+          docker compose up -d
+          ready
+          curl -skf -c jar -H "$json" -d "$body" https://localhost/admin/login
+          docker compose logs app > app.log
+          if grep -q 'Nothing imported' app.log; then
+            cat app.log
+            exit 1
+          fi
+
+      - if: failure() && env.PREV != ''
+        working-directory: ${{ runner.temp }}/upgrade
+        run: docker compose logs
+
+      - name: push
+        run: |
+          echo "$GH_TOKEN" | docker login ghcr.io -u "$ACTOR" --password-stdin
+          docker push --all-tags "$IMAGE"
 
       # Conventional-commit subjects are already the changelog; the release page
       # is where it lives, so there is no CHANGELOG.md to keep in sync.
@@ -44,8 +106,11 @@ jobs:
       # the newest, and one already downloaded keeps running what it names.
       - name: release
         run: |
-          prev=$(git describe --tags --abbrev=0 "$GITHUB_REF_NAME^" 2>/dev/null || true)
-          git log --no-merges --pretty='- %s' ${prev:+"$prev.."}"$GITHUB_REF_NAME" > notes.md
+          {
+            cat upgrade.md
+            printf '\n## Changes\n\n'
+            git log --no-merges --pretty='- %s' ${PREV:+"$PREV.."}"$GITHUB_REF_NAME"
+          } > notes.md
           sed "s|ghcr.io/christianaurichzm/aurkad:latest|$IMAGE:${GITHUB_REF_NAME#v}|" compose.game.yml > compose.yml
           gh release create "$GITHUB_REF_NAME" --title "$GITHUB_REF_NAME" --notes-file notes.md compose.yml
 
