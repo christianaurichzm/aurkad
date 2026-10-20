@@ -516,6 +516,29 @@ describe('POST /logout', () => {
     await new Promise((resolve) => setTimeout(resolve, 100));
     expect(getPlayerByName('Alice')).toBeUndefined();
   });
+
+  it('closes the game socket, so the next login is let in', async () => {
+    await createPlayer('Alice', await hashPw('correcthorse'));
+    const agent = request.agent(app);
+    const login = () =>
+      agent
+        .post('/login')
+        .send({ username: 'Alice', password: 'correcthorse' });
+    expect((await login()).status).toBe(200);
+    const socket = {
+      readyState: WebSocket.OPEN as number,
+      close: vi.fn(() => {
+        socket.readyState = WebSocket.CLOSING;
+      }),
+    };
+    playersWsMap.set('Alice', socket as unknown as WebSocket);
+
+    expect((await agent.post('/logout')).status).toBe(200);
+
+    expect(socket.close).toHaveBeenCalled();
+    await vi.waitFor(() => expect(getPlayerByName('Alice')).toBeUndefined());
+    expect((await login()).status).toBe(200);
+  });
 });
 
 describe('POST /password', () => {

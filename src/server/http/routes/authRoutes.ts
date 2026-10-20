@@ -221,6 +221,10 @@ export function createAuthRouter() {
         res.status(500).send('Failed to destroy session');
         return;
       }
+      // The game socket outlives the session it was opened under: left open,
+      // it holds a character that has left the world, and the next login is
+      // turned away as a second session.
+      if (username) playersWsMap.get(username)?.close(1000, 'Logged out');
       disconnectPlayer(username).catch((e) => {
         logger.error('disconnectPlayer failed', { err: e });
       });
