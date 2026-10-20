@@ -528,7 +528,7 @@ command(
 //   playerJoin / playerLeave       { player }
 //   playerDeath                    { player, killer? }
 //   playerLevelUp                  { player, level }
-//   npcDeath                       { npc, killer }
+//   npcDeath                       { npc, killer, contributors }  - contributors: who hurt it, largest share first
 //   npcRemoved                     { npc }                 - off its map: despawn, map save, a kill that waits to respawn
 //   npcInteract                    { player, npc }         - player pressed F
 //   tileEnter                      { player, tile, map }
@@ -537,8 +537,13 @@ command(
 //   chatMessage                    { player, scope, message }
 //   playerAttack                   { player, handled }     - set handled = true to own the attack
 //   beforeDamage                   { attacker?, target, damage: { value } }  - mutate damage.value
+//   afterDamage                    { attacker?, target, damage, lethal }  - after it landed; damage is what it took
+//   pvpAllowed                     { attacker, target, mapId, allowed }  - set allowed to open or close a player fight
 //   beforeXpGain                   { player, amount, source, base }  - mutate amount; base is the unscaled award; source 'kill' | 'script' | ...
 //   customAction                   { player, channel, payload }  - from client sendServerEvent
+//   liveOpsFlag                    { name, value, active }  - a flag started or ended (see LIVE-OPS FLAGS)
+//   instanceOwner                  { player, mapId, owner }  - set owner: everyone answering the same walks into one copy
+//   mapChange                      { mapId }               - a map's tiles changed (editor save, setMapTile)
 //   tick                           { tick }                - 20/s; throttle with tick % n
 //
 // ATTACHED BEHAVIOR (attach): runs only for content naming this id
@@ -562,12 +567,15 @@ command(
 //   healPlayer(player[, amount])   heal amount HP, or to full
 //   killPlayer(player)             kill + respawn
 //   teleportPlayer(p, mapId, col, row)
-//   giveItem(player, itemId, qty)
-//   removeItem(player, itemId, qty)
 //   giveExperience(player, amount) - passes through beforeXpGain
 //   dealDamage(target, amount, attacker?)
 //   setNameColor(player, color)    - cosmetic name color (undefined to clear)
 //   setNameTag(player, tag, color?) - cosmetic tag above name (e.g. guild)
+//   setCosmetic(player, field, source, value, priority?) - same fields, one
+//                                    source each, highest priority shows; use it
+//                                    when more than one system names a player
+//   clearCosmetic(player, field, source)  - the next source down shows
+//   setChatIgnored(player, names)  - senders this player is not shown (runtime only)
 //   getPlayerData(player, key)     - read persisted custom field
 //   setPlayerData(player, key, val)- write persisted custom field
 //
@@ -576,6 +584,22 @@ command(
 //   spawnNpc({ mapId, col, row, name?, sprite?, maxHealth?, attack?, behavior? })
 //   despawnNpc(npc)
 //   moveNpcToward(npc, x, y)       - one tile step (call every ~25 ticks)
+//   npc.templateId                 - the content id Npcs.<Name> holds: compare kills
+//                                    with it, not npc.id (none on a spawnNpc npc)
+//
+// MAPS
+//   getMapTile(mapId, col, row)    → { blocked, tileIndex, maskIndex?, bank } | null
+//   setMapTile(mapId, col, row, { tileIndex?, blocked? }) → boolean
+//                                    a door, a bridge; never saved, fires mapChange
+//   getMapSize(mapId)              → { cols, rows } | undefined   in tiles
+//   canStand(entity, x, y)         → boolean   ask before moving something by hand
+//   getMapPvp(mapId)               → 'safe' | 'normal' | 'no-penalty'
+//
+// CONTENT (what the editors saved; copies, so editing one changes nothing)
+//   getItem(id) / getItems()       getArrow(id) / getArrows()
+//   getQuest(id) / getQuests()     getDialog(id)
+//   getSpells()                    getRecipes()
+//   createSpells([...])            seed a module's spells when getSpells() is empty
 //
 // STORE (shared, persisted KV)
 //   store.get(scope, key)          store.set(scope, key, value)
@@ -600,12 +624,16 @@ command(
 // MODULES
 //   use('dialog').show(player, { text, choices? }, onChoice?)
 //   use('quest').define(def) / start(p, id) / advance(p, id, n?) / get(p, id)
-//   use('magic').defineSpell({ id, name, manaCost, cooldownMs, cast(player) })
+//   use('magic').defineSpell({ id, name, cost, cooldownMs, cast(player) })
+//   use('magic').cast(p, id)           → false if it did not go off: unknown, not p's,
+//                                        cooling down, short of mana, or it threw
 //   use('magic').setSpells(p, ids?)    what p can cast; undefined = every spell
 //   use('magic').learn(p, id)          → false if p could cast it already,
-//                                        or p's data refused the longer list
+//                                        or p's data refused the longer list;
+//                                        throws on an id no spell has
 //   use('guild').guildOf(player) / isMember(p, name) / members(name)
 //   use('party').partyOf(player) / isMember(p, name) / members(name)
+//   provide(name, api)                 publish your own, for use(name) elsewhere
 //
 // SCHEDULING (ticks, not milliseconds; see below)
 //   after(ticks, fn)               → id   run once, `ticks` from now
@@ -639,6 +667,11 @@ command(
 //   countItem(player, itemId)        → number
 //   canCarry(player, itemId)         → boolean  a stack already held always fits
 //   moveItem(from, to, itemId, qty?) → { ok, reason? }  atomic between containers
+//   exchangeItems(player, inputs, output) → { ok, reason? }  a craft: all or nothing
+//   commitInventories(players, change)    → Promise<boolean>  items between
+//                                      players, written together or not at all
+//   persistNow(...players)           → Promise<boolean>  write now, not on the timer
+//   auctions.*                       durable auction escrow (see global.d.ts)
 //
 //   A container is anything shaped { items, maxCapacity } - player.inventory,
 //   or a bank/mailbox you keep in player data. moveItem checks both sides
@@ -697,6 +730,15 @@ command(
 //
 //   `xpMultiplier` is the one the engine applies by itself; any other name
 //   means whatever your script decides it means.
+//
+// LANGUAGE
+//   i18n({ pt: { 'Pet dismissed.': 'Bicho dispensado.' } })  this script's strings
+//   t(player, 'Trades: {count}', { count })  → string in the player's language
+//   sendMessage and command replies translate on their own; t is for sentences
+//   that carry a value.
+//
+// LOGGING
+//   log(...args)   warn(...args)   error(...args)   in the server log
 //
 // CONSTANTS
 //   TILE_SIZE                      - tile size in pixels (positions are in pixels)

@@ -74,6 +74,9 @@ interface PlayerServer {
   id: string;
   name: string;
   sprite: number;
+  /** Pixels of ground it stands on, from `position` right and down. */
+  width: number;
+  height: number;
   health: number;
   maxHealth: number;
   attack: number;
@@ -107,7 +110,16 @@ interface PlayerServer {
 }
 
 interface RuntimeNpc {
+  /**
+   * Unique while it lives. A map npc's id also names its map and spawn tile,
+   * so it is never an `Npcs.<Name>` value; compare `templateId` instead.
+   */
   id: string;
+  /**
+   * The content id it was made from, the value `Npcs.<Name>` holds: what a
+   * kill counter or a boss check compares. Absent on an npc `spawnNpc` made.
+   */
+  templateId?: string;
   name: string;
   sprite: number;
   /**
@@ -615,7 +627,7 @@ declare function getItem(id: number): ItemData | undefined;
 /** All items defined in the database. */
 declare function getItems(): ItemData[];
 
-/** Tile size in pixels for a map (returns undefined if map doesn't exist). */
+/** A map's size in tiles, or undefined when the map is not loaded here. */
 declare function getMapSize(
   mapId: string,
 ): { cols: number; rows: number } | undefined;
