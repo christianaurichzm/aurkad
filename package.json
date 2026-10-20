@@ -30,6 +30,7 @@
     "preversion": "npm run --silent compat -- --base v$npm_old_version --next $npm_new_version",
     "new-game": "node --import tsx src/server/contentPack/newGame.ts",
     "dev:seed": "npm run db:reset && npm run seed && npm run dev",
+    "check": "npm run format:check && npm run lint && npm run typecheck && npm run test:run",
     "typecheck": "concurrently --group \"npm:typecheck:*\"",
     "typecheck:server": "tsc -p tsconfig.server.json --noEmit",
     "typecheck:client": "tsc -p tsconfig.client.json --noEmit",

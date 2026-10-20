@@ -15,8 +15,6 @@ CONTRIBUTING.md). Please open an issue instead. -->
 
 <!-- Commands run, tests added, manual checks. -->
 
-- [ ] `npm run typecheck` passes
-- [ ] `npm run lint` passes
-- [ ] `npm run test:run` passes
+- [ ] `npm run check` passes (format, lint, typecheck, tests)
 - [ ] Added/updated tests for behavior changes
 - [ ] No allocations added to the 20 Hz hot path (sim/netcode)

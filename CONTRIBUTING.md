@@ -23,9 +23,10 @@ GAME_DIR=games/my-game npm run dev   # server (8080) + client dev server with HM
 Every change must keep these green, and CI enforces them:
 
 ```bash
-npm run typecheck      # tsc, server + client + scripts + modules, no emit
-npm run lint           # eslint over src, modules, new-game's scripts
+npm run check          # all four below, stopping at the first that fails
 npm run format:check   # prettier
+npm run lint           # eslint over src, modules, new-game's scripts
+npm run typecheck      # tsc over every tsconfig in the repo, in parallel, no emit
 npm run test:run       # vitest single run
 ```
 
