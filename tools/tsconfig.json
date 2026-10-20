@@ -1,5 +1,5 @@
 {
-  "//": "Dev tools run with ts-node (see the npm scripts). Kept out of scripts/ because that directory is watched by the game-script loader, which would try to evaluate these in the sandbox - a Node CLI has imports and a sandboxed game script has no module system, so it failed on every boot.",
+  "//": "Dev tools run with tsx (see the npm scripts), which strips types without checking them; this config is what `npm run typecheck:tools` checks them against. Kept out of scripts/ because that directory is watched by the game-script loader, which would try to evaluate these in the sandbox - a Node CLI has imports and a sandboxed game script has no module system, so it failed on every boot.",
   "extends": "../tsconfig.base.json",
   "compilerOptions": {
     "noUncheckedIndexedAccess": true,

@@ -39,8 +39,8 @@ export default defineConfig({
       : 'http://localhost:8080/healthz',
     ignoreHTTPSErrors: production,
     reuseExistingServer: !production && !process.env.CI,
-    // A ceiling, not a delay; a cold CI runner pays for ts-node compiling the
-    // server and the first Mongo connection.
+    // A ceiling, not a delay; a cold CI runner pays for transpiling the server
+    // and the first Mongo connection.
     timeout: 120_000,
   },
 });
