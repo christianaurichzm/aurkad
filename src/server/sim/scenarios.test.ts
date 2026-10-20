@@ -7,7 +7,12 @@ import {
 } from '../../shared/types.js';
 import { TILE_SIZE } from '../../shared/constants.js';
 import { createFixture, makeTiles, tile } from './simFixture.js';
-import { teleportPlayer } from '../services/world/movementService.js';
+import {
+  pressedKeysMap,
+  processMovementIntent,
+  teleportPlayer,
+} from '../services/world/movementService.js';
+import { logger } from '../logger.js';
 import { spawnNpc } from '../services/npc/spawn.js';
 import { provideApi } from '../engine/modules/registry.js';
 import {
@@ -93,6 +98,31 @@ describe('player movement', () => {
       alice.position.y + alice.height > bob.position.y;
 
     expect(overlap).toBe(false);
+  });
+
+  it('keeps moving everyone else when one player cannot be stepped', () => {
+    const errorThrottled = vi
+      .spyOn(logger, 'errorThrottled')
+      .mockImplementation(() => {});
+    const broken = sim.addPlayer({ name: 'Broken', position: tile(1, 1) });
+    Object.defineProperty(broken, 'moving', {
+      get() {
+        throw new Error('boom');
+      },
+    });
+    const alice = sim.addPlayer({ name: 'Alice', position: tile(1, 3) });
+    pressedKeysMap.set('Broken', new Set([Key.ArrowRight]));
+    pressedKeysMap.set('Alice', new Set([Key.ArrowRight]));
+
+    processMovementIntent();
+
+    expect(alice.moving).toBe(true);
+    expect(errorThrottled).toHaveBeenCalledWith(
+      'movement',
+      '[movement] step failed',
+      expect.objectContaining({ player: 'Broken', err: expect.any(Error) }),
+    );
+    errorThrottled.mockRestore();
   });
 });
 

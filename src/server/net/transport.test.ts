@@ -14,6 +14,7 @@ import WebSocket from 'ws';
 import fc from 'fast-check';
 import { gameConfig } from '../gameConfig.js';
 import { config } from '../config.js';
+import { logger } from '../logger.js';
 import { createFixture, tile } from '../sim/simFixture.js';
 import { Key, type Item } from '../../shared/types.js';
 import { mapPixelHeight, mapPixelWidth } from '../../shared/mapGeometry.js';
@@ -109,6 +110,41 @@ describe('processActions', () => {
     expect(player.language).toBe('en');
   });
 
+  // A client able to make a handler throw must not hold back what anyone
+  // else sent behind it.
+  it('carries on past an action whose handler throws', () => {
+    const errorThrottled = vi
+      .spyOn(logger, 'errorThrottled')
+      .mockImplementation(() => {});
+    const broken = fx.addPlayer({ name: 'broken' });
+    Object.defineProperty(broken, 'language', {
+      set() {
+        throw new Error('boom');
+      },
+    });
+    const talker = fx.addPlayer({ name: 'talker' });
+    enqueueClientAction({
+      username: 'broken',
+      type: 'language',
+      language: 'pt',
+    });
+    enqueueClientAction({
+      username: 'talker',
+      type: 'language',
+      language: 'pt',
+    });
+
+    processActions();
+
+    expect(talker.language).toBe('pt');
+    expect(errorThrottled).toHaveBeenCalledWith(
+      'action',
+      '[ws] action failed',
+      expect.objectContaining({ type: 'language', err: expect.any(Error) }),
+    );
+    errorThrottled.mockRestore();
+  });
+
   it('has no rate-limiter entry without a connection', () => {
     expect(rateLimiterEntryCount()).toBe(0);
   });
@@ -132,10 +168,11 @@ describe('a keyboard release', () => {
   });
 });
 
-// What gets past the schema reaches a handler inside the tick, where a throw
-// does not lose the message but does stop the drain: everything queued behind
-// it waits for the next tick. So whatever the schema lets in has to be
-// something the handlers survive, and leave the player in one piece after.
+// What gets past the schema reaches a handler inside the tick. A throw there
+// is contained and logged, but the action it came from is lost, so whatever
+// the schema lets in has to be something the handlers survive, and leave the
+// player in one piece after. The fixture's step turns a contained throw back
+// into a failing test.
 describe('processActions under any message the schema accepts', () => {
   const SWORD = 10;
   const HELMET = 11;

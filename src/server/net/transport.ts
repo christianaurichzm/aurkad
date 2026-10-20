@@ -196,6 +196,20 @@ function dispatchClientAction(action: ClientAction): void {
   }
 }
 
+// One action's failure stays its own. Thrown out of the drain it would end
+// the tick's drain, so a client making a handler throw a few times a tick
+// would hold everyone's input behind it until the queue overflowed.
+function dispatchIsolated(action: ClientAction): void {
+  try {
+    dispatchClientAction(action);
+  } catch (err) {
+    logger.errorThrottled('action', '[ws] action failed', {
+      type: action.type,
+      err,
+    });
+  }
+}
+
 export function processActions() {
   let n = 0;
   while (actionQueue.size > 0) {
@@ -220,7 +234,7 @@ export function processActions() {
     // only the context object.
     reqCtx.run(
       { requestId: `${getTick()}.${n++}`, username: action.username },
-      dispatchClientAction,
+      dispatchIsolated,
       action,
     );
   }

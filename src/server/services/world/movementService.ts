@@ -393,83 +393,109 @@ const calculateNextTilePosition = (
   }
 };
 
-export const processMovementIntent = () => {
-  pressedKeysMap.forEach((keySet, username) => {
-    const player = getPlayerByName(username);
-    if (!player || player.moving) {
-      return;
+/**
+ * A failure while moving one player stays that player's. Thrown out of the
+ * system, it would stop everyone after them in iteration order, every tick
+ * for as long as the state that caused it lasts.
+ */
+function movementFailed(username: string, err: unknown): void {
+  logger.errorThrottled('movement', '[movement] step failed', {
+    player: username,
+    err,
+  });
+}
+
+function stepHeldKeys(keySet: Set<Key>, username: string): void {
+  const player = getPlayerByName(username);
+  if (!player || player.moving) {
+    return;
+  }
+
+  const isBoosting = keySet.has(Key.Shift);
+  let activeMoveDir: Direction | null = null;
+
+  if (keySet.has(Key.ArrowUp)) activeMoveDir = Direction.Up;
+  else if (keySet.has(Key.ArrowDown)) activeMoveDir = Direction.Down;
+  else if (keySet.has(Key.ArrowLeft)) activeMoveDir = Direction.Left;
+  else if (keySet.has(Key.ArrowRight)) activeMoveDir = Direction.Right;
+
+  if (activeMoveDir === null) {
+    // Leave an in-progress attack alone (Control release resets it to Idle);
+    // otherwise this would overwrite it every tick before the client sees it.
+    if (
+      player.action !== CharacterAction.Idle &&
+      player.action !== CharacterAction.Attack
+    ) {
+      player.action = CharacterAction.Idle;
     }
+    return;
+  }
 
-    const isBoosting = keySet.has(Key.Shift);
-    let activeMoveDir: Direction | null = null;
+  player.direction = activeMoveDir;
+  const newTarget = calculateNextTilePosition(player.position, activeMoveDir);
+  const proposedState = {
+    id: player.id,
+    kind: player.kind,
+    mapId: player.mapId,
+    width: player.width,
+    height: player.height,
+    position: newTarget,
+  } as CombatTarget;
 
-    if (keySet.has(Key.ArrowUp)) activeMoveDir = Direction.Up;
-    else if (keySet.has(Key.ArrowDown)) activeMoveDir = Direction.Down;
-    else if (keySet.has(Key.ArrowLeft)) activeMoveDir = Direction.Left;
-    else if (keySet.has(Key.ArrowRight)) activeMoveDir = Direction.Right;
+  if (!hasCollision(proposedState)) {
+    applyMovement(player, newTarget, isBoosting);
+  } else {
+    const map = getMap(player.mapId);
+    const tileY = Math.round(newTarget.y / TILE_SIZE);
+    const tileX = Math.round(newTarget.x / TILE_SIZE);
+    const tile = map?.tiles[tileY]?.[tileX];
 
-    if (activeMoveDir === null) {
-      // Leave an in-progress attack alone (Control release resets it to Idle);
-      // otherwise this would overwrite it every tick before the client sees it.
+    if (tile?.door) {
+      // Opening it does not clear whoever stands in the doorway.
       if (
-        player.action !== CharacterAction.Idle &&
-        player.action !== CharacterAction.Attack
+        tryOpenDoor(player, map!, tileY, tileX) &&
+        !hasCollision(proposedState)
       ) {
-        player.action = CharacterAction.Idle;
-      }
-      return;
-    }
-
-    player.direction = activeMoveDir;
-    const newTarget = calculateNextTilePosition(player.position, activeMoveDir);
-    const proposedState = {
-      id: player.id,
-      kind: player.kind,
-      mapId: player.mapId,
-      width: player.width,
-      height: player.height,
-      position: newTarget,
-    } as CombatTarget;
-
-    if (!hasCollision(proposedState)) {
-      applyMovement(player, newTarget, isBoosting);
-    } else {
-      const map = getMap(player.mapId);
-      const tileY = Math.round(newTarget.y / TILE_SIZE);
-      const tileX = Math.round(newTarget.x / TILE_SIZE);
-      const tile = map?.tiles[tileY]?.[tileX];
-
-      if (tile?.door) {
-        // Opening it does not clear whoever stands in the doorway.
-        if (
-          tryOpenDoor(player, map!, tileY, tileX) &&
-          !hasCollision(proposedState)
-        ) {
-          applyMovement(player, newTarget, isBoosting);
-        } else {
-          player.action = CharacterAction.Idle;
-        }
-      } else if (!tile && map?.borderLinks) {
-        const link = map.borderLinks[DIRECTION_BORDER[activeMoveDir]];
-        if (link) {
-          warpToMap(
-            player,
-            link.to,
-            borderLanding(activeMoveDir, player.position, link),
-          );
-        } else {
-          player.action = CharacterAction.Idle;
-        }
+        applyMovement(player, newTarget, isBoosting);
       } else {
         player.action = CharacterAction.Idle;
       }
+    } else if (!tile && map?.borderLinks) {
+      const link = map.borderLinks[DIRECTION_BORDER[activeMoveDir]];
+      if (link) {
+        warpToMap(
+          player,
+          link.to,
+          borderLanding(activeMoveDir, player.position, link),
+        );
+      } else {
+        player.action = CharacterAction.Idle;
+      }
+    } else {
+      player.action = CharacterAction.Idle;
+    }
+  }
+}
+
+export const processMovementIntent = () => {
+  pressedKeysMap.forEach((keySet, username) => {
+    try {
+      stepHeldKeys(keySet, username);
+    } catch (err) {
+      movementFailed(username, err);
     }
   });
 
   pathGoals.forEach((goal, username) => {
     const player = getPlayerByName(username);
     if (!player) pathGoals.delete(username);
-    else if (!player.moving) followPath(player, goal);
+    else if (!player.moving) {
+      try {
+        followPath(player, goal);
+      } catch (err) {
+        movementFailed(username, err);
+      }
+    }
   });
 };
 
@@ -566,35 +592,43 @@ export const handleMoveTo = ({ username, col, row }: ClientMoveToAction) => {
 export const processMovementCompletion = (): void => {
   const tick = getTick();
   getAllPlayers().forEach((player) => {
-    const durationTicks =
-      player.moveDurationTicks ?? msToTicks(MOVEMENT_DURATION);
-
-    if (
-      player.moving &&
-      player.moveTick !== undefined &&
-      tick - player.moveTick >= durationTicks
-    ) {
-      player.moving = false;
-      player.moveTick = undefined;
-      player.targetPosition = undefined;
-      player.moveDurationTicks = undefined;
-
-      const keys = pressedKeysMap.get(player.name);
-      const isStillTryingToMove =
-        keys &&
-        (keys.has(Key.ArrowUp) ||
-          keys.has(Key.ArrowDown) ||
-          keys.has(Key.ArrowLeft) ||
-          keys.has(Key.ArrowRight));
-
-      if (!isStillTryingToMove) {
-        player.action = CharacterAction.Idle;
-      }
-
-      updatePlayerMap(player.id, player);
+    try {
+      completeStep(player, tick);
+    } catch (err) {
+      movementFailed(player.name, err);
     }
   });
 };
+
+function completeStep(player: PlayerServer, tick: number): void {
+  const durationTicks =
+    player.moveDurationTicks ?? msToTicks(MOVEMENT_DURATION);
+
+  if (
+    player.moving &&
+    player.moveTick !== undefined &&
+    tick - player.moveTick >= durationTicks
+  ) {
+    player.moving = false;
+    player.moveTick = undefined;
+    player.targetPosition = undefined;
+    player.moveDurationTicks = undefined;
+
+    const keys = pressedKeysMap.get(player.name);
+    const isStillTryingToMove =
+      keys &&
+      (keys.has(Key.ArrowUp) ||
+        keys.has(Key.ArrowDown) ||
+        keys.has(Key.ArrowLeft) ||
+        keys.has(Key.ArrowRight));
+
+    if (!isStillTryingToMove) {
+      player.action = CharacterAction.Idle;
+    }
+
+    updatePlayerMap(player.id, player);
+  }
+}
 
 export const handleKeyAction = (action: ClientKeyboardAction) => {
   const { username, keyboardAction, seq } = action;

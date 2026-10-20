@@ -26,6 +26,7 @@ import {
 } from './behaviors.js';
 import { selector, act, type BtNode } from './bt.js';
 import { useApi } from '../../engine/modules/registry.js';
+import { logger } from '../../logger.js';
 import { isInstanceTemplate } from '../world/instanceService.js';
 
 const STUCK_ESCAPE_TICKS = 2;
@@ -290,7 +291,19 @@ export function updateDueNpcs(): void {
     );
     Object.values(map.npcs).forEach((npc) => {
       if (tick % npcMoveTicks(npc) !== 0) return;
-      updateNpcs(npc, map, livePlayers);
+      // One npc's failure stays its own: a throw out of this loop would
+      // freeze every npc after it, on every map, every tick. The decision
+      // calls module code (a line-of-sight provider), so a fault here may not
+      // be the engine's.
+      try {
+        updateNpcs(npc, map, livePlayers);
+      } catch (err) {
+        logger.errorThrottled('npc', '[npc] update failed', {
+          npcId: npc.id,
+          mapId: map.id,
+          err,
+        });
+      }
     });
   });
 }

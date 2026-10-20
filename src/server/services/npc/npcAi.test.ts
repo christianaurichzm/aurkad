@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { CharacterAction, Direction } from '../../../shared/types.js';
 import { createFixture, tile } from '../../sim/simFixture.js';
 import { advanceTick, msToTicks } from '../../sim/clock.js';
@@ -15,6 +15,7 @@ import { npcMoveTicks } from './types.js';
 import { gameConfig } from '../../gameConfig.js';
 import { resolveDamage } from '../combat/index.js';
 import { TILE_SIZE } from '../../../shared/constants.js';
+import { logger } from '../../logger.js';
 
 let sim: ReturnType<typeof createFixture>;
 
@@ -587,5 +588,33 @@ describe('npcMoveTicks', () => {
 
   it('rounds up, so an interval is never shorter than asked', () => {
     expect(npcMoveTicks(sim.addNpc({ moveIntervalMs: 120 }))).toBe(3);
+  });
+});
+
+describe('updateDueNpcs', () => {
+  it('keeps updating the other npcs when one of them throws', () => {
+    const errorThrottled = vi
+      .spyOn(logger, 'errorThrottled')
+      .mockImplementation(() => {});
+    const broken = sim.addNpc();
+    Object.defineProperty(broken, 'behavior', {
+      get() {
+        throw new Error('boom');
+      },
+    });
+    const other = sim.addNpc({
+      behavior: 'neutral',
+      action: CharacterAction.Walk,
+    });
+
+    updateDueNpcs();
+
+    expect(other.action).toBe(CharacterAction.Idle);
+    expect(errorThrottled).toHaveBeenCalledWith(
+      'npc',
+      '[npc] update failed',
+      expect.objectContaining({ npcId: broken.id, err: expect.any(Error) }),
+    );
+    errorThrottled.mockRestore();
   });
 });

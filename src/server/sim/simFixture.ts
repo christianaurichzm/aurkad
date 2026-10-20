@@ -25,6 +25,7 @@ import {
   Tile,
 } from '../../shared/types.js';
 import { TILE_SIZE } from '../../shared/constants.js';
+import { logger } from '../logger.js';
 
 let _nextId = 1;
 const uid = () => `e${_nextId++}`;
@@ -177,11 +178,19 @@ export function createFixture(seed = 0) {
     enqueueClientAction({ username, type: 'moveTo', col, row });
   }
 
-  // The live loop isolates each system and logs a throw; here a throw fails
-  // the test that caused it.
+  // The live loop logs and swallows throws; here errorThrottled rethrows so
+  // the test that caused one fails.
   function step(ticks = 1) {
-    for (let i = 0; i < ticks; i++) {
-      for (const system of tickSystems) system.run();
+    const report = logger.errorThrottled;
+    logger.errorThrottled = (_key, msg, ctx) => {
+      throw ctx?.err instanceof Error ? ctx.err : new Error(msg);
+    };
+    try {
+      for (let i = 0; i < ticks; i++) {
+        for (const system of tickSystems) system.run();
+      }
+    } finally {
+      logger.errorThrottled = report;
     }
   }
 
