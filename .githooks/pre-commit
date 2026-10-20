@@ -1,6 +1,11 @@
 #!/bin/sh
-# Keep the format + lint gate green (the same checks CI enforces) so the debt
-# that used to slip in - unformatted files, lint errors - can't come back.
-# Fast enough for a solo repo; tests run in CI, not here.
+# The format and lint gates CI enforces, before the commit rather than after
+# the push. Tests run in CI, not here.
+#
+# Both keep a cache under node_modules/.cache and re-check only files whose
+# content changed. Lint uses type information, so an edit to one file can
+# change the verdict on another that the cache skips; CI lints a clean
+# checkout without a cache and catches that.
 
-npm run format:check && npm run lint
+npm run --silent format:check -- --cache &&
+  npm run --silent lint -- --cache --cache-strategy content --cache-location node_modules/.cache/eslint/
