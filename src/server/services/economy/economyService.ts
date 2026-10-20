@@ -28,8 +28,11 @@ export type EconomyResult =
 const OK: EconomyResult = { ok: true };
 const fail = (reason: EconomyFailure): EconomyResult => ({ ok: false, reason });
 
+// Past 2^53 a number no longer counts in ones: a stack that gave one away
+// would still hold as many as before. Amounts and the stacks they change both
+// stay inside that range.
 function isValidAmount(amount: number): boolean {
-  return Number.isFinite(amount) && amount > 0 && Number.isInteger(amount);
+  return Number.isSafeInteger(amount) && amount > 0;
 }
 
 /**
@@ -80,6 +83,7 @@ export function addItem(
 
   const slot = findSlot(container, itemId);
   if (slot) {
+    if (!Number.isSafeInteger(slot.quantity + amount)) return fail('no-space');
     slot.quantity += amount;
     return OK;
   }
@@ -104,6 +108,7 @@ export function removeItem(
 
   const slot = findSlot(container, itemId);
   if (!slot || slot.quantity < amount) return fail('not-enough');
+  if (!Number.isSafeInteger(slot.quantity)) return fail('invalid-amount');
 
   slot.quantity -= amount;
   if (slot.quantity <= 0) {

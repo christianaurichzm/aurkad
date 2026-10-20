@@ -120,6 +120,16 @@ describe('addItem', () => {
     expect(c.items).toEqual([{ item: 1, quantity: 5 }]);
   });
 
+  it('refuses a stack past what a number counts exactly', () => {
+    const c = container([[1, Number.MAX_SAFE_INTEGER]]);
+    expect(addItem(c, 1)).toEqual({ ok: false, reason: 'no-space' });
+    expect(addItem(container(), 1, 2 ** 53)).toEqual({
+      ok: false,
+      reason: 'invalid-amount',
+    });
+    expect(c.items).toEqual([{ item: 1, quantity: Number.MAX_SAFE_INTEGER }]);
+  });
+
   it('refuses a new item when every slot is taken', () => {
     const c = container(
       [
@@ -207,6 +217,16 @@ describe('removeItem', () => {
 });
 
 describe('moveItem', () => {
+  it('moves nothing out of a stack too large to count in ones', () => {
+    const from = container([[1, 2 ** 54]]);
+    const to = container();
+
+    expect(moveItem(from, to, 1, 1).ok).toBe(false);
+
+    expect(from.items).toEqual([{ item: 1, quantity: 2 ** 54 }]);
+    expect(to.items).toEqual([]);
+  });
+
   it('moves the amount across', () => {
     const from = container([[1, 5]]);
     const to = container();
