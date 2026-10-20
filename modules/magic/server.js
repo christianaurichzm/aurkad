@@ -286,10 +286,14 @@ on('tick', ({ tick }) => {
   }
 });
 
-/** What `player` can cast, as spell ids; undefined gives every spell back. */
+/**
+ * What `player` can cast, as spell ids; undefined gives every spell back.
+ * False when the player's data refused the list.
+ */
 function setSpells(player, ids) {
-  setPlayerData(player, 'spells', ids && ids.map(String));
+  const stored = setPlayerData(player, 'spells', ids && ids.map(String));
   pushState(player);
+  return stored;
 }
 
 function knows(player, spellId) {
@@ -298,16 +302,16 @@ function knows(player, spellId) {
 }
 
 /**
- * Adds a spell to what `player` can cast. False when they can cast it already,
- * which with no list of their own is every spell; throws on an id no spell
- * has, so a dialog naming a deleted spell stops instead of moving on to "now
- * you know it".
+ * Adds a spell to what `player` can cast. False when they already can or
+ * their data refused the list; throws on an unknown id, so a dialog naming
+ * a deleted spell stops.
  */
 function learn(player, spellId) {
   const spell = spells.get(String(spellId));
   if (!spell) throw new Error('no spell ' + spellId);
   if (knows(player, spell.id)) return false;
-  setSpells(player, [...(spellbook(player) || []), spell.id]);
+  if (!setSpells(player, [...(spellbook(player) || []), spell.id]))
+    return false;
   sendMessage(player, t(player, 'You learned {spell}.', { spell: spell.name }));
   return true;
 }
@@ -337,7 +341,8 @@ function attachTome() {
     onUse({ player, params, refuse }) {
       const spell = spells.get(String(params.spell));
       if (spell && !knows(player, spell.id)) {
-        learn(player, spell.id);
+        // Kept when the spell could not be stored: spent, it taught nothing.
+        if (!learn(player, spell.id)) refuse();
         return;
       }
       refuse();

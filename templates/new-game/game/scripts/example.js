@@ -601,7 +601,8 @@ command(
 //   use('quest').define(def) / start(p, id) / advance(p, id, n?) / get(p, id)
 //   use('magic').defineSpell({ id, name, manaCost, cooldownMs, cast(player) })
 //   use('magic').setSpells(p, ids?)    what p can cast; undefined = every spell
-//   use('magic').learn(p, id)          → false if p could cast it already
+//   use('magic').learn(p, id)          → false if p could cast it already,
+//                                        or p's data refused the longer list
 //   use('guild').guildOf(player) / isMember(p, name) / members(name)
 //   use('party').partyOf(player) / isMember(p, name) / members(name)
 //

@@ -492,4 +492,37 @@ describe('learning spells', () => {
       items.delete(90);
     }
   });
+
+  it('keeps the tome when the longer spell list cannot be stored', () => {
+    const sim = createFixture(0);
+    items.set(90, {
+      id: 90,
+      name: 'Tome of Healing',
+      description: '',
+      sprite: 0,
+      type: 'consumable',
+      scriptId: 'learnSpell',
+      scriptParams: { spell: 'heal' },
+    });
+    const alice = sim.addPlayer({
+      name: 'Alice',
+      inventory: { items: [{ item: 90, quantity: 1 }], maxCapacity: 10 },
+    });
+    useApi<MagicApi>('magic')!.setSpells(alice, ['blast']);
+    drainGameEvents();
+    const limits = config.scriptData as { maxValueBytes: number };
+    const was = limits.maxValueBytes;
+    limits.maxValueBytes = JSON.stringify(['blast']).length;
+
+    try {
+      expect(useItem('Alice', 90)).toBe(false);
+
+      expect(alice.data?.spells).toEqual(['blast']);
+      expect(alice.inventory.items).toEqual([{ item: 90, quantity: 1 }]);
+      expect(said()).toEqual([]);
+    } finally {
+      limits.maxValueBytes = was;
+      items.delete(90);
+    }
+  });
 });
