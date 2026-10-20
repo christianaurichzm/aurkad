@@ -14,6 +14,7 @@ import {
   disconnectPlayer,
   persistPlayerSessionState,
   persistPlayersOnShutdown,
+  refuseEntry,
   resumePlayer,
   setAccess,
 } from './playerService.js';
@@ -615,6 +616,38 @@ describe('leaving the world', () => {
         ],
       },
     );
+  });
+});
+
+// A logout or a kick ends the character and closes its socket, and the close
+// asks for the same departure again.
+describe('a departure asked for twice', () => {
+  it('runs once, and keeps a new session out until it is done', async () => {
+    const sim = createFixture(0);
+    const alice = sim.addPlayer({ name: 'Alice' });
+    let land = () => {};
+    const save = vi
+      .spyOn(playerRepository, 'save')
+      .mockImplementationOnce(
+        () => new Promise((resolve) => (land = () => resolve(true))),
+      );
+    onTestFinished(() => {
+      land();
+      save.mockRestore();
+    });
+    const record = { ...alice, password: 'hash' } as never;
+
+    const first = disconnectPlayer('Alice');
+    const second = disconnectPlayer('Alice');
+    await vi.waitFor(() => expect(save).toHaveBeenCalled());
+    expect(await refuseEntry(record)).toMatchObject({ status: 503 });
+
+    land();
+    await Promise.all([first, second]);
+
+    expect(save).toHaveBeenCalledOnce();
+    expect(getPlayerByName('Alice')).toBeUndefined();
+    expect(await refuseEntry(record)).toBeNull();
   });
 });
 

@@ -635,6 +635,15 @@ async function discardEconomicSessions(
   }
 }
 
+/**
+ * Departures under way, by player id. A logout or a kick ends the character
+ * and closes the socket, whose close asks for the same departure again. Run
+ * twice, the second would write and let go of the lease after the first, by
+ * when a new session may hold both; so it waits on the first instead, and
+ * refuseEntry keeps a new session out until it is done.
+ */
+const departures = new Map<string, Promise<void>>();
+
 export const disconnectPlayer = async (username?: string) => {
   // Cleared unconditionally, even when the player isn't found below: stale
   // held-key state for a name nobody answers to would otherwise sit in
@@ -646,6 +655,15 @@ export const disconnectPlayer = async (username?: string) => {
     return;
   }
 
+  let departure = departures.get(player.id);
+  if (!departure) {
+    departure = depart(player).finally(() => departures.delete(player.id));
+    departures.set(player.id, departure);
+  }
+  await departure;
+};
+
+async function depart(player: PlayerServer): Promise<void> {
   await waitForPlayerCommit(player.id);
   try {
     await persistPlayerSessionState(player);
@@ -675,7 +693,7 @@ export const disconnectPlayer = async (username?: string) => {
     }),
   );
   removePlayerSessionState(player);
-};
+}
 
 /**
  * Characters that left the world before their last write landed. Out of
@@ -717,7 +735,7 @@ export async function refuseEntry(
 ): Promise<{ status: 403 | 503; message: string } | null> {
   const say = (text: string, params?: Record<string, string>) =>
     translate({ language }, text, params);
-  if (unsavedDepartures.has(record.id)) {
+  if (unsavedDepartures.has(record.id) || departures.has(record.id)) {
     return {
       status: 503,
       message: say(
