@@ -44,7 +44,11 @@ export function setCosmetic(
   priority = 0,
   color?: string,
 ): void {
-  sourcesFor(player, field)[source] = { value, priority, color };
+  const sources = sourcesFor(player, field);
+  // An object lists a key where it was first added, and the tie-break reads
+  // that order as "most recently set": an update goes back to the end.
+  delete sources[source];
+  sources[source] = { value, priority, color };
   resolve(player, field);
 }
 

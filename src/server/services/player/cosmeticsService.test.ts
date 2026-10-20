@@ -51,6 +51,16 @@ describe('derived cosmetics', () => {
     expect(p.nameColor).toBe('red');
   });
 
+  it('an equal priority goes to the source set last, an update included', () => {
+    const p = mkPlayer();
+    setCosmetic(p, 'nameColor', 'vip', 'gold', 0);
+    setCosmetic(p, 'nameColor', 'title', 'blue', 0);
+    expect(p.nameColor).toBe('blue');
+
+    setCosmetic(p, 'nameColor', 'vip', 'green', 0);
+    expect(p.nameColor).toBe('green');
+  });
+
   it('clearing the winner falls back to the next highest', () => {
     const p = mkPlayer();
     setCosmetic(p, 'nameColor', 'vip', 'gold', 0);
