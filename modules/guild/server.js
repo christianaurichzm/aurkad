@@ -411,16 +411,18 @@ on('customAction', ({ player, channel, payload }) => {
 
 on('playerJoin', ({ player }) => {
   const gn = myGuildName(player);
-  if (!gn) {
-    // Kicked, or the guild disbanded, while they were away.
-    if (getPlayerData(player, 'guild') !== undefined) {
-      setPlayerData(player, 'guild', undefined);
-      setNameTag(player, undefined);
-    }
+  if (gn) {
+    setNameTag(player, gn);
+    pushGuild(gn);
     return;
   }
-  setNameTag(player, gn);
-  pushGuild(gn);
+  // Kicked or disbanded while away: a tag still showing the guild is cleared.
+  // The name stays in their data, since this instance's store may be older
+  // than the one that founded the guild.
+  const stale = getPlayerData(player, 'guild');
+  if (stale !== undefined && player.nameTag === stale) {
+    setNameTag(player, undefined);
+  }
 });
 
 on('playerLeave', ({ player }) => {

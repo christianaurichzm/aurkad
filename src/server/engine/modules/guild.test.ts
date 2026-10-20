@@ -13,7 +13,7 @@ import { unloadAllModules } from './moduleLoader.js';
 import { loadModulesForTest } from '../../../test/modules.js';
 import { handleChatCommand, clearCommands } from '../commands.js';
 import { useApi, clearProvides } from './registry.js';
-import { kvGet, clearKvStoreMemory } from '../../persistence/kvStore.js';
+import { kvGet, kvSet, clearKvStoreMemory } from '../../persistence/kvStore.js';
 import { drainGameEvents } from '../eventBus.js';
 import { handleCustomAction } from '../../services/comms/customEventService.js';
 import { createFixture } from '../../sim/simFixture.js';
@@ -21,6 +21,7 @@ import { Access, PlayerServer } from '../../../shared/types.js';
 import { emit } from '../hooks.js';
 import { gameConfig } from '../../gameConfig.js';
 import { registerPlayer, unregisterPlayer } from '../../sim/world.js';
+import { setCosmetic } from '../../services/player/cosmeticsService.js';
 
 interface GuildMember {
   name: string;
@@ -300,7 +301,7 @@ describe('guild module', () => {
 
     registerPlayer(bob);
     emit('playerJoin', { player: bob });
-    expect(bob.data?.guild).toBeUndefined();
+    expect(api.isMember(bob, 'Dragons')).toBe(false);
     expect(bob.nameTag).toBeUndefined();
 
     // Nor is a guild founded again under the name theirs.
@@ -308,6 +309,40 @@ describe('guild module', () => {
     handleChatCommand(alice, '/guild create Dragons');
     bob.data = { ...bob.data, guild: 'Dragons' };
     expect(api.isMember(bob, 'Dragons')).toBe(false);
+  });
+
+  // An instance that booted before the guild was founded has none of it in
+  // its store; arriving there is no reason to forget the guild.
+  it('keeps the guild of a member who arrives where the store lacks it', () => {
+    const sim = createFixture(0);
+    const alice = sim.addPlayer({ name: 'Alice' });
+    handleChatCommand(alice, '/guild create Dragons');
+    const stored = kvGet<Guild>('guild', 'Dragons');
+    clearKvStoreMemory();
+
+    emit('playerJoin', { player: alice });
+
+    expect(alice.data?.guild).toBe('Dragons');
+    kvSet('guild', 'Dragons', stored);
+    expect(
+      useApi<{ isMember: (p: PlayerServer, name: string) => boolean }>(
+        'guild',
+      )!.isMember(alice, 'Dragons'),
+    ).toBe(true);
+  });
+
+  it('leaves a name tag some other script set', () => {
+    const sim = createFixture(0);
+    const alice = sim.addPlayer({ name: 'Alice', data: { guild: 'Gone' } });
+    const bob = sim.addPlayer({ name: 'Bob' });
+    setCosmetic(alice, 'nameTag', 'base', 'Hero');
+    setCosmetic(bob, 'nameTag', 'base', 'Hero');
+
+    emit('playerJoin', { player: alice });
+    emit('playerJoin', { player: bob });
+
+    expect(alice.nameTag).toBe('Hero');
+    expect(bob.nameTag).toBe('Hero');
   });
 
   it('private guild rejects /guild join and requires invite', () => {
