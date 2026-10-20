@@ -2,7 +2,7 @@ import js from '@eslint/js';
 import tseslint from 'typescript-eslint';
 import react from 'eslint-plugin-react';
 import reactHooks from 'eslint-plugin-react-hooks';
-import prettier from 'eslint-plugin-prettier/recommended';
+import prettier from 'eslint-config-prettier/flat';
 import globals from 'globals';
 import { builtinModules } from 'node:module';
 
@@ -371,6 +371,6 @@ export default tseslint.config(
   },
 
   // Last, so it wins: it switches off the stylistic rules prettier already
-  // decides and turns a formatting difference into a lint error.
+  // decides. Formatting itself is checked by format:check, not here.
   prettier,
 );

@@ -1,5 +1,4 @@
 import fs from 'node:fs';
-import { createRequire } from 'node:module';
 import path from 'node:path';
 import type { CorsOptions } from 'cors';
 import { TICK_RATE } from '../shared/constants.js';
@@ -15,17 +14,14 @@ function resolveNodeEnv(value: string | undefined): NodeEnv {
 
 const nodeEnv: NodeEnv = resolveNodeEnv(process.env.NODE_ENV);
 
-const require = createRequire(import.meta.url);
+// A variable already in the environment wins over the file. No file is the
+// normal case for a deployment that sets them some other way.
 try {
-  const dotenv = require('dotenv') as typeof import('dotenv');
-  dotenv.config({
-    path: nodeEnv === 'production' ? './.env.production' : './.env.development',
-    quiet: true,
-  });
+  process.loadEnvFile(
+    nodeEnv === 'production' ? './.env.production' : './.env.development',
+  );
 } catch {
-  if (nodeEnv !== 'production') {
-    console.warn('[config] dotenv not available; skipping .env loading.');
-  }
+  // Nothing to load.
 }
 
 function parseIntEnv(
