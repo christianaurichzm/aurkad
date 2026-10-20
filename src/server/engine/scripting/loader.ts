@@ -1,4 +1,5 @@
 import fs from 'node:fs';
+import { createRequire } from 'node:module';
 import path from 'node:path';
 import { gamePath } from '../../config.js';
 import { logger } from '../../logger.js';
@@ -20,9 +21,14 @@ let watcher: fs.FSWatcher | null = null;
 
 let ts: typeof import('typescript') | null = null;
 
-export async function initTsSupport(): Promise<void> {
+export function initTsSupport(): void {
   try {
-    ts = (await import('typescript')).default;
+    // Required, not imported: the package is one 9 MB CommonJS file, and an
+    // ESM import scans all of it for its format and named exports, which is
+    // most of the load cost for a module read only for its default export.
+    ts = createRequire(import.meta.url)(
+      'typescript',
+    ) as typeof import('typescript');
     logger.info(
       '[scripting] TypeScript available - .ts scripts, type checking',
     );
@@ -180,8 +186,8 @@ const SCRIPT_EXT = ['.js', '.ts'];
 export const isScriptFile = (f: string) =>
   !f.endsWith('.d.ts') && SCRIPT_EXT.some((ext) => f.endsWith(ext));
 
-export async function loadScripts(): Promise<void> {
-  await initTsSupport();
+export function loadScripts(): void {
+  initTsSupport();
 
   if (!fs.existsSync(SCRIPTS_DIR)) {
     logger.info(

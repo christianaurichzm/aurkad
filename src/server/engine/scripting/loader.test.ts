@@ -18,9 +18,9 @@ function write(name: string, code: string): string {
   return file;
 }
 
-beforeEach(async () => {
+beforeEach(() => {
   clearScriptErrors();
-  await initTsSupport();
+  initTsSupport();
 });
 
 afterAll(() => fs.rmSync(dir, { recursive: true, force: true }));

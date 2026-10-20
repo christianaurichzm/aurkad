@@ -292,8 +292,8 @@ describe('client entries', () => {
     expect(readModuleClientFile('ghost')).toBeNull();
   });
 
-  it('serves a .jsx entry compiled, and recompiles it once edited', async () => {
-    await initTsSupport();
+  it('serves a .jsx entry compiled, and recompiles it once edited', () => {
+    initTsSupport();
     const file = path.join(tmpDir, 'client.jsx');
     fs.writeFileSync(file, 'engine.render(<b>hi</b>);');
     expect(readClientSource(file)).toContain(
@@ -304,8 +304,8 @@ describe('client entries', () => {
     expect(readClientSource(file)).toContain('React.createElement("i"');
   });
 
-  it('serves a .jsx that does not compile as a throw naming the line', async () => {
-    await initTsSupport();
+  it('serves a .jsx that does not compile as a throw naming the line', () => {
+    initTsSupport();
     const file = path.join(tmpDir, 'client.jsx');
     fs.writeFileSync(file, '\nengine.render(<div><span></div>);');
     const code = readClientSource(file);

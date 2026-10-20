@@ -278,7 +278,7 @@ async function startServer() {
     startLiveOps();
     startTracing();
     loadModules();
-    await loadScripts();
+    loadScripts();
     // Only now can content that names a script behaviour be checked: before
     // this the registry is empty and every reference would look broken.
     await reportUnknownBehaviors();

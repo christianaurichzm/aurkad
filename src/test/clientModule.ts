@@ -17,7 +17,7 @@ import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, vi } from 'vitest';
 
 // The server compiles a client.jsx with the TypeScript it loads at boot.
-await initTsSupport();
+initTsSupport();
 
 // A module window left open would hold Escape into the next test.
 const roots: Root[] = [];
