@@ -275,6 +275,31 @@ https://localhost { reverse_proxy app:8080 }
 https://localhost:8444 { reverse_proxy app-b:8081 }
 ```
 
+## Measured
+
+What one server held under `npm run loadtest`, on a production build. The bots
+are headless clients that log in and play over the same HTTP and WebSocket
+contract as the browser. They ran on the same laptop as the server (Ryzen 7
+7735HS, 16 threads, 34 GB, Node 22, MongoDB 7 in Docker) and took CPU from it,
+so every number here is a floor. A tick has 50 ms (20 Hz).
+
+| Players | Where                                       | Tick p50 | Tick p99 |
+| ------- | ------------------------------------------- | -------- | -------- |
+| 1000    | 10 per screen, over 100 screens             | 37.8 ms  | 46.8 ms  |
+| 1000    | the same, with `NET_VIEWER_CADENCE_TICKS=2` | 25.4 ms  | 33.3 ms  |
+| 300     | all starting on one screen                  | 17.3 ms  | 25.6 ms  |
+
+- 1000 is as far as the test world and the harness went, not where the server
+  stopped.
+- With the density fixed, the tick grows in a straight line with the
+  population: about 0.033 ms and 600 bytes per player per tick.
+- A player costs CPU and a neighbour costs bandwidth. From 10 to 300 players on
+  a screen, the bytes sent to each player triple and the tick goes up 70%.
+- Memory at 1000 online was 0.22 MB per player. In a one hour soak of 150
+  players logging in and out, resident memory stayed flat (-0.6 MB an hour).
+
+Measured on 2026-08-15, the soak on 2026-07-31.
+
 ## Tests
 
 ```bash
