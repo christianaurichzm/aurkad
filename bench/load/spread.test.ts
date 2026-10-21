@@ -18,8 +18,7 @@ const map = (id: string, tileWidth: number, tileHeight: number): LoadMap => ({
   tileHeight,
 });
 
-// The world `npm run seed` builds: two maps, each 20x14 tiles, and a viewport
-// is 20x14 tiles.
+// Two maps of 20x14 tiles, the size of one viewport.
 const SEEDED = [map('1', 20, 14), map('2', 20, 14)];
 const names = (n: number) =>
   Array.from({ length: n }, (_, i) => `loadbot_${i}`);
