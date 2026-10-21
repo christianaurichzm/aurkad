@@ -116,7 +116,6 @@ export default tseslint.config(
       'node_modules/',
       'coverage/',
       '**/*.cjs',
-      '**/bundle.js',
       // Declarations have nothing to lint, and the ones under modules/ and
       // scripts/ belong to no tsconfig the type-aware rules could read.
       '**/*.d.ts',

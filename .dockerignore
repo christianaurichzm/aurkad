@@ -8,7 +8,6 @@ coverage
 .env
 .env.*
 assets
-REFACTOR_PLAN.md
 .vscode
 .idea
 *.md
