@@ -1,6 +1,5 @@
 import { defineConfig } from 'vitest/config';
 import react from '@vitejs/plugin-react';
-import path from 'path';
 
 // e2e/*.spec.ts runs under Playwright's own runner (npm run e2e) against a
 // real browser and server; Vitest's default glob would pick it up and fail
@@ -62,11 +61,6 @@ export default defineConfig({
         functions: 59,
         branches: 60,
       },
-    },
-  },
-  resolve: {
-    alias: {
-      '@': path.resolve(__dirname, './src'),
     },
   },
 });
