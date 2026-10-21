@@ -33,7 +33,7 @@ import { handleAttack, killPlayer, swing } from '../combat/index.js';
 import { pickUpItem } from '../economy/inventoryService.js';
 import { handleInteract } from './interactionService.js';
 import { bfsNextStep } from '../npc/behaviors.js';
-import { updatePlayerMap, saveMap } from './mapService.js';
+import { updatePlayerMap, saveMapTile, setMapTile } from './mapService.js';
 import { findPlacement, hasCollision, hasWarp } from './physicsService.js';
 import { getPlayerByName, disconnectPlayer } from '../player/playerService.js';
 import { handleChatAction } from '../comms/chatService.js';
@@ -344,20 +344,18 @@ const tryOpenDoor = (
   const { requiresItem, openTileIndex } = tile.door;
   if (!removeItem(player.inventory, requiresItem, 1).ok) return false;
 
-  tile.tileIndex = openTileIndex;
-  tile.blocked = false;
-  tile.door = undefined;
-  map.tilesRevision = (map.tilesRevision ?? 0) + 1;
+  delete tile.door;
+  setMapTile(map.id, tileX, tileY, {
+    tileIndex: openTileIndex,
+    blocked: false,
+  });
 
   updatePlayer(player);
   // A dungeon copy is never saved: the door is this run's.
   if (isInstanceKey(map.id)) return true;
-  emit('mapChange', { mapId: map.id });
-  void saveMap({
-    id: map.id,
-    tiles: map.tiles,
-    tilesRevision: map.tilesRevision,
-  }).catch((e) => {
+  // Only the door's tile: elsewhere the live grid may hold setMapTile paint,
+  // which is runtime only.
+  void saveMapTile(map.id, tileY, tileX, tile).catch((e) => {
     logger.error('door map persist failed', { err: e });
   });
 

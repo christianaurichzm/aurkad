@@ -139,6 +139,23 @@ export async function saveMap(map: Partial<MapStateServer>): Promise<string> {
   return map.id;
 }
 
+/**
+ * Writes one tile of a stored map. For a change that belongs in the document
+ * while the live grid around it may hold `setMapTile` paint, which saving the
+ * whole grid would make permanent.
+ */
+export async function saveMapTile(
+  id: string,
+  row: number,
+  col: number,
+  tile: Tile,
+): Promise<void> {
+  await GameMapModel.updateOne(
+    { id },
+    { $set: { [`tiles.${row}.${col}`]: tile } },
+  );
+}
+
 /** Applies a saved change to the live map. */
 async function publishMap(
   map: Partial<MapStateServer> & { id: string },
