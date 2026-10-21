@@ -24,11 +24,11 @@ jobs:
     steps:
       # Full history: the changelog and the compatibility check both read the
       # range since the previous tag.
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 0
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version: '22'
           cache: 'npm'
@@ -153,9 +153,9 @@ jobs:
       id-token: write
     environment: github-pages
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version: '22'
           cache: 'npm'
@@ -164,8 +164,8 @@ jobs:
 
       - run: npm run docs:api
 
-      - uses: actions/upload-pages-artifact@v3
+      - uses: actions/upload-pages-artifact@v5
         with:
           path: docs/api
 
-      - uses: actions/deploy-pages@v4
+      - uses: actions/deploy-pages@v5
