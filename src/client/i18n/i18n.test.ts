@@ -77,6 +77,14 @@ describe('t', () => {
     expect(t('common.cancel')).toBe('Cancelar');
   });
 
+  it('marks the page with the language it is in', () => {
+    setLanguage('pt');
+    expect(document.documentElement.lang).toBe('pt');
+
+    setLanguage('en');
+    expect(document.documentElement.lang).toBe('en');
+  });
+
   // Half-translated is a normal state mid-translation, and a player should
   // read the English sentence rather than the key.
   it('falls back to English rather than showing a key', () => {

@@ -28,6 +28,9 @@ function detect(): Language {
 }
 
 let language: Language = detect();
+// What a screen reader picks its voice by, and what the browser's own offer to
+// translate the page reads.
+document.documentElement.lang = language;
 
 const listeners = new Set<() => void>();
 
@@ -38,6 +41,7 @@ export function getLanguage(): Language {
 export function setLanguage(next: Language): void {
   if (next === language) return;
   language = next;
+  document.documentElement.lang = next;
   try {
     localStorage.setItem(STORAGE_KEY, next);
   } catch {
