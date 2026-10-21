@@ -1,5 +1,7 @@
 # --- Build stage: compile client (vite) and server (tsc) ---
-FROM node:24-bookworm-slim AS builder
+# On the machine doing the build, whatever processor the image is for: what it
+# makes is JavaScript, and under emulation it would take most of the release.
+FROM --platform=$BUILDPLATFORM node:24-bookworm-slim AS builder
 WORKDIR /app
 
 COPY package*.json ./

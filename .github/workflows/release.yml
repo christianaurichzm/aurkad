@@ -50,12 +50,17 @@ jobs:
             npm run --silent compat -- --base "$prev" --next "${GITHUB_REF_NAME#v}" | tee upgrade.md
           fi
 
+      # The image goes out for amd64 and arm64 (ARM servers, Apple Silicon); the
+      # runner is amd64, so arm64 is built under QEMU.
+      - uses: docker/setup-qemu-action@v4
+      - uses: docker/setup-buildx-action@v4
+
       # GHCR rejects an uppercase path, and the owner segment is spelled the way
       # GitHub spells the account.
       - name: image
         run: |
           IMAGE="ghcr.io/$(echo "$REPOSITORY" | tr '[:upper:]' '[:lower:]')"
-          docker build -t "$IMAGE:${GITHUB_REF_NAME#v}" -t "$IMAGE:latest" .
+          docker buildx build --load -t "$IMAGE:${GITHUB_REF_NAME#v}" -t "$IMAGE:latest" .
           echo "IMAGE=$IMAGE" >> "$GITHUB_ENV"
 
       # A game made on the previous release, moved onto this image the way the
@@ -94,10 +99,14 @@ jobs:
         working-directory: ${{ runner.temp }}/upgrade
         run: docker compose logs
 
+      # A multi-platform image cannot be loaded into the local daemon, so this
+      # builds again; amd64 comes whole from the image step's cache, which keeps
+      # what goes out the image the upgrade check ran.
       - name: push
         run: |
           echo "$GH_TOKEN" | docker login ghcr.io -u "$ACTOR" --password-stdin
-          docker push --all-tags "$IMAGE"
+          docker buildx build --platform linux/amd64,linux/arm64 --push \
+            -t "$IMAGE:${GITHUB_REF_NAME#v}" -t "$IMAGE:latest" .
 
       # Conventional-commit subjects are already the changelog; the release page
       # is where it lives, so there is no CHANGELOG.md to keep in sync.
@@ -119,10 +128,14 @@ jobs:
   # "latest" that is not this release, fails here and not on someone's first
   # try. Nothing is checked out: the workspace is the empty folder the quick
   # start begins in, and the runner's user is not uid 1000, which is the case
-  # the entrypoint's ownership check exists for.
+  # the entrypoint's ownership check exists for. Once on arm64 too, the only
+  # place the arm64 image is started before someone pulls it.
   install:
     needs: release
-    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        runner: [ubuntu-latest, ubuntu-24.04-arm]
+    runs-on: ${{ matrix.runner }}
     steps:
       - name: quick start
         run: |
