@@ -1,12 +1,8 @@
 /**
- * The atomicity of an economic commit, against both deployments the engine
- * actually runs on: a standalone mongod (docker-compose default, no
- * transactions) and a replica set (transactions).
- *
- * The property under test is the one a trade needs and a pair of independent
- * writes cannot give: when the commit fails, *neither* player document moved.
- * Half a trade is a duplicated or destroyed item, which is the failure the
- * whole economy funnel exists to prevent.
+ * The atomicity of an economic commit on a standalone mongod (no
+ * transactions) and on a replica set (what the compose files run). When the
+ * commit fails, neither player document moved: half a trade is a duplicated
+ * or destroyed item.
  */
 import {
   beforeAll,
