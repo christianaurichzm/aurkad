@@ -15,7 +15,11 @@ import {
 } from './engine/scripting/handlerBudget.js';
 import { tracingStats } from './tracing.js';
 import { percentile, round2 } from '../shared/utils.js';
-import { PerformanceObserver, constants } from 'node:perf_hooks';
+import {
+  PerformanceObserver,
+  constants,
+  type PerformanceEntry,
+} from 'node:perf_hooks';
 
 export interface TickMetrics {
   tickMs: number;
