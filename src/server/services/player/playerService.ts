@@ -1,4 +1,4 @@
-import { randomUUID } from 'node:crypto';
+import { randomInt, randomUUID } from 'node:crypto';
 import mongoose, { type ClientSession } from 'mongoose';
 import {
   SPRITE_WIDTH,
@@ -170,7 +170,15 @@ export const createPlayer = async (
     data: {},
   };
 
-  await playerRepository.insert({ ...newPlayer, password });
+  // Sessions and reset links name the account by name and generation, and a
+  // deleted account frees the name. The generation starts at random so
+  // nothing the name's last holder left behind matches it, and never at 0,
+  // which is what a session minted before the field existed reads as.
+  await playerRepository.insert({
+    ...newPlayer,
+    password,
+    authEpoch: randomInt(1, 2 ** 48),
+  });
   return newPlayer;
 };
 

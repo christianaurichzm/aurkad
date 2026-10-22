@@ -429,8 +429,9 @@ describe('a replaced connection', () => {
   let http: HttpServer;
   let port = 0;
 
+  let authEpoch = 0;
   const asSession = (req: unknown, _res: unknown, next: () => void) => {
-    (req as { session: { username: string } }).session = { username: 'Boss' };
+    (req as { session: object }).session = { username: 'Boss', authEpoch };
     next();
   };
 
@@ -451,6 +452,7 @@ describe('a replaced connection', () => {
 
   beforeEach(async () => {
     await createPlayer('Boss', 'hash');
+    authEpoch = (await playerRepository.authEpochOf('Boss'))!;
     playersWsMap.clear();
     http = createServer();
     await new Promise<void>((resolve) => http.listen(0, resolve));
@@ -511,8 +513,9 @@ describe('a socket that comes back without a login', () => {
   let port = 0;
   const startMapId = gameConfig.world.startMapId;
 
+  let authEpoch = 0;
   const asSession = (req: unknown, _res: unknown, next: () => void) => {
-    (req as { session: { username: string } }).session = { username: 'Boss' };
+    (req as { session: object }).session = { username: 'Boss', authEpoch };
     next();
   };
 
@@ -542,6 +545,7 @@ describe('a socket that comes back without a login', () => {
       players: {},
     };
     await createPlayer('Boss', 'hash');
+    authEpoch = (await playerRepository.authEpochOf('Boss'))!;
     playersWsMap.clear();
     http = createServer();
     await new Promise<void>((resolve) => http.listen(0, resolve));

@@ -413,6 +413,7 @@ describe('POST /login', () => {
 
   it('refuses an account banned under another spelling of its name', async () => {
     await createPlayer('Banned', await hashPw('pw'));
+    const before = (await authEpochOf('Banned'))!;
 
     expect(await banAccount('banned', 'spamming')).toBe('Banned');
 
@@ -421,7 +422,7 @@ describe('POST /login', () => {
       .send({ username: 'Banned', password: 'pw' });
     expect(res.status).toBe(403);
     // The generation moved on, which is what ends a session opened before.
-    expect(await authEpochOf('Banned')).toBe(1);
+    expect(await authEpochOf('Banned')).toBe(before + 1);
   });
 
   it('bans nobody under a name no account has', async () => {

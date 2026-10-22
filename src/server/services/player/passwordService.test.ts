@@ -13,7 +13,9 @@ import type { MongoMemoryServer } from 'mongodb-memory-server';
 import { startMemoryMongo } from '../../../test/mongo.js';
 import PasswordResetModel from '../../model/PasswordReset.js';
 import {
+  authEpochOf,
   createPlayer,
+  deletePlayer,
   enterWorld,
   getPlayerByName,
   getPlayerByNameFromDb,
@@ -52,6 +54,9 @@ const storedHash = async () =>
 
 const canLogInWith = async (password: string) =>
   bcrypt.compare(password, await storedHash());
+
+/** The generation a password check reads before an address link is minted. */
+const epoch = async () => (await authEpochOf('Alice'))!;
 
 describe('changing a known password', () => {
   it('replaces the stored hash', async () => {
@@ -205,13 +210,55 @@ describe('reset tokens', () => {
   });
 });
 
+// Sessions and links name the account by name, which a deletion frees.
+describe('an account registered again under a deleted name', () => {
+  const recreate = async () => {
+    await deletePlayer((await getPlayerByNameFromDb('Alice'))!.id);
+    await createPlayer('Alice', await bcrypt.hash('new-owner', 10));
+  };
+
+  it('is at a generation the old sessions do not carry', async () => {
+    const before = await authEpochOf('Alice');
+    await recreate();
+
+    expect(await authEpochOf('Alice')).not.toBe(before);
+    expect(await authEpochOf('Alice')).not.toBe(0);
+  });
+
+  it('takes no password from a link the old account was sent', async () => {
+    const minted = await createResetToken('Alice');
+    await recreate();
+
+    expect(await consumeResetToken(minted!.token, 'x-password')).toBe(
+      'invalid-token',
+    );
+    expect(await canLogInWith('new-owner')).toBe(true);
+  });
+
+  it('takes no address from a link the old account was sent', async () => {
+    const { token } = await createEmailToken(
+      'Alice',
+      'old@example.com',
+      await epoch(),
+    );
+    await recreate();
+
+    expect(await confirmEmailToken(token)).toBe('invalid-token');
+    expect((await getPlayerByNameFromDb('Alice'))?.email).toBeUndefined();
+  });
+});
+
 describe('address tokens', () => {
   const address = async () => (await getPlayerByNameFromDb('Alice'))?.email;
 
   // Stored on the way back, not on the way out: an address written before it
   // answers is a typo that sends the next reset link to a stranger.
   it('writes the address only once the link comes back', async () => {
-    const minted = await createEmailToken('Alice', 'alice@example.com', 0);
+    const minted = await createEmailToken(
+      'Alice',
+      'alice@example.com',
+      await epoch(),
+    );
     expect(await address()).toBeUndefined();
 
     expect(await confirmEmailToken(minted.token)).toBe('ok');
@@ -219,14 +266,22 @@ describe('address tokens', () => {
   });
 
   it('spends once', async () => {
-    const minted = await createEmailToken('Alice', 'alice@example.com', 0);
+    const minted = await createEmailToken(
+      'Alice',
+      'alice@example.com',
+      await epoch(),
+    );
     await confirmEmailToken(minted.token);
 
     expect(await confirmEmailToken(minted.token)).toBe('invalid-token');
   });
 
   it('refuses one that is out of date even while its row survives', async () => {
-    const minted = await createEmailToken('Alice', 'alice@example.com', 0);
+    const minted = await createEmailToken(
+      'Alice',
+      'alice@example.com',
+      await epoch(),
+    );
     await PasswordResetModel.updateOne(
       { username: 'Alice' },
       { expiresAt: new Date(Date.now() - RESET_TOKEN_TTL_MS) },
@@ -239,7 +294,11 @@ describe('address tokens', () => {
   // Two kinds of link live in one collection, and neither is the other kind of
   // permission: a link mailed to confirm an address must not set a password.
   it('is not a password reset, and a password reset is not one', async () => {
-    const forAddress = await createEmailToken('Alice', 'alice@example.com', 0);
+    const forAddress = await createEmailToken(
+      'Alice',
+      'alice@example.com',
+      await epoch(),
+    );
     const forPassword = await createResetToken('Alice');
 
     expect(await consumeResetToken(forAddress.token, 'new-password')).toBe(
@@ -256,13 +315,13 @@ describe('address tokens', () => {
   it('survives the online character being saved', async () => {
     const fx = createFixture();
     await confirmEmailToken(
-      (await createEmailToken('Alice', 'old@example.com', 0)).token,
+      (await createEmailToken('Alice', 'old@example.com', await epoch())).token,
     );
     const record = await getPlayerByNameFromDb('Alice');
     enterWorld({ ...record!, mapId: fx.mapId });
 
     await confirmEmailToken(
-      (await createEmailToken('Alice', 'new@example.com', 0)).token,
+      (await createEmailToken('Alice', 'new@example.com', await epoch())).token,
     );
     await persistPlayerSessionState(getPlayerByName('Alice')!);
 
@@ -272,7 +331,11 @@ describe('address tokens', () => {
   // Somebody who had the account long enough to point it at their own inbox
   // keeps that link unless the password change clears it too.
   it('dies with a password change, like a reset link', async () => {
-    const minted = await createEmailToken('Alice', 'attacker@example.com', 0);
+    const minted = await createEmailToken(
+      'Alice',
+      'attacker@example.com',
+      await epoch(),
+    );
 
     await changePassword('Alice', 'old-password', 'new-password');
 
@@ -283,15 +346,24 @@ describe('address tokens', () => {
   // The route checks the password before minting, and the owner's change
   // can land between the two, after the sweep that clears outstanding links.
   it('dies with a password change that lands before it is minted', async () => {
+    const checked = await epoch();
     await changePassword('Alice', 'old-password', 'new-password');
-    const minted = await createEmailToken('Alice', 'attacker@example.com', 0);
+    const minted = await createEmailToken(
+      'Alice',
+      'attacker@example.com',
+      checked,
+    );
 
     expect(await confirmEmailToken(minted.token)).toBe('invalid-token');
     expect(await address()).toBeUndefined();
   });
 
   it('is where a reset link is addressed', async () => {
-    const minted = await createEmailToken('Alice', 'alice@example.com', 0);
+    const minted = await createEmailToken(
+      'Alice',
+      'alice@example.com',
+      await epoch(),
+    );
     await confirmEmailToken(minted.token);
 
     expect((await createResetToken('Alice'))?.email).toBe('alice@example.com');
