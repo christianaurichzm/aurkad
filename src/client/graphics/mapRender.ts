@@ -435,6 +435,44 @@ const stands = (index: number) => {
 };
 
 /**
+ * A frame carries its prop's baked shadow, which near an isometric map's
+ * lower edges falls past the ground. A prop reaching below them is drawn
+ * clipped to the area above both edges, open upward for the canopies.
+ */
+function clipToGround(
+  tiles: TilePublic[][],
+  objects: MapObject[],
+  ctx: CanvasRenderingContext2D,
+) {
+  const bottom = worldToView(
+    (tiles[0]?.length ?? 0) * TILE_SIZE,
+    tiles.length * TILE_SIZE,
+  );
+  // Both lower edges run at a slope of one half from the bottom corner.
+  const below = (x: number, y: number) =>
+    y > bottom.y - Math.abs(x - bottom.x) / 2;
+  const far = 2 * (bottom.y + isometricReach);
+  return objects.map((object) => {
+    const r = objectRect(object.col, object.row, object.index);
+    const foot = r.y + r.height;
+    if (!below(r.x, foot) && !below(r.x + r.width, foot)) return object;
+    return {
+      ...object,
+      draw: () => {
+        ctx.save();
+        ctx.beginPath();
+        ctx.moveTo(bottom.x - far, bottom.y - far / 2);
+        ctx.lineTo(bottom.x, bottom.y);
+        ctx.lineTo(bottom.x + far, bottom.y - far / 2);
+        ctx.clip();
+        object.draw();
+        ctx.restore();
+      },
+    };
+  });
+}
+
+/**
  * What stands on the mask layer, sorted in with the actors so a wall is in
  * front of whoever stands behind it. A prop covering `seen`, the player the
  * camera follows, is drawn faint.
@@ -444,9 +482,11 @@ export const standingMapObjects = (
   ctx: CanvasRenderingContext2D,
   seen?: { x: number; y: number },
 ): MapObject[] => {
-  const objects = mapObjects(tiles, 'maskIndex', ctx).filter((object) =>
+  let objects = mapObjects(tiles, 'maskIndex', ctx).filter((object) =>
     stands(object.index),
   );
+  if (getMapOrientation() === 'isometric')
+    objects = clipToGround(tiles, objects, ctx);
   if (!seen) return objects;
   const depth = worldToView(seen.x + TILE_SIZE / 2, seen.y + TILE_SIZE / 2).y;
   const at = spritePosition(seen.x, seen.y);

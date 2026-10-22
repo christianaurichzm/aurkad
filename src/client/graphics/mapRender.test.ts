@@ -309,6 +309,10 @@ describe('the props a map sorts with its actors', () => {
       globalAlpha: 1,
       save() {},
       restore() {},
+      beginPath() {},
+      moveTo() {},
+      lineTo() {},
+      clip() {},
       drawImage() {
         drawnAt.push(this.globalAlpha);
       },
@@ -330,6 +334,55 @@ describe('the props a map sorts with its actors', () => {
       expect(alphaDrawn(255)).toBe(0.45);
     } finally {
       delete isometricFrames[1002];
+    }
+  });
+
+  it('clips a frame reaching past the lower edges of an isometric map, and no other', () => {
+    const tiles = mapOf(0);
+    tiles[1][1].maskIndex = 1003;
+    tiles[1][3].maskIndex = 1003; // on the last column
+    // A prop whose shadow runs most of a cell to the right of its foot.
+    isometricFrames[1003] = {
+      x: 0,
+      y: 0,
+      width: 64,
+      height: 48,
+      drawWidth: 64,
+      drawHeight: 48,
+      anchorX: 16,
+      anchorY: 40,
+    };
+    setStaticMap({
+      id: 'iso',
+      name: 'iso',
+      type: 'normal',
+      orientation: 'isometric',
+      tiles,
+    });
+    mocks.cam.x = -256;
+    mocks.cam.y = -128;
+    const clipped: string[] = [];
+    let drawing = '';
+    const ctx = {
+      canvas: { width: 512, height: 512 },
+      save() {},
+      restore() {},
+      beginPath() {},
+      moveTo() {},
+      lineTo() {},
+      clip() {
+        clipped.push(drawing);
+      },
+      drawImage() {},
+    } as unknown as CanvasRenderingContext2D;
+    try {
+      for (const object of standingMapObjects(tiles, ctx)) {
+        drawing = `${object.col},${object.row}`;
+        object.draw();
+      }
+      expect(clipped).toEqual(['3,1']);
+    } finally {
+      delete isometricFrames[1003];
     }
   });
 
