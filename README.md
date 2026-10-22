@@ -180,7 +180,7 @@ npm run content:export   # writes the database's content to content/*.json
 npm run content:import   # loads content/*.json into MongoDB
 ```
 
-The server also imports `content/` on every boot, but only the rows that changed in their files since the last import: those win over the database for the ids they define, and the rest leave it alone, so what the admin tools changed survives a restart. `content:import` writes every row, putting the database back to the files. A pack goes in whole or not at all: if any file or entry is invalid, nothing is written, the log lists every problem, and the server runs on the content the database already had (`content:import` exits with an error).
+The server also imports `content/` on every boot, but only the rows that changed in their files since the last import or `content:export`: those win over the database for the ids they define, and the rest leave it alone, so what the admin tools changed survives a restart. `content:import` writes every row, putting the database back to the files. A pack goes in whole or not at all: if any file or entry is invalid, nothing is written, the log lists every problem, and the server runs on the content the database already had (`content:import` exits with an error).
 
 ## Replay
 

@@ -254,6 +254,11 @@ const IMPORT_ORDER: (keyof typeof SPECS)[] = [
  */
 type PackEntry = { data: unknown; row: string };
 
+const fingerprint = (file: string, row: unknown): string =>
+  createHash('sha256')
+    .update(`${file}\n${JSON.stringify(row)}`)
+    .digest('hex');
+
 function readArray(dir: string, file: string): unknown[] | null {
   const full = path.join(dir, file);
   if (!fs.existsSync(full)) return null;
@@ -290,12 +295,7 @@ export function readContentPack(dir = contentDir()): {
     rows.forEach((row, i) => {
       const result = spec.schema.safeParse(row);
       if (result.success)
-        entries.push({
-          data: result.data,
-          row: createHash('sha256')
-            .update(`${spec.file}\n${JSON.stringify(row)}`)
-            .digest('hex'),
-        });
+        entries.push({ data: result.data, row: fingerprint(spec.file, row) });
       else
         for (const x of result.error.issues)
           problems.push(`${spec.file}[${i}] ${x.path.join('.')}: ${x.message}`);
@@ -479,14 +479,20 @@ export async function exportContentPack(): Promise<void> {
   const dir = contentDir();
   fs.mkdirSync(dir, { recursive: true });
 
+  // The files now say what the database holds, so they count as imported: the
+  // next boot would otherwise write every exported row back, over any edit
+  // made to it in the editors since.
+  const exported: string[] = [];
   for (const key of IMPORT_ORDER) {
     const spec = SPECS[key];
     const rows = await spec.list();
     const cleaned = rows.map(stripMongoFields);
     const full = path.join(dir, spec.file);
     fs.writeFileSync(full, JSON.stringify(cleaned, null, 2) + '\n');
+    for (const row of cleaned) exported.push(fingerprint(spec.file, row));
     logger.info(`[content] Exported ${cleaned.length} to ${spec.file}`);
   }
+  await saveImportedContentRows(exported);
 }
 
 function stripMongoFields(doc: unknown): unknown {

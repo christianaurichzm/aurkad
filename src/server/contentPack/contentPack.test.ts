@@ -464,6 +464,27 @@ describe('exportContentPack', () => {
       respawnMs: 30000,
     });
   });
+
+  it('keeps an editor change made after the export', async () => {
+    write('items.json', [
+      { id: 1, name: 'Potion', sprite: 0, type: 'consumable' },
+    ]);
+    await importContentPack();
+    const edit = (name: string) =>
+      createOrUpdateItem({
+        id: 1,
+        name,
+        description: '',
+        sprite: 0,
+        type: 'consumable',
+      });
+    await edit('Exported Potion');
+    await exportContentPack();
+    await edit('Edited Potion');
+    await importContentPack();
+
+    expect((await listItems())[0]!.name).toBe('Edited Potion');
+  });
 });
 
 describe('exporting arrows and spells', () => {
