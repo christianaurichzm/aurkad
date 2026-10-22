@@ -5,6 +5,7 @@ import {
   describe,
   expect,
   it,
+  onTestFinished,
   vi,
 } from 'vitest';
 import mongoose from 'mongoose';
@@ -125,6 +126,43 @@ describe('what one instance tells the others', () => {
     await fromBeta('motd', { text: 'after the boot' });
     await until(() => marker.length > 0);
 
+    expect(heard).toEqual([]);
+  }, 15_000);
+
+  // The query that finds the bus its place can fail like any other. Failed,
+  // it neither takes the process down nor leaves the instance deaf, and the
+  // past it was meant to mark as read is still not replayed.
+  it('asks for its place again when the first ask fails', async () => {
+    await fromBeta('chat', { line: 'said while this instance was down' });
+    const loose: unknown[] = [];
+    const onLoose = (reason: unknown) => loose.push(reason);
+    process.on('unhandledRejection', onLoose);
+    const find = vi
+      .spyOn(mongoose.model('InstanceEvent'), 'find')
+      .mockImplementationOnce(
+        () =>
+          ({
+            select: () => ({
+              lean: () => Promise.reject(new Error('database down')),
+            }),
+          }) as never,
+      );
+    onTestFinished(() => {
+      process.off('unhandledRejection', onLoose);
+      find.mockRestore();
+    });
+
+    const heard: unknown[] = [];
+    const marker: unknown[] = [];
+    onInstanceEvent<{ line: string }>('chat', (payload) => heard.push(payload));
+    onInstanceEvent<{ text: string }>('motd', (payload) =>
+      marker.push(payload),
+    );
+    stop = await startAndSettle();
+    await fromBeta('motd', { text: 'after the boot' });
+    await until(() => marker.length > 0);
+
+    expect(loose).toEqual([]);
     expect(heard).toEqual([]);
   }, 15_000);
 

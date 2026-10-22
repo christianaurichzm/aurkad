@@ -84,16 +84,31 @@ export function startInstanceBus(): () => void {
 
   // Where the stream is, asked at once rather than on the first poll: until
   // then the instance is deaf, and a booting one must not replay chat at the
-  // players already here, so the current window counts as read.
-  const positioned = InstanceEventModel.find({ _id: { $gte: idAt(floor) } })
-    .select('_id')
-    .lean<{ _id: mongoose.Types.ObjectId }[]>()
-    .then((docs) => {
-      for (const { _id } of docs) seen.set(_id.toHexString(), _id);
-    });
+  // players already here, so the current window counts as read. An ask that
+  // fails is made again by the next poll, from that moment's window.
+  const place = (): Promise<boolean> => {
+    floor = Date.now() - LOOKBACK_MS;
+    return InstanceEventModel.find({ _id: { $gte: idAt(floor) } })
+      .select('_id')
+      .lean<{ _id: mongoose.Types.ObjectId }[]>()
+      .then(
+        (docs) => {
+          for (const { _id } of docs) seen.set(_id.toHexString(), _id);
+          return true;
+        },
+        (err: unknown) => {
+          logger.warn('[bus] could not find its place in the stream', { err });
+          return false;
+        },
+      );
+  };
+  let placed = place();
 
   const poll = async (): Promise<void> => {
-    await positioned;
+    if (!(await placed)) {
+      placed = place();
+      return;
+    }
     const startedAt = Date.now();
 
     const events = await InstanceEventModel.find({
