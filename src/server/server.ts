@@ -2,13 +2,17 @@
 // package.json. A message, not a shield: ESM evaluates every import below
 // first, so an older Node may fail earlier, and this then names the cause.
 const currentNodeVersion = process.versions.node;
-const major = currentNodeVersion.split('.').map(Number)[0] ?? 0;
+const [major = 0, minor = 0] = currentNodeVersion.split('.').map(Number);
 
-const REQUIRED_MAJOR_VERSION = 20;
+const REQUIRED_MAJOR = 22;
+const REQUIRED_MINOR = 12;
 
-if (major < REQUIRED_MAJOR_VERSION) {
+if (
+  major < REQUIRED_MAJOR ||
+  (major === REQUIRED_MAJOR && minor < REQUIRED_MINOR)
+) {
   console.error(
-    `[boot] Node.js >= ${REQUIRED_MAJOR_VERSION} is required (current: ${currentNodeVersion}).`,
+    `[boot] Node.js >= ${REQUIRED_MAJOR}.${REQUIRED_MINOR} is required (current: ${currentNodeVersion}).`,
   );
   process.exit(1);
 }
