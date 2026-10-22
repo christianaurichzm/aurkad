@@ -199,6 +199,7 @@ describe('renderNpcLabel', () => {
     expect(lines.map(([text]) => text)).toEqual(['merchant', 'Thomas']);
     expect(lines[0][2]).toBeGreaterThan(lines[1][2] as number);
     expect(fontSize(fonts[0])).toBeLessThan(fontSize(fonts[1]));
+    expect(fonts[0]).not.toMatch(/bold/);
   });
 
   it('draws nothing for an unnamed npc', () => {

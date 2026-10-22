@@ -196,7 +196,7 @@ export const renderNpcLabel = (
   const role = comma > 0 ? npc.name.slice(comma + 1).trim() : '';
 
   worldText(ctx, cx, y, () => {
-    if (role) outlinedText(ctx, role, cx, y, `bold 12px ${world}`, muted);
+    if (role) outlinedText(ctx, role, cx, y, `12px ${world}`, muted);
     outlinedText(
       ctx,
       role ? npc.name.slice(0, comma) : npc.name,
