@@ -230,11 +230,11 @@ if (dbSpells.length > 0) {
   for (const s of dbSpells) defineFromData(String(s.id), s);
   log('Loaded ' + dbSpells.length + ' spell(s) from database.');
 } else {
-  // No spells in the database yet: define the built-ins in memory and seed
-  // the database so they appear in SpellEditor on next reload.
+  // No spells stored yet: the built-ins are defined in memory and seeded
+  // under the ids they are cast by, so spell lists and tomes keep meaning.
   const builtins = [
     {
-      id: 'blast',
+      id: 1,
       name: 'Arcane Blast',
       description: 'Deals damage to nearby enemies.',
       sprite: 0,
@@ -243,7 +243,7 @@ if (dbSpells.length > 0) {
       cooldownMs: 3000,
     },
     {
-      id: 'heal',
+      id: 2,
       name: 'Heal',
       description: 'Restores the caster to full HP.',
       sprite: 1,
@@ -253,7 +253,7 @@ if (dbSpells.length > 0) {
     },
   ];
 
-  for (const s of builtins) defineFromData(s.id, s);
+  for (const s of builtins) defineFromData(String(s.id), s);
   createSpells(builtins);
 
   log(

@@ -480,6 +480,7 @@ export function buildApi(
     // getSpells() is empty, to seed built-ins the SpellEditor then shows.
     createSpells: (
       spellList: {
+        id?: number;
         name: string;
         description?: string;
         sprite: number;
@@ -500,6 +501,7 @@ export function buildApi(
           // must not take the spells after it down with it.
           try {
             await createOrUpdateSpell({
+              id: spell.id === undefined ? undefined : Number(spell.id),
               name: spell.name,
               description: spell.description ?? '',
               sprite: Number(spell.sprite),

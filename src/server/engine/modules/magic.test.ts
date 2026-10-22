@@ -28,12 +28,23 @@ import type { PlayerServer, Spell } from '../../../shared/types.js';
 import { TILE_SIZE } from '../../../shared/constants.js';
 
 // What the module reads back as the database's spells. Empty, it seeds and
-// casts its built-ins.
+// casts its built-ins, and the seed lands in `saved` with the id the database
+// would keep: the one it was given, or the next of a counter that spells
+// deleted earlier can have taken anywhere.
 const dbSpells: Spell[] = [];
+const saved: Spell[] = [];
 vi.mock('../../services/content/spellService.js', async (importOriginal) => ({
   ...(await importOriginal<object>()),
   getAllSpells: () => dbSpells,
+  createOrUpdateSpell: (spell: Spell) => {
+    saved.push({ ...spell, id: spell.id ?? 40 + saved.length });
+    return Promise.resolve(saved.at(-1));
+  },
 }));
+
+// The built-ins, by the ids the module seeds them under.
+const BLAST = '1';
+const HEAL = '2';
 
 interface MagicApi {
   defineSpell: (spell: { id: string; name: string }) => void;
@@ -62,6 +73,7 @@ beforeEach(() => {
 
 afterEach(() => {
   dbSpells.length = 0;
+  saved.length = 0;
   unloadAllModules();
   clearAll();
   clearProvides();
@@ -85,7 +97,7 @@ describe('magic module', () => {
     });
     sim.step(1); // build the spatial index
 
-    castVia('spell:cast', 'Alice', 'blast');
+    castVia('spell:cast', 'Alice', BLAST);
 
     expect(goblin.health).toBeLessThan(30); // took blast damage
     expect(caster.data?.mana).toBe(70); // 100 - 30 cost
@@ -113,7 +125,7 @@ describe('magic module', () => {
     sim.step(1);
     drainGameEvents();
 
-    castVia('spell:cast', 'Alice', 'blast');
+    castVia('spell:cast', 'Alice', BLAST);
 
     expect(spared.map((npc) => npc.health)).toEqual([30, 30, 30, 30]);
     expect(orc.health).toBeLessThan(30);
@@ -135,7 +147,7 @@ describe('magic module', () => {
     sim.step(1);
     drainGameEvents();
 
-    castVia('spell:cast', 'Alice', 'blast');
+    castVia('spell:cast', 'Alice', BLAST);
 
     const visual = drainGameEvents().find(
       (e) => e.type === 'customMap' && e.channel === 'spell:visual',
@@ -150,7 +162,7 @@ describe('magic module', () => {
     const caster = sim.addPlayer({ name: 'Alice', health: 40, maxHealth: 100 });
     sim.step(1);
 
-    castVia('spell:cast', 'Alice', 'heal');
+    castVia('spell:cast', 'Alice', HEAL);
 
     expect(caster.health).toBe(100);
     expect(caster.data?.mana).toBe(75); // 100 - 25 cost
@@ -161,11 +173,11 @@ describe('magic module', () => {
     const caster = sim.addPlayer({ name: 'Alice', health: 10, maxHealth: 100 });
     sim.step(1);
 
-    castVia('spell:cast', 'Alice', 'heal');
+    castVia('spell:cast', 'Alice', HEAL);
     expect(caster.data?.mana).toBe(75);
 
     caster.health = 10;
-    castVia('spell:cast', 'Alice', 'heal'); // still on cooldown
+    castVia('spell:cast', 'Alice', HEAL); // still on cooldown
 
     expect(caster.health).toBe(10); // not healed again
     expect(caster.data?.mana).toBe(75); // no extra mana spent
@@ -177,7 +189,7 @@ describe('magic module', () => {
     caster.data = { mana: 5 };
     sim.step(1);
 
-    castVia('spell:cast', 'Alice', 'heal');
+    castVia('spell:cast', 'Alice', HEAL);
 
     expect(caster.health).toBe(40); // not healed
     expect(caster.data?.mana).toBe(5); // unchanged
@@ -192,7 +204,7 @@ describe('magic module', () => {
     );
     sim.step(1);
 
-    castVia('spell:cast', 'Alice', 'heal');
+    castVia('spell:cast', 'Alice', HEAL);
 
     expect(caster.health).toBe(40);
   });
@@ -232,6 +244,35 @@ describe('magic module', () => {
     expect(ev?.payload.spells.length).toBe(2);
   });
 
+  // A spell list, a tome or startingSpells names a spell by id, and from the
+  // second boot on the built-ins are loaded from the database.
+  it('casts its built-ins under the ids the next boot loads them with', async () => {
+    const sim = createFixture(0);
+    sim.addPlayer({ name: 'Alice' });
+    const castable = () => {
+      drainGameEvents();
+      handleCustomAction({
+        type: 'custom',
+        username: 'Alice',
+        channel: 'magic:request',
+      });
+      const ev = drainGameEvents().find(
+        (e) => e.type === 'customPlayer' && e.channel === 'magic:update',
+      ) as { payload: { spells: { id: string }[] } } | undefined;
+      return ev?.payload.spells.map((s) => s.id);
+    };
+    const firstBoot = castable();
+    await vi.waitFor(() => expect(saved).toHaveLength(2));
+
+    dbSpells.push(...saved);
+    unloadAllModules();
+    clearAll();
+    clearProvides();
+    loadModulesForTest('magic');
+
+    expect(castable()).toEqual(firstBoot);
+  });
+
   // Classes: with no list a player casts every spell.
   it('a player with a spell list sees and casts only those', () => {
     const sim = createFixture(0);
@@ -239,18 +280,18 @@ describe('magic module', () => {
     sim.step(1);
     drainGameEvents();
 
-    useApi<MagicApi>('magic')!.setSpells(caster, ['blast']);
+    useApi<MagicApi>('magic')!.setSpells(caster, [BLAST]);
     const ev = drainGameEvents().find(
       (e) => e.type === 'customPlayer' && e.channel === 'magic:update',
     ) as { payload: { spells: { id: string }[] } } | undefined;
-    castVia('spell:cast', 'Alice', 'heal');
+    castVia('spell:cast', 'Alice', HEAL);
 
-    expect(ev?.payload.spells.map((s) => s.id)).toEqual(['blast']);
+    expect(ev?.payload.spells.map((s) => s.id)).toEqual([BLAST]);
     expect(caster.health).toBe(40); // not one of hers
     expect(caster.data?.mana).toBeUndefined(); // nothing spent
 
     useApi<MagicApi>('magic')!.setSpells(caster, undefined);
-    castVia('spell:cast', 'Alice', 'heal');
+    castVia('spell:cast', 'Alice', HEAL);
 
     expect(caster.health).toBe(100);
   });
@@ -275,8 +316,8 @@ describe('magic module', () => {
     const byId = Object.fromEntries(
       (ev?.payload.spells ?? []).map((s) => [s.id, s.friendly]),
     );
-    expect(byId['heal']).toBe(true);
-    expect(byId['blast']).toBe(false);
+    expect(byId[HEAL]).toBe(true);
+    expect(byId[BLAST]).toBe(false);
   });
 
   it('gives each slot its icon, or a frame a third into the effect', () => {
@@ -412,7 +453,7 @@ describe('learning spells', () => {
     clearProvides();
     gameConfig.modules['magic'] = {
       enabled: true,
-      config: { startingSpells: ['heal'] },
+      config: { startingSpells: [HEAL] },
     };
     try {
       loadModulesForTest('magic');
@@ -420,14 +461,14 @@ describe('learning spells', () => {
       const fresh = sim.addPlayer({ name: 'Alice' });
       const taught = sim.addPlayer({
         name: 'Bob',
-        data: { spells: ['blast', 'heal'] },
+        data: { spells: [BLAST, HEAL] },
       });
 
       emit('playerJoin', { player: fresh });
       emit('playerJoin', { player: taught });
 
-      expect(fresh.data?.spells).toEqual(['heal']);
-      expect(taught.data?.spells).toEqual(['blast', 'heal']);
+      expect(fresh.data?.spells).toEqual([HEAL]);
+      expect(taught.data?.spells).toEqual([BLAST, HEAL]);
     } finally {
       gameConfig.modules['magic'] = before!;
     }
@@ -436,14 +477,14 @@ describe('learning spells', () => {
   it('teaches from a dialog, whose offer goes once the spell is known', () => {
     const sim = createFixture(0);
     const alice = sim.addPlayer({ name: 'Alice' });
-    useApi<MagicApi>('magic')!.setSpells(alice, ['blast']);
+    useApi<MagicApi>('magic')!.setSpells(alice, [BLAST]);
     drainGameEvents();
-    const ctx = { player: alice, arg: 'heal' };
+    const ctx = { player: alice, arg: HEAL };
 
     expect(ref('dialogCondition.lacksSpell')(ctx)).toBe(true);
     ref('dialogAction.learnSpell')(ctx);
 
-    expect(alice.data?.spells).toEqual(['blast', 'heal']);
+    expect(alice.data?.spells).toEqual([BLAST, HEAL]);
     expect(said()).toEqual(['You learned Heal.']);
     expect(ref('dialogCondition.lacksSpell')(ctx)).toBe(false);
     expect(ref('dialogCondition.knowsSpell')(ctx)).toBe(true);
@@ -458,7 +499,7 @@ describe('learning spells', () => {
 
     const [spell] = registeredBehaviors().get('learnSpell')!.params;
     expect(spell).toMatchObject({
-      options: expect.arrayContaining(['heal', 'ember']),
+      options: expect.arrayContaining([HEAL, 'ember']),
       optionLabels: expect.arrayContaining(['Ember']),
     });
   });
@@ -472,20 +513,20 @@ describe('learning spells', () => {
       sprite: 0,
       type: 'consumable',
       scriptId: 'learnSpell',
-      scriptParams: { spell: 'heal' },
+      scriptParams: { spell: HEAL },
     });
     const alice = sim.addPlayer({
       name: 'Alice',
       inventory: { items: [{ item: 90, quantity: 2 }], maxCapacity: 10 },
     });
-    useApi<MagicApi>('magic')!.setSpells(alice, ['blast']);
+    useApi<MagicApi>('magic')!.setSpells(alice, [BLAST]);
     drainGameEvents();
 
     try {
       expect(useItem('Alice', 90)).toBe(true);
       expect(useItem('Alice', 90)).toBe(false);
 
-      expect(alice.data?.spells).toEqual(['blast', 'heal']);
+      expect(alice.data?.spells).toEqual([BLAST, HEAL]);
       expect(alice.inventory.items).toEqual([{ item: 90, quantity: 1 }]);
       expect(said()).toEqual(['You learned Heal.', 'You already know Heal.']);
     } finally {
@@ -502,22 +543,22 @@ describe('learning spells', () => {
       sprite: 0,
       type: 'consumable',
       scriptId: 'learnSpell',
-      scriptParams: { spell: 'heal' },
+      scriptParams: { spell: HEAL },
     });
     const alice = sim.addPlayer({
       name: 'Alice',
       inventory: { items: [{ item: 90, quantity: 1 }], maxCapacity: 10 },
     });
-    useApi<MagicApi>('magic')!.setSpells(alice, ['blast']);
+    useApi<MagicApi>('magic')!.setSpells(alice, [BLAST]);
     drainGameEvents();
     const limits = config.scriptData as { maxValueBytes: number };
     const was = limits.maxValueBytes;
-    limits.maxValueBytes = JSON.stringify(['blast']).length;
+    limits.maxValueBytes = JSON.stringify([BLAST]).length;
 
     try {
       expect(useItem('Alice', 90)).toBe(false);
 
-      expect(alice.data?.spells).toEqual(['blast']);
+      expect(alice.data?.spells).toEqual([BLAST]);
       expect(alice.inventory.items).toEqual([{ item: 90, quantity: 1 }]);
       expect(said()).toEqual([]);
     } finally {

@@ -568,12 +568,13 @@ declare function getRecipes(): RecipeData[];
 
 /**
  * Saves spells to the database one after another, without waiting. For a
- * module seeding its built-ins in SpellEditor when getSpells() is empty.
+ * module seeding built-ins when getSpells() is empty; a given `id` is kept.
  * `target` defaults to 'enemies' when damage > 0, else 'self', and
  * `visualTarget` to 'targets' when damage > 0, else 'self'.
  */
 declare function createSpells(
   spells: {
+    id?: number;
     name: string;
     description?: string;
     sprite: number;
