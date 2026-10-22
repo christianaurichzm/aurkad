@@ -3,8 +3,17 @@
  * them: the same command answers every surface (terminal, web console,
  * in-game chat), and a privileged one leaves an audit trail entry.
  */
-import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+import {
+  describe,
+  it,
+  expect,
+  beforeEach,
+  afterEach,
+  onTestFinished,
+  vi,
+} from 'vitest';
 import { clearCommands, handleReplCommand } from '../engine/commands.js';
+import { on } from '../engine/hooks.js';
 import { registerPlayerCommands } from './playerCommands.js';
 import { createFixture, tile } from '../sim/simFixture.js';
 import { rebuildQuadtree } from '../sim/spatialManager.js';
@@ -87,6 +96,11 @@ vi.mock('../services/economy/deliveryService.js', () => ({
   },
 }));
 
+const dropListingsOf = vi.fn().mockResolvedValue(3);
+vi.mock('../services/economy/auctionService.js', () => ({
+  dropListingsOf: (seller: string) => dropListingsOf(seller),
+}));
+
 const run = async (line: string) => {
   const [name, ...args] = line.split(/\s+/);
   const out: string[] = [];
@@ -103,6 +117,7 @@ beforeEach(() => {
   deletePlayer.mockClear();
   disconnectPlayer.mockClear();
   cancelDelivery.mockClear();
+  dropListingsOf.mockClear();
   leaseHolderOf.mockReset().mockResolvedValue(null);
   publishToInstances.mockClear();
   lookupInstanceUrl.mockReset().mockReturnValue(undefined);
@@ -441,6 +456,31 @@ describe('account export and erasure', () => {
     await run('accountdelete Alice confirm');
 
     expect(disconnectPlayer).toHaveBeenCalledWith('Alice');
+  });
+
+  // Kept under the name, which the erasure frees: left in place, a listing and
+  // its takings would go to whoever registers the name next.
+  it('drops the auction listings sold under the name', async () => {
+    stored.set('Alice', account);
+
+    const { out } = await run('accountdelete Alice confirm');
+
+    expect(dropListingsOf).toHaveBeenCalledWith('Alice');
+    expect(out).toMatch(/3 auction listings dropped/);
+  });
+
+  it('tells the modules the name is free, once the account is gone', async () => {
+    stored.set('Alice', account);
+    const told: string[] = [];
+    const stop = on('accountDeleted', ({ name }) => {
+      expect(deletePlayer).toHaveBeenCalled();
+      told.push(name);
+    });
+    onTestFinished(stop);
+
+    await run('accountdelete Alice confirm');
+
+    expect(told).toEqual(['Alice']);
   });
 
   it('leaves an audit entry, like every other privileged action', async () => {

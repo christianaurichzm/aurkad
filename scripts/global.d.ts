@@ -204,6 +204,11 @@ interface LootConditionContext {
 interface HookPayloads {
   playerJoin: { player: PlayerServer };
   playerLeave: { player: PlayerServer };
+  /**
+   * The account was erased and its name may be registered again. Drop what
+   * you keep under the name, or its next holder inherits it.
+   */
+  accountDeleted: { name: string };
   playerDeath: { player: PlayerServer; killer?: CombatTarget };
   playerLevelUp: { player: PlayerServer; level: number };
   /**

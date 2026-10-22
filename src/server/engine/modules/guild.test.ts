@@ -311,6 +311,45 @@ describe('guild module', () => {
     expect(api.isMember(bob, 'Dragons')).toBe(false);
   });
 
+  // A name an erased account frees can be registered again, and whoever takes
+  // it is a stranger to the guild: no seat, no invite, no ownership.
+  it('lets an erased account go, so the next holder of the name is nobody', () => {
+    const sim = createFixture(0);
+    const alice = sim.addPlayer({ name: 'Alice' });
+    const bob = sim.addPlayer({ name: 'Bob' });
+    const carol = sim.addPlayer({ name: 'Carol' });
+    handleChatCommand(carol, '/guild create Wolves private');
+    handleChatCommand(carol, '/guild invite Alice');
+    handleChatCommand(alice, '/guild create Dragons');
+    handleChatCommand(bob, '/guild join Dragons');
+    unregisterPlayer(alice.id);
+
+    emit('accountDeleted', { name: 'Alice' });
+
+    const dragons = kvGet<Guild>('guild', 'Dragons');
+    expect(dragons?.members).toEqual([{ name: 'Bob', role: 'owner' }]);
+    expect(dragons?.leader).toBe('Bob');
+    expect(kvGet<Guild>('guild', 'Wolves')?.invites).toEqual([]);
+
+    const newcomer = sim.addPlayer({ name: 'Alice' });
+    handleChatCommand(newcomer, '/guild join Dragons');
+    expect(
+      kvGet<Guild>('guild', 'Dragons')?.members.find((m) => m.name === 'Alice')
+        ?.role,
+    ).toBe('member');
+  });
+
+  it('disbands a guild an erased account was alone in', () => {
+    const sim = createFixture(0);
+    const alice = sim.addPlayer({ name: 'Alice' });
+    handleChatCommand(alice, '/guild create Solo');
+    unregisterPlayer(alice.id);
+
+    emit('accountDeleted', { name: 'Alice' });
+
+    expect(kvGet('guild', 'Solo')).toBeUndefined();
+  });
+
   // An instance that booted before the guild was founded has none of it in
   // its store; arriving there is no reason to forget the guild.
   it('keeps the guild of a member who arrives where the store lacks it', () => {

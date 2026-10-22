@@ -310,19 +310,17 @@ function setPrivacy(player, privacy) {
   return t(player, 'Guild is now {privacy}.', { privacy: p });
 }
 
-function leaveGuild(player) {
-  const gn = myGuildName(player);
-  if (!gn) return 'You are not in a guild.';
-  const g = getGuild(gn);
-  if (!g) return 'You are not in a guild.';
-  const wasOwner = isOwner(g, player.name);
-  g.members = g.members.filter((m) => m.name !== player.name);
-  setPlayerData(player, 'guild', undefined);
-  setNameTag(player, undefined);
-  sendEvent(player, 'guild:update', null);
+/**
+ * Takes `name` out of `g` and saves it, handing an owner's place to a
+ * moderator or else the longest member. False when that emptied the guild,
+ * which is then disbanded.
+ */
+function dropMember(g, name) {
+  const wasOwner = isOwner(g, name);
+  g.members = g.members.filter((m) => m.name !== name);
   if (g.members.length === 0) {
-    store.delete('guild', gn);
-    return t(player, 'You left "{name}" (guild disbanded).', { name: gn });
+    store.delete('guild', g.name);
+    return false;
   }
   if (wasOwner) {
     const nextOwner =
@@ -331,8 +329,21 @@ function leaveGuild(player) {
     g.leader = nextOwner.name;
   }
   saveGuild(g);
-  pushGuild(gn);
-  return t(player, 'You left "{name}".', { name: gn });
+  pushGuild(g.name);
+  return true;
+}
+
+function leaveGuild(player) {
+  const gn = myGuildName(player);
+  if (!gn) return 'You are not in a guild.';
+  const g = getGuild(gn);
+  if (!g) return 'You are not in a guild.';
+  setPlayerData(player, 'guild', undefined);
+  setNameTag(player, undefined);
+  sendEvent(player, 'guild:update', null);
+  return dropMember(g, player.name)
+    ? t(player, 'You left "{name}".', { name: gn })
+    : t(player, 'You left "{name}" (guild disbanded).', { name: gn });
 }
 
 // ---------- commands ---------------------------------------------------------
@@ -428,6 +439,19 @@ on('playerJoin', ({ player }) => {
 on('playerLeave', ({ player }) => {
   const gn = myGuildName(player);
   if (gn) pushGuild(gn, player.name);
+});
+
+// Roles are looked up by name, so a seat left behind would make whoever
+// registers the name next its owner, moderator or invitee.
+on('accountDeleted', ({ name }) => {
+  for (const gn of store.keys('guild')) {
+    const g = getGuild(gn);
+    if (!g) continue;
+    const invited = g.invites.includes(name);
+    g.invites = g.invites.filter((n) => n !== name);
+    if (g.members.some((m) => m.name === name)) dropMember(g, name);
+    else if (invited) saveGuild(g);
+  }
 });
 
 if (xpBonus > 0) {

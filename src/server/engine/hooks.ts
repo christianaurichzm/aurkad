@@ -13,6 +13,12 @@ import type {
 export type HookMap = {
   playerJoin: { player: PlayerServer };
   playerLeave: { player: PlayerServer };
+  /**
+   * An account was erased and its name is free to register again. State a
+   * module keeps under the name is let go here, or whoever takes the name
+   * next inherits it. Fires on the instance that erased it.
+   */
+  accountDeleted: { name: string };
   playerDeath: { player: PlayerServer; killer?: CombatTarget };
   playerLevelUp: { player: PlayerServer; level: number };
   npcDeath: {

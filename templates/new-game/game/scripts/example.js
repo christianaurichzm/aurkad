@@ -526,6 +526,7 @@ command(
 //
 // HOOKS (on)
 //   playerJoin / playerLeave       { player }
+//   accountDeleted                 { name }                - erased; drop what you keep under the name
 //   playerDeath                    { player, killer? }
 //   playerLevelUp                  { player, level }
 //   npcDeath                       { npc, killer, contributors }  - contributors: who hurt it, largest share first

@@ -43,6 +43,8 @@ import {
   cancelDelivery,
   listDeliveries,
 } from '../services/economy/deliveryService.js';
+import { dropListingsOf } from '../services/economy/auctionService.js';
+import { emit } from '../engine/hooks.js';
 
 // Commands whose subject is a player. Registered once at boot, so the
 // terminal, the web console and in-game chat share one implementation and
@@ -780,6 +782,9 @@ export function registerPlayerCommands(): void {
         await disconnectPlayer(username);
       }
 
+      // Before the mail: an expired listing returns its item by mail, and a
+      // return sent before the listings went is cancelled below with the rest.
+      const listings = await dropListingsOf(record.name);
       const mail = await listDeliveries(username);
       for (const entry of mail) await cancelDelivery(entry.id);
       // The second factor goes with the account, unlike the ban below: it is
@@ -791,6 +796,7 @@ export function registerPlayerCommands(): void {
       // move a number somebody has already read. See analyticsService.
       const days = await forgetPlayer(username);
       await deletePlayer(record.id);
+      emit('accountDeleted', { name: record.name });
 
       // The ban stays: it is keyed by name and it is the only
       // thing stopping the account being made again to escape it. An operator
@@ -799,6 +805,7 @@ export function registerPlayerCommands(): void {
       reply(
         style.ok(
           `Erased ${username}: account and ${mail.length} queued mail.` +
+            (listings ? ` ${listings} auction listings dropped.` : '') +
             (days ? ` ${days} days of activity anonymised.` : '') +
             (banned ? ' The ban on that name was kept.' : ''),
         ),

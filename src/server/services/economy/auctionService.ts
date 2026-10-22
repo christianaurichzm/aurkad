@@ -276,6 +276,16 @@ export async function returnAuction(
   return committed ? result : fail('not-committed');
 }
 
+/**
+ * Drops every listing of `seller`, sold or not, and says how many: an
+ * erased account takes its goods and its takings with it, which left here
+ * would go to whoever registers the name next.
+ */
+export async function dropListingsOf(seller: string): Promise<number> {
+  const { deletedCount } = await AuctionModel.deleteMany({ seller });
+  return deletedCount;
+}
+
 export async function sweepAuctions(): Promise<void> {
   if (!supportsTransactions()) return;
   const rows = await AuctionModel.find({
