@@ -57,6 +57,18 @@ describe('config multi-instance mode', () => {
     warn.mockRestore();
   });
 
+  it('sends warps to /ws when WS_PUBLIC_URL names only the host', async () => {
+    process.env.WS_PUBLIC_URL = 'ws://host:8080';
+    const { config } = await import('./config.js');
+    expect(config.instance.wsPublicUrl).toBe('ws://host:8080/ws');
+  });
+
+  it('keeps a WS_PUBLIC_URL that names its own path', async () => {
+    process.env.WS_PUBLIC_URL = 'wss://host/game2/ws';
+    const { config } = await import('./config.js');
+    expect(config.instance.wsPublicUrl).toBe('wss://host/game2/ws');
+  });
+
   it('ignores an empty MAP_IDS, which parses to undefined', async () => {
     process.env.WS_PUBLIC_URL = 'ws://localhost:8080';
     process.env.MAP_IDS = '  ,  ';

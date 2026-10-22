@@ -155,6 +155,17 @@ function parseTracingEndpoint(): string | undefined {
 
 const tracingEndpoint = parseTracingEndpoint();
 
+// Warps send the client to this URL and the server upgrades only /ws, so a
+// bare host (ws://host:8080) means its /ws. A path is kept as given, for a
+// proxy that serves the game under one.
+function parseWsPublicUrl(): string | undefined {
+  const raw = process.env.WS_PUBLIC_URL;
+  const url = raw ? URL.parse(raw) : null;
+  if (!url || url.pathname !== '/') return raw;
+  url.pathname = '/ws';
+  return url.toString();
+}
+
 // An all-blank MAP_IDS parses to [], which would read as sharding. It means
 // "own all maps", like unset, so both become undefined here.
 const rawMapIds = parseCsvEnv('MAP_IDS');
@@ -401,7 +412,7 @@ export const config = {
     }),
   },
   instance: {
-    wsPublicUrl: process.env.WS_PUBLIC_URL,
+    wsPublicUrl: parseWsPublicUrl(),
     mapIds,
     heartbeatMs: parseIntEnv('INSTANCE_HEARTBEAT_MS', 30_000, {
       min: 5_000,
