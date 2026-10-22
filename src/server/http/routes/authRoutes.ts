@@ -199,7 +199,13 @@ export function createAuthRouter() {
         logger.error('Session save failed', { err: saveError });
         // The lease was taken for a session that does not exist: held, it
         // would keep this account out of every instance until it expired.
-        void releasePresence(player.id);
+        // Caught, as a rejection left loose ends the process.
+        void releasePresence(player.id).catch((err) =>
+          logger.error('[presence] release after a failed login failed', {
+            player: username,
+            err,
+          }),
+        );
         return res.status(500).json({ message: 'Failed to save session' });
       }
 

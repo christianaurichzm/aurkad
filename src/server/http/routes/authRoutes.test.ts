@@ -42,10 +42,15 @@ import {
 // be taken is decided in Mongo and tested in persistence/presence.test.ts, and
 // what this file owns is what the route does with the answer.
 // `taking` stands for whatever that instance writes on its way out, which can
-// land between the reads this route makes and the lease it takes.
+// land between the reads this route makes and the lease it takes; `release`
+// for a release whose write fails.
 type PresenceAnswer = { ok: true } | { ok: false; owner: string };
 const presence = vi.hoisted(
-  (): { answer: PresenceAnswer; taking?: () => Promise<unknown> } => ({
+  (): {
+    answer: PresenceAnswer;
+    taking?: () => Promise<unknown>;
+    release?: () => Promise<void>;
+  } => ({
     answer: { ok: true },
   }),
 );
@@ -54,7 +59,7 @@ vi.mock('../../persistence/presence.js', () => ({
     await presence.taking?.();
     return presence.answer;
   },
-  releasePresence: () => Promise.resolve(),
+  releasePresence: () => presence.release?.() ?? Promise.resolve(),
   releaseAllPresence: () => Promise.resolve(),
   renewPresence: () => Promise.resolve(),
   presenceFence: () => ({}),
@@ -103,6 +108,24 @@ function authApp() {
       resave: false,
       saveUninitialized: false,
       cookie: { secure: false },
+    }),
+  );
+  built.use(createAuthRouter());
+  return built;
+}
+
+/** The router behind a session store that refuses every write. */
+function failingSessionApp() {
+  const store = new session.MemoryStore();
+  store.set = (_sid, _session, done) => done?.(new Error('store down'));
+  const built = express();
+  built.use(express.json());
+  built.use(
+    session({
+      secret: 'test-secret',
+      resave: false,
+      saveUninitialized: false,
+      store,
     }),
   );
   built.use(createAuthRouter());
@@ -287,26 +310,35 @@ describe('POST /login', () => {
 
   it('leaves the character out of the world when the session cannot be saved', async () => {
     await createPlayer('Alice', await hashPw('correcthorse'));
-    const store = new session.MemoryStore();
-    store.set = (_sid, _session, done) => done?.(new Error('store down'));
-    const failing = express();
-    failing.use(express.json());
-    failing.use(
-      session({
-        secret: 'test-secret',
-        resave: false,
-        saveUninitialized: false,
-        store,
-      }),
-    );
-    failing.use(createAuthRouter());
 
-    const res = await request(failing)
+    const res = await request(failingSessionApp())
       .post('/login')
       .send({ username: 'Alice', password: 'correcthorse' });
 
     expect(res.status).toBe(500);
     expect(getPlayerByName('Alice')).toBeUndefined();
+  });
+
+  // The database that refused the session is likely to refuse the release
+  // too, and a rejection nobody handles ends the process (server.ts).
+  it('keeps the server up when the lease cannot be let go either', async () => {
+    await createPlayer('Alice', await hashPw('correcthorse'));
+    const loose: unknown[] = [];
+    const onLoose = (reason: unknown) => loose.push(reason);
+    process.on('unhandledRejection', onLoose);
+    presence.release = () => Promise.reject(new Error('database down'));
+    onTestFinished(() => {
+      process.off('unhandledRejection', onLoose);
+      presence.release = undefined;
+    });
+
+    const res = await request(failingSessionApp())
+      .post('/login')
+      .send({ username: 'Alice', password: 'correcthorse' });
+    await new Promise((resolve) => setImmediate(resolve));
+
+    expect(res.status).toBe(500);
+    expect(loose).toEqual([]);
   });
 
   // The client opens the socket that redirects it only once it has a map to
