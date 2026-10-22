@@ -56,6 +56,9 @@ refactor: split chat/custom fan-out out of net/snapshot
 
 Types: `feat`, `fix`, `perf`, `refactor`, `test`, `docs`, `chore`.
 
+The subject is at most 72 characters. A body is optional: at most three lines
+wrapped at 72, saying what changed and why.
+
 A `!` after the type or scope (`feat(script)!: ...`) marks a breaking change.
 Release notes are built from commit subjects alone, so the `!` has to be in the
 subject, not in a footer.
