@@ -99,7 +99,14 @@ GAME_DIR=games/my-game npm run dev   # server (8080) + client dev server with HM
 In development the first account registered becomes the admin.
 `npm run docker:up` runs your changes the way a release runs: it builds an
 image from the checkout and starts `compose.game.yml` on it, with `game/` at
-the root of the checkout and a database of its own.
+the root of the checkout and a database of its own. As in a release, the admin
+there is the account named by `ADMIN` in a `.env` at the root of the checkout.
+
+`npm run build && npm start` runs the production build without Docker. It
+reads `.env.production` (`.env.example` lists every variable) and refuses to
+boot without `CORS_ALLOWED_ORIGINS` and `USE_SECURE_COOKIES=true`: the session
+cookie only travels over HTTPS, so the server runs behind a TLS proxy, with
+`TRUST_PROXY=1`.
 
 How the engine is put together is in [ARCHITECTURE.md](ARCHITECTURE.md), and
 what a change has to pass in [CONTRIBUTING.md](.github/CONTRIBUTING.md).
@@ -180,6 +187,8 @@ npm run content:export   # writes the database's content to content/*.json
 npm run content:import   # loads content/*.json into MongoDB
 ```
 
+With Docker, run the same two from the folder `compose.yml` is in: `docker compose run --rm app node dist/server/contentPack/cli.js export` (or `import`).
+
 The server also imports `content/` on every boot, but only the rows that changed in their files since the last import or `content:export`: those win over the database for the ids they define, and the rest leave it alone, so what the admin tools changed survives a restart. `content:import` writes every row, putting the database back to the files. A pack goes in whole or not at all: if any file or entry is invalid, nothing is written, the log lists every problem, and the server runs on the content the database already had (`content:import` exits with an error).
 
 ## Replay
@@ -210,7 +219,7 @@ npm run replay -- replays/<file>.json --run              # re-simulate the movem
 
 A trade moves an item between two player documents, and mailing one moves it from a player into the delivery queue. MongoDB can only write two documents together on a **replica set**; standalone `mongod` cannot, so the engine writes them one at a time and a crash in between duplicates or loses the item.
 
-The auction module requires transactions and refuses operations on standalone MongoDB. Listing commits the seller's inventory and escrow together. Buying commits the buyer's inventory and a durable seller payment; a failed payment is retried by the sweep after a restart. Cancellation and expiry commit the returned item and removal of the listing together. Auction v2's `list` and `listings` module APIs return promises. Old entries in the `auction` KV scope are preserved for reconciliation: their write order cannot prove whether an item or payment already moved, so enabling v2 does not automatically refund them.
+The auction module requires transactions and refuses operations on standalone MongoDB. Listing commits the seller's inventory and escrow together. Buying commits the buyer's inventory and a durable seller payment; a failed payment is retried by the sweep after a restart. Cancellation and expiry commit the returned item and removal of the listing together. The module's `list` and `listings` APIs return promises.
 
 The server detects which it is talking to and says so on boot:
 

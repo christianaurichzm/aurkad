@@ -36,6 +36,14 @@ npm run content:export   # snapshot current DB -> content/*.json
 npm run content:import   # apply every row of content/*.json -> DB (the boot applies changed rows)
 ```
 
+A game run with Docker has the same two commands inside the image. Run them
+from the folder `compose.yml` is in:
+
+```bash
+docker compose run --rm app node dist/server/contentPack/cli.js export
+docker compose run --rm app node dist/server/contentPack/cli.js import
+```
+
 Edit content in-game with the admin tools, run `content:export`, then commit.
 Or edit the JSON by hand and `content:import` (or restart).
 
@@ -44,8 +52,10 @@ Or edit the JSON by hand and `content:import` (or restart).
 Imported as arrows → spells → items → loot → dialogs → quests → recipes →
 npcs → shops → maps (later types reference earlier ids). Quests and npcs point
 at each other, so no order satisfies both; quests go first because
-`npc.questId` is the reference a save would break. Each entry is validated;
-an invalid one is skipped with a logged reason and never blocks the rest.
+`npc.questId` is the reference a save would break. Each entry is validated,
+and a pack goes in whole or not at all: if any file or entry is invalid,
+nothing is written, the log lists every problem, and the database keeps the
+content it had.
 
 ## Formats
 

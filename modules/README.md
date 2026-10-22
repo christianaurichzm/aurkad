@@ -14,15 +14,38 @@ modules/
     client.js     # optional browser entry
 ```
 
-Bundled modules: **dialog** (NPC dialog boxes), **quest** (quests + tracker),
-**guild** (guilds + panel + name tag), **magic** (spells with mana/cooldowns +
-hotbar), **pk** (a kill on a PvP map flags you, and a flagged player can be
-attacked on any map), **pet** (a follower that fights for you), **archery**
-(press R to shoot), **party** (runtime groups + shared kill XP), **trade**
-(player item swaps), **equipment** (set bonuses on top of core equipment
-stats), **status** (timed buffs/debuffs via tick + beforeDamage), and **bank**
-(per-player item storage). All are opt-in via `game.json` and built on the
-script API + hooks; none of them live in the core.
+The bundled modules are below. **Default** is what a game whose `game.json`
+does not name a module gets; `new-game` writes one that names them all,
+switched off. Each is built on the script API and hooks; none of them live
+in the core.
+
+| Module         | Default | What it does                                                          |
+| -------------- | ------- | --------------------------------------------------------------------- |
+| `achievements` | off     | Named milestones counted off the engine's hooks                       |
+| `archery`      | on      | Press R to shoot an arrow at the enemy you face                       |
+| `auction`      | off     | Auction house with escrow; needs MongoDB transactions                 |
+| `bank`         | on      | Per-player item storage                                               |
+| `crafting`     | on      | Turns authored recipes into items                                     |
+| `cutscene`     | off     | Letterboxed captions a script plays at one player                     |
+| `daynight`     | off     | Tints the world through a day cycle on the wall clock                 |
+| `dialog`       | on      | NPC dialog boxes and the conversations authored in the editor         |
+| `equipment`    | on      | Set bonuses on top of core equipment stats                            |
+| `guild`        | on      | Guilds, with a panel and a name tag                                   |
+| `knockback`    | off     | Pushes the target a tile back on a hit that does not kill             |
+| `leaderboard`  | off     | The level board, plus any board a script submits to                   |
+| `lighting`     | off     | Darkness over the world with holes where the lights are               |
+| `los`          | off     | Line of sight for NPCs, so walls hide players                         |
+| `magic`        | on      | Spells with mana and cooldowns, cast from a hotbar                    |
+| `mail`         | on      | An item and a note to another player, online or not                   |
+| `minimap`      | off     | Corner minimap of the current map                                     |
+| `party`        | on      | Groups with invites and shared kill XP                                |
+| `pet`          | on      | A follower that fights for you                                        |
+| `pk`           | on      | A kill on a PvP map flags you; a flagged player is fair game anywhere |
+| `quest`        | on      | Quests with a tracker                                                 |
+| `social`       | off     | Friends and ignore lists                                              |
+| `status`       | on      | Timed buffs and debuffs                                               |
+| `trade`        | on      | Item swaps between online players                                     |
+| `weather`      | off     | Rain and snow over the world                                          |
 
 ## Manifest (`module.json`)
 
