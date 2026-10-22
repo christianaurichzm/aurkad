@@ -671,6 +671,11 @@ export const disconnectPlayer = async (username?: string) => {
   await departure;
 };
 
+/** Whether this character's last write and release are under way. */
+export function isDeparting(id: string): boolean {
+  return departures.has(id);
+}
+
 async function depart(player: PlayerServer): Promise<void> {
   await waitForPlayerCommit(player.id);
   try {

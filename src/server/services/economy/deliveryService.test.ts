@@ -30,6 +30,7 @@ import { deleteItem, items } from '../content/itemService.js';
 import PlayerModel from '../../model/Player.js';
 import {
   createPlayer,
+  disconnectPlayer,
   getPlayerByNameFromDb,
   persistPlayerSessionState,
 } from '../player/playerService.js';
@@ -471,6 +472,8 @@ describe('claimDeliveries', () => {
     // record died with it, and the row is the only thing that remembers.
     const restarted = { ...alice, inventory: { items: [], maxCapacity: 10 } };
     delete restarted.data;
+    unregisterPlayer(alice.id);
+    registerPlayer(restarted);
     hooks.persistFails = false;
 
     await claimDeliveries(restarted);
@@ -608,6 +611,68 @@ describe('claimDeliveries', () => {
 
     const stored = await getPlayerByNameFromDb('Alice');
     expect(stored?.inventory.items).toEqual([{ item: SWORD, quantity: 1 }]);
+  });
+
+  // A claim queued behind another outlives a logout that waits for the first
+  // only. An item added after the last write lands in a document the next
+  // session has already loaded, and that session's save erases it.
+  it('hands an item over once when a claim waits through a logout', async () => {
+    const alice = await makePlayer('Alice');
+    const sword = await queueDelivery({
+      to: 'Alice',
+      itemId: SWORD,
+      source: 'test',
+    });
+    const potion = await queueDelivery({
+      to: 'Alice',
+      itemId: POTION,
+      source: 'test',
+    });
+
+    // Each listing waits for its gate, then reads the queue as it is by then.
+    const find = DeliveryModel.find.bind(DeliveryModel);
+    const gated = (gate: Promise<void>) => (filter: object) => ({
+      sort: (order: Record<string, 1 | -1>) => ({
+        lean: () => ({
+          exec: () => gate.then(() => find(filter).sort(order).lean().exec()),
+        }),
+      }),
+    });
+    let releaseFirst!: () => void;
+    const first = new Promise<void>((resolve) => (releaseFirst = resolve));
+    let releaseSecond!: () => void;
+    const second = new Promise<void>((resolve) => (releaseSecond = resolve));
+    vi.spyOn(DeliveryModel, 'find')
+      .mockImplementationOnce(gated(first) as never)
+      .mockImplementationOnce(gated(second) as never);
+
+    const claimSword = claimDeliveries(alice, sword.ok ? [sword.id] : []);
+    const claimPotion = claimDeliveries(alice, potion.ok ? [potion.id] : []);
+    const logout = disconnectPlayer('Alice');
+    // The next session starts from the document the logout left.
+    const next = logout.then(async () => {
+      const { password: _pw, ...stored } =
+        (await getPlayerByNameFromDb('Alice'))!;
+      registerPlayer(stored);
+      return stored;
+    });
+    // The second listing answers once the next session is in, or after a
+    // while, should the logout be waiting on that claim.
+    void next.then(releaseSecond);
+    setTimeout(releaseSecond, 100);
+    releaseFirst();
+    await Promise.all([claimSword, claimPotion, logout]);
+    const session = await next;
+
+    await persistPlayerSessionState(session);
+    await claimDeliveries(session);
+
+    const stored = await getPlayerByNameFromDb('Alice');
+    expect(stored?.inventory.items).toEqual([
+      { item: SWORD, quantity: 1 },
+      { item: POTION, quantity: 1 },
+    ]);
+    expect(await countDeliveries('Alice')).toBe(0);
   });
 });
 

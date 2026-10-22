@@ -37,6 +37,7 @@ import {
 } from '../../sim/world.js';
 import {
   getPlayerByNameFromDb,
+  isDeparting,
   persistPlayerSessionState,
   waitForPlayerPersistence,
 } from '../player/playerService.js';
@@ -378,6 +379,10 @@ export async function claimDeliveries(
   // and add them again. It waits rather than refuses, as two `/mail claim`
   // are a double-click; no await between the loop and the hold.
   while (isPlayerCommitting(player.id)) await waitForPlayerCommit(player.id);
+  // A character leaving, or left, has had or is having its last write. An
+  // item added now lands over the document the next session loads, so the
+  // rows stay queued for that session.
+  if (getPlayerById(player.id) !== player || isDeparting(player.id)) return [];
   beginPlayerCommit([player.id]);
   try {
     // A snapshot cast before the claim must land first, or it erases the item
