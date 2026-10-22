@@ -117,15 +117,16 @@ what a change has to pass in [CONTRIBUTING.md](CONTRIBUTING.md).
   error rather than a setting that silently does nothing. Delete the file and
   the engine runs on defaults.
 
-- **`brand` in `game.json` and `theme/`** - what the game is called and how it
+- **`brand` in `game.json` and `theme/`**: what the game is called and how it
   looks. `brand.name` goes on the browser tab and the login card, `brand.logo`
   names a picture in `theme/` to go beside it. `theme/theme.css` loads after the
   engine's stylesheet, so it can repaint anything: the colour tokens every panel
-  is drawn from, the three fonts (`--font-ui` for text, `--font-display` for
-  titles and names, `--font-world` for levels, bars and keys), a background
-  for the login screen, textures on the panels. Every file in `theme/` is
-  public at `/theme/<name>`, because the login
-  screen needs it before anyone has a session. The two corner radii
+  is drawn from, the names over the map (`--color-name-admin`,
+  `--color-name-friendly`, one per access and NPC behavior), the three fonts
+  (`--font-ui` for text, `--font-display` for titles and names, `--font-world`
+  for levels, bars and keys), a background for the login screen, textures on
+  the panels. Every file in `theme/` is public at `/theme/<name>`, because the
+  login screen needs it before anyone has a session. The two corner radii
   (`--radius-control`, `--radius-panel`) and the UI icons are variables too:
   `--icon-attack: url(/theme/icons/sword.svg)` replaces one, written from the
   root because a relative url inside a variable does not resolve against

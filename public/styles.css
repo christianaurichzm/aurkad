@@ -91,6 +91,20 @@
   --dialog-dim: rgba(0, 0, 0, 0.6);
   --color-selected: #1e3a4f;
   --color-app-bg: #0c1014;
+  /* The names drawn over the world: a player's by access, an NPC's by
+     behavior, and the tag a script sets under a name. Hex, so the canvas can
+     weigh them: a light name is outlined in black, a dark one gets a light
+     halo instead. */
+  --color-name-user: #ffff00;
+  --color-name-mod: #0000ff;
+  --color-name-admin: #000000;
+  --color-name-aggressive: #ef4444;
+  --color-name-hostile: #f97316;
+  --color-name-friendly: #22c55e;
+  --color-name-shopkeeper: #3b82f6;
+  --color-name-guard: #a855f7;
+  --color-name-neutral: #e5e7eb;
+  --color-name-tag: #ffd24d;
   /* A picture behind the login card, as background layers. */
   --auth-backdrop: none;
   /* ui is everything read at a glance; display names a thing (a panel, a

@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import { recordingContext } from '../../test/clientModule';
 import { Direction, Key, Player, RuntimeNpc } from '../../shared/types';
 import { TILE_SIZE } from '../../shared/constants';
@@ -282,6 +282,45 @@ describe('renderHUD', () => {
     const y = (text: string) =>
       rec.of('fillText').find((c) => c.args[0] === text)?.args[2] as number;
     expect(y('Bonebreaker')).toBeGreaterThan(y('Nyx (3)'));
+  });
+
+  // The theme is read once per module, so this one takes a fresh copy.
+  it('takes the colours of names from the theme', async () => {
+    const root = document.documentElement.style;
+    root.setProperty('--color-name-admin', '#c8d6ec');
+    root.setProperty('--color-name-friendly', '#a9c48e');
+    try {
+      vi.resetModules();
+      const hud = await import('./hud');
+      const rec = recordingContext();
+      const fills: unknown[] = [];
+      const fill = rec.ctx.fillText.bind(rec.ctx);
+      rec.ctx.fillText = (...args) => {
+        fills.push(rec.ctx.fillStyle);
+        fill(...args);
+      };
+
+      hud.renderHUD(player(Access.ADMIN), rec.ctx);
+      hud.renderNpcLabel(
+        {
+          name: 'Lia',
+          behavior: 'friendly',
+          position: { x: 0, y: 64 },
+        } as never,
+        false,
+        rec.ctx,
+      );
+
+      expect(fills).toEqual(['#c8d6ec', '#a9c48e']);
+      // A light admin name is outlined like any other, not haloed.
+      expect(rec.of('strokeText').map((c) => c.args[0])).toEqual([
+        'Nyx (3)',
+        'Lia',
+      ]);
+    } finally {
+      root.removeProperty('--color-name-admin');
+      root.removeProperty('--color-name-friendly');
+    }
   });
 
   it('keeps the outline for a name that reads over black', () => {

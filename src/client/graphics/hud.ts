@@ -5,6 +5,7 @@ import {
   DroppedItem,
   Key,
   NpcBehavior,
+  Access,
 } from '../../shared/types';
 import { TILE_SIZE } from '../../shared/constants';
 import { canInteract } from '../../shared/utils';
@@ -33,6 +34,29 @@ const readTheme = () => ({
   text: themeToken('--color-text', '#e8eef4'),
   accent: themeToken('--color-accent', '#4ea8de'),
   appBg: themeToken('--color-app-bg', '#0c1014'),
+  // The names over the world: a player's by access, an NPC's by behavior
+  // (--color-name-admin, --color-name-friendly, ...), and the tag under one.
+  playerNames: {
+    [Access.USER]: themeToken(
+      '--color-name-user',
+      playerNameColorRecord[Access.USER],
+    ),
+    [Access.MOD]: themeToken(
+      '--color-name-mod',
+      playerNameColorRecord[Access.MOD],
+    ),
+    [Access.ADMIN]: themeToken(
+      '--color-name-admin',
+      playerNameColorRecord[Access.ADMIN],
+    ),
+  },
+  npcNames: Object.fromEntries(
+    Object.entries(npcBehaviorColorRecord).map(([behavior, color]) => [
+      behavior,
+      themeToken(`--color-name-${behavior}`, color),
+    ]),
+  ) as Record<NpcBehavior, string>,
+  nameTag: themeToken('--color-name-tag', '#ffd24d'),
 });
 let theme: ReturnType<typeof readTheme> | null = null;
 const hudTheme = () => (theme ??= readTheme());
@@ -97,7 +121,7 @@ export const renderHUD = (
   const { x } = spritePosition(position.x, position.y);
   const y = spriteTop(player.sprite, position.x, position.y) - NAME_CLEARANCE;
   const cx = x + TILE_SIZE / 2; // sprite center: names are centered over it
-  const { world } = hudTheme();
+  const { world, playerNames, nameTag: tagColor } = hudTheme();
   // A tag sits under the name, as an NPC's role does (renderNpcLabel).
   const nameY = nameTag ? y - 14 : y;
 
@@ -109,7 +133,7 @@ export const renderHUD = (
         cx,
         y,
         `bold 12px ${world}`,
-        nameTagColor ?? '#ffd24d',
+        nameTagColor ?? tagColor,
       );
     }
     outlinedText(
@@ -118,7 +142,7 @@ export const renderHUD = (
       cx,
       nameY,
       `bold 15px ${world}`,
-      nameColor ?? playerNameColorRecord[access],
+      nameColor ?? playerNames[access],
     );
 
     renderSpeechBubble(ctx, name, cx, nameY - 2);
@@ -157,7 +181,7 @@ export const renderNpcLabel = (
   ctx: CanvasRenderingContext2D = playerCtx,
 ) => {
   if (!npc.name) return;
-  const { world, muted } = hudTheme();
+  const { world, muted, npcNames } = hudTheme();
   const at = spritePosition(npc.position.x, npc.position.y);
   const cx = at.x + npc.width / 2; // centered over the sprite
   const top = spriteTop(
@@ -179,7 +203,7 @@ export const renderNpcLabel = (
       cx,
       role ? y - 14 : y,
       `bold 14px ${world}`,
-      npcBehaviorColorRecord[npc.behavior] ?? '#e5e7eb',
+      npcNames[npc.behavior] ?? npcNames.neutral,
     );
   });
 };
