@@ -10,8 +10,9 @@
  * these strings. An unexpected one is something leaking into the protocol,
  * like a field added to an entity type, which this is here to catch.
  *
- * In shared/ because both halves need it. tsconfig.server.build.json leaves
- * testFixtures/ out of the server build, as it does sim/simFixture.ts.
+ * In shared/ because both halves need it, and under testFixtures/ so
+ * src/server/tsconfig.build.json leaves it out of the server build, as
+ * it does sim/simFixture.ts.
  */
 
 export interface ProtocolGoldenStep {

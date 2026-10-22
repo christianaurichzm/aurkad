@@ -1,20 +1,16 @@
 {
+  "extends": "./tsconfig.base.json",
   "compilerOptions": {
-    "target": "ESNext",
-    "lib": ["DOM", "DOM.Iterable", "ESNext"],
-    "module": "ESNext",
-    "moduleResolution": "Bundler",
     "jsx": "react-jsx",
-    "strict": true,
-    "esModuleInterop": true,
-    "skipLibCheck": true,
-    "forceConsistentCasingInFileNames": true,
+    "resolveJsonModule": true,
     "noEmit": true,
-    "isolatedModules": true,
-    "allowSyntheticDefaultImports": true,
-
-    "types": ["vite/client"] 
+    "types": ["vite/client"]
   },
-  "include": ["src", "vite.config.ts"],
+  "include": [
+    "src/client/**/*",
+    "src/test/**/*",
+    "vite.config.ts",
+    "vite.config.test.ts"
+  ],
   "exclude": ["node_modules", "dist"]
 }

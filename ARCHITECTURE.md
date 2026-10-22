@@ -54,7 +54,7 @@ Design properties:
   `maxUpdatesPerTick` steps, so a stall doesn't drop the world out of sync.
 - **Allocation-sensitive hot path.** The per-tick systems avoid allocation:
   reused buffers, object pools, and no cloning of runtime entities in inner
-  loops. This is a hard rule - see [CONTRIBUTING.md](CONTRIBUTING.md).
+  loops. This is a hard rule (see [CONTRIBUTING.md](.github/CONTRIBUTING.md)).
 - **Deterministic.** A seeded RNG (`sim/rng.ts`, mulberry32) drives drops, NPC
   wander, and respawns, so a recorded input stream replays identically
   (`sim/replayRecorder.ts`, `npm run replay`).
@@ -167,12 +167,12 @@ Three layers, in increasing order of coupling to the engine:
 ### Scripting trust model
 
 Scripts and modules run in a `node:vm` context. This is **trusted scripting, not
-a security sandbox** - a host object passed to a script can reach the host realm.
+a security sandbox**: a host object passed to a script can reach the host realm.
 Only run code authored by the server owner. Accepting scripts from strangers is
 not a VM-library swap: the boundary has to be the OS (process or container per
 world), and that is a different system. Handler time is budgeted and a repeat
 overrunner is disabled, which bounds cost but not a handler that never returns.
-See [SECURITY.md](SECURITY.md).
+See [SECURITY.md](.github/SECURITY.md).
 
 ## Client
 

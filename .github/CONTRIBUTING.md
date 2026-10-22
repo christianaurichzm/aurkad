@@ -114,5 +114,5 @@ Do **not** open a public issue for vulnerabilities. See [SECURITY.md](SECURITY.m
 ## License
 
 By contributing, you agree that your contributions are licensed under the
-project's [Apache-2.0](LICENSE) license, as stated in section 5 of that
+project's [Apache-2.0](../LICENSE) license, as stated in section 5 of that
 license. No separate contributor agreement is required.

@@ -1,0 +1,9 @@
+{
+  "extends": "./tsconfig.json",
+  "exclude": [
+    "**/*.test.ts",
+    "../shared/**/*.test.ts",
+    "sim/simFixture.ts",
+    "../shared/testFixtures/**"
+  ]
+}

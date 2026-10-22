@@ -11,7 +11,7 @@
     "dev:client": "cross-env NODE_ENV=development vite",
     "dev": "concurrently \"npm:dev:server\" \"npm:dev:client\"",
     "build:client": "cross-env NODE_ENV=production vite build",
-    "build:server": "cross-env NODE_ENV=production tsc -p tsconfig.server.build.json",
+    "build:server": "cross-env NODE_ENV=production tsc -p src/server/tsconfig.build.json",
     "build": "concurrently --group \"npm:build:client\" \"npm:build:server\"",
     "start": "cross-env NODE_ENV=production node --enable-source-maps dist/server/server.js",
     "db:up": "docker compose up -d --wait mongo",
@@ -30,8 +30,8 @@
     "new-game": "node --import tsx src/server/contentPack/newGame.ts",
     "check": "npm run format:check && npm run lint && npm run typecheck && npm run test:run",
     "typecheck": "concurrently --group \"npm:typecheck:*\"",
-    "typecheck:server": "tsc -p tsconfig.server.json --noEmit --incremental --tsBuildInfoFile node_modules/.cache/tsc/server.tsbuildinfo",
-    "typecheck:client": "tsc -p tsconfig.client.json --noEmit --incremental --tsBuildInfoFile node_modules/.cache/tsc/client.tsbuildinfo",
+    "typecheck:server": "tsc -p src/server/tsconfig.json --noEmit --incremental --tsBuildInfoFile node_modules/.cache/tsc/server.tsbuildinfo",
+    "typecheck:client": "tsc -p tsconfig.json --noEmit --incremental --tsBuildInfoFile node_modules/.cache/tsc/client.tsbuildinfo",
     "typecheck:bench": "tsc -p bench/tsconfig.json --noEmit --incremental --tsBuildInfoFile node_modules/.cache/tsc/bench.tsbuildinfo",
     "typecheck:tools": "tsc -p tools/tsconfig.json --noEmit --incremental --tsBuildInfoFile node_modules/.cache/tsc/tools.tsbuildinfo",
     "typecheck:scripts": "tsc -p templates/new-game/tsconfig.json --noEmit --incremental --tsBuildInfoFile node_modules/.cache/tsc/scripts.tsbuildinfo",
@@ -110,5 +110,18 @@
   },
   "engines": {
     "node": ">=22.12.0"
+  },
+  "prettier": {
+    "singleQuote": true,
+    "trailingComma": "all",
+    "printWidth": 80,
+    "tabWidth": 2,
+    "semi": true
+  },
+  "typedocOptions": {
+    "entryPoints": ["scripts/global.d.ts", "modules/clientEngine.d.ts"],
+    "tsconfig": "modules/tsconfig.json",
+    "out": "docs/api",
+    "name": "Aurkad scripting API"
   }
 }

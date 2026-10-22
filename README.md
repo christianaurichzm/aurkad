@@ -102,7 +102,7 @@ image from the checkout and starts `compose.game.yml` on it, with `game/` at
 the root of the checkout and a database of its own.
 
 How the engine is put together is in [ARCHITECTURE.md](ARCHITECTURE.md), and
-what a change has to pass in [CONTRIBUTING.md](CONTRIBUTING.md).
+what a change has to pass in [CONTRIBUTING.md](.github/CONTRIBUTING.md).
 
 ## Customizing your game
 
@@ -317,7 +317,7 @@ Your game is yours: maps, sprites, quests, dialogs, content packs, scripts in
 `scripts/` and modules in `modules/` carry no obligation from this license. You
 can keep them closed and sell them.
 
-The name and logo are not covered by the code license. See [TRADEMARK.md](TRADEMARK.md).
+The name and logo are not covered by the code license. See [TRADEMARK.md](.github/TRADEMARK.md).
 
 Commercial support, integration, custom modules and performance audits are
 available from the author.

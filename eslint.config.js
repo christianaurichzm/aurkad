@@ -133,8 +133,8 @@ export default tseslint.config(
     languageOptions: {
       parserOptions: {
         project: [
-          './tsconfig.server.json',
-          './tsconfig.client.json',
+          './src/server/tsconfig.json',
+          './tsconfig.json',
           './bench/tsconfig.json',
           './tools/tsconfig.json',
           './e2e/tsconfig.json',

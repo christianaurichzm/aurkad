@@ -1,19 +1,18 @@
 {
   "//": "The oldest Node that package.json engines allows (22.12) implements ES2024, so that is the lib; no DOM, which the base config carries for the client.",
-  "extends": "./tsconfig.base.json",
+  "extends": "../../tsconfig.base.json",
   "compilerOptions": {
     "noUncheckedIndexedAccess": true,
     "module": "NodeNext",
     "moduleResolution": "NodeNext",
     "target": "ES2022",
     "lib": ["ES2024"],
-    "rootDir": "src",
-    "outDir": "dist",
+    "rootDir": "..",
+    "outDir": "../../dist",
     "esModuleInterop": true,
     "skipLibCheck": true,
     "sourceMap": true,
     "types": ["node"]
   },
-  "include": ["src/server/**/*", "src/shared/**/*"],
-  "exclude": ["node_modules", "dist"]
+  "include": ["**/*", "../shared/**/*"]
 }

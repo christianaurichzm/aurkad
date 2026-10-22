@@ -1,5 +1,5 @@
 <!-- External code contributions are not being accepted right now (see
-CONTRIBUTING.md). Please open an issue instead. -->
+.github/CONTRIBUTING.md). Please open an issue instead. -->
 
 <!-- Keep PRs focused: one concern per PR. -->
 
