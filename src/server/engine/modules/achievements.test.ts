@@ -9,6 +9,9 @@ import { clearCommands } from '../commands.js';
 import { clearAll, emit } from '../hooks.js';
 import { drainGameEvents } from '../eventBus.js';
 import { createFixture } from '../../sim/simFixture.js';
+import { gameConfig } from '../../gameConfig.js';
+import { addItem, removeItem } from '../../services/economy/economyService.js';
+import type { PlayerServer } from '../../../shared/types.js';
 
 let sim: ReturnType<typeof createFixture>;
 
@@ -126,6 +129,62 @@ describe('reaching a level', () => {
     emit('playerLevelUp', { player, level: 9 });
 
     expect(achievements().earned(player)).toEqual([]);
+  });
+});
+
+describe('collecting an item', () => {
+  const COIN = 3;
+  let saved: (typeof gameConfig.modules)[string];
+
+  beforeEach(() => {
+    // Set by the outer beforeEach, which forced the module on.
+    saved = gameConfig.modules.achievements!;
+    unloadAllModules();
+    clearProvides();
+    gameConfig.modules.achievements = {
+      ...saved,
+      config: {
+        achievements: [
+          { id: 'hoard', name: 'Hoard', collect: COIN, count: 10 },
+        ],
+      },
+    };
+    loadModulesForTest('achievements');
+  });
+
+  afterEach(() => {
+    gameConfig.modules.achievements = saved;
+  });
+
+  const pickUp = (player: PlayerServer, quantity: number) => {
+    addItem(player.inventory, COIN, quantity);
+    emit('itemPickup', { player, itemId: COIN, quantity });
+  };
+
+  it('counts what the bag holds, so a stack dropped and taken again counts once', () => {
+    const player = sim.addPlayer({ name: 'Ana' });
+    pickUp(player, 5);
+    for (let i = 0; i < 3; i++) {
+      removeItem(player.inventory, COIN, 5);
+      pickUp(player, 5);
+    }
+    expect(achievements().has(player, 'hoard')).toBe(false);
+
+    pickUp(player, 5);
+
+    expect(achievements().has(player, 'hoard')).toBe(true);
+  });
+
+  it('keeps the progress of a stack since spent', () => {
+    const player = sim.addPlayer({ name: 'Ana' });
+    pickUp(player, 8);
+    removeItem(player.inventory, COIN, 8);
+    pickUp(player, 1);
+    expect(achievements().has(player, 'hoard')).toBe(false);
+
+    pickUp(player, 9);
+
+    expect(achievements().has(player, 'hoard')).toBe(true);
   });
 });
 

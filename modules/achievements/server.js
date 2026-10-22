@@ -159,8 +159,13 @@ on('npcDeath', ({ npc, killer }) => {
   if (npc.name) bump(killer, { kind: 'kill', of: npc.name }, 1);
 });
 
-on('itemPickup', ({ player, itemId, quantity }) => {
-  bump(player, { kind: 'collect', of: itemId }, Math.max(1, quantity || 1));
+// Counted from the bag, like a quest's collect objective, so a stack dropped
+// and picked up again counts once. The counter keeps the most ever held,
+// since spending the item takes no progress back.
+on('itemPickup', ({ player, itemId }) => {
+  const rule = { kind: 'collect', of: itemId };
+  const counted = Number(stateOf(player).counters[counterKey(rule)]) || 0;
+  bump(player, rule, countItem(player, itemId) - counted);
 });
 
 on('playerLevelUp', ({ player, level }) => {
