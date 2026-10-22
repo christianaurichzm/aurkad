@@ -1,8 +1,11 @@
 # Content pack
 
 Versionable game content as JSON. Put files here and they are imported into
-MongoDB at server boot (files win for the ids they define). Mongo stays the
-runtime source of truth; commit these files to version your game.
+MongoDB at server boot: a row new or changed in its file since the last import
+wins over the database for its id, and a row the file still holds as it was
+leaves the database alone, so what the admin tools changed survives a restart.
+Mongo stays the runtime source of truth; commit these files to version your
+game.
 
 A game's pack is the `content/` in its folder, the one `GAME_DIR` points at;
 `CONTENT_PATH` loads one from anywhere else. The examples below are not this
@@ -30,7 +33,7 @@ The `*.example.json` files are **not** loaded; they are reference templates.
 
 ```bash
 npm run content:export   # snapshot current DB -> content/*.json
-npm run content:import   # apply content/*.json -> DB (also runs at boot)
+npm run content:import   # apply every row of content/*.json -> DB (the boot applies changed rows)
 ```
 
 Edit content in-game with the admin tools, run `content:export`, then commit.

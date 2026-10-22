@@ -16,7 +16,7 @@ async function main(): Promise<void> {
   try {
     if (cmd === 'export') {
       await exportContentPack();
-    } else if (!(await importContentPack())) {
+    } else if (!(await importContentPack({ all: true }))) {
       process.exitCode = 1;
     }
   } finally {

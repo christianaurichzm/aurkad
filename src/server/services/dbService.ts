@@ -84,6 +84,26 @@ export async function storedSessionSecret(): Promise<string> {
   return stored.value;
 }
 
+/**
+ * Fingerprints of the content-pack rows as their files held them at the last
+ * import (`importContentPack`). One document for the whole pack, replaced on
+ * every import, so a row taken out of its file stops being remembered.
+ */
+export async function importedContentRows(): Promise<Set<string>> {
+  const stored = await Meta.findById('importedContentRows').lean<{
+    value: string[];
+  } | null>();
+  return new Set(stored?.value);
+}
+
+export async function saveImportedContentRows(rows: string[]): Promise<void> {
+  await Meta.findByIdAndUpdate(
+    'importedContentRows',
+    { $set: { value: rows } },
+    { upsert: true },
+  );
+}
+
 export async function getNextItemId(): Promise<number> {
   const result = await Counter.findByIdAndUpdate(
     'item',

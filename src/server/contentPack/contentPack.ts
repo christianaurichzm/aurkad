@@ -1,3 +1,4 @@
+import { createHash } from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
 import { z } from 'zod';
@@ -68,13 +69,16 @@ import { registeredBehaviors } from '../engine/scripting/entityScripts.js';
 import { isProvided } from '../engine/modules/registry.js';
 import {
   checkDatabaseSchemaVersion,
+  importedContentRows,
   raiseCounter,
+  saveImportedContentRows,
 } from '../services/dbService.js';
 
-// Versionable game content lives as JSON files in content/. On boot it is
-// upserted into MongoDB (files win for the ids they define), so a creator can
-// fork the repo, edit files, and commit an entire game. Mongo remains the
-// runtime source of truth; export snapshots the current DB back to files.
+// Versionable game content lives as JSON files in content/. On boot the rows
+// that changed in their files since the last import are upserted into MongoDB
+// (files win for the ids they define), so a creator can fork the repo, edit
+// files, and commit an entire game. Mongo remains the runtime source of truth;
+// export snapshots the current DB back to files.
 
 const contentDir = (): string =>
   process.env.CONTENT_PATH
@@ -243,6 +247,13 @@ const IMPORT_ORDER: (keyof typeof SPECS)[] = [
   'maps',
 ];
 
+/**
+ * A validated row and the fingerprint of the row as the file wrote it. The
+ * fingerprint is taken before the schema fills in defaults, so an engine
+ * upgrade that adds one does not make every row read as changed.
+ */
+type PackEntry = { data: unknown; row: string };
+
 function readArray(dir: string, file: string): unknown[] | null {
   const full = path.join(dir, file);
   if (!fs.existsSync(full)) return null;
@@ -259,11 +270,11 @@ function readArray(dir: string, file: string): unknown[] | null {
  * through this, so what it accepts is exactly what the boot accepts.
  */
 export function readContentPack(dir = contentDir()): {
-  batches: { key: keyof typeof SPECS; entries: unknown[] }[];
+  batches: { key: keyof typeof SPECS; entries: PackEntry[] }[];
   problems: string[];
 } {
   const problems: string[] = [];
-  const batches: { key: keyof typeof SPECS; entries: unknown[] }[] = [];
+  const batches: { key: keyof typeof SPECS; entries: PackEntry[] }[] = [];
   for (const key of IMPORT_ORDER) {
     const spec = SPECS[key];
     let rows: unknown[] | null;
@@ -275,10 +286,16 @@ export function readContentPack(dir = contentDir()): {
     }
     if (rows === null) continue;
 
-    const entries: unknown[] = [];
+    const entries: PackEntry[] = [];
     rows.forEach((row, i) => {
       const result = spec.schema.safeParse(row);
-      if (result.success) entries.push(result.data);
+      if (result.success)
+        entries.push({
+          data: result.data,
+          row: createHash('sha256')
+            .update(`${spec.file}\n${JSON.stringify(row)}`)
+            .digest('hex'),
+        });
       else
         for (const x of result.error.issues)
           problems.push(`${spec.file}[${i}] ${x.path.join('.')}: ${x.message}`);
@@ -289,11 +306,15 @@ export function readContentPack(dir = contentDir()): {
 }
 
 /**
- * Import content/*.json into MongoDB. Call after connectToDatabase, before
+ * Imports content/*.json into MongoDB, after connectToDatabase and before
  * loadInitialData. Returns false, having written nothing, when any file or
- * entry is invalid.
+ * entry is invalid. Only rows changed in their files since the last import
+ * are written, unless `all` asks for every row (`content:import`), so a
+ * restart keeps what the admin editors changed.
  */
-export async function importContentPack(): Promise<boolean> {
+export async function importContentPack({
+  all = false,
+} = {}): Promise<boolean> {
   if (!fs.existsSync(contentDir())) {
     logger.info('[content] No content/ directory - skipping import');
     return true;
@@ -315,11 +336,18 @@ export async function importContentPack(): Promise<boolean> {
     return false;
   }
 
+  const imported = all ? new Set<string>() : await importedContentRows();
   for (const { key, entries } of batches) {
     const spec = SPECS[key];
-    for (const entry of entries) await spec.upsert(entry as never);
-    logger.info(`[content] Imported ${entries.length} from ${spec.file}`);
+    const changed = entries.filter(({ row }) => !imported.has(row));
+    for (const { data } of changed) await spec.upsert(data as never);
+    logger.info(
+      `[content] Imported ${changed.length} of ${entries.length} from ${spec.file}`,
+    );
   }
+  await saveImportedContentRows(
+    batches.flatMap(({ entries }) => entries.map(({ row }) => row)),
+  );
 
   await syncIdCounters();
   await reportBrokenReferences();

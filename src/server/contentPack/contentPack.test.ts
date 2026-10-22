@@ -309,6 +309,48 @@ describe('importContentPack', () => {
     expect(items[0]!.name).toBe('Potion v2');
   });
 
+  it('keeps an editor change to a row its file has not changed since', async () => {
+    write('items.json', [
+      { id: 1, name: 'Potion', sprite: 0, type: 'consumable' },
+      { id: 2, name: 'Sword', sprite: 1, type: 'weapon' },
+    ]);
+    await importContentPack();
+    await createOrUpdateItem({
+      id: 1,
+      name: 'Edited Potion',
+      description: '',
+      sprite: 0,
+      type: 'consumable',
+    });
+    write('items.json', [
+      { id: 1, name: 'Potion', sprite: 0, type: 'consumable' },
+      { id: 2, name: 'Sword v2', sprite: 1, type: 'weapon' },
+    ]);
+    await importContentPack();
+
+    expect((await listItems()).map((i) => i.name)).toEqual([
+      'Edited Potion',
+      'Sword v2',
+    ]);
+  });
+
+  it('puts every row back when asked for all of them', async () => {
+    write('items.json', [
+      { id: 1, name: 'Potion', sprite: 0, type: 'consumable' },
+    ]);
+    await importContentPack();
+    await createOrUpdateItem({
+      id: 1,
+      name: 'Edited Potion',
+      description: '',
+      sprite: 0,
+      type: 'consumable',
+    });
+    await importContentPack({ all: true });
+
+    expect((await listItems())[0]!.name).toBe('Potion');
+  });
+
   // A pack is a whole game: a bow that lost its arrow on import is a weapon
   // that cannot shoot, and nothing said so.
   it('keeps what makes an item a ranged weapon or a bound one', async () => {
@@ -408,7 +450,7 @@ describe('exportContentPack', () => {
     await mongoose.connection.collections['npcs']?.deleteMany({});
     expect(await listNpcs()).toHaveLength(0);
 
-    await importContentPack();
+    await importContentPack({ all: true });
     const npcs = await listNpcs();
     expect(npcs).toHaveLength(1);
     expect(npcs[0]).toMatchObject({
