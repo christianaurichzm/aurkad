@@ -14,6 +14,7 @@ import { findPlacement } from '../world/physicsService.js';
 import { forgetReplicatedEntity } from '../../net/entityReplication.js';
 import { clearDamageContributions } from '../combat/damage.js';
 import { resetNpcAi } from './aiBrain.js';
+import { npcMoveTicks } from './types.js';
 import { emit } from '../../engine/hooks.js';
 import { logger } from '../../logger.js';
 
@@ -132,9 +133,88 @@ export function spawnNpc(opts: SpawnNpcOptions): RuntimeNpc | undefined {
   // this is about walls and players, not stacking.
   npc.position = findPlacement(npc, map.id, npc.position);
 
-  map.npcs[id] = npc;
+  putNpcInWorld(map, npc);
   indexPlacement(map, npc);
   return npc;
+}
+
+// ---- who is due ----
+//
+// An npc acts every npcMoveTicks ticks, on a tick of its own within that
+// interval taken from its id, so a map's npcs do not all think on one tick.
+// They wait on a wheel of due ticks kept per npc table: a map loaded, saved
+// in the editor or copied for an instance has a new table, and the wheel is
+// built from it on its first tick. An entry left behind by a removal, a
+// re-add or a content edit replacing the object is skipped, not taken out.
+
+type Wheel = { next: number; due: Map<number, RuntimeNpc[]> };
+const wheels = new WeakMap<Record<string, RuntimeNpc>, Wheel>();
+/** The tick each npc was last put on a wheel for; any other entry is stale. */
+const dueAt = new WeakMap<RuntimeNpc, number>();
+
+/** FNV-1a, so the same id keeps the same tick in a replay. */
+function phaseOf(id: string): number {
+  let hash = 0x811c9dc5;
+  for (let i = 0; i < id.length; i++) {
+    hash ^= id.charCodeAt(i);
+    hash = Math.imul(hash, 0x01000193);
+  }
+  return hash >>> 0;
+}
+
+/** The first tick from `from` on which this npc's turn comes round. */
+function firstDue(npc: RuntimeNpc, from: number): number {
+  const every = npcMoveTicks(npc);
+  const late = (from + (phaseOf(npc.id) % every)) % every;
+  return late === 0 ? from : from + every - late;
+}
+
+function enqueue(wheel: Wheel, npc: RuntimeNpc, tick: number): void {
+  dueAt.set(npc, tick);
+  const bucket = wheel.due.get(tick);
+  if (bucket) bucket.push(npc);
+  else wheel.due.set(tick, [npc]);
+}
+
+/**
+ * Puts an npc in its map's table and on the table's wheel. Every entry into
+ * a table that already exists comes through here, as every exit goes
+ * through removeNpcFromWorld: one written in directly never gets a turn.
+ */
+export function putNpcInWorld(map: MapStateServer, npc: RuntimeNpc): void {
+  map.npcs[npc.id] = npc;
+  const wheel = wheels.get(map.npcs);
+  if (wheel) enqueue(wheel, npc, firstDue(npc, wheel.next));
+}
+
+/**
+ * The npcs of this map whose turn is `tick`, each already back on the wheel
+ * for its next one, so an update that throws does not cost it its place.
+ */
+export function dueNpcs(map: MapStateServer, tick: number): RuntimeNpc[] {
+  // A map registered before its npcs were built has no table yet.
+  if (!map.npcs) return [];
+  let wheel = wheels.get(map.npcs);
+  // A clock started over (a fresh simulation on the same table) would leave
+  // every turn far in the future.
+  if (!wheel || tick < wheel.next - 1) {
+    wheel = { next: tick, due: new Map() };
+    for (const npc of Object.values(map.npcs))
+      enqueue(wheel, npc, firstDue(npc, tick));
+    wheels.set(map.npcs, wheel);
+  }
+  const due: RuntimeNpc[] = [];
+  for (; wheel.next <= tick; wheel.next++) {
+    const bucket = wheel.due.get(wheel.next);
+    if (!bucket) continue;
+    wheel.due.delete(wheel.next);
+    for (const npc of bucket) {
+      if (dueAt.get(npc) !== wheel.next || map.npcs[npc.id] !== npc) continue;
+      enqueue(wheel, npc, tick + npcMoveTicks(npc));
+      due.push(npc);
+    }
+  }
+  return due;
 }
 
 /**

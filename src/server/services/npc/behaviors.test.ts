@@ -2,8 +2,9 @@ import { describe, it, expect } from 'vitest';
 import fc from 'fast-check';
 import { TILE_SIZE } from '../../../shared/constants.js';
 import { Direction, type MapStateServer } from '../../../shared/types.js';
-import { makeTiles, tile } from '../../sim/simFixture.js';
-import { findPath } from './behaviors.js';
+import { createFixture, makeTiles, tile } from '../../sim/simFixture.js';
+import { findClosestPlayer, findPath } from './behaviors.js';
+import { rebuildQuadtree } from '../../sim/spatialManager.js';
 
 const walker = { id: 'w', kind: 'player', width: 64, height: 64 } as never;
 
@@ -175,5 +176,30 @@ describe('findPath', () => {
     // Over or under the wall: 4 across, 11 up and 11 back down.
     expect(findPath(from, to, map, 30, walker)).toHaveLength(26);
     expect(findPath(from, to, map, 25, walker)).toBeNull();
+  });
+});
+
+describe('findClosestPlayer', () => {
+  it('picks the nearest player still standing on the map', () => {
+    const sim = createFixture(0);
+    const npc = sim.addNpc({ position: tile(5, 5) });
+    sim.addPlayer({ name: 'Dead', position: tile(5, 6), health: 0 });
+    const gone = sim.addPlayer({ name: 'Gone', position: tile(4, 5) });
+    const near = sim.addPlayer({ name: 'Near', position: tile(7, 5) });
+    sim.addPlayer({ name: 'Far', position: tile(5, 9) });
+    rebuildQuadtree(sim.mapId, sim.map);
+    // Left the map after the tree was built this tick.
+    delete sim.map.players[gone.id];
+
+    expect(findClosestPlayer(npc, sim.map, 3 * TILE_SIZE)).toBe(near);
+  });
+
+  it('sees nobody past its radius', () => {
+    const sim = createFixture(0);
+    const npc = sim.addNpc({ position: tile(5, 5) });
+    sim.addPlayer({ name: 'Far', position: tile(5, 12) });
+    rebuildQuadtree(sim.mapId, sim.map);
+
+    expect(findClosestPlayer(npc, sim.map, 3 * TILE_SIZE)).toBeNull();
   });
 });

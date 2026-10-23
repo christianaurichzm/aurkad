@@ -4,7 +4,7 @@ import { runtimeState } from '../../sim/state.js';
 import NpcModel from '../../model/Npc.js';
 import { absentOptionalKeys, getNextNpcId, unsetAbsent } from '../dbService.js';
 import { resetNpcAi } from '../npc/aiBrain.js';
-import { despawnNpc } from '../npc/spawn.js';
+import { despawnNpc, putNpcInWorld } from '../npc/spawn.js';
 import { logger } from '../../logger.js';
 import { ScriptParamsSchema } from '../../../shared/scriptParams.js';
 
@@ -117,7 +117,7 @@ export async function refreshNpcInRuntime(id: string): Promise<void> {
         for (const field of absentOptionalKeys(NpcSchema, updated)) {
           delete (merged as Record<string, unknown>)[field];
         }
-        map.npcs[runtimeId] = merged;
+        putNpcInWorld(map, merged);
         resetNpcAi(npc);
       }
     }

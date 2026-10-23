@@ -1,5 +1,9 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { CharacterAction, Direction } from '../../../shared/types.js';
+import {
+  CharacterAction,
+  Direction,
+  type RuntimeNpc,
+} from '../../../shared/types.js';
 import { createFixture, tile } from '../../sim/simFixture.js';
 import { advanceTick, msToTicks } from '../../sim/clock.js';
 import { rebuildQuadtree } from '../../sim/spatialManager.js';
@@ -10,7 +14,7 @@ import {
   stepNpcToward,
 } from './behaviors.js';
 import { respawnNpc, updateDueNpcs } from './index.js';
-import { spawnNpc } from './spawn.js';
+import { putNpcInWorld, removeNpcFromWorld, spawnNpc } from './spawn.js';
 import { npcMoveTicks } from './types.js';
 import { gameConfig } from '../../gameConfig.js';
 import { resolveDamage } from '../combat/index.js';
@@ -325,6 +329,77 @@ describe('updateDueNpcs', () => {
     updateDueNpcs();
 
     expect(npc.position).toEqual(before);
+  });
+
+  // A neutral npc set walking is put back to idle by its turn, which is how
+  // these tell who had one on each tick.
+  const watchTurns = (npcs: RuntimeNpc[], ticks: number) => {
+    const perNpc = npcs.map(() => 0);
+    const perTick: number[] = [];
+    for (let t = 0; t < ticks; t++) {
+      for (const npc of npcs) npc.action = CharacterAction.Walk;
+      advanceTick();
+      updateDueNpcs();
+      let now = 0;
+      npcs.forEach((npc, i) => {
+        if (npc.action !== CharacterAction.Idle) return;
+        perNpc[i]!++;
+        now++;
+      });
+      perTick.push(now);
+    }
+    return { perNpc, perTick };
+  };
+  const atGamePace = {
+    behavior: 'neutral',
+    moveIntervalMs: undefined,
+  } as const;
+
+  it('spreads npcs of one pace over the ticks of their interval', () => {
+    const npcs = Array.from({ length: 250 }, (_, i) =>
+      sim.addNpc({ ...atGamePace, position: tile(i % 20, Math.floor(i / 20)) }),
+    );
+
+    const { perNpc, perTick } = watchTurns(npcs, npcMoveTicks(npcs[0]!));
+
+    expect(perNpc.every((turns) => turns === 1)).toBe(true);
+    expect(Math.max(...perTick)).toBeLessThan(250 / 4);
+  });
+
+  it('gives turns to an npc spawned once the world is running', () => {
+    sim.addNpc(atGamePace);
+    watchTurns([], 1);
+    const late = spawnNpc({ mapId: sim.mapId, col: 2, row: 2 })!;
+
+    expect(watchTurns([late], 2 * npcMoveTicks(late)).perNpc).toEqual([2]);
+  });
+
+  it('gives an npc taken off and put back one turn per interval, not two', () => {
+    const npc = sim.addNpc(atGamePace);
+    watchTurns([], 1);
+    removeNpcFromWorld(npc, sim.map);
+    putNpcInWorld(sim.map, npc);
+
+    expect(watchTurns([npc], 2 * npcMoveTicks(npc)).perNpc).toEqual([2]);
+  });
+
+  it('gives no more turns to an npc taken off its map', () => {
+    const npc = sim.addNpc(atGamePace);
+    watchTurns([], 1);
+    removeNpcFromWorld(npc, sim.map);
+
+    expect(watchTurns([npc], 2 * npcMoveTicks(npc)).perNpc).toEqual([0]);
+  });
+
+  it('moves the turns to the object that replaced an npc under its id', () => {
+    const npc = sim.addNpc(atGamePace);
+    watchTurns([], 1);
+    const edited = { ...npc };
+    putNpcInWorld(sim.map, edited);
+
+    expect(watchTurns([npc, edited], 2 * npcMoveTicks(npc)).perNpc).toEqual([
+      0, 2,
+    ]);
   });
 });
 

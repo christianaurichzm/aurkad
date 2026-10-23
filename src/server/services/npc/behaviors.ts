@@ -406,11 +406,9 @@ export function attackPlayer(npc: RuntimeNpc, player: PlayerServer) {
 
 export function findClosestPlayer(
   npc: RuntimeNpc,
-  players: PlayerServer[],
+  map: MapStateServer,
   radiusPx: number,
 ): PlayerServer | null {
-  if (players.length === 0) return null;
-
   const nearbyEntities = queryEntitiesInRadius(
     npc.mapId,
     npc.position.x,
@@ -418,20 +416,16 @@ export function findClosestPlayer(
     radiusPx,
   );
 
-  if (nearbyEntities.length === 0) return null;
-
-  // O(k) Set lookup instead of O(k × m) nested .some()
-  const nearbyIds = new Set(nearbyEntities.map((e) => e.id));
-  const nearbyPlayers = players.filter((p) => nearbyIds.has(p.id));
-
-  if (nearbyPlayers.length === 0) return null;
-
   let closest: PlayerServer | null = null;
   // The quadtree query is the broad phase (it answers by node box), so the
   // radius only becomes the sight radius after this exact check.
   let minDistanceSq = radiusPx * radiusPx;
 
-  for (const player of nearbyPlayers) {
+  for (const entity of nearbyEntities) {
+    // The tree is rebuilt once a tick: a player in it may have died or left
+    // this map since, and only one still standing on it counts.
+    const player = entity.kind === 'player' ? map.players[entity.id!] : null;
+    if (!player || player !== entity || player.health <= 0) continue;
     const { distanceSq } = calculateDirection(npc, player);
     if (distanceSq <= minDistanceSq) {
       minDistanceSq = distanceSq;

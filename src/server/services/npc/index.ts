@@ -9,11 +9,11 @@ import {
 } from '../../../shared/types.js';
 import { getMap, getRuntimeState } from '../../sim/world.js';
 import { getOrInitNpcAi, transitionNpcAi, resetNpcAi } from './aiBrain.js';
-import { isHunter, npcMoveTicks, type NpcAiState } from './types.js';
+import { isHunter, type NpcAiState } from './types.js';
 import { getTick, msToTicks } from '../../sim/clock.js';
 import { scheduleAfter } from '../../sim/scheduler.js';
 import { indexPlacement } from '../../sim/spatialManager.js';
-import { removeNpcFromWorld } from './spawn.js';
+import { dueNpcs, putNpcInWorld, removeNpcFromWorld } from './spawn.js';
 import { gameConfig } from '../../gameConfig.js';
 import {
   findClosestPlayer,
@@ -108,7 +108,6 @@ function resolveTarget(
   npc: RuntimeNpc,
   ai: NpcAiState,
   map: MapStateServer,
-  livePlayers: PlayerServer[],
 ): PlayerServer | null {
   const leash = npc.leash ?? DEFAULT_LEASH_TILES;
   if (leash > 0 && tilesApart(npc.position, ai.home) >= leash) {
@@ -120,13 +119,13 @@ function resolveTarget(
   if (ai.state === 'return') return null;
 
   if (ai.aggroPlayerId) {
-    const attacker = livePlayers.find((p) => p.id === ai.aggroPlayerId);
-    if (attacker) return attacker;
+    const attacker = map.players[ai.aggroPlayerId];
+    if (attacker && attacker.health > 0) return attacker;
     // Dead, disconnected or gone to another map.
     ai.aggroPlayerId = undefined;
   }
 
-  const closest = findClosestPlayer(npc, livePlayers, sightPx(npc));
+  const closest = findClosestPlayer(npc, map, sightPx(npc));
   if (!closest || npc.behavior !== 'hostile') return closest;
 
   const los = useApi<LosApi>('los');
@@ -178,7 +177,7 @@ export const respawnNpc = (mapId: string, npc: RuntimeNpc) => {
     // object, and can put a new npc on this id's spawn tile meanwhile.
     const current = getMap(mapId);
     if (!current || current.npcs[npc.id]) return;
-    if (placeAtSpawn(mapId, npc)) current.npcs[npc.id] = npc;
+    if (placeAtSpawn(mapId, npc)) putNpcInWorld(current, npc);
   });
 };
 
@@ -219,11 +218,7 @@ export const findNpcSpawnPositions = (
   return positions;
 };
 
-export function updateNpcs(
-  npc: RuntimeNpc,
-  map: MapStateServer,
-  livePlayers: PlayerServer[],
-) {
+export function updateNpcs(npc: RuntimeNpc, map: MapStateServer) {
   if (!isHunter(npc.behavior)) {
     npc.action = CharacterAction.Idle;
     return;
@@ -233,7 +228,7 @@ export function updateNpcs(
   // walks back to, and walking back is what it does when there is no target.
   const ai = getOrInitNpcAi(npc);
 
-  const target = resolveTarget(npc, ai, map, livePlayers);
+  const target = resolveTarget(npc, ai, map);
   if (!target) {
     idleStep(npc, ai, map);
     return;
@@ -253,25 +248,21 @@ export function updateNpcs(
 }
 
 /**
- * The npc tick system. It runs every tick and asks each npc whether it is
- * due, since speed is per npc (moveIntervalMs). The modulo is cheap; the
- * sight query and path search it guards are what cost.
+ * The npc tick system: the npcs whose turn this tick is, on every map. Each
+ * has a tick of its own within its interval (dueNpcs), so a map's npcs share
+ * the interval's ticks rather than all thinking on one of them.
  */
 export function updateDueNpcs(): void {
   const tick = getTick();
-  Object.values(getRuntimeState().maps).forEach((map) => {
-    if (isInstanceTemplate(map)) return;
-    const livePlayers = Object.values(map.players).filter(
-      (player) => player.health > 0,
-    );
-    Object.values(map.npcs).forEach((npc) => {
-      if (tick % npcMoveTicks(npc) !== 0) return;
+  for (const map of Object.values(getRuntimeState().maps)) {
+    if (isInstanceTemplate(map)) continue;
+    for (const npc of dueNpcs(map, tick)) {
       // One npc's failure stays its own: a throw out of this loop would
       // freeze every npc after it, on every map, every tick. The decision
       // calls module code (a line-of-sight provider), so a fault here may not
       // be the engine's.
       try {
-        updateNpcs(npc, map, livePlayers);
+        updateNpcs(npc, map);
       } catch (err) {
         logger.errorThrottled('npc', '[npc] update failed', {
           npcId: npc.id,
@@ -279,6 +270,6 @@ export function updateDueNpcs(): void {
           err,
         });
       }
-    });
-  });
+    }
+  }
 }
