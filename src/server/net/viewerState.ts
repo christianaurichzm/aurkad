@@ -22,7 +22,7 @@ export const lastSentSelf = new Map<string, string>();
 interface ChunkState {
   mapId: string;
   revision: number;
-  sent: Set<string>;
+  sent: Set<number>;
 }
 export const playerChunkState = new Map<string, ChunkState>();
 
@@ -115,7 +115,9 @@ export function viewerCacheSizes(): {
   };
 }
 
-export const chunkKey = (cx: number, cy: number) => `${cx}:${cy}`;
+// A number, so the per-viewer viewport scan each tick allocates no string.
+// 16 bits a side is 65536 chunks, a million tiles, past any map in memory.
+export const chunkKey = (cx: number, cy: number) => (cy << 16) | cx;
 
 /**
  * Has every viewer on `mapId` receive the chunk holding (col, row) again, for
