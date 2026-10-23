@@ -178,7 +178,8 @@ function fail(reason: string): never {
   throw new Error(
     `[gameConfig] ${GAME_CONFIG_FILE} is invalid, so the game would run with ` +
       `settings nobody chose:\n${reason}\n` +
-      `See game.example.json for every key and its default.`,
+      `Every key and its default: ` +
+      `https://github.com/christianaurichzm/aurkad/blob/main/game.example.json`,
   );
 }
 
