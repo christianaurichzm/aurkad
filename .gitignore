@@ -14,9 +14,9 @@ node_modules/
 .env.*
 !.env.example
 
-# This project installs with npm (README, CONTRIBUTING, CI and the Dockerfile
-# all say so) and package-lock.json is the lockfile that gets validated. A
-# second lockfile nobody reads drifts: it can stop listing Playwright, and a
+# This project installs with npm (CONTRIBUTING, CI and the Dockerfile all say
+# so) and package-lock.json is the lockfile that gets validated. A second
+# lockfile nobody reads drifts: it can stop listing Playwright, and a
 # yarn install would then produce a tree the e2e suite cannot run on. Ignored
 # so a stray `yarn install` cannot commit one.
 yarn.lock
@@ -27,7 +27,7 @@ src/server/model/seed.ts
 # Generated per-project content constants (rebuilt at server boot)
 scripts/content.generated.d.ts
 
-# Games made inside the checkout: `npm run new-game` in the README's
+# Games made inside the checkout: `npm run new-game` in CONTRIBUTING's
 # development steps, and the first `npm run docker:up`
 /game/
 /games/

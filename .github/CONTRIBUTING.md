@@ -13,10 +13,22 @@ very welcome: open an issue.
 
 ```bash
 npm install
-npm run db:up                        # MongoDB in Docker
-npm run new-game -- games/my-game    # a small playable game to run against
+npm run db:up                        # MongoDB only, in Docker
+npm run new-game -- games/my-game    # named after the folder, or pass "A Name"; --isometric
 GAME_DIR=games/my-game npm run dev   # server (8080) + client dev server with HMR
 ```
+
+In development the first account registered becomes the admin.
+`npm run docker:up` runs your changes the way a release runs: it builds an
+image from the checkout and starts `compose.game.yml` on it, with `game/` at
+the root of the checkout and a database of its own. As in a release, the admin
+there is the account named by `ADMIN` in a `.env` at the root of the checkout.
+
+`npm run build && npm start` runs the production build without Docker. It
+reads `.env.production` (`.env.example` lists every variable) and refuses to
+boot without `CORS_ALLOWED_ORIGINS` and `USE_SECURE_COOKIES=true`: the session
+cookie only travels over HTTPS, so the server runs behind a TLS proxy, with
+`TRUST_PROXY=1`.
 
 ## Quality bar
 
@@ -30,7 +42,8 @@ npm run typecheck      # tsc over every tsconfig in the repo, in parallel, no em
 npm run test:run       # vitest single run
 ```
 
-A pre-commit hook (`.githooks/`) runs prettier + eslint automatically.
+`npm test` runs vitest in watch mode while you work. A pre-commit hook
+(`.githooks/`) runs prettier + eslint automatically.
 
 Guidelines:
 
@@ -43,6 +56,37 @@ Guidelines:
   intent.
 - **Server is TypeScript; game scripts and modules are plain JavaScript**
   (type-checked via `// @ts-check` + `.d.ts`, not compiled).
+
+## Replay
+
+Records what players did (keys, item use, chat, custom actions), so a support
+ticket ("my sword vanished around eight") has something to read. Start a
+capture from the admin console or in-game chat, without restarting:
+
+```
+replay start item-loss   # begin capturing (ADMIN, lands in the audit trail)
+replay                   # status: how much is buffered, what was dropped
+replay save incident     # write a file and keep recording
+replay stop              # write what is left and stop
+replay list              # recordings on disk
+```
+
+`REPLAY_RECORD=true` starts a capture at boot instead, saved on shutdown.
+Either way the buffer is a ring (`REPLAY_MAX_EVENTS`): a capture left running
+keeps the recent minutes rather than growing without bound, and the file says
+how many older actions fell out. Nothing reaches disk until someone saves it.
+
+```bash
+npm run replay -- replays/<file>.json                    # summary, timeline, action log
+npm run replay -- replays/<file>.json --at=20:03         # only a minute around the complaint
+npm run replay -- replays/<file>.json --player=Alice --grep=sword
+npm run replay -- replays/<file>.json --type=keyboard    # log kinds (default: all but keyboard)
+npm run replay -- replays/<file>.json --run              # re-simulate the movement headlessly
+```
+
+`--run` rebuilds a world from the recorded seed and replays the keyboard input
+through it. It reproduces the input, not the incident: a capture started
+mid-session does not carry the state that predates it.
 
 ## Commit style
 

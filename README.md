@@ -85,38 +85,12 @@ An upgrade does not change what `new-game` copied into `game/` when you made
 it. Improvements to the starter scripts and art reach new games only; compare
 with `templates/new-game` in the release if you want them.
 
-## Changing the engine
-
-To work on the engine itself, clone it and run from source:
-
-```bash
-npm install
-npm run db:up                        # MongoDB only, in Docker
-npm run new-game -- games/my-game    # named after the folder, or pass "A Name"; --isometric
-GAME_DIR=games/my-game npm run dev   # server (8080) + client dev server with HMR
-```
-
-In development the first account registered becomes the admin.
-`npm run docker:up` runs your changes the way a release runs: it builds an
-image from the checkout and starts `compose.game.yml` on it, with `game/` at
-the root of the checkout and a database of its own. As in a release, the admin
-there is the account named by `ADMIN` in a `.env` at the root of the checkout.
-
-`npm run build && npm start` runs the production build without Docker. It
-reads `.env.production` (`.env.example` lists every variable) and refuses to
-boot without `CORS_ALLOWED_ORIGINS` and `USE_SECURE_COOKIES=true`: the session
-cookie only travels over HTTPS, so the server runs behind a TLS proxy, with
-`TRUST_PROXY=1`.
-
-How the engine is put together is in [ARCHITECTURE.md](ARCHITECTURE.md), and
-what a change has to pass in [CONTRIBUTING.md](.github/CONTRIBUTING.md).
-
 ## Customizing your game
 
 - **`game.json`**: balance and rules: starting stats, leveling curve, combat
   cooldowns, regen, respawn point, and which modules are on. Loaded at boot and
   merged over defaults, so you only write the keys you want to change.
-  `game.example.json` lists every key with its default.
+  [`game.example.json`](game.example.json) lists every key with its default.
 
   It is validated at boot and a bad file stops the server with all the problems
   listed. A misspelled key, a string where a number belongs, or a value that
@@ -191,99 +165,17 @@ With Docker, run the same two from the folder `compose.yml` is in: `docker compo
 
 The server also imports `content/` on every boot, but only the rows that changed in their files since the last import or `content:export`: those win over the database for the ids they define, and the rest leave it alone, so what the admin tools changed survives a restart. `content:import` writes every row, putting the database back to the files. A pack goes in whole or not at all: if any file or entry is invalid, nothing is written, the log lists every problem, and the server runs on the content the database already had (`content:import` exits with an error).
 
-## Replay
+## More
 
-Records what players did (keys, item use, chat, custom actions), so a support ticket ("my sword vanished around eight") has something to read. Start a capture from the admin console or in-game chat, without restarting:
+How the engine is put together is in [ARCHITECTURE.md](ARCHITECTURE.md),
+including [running MongoDB as a replica set](ARCHITECTURE.md#atomic-economy-writes-replica-set)
+so a trade cannot lose an item, and [splitting the maps between several
+servers](ARCHITECTURE.md#multi-instance-sharding).
 
-```
-replay start item-loss   # begin capturing (ADMIN, lands in the audit trail)
-replay                   # status: how much is buffered, what was dropped
-replay save incident     # write a file and keep recording
-replay stop              # write what is left and stop
-replay list              # recordings on disk
-```
-
-`REPLAY_RECORD=true` starts a capture at boot instead, saved on shutdown. Either way the buffer is a ring (`REPLAY_MAX_EVENTS`): a capture left running keeps the recent minutes rather than growing without bound, and the file says how many older actions fell out. Nothing reaches disk until someone saves it.
-
-```bash
-npm run replay -- replays/<file>.json                    # summary, timeline, action log
-npm run replay -- replays/<file>.json --at=20:03         # only a minute around the complaint
-npm run replay -- replays/<file>.json --player=Alice --grep=sword
-npm run replay -- replays/<file>.json --type=keyboard    # log kinds (default: all but keyboard)
-npm run replay -- replays/<file>.json --run              # re-simulate the movement headlessly
-```
-
-`--run` rebuilds a world from the recorded seed and replays the keyboard input through it. It reproduces the input, not the incident: a capture started mid-session does not carry the state that predates it.
-
-## Atomic economy writes (replica set)
-
-A trade moves an item between two player documents, and mailing one moves it from a player into the delivery queue. MongoDB can only write two documents together on a **replica set**; standalone `mongod` cannot, so the engine writes them one at a time and a crash in between duplicates or loses the item.
-
-The auction module requires transactions and refuses operations on standalone MongoDB. Listing commits the seller's inventory and escrow together. Buying commits the buyer's inventory and a durable seller payment; a failed payment is retried by the sweep after a restart. Cancellation and expiry commit the returned item and removal of the listing together. The module's `list` and `listings` APIs return promises.
-
-The server detects which it is talking to and says so on boot:
-
-```
-[DB] Transactions available; economic commits are atomic
-[DB] Standalone MongoDB: no transactions. A trade writes each player separately, ...
-```
-
-Both compose files run Mongo as a replica set of one node, so a server started with them gets transactions with nothing to set up; a standalone volume from before converts in place on the next `docker compose up`. A Mongo of your own needs the same flag and one init command, with no cluster or extra host:
-
-```bash
-docker run -d --name engine-mongo -p 127.0.0.1:27017:27017 mongo:7 --replSet rs0 --bind_ip_all
-docker exec engine-mongo mongosh --quiet --eval \
-  'rs.initiate({_id:"rs0",members:[{_id:0,host:"127.0.0.1:27017"}]})'
-# then point the server at it
-MONGO_URI='mongodb://127.0.0.1:27017/game' npm start
-```
-
-The member is named after the address the server reaches it on. A server in another container reaches it under another name, so it connects with `?directConnection=true`, as the compose files do.
-
-## Multi-instance (sharding by map)
-
-Each instance declares which maps it owns. On cross-map warp the client is transparently redirected to the correct instance.
-
-```bash
-WS_PUBLIC_URL=ws://host:8080 MAP_IDS=map1,map2 PORT=8080 npm start
-WS_PUBLIC_URL=ws://host:8081 MAP_IDS=map3,map4 PORT=8081 npm start
-```
-
-In Docker, each instance is one more service in `compose.yml`, beside `app`
-and on the same image. Each needs its own `WS_PUBLIC_URL` and a `MAP_IDS` that
-overlaps no other's, so `app` gets the first pair too:
-
-```yaml
-  app-b:
-    image: ghcr.io/christianaurichzm/aurkad:<the version app runs>
-    restart: unless-stopped
-    user: root
-    entrypoint: [/app/compose-entrypoint.sh]
-    depends_on:
-      mongo:
-        condition: service_healthy
-    environment:
-      PORT: '8081'
-      GAME_DIR: /srv/game
-      MONGO_URI: mongodb://mongo:27017/?directConnection=true
-      SESSION_SECRET: ${SESSION_SECRET:-}
-      CORS_ALLOWED_ORIGINS: https://localhost,https://localhost:8444
-      USE_SECURE_COOKIES: 'true'
-      TRUST_PROXY: '1'
-      WS_PUBLIC_URL: wss://localhost:8444
-      MAP_IDS: map3,map4
-    volumes:
-      - .:/srv
-```
-
-Caddy then serves one site per instance, so its `command` gives way to a
-Caddyfile mounted at `/etc/caddy/Caddyfile`, with `'8444:8444'` added to its
-ports:
-
-```
-https://localhost { reverse_proxy app:8080 }
-https://localhost:8444 { reverse_proxy app-b:8081 }
-```
+[CONTRIBUTING.md](.github/CONTRIBUTING.md) covers working on the engine:
+[running it from source](.github/CONTRIBUTING.md#development-setup) or as a
+production build without Docker, the [tests](.github/CONTRIBUTING.md#quality-bar),
+and [replaying what players did](.github/CONTRIBUTING.md#replay).
 
 ## Measured
 
@@ -309,14 +201,6 @@ so every number here is a floor. A tick has 50 ms (20 Hz).
   players logging in and out, resident memory stayed flat (-0.6 MB an hour).
 
 Measured on 2026-08-15, the soak on 2026-07-31.
-
-## Tests
-
-```bash
-npm test               # watch mode
-npm run test:run       # single run
-npm run typecheck      # tsc, no emit
-```
 
 ## License
 

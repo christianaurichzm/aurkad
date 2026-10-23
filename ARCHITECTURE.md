@@ -150,6 +150,44 @@ and, when the tick reads it, its in-memory cache:
 Maps and shops sit with the gameplay their services also run (warps and
 instances, buying and selling).
 
+### Atomic economy writes (replica set)
+
+A trade moves an item between two player documents, and mailing one moves it
+from a player into the delivery queue. MongoDB can only write two documents
+together on a **replica set**; standalone `mongod` cannot, so the engine writes
+them one at a time and a crash in between duplicates or loses the item.
+
+The auction module requires transactions and refuses operations on standalone
+MongoDB. Listing commits the seller's inventory and escrow together. Buying
+commits the buyer's inventory and a durable seller payment; a failed payment is
+retried by the sweep after a restart. Cancellation and expiry commit the
+returned item and removal of the listing together. The module's `list` and
+`listings` APIs return promises.
+
+The server detects which it is talking to and says so on boot:
+
+```
+[DB] Transactions available; economic commits are atomic
+[DB] Standalone MongoDB: no transactions. A trade writes each player separately, ...
+```
+
+Both compose files run Mongo as a replica set of one node, so a server started
+with them gets transactions with nothing to set up; a standalone volume from
+before converts in place on the next `docker compose up`. A Mongo of your own
+needs the same flag and one init command, with no cluster or extra host:
+
+```bash
+docker run -d --name engine-mongo -p 127.0.0.1:27017:27017 mongo:7 --replSet rs0 --bind_ip_all
+docker exec engine-mongo mongosh --quiet --eval \
+  'rs.initiate({_id:"rs0",members:[{_id:0,host:"127.0.0.1:27017"}]})'
+# then point the server at it
+MONGO_URI='mongodb://127.0.0.1:27017/game' npm start
+```
+
+The member is named after the address the server reaches it on. A server in
+another container reaches it under another name, so it connects with
+`?directConnection=true`, as the compose files do.
+
 ## Extensibility
 
 Three layers, in increasing order of coupling to the engine:
@@ -197,6 +235,50 @@ registry in MongoDB. On a cross-map warp, the target map is looked up; if it
 lives on another instance, the player is persisted and the client is
 transparently redirected to the owning instance's URL, with no page reload.
 Without these env vars, a single instance loads all maps (default behavior).
+
+Two instances, each with half the maps:
+
+```bash
+WS_PUBLIC_URL=ws://host:8080 MAP_IDS=map1,map2 PORT=8080 npm start
+WS_PUBLIC_URL=ws://host:8081 MAP_IDS=map3,map4 PORT=8081 npm start
+```
+
+In Docker, each instance is one more service in `compose.yml`, beside `app`
+and on the same image. Each needs its own `WS_PUBLIC_URL` and a `MAP_IDS` that
+overlaps no other's, so `app` gets the first pair too:
+
+```yaml
+services:
+  app-b:
+    image: ghcr.io/christianaurichzm/aurkad:<the version app runs>
+    restart: unless-stopped
+    user: root
+    entrypoint: [/app/compose-entrypoint.sh]
+    depends_on:
+      mongo:
+        condition: service_healthy
+    environment:
+      PORT: '8081'
+      GAME_DIR: /srv/game
+      MONGO_URI: mongodb://mongo:27017/?directConnection=true
+      SESSION_SECRET: ${SESSION_SECRET:-}
+      CORS_ALLOWED_ORIGINS: https://localhost,https://localhost:8444
+      USE_SECURE_COOKIES: 'true'
+      TRUST_PROXY: '1'
+      WS_PUBLIC_URL: wss://localhost:8444
+      MAP_IDS: map3,map4
+    volumes:
+      - .:/srv
+```
+
+Caddy then serves one site per instance, so its `command` gives way to a
+Caddyfile mounted at `/etc/caddy/Caddyfile`, with `'8444:8444'` added to its
+ports:
+
+```
+https://localhost { reverse_proxy app:8080 }
+https://localhost:8444 { reverse_proxy app-b:8081 }
+```
 
 ## Key design decisions
 
