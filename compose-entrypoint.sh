@@ -13,6 +13,9 @@
 set -e
 
 project=$(dirname "$GAME_DIR")
+# Recordings go beside the game: the engine's default is under /app, which the
+# folder's owner cannot write and a new container would not keep.
+export REPLAY_DIR="${REPLAY_DIR:-$project/replays}"
 uid=$(stat -c %u "$project")
 gid=$(stat -c %g "$project")
 if [ "$uid" = 0 ] && [ "$(stat -c %A "$project" | cut -c9)" = w ]; then

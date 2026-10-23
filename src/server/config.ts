@@ -336,8 +336,8 @@ export const config = {
       max: 5_000_000,
     }),
     // Recordings are player data, so they stay out of the game folder, which
-    // is the creator's source and read-only when mounted into Docker. Games
-    // run from one checkout each get a folder, so one never lists another's.
+    // is the creator's source; in Docker the entrypoint puts them beside it.
+    // Each game run from one checkout gets its own, so none lists another's.
     dir:
       process.env.REPLAY_DIR ||
       (gameDir() ? path.join('replays', dbName) : 'replays'),
