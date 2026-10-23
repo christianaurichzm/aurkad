@@ -420,6 +420,54 @@ describe('the handshake origin', () => {
   });
 });
 
+describe('stopping with a client that never answers the close', () => {
+  let http: HttpServer;
+  let port = 0;
+
+  const asSession = (req: unknown, _res: unknown, next: () => void) => {
+    (req as { session: { username: string } }).session = { username: 'Boss' };
+    next();
+  };
+
+  beforeEach(async () => {
+    await createPlayer('Boss', 'hash');
+    playersWsMap.clear();
+    http = createServer();
+    await new Promise<void>((resolve) => http.listen(0, resolve));
+    port = (http.address() as AddressInfo).port;
+    startWebSocketServer(http, asSession as never);
+  });
+
+  afterEach(async () => {
+    await new Promise<void>((resolve) => http.close(() => resolve()));
+    playersWsMap.clear();
+  });
+
+  // A dropped wifi looks like this: the upgrade went through, then nothing
+  // ever reads or answers again. The shutdown waiting on this writes the
+  // players only after it, under its own forced-exit clock.
+  it('returns within a few seconds rather than waiting out the peer', async () => {
+    const raw = createConnection(port, '127.0.0.1', () =>
+      raw.write(
+        'GET /ws HTTP/1.1\r\nHost: x\r\nUpgrade: websocket\r\n' +
+          'Connection: Upgrade\r\nSec-WebSocket-Version: 13\r\n' +
+          'Sec-WebSocket-Key: dGhlIHNhbXBsZSBub25jZQ==\r\n\r\n',
+      ),
+    );
+    await new Promise<void>((resolve) => raw.once('data', () => resolve()));
+    raw.pause();
+    await new Promise((r) => setTimeout(r, 250));
+
+    const outcome = await Promise.race([
+      stopWebSocketServer().then(() => 'stopped'),
+      new Promise((r) => setTimeout(() => r('still waiting'), 5_000)),
+    ]);
+    raw.destroy();
+
+    expect(outcome).toBe('stopped');
+  }, 10_000);
+});
+
 /**
  * The reconnect, which is the ordinary way a session continues: the client
  * dials again on its own after a blip, without logging in, so for a moment

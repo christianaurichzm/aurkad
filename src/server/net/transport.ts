@@ -112,6 +112,9 @@ function releasePastLimit(
 /** Longer than any release, which is the only thing parsed past the limit. */
 const RELEASE_MAX_BYTES = 256;
 
+/** How long a stopping server waits for clients to answer its close. */
+const CLOSE_GRACE_MS = 1000;
+
 function applyDroppedRelease(action: ClientAction | undefined) {
   if (action?.type === 'keyboard' && action.keyboardAction.type === 'release') {
     handleKeyAction(action);
@@ -485,10 +488,16 @@ export async function stopWebSocketServer(): Promise<void> {
 
   playersWsMap.clear();
 
-  await new Promise<void>((resolve) => {
-    if (!wss) return resolve();
-    wss.close(() => resolve());
-  });
+  if (!wss) return;
+  // The close resolves once every client has answered. A peer that never
+  // will (a dropped wifi) holds it for ws's 30 s close timeout, past the
+  // forced exit of the shutdown that writes the players after this.
+  const server = wss;
+  const grace = setTimeout(() => {
+    for (const ws of server.clients) ws.terminate();
+  }, CLOSE_GRACE_MS);
+  await new Promise<void>((resolve) => server.close(() => resolve()));
+  clearTimeout(grace);
 }
 
 export function getActionQueueSize(): number {
