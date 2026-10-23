@@ -51,83 +51,14 @@ export function calculateDirection(
 // all (see greedyStep).
 export const DEFAULT_PATH_DEPTH = 30;
 
-// Cardinal directions for BFS. Right/Down first so ties resolve toward the
-// south-east, which matches the typical RPG "forward" feel.
+// Cardinal directions for the path search. Right/Down first so ties resolve
+// toward the south-east, which matches the typical RPG "forward" feel.
 const BFS_DIRS = [
   { dc: 1, dr: 0, dir: Direction.Right },
   { dc: 0, dr: 1, dir: Direction.Down },
   { dc: -1, dr: 0, dir: Direction.Left },
   { dc: 0, dr: -1, dir: Direction.Up },
 ] as const;
-
-// BFS on the tile grid returning the first pixel step on the shortest path
-// to targetPos, or null at the goal or with no path within maxDepth. Only
-// static tiles block here; entities are checked by hasCollision at move
-// time. A player walking to a clicked cell takes the same path, passing in
-// `avoid` the cells it found occupied. Tiles are judged for `walker` by
-// tileBlocks: `avoidNpc` fences npcs in, and a script's conditionalBlock
-// lets players by.
-export function bfsNextStep(
-  npcPos: Position,
-  targetPos: Position,
-  map: MapStateServer,
-  maxDepth: number,
-  walker: CombatTarget,
-  avoid: readonly Position[] = [],
-): { x: number; y: number; dir: Direction } | null {
-  const sc = Math.floor(npcPos.x / TILE_SIZE);
-  const sr = Math.floor(npcPos.y / TILE_SIZE);
-  const gc = Math.floor(targetPos.x / TILE_SIZE);
-  const gr = Math.floor(targetPos.y / TILE_SIZE);
-
-  if (sc === gc && sr === gr) return null;
-
-  const queue: Array<{
-    c: number;
-    r: number;
-    depth: number;
-    first: { x: number; y: number; dir: Direction } | null;
-  }> = [{ c: sc, r: sr, depth: 0, first: null }];
-
-  const visited = new Set<number>();
-  visited.add(sr * 10000 + sc);
-  for (const { x, y } of avoid) {
-    const ac = Math.floor(x / TILE_SIZE);
-    const ar = Math.floor(y / TILE_SIZE);
-    if (ac !== gc || ar !== gr) visited.add(ar * 10000 + ac);
-  }
-
-  // A read index rather than shift(): an unreachable target floods the whole
-  // depth, and shifting that frontier makes the search quadratic.
-  let head = 0;
-  while (head < queue.length) {
-    const curr = queue[head++]!;
-
-    for (const { dc, dr, dir } of BFS_DIRS) {
-      const nc = curr.c + dc;
-      const nr = curr.r + dr;
-      const key = nr * 10000 + nc;
-      if (visited.has(key)) continue;
-
-      const isGoal = nc === gc && nr === gr;
-      if (!isGoal) {
-        const tile = map.tiles[nr]?.[nc];
-        if (!tile || tileBlocks(tile, walker)) continue;
-      }
-
-      visited.add(key);
-      const first = curr.first ?? { x: nc * TILE_SIZE, y: nr * TILE_SIZE, dir };
-
-      if (isGoal) return first;
-
-      if (curr.depth + 1 < maxDepth) {
-        queue.push({ c: nc, r: nr, depth: curr.depth + 1, first });
-      }
-    }
-  }
-
-  return null;
-}
 
 export type PathStep = { x: number; y: number; dir: Direction };
 
@@ -171,10 +102,13 @@ function prepareSearch(maxDepth: number): void {
 
 /**
  * Every step of a shortest way to `targetPos`, the goal last, or null at the
- * goal or with none within maxDepth. The rules are bfsNextStep's, which is
- * asked again every step; this is asked once for a whole walk. A* with the
- * Manhattan distance, which on a four-way grid moves each cell's estimate by
- * 0 or 2, so two queues stand in for a priority queue.
+ * goal or with none within maxDepth. Only static tiles block here; entities
+ * are checked by hasCollision at move time, and a player walking to a clicked
+ * cell passes in `avoid` the cells it found occupied. Tiles are judged for
+ * `walker` by tileBlocks: `avoidNpc` fences npcs in, and a script's
+ * conditionalBlock lets players by. A* with the Manhattan distance, which on
+ * a four-way grid moves each cell's estimate by 0 or 2, so two queues stand
+ * in for a priority queue.
  */
 export function findPath(
   fromPos: Position,
@@ -311,7 +245,7 @@ function greedyStep(
   return { x: npcPos.x, y: npcPos.y + Math.sign(dy) * TILE_SIZE, dir };
 }
 
-// Takes one tile step toward target using BFS-derived optimal path.
+// Takes one tile step toward target along a shortest path.
 export function stepNpcToward(
   npc: RuntimeNpc,
   target: { position: Position },
@@ -328,7 +262,7 @@ export function stepNpcToward(
   const depth = npc.pathDepth ?? DEFAULT_PATH_DEPTH;
   const step =
     depth > 0
-      ? bfsNextStep(npc.position, target.position, map, depth, npc)
+      ? (findPath(npc.position, target.position, map, depth, npc)?.[0] ?? null)
       : greedyStep(npc.position, target.position);
 
   if (!step) {

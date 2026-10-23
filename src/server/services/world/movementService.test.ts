@@ -22,7 +22,6 @@ vi.mock('../npc/behaviors.js', async (importOriginal) => {
     };
   return {
     ...actual,
-    bfsNextStep: counted('bfsNextStep'),
     findPath: counted('findPath'),
   };
 });
