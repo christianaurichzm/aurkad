@@ -10,6 +10,7 @@ import {
   isPlayerCommitting,
 } from '../../persistence/dirtyPlayers.js';
 import {
+  isCurrentSession,
   persistPlayerSessionState,
   waitForPlayerPersistence,
 } from '../player/playerService.js';
@@ -73,6 +74,7 @@ export async function createAuction(
 ): Promise<AuctionResult> {
   if (!supportsTransactions()) return fail('transactions-required');
   if (isPlayerCommitting(player.id)) return fail('busy');
+  if (!isCurrentSession(player)) return fail('not-committed');
   const item = getItemById(input.itemId);
   if (!item) return fail('unknown-item');
   if (item.bound) return fail('bound');
@@ -164,6 +166,7 @@ export async function buyAuction(
 ): Promise<AuctionResult> {
   if (!supportsTransactions()) return fail('transactions-required');
   if (isPlayerCommitting(player.id)) return fail('busy');
+  if (!isCurrentSession(player)) return fail('not-committed');
   if (
     !getItemById(currencyItemId) ||
     !Number.isFinite(feePercent) ||

@@ -358,7 +358,11 @@ export async function persistPlayersNow(
 ): Promise<boolean> {
   if (mongoose.connection.readyState !== mongoose.ConnectionStates.connected)
     return false;
-  if (playersToSave.some((player) => isPlayerCommitting(player.id)))
+  if (
+    playersToSave.some(
+      (player) => isPlayerCommitting(player.id) || !isCurrentSession(player),
+    )
+  )
     return false;
 
   // Held for the whole call, not just the transaction: until the last await,
@@ -391,7 +395,8 @@ export async function commitInventories(
   if (
     mongoose.connection.readyState !== mongoose.ConnectionStates.connected ||
     new Set(ids).size !== ids.length ||
-    ids.some(isPlayerCommitting)
+    ids.some(isPlayerCommitting) ||
+    !playersToCommit.every(isCurrentSession)
   )
     return false;
 
@@ -676,6 +681,16 @@ export const disconnectPlayer = async (username?: string) => {
 /** Whether this character's last write and release are under way. */
 export function isDeparting(id: string): boolean {
   return departures.has(id);
+}
+
+/**
+ * Whether an economic commit may still write this object. A caller that
+ * awaited since it was handed the character may hold one whose last write
+ * has begun, or one a new login replaced: the commit would land after that
+ * write, over the document the next session loads.
+ */
+export function isCurrentSession(player: PlayerServer): boolean {
+  return getRegisteredPlayer(player.id) === player && !isDeparting(player.id);
 }
 
 async function depart(player: PlayerServer): Promise<void> {

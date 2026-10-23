@@ -30,14 +30,10 @@ import {
   withTransaction,
 } from '../../persistence/transactions.js';
 import { getItemById, items } from '../content/itemService.js';
-import {
-  getPlayerById,
-  getPlayerByName,
-  updatePlayer,
-} from '../../sim/world.js';
+import { getPlayerByName, updatePlayer } from '../../sim/world.js';
 import {
   getPlayerByNameFromDb,
-  isDeparting,
+  isCurrentSession,
   persistPlayerSessionState,
   waitForPlayerPersistence,
 } from '../player/playerService.js';
@@ -237,7 +233,7 @@ async function sendHeld(
   // The queue and the lookups above yield. A logout in between saves `from`
   // and a login loads the account into another object; debiting this one would
   // take the item out of a document the new session then rewrites with it.
-  if (getPlayerById(from.id) !== from || isPlayerCommitting(from.id))
+  if (!isCurrentSession(from) || isPlayerCommitting(from.id))
     return fail('not-committed');
   beginPlayerCommit([from.id]);
   lockInventory(from.inventory);
@@ -382,7 +378,7 @@ export async function claimDeliveries(
   // A character leaving, or left, has had or is having its last write. An
   // item added now lands over the document the next session loads, so the
   // rows stay queued for that session.
-  if (getPlayerById(player.id) !== player || isDeparting(player.id)) return [];
+  if (!isCurrentSession(player)) return [];
   beginPlayerCommit([player.id]);
   try {
     // A snapshot cast before the claim must land first, or it erases the item

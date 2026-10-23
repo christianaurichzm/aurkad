@@ -44,15 +44,22 @@ import { registerPlayer, unregisterPlayer } from '../sim/world.js';
 import { sendDelivery } from '../services/economy/deliveryService.js';
 import { items } from '../services/content/itemService.js';
 import DeliveryModel from '../model/Delivery.js';
+import AuctionModel from '../model/Auction.js';
+import {
+  buyAuction,
+  createAuction,
+} from '../services/economy/auctionService.js';
 import { logger } from '../logger.js';
 import type { InventoryLike, PlayerServer } from '../../shared/types.js';
 
 const SWORD = 7;
 
-/** Two players, one holding the sword, both already in the database. */
+/** Two players in the world, one holding the sword, both in the database. */
 async function tradingPair(): Promise<[PlayerServer, PlayerServer]> {
   const from = await createPlayer('Alice', 'hash');
   const to = await createPlayer('Bob', 'hash');
+  registerPlayer(from);
+  registerPlayer(to);
   from.inventory.items.push({ item: SWORD, quantity: 1 });
   await persistPlayersNow([from, to]);
   return [from, to];
@@ -140,8 +147,6 @@ describe('standalone mongod', () => {
 
   it('writes a half-landed inventory commit back from memory', async () => {
     const [from, to] = await tradingPair();
-    registerPlayer(from);
-    registerPlayer(to);
     failSecondWrite();
 
     expect(await commitInventories([from, to], swordToBob)).toBe(false);
@@ -208,8 +213,6 @@ describe('replica set', () => {
 
   it('leaves memory and disk as they were when an inventory commit fails', async () => {
     const [from, to] = await tradingPair();
-    registerPlayer(from);
-    registerPlayer(to);
     failSecondWrite();
 
     expect(await commitInventories([from, to], swordToBob)).toBe(false);
@@ -234,8 +237,6 @@ describe('replica set', () => {
 
   it('does not let snapshots write half a trade after a presence refusal', async () => {
     const [from, to] = await tradingPair();
-    registerPlayer(from);
-    registerPlayer(to);
     moveItem(from.inventory, to.inventory, SWORD, 1);
     markPlayerDirty(from.id);
     markPlayerDirty(to.id);
@@ -302,9 +303,9 @@ describe('replica set', () => {
   it('debits the sender and queues the row together, or does neither', async () => {
     const alice = await createPlayer('Alice', 'hash');
     await createPlayer('Bob', 'hash');
+    registerPlayer(alice);
     alice.inventory.items.push({ item: SWORD, quantity: 1 });
     await persistPlayersNow([alice]);
-    registerPlayer(alice);
     items.set(SWORD, {
       id: SWORD,
       name: 'Sword',
@@ -337,7 +338,6 @@ describe('replica set', () => {
 
   it('keeps a delivery debit out of the snapshot until its transaction commits', async () => {
     const [alice] = await tradingPair();
-    registerPlayer(alice);
     items.set(SWORD, {
       id: SWORD,
       name: 'Sword',
@@ -369,7 +369,6 @@ describe('replica set', () => {
 
   it('aborts a delivery when the sender write is refused', async () => {
     const [alice] = await tradingPair();
-    registerPlayer(alice);
     items.set(SWORD, {
       id: SWORD,
       name: 'Sword',
@@ -387,7 +386,6 @@ describe('replica set', () => {
 
   it('waits for an earlier snapshot before committing the sender debit', async () => {
     const [alice] = await tradingPair();
-    registerPlayer(alice);
     items.set(SWORD, {
       id: SWORD,
       name: 'Sword',
@@ -430,7 +428,6 @@ describe('replica set', () => {
 
   it('lets only one overlapping delivery debit the sender inventory', async () => {
     const [alice] = await tradingPair();
-    registerPlayer(alice);
     items.set(SWORD, {
       id: SWORD,
       name: 'Sword',
@@ -445,6 +442,66 @@ describe('replica set', () => {
     expect(results.filter((result) => result.ok)).toHaveLength(1);
     expect(await heldBy('Alice')).toBe(0);
     expect(await DeliveryModel.countDocuments({ to: 'Bob' })).toBe(1);
+  });
+
+  // Its departure wrote the character and a login loaded it into a new
+  // object; whoever still holds the old one awaited across both.
+  const replacedByNewLogin = (player: PlayerServer): void =>
+    registerPlayer({ ...player, inventory: structuredClone(player.inventory) });
+
+  it('refuses an inventory commit on a character a new login replaced', async () => {
+    const [from, to] = await tradingPair();
+    replacedByNewLogin(from);
+
+    expect(await commitInventories([from, to], swordToBob)).toBe(false);
+    expect(await heldBy('Alice')).toBe(1);
+    expect(await heldBy('Bob')).toBe(0);
+  });
+
+  it('refuses an auction purchase on a character a new login replaced', async () => {
+    const GOLD = 8;
+    items.set(SWORD, {
+      id: SWORD,
+      name: 'Sword',
+      description: '',
+      sprite: 0,
+      type: 'weapon',
+    });
+    items.set(GOLD, {
+      id: GOLD,
+      name: 'Gold',
+      description: '',
+      sprite: 0,
+      type: 'money',
+    });
+    const [seller, buyer] = await tradingPair();
+    buyer.inventory.items.push({ item: GOLD, quantity: 10 });
+    await persistPlayersNow([buyer]);
+    const listed = await createAuction(seller, {
+      itemId: SWORD,
+      quantity: 1,
+      price: 10,
+      durationMs: 60_000,
+      maxListings: 5,
+    });
+    if (!listed.ok) throw new Error(`listing refused: ${listed.reason}`);
+    replacedByNewLogin(buyer);
+
+    expect(await buyAuction(buyer, listed.listing.id, GOLD, 0)).toEqual({
+      ok: false,
+      reason: 'not-committed',
+    });
+    // The new session loaded 10 gold and no sword, and that is still the
+    // document: a purchase landing here would be overwritten by it, the seller
+    // paid all the same.
+    const bob = await playerRepository.findByName('Bob');
+    expect(bob?.inventory.items).toEqual([{ item: GOLD, quantity: 10 }]);
+    expect(
+      await AuctionModel.countDocuments({
+        id: listed.listing.id,
+        state: 'active',
+      }),
+    ).toBe(1);
   });
 
   it('falls back to independent writes when support is off', async () => {
