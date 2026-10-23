@@ -283,6 +283,11 @@ export function buildMetricsSamples(): Sample[] {
           m.caches.attackCooldown,
           'last attack tick per player',
         ],
+        [
+          'chat_allowance',
+          m.caches.chatAllowance,
+          'chat rate allowance per player',
+        ],
         ['held_keys', m.caches.heldKeys, 'keys held per player'],
         ['path_goals', m.caches.pathGoals, 'clicked destination per player'],
         [

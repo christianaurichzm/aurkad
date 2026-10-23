@@ -6,6 +6,7 @@ import { rateLimiterEntryCount } from './net/transport.js';
 import { dirtyPlayerCount } from './persistence/dirtyPlayers.js';
 import { damageLedgerSize } from './services/combat/damage.js';
 import { attackCooldownCount } from './services/combat/attackCooldown.js';
+import { chatAllowanceCount } from './services/comms/chatService.js';
 import { npcAiStateCount } from './services/npc/aiBrain.js';
 import { movementStateCounts } from './services/world/movementService.js';
 import { entranceCount } from './services/world/instanceService.js';
@@ -202,6 +203,7 @@ export function getMetrics() {
       damageLedger: damageLedgerSize(),
       npcAi: npcAiStateCount(),
       attackCooldown: attackCooldownCount(),
+      chatAllowance: chatAllowanceCount(),
       heldKeys: movement.heldKeys,
       pathGoals: movement.pathGoals,
       instanceEntrances: entranceCount(),

@@ -10,15 +10,51 @@ import { WebSocket } from 'ws';
 import { getPlayerByName } from '../player/playerService.js';
 import { registerStrings, translate } from '../../engine/i18n.js';
 import { publishToInstances } from '../../persistence/instanceBus.js';
+import { getTick, msToTicks } from '../../sim/clock.js';
+import { scheduleAfter } from '../../sim/scheduler.js';
 
-// The only line this service says on its own; the rest of what passes through
-// is what a player or an operator wrote.
+// The only lines this service says on its own; the rest of what passes
+// through is what a player or an operator wrote.
 registerStrings({
   pt: {
     'You are muted and cannot send messages.':
       'Você está silenciado e não pode enviar mensagens.',
+    'You are sending messages too fast.':
+      'Você está enviando mensagens rápido demais.',
   },
 });
+
+// A few lines at once, then one a second. The socket's own limit is far
+// above this, and a global line goes to every player on every instance.
+const CHAT_BURST = 5;
+const CHAT_INTERVAL_MS = 1000;
+
+/** username -> the tick by which the full burst is back. */
+const chatAllowance = new Map<string, number>();
+
+function tryConsumeChatAllowance(username: string, tick: number): boolean {
+  const interval = msToTicks(CHAT_INTERVAL_MS);
+  const whole = Math.max(chatAllowance.get(username) ?? tick, tick);
+  if (whole - tick > (CHAT_BURST - 1) * interval) return false;
+  chatAllowance.set(username, whole + interval);
+  return true;
+}
+
+/**
+ * On departure. An allowance still being paid off outlives the session, or
+ * leaving and coming straight back would hand a flooder a fresh burst.
+ */
+export function forgetChatAllowance(username: string): void {
+  const left = (chatAllowance.get(username) ?? 0) - getTick();
+  if (left > 0)
+    scheduleAfter(left, () => forgetChatAllowance(username), 'chat');
+  else chatAllowance.delete(username);
+}
+
+/** Players holding a chat allowance, published as a metric. */
+export function chatAllowanceCount(): number {
+  return chatAllowance.size;
+}
 
 export type ChatLogEntry = {
   ts: number;
@@ -46,16 +82,13 @@ function isServerChatAction(
   return !('username' in action);
 }
 
-function sendMutedNotice(username: string) {
+function sendNotice(username: string, text: string) {
   const ws = playersWsMap.get(username);
   if (ws?.readyState === WebSocket.OPEN) {
     const notice: ChatMessagePayload = {
       type: 'chat',
       scope: 'player',
-      message: translate(
-        getPlayerByName(username),
-        'You are muted and cannot send messages.',
-      ),
+      message: translate(getPlayerByName(username), text),
     };
     ws.send(JSON.stringify(notice));
   }
@@ -63,7 +96,7 @@ function sendMutedNotice(username: string) {
 
 export function handleChatAction(action: ClientChatAction | ServerChatAction) {
   if (isClientChatAction(action) && isMuted(action.username)) {
-    sendMutedNotice(action.username);
+    sendNotice(action.username, 'You are muted and cannot send messages.');
     return;
   }
 
@@ -72,6 +105,16 @@ export function handleChatAction(action: ClientChatAction | ServerChatAction) {
   if (isClientChatAction(action)) {
     const sender = getPlayerByName(action.username);
     if (sender && handleChatCommand(sender, action.message)) return;
+  }
+
+  // After the command: a reply goes to the one who typed it, and an operator
+  // working through a run of commands is not flooding anyone.
+  if (
+    isClientChatAction(action) &&
+    !tryConsumeChatAllowance(action.username, getTick())
+  ) {
+    sendNotice(action.username, 'You are sending messages too fast.');
+    return;
   }
 
   const payload: ChatMessagePayload = {

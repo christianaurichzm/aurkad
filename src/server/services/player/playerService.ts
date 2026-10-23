@@ -56,6 +56,7 @@ import {
   withTransaction,
 } from '../../persistence/transactions.js';
 import { clearAttackCooldown } from '../combat/attackCooldown.js';
+import { forgetChatAllowance } from '../comms/chatService.js';
 import { clearDamageContributions } from '../combat/damage.js';
 import { clearPressedKeys, warpToMap } from '../world/movementService.js';
 import { logger } from '../../logger.js';
@@ -611,6 +612,7 @@ function removePlayerSessionState(player: PlayerServer): void {
   clearPressedKeys(player.name);
   clearPlayerDirty(player.id);
   clearAttackCooldown(player.id);
+  forgetChatAllowance(player.name);
   if (getRegisteredPlayer(player.id)) {
     emit('playerLeave', { player });
     unregisterPlayer(player.id);
