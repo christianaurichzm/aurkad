@@ -12,6 +12,9 @@ export function setChatSocketSender(sender: (action: WsClientMessage) => void) {
 
 export function enqueueChatMessage(message: ChatMessagePayload) {
   chatQueue.push(message);
+  // A hidden tab draws no frames, and frames drain this queue: without this a
+  // background tab holds every line and adds them all when it comes back.
+  if (document.hidden) updateChat();
 }
 
 export function updateChat(): void {

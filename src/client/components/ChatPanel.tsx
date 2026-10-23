@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { ChatMessagePayload, ChatScope } from '../../shared/types';
-import { updateChat, sendChatMessage } from '../io/network';
+import { sendChatMessage } from '../io/network';
 import { useUIStore } from '../stores/uiStore';
 import { useT, type TranslationKey } from '../i18n';
 
@@ -75,12 +75,6 @@ export const ChatPanel: React.FC<{ shown?: boolean }> = ({ shown = true }) => {
   const [expanded, setExpanded] = useState(false);
   const lines =
     tab === 'all' ? messages : messages.filter((msg) => msg.scope === tab);
-
-  useEffect(() => {
-    const onMessage = () => updateChat();
-    window.addEventListener('chat-update', onMessage);
-    return () => window.removeEventListener('chat-update', onMessage);
-  }, []);
 
   // Shut, the box has no height to scroll: the last line is found again when
   // the menu opens.
