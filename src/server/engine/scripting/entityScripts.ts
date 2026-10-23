@@ -5,7 +5,7 @@
 // tile trigger, an npc or an item carries a `scriptId`, wired in the editor.
 
 import { logger } from '../../logger.js';
-import { recordScriptError } from './scriptErrors.js';
+import { observeRejection, recordScriptError } from './scriptErrors.js';
 import { runWithBudget } from './handlerBudget.js';
 import {
   normalizeParamSpecs,
@@ -248,7 +248,12 @@ export function dispatchEntityScript<K extends EntityBehaviorEvent>(
     // Returns false once the budget has switched this handler off, which is
     // also the honest answer to "did anything run".
     return runWithBudget(registration.owner, `${scriptId}.${event}`, () =>
-      (handler as (c: unknown) => void)(ctx),
+      observeRejection(
+        registration.owner,
+        (handler as (c: unknown) => unknown)(ctx),
+        'behavior',
+        `${scriptId}.${event}`,
+      ),
     );
   } catch (err) {
     logger.error(`[behavior] ${scriptId}.${event} threw`, { err });

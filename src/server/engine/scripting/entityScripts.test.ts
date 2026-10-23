@@ -1,3 +1,4 @@
+import vm from 'node:vm';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import {
   registerEntityBehavior,
@@ -162,6 +163,22 @@ describe('dispatchEntityScript', () => {
 
       expect(dispatchEntityScript('trap', 'onEnter', anyCtx)).toBe(true);
     });
+  });
+
+  // A script's async function returns a promise from the sandbox's realm, so
+  // the handler here is built in one too.
+  it('records an async handler that rejects instead of leaving it unhandled', async () => {
+    const onEnter = vm.runInNewContext(
+      'async () => { throw new Error("boom later"); }',
+    ) as () => void;
+    registerEntityBehavior('trap', { onEnter }, 'traps.js');
+
+    dispatchEntityScript('trap', 'onEnter', anyCtx);
+    await new Promise((resolve) => setTimeout(resolve, 0));
+
+    expect(getScriptErrors('traps.js')).toEqual([
+      expect.objectContaining({ source: 'behavior', context: 'trap.onEnter' }),
+    ]);
   });
 });
 

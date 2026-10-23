@@ -115,7 +115,11 @@ import {
   randomPick,
 } from '../../sim/rng.js';
 import { logger } from '../../logger.js';
-import { recordScriptError, type ScriptErrorSource } from './scriptErrors.js';
+import {
+  observeRejection as observeScriptRejection,
+  recordScriptError,
+  type ScriptErrorSource,
+} from './scriptErrors.js';
 import { runWithBudget } from './handlerBudget.js';
 import {
   httpRequest,
@@ -230,24 +234,12 @@ export function buildApi(
     };
   }
 
-  // VM promises belong to another realm, so instanceof Promise misses them.
-  // Observe the value before the synchronous budget wrapper drops it.
-  function observeRejection(
+  // Observed before the synchronous budget wrapper drops the value.
+  const observeRejection = (
     result: unknown,
     source: ScriptErrorSource,
     context: string,
-  ): void {
-    if (result && typeof (result as PromiseLike<unknown>).then === 'function') {
-      void Promise.resolve(result).catch((err) => {
-        logger.error(`[script:${scriptName}] async handler rejected`, {
-          source,
-          context,
-          err,
-        });
-        recordScriptError(scriptName, err, source, context);
-      });
-    }
-  }
+  ) => observeScriptRejection(scriptName, result, source, context);
 
   function safeOn(event: keyof HookMap, handler: AnyHandler): Cleanup {
     const wrapped = (payload: unknown) => {

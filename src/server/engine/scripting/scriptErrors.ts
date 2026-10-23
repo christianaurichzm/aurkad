@@ -4,6 +4,8 @@
 // unseen by whoever edits the file in the browser. The logger still gets
 // every occurrence; this is a small deduplicated view for the editor.
 
+import { logger } from '../../logger.js';
+
 export type ScriptErrorSource =
   | 'load'
   | 'typecheck'
@@ -132,6 +134,29 @@ export function recordScriptError(
     context,
     stack,
   });
+}
+
+/**
+ * Logs and records an async handler's rejection, which the synchronous
+ * wrappers around every handler would otherwise drop, unhandled. Sandbox
+ * promises belong to another realm, so `instanceof Promise` misses them.
+ */
+export function observeRejection(
+  script: string,
+  result: unknown,
+  source: ScriptErrorSource,
+  context: string,
+): void {
+  if (result && typeof (result as PromiseLike<unknown>).then === 'function') {
+    void Promise.resolve(result).catch((err) => {
+      logger.error(`[script:${script}] async handler rejected`, {
+        source,
+        context,
+        err,
+      });
+      recordScriptError(script, err, source, context);
+    });
+  }
 }
 
 /**
