@@ -84,6 +84,35 @@ describe('a redirect to another instance', () => {
   });
 });
 
+describe('reconnecting after the server went away', () => {
+  it('draws the wait, so clients dropped together come back apart', async () => {
+    vi.useFakeTimers();
+    vi.stubGlobal('WebSocket', FakeSocket);
+    const { initializeWebSocket } = await import('./wsManager');
+
+    const waitAfterClose = (draw: number) => {
+      vi.spyOn(Math, 'random').mockReturnValue(draw);
+      initializeWebSocket('ws://test/ws');
+      const dropped = FakeSocket.last;
+      dropped.readyState = FakeSocket.OPEN;
+      dropped.onopen?.();
+      dropped.onclose?.();
+      let waited = 0;
+      while (FakeSocket.last === dropped && waited < 2000) {
+        vi.advanceTimersByTime(50);
+        waited += 50;
+      }
+      return waited;
+    };
+
+    expect(waitAfterClose(0)).toBe(500);
+    expect(waitAfterClose(0.9)).toBe(950);
+    vi.restoreAllMocks();
+    vi.useRealTimers();
+    vi.unstubAllGlobals();
+  });
+});
+
 describe('a socket replaced by a redirect', () => {
   it('leaves the new connection alone when the old one reports its close late', async () => {
     vi.useFakeTimers();

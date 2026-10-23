@@ -32,8 +32,11 @@ const scheduleReconnect = () => {
     socket.close();
   }
 
-  const delay = Math.min(1000 * 2 ** reconnectAttempts, 30000);
-  console.log(`Trying to reconnect in ${delay / 1000}s`);
+  // Somewhere in the upper half of the backoff: a restart drops every client
+  // at once, and without the draw they would all knock on the same beat.
+  const ceiling = Math.min(1000 * 2 ** reconnectAttempts, 30000);
+  const delay = ceiling / 2 + Math.random() * (ceiling / 2);
+  console.log(`Trying to reconnect in ${(delay / 1000).toFixed(1)}s`);
 
   reconnectTimer = setTimeout(() => {
     reconnectTimer = null;
