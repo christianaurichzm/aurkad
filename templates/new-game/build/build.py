@@ -83,12 +83,14 @@ def specks(size, blobs, seed, keep, blur):
 
 
 def grass(size):
+    # Yellower, duller and a step darker than the KayKit canopies, so a tree
+    # stands out from the meadow instead of melting into it.
     blot = stretch(octaves(size, (size // 256, 1, 0), (size // 128, 2, 0.4), (size // 40, 3, 0.2)), 70, 190)
-    out = Image.composite(flat('#7cbf4a', size), flat('#5d9e3a', size), blot)
+    out = Image.composite(flat('#90b854', size), flat('#709940', size), blot)
     light = specks(size, size // 3, 4, lambda v: 255 if v > 200 else 0, 0.6)
-    out = Image.composite(flat('#8fd05a', size), out, light.point(lambda v: v // 3))
+    out = Image.composite(flat('#aacc66', size), out, light.point(lambda v: v // 3))
     dark = specks(size, size // 4, 5, lambda v: 255 if v < 50 else 0, 0.6)
-    return Image.composite(flat('#4a8530', size), out, dark.point(lambda v: v // 3))
+    return Image.composite(flat('#507a31', size), out, dark.point(lambda v: v // 3))
 
 
 def dirt(size):
@@ -179,7 +181,7 @@ def alpha(values):
 
 def path_frames():
     fill = dirt(C)
-    rim_colour = flat('#4f7f30', C + 2 * M).convert('RGBA')
+    rim_colour = flat('#547830', C + 2 * M).convert('RGBA')
     wobble = noise(C, 6, 21)
     frames = {}
     for mask in range(16):
@@ -226,6 +228,10 @@ def to_diamond(square):
 
 
 # ─── props ───────────────────────────────────────────────────────────────────
+SHADOW = '#18301f'
+SHADOW_ALPHA = 140
+
+
 def prop_frame(view, name, foot):
     obj = Image.open(f'{CACHE}/{view}/props/{name}_object.png').convert('RGBA')
     shadow = Image.open(f'{CACHE}/{view}/props/{name}_shadow.png').convert('RGBA')
@@ -240,8 +246,12 @@ def prop_frame(view, name, foot):
     # Blender leaves a veil of shadow far around the prop, too faint to see on
     # grass but wide enough to double the frame, and a frame's box is what the
     # see-through fade tests against the player. Only what is darker is shadow.
-    a = shadow.getchannel('A').point(lambda v: 0 if v < 20 else min(255, round((v - 20) * 255 / 235)))
-    shadow.putalpha(ImageChops.multiply(a, fade))
+    # Tinted and kept under the client's SOLID_ALPHA, which marks the prop
+    # itself; a black shadow at full strength reads as a hole in the grass.
+    a =shadow.getchannel('A').point(lambda v: 0 if v < 20 else round((v - 20) * SHADOW_ALPHA / 235))
+    a = ImageChops.multiply(a, fade).filter(ImageFilter.GaussianBlur(5))
+    shadow = Image.new('RGBA', shadow.size, SHADOW)
+    shadow.putalpha(a)
     img = Image.alpha_composite(shadow, obj)
     box = img.getchannel('A').point(lambda v: 255 if v > 3 else 0).getbbox()
     return img.crop(box), (fx - box[0], fy - box[1])
@@ -339,9 +349,11 @@ def build_kit(view):
 
 # ─── the map ─────────────────────────────────────────────────────────────────
 # The path crosses from the lower left to the upper right through the middle,
-# where a new player comes in; the pond is up in the quiet corner.
-PATH = [(-3, 18), (-1, 17), (3, 15.5), (8, 16), (12, 13.5), (15.5, 11), (19.5, 9.5), (24, 8),
-        (28, 4.5), (32, 1.5), (34, 0)]
+# where a new player comes in; the pond is up in the quiet corner. It runs
+# along rows and columns and bends in a few cells: a slant on a grid of cells
+# is a staircase.
+PATH = [(-4, 16), (0, 16), (5, 16), (8, 15.3), (9.3, 13.3), (10.5, 11.2), (13, 11), (19, 11), (21, 10.2),
+        (21.8, 8), (23, 6.2), (26, 6), (31, 6), (35, 6)]
 POND = (6.5, 5.5, 3.2, 2.3)  # centre column and row, half width and height
 RESPAWN = (15, 11)
 # The dead wander the meadow, alone or near one another. A hostile npc strays
