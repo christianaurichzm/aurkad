@@ -1,4 +1,4 @@
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { Key } from '../../../shared/types.js';
 import { createFixture, tile } from '../../sim/simFixture.js';
 import GameMapModel from '../../model/Map.js';
@@ -9,6 +9,23 @@ vi.mock('../../model/Map.js', () => ({
     updateOne: vi.fn(() => Promise.resolve()),
   },
 }));
+
+// Every way a walk can ask for a path, counted on the way through.
+const searches = vi.hoisted(() => ({ count: 0 }));
+vi.mock('../npc/behaviors.js', async (importOriginal) => {
+  const actual = await importOriginal<Record<string, unknown>>();
+  const counted =
+    (name: string) =>
+    (...args: unknown[]) => {
+      searches.count++;
+      return (actual[name] as (...a: unknown[]) => unknown)(...args);
+    };
+  return {
+    ...actual,
+    bfsNextStep: counted('bfsNextStep'),
+    findPath: counted('findPath'),
+  };
+});
 
 const { setMapTile } = await import('./mapService.js');
 
@@ -38,5 +55,48 @@ describe('a key door', () => {
       { id: sim.mapId },
       { $set: { 'tiles.1.2': { tileIndex: 6, blocked: false } } },
     );
+  });
+});
+
+describe('walking to a clicked cell', () => {
+  beforeEach(() => {
+    searches.count = 0;
+  });
+
+  it('searches once for the whole walk', () => {
+    const sim = createFixture(0);
+    sim.addPlayer({ name: 'Alice', position: tile(1, 1) });
+
+    sim.moveTo('Alice', 9, 1);
+    sim.step(60);
+
+    expect(sim.getPlayer('Alice').position).toEqual(tile(9, 1));
+    expect(searches.count).toBe(1);
+  });
+
+  it('searches again when someone steps onto the way', () => {
+    const sim = createFixture(0);
+    sim.addPlayer({ name: 'Alice', position: tile(1, 1) });
+
+    sim.moveTo('Alice', 9, 1);
+    sim.step(6);
+    sim.addNpc({ behavior: 'friendly', position: tile(6, 1) });
+    sim.step(60);
+
+    expect(sim.getPlayer('Alice').position).toEqual(tile(9, 1));
+    expect(searches.count).toBe(2);
+  });
+
+  it('searches again from wherever a push left the player', () => {
+    const sim = createFixture(0);
+    const alice = sim.addPlayer({ name: 'Alice', position: tile(1, 1) });
+
+    sim.moveTo('Alice', 9, 1);
+    sim.step(12);
+    alice.position = tile(4, 5);
+    sim.step(80);
+
+    expect(alice.position).toEqual(tile(9, 1));
+    expect(searches.count).toBe(2);
   });
 });

@@ -32,7 +32,7 @@ import { removeItem } from '../economy/economyService.js';
 import { handleAttack, killPlayer, swing } from '../combat/index.js';
 import { pickUpItem } from '../economy/inventoryService.js';
 import { handleInteract } from './interactionService.js';
-import { bfsNextStep } from '../npc/behaviors.js';
+import { findPath, type PathStep } from '../npc/behaviors.js';
 import { updatePlayerMap, saveMapTile, setMapTile } from './mapService.js';
 import { findPlacement, hasCollision, hasWarp } from './physicsService.js';
 import { getPlayerByName, disconnectPlayer } from '../player/playerService.js';
@@ -62,10 +62,16 @@ export const pressedKeysMap = new Map<string, Set<Key>>();
 // the way is shut. Input state like the held keys: never saved, gone with the
 // socket or the next warp. `avoid` collects the cells someone was found
 // standing on, so the way round them is kept rather than retried every step.
-const pathGoals = new Map<
-  string,
-  { col: number; row: number; avoid: Position[] }
->();
+// `steps` is the way found, on `mapId`, walked until something stands on it.
+type PathGoal = {
+  col: number;
+  row: number;
+  avoid: Position[];
+  steps?: PathStep[];
+  next?: number;
+  mapId?: string;
+};
+const pathGoals = new Map<string, PathGoal>();
 
 // How far round a clicked cell is looked for. Wider than an npc's hunt
 // (DEFAULT_PATH_DEPTH): a click lands anywhere on the screen, and the way
@@ -510,22 +516,33 @@ const isArrow = (key: Key) =>
   key === Key.ArrowLeft ||
   key === Key.ArrowRight;
 
+/** The next step of the way already found, while it still starts here. */
+function keptStep(player: PlayerServer, goal: PathGoal): PathStep | undefined {
+  if (goal.mapId !== player.mapId) return undefined;
+  const step = goal.steps?.[goal.next ?? 0];
+  if (!step) return undefined;
+  const distance =
+    Math.abs(step.x - player.position.x) + Math.abs(step.y - player.position.y);
+  return distance === TILE_SIZE ? step : undefined;
+}
+
 /**
  * One step on the shortest way to the clicked cell. Someone standing on
  * that step is walked round when another way exists. Otherwise (the goal
  * is a clicked npc, door or wall, or someone stands in a gate) the walk
  * ends there, turned toward it, so the next attack or F lands on it.
  */
-function followPath(
-  player: PlayerServer,
-  goal: { col: number; row: number; avoid: Position[] },
-) {
+function followPath(player: PlayerServer, goal: PathGoal) {
   const map = getMap(player.mapId);
   if (!map) {
     pathGoals.delete(player.name);
     return;
   }
   const goalAt = { x: goal.col * TILE_SIZE, y: goal.row * TILE_SIZE };
+  if (player.position.x === goalAt.x && player.position.y === goalAt.y) {
+    pathGoals.delete(player.name);
+    return;
+  }
   const occupied = (position: { x: number; y: number }) =>
     hasCollision({
       id: player.id,
@@ -535,16 +552,23 @@ function followPath(
       height: player.height,
       position,
     } as CombatTarget);
-  const plan = () =>
-    bfsNextStep(
-      player.position,
-      goalAt,
-      map,
-      CLICK_PATH_DEPTH,
-      player,
-      goal.avoid,
-    );
-  let step = plan();
+  // Searched again only when the way found no longer starts where the player
+  // stands (a push, a warp) or someone stands on it.
+  const plan = (): PathStep | undefined => {
+    goal.steps =
+      findPath(
+        player.position,
+        goalAt,
+        map,
+        CLICK_PATH_DEPTH,
+        player,
+        goal.avoid,
+      ) ?? undefined;
+    goal.next = 0;
+    goal.mapId = player.mapId;
+    return goal.steps?.[0];
+  };
+  let step = keptStep(player, goal) ?? plan();
   if (step && occupied(step)) {
     goal.avoid.push(step);
     step = plan() ?? step;
@@ -567,6 +591,7 @@ function followPath(
     return;
   }
   applyMovement(player, target, false);
+  goal.next = (goal.next ?? 0) + 1;
 }
 
 /**
