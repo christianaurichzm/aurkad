@@ -356,8 +356,14 @@ async function shutdown(signal: string, exitCode = 0) {
   await stopWebSocketServer();
   await httpClose;
 
-  const replayPath = flushReplay();
-  if (replayPath) logger.info('[Replay] Session saved', { path: replayPath });
+  // A recording that fails to write must not keep the players below from
+  // being saved.
+  try {
+    const replayPath = flushReplay();
+    if (replayPath) logger.info('[Replay] Session saved', { path: replayPath });
+  } catch (err) {
+    logger.error('[Replay] saving the session on shutdown failed', { err });
+  }
 
   logger.info('[Shutdown] Persisting player states...');
   const { saved, failed } = await persistPlayersOnShutdown(getAllPlayers());
