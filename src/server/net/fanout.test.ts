@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 import type WebSocket from 'ws';
 import type { ChatMessagePayload } from '../../shared/types.js';
 import { emitGameEvent } from '../engine/eventBus.js';
@@ -115,6 +115,24 @@ describe('broadcastToMap', () => {
 
     expect(() => broadcastToMap(fx.map.id, chat('local'))).not.toThrow();
     expect(parsed(online)).toEqual([chat('local')]);
+  });
+});
+
+describe('a line to a map', () => {
+  it('is serialized once, however many stand on it', () => {
+    const sockets = ['a', 'b', 'here'].map((name) => {
+      fx.addPlayer({ name });
+      return connect(name);
+    });
+    const toJSON = vi.fn(() => chat('local'));
+    const line = { ...chat('local'), toJSON } as ChatMessagePayload;
+
+    broadcastMapChat('here', line);
+    broadcastToMap(fx.map.id, line);
+
+    expect(toJSON).toHaveBeenCalledTimes(2);
+    for (const ws of sockets)
+      expect(parsed(ws)).toEqual([chat('local'), chat('local')]);
   });
 });
 

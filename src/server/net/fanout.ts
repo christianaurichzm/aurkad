@@ -35,20 +35,22 @@ export function broadcastMapChat(
 ) {
   const player = getPlayerByName(senderUsername);
   const map = getMap(player?.mapId);
+  const data = JSON.stringify(message);
 
   Object.values(map?.players ?? {}).forEach((p) => {
     if (hearsFrom(p.name, message.username))
-      deliver(playersWsMap.get(p.name), JSON.stringify(message));
+      deliver(playersWsMap.get(p.name), data);
   });
 }
 
 export function broadcastToMap(mapId: string, message: ChatMessagePayload) {
   const map = getMap(mapId);
   if (!map) return;
+  const data = JSON.stringify(message);
 
   Object.values(map.players).forEach((player) => {
     if (hearsFrom(player.name, message.username))
-      deliver(playersWsMap.get(player.name), JSON.stringify(message));
+      deliver(playersWsMap.get(player.name), data);
   });
 }
 
