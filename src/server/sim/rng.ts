@@ -25,8 +25,9 @@ export function randomInt(maxExclusive: number): number {
   return Math.floor(nextRandom() * maxExclusive);
 }
 
+// Strict, as a draw can be exactly 0 and a 0% chance must never pass.
 export function randomChance(percent: number): boolean {
-  return nextRandom() * 100 <= percent;
+  return nextRandom() * 100 < percent;
 }
 
 export function randomPick<T>(items: T[]): T | undefined {

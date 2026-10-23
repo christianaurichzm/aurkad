@@ -42,6 +42,12 @@ describe('rng', () => {
     expect(randomChance(100)).toBe(true);
   });
 
+  it('randomChance(0) is false even on a draw of exactly 0', () => {
+    // The seed whose first step lands on state 0, the one state that draws 0.
+    seedRng(2463401483);
+    expect(randomChance(0)).toBe(false);
+  });
+
   it('randomPick returns undefined for an empty array', () => {
     expect(randomPick([])).toBeUndefined();
   });
