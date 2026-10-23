@@ -1,8 +1,9 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 import {
   beginTick,
   recordEntity,
   fragmentAt,
+  fullBody,
   gapDelta,
   fieldDelta,
   forgetReplicatedEntity,
@@ -59,9 +60,10 @@ describe('fragmentAt', () => {
     beginTick();
     recordEntity('a', { id: 'a', health: 10 });
 
-    const fragment = fragmentAt('a')?.full;
-    expect(fragment).toBeDefined();
-    expect(JSON.parse(fragment!)).toEqual({ id: 'a', health: 10 });
+    expect(JSON.parse(fullBody(fragmentAt('a')!))).toEqual({
+      id: 'a',
+      health: 10,
+    });
   });
 
   it('gives a viewer that knows the entity only the changed fields', () => {
@@ -72,7 +74,7 @@ describe('fragmentAt', () => {
 
     expect(JSON.parse(fragmentAt('a')!.delta!)).toEqual({ health: 4 });
     // Someone seeing it for the first time still needs all of it.
-    expect(JSON.parse(fragmentAt('a')!.full)).toEqual({
+    expect(JSON.parse(fullBody(fragmentAt('a')!))).toEqual({
       id: 'a',
       health: 4,
       action: 'Idle',
@@ -98,6 +100,19 @@ describe('fragmentAt', () => {
     recordEntity('a', { id: 'a', health: 10 });
     // The same string instance, so no viewer pays to build it again.
     expect(fragmentAt('a')).toBe(fragmentAt('a'));
+  });
+
+  // Most ticks nobody meets a given entity for the first time.
+  it('serializes the full state only when a viewer asks, once a tick', () => {
+    const toJSON = vi.fn(() => ({ id: 'a' }));
+    beginTick();
+    recordEntity('a', { id: 'a', toJSON });
+    expect(toJSON).not.toHaveBeenCalled();
+
+    const fragment = fragmentAt('a')!;
+    expect(fullBody(fragment)).toBe('{"id":"a"}');
+    expect(fullBody(fragment)).toBe(fullBody(fragment));
+    expect(toJSON).toHaveBeenCalledTimes(1);
   });
 });
 
@@ -194,7 +209,7 @@ describe('resyncBody', () => {
     // What an entity entering a viewport gets is inserted whole, so the key is
     // simply absent there. A viewer that already holds the entity merges, and
     // for it the key has to arrive as an explicit clear or it never goes away.
-    expect(JSON.parse(fragment.full)).toEqual({ id: 'a', health: 10 });
+    expect(JSON.parse(fullBody(fragment))).toEqual({ id: 'a', health: 10 });
     expect(JSON.parse(resyncBody(fragment))).toEqual({
       id: 'a',
       health: 10,
@@ -240,7 +255,7 @@ describe('forgetReplicatedEntity', () => {
     recordEntity('a', { id: 'a', health: 99 });
     // With no history the entity must be treated as new: full state, no delta.
     expect(fragmentAt('a')?.delta).toBeUndefined();
-    expect(JSON.parse(fragmentAt('a')!.full)).toEqual({
+    expect(JSON.parse(fullBody(fragmentAt('a')!))).toEqual({
       id: 'a',
       health: 99,
     });

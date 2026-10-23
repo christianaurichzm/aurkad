@@ -24,6 +24,7 @@ import {
   beginTick,
   currentTick,
   fragmentAt,
+  fullBody,
   gapDelta,
   slotOwnerId,
   slotCapacity,
@@ -252,7 +253,7 @@ function sendWorldUpdate(
       body = merged ?? resyncBody(fragment);
       isDelta = merged !== null;
     } else {
-      body = fragment.full;
+      body = fullBody(fragment);
     }
 
     if (body === undefined) continue;

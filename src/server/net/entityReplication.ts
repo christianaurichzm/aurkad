@@ -6,14 +6,14 @@
 // object-graph walking, which is most of the broadcast in a crowd.
 //
 // Usage per tick: beginTick() -> recordEntity() for every live entity ->
-// fragmentAt() per viewer, then gapDelta()/resyncBody() for one that already
-// knows the entity.
+// fragmentAt() per viewer, then fullBody() for one meeting the entity, or
+// gapDelta()/resyncBody() for one that already knows it.
 
 type PublicState = Record<string, unknown>;
 
 export interface Fragment {
-  /** Full state, for an entity entering a viewport. */
-  full: string;
+  /** Built on demand by `fullBody`, at most once per entity per tick. */
+  full?: string;
   /** Only the fields that changed this tick; undefined when nothing changed. */
   delta: string | undefined;
   /**
@@ -201,7 +201,6 @@ export function fieldDelta(
 /** Build and cache this tick's fragments for one entity. */
 export function recordEntity(id: string, pub: PublicState): void {
   const prev = previous.get(id);
-  const full = JSON.stringify(pub);
 
   const changed = prev ? fieldDelta(prev, pub) : null;
   const delta = changed ? JSON.stringify(changed) : undefined;
@@ -221,7 +220,6 @@ export function recordEntity(id: string, pub: PublicState): void {
   historyDelta[cell] = changed;
 
   fragments.set(id, {
-    full,
     delta,
     quotedId: JSON.stringify(id),
     slot,
@@ -240,6 +238,14 @@ export function recordEntity(id: string, pub: PublicState): void {
  */
 export function fragmentAt(id: string): Fragment | undefined {
   return fragments.get(id);
+}
+
+/**
+ * Full state, for a viewer that does not hold this entity and inserts it
+ * whole. Built on demand, as most ticks nobody meets a given entity anew.
+ */
+export function fullBody(fragment: Fragment): string {
+  return (fragment.full ??= JSON.stringify(fragment.pub));
 }
 
 /**
@@ -274,7 +280,7 @@ export function gapDelta(fragment: Fragment, gap: number): string | null {
 
 /**
  * Body that brings a viewer which already HAS this entity back to the
- * current state after missed ticks. Unlike `full`, which a client inserts
+ * current state after missed ticks. Unlike `fullBody`, which a client inserts
  * whole, this is merged, and a merge cannot express "this field went away"
  * since `JSON.stringify` drops undefined keys. So absent fields are spelled
  * out as CLEARED, as the deltas do: those set to undefined and those the

@@ -7,6 +7,7 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import {
   recordEntity,
   fragmentAt,
+  fullBody,
   resetEntityReplication,
   beginTick,
 } from './entityReplication.js';
@@ -37,7 +38,7 @@ describe('forgetReplicatedEntity', () => {
     // With no baseline there is nothing to diff against, so no delta; the
     // viewer is given full state instead.
     expect(fragmentAt('e1')?.delta).toBeUndefined();
-    expect(fragmentAt('e1')?.full).toBe('{"health":10}');
+    expect(fullBody(fragmentAt('e1')!)).toBe('{"health":10}');
   });
 });
 
@@ -62,7 +63,7 @@ describe('despawnNpc', () => {
     beginTick();
     recordEntity(npc.id, { health: 5 });
     // A baseline left behind would make this a no-change delta instead.
-    expect(fragmentAt(npc.id)?.full).toBe('{"health":5}');
+    expect(fullBody(fragmentAt(npc.id)!)).toBe('{"health":5}');
     expect(fragmentAt(npc.id)?.delta).toBeUndefined();
   });
 
