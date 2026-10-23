@@ -4,6 +4,7 @@ import type { MongoMemoryServer } from 'mongodb-memory-server';
 import { startMemoryMongo } from '../../test/mongo.js';
 import { config } from '../config.js';
 import {
+  claimMaps,
   lookupInstanceUrl,
   refreshRegistry,
   registerInstance,
@@ -40,4 +41,25 @@ it('keeps an instance on the slowest accepted heartbeat between its beats', asyn
   vi.setSystemTime(Date.now() + 2 * 300_000);
   await refreshRegistry();
   expect(lookupInstanceUrl('1')).toBeUndefined();
+});
+
+it('refuses to boot on a map a live instance serves, and leaves no entry', async () => {
+  await registerInstance('ws://c', ['10', '11']);
+
+  await expect(claimMaps('ws://d', ['11', '12'])).rejects.toThrow(
+    'ws://c (11)',
+  );
+  await refreshRegistry();
+  expect(lookupInstanceUrl('11')).toBe('ws://c');
+  expect(lookupInstanceUrl('12')).toBeUndefined();
+});
+
+it('takes over the maps of an instance whose claim has lapsed', async () => {
+  vi.useFakeTimers({ toFake: ['Date'] });
+  await registerInstance('ws://e', ['20']);
+  vi.setSystemTime(Date.now() + 3 * defaultBeat + 1);
+
+  await claimMaps('ws://f', ['20']);
+  await refreshRegistry();
+  expect(lookupInstanceUrl('20')).toBe('ws://f');
 });

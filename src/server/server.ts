@@ -99,6 +99,7 @@ import {
 } from './engine/modules/moduleLoader.js';
 import { startRecording, flushReplay } from './sim/replayRecorder.js';
 import {
+  claimMaps,
   registerInstance,
   deregisterInstance,
   refreshRegistry,
@@ -246,7 +247,7 @@ async function startServer() {
     // the registry to it.
     if (wsPublicUrl) {
       if (mapIds) {
-        await registerInstance(wsPublicUrl, mapIds);
+        await claimMaps(wsPublicUrl, mapIds);
         await refreshRegistry();
       }
       // A missed beat must not be fatal: the registry entry has a TTL, so the
