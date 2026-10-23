@@ -245,8 +245,8 @@ WS_PUBLIC_URL=ws://host:8081 MAP_IDS=map3,map4 PORT=8081 npm start
 
 In Docker, each instance is one more service in `compose.yml`, beside `app`
 and on the same image. Each needs its own `WS_PUBLIC_URL` and a `MAP_IDS` that
-overlaps no other's (one that does refuses to boot), so `app` gets the first
-pair too:
+overlaps no other's (one that does refuses to boot, and one that comes back
+from a pause to find its maps taken stops), so `app` gets the first pair too:
 
 ```yaml
 services:

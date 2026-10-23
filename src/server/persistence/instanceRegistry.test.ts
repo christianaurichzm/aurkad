@@ -8,6 +8,7 @@ import {
   lookupInstanceUrl,
   refreshRegistry,
   registerInstance,
+  renewInstance,
 } from './instanceRegistry.js';
 
 let mongod: MongoMemoryServer;
@@ -62,4 +63,33 @@ it('takes over the maps of an instance whose claim has lapsed', async () => {
   await claimMaps('ws://f', ['20']);
   await refreshRegistry();
   expect(lookupInstanceUrl('20')).toBe('ws://f');
+});
+
+it('renews a claim it still holds', async () => {
+  await registerInstance('ws://g', ['30']);
+
+  expect(await renewInstance('ws://g', ['30'])).toBe(true);
+});
+
+// A pause longer than three beats (a suspended VM, a partition) ends with
+// this instance still simulating maps another one booted onto meanwhile.
+it('gives up when its maps were taken while its claim had lapsed', async () => {
+  vi.useFakeTimers({ toFake: ['Date'] });
+  await registerInstance('ws://h', ['31']);
+  vi.setSystemTime(Date.now() + 3 * defaultBeat + 1);
+  await claimMaps('ws://i', ['31']);
+
+  expect(await renewInstance('ws://h', ['31'])).toBe(false);
+  await refreshRegistry();
+  expect(lookupInstanceUrl('31')).toBe('ws://i');
+});
+
+it('takes its maps back when nobody claimed them while it was away', async () => {
+  vi.useFakeTimers({ toFake: ['Date'] });
+  await registerInstance('ws://j', ['32']);
+  vi.setSystemTime(Date.now() + 3 * defaultBeat + 1);
+
+  expect(await renewInstance('ws://j', ['32'])).toBe(true);
+  await refreshRegistry();
+  expect(lookupInstanceUrl('32')).toBe('ws://j');
 });

@@ -100,7 +100,7 @@ import {
 import { startRecording, flushReplay } from './sim/replayRecorder.js';
 import {
   claimMaps,
-  registerInstance,
+  renewInstance,
   deregisterInstance,
   refreshRegistry,
 } from './persistence/instanceRegistry.js';
@@ -258,7 +258,14 @@ async function startServer() {
         void (async () => {
           try {
             if (mapIds) {
-              await registerInstance(wsPublicUrl, mapIds);
+              if (!(await renewInstance(wsPublicUrl, mapIds))) {
+                logger.error('[instance] maps taken over while away', {
+                  wsPublicUrl,
+                  mapIds,
+                });
+                void shutdown('maps taken over', 1);
+                return;
+              }
               await refreshRegistry();
             }
             await renewPresence();

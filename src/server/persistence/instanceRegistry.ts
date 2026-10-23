@@ -15,15 +15,17 @@ const InstanceModel = mongoose.model('Instance', InstanceSchema);
 
 const _cache = new Map<string, string>(); // mapId -> wsUrl
 
+// Like the presence lease, three beats: missing one is not dying.
+const claimExpiry = () =>
+  new Date(Date.now() + config.instance.heartbeatMs * 3);
+
 export async function registerInstance(
   wsUrl: string,
   mapIds: string[],
 ): Promise<void> {
-  // Like the presence lease, three beats: missing one is not dying.
-  const expiresAt = new Date(Date.now() + config.instance.heartbeatMs * 3);
   await InstanceModel.updateOne(
     { wsUrl },
-    { wsUrl, mapIds, expiresAt },
+    { wsUrl, mapIds, expiresAt: claimExpiry() },
     { upsert: true },
   );
 }
@@ -31,6 +33,8 @@ export async function registerInstance(
 export async function deregisterInstance(wsUrl: string): Promise<void> {
   await InstanceModel.deleteOne({ wsUrl });
 }
+
+class MapsTakenError extends Error {}
 
 // The boot's register, refusing maps a live instance already serves: both
 // would simulate them, so every spawn and drop would exist twice. Checked
@@ -54,10 +58,33 @@ export async function claimMaps(
     (doc) =>
       `${doc.wsUrl} (${doc.mapIds.filter((id) => mapIds.includes(id)).join(', ')})`,
   );
-  throw new Error(
+  throw new MapsTakenError(
     `MAP_IDS overlap a live instance: ${claims.join('; ')}. A crashed ` +
       'instance keeps its maps for three heartbeats.',
   );
+}
+
+/**
+ * The beat's register. A claim that lapsed (a pause past three beats) may
+ * have been taken by an instance that booted meanwhile and simulates the
+ * same maps now; false then, as this one has to stop.
+ */
+export async function renewInstance(
+  wsUrl: string,
+  mapIds: string[],
+): Promise<boolean> {
+  const { matchedCount } = await InstanceModel.updateOne(
+    { wsUrl, expiresAt: { $gt: new Date() } },
+    { $set: { mapIds, expiresAt: claimExpiry() } },
+  );
+  if (matchedCount > 0) return true;
+  try {
+    await claimMaps(wsUrl, mapIds);
+    return true;
+  } catch (err) {
+    if (err instanceof MapsTakenError) return false;
+    throw err;
+  }
 }
 
 export async function refreshRegistry(): Promise<void> {
