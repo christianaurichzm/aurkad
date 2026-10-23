@@ -17,9 +17,11 @@
 // Bots on the server's machine compete with it, so treat those numbers as a
 // floor. Every bot comes from one address, so raise AUTH_RATE_LIMIT_MAX and
 // HTTP_RATE_LIMIT_MAX first, and set ANALYTICS_ENABLED=false so the run does
-// not land in the activity history.
+// not land in the activity history. Against a production build, also set
+// TRUST_PROXY=1: its session cookie is Secure, and the bots talk plain http
+// while claiming a TLS proxy.
 
-import { LoadBot } from './load/bot.js';
+import { LoadBot, TLS_PROXY_HEADER } from './load/bot.js';
 import {
   SCENARIOS,
   findScenario,
@@ -156,7 +158,7 @@ async function adminCookie(): Promise<string | null> {
   try {
     const res = await fetch(`${baseUrl}/login`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', ...TLS_PROXY_HEADER },
       body: JSON.stringify({ username: adminUser, password: adminPass }),
     });
     if (!res.ok) {

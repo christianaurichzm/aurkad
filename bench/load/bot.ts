@@ -7,6 +7,11 @@ import type { BotBehavior } from './scenarios.js';
 
 const ARROWS = ['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'] as const;
 
+// A production server sets its Secure session cookie only on a request it
+// believes arrived over TLS. This is the header the TLS proxy in front of it
+// adds, and the server ignores it unless TRUST_PROXY tells it to believe one.
+export const TLS_PROXY_HEADER = { 'X-Forwarded-Proto': 'https' };
+
 export interface BotOptions {
   baseUrl: string;
   username: string;
@@ -69,7 +74,7 @@ export class LoadBot {
   private async login(): Promise<void> {
     const res = await fetch(`${this.opts.baseUrl}/login`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', ...TLS_PROXY_HEADER },
       body: JSON.stringify({
         username: this.opts.username,
         password: this.opts.password,
