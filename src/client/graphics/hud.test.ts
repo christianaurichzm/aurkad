@@ -158,6 +158,24 @@ describe('renderNpcLabel', () => {
     expect(fontSize(rec.ctx.font)).toBeGreaterThanOrEqual(13);
   });
 
+  it('sets a name with no descenders closer to its role', () => {
+    const rec = recordingContext();
+    rec.ctx.measureText = (text: string) =>
+      ({
+        width: text.length * 6,
+        actualBoundingBoxDescent: /[gjpqy]/.test(text) ? 3 : 0,
+      }) as TextMetrics;
+    const gap = (label: string) => {
+      rec.calls.length = 0;
+      renderNpcLabel(npc(label), false, rec.ctx);
+      const [role, name] = rec.of('fillText').map((c) => c.args[2] as number);
+      return role - name;
+    };
+
+    expect(gap('Hobb, gravedigger')).toBe(13);
+    expect(gap('Agathe, sister')).toBe(14);
+  });
+
   // The health bar border is stroked on the same context right after the label,
   // so a widened outline that is not put back thickens every bar on screen.
   it('leaves lineWidth back at 1 for the health bar drawn next', () => {

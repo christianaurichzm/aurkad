@@ -114,6 +114,19 @@ const outlinedText = (
   ctx.textAlign = 'left';
 };
 
+const baselineAbove = (
+  ctx: CanvasRenderingContext2D,
+  text: string,
+  font: string,
+  y: number,
+) => {
+  ctx.font = font;
+  const descent = (s: string) =>
+    ctx.measureText(s).actualBoundingBoxDescent ?? 0;
+  const unused = descent('gjpqy') - descent(text);
+  return y - 14 + Math.max(0, Math.floor(unused / 2));
+};
+
 export const renderHUD = (
   player: Player | PlayerPublic,
   ctx: CanvasRenderingContext2D = playerCtx,
@@ -124,8 +137,10 @@ export const renderHUD = (
   const y = spriteTop(player.sprite, position.x, position.y) - NAME_CLEARANCE;
   const cx = x + TILE_SIZE / 2; // sprite center: names are centered over it
   const { world, playerNames, nameTag: tagColor } = hudTheme();
+  const text = getPlayerHudText(name, level, getGameBrand()?.levels !== false);
+  const font = `bold 15px ${world}`;
   // A tag sits under the name, as an NPC's role does (renderNpcLabel).
-  const nameY = nameTag ? y - 14 : y;
+  const nameY = nameTag ? baselineAbove(ctx, text, font, y) : y;
 
   worldText(ctx, cx, y, () => {
     if (nameTag) {
@@ -138,14 +153,7 @@ export const renderHUD = (
         nameTagColor ?? tagColor,
       );
     }
-    outlinedText(
-      ctx,
-      getPlayerHudText(name, level, getGameBrand()?.levels !== false),
-      cx,
-      nameY,
-      `bold 15px ${world}`,
-      nameColor ?? playerNames[access],
-    );
+    outlinedText(ctx, text, cx, nameY, font, nameColor ?? playerNames[access]);
 
     renderSpeechBubble(ctx, name, cx, nameY - 2);
   });
@@ -196,15 +204,17 @@ export const renderNpcLabel = (
   const y = top - (hasHealthBar ? HEALTH_BAR_CLEARANCE : NAME_CLEARANCE);
   const comma = npc.name.indexOf(',');
   const role = comma > 0 ? npc.name.slice(comma + 1).trim() : '';
+  const name = role ? npc.name.slice(0, comma) : npc.name;
+  const font = `bold 14px ${world}`;
 
   worldText(ctx, cx, y, () => {
     if (role) outlinedText(ctx, role, cx, y, `12px ${world}`, muted);
     outlinedText(
       ctx,
-      role ? npc.name.slice(0, comma) : npc.name,
+      name,
       cx,
-      role ? y - 14 : y,
-      `bold 14px ${world}`,
+      role ? baselineAbove(ctx, name, font, y) : y,
+      font,
       npcNames[npc.behavior] ?? npcNames.neutral,
     );
   });
