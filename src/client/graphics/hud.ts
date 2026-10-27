@@ -93,7 +93,9 @@ const outlinedText = (
 
   if (isDarkFill(ctx.fillStyle)) {
     ctx.shadowColor = 'rgba(255, 255, 255, 0.85)';
-    ctx.shadowBlur = 3;
+    // shadowBlur ignores the transform, unlike the outline's lineWidth, so it
+    // is scaled by hand to keep its width on a 2x canvas and under worldText.
+    ctx.shadowBlur = 3 * ctx.getTransform().a;
     // Two passes make a halo a black glyph reads against; more becomes a plate.
     ctx.fillText(text, x, y);
     ctx.fillText(text, x, y);

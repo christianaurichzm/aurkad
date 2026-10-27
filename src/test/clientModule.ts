@@ -94,6 +94,8 @@ export function recordingContext(
     // Not recorded: it has to answer, and 6px per character is close enough
     // for the layout maths that reads it back.
     measureText: (text: string) => ({ width: text.length * 6 }),
+    // The identity: the recorded transforms are not applied to a matrix.
+    getTransform: () => ({ a: 1, b: 0, c: 0, d: 1, e: 0, f: 0 }),
     createLinearGradient: () => ({ addColorStop: () => {} }),
     createRadialGradient: () => ({ addColorStop: () => {} }),
   };

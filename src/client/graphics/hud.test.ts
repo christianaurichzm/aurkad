@@ -252,6 +252,21 @@ describe('renderHUD', () => {
     expect(rec.ctx.shadowBlur).toBe(0);
   });
 
+  it('widens the halo with the scale the name is drawn at', () => {
+    const rec = recordingContext();
+    rec.ctx.getTransform = () => ({ a: 2 }) as DOMMatrix;
+    const blur: number[] = [];
+    const fill = rec.ctx.fillText.bind(rec.ctx);
+    rec.ctx.fillText = (...args) => {
+      blur.push(rec.ctx.shadowBlur);
+      fill(...args);
+    };
+
+    renderHUD(player(Access.ADMIN), rec.ctx);
+
+    expect(blur[0]).toBe(6);
+  });
+
   // A tag in a dark colour over an admin's name reads as one label with it:
   // both haloed, neither outlined.
   it('draws a tag in the colour set for it', () => {
