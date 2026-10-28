@@ -33,6 +33,7 @@ import {
   recordLogin,
   recordLogout,
   retention,
+  startAnalytics,
   startOfDay,
 } from './analyticsService.js';
 
@@ -133,6 +134,19 @@ describe('recording a session', () => {
     const row = await PlayerDayModel.findOne({}).lean();
     expect(row!.sessions).toBe(1);
     expect(row!.minutes).toBe(0);
+  });
+
+  it('records the length of every session a shutdown ends', async () => {
+    await makePlayer('Alice');
+    const stop = startAnalytics();
+    recordLogin('Alice', Date.now() - 10 * 60_000);
+
+    stop();
+    await flushAnalytics();
+
+    const row = await PlayerDayModel.findOne({ player: 'Alice' }).lean();
+    expect(row!.sessions).toBe(1);
+    expect(row!.minutes).toBeCloseTo(10, 0);
   });
 
   it('records nothing at all when it is switched off', async () => {

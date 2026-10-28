@@ -129,7 +129,9 @@ export function startAnalytics(): () => void {
   return () => {
     offJoin();
     offLeave();
-    openedAt.clear();
+    // A shutdown ends every session, and each has its length to record.
+    const at = Date.now();
+    for (const name of [...openedAt.keys()]) recordLogout(name, at);
   };
 }
 
