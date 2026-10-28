@@ -18,6 +18,7 @@ import {
   enterWorld,
   getPlayerByNameFromDb,
   getPlayerForAuthentication,
+  inAccountTurn,
   nameTaken,
   refuseEntry,
 } from '../../services/player/playerService.js';
@@ -119,101 +120,107 @@ export function createAuthRouter() {
         });
       }
 
-      const refused = await refuseEntry(playerDoc, requestLanguage(req));
-      if (refused) {
-        return res.status(refused.status).json({ message: refused.message });
-      }
+      // From the refusals to the world, one login, socket or departure of
+      // this account at a time (inAccountTurn).
+      return inAccountTurn(playerDoc.id, async () => {
+        const refused = await refuseEntry(playerDoc, requestLanguage(req));
+        if (refused) {
+          return res.status(refused.status).json({ message: refused.message });
+        }
 
-      const { authEpoch = 0 } = playerDoc;
+        const { authEpoch = 0 } = playerDoc;
 
-      const existingWs = playersWsMap.get(username);
-      if (existingWs?.readyState === WebSocket.OPEN) {
-        return res.status(409).json({
-          message: translateFor(
-            req,
-            'This account is already logged in from another session.',
-          ),
-        });
-      }
+        const existingWs = playersWsMap.get(username);
+        if (existingWs?.readyState === WebSocket.OPEN) {
+          return res.status(409).json({
+            message: translateFor(
+              req,
+              'This account is already logged in from another session.',
+            ),
+          });
+        }
 
-      // A character saved on a map another instance runs enters no map here:
-      // the socket the client opens next is what sends it there. The client
-      // opens that socket only once it has a map to open the game on, so the
-      // answer carries this one's outline, read before anything is held.
-      const awayMap = ownsMap(playerDoc.mapId)
-        ? null
-        : await getMapById(playerDoc.mapId);
+        // A character saved on a map another instance runs enters no map here:
+        // the socket the client opens next is what sends it there. The client
+        // opens that socket only once it has a map to open the game on, so the
+        // answer carries this one's outline, read before anything is held.
+        const awayMap = ownsMap(playerDoc.mapId)
+          ? null
+          : await getMapById(playerDoc.mapId);
 
-      // The socket above is this process only; the lease asks every
-      // instance. Whoever holds it may write this character, so a second
-      // session elsewhere would lose its progress to the first one's flush.
-      const presence = await acquirePresence(playerDoc.id, username);
-      if (!presence.ok) {
-        logger.warn('[presence] login refused, account held elsewhere', {
-          player: username,
-          owner: presence.owner,
-        });
-        return res.status(409).json({
-          message: translateFor(
-            req,
-            'This account is already logged in from another session.',
-          ),
-        });
-      }
-
-      // Read again under the lease: the instance that let go of it wrote its
-      // last save on the way out, and that can land after the read the
-      // password was checked against. Credentials and privileges must still
-      // belong to the generation read then, before bcrypt and the second
-      // factor, both of which yield to revocation.
-      const current = await getPlayerForAuthentication(username);
-      if (current?.authEpoch !== authEpoch) {
-        await releasePresence(playerDoc.id);
-        return res
-          .status(401)
-          .json({ message: translateFor(req, 'Invalid username or password') });
-      }
-      const { password: _pw, authEpoch: _epoch, ...character } = current;
-      const player = enrichPlayer(character);
-
-      // A new session, not the request's: a cookie planted beforehand (a
-      // sibling subdomain, plain http) is someone else's, and signing in on it
-      // signs them in too. Saved before the character enters the world, so a
-      // failure answers 500 and lets go of the lease with nobody left inside.
-      const saveError = await new Promise<unknown>((resolve) =>
-        req.session.regenerate((err) => {
-          if (err) return resolve(err);
-          // A cookie that outlives the browser, only for a session that
-          // exists. The week matches the store's own TTL, so the row and the
-          // cookie expire together instead of one outliving the other.
-          if (body.remember) {
-            req.session.cookie.maxAge = REMEMBERED_SESSION_MS;
-          }
-          req.session.username = username;
-          req.session.accessLevel = player.access ?? Access.USER;
-          req.session.authEpoch = authEpoch;
-          req.session.save(resolve);
-        }),
-      );
-      if (saveError) {
-        logger.error('Session save failed', { err: saveError });
-        // The lease was taken for a session that does not exist: held, it
-        // would keep this account out of every instance until it expired.
-        // Caught, as a rejection left loose ends the process.
-        void releasePresence(player.id).catch((err) =>
-          logger.error('[presence] release after a failed login failed', {
+        // The socket above is this process only; the lease asks every
+        // instance. Whoever holds it may write this character, so a second
+        // session elsewhere would lose its progress to the first one's flush.
+        const presence = await acquirePresence(playerDoc.id, username);
+        if (!presence.ok) {
+          logger.warn('[presence] login refused, account held elsewhere', {
             player: username,
-            err,
+            owner: presence.owner,
+          });
+          return res.status(409).json({
+            message: translateFor(
+              req,
+              'This account is already logged in from another session.',
+            ),
+          });
+        }
+
+        // Read again under the lease: the instance that let go of it wrote its
+        // last save on the way out, and that can land after the read the
+        // password was checked against. Credentials and privileges must still
+        // belong to the generation read then, before bcrypt and the second
+        // factor, both of which yield to revocation.
+        const current = await getPlayerForAuthentication(username);
+        if (current?.authEpoch !== authEpoch) {
+          if (presence.fresh) await releasePresence(playerDoc.id);
+          return res.status(401).json({
+            message: translateFor(req, 'Invalid username or password'),
+          });
+        }
+        const { password: _pw, authEpoch: _epoch, ...character } = current;
+        const player = enrichPlayer(character);
+
+        // A new session, not the request's: a cookie planted beforehand (a
+        // sibling subdomain, plain http) is someone else's, and signing in on it
+        // signs them in too. Saved before the character enters the world, so a
+        // failure answers 500 and lets go of the lease with nobody left inside.
+        const saveError = await new Promise<unknown>((resolve) =>
+          req.session.regenerate((err) => {
+            if (err) return resolve(err);
+            // A cookie that outlives the browser, only for a session that
+            // exists. The week matches the store's own TTL, so the row and the
+            // cookie expire together instead of one outliving the other.
+            if (body.remember) {
+              req.session.cookie.maxAge = REMEMBERED_SESSION_MS;
+            }
+            req.session.username = username;
+            req.session.accessLevel = player.access ?? Access.USER;
+            req.session.authEpoch = authEpoch;
+            req.session.save(resolve);
           }),
         );
-        return res.status(500).json({ message: 'Failed to save session' });
-      }
+        if (saveError) {
+          logger.error('Session save failed', { err: saveError });
+          // The lease was taken for a session that does not exist: held, it
+          // would keep this account out of every instance until it expired.
+          // Caught, as a rejection left loose ends the process.
+          if (presence.fresh) {
+            void releasePresence(player.id).catch((err) =>
+              logger.error('[presence] release after a failed login failed', {
+                player: username,
+                err,
+              }),
+            );
+          }
+          return res.status(500).json({ message: 'Failed to save session' });
+        }
 
-      const map = enterWorld(character) ?? awayMap;
-      res.status(200).json({
-        player,
-        map: map ? toMapMeta(map) : null,
-        ...(serverState.motd ? { motd: serverState.motd } : {}),
+        const map = enterWorld(character) ?? awayMap;
+        res.status(200).json({
+          player,
+          map: map ? toMapMeta(map) : null,
+          ...(serverState.motd ? { motd: serverState.motd } : {}),
+        });
       });
     },
   );

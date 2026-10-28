@@ -79,11 +79,19 @@ describe('taking an account', () => {
   it('takes one nobody holds, and remembers the token it stamped', async () => {
     await givePlayer('p1');
 
-    expect(await acquirePresence('p1', 'p1')).toEqual({ ok: true });
+    expect(await acquirePresence('p1', 'p1')).toEqual({
+      ok: true,
+      fresh: true,
+    });
 
     const lease = await leaseOf('p1');
     expect(lease?.owner).toBe('ws://alpha:8080');
     expect(presenceFence('p1')).toEqual({ 'lease.token': lease?.token });
+    // A second entry here finds it held, and must not let go of it on failure.
+    expect(await acquirePresence('p1', 'p1')).toEqual({
+      ok: true,
+      fresh: false,
+    });
   });
 
   it('refuses one another instance is holding, and says who has it', async () => {
@@ -104,7 +112,10 @@ describe('taking an account', () => {
     await givePlayer('p3');
     await heldByOther('p3', Date.now() - 1);
 
-    expect(await acquirePresence('p3', 'p3')).toEqual({ ok: true });
+    expect(await acquirePresence('p3', 'p3')).toEqual({
+      ok: true,
+      fresh: true,
+    });
     expect((await leaseOf('p3'))?.owner).toBe('ws://alpha:8080');
   });
 

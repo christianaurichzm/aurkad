@@ -43,23 +43,31 @@ import {
 // what this file owns is what the route does with the answer.
 // `taking` stands for whatever that instance writes on its way out, which can
 // land between the reads this route makes and the lease it takes; `release`
-// for a release whose write fails.
+// for a release whose write fails. `held` is this process's own lease.
 type PresenceAnswer = { ok: true } | { ok: false; owner: string };
 const presence = vi.hoisted(
   (): {
     answer: PresenceAnswer;
+    held: boolean;
     taking?: () => Promise<unknown>;
     release?: () => Promise<void>;
   } => ({
     answer: { ok: true },
+    held: false,
   }),
 );
 vi.mock('../../persistence/presence.js', () => ({
   acquirePresence: async () => {
     await presence.taking?.();
-    return presence.answer;
+    if (!presence.answer.ok) return presence.answer;
+    const fresh = !presence.held;
+    presence.held = true;
+    return { ok: true, fresh };
   },
-  releasePresence: () => presence.release?.() ?? Promise.resolve(),
+  releasePresence: () => {
+    presence.held = false;
+    return presence.release?.() ?? Promise.resolve();
+  },
   releaseAllPresence: () => Promise.resolve(),
   renewPresence: () => Promise.resolve(),
   presenceFence: () => ({}),
@@ -99,7 +107,7 @@ afterAll(async () => {
 // shared by the whole file leaves each test only the budget the ones before
 // it did not spend, and the file as a whole has to fit in
 // AUTH_RATE_LIMIT_MAX (20 by default).
-function authApp() {
+function authApp(store?: session.Store) {
   const built = express();
   built.use(express.json());
   built.use(
@@ -108,6 +116,7 @@ function authApp() {
       resave: false,
       saveUninitialized: false,
       cookie: { secure: false },
+      store,
     }),
   );
   built.use(createAuthRouter());
@@ -151,6 +160,7 @@ beforeEach(async () => {
   };
 
   playersWsMap.clear();
+  presence.held = false;
   serverState.mode = 'normal';
   serverState.motd = '';
 
@@ -317,6 +327,49 @@ describe('POST /login', () => {
 
     expect(res.status).toBe(500);
     expect(getPlayerByName('Alice')).toBeUndefined();
+  });
+
+  // Two tabs logging in at once: the lease is one per process, so the login
+  // whose session fails must not let go of it under the one that went in.
+  it('keeps the lease of a login that went in while another one failed', async () => {
+    await createPlayer('Alice', await hashPw('correcthorse'));
+    const store = new session.MemoryStore();
+    const set = store.set.bind(store);
+    let failFirst: ((err: Error) => void) | undefined;
+    const firstWrite = new Promise<void>((resolve) => {
+      store.set = (sid, value, done) => {
+        if (failFirst || !value.username) return set(sid, value, done);
+        failFirst = (err) => done?.(err);
+        resolve();
+      };
+    });
+    const app = authApp(store);
+    const login = () =>
+      request(app)
+        .post('/login')
+        .send({ username: 'Alice', password: 'correcthorse' })
+        .then((res) => res);
+
+    const first = login();
+    await firstWrite;
+    const secondTaking = new Promise<void>((resolve) => {
+      presence.taking = () => Promise.resolve(resolve());
+    });
+    onTestFinished(() => {
+      presence.taking = undefined;
+    });
+    const second = login();
+    // The second login takes the lease now, or waits for the first to end.
+    await Promise.race([
+      secondTaking,
+      new Promise((resolve) => setTimeout(resolve, 200)),
+    ]);
+    failFirst!(new Error('store down'));
+
+    expect((await first).status).toBe(500);
+    expect((await second).status).toBe(200);
+    expect(getPlayerByName('Alice')).toBeDefined();
+    expect(presence.held).toBe(true);
   });
 
   // The database that refused the session is likely to refuse the release

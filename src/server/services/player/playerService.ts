@@ -685,6 +685,25 @@ async function discardEconomicSessions(
 }
 
 /**
+ * One entry or departure per account at a time: each takes or lets go of the
+ * one lease this process holds, and interleaved, one lets go under another.
+ */
+const accountTurns = new Map<string, Promise<unknown>>();
+
+export function inAccountTurn<T>(
+  id: string,
+  run: () => Promise<T>,
+): Promise<T> {
+  const result = (accountTurns.get(id) ?? Promise.resolve()).then(run, run);
+  const tail = result.catch(() => undefined);
+  accountTurns.set(id, tail);
+  void tail.then(() => {
+    if (accountTurns.get(id) === tail) accountTurns.delete(id);
+  });
+  return result;
+}
+
+/**
  * Departures under way, by player id. A logout or a kick ends the character
  * and closes the socket, whose close asks for the same departure again. Run
  * twice, the second would write and let go of the lease after the first, by
@@ -706,7 +725,11 @@ export const disconnectPlayer = async (username?: string) => {
 
   let departure = departures.get(player.id);
   if (!departure) {
-    departure = depart(player).finally(() => departures.delete(player.id));
+    // Cleared inside the turn, so the entry queued behind it is not refused
+    // as a departure still under way.
+    departure = inAccountTurn(player.id, () =>
+      depart(player).finally(() => departures.delete(player.id)),
+    );
     departures.set(player.id, departure);
   }
   await departure;
@@ -887,23 +910,25 @@ export async function resumePlayer(username: string): Promise<string | null> {
   const record = await getPlayerByNameFromDb(username);
   if (!record) return 'This account no longer exists.';
 
-  const refused = await refuseEntry(record);
-  if (refused) return refused.message;
+  return inAccountTurn(record.id, async () => {
+    const refused = await refuseEntry(record);
+    if (refused) return refused.message;
 
-  const presence = await acquirePresence(record.id, username);
-  if (!presence.ok) {
-    return 'This account is already logged in from another session.';
-  }
+    const presence = await acquirePresence(record.id, username);
+    if (!presence.ok) {
+      return 'This account is already logged in from another session.';
+    }
 
-  // Read again under the lease: the instance that let go of it wrote its last
-  // save on the way out, and that can land after the read above. Entering
-  // with the older copy brings back whatever that session gave away.
-  const current = await getPlayerByNameFromDb(username);
-  if (!current) {
-    await releasePresence(record.id);
-    return 'This account no longer exists.';
-  }
-  const { password: _pw, ...player } = current;
-  enterWorld(player);
-  return null;
+    // Read again under the lease: the instance that let go of it wrote its
+    // last save on the way out, and that can land after the read above.
+    // Entering with the older copy brings back whatever that session gave away.
+    const current = await getPlayerByNameFromDb(username);
+    if (!current) {
+      if (presence.fresh) await releasePresence(record.id);
+      return 'This account no longer exists.';
+    }
+    const { password: _pw, ...player } = current;
+    enterWorld(player);
+    return null;
+  });
 }

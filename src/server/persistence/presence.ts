@@ -29,7 +29,13 @@ const LEASE_MS = config.instance.heartbeatMs * 3;
 /** playerId -> the lease this process holds. */
 const held = new Map<string, { name: string; token: string }>();
 
-export type PresenceResult = { ok: true } | { ok: false; owner: string };
+/**
+ * `fresh` when this process held no lease for the account before: only such
+ * an entry may let go of it on failure, as an older one belongs to a session
+ * still using it.
+ */
+export type PresenceResult =
+  { ok: true; fresh: boolean } | { ok: false; owner: string };
 
 /**
  * Takes the account for this instance, or says who has it. One conditional
@@ -41,7 +47,7 @@ export async function acquirePresence(
   id: string,
   name: string,
 ): Promise<PresenceResult> {
-  if (!owner) return { ok: true };
+  if (!owner) return { ok: true, fresh: true };
 
   const now = Date.now();
   const token = crypto.randomUUID();
@@ -64,8 +70,9 @@ export async function acquirePresence(
     return { ok: false, owner: current?.lease?.owner ?? 'another instance' };
   }
 
+  const fresh = !held.has(id);
   held.set(id, { name, token });
-  return { ok: true };
+  return { ok: true, fresh };
 }
 
 /**
