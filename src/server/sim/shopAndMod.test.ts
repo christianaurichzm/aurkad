@@ -101,6 +101,28 @@ describe('shop', () => {
     expect(player.inventory.items.find((i) => i.item === 10)?.quantity).toBe(1);
   });
 
+  it('refuses an item gone from the catalogue, and charges nothing', async () => {
+    sim.addItem({
+      id: 10,
+      name: 'Coin',
+      description: '',
+      sprite: 0,
+      type: 'money',
+    });
+    const player = sim.addPlayer({ name: 'Alice' });
+    player.inventory.items.push({ item: 10, quantity: 10 });
+    const shop = {
+      id: 's1',
+      name: 'Shop',
+      products: [{ itemId: 20, currency: 10, price: 3 }],
+    };
+
+    const bought = await buyShopItem(player, 20, shop);
+
+    expect(bought).toEqual({ ok: false, reason: 'not-sold' });
+    expect(player.inventory.items).toEqual([{ item: 10, quantity: 10 }]);
+  });
+
   it('stacks item quantity if already owned', async () => {
     const coin = {
       id: 10,

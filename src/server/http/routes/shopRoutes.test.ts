@@ -73,6 +73,13 @@ describe('POST /shop/buy', () => {
 
   it('sells to a player still standing at the shop', async () => {
     const sim = createFixture(0);
+    sim.addItem({
+      id: SWORD,
+      name: 'Sword',
+      description: '',
+      sprite: 0,
+      type: 'weapon',
+    });
     sim.map.tiles[5]![5]!.shop = 'armoury';
     const alice = sim.addPlayer({
       name: 'Alice',

@@ -4,6 +4,7 @@ import { PlayerServer, ProductRaw, Shop } from '../../../shared/types.js';
 import { tileAt } from '../../../shared/mapGeometry.js';
 import { getMap, updatePlayer } from '../../sim/world.js';
 import { persistPlayersNow } from '../player/playerService.js';
+import { getItemById } from '../content/itemService.js';
 import {
   addItem,
   exchangeItems,
@@ -62,7 +63,10 @@ export const buyShopItem = async (
   shop: Shop<ProductRaw>,
 ): Promise<PurchaseResult> => {
   const product = shop.products.find((p) => p.itemId === itemId);
-  if (!product) return { ok: false, reason: 'not-sold' };
+  // A shelf outlives an item deleted from the catalogue, and one bought then
+  // is paid for and lands as an entry the bag can neither show nor drop.
+  if (!product || !getItemById(itemId))
+    return { ok: false, reason: 'not-sold' };
 
   // One exchange, so room is judged on the bag the payment leaves: a stack of
   // coins spent in full frees the slot the purchase goes into.
