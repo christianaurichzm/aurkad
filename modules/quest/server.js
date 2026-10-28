@@ -71,49 +71,80 @@ function save(player, bag) {
   return true;
 }
 
-// The quest completes either way: an item that does not fit is mailed, and
-// one the mailbox refuses stays owed until the next login.
+// The quest completes either way. What does not fit is owed, and the debt is
+// written with the completion before it is mailed, so a logout or a crash part
+// way leaves it owed rather than lost. Each row carries its debt's key, which
+// is how the next login tells a debt already mailed from one still owed; quest
+// and reward slot make it unique, as a quest is completed once.
 function payItems(player, id, items) {
   const unpaid = [];
-  for (const entry of items) {
+  items.forEach((entry, i) => {
     const quantity = entry.quantity || 1;
-    if (!giveItem(player, entry.itemId, quantity))
-      unpaid.push({ itemId: entry.itemId, quantity });
-  }
-  if (unpaid.length) void mail(player, id, unpaid);
+    if (!giveItem(player, entry.itemId, quantity)) {
+      const key = entry.key || id + ':' + i;
+      unpaid.push({ itemId: entry.itemId, quantity, key });
+    }
+  });
+  if (unpaid.length && owe(player, id, unpaid)) void mail(player, id, unpaid);
 }
 
-// The completion is written before the mail row, so a crash loses the item
-// rather than paying it twice.
 async function mail(player, id, items) {
   sendMessage(player, 'Your bag is full - the reward was mailed to you.');
-  if (!(await persistNow(player))) return owe(player, id, items);
+  if (!(await persistNow(player))) return;
   for (const entry of items) {
     const r = await delivery
-      .queue({ to: player.name, ...entry })
+      .queue({
+        to: player.name,
+        itemId: entry.itemId,
+        quantity: entry.quantity,
+        meta: { questOwed: entry.key },
+      })
       .catch((e) => ({ ok: false, reason: String(e) }));
-    if (r.ok) continue;
-    error('quest reward delivery refused: ' + r.reason);
-    owe(player, id, [entry]);
+    if (r.ok) settle(player, id, entry.key);
+    else error('quest reward delivery refused: ' + r.reason);
   }
 }
 
+// False when player data refused the debt, which is then lost.
 function owe(player, id, items) {
   const bag = bagOf(player);
-  if (!bag[id]) return;
+  if (!bag[id]) return false;
   bag[id].owed = [...(bag[id].owed || []), ...items];
-  if (save(player, bag)) void persistNow(player);
-  else error('quest ' + id + ' reward lost: player data refused it');
+  if (save(player, bag)) return true;
+  error('quest ' + id + ' reward lost: player data refused it');
+  return false;
 }
 
-function payOwed(player) {
+function settle(player, id, key) {
+  const bag = bagOf(player);
+  const owed = bag[id] && bag[id].owed;
+  if (!owed) return;
+  const left = owed.filter((entry) => entry.key !== key);
+  if (left.length) bag[id].owed = left;
+  else delete bag[id].owed;
+  if (save(player, bag)) void persistNow(player);
+}
+
+// Without the mailbox's answer a debt stays owed for the next login: paid
+// blind, one whose row was queued would be paid twice.
+async function payOwed(player) {
+  if (!Object.values(bagOf(player)).some((q) => q.owed)) return;
+  const rows = await delivery.list(player.name).catch(() => null);
+  if (!rows) return;
+  const mailed = rows
+    .map((row) => row.meta && row.meta.questOwed)
+    .filter(Boolean);
   const bag = bagOf(player);
   for (const id of Object.keys(bag)) {
     const owed = bag[id].owed;
     if (!owed) continue;
     delete bag[id].owed;
     if (!save(player, bag)) return;
-    payItems(player, id, owed);
+    payItems(
+      player,
+      id,
+      owed.filter((entry) => !mailed.includes(entry.key)),
+    );
   }
 }
 
@@ -197,7 +228,7 @@ provide('quest', { define, start, advance, complete, get });
 on('playerJoin', ({ player }) => {
   const bag = bagOf(player);
   if (Object.keys(bag).length > 0) save(player, bag);
-  payOwed(player);
+  void payOwed(player);
 });
 
 on('customAction', ({ player, channel }) => {
