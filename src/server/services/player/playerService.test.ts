@@ -293,6 +293,22 @@ describe('entering the world', () => {
     },
   );
 
+  it('puts a character saved on a dungeon map in a copy of its own', () => {
+    const fx = createFixture();
+    fx.map.instanced = true;
+    onTestFinished(clearInstancesForTest);
+    const ann = mkPlayer({ id: 'a', name: 'Ann', mapId: fx.mapId });
+    const bo = mkPlayer({ id: 'b', name: 'Bo', mapId: fx.mapId });
+
+    const annMap = enterWorld(ann);
+    const boMap = enterWorld(bo);
+
+    expect(annMap?.id).toBe(ann.mapId);
+    expect(boMap?.id).toBe(bo.mapId);
+    expect(ann.mapId).not.toBe(bo.mapId);
+    expect(fx.map.players).toEqual({});
+  });
+
   it('pins what an unrecorded slot gives, so deleting the item cannot strand it', () => {
     const fx = createFixture();
     items.set(77, {

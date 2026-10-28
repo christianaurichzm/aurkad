@@ -50,7 +50,12 @@ import {
 import { activeBan, banPlayer } from './banService.js';
 import { serverState } from '../serverState.js';
 import { publishToInstances } from '../../persistence/instanceBus.js';
-import { forgetEntrance, persistedLocation } from '../world/instanceService.js';
+import {
+  enterInstance,
+  forgetEntrance,
+  isInstancedMap,
+  persistedLocation,
+} from '../world/instanceService.js';
 import {
   supportsTransactions,
   withTransaction,
@@ -886,7 +891,14 @@ export function enterWorld(player: PlayerServer) {
       (player.equippedEffects ??= {})[slot] = effects.map((e) => ({ ...e }));
     }
   }
-  if (!getRegisteredPlayer(player.id)) registerPlayer(player);
+  if (!getRegisteredPlayer(player.id)) {
+    // Saved on a dungeon's own map, as a warp from another instance leaves
+    // it: a dungeon is played in a copy, and nothing runs the map they copy.
+    if (isInstancedMap(player.mapId)) {
+      player.mapId = enterInstance(player, player.mapId) ?? player.mapId;
+    }
+    registerPlayer(player);
+  }
   const map = addPlayerOnMap(player.id);
   emit('playerJoin', { player });
   return map;
