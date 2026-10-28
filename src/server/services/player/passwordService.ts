@@ -33,7 +33,7 @@ const hashToken = (token: string) =>
 
 async function mintToken(
   username: string,
-  bound: { authEpoch: number; email?: string },
+  bound: { authEpoch: number; email?: string; sentTo?: string },
 ) {
   const token = crypto.randomBytes(32).toString('base64url');
   const expiresAt = new Date(Date.now() + RESET_TOKEN_TTL_MS);
@@ -74,18 +74,21 @@ const inEpoch = (authEpoch: number) => ({
 
 /**
  * `proof` is what the caller's right to write was checked against: the
- * hash a change proved knowledge of, or the generation a reset link was
- * minted in. The write is conditional on it, because the hash is slow
- * enough for the other path to land in between, and whichever came second
- * would hand the account back to whoever the first locked out.
+ * hash a change proved knowledge of, or the generation and address a reset
+ * link was minted for. The write is conditional on it, because the hash is
+ * slow enough for the other path to land in between, and whichever came
+ * second would hand the account back to whoever the first locked out.
  */
 async function writePassword(
   username: string,
   password: string,
-  proof: { password: string } | { authEpoch: number },
+  proof: { password: string } | { authEpoch: number; sentTo?: string },
 ): Promise<boolean> {
   const hash = await bcrypt.hash(password, SALT_ROUNDS);
-  const guard = 'authEpoch' in proof ? inEpoch(proof.authEpoch) : proof;
+  const guard =
+    'authEpoch' in proof
+      ? { ...inEpoch(proof.authEpoch), email: proof.sentTo ?? null }
+      : proof;
   // One write, because a changed password with the earlier sessions still
   // alive is what an interruption must not leave behind: whoever is being
   // locked out is exactly who those sessions belong to.
@@ -139,7 +142,10 @@ export async function createResetToken(username: string): Promise<{
   const authEpoch = record && (await authEpochOf(record.name));
   if (!record || authEpoch === null) return null;
 
-  const token = await mintToken(record.name, { authEpoch });
+  const token = await mintToken(record.name, {
+    authEpoch,
+    sentTo: record.email,
+  });
   return { ...token, username: record.name, email: record.email };
 }
 
@@ -191,6 +197,7 @@ export async function consumeResetToken(
 
   return (await writePassword(row.username, newPassword, {
     authEpoch: row.authEpoch,
+    sentTo: row.sentTo ?? undefined,
   }))
     ? 'ok'
     : 'invalid-token';

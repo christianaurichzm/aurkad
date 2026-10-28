@@ -5,6 +5,7 @@ import {
   describe,
   it,
   expect,
+  onTestFinished,
   vi,
 } from 'vitest';
 import mongoose from 'mongoose';
@@ -12,6 +13,7 @@ import bcrypt from 'bcrypt';
 import type { MongoMemoryServer } from 'mongodb-memory-server';
 import { startMemoryMongo } from '../../../test/mongo.js';
 import PasswordResetModel from '../../model/PasswordReset.js';
+import { playerRepository } from '../../persistence/playerRepository.js';
 import {
   authEpochOf,
   createPlayer,
@@ -367,5 +369,46 @@ describe('address tokens', () => {
     await confirmEmailToken(minted.token);
 
     expect((await createResetToken('Alice'))?.email).toBe('alice@example.com');
+  });
+
+  const confirm = async (email: string) =>
+    confirmEmailToken(
+      (await createEmailToken('Alice', email, await epoch())).token,
+    );
+
+  it('kills a reset link sent to the address it replaces', async () => {
+    await confirm('old@example.com');
+    const reset = await createResetToken('Alice');
+
+    await confirm('new@example.com');
+
+    expect(await consumeResetToken(reset!.token, 'x-password')).toBe(
+      'invalid-token',
+    );
+    expect(await canLogInWith('old-password')).toBe(true);
+  });
+
+  // The address is read before the generation, and the owner can move both
+  // in between: the link then carries the new generation to the old inbox.
+  it('kills a reset link minted across an address change', async () => {
+    await confirm('old@example.com');
+    const find = playerRepository.findByName.bind(playerRepository);
+    const read = vi
+      .spyOn(playerRepository, 'findByName')
+      .mockImplementationOnce(async (name) => {
+        const before = await find(name);
+        await changePassword('Alice', 'old-password', 'new-password');
+        await confirm('new@example.com');
+        return before;
+      });
+    onTestFinished(() => read.mockRestore());
+
+    const reset = await createResetToken('Alice');
+
+    expect(reset?.email).toBe('old@example.com');
+    expect(await consumeResetToken(reset!.token, 'x-password')).toBe(
+      'invalid-token',
+    );
+    expect(await canLogInWith('new-password')).toBe(true);
   });
 });

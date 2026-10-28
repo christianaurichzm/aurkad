@@ -12,6 +12,10 @@ const PasswordResetSchema = new mongoose.Schema({
   // The account's generation when the link was minted. A password written
   // after that is a reason the link must not work, even mid-spend.
   authEpoch: Number,
+  // Where a reset link went. It sets a password only while that is still the
+  // account's address, so one left in an inbox the owner moved away from is
+  // dead. Absent for an account with no address.
+  sentTo: String,
 });
 
 // Expiry is enforced twice: Mongo sweeps on its own schedule, up to a minute
