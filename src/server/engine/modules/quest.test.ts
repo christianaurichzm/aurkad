@@ -407,6 +407,27 @@ describe('quest module with authored quests', () => {
       expect(alice.inventory.items).toEqual([]);
     });
 
+    // Room for the completion and none for the debt: completed, the reward
+    // would be gone for good.
+    it('leaves the quest open while player data has no room for the debt', async () => {
+      const { quest, alice } = await fullBag();
+      const limits = config.scriptData as { maxValueBytes: number };
+      const was = limits.maxValueBytes;
+      limits.maxValueBytes =
+        Buffer.byteLength(JSON.stringify(alice.data?.quests)) + 10;
+      onTestFinished(() => {
+        limits.maxValueBytes = was;
+      });
+
+      quest.advance(alice, 'orcs', 2);
+      expect(quest.get(alice, 'orcs')?.status).toBe('active');
+
+      limits.maxValueBytes = was;
+      quest.advance(alice, 'orcs', 2);
+      await vi.waitFor(() => expect(queueDelivery).toHaveBeenCalledOnce());
+      expect(quest.get(alice, 'orcs')?.status).toBe('completed');
+    });
+
     it('stays owed, unmailed, when the completion cannot be written', async () => {
       const { quest, alice, win } = await fullBag();
       persistPlayersNow.mockResolvedValueOnce(false);

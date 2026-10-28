@@ -71,21 +71,29 @@ function save(player, bag) {
   return true;
 }
 
-// The quest completes either way. What does not fit is owed, and the debt is
-// written with the completion before it is mailed, so a logout or a crash part
-// way leaves it owed rather than lost. Each debt is mailed under its own key,
-// which the delivery queue takes once per player, claimed or not, so mailing
-// it again cannot pay it twice.
-function payItems(player, id, items) {
-  const unpaid = [];
-  items.forEach((entry, i) => {
-    const quantity = entry.quantity || 1;
-    if (!giveItem(player, entry.itemId, quantity)) {
-      const key = id + ':' + i + ':' + Date.now();
-      unpaid.push({ itemId: entry.itemId, quantity, key });
-    }
-  });
-  if (!unpaid.length || !owe(player, id, unpaid)) return;
+// An item reward is owed from the completion on, written in the same save:
+// a debt player data has no room for refuses the completion too, rather than
+// completing it unpaid. What the bag takes is struck off and the rest mailed,
+// each debt under its own key, which the delivery queue takes once per
+// player, claimed or not, so mailing it again cannot pay it twice.
+function oweItems(id, items) {
+  const at = Date.now();
+  return items.map((entry, i) => ({
+    itemId: entry.itemId,
+    quantity: entry.quantity || 1,
+    key: id + ':' + i + ':' + at,
+  }));
+}
+
+function payItems(player, id, owed) {
+  const unpaid = owed.filter(
+    (entry) => !giveItem(player, entry.itemId, entry.quantity),
+  );
+  const paid = owed
+    .filter((entry) => !unpaid.includes(entry))
+    .map((entry) => entry.key);
+  if (paid.length) settle(player, id, paid);
+  if (!unpaid.length) return;
   sendMessage(player, 'Your bag is full - the reward was mailed to you.');
   void mail(player, id, unpaid);
 }
@@ -101,26 +109,16 @@ async function mail(player, id, items) {
         key: entry.key,
       })
       .catch((e) => ({ ok: false, reason: String(e) }));
-    if (r.ok) settle(player, id, entry.key);
+    if (r.ok) settle(player, id, [entry.key]);
     else error('quest reward delivery refused: ' + r.reason);
   }
 }
 
-// False when player data refused the debt, which is then lost.
-function owe(player, id, items) {
-  const bag = bagOf(player);
-  if (!bag[id]) return false;
-  bag[id].owed = [...(bag[id].owed || []), ...items];
-  if (save(player, bag)) return true;
-  error('quest ' + id + ' reward lost: player data refused it');
-  return false;
-}
-
-function settle(player, id, key) {
+function settle(player, id, keys) {
   const bag = bagOf(player);
   const owed = bag[id] && bag[id].owed;
   if (!owed) return;
-  const left = owed.filter((entry) => entry.key !== key);
+  const left = owed.filter((entry) => !keys.includes(entry.key));
   if (left.length) bag[id].owed = left;
   else delete bag[id].owed;
   if (save(player, bag)) void persistNow(player);
@@ -136,10 +134,13 @@ function payOwed(player) {
 }
 
 function finish(player, id, bag) {
+  const def = defOf(id);
+  const items = def && def.reward && def.reward.items;
+  const owed = items && items.length ? oweItems(id, items) : [];
   bag[id].status = 'completed';
+  if (owed.length) bag[id].owed = [...(bag[id].owed || []), ...owed];
   // Stored before paying, or a refused write lets the next kill pay again.
   if (!save(player, bag)) return;
-  const def = defOf(id);
   if (!def) return;
   // A script's reward is a function. An authored one describes the reward
   // and may name a handler, run last, for what a document cannot say.
@@ -153,7 +154,7 @@ function finish(player, id, bag) {
   }
   if (!def.reward) return;
   if (def.reward.experience) giveExperience(player, def.reward.experience);
-  if (def.reward.items) payItems(player, id, def.reward.items);
+  if (owed.length) payItems(player, id, owed);
   if (def.reward.script) {
     const handler = use('questReward.' + def.reward.script);
     if (typeof handler !== 'function') {
