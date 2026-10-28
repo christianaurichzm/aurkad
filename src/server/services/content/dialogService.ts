@@ -31,7 +31,7 @@ export const DialogSchema = z.object({
   nodes: z.array(DialogNodeSchema).min(1).max(100),
 });
 
-const dialogs = contentCache<Dialog>(DialogModel);
+const dialogs = contentCache<Dialog>(DialogModel, DialogSchema);
 
 export const getDialogById = dialogs.get;
 export const cachedDialogs = dialogs.all;

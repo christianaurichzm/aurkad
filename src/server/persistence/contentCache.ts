@@ -1,12 +1,18 @@
 import type { Model } from 'mongoose';
+import type { z } from 'zod';
+import { unsetAbsent } from '../services/dbService.js';
 
 /**
  * A content collection kept in memory as well as in the database, for
  * content read inside the tick (a dialog on interact, a loot table on a
  * kill, a quest objective, a recipe) where an async round trip will not do.
- * Writes go through here so the next read sees them.
+ * Writes go through here so the next read sees them. `schema` is the
+ * entry's shape, whose optional fields an entry leaves out are unset.
  */
-export function contentCache<T extends { id: string }>(model: Model<any>) {
+export function contentCache<T extends { id: string }>(
+  model: Model<any>,
+  schema: z.ZodObject<Record<string, z.ZodType>>,
+) {
   const byId = new Map<string, T>();
 
   return {
@@ -20,7 +26,13 @@ export function contentCache<T extends { id: string }>(model: Model<any>) {
     /** Read from the database: another instance may have written since load. */
     list: (): Promise<T[]> => model.find().lean<T[]>().exec(),
     upsert: async (entry: T): Promise<void> => {
-      await model.findOneAndUpdate({ id: entry.id }, entry, { upsert: true });
+      // mongoose casts a `$set` in place, turning the caller's lists into
+      // its own arrays, so it is handed a copy.
+      await model.findOneAndUpdate(
+        { id: entry.id },
+        { $set: structuredClone(entry), ...unsetAbsent(schema, entry) },
+        { upsert: true },
+      );
       // A copy, because the caller keeps its reference to the nested lists and
       // the cache is read inside the tick.
       byId.set(entry.id, structuredClone(entry));

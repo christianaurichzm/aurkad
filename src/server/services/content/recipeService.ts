@@ -24,7 +24,7 @@ export const RecipeSchema = z.object({
   condition: z.string().min(1).max(64).optional(),
 });
 
-const recipes = contentCache<Recipe>(RecipeModel);
+const recipes = contentCache<Recipe>(RecipeModel, RecipeSchema);
 
 export const cachedRecipes = recipes.all;
 export const loadRecipes = recipes.load;

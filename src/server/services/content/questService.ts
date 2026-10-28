@@ -51,7 +51,7 @@ export const QuestSchema = z.object({
     .optional(),
 });
 
-const quests = contentCache<Quest>(QuestModel);
+const quests = contentCache<Quest>(QuestModel, QuestSchema);
 
 export const getQuestById = quests.get;
 export const cachedQuests = quests.all;

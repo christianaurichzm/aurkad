@@ -90,7 +90,7 @@ describe('createOrUpdateLootTable', () => {
 
     expect(findOneAndUpdate).toHaveBeenCalledWith(
       { id: 'a' },
-      expect.objectContaining({ id: 'a' }),
+      expect.objectContaining({ $set: expect.objectContaining({ id: 'a' }) }),
       { upsert: true },
     );
   });

@@ -93,9 +93,23 @@ describe('createOrUpdateRecipe', () => {
 
     expect(findOneAndUpdate).toHaveBeenCalledWith(
       { id: 'a' },
-      expect.objectContaining({ id: 'a' }),
+      expect.objectContaining({ $set: expect.objectContaining({ id: 'a' }) }),
       { upsert: true },
     );
+  });
+
+  // The stored document is what the next boot loads, so a condition the
+  // editor took off has to go from it as well as from the cache.
+  it('unsets an optional field the new version leaves out', async () => {
+    await createOrUpdateRecipe({ ...recipe('a'), condition: 'old' });
+    await createOrUpdateRecipe(recipe('a'));
+
+    expect(findOneAndUpdate).toHaveBeenLastCalledWith(
+      { id: 'a' },
+      expect.objectContaining({ $unset: { condition: '' } }),
+      { upsert: true },
+    );
+    expect(getRecipeById('a')).not.toHaveProperty('condition');
   });
 
   // Deep, not shallow: the ingredient list is where the cost lives, and an

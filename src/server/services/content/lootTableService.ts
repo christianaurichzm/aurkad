@@ -36,7 +36,7 @@ export const LootTableSchema = z.object({
   emptyWeight: z.number().nonnegative().optional(),
 });
 
-const tables = contentCache<LootTable>(LootTableModel);
+const tables = contentCache<LootTable>(LootTableModel, LootTableSchema);
 
 /**
  * The table an npc's own drop list becomes, exactly: `guaranteed` entries
