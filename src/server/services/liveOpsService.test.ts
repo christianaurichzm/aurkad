@@ -147,6 +147,34 @@ describe('expiry', () => {
     );
   });
 
+  it('keeps a row another instance set again before this one heard', async () => {
+    freezeClockAt('2026-07-30T12:00:00Z');
+    await setFlag(XP_MULTIPLIER_FLAG, 2, { expiresAt: Date.now() + 1_000 });
+    await LiveOpsFlagModel.replaceOne(
+      { name: XP_MULTIPLIER_FLAG },
+      { name: XP_MULTIPLIER_FLAG, value: 3, setAt: new Date() },
+    );
+    vi.setSystemTime(new Date('2026-07-30T12:00:02Z'));
+    const deletes: Promise<unknown>[] = [];
+    const deleteOne = LiveOpsFlagModel.deleteOne.bind(LiveOpsFlagModel);
+    const spy = vi
+      .spyOn(LiveOpsFlagModel, 'deleteOne')
+      .mockImplementation((filter) => {
+        const done = deleteOne(filter).exec();
+        deletes.push(done);
+        return done as never;
+      });
+
+    sweepLiveOpsFlags();
+    await Promise.all(deletes);
+    spy.mockRestore();
+
+    expect(deletes).toHaveLength(1);
+    expect(
+      await LiveOpsFlagModel.countDocuments({ name: XP_MULTIPLIER_FLAG }),
+    ).toBe(1);
+  });
+
   it('keeps a flag with no expiry until someone clears it', async () => {
     await setFlag('forever', true);
     expect(await clearFlag('forever')).toBe(true);

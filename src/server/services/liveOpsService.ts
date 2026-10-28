@@ -127,9 +127,16 @@ function announce(flag: LiveOpsFlag, active: boolean): void {
   emit('liveOpsFlag', { name: flag.name, value: flag.value, active });
 }
 
-function deleteRow(name: string): void {
+/**
+ * Only while the row is still expired: another instance may have set the
+ * flag again before this one heard about it.
+ */
+function deleteExpiredRow(name: string, now: number): void {
   if (!databaseReachable()) return;
-  void LiveOpsFlagModel.deleteOne({ name }).catch((err) =>
+  void LiveOpsFlagModel.deleteOne({
+    name,
+    expiresAt: { $lte: new Date(now) },
+  }).catch((err) =>
     logger.error('[liveops] could not delete a flag row', { name, err }),
   );
 }
@@ -149,7 +156,7 @@ export function sweepLiveOpsFlags(): void {
     if (active !== announced.has(flag.name)) announce(flag, active);
     if (expired(flag, now)) {
       flags.delete(flag.name);
-      deleteRow(flag.name);
+      deleteExpiredRow(flag.name, now);
     }
   }
 }
@@ -309,7 +316,10 @@ export async function loadLiveOpsFlags(): Promise<void> {
   }
 
   if (gone.length) {
-    await LiveOpsFlagModel.deleteMany({ name: { $in: gone } });
+    await LiveOpsFlagModel.deleteMany({
+      name: { $in: gone },
+      expiresAt: { $lte: new Date() },
+    });
   }
   logger.info('[liveops] flags loaded', {
     active: announced.size,
