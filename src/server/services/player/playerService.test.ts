@@ -761,6 +761,35 @@ describe('resuming a session', () => {
     expect(await resumePlayer('Ann')).toBeNull();
     expect(getPlayerByName('Ann')?.inventory.items).toEqual([]);
   });
+
+  it('waits out a departure under way, then enters again', async () => {
+    const sim = createFixture(0);
+    const ann = sim.addPlayer({ name: 'Ann' });
+    let releaseSave!: () => void;
+    const saveHeld = new Promise<void>((resolve) => (releaseSave = resolve));
+    const save = vi
+      .spyOn(playerRepository, 'save')
+      .mockImplementation(async () => {
+        await saveHeld;
+        return true;
+      });
+    const read = vi
+      .spyOn(playerRepository, 'findByName')
+      .mockResolvedValue({ ...structuredClone(ann), password: 'hash' });
+    onTestFinished(() => {
+      save.mockRestore();
+      read.mockRestore();
+    });
+
+    const leaving = disconnectPlayer('Ann');
+    const resuming = resumePlayer('Ann');
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    releaseSave();
+    await leaving;
+
+    expect(await resuming).toBeNull();
+    expect(getPlayerByName('Ann')).toBeDefined();
+  });
 });
 
 describe('writes of one player', () => {

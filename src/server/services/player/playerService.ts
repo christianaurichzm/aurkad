@@ -917,12 +917,14 @@ export function enterWorld(player: PlayerServer) {
  * socket opened right after a login. Otherwise, why not.
  */
 export async function resumePlayer(username: string): Promise<string | null> {
-  if (getPlayerByName(username)) return null;
-
   const record = await getPlayerByNameFromDb(username);
   if (!record) return 'This account no longer exists.';
 
+  // Asked in the turn: a character still here may be on its way out (a kick
+  // drops the socket before the last write), and gone once the turn comes.
   return inAccountTurn(record.id, async () => {
+    if (getPlayerByName(username)) return null;
+
     const refused = await refuseEntry(record);
     if (refused) return refused.message;
 
