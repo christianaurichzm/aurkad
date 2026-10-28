@@ -864,6 +864,7 @@ interface PendingDelivery {
   source: string;
   /** Whatever the sender attached (sender name, message, expiry). */
   meta?: unknown;
+  key?: string;
   createdAt: number;
 }
 
@@ -876,12 +877,17 @@ interface PendingDelivery {
  *     if (!result.ok) sendMessage(sender, `Could not send: ${result.reason}`);
  */
 declare const delivery: {
-  /** Queue an item for a player, checking the item and player exist. */
+  /**
+   * Queue an item for a player, checking the item and player exist. A `key`
+   * is queued at most once per player, even after its row was claimed: a
+   * repeat answers ok and queues nothing, so a retry cannot pay twice.
+   */
   queue(input: {
     to: string;
     itemId: number;
     quantity?: number;
     meta?: unknown;
+    key?: string;
   }): Promise<DeliveryQueueResult>;
   /**
    * Queue an item taken from `from`'s inventory, debited in the same commit

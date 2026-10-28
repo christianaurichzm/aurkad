@@ -35,13 +35,10 @@ vi.mock('../../model/Quest.js', () => ({
 
 // No database here: the write that makes a completion durable and the mailbox
 // row are what the reward tests below steer.
-const { persistPlayersNow, queueDelivery, listDeliveries } = vi.hoisted(() => ({
+const { persistPlayersNow, queueDelivery } = vi.hoisted(() => ({
   persistPlayersNow: vi.fn(() => Promise.resolve(true)),
   queueDelivery: vi.fn((): Promise<{ ok: boolean; reason?: string }> =>
     Promise.resolve({ ok: true }),
-  ),
-  listDeliveries: vi.fn((): Promise<{ meta?: unknown }[]> =>
-    Promise.resolve([]),
   ),
 }));
 vi.mock('../../services/player/playerService.js', async (importOriginal) => ({
@@ -53,7 +50,6 @@ vi.mock(
   async (importOriginal) => ({
     ...(await importOriginal<object>()),
     queueDelivery,
-    listDeliveries,
   }),
 );
 
@@ -303,7 +299,6 @@ describe('quest module with authored quests', () => {
     beforeEach(() => {
       persistPlayersNow.mockClear();
       queueDelivery.mockClear();
-      listDeliveries.mockClear();
     });
 
     it('is mailed only once the completion is written', async () => {
@@ -323,14 +318,20 @@ describe('quest module with authored quests', () => {
         queueDelivery.mock.invocationCallOrder[0]!,
       );
       expect(queueDelivery.mock.calls[0]).toMatchObject([
-        { to: alice.name, itemId: 3, quantity: 2 },
+        { to: alice.name, itemId: 3, quantity: 2, key: expect.any(String) },
       ]);
       await vi.waitFor(() =>
         expect(quest.get(alice, 'orcs')).not.toHaveProperty('owed'),
       );
     });
 
-    it('stays owed when the mailbox refuses it, and is paid at the next login', async () => {
+    /** The keys the debt was mailed under, in order. */
+    const mailedKeys = () =>
+      (queueDelivery.mock.calls as unknown as [{ key: string }][]).map(
+        ([input]) => input.key,
+      );
+
+    it('stays owed when the mailbox refuses it, and is mailed again at the next login', async () => {
       const { quest, alice, win } = await fullBag();
       queueDelivery.mockResolvedValueOnce({
         ok: false,
@@ -347,30 +348,12 @@ describe('quest module with authored quests', () => {
       emit('playerJoin', { player: alice });
 
       await vi.waitFor(() =>
-        expect(alice.inventory.items).toEqual([{ item: 3, quantity: 2 }]),
+        expect(quest.get(alice, 'orcs')).not.toHaveProperty('owed'),
       );
-      expect(quest.get(alice, 'orcs')).not.toHaveProperty('owed');
-    });
-
-    it('pays a debt owed from before rows carried keys', async () => {
-      const { quest, alice, win } = await fullBag();
-      queueDelivery.mockResolvedValueOnce({
-        ok: false,
-        reason: 'mailbox-full',
-      });
-      await win();
-      const orcs = (alice.data?.quests as Record<string, { owed?: object[] }>)
-        .orcs!;
-      orcs.owed = [{ itemId: 3, quantity: 2 }];
-
-      alice.inventory.maxCapacity = 10;
-      listDeliveries.mockResolvedValueOnce([{ meta: { from: 'Bo' } }, {}]);
-      emit('playerJoin', { player: alice });
-
-      await vi.waitFor(() =>
-        expect(alice.inventory.items).toEqual([{ item: 3, quantity: 2 }]),
-      );
-      expect(quest.get(alice, 'orcs')).not.toHaveProperty('owed');
+      const [first, again] = mailedKeys();
+      expect(again).toBe(first);
+      // Paid into the bag, it could pay what a queued row already pays.
+      expect(alice.inventory.items).toEqual([]);
     });
 
     /** What the departure writes when the player leaves as the row is queued. */
@@ -405,24 +388,22 @@ describe('quest module with authored quests', () => {
       });
     });
 
-    it('is not paid again at the next login once a row holds it', async () => {
+    it('mails what the last session left owed again under the same key', async () => {
       const { quest, alice, win } = await fullBag();
       const written = leaveWhileMailing(alice, { ok: true });
       await win();
-      const key = (
-        written.quests?.orcs as { owed: { key: string }[] } | undefined
-      )?.owed[0]?.key;
-      expect(key).toBeDefined();
 
-      // The next session starts from that write, with the row still queued.
+      // The next session starts from that write, and can write its own.
       (alice.data ??= {}).quests = written.quests;
+      persistPlayersNow.mockResolvedValue(true);
       alice.inventory.maxCapacity = 10;
-      listDeliveries.mockResolvedValueOnce([{ meta: { questOwed: key } }]);
       emit('playerJoin', { player: alice });
 
       await vi.waitFor(() =>
         expect(quest.get(alice, 'orcs')).not.toHaveProperty('owed'),
       );
+      const [first, again] = mailedKeys();
+      expect(again).toBe(first);
       expect(alice.inventory.items).toEqual([]);
     });
 

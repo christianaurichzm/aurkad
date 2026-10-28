@@ -13,7 +13,7 @@ import mongoose from 'mongoose';
 import DeliveryModel from '../../model/Delivery.js';
 import AuctionModel from '../../model/Auction.js';
 import type { AuctionListing } from './auctionService.js';
-import { claimedDeliveryIds } from './deliveryService.js';
+import { claimedDeliveryIds, PENDING } from './deliveryService.js';
 import EconomyCensusModel from '../../model/EconomyCensus.js';
 import { runtimeState } from '../../sim/state.js';
 import { playerRepository } from '../../persistence/playerRepository.js';
@@ -166,7 +166,7 @@ export async function takeCensus(): Promise<EconomyCensus> {
   // A session whose document has not been written yet still holds items.
   for (const player of online.values()) countPlayer(tally, player, claimed);
 
-  const pending = await DeliveryModel.find()
+  const pending = await DeliveryModel.find(PENDING)
     .select('id itemId quantity to -_id')
     .lean<Array<{ id: string; itemId: number; quantity: number; to: string }>>()
     .exec();

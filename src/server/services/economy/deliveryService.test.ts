@@ -364,6 +364,23 @@ describe('queueDelivery', () => {
   });
 });
 
+describe('a keyed delivery', () => {
+  it('is queued once, even after its row was claimed', async () => {
+    await DeliveryModel.init();
+    const alice = await makePlayer('Alice');
+    const input = { to: 'Alice', itemId: SWORD, source: 'quest', key: 'k' };
+
+    const first = await queueDelivery(input);
+    expect(await queueDelivery(input)).toEqual(first);
+    await claimDeliveries(alice);
+    expect(await queueDelivery(input)).toEqual(first);
+
+    expect(alice.inventory.items).toEqual([{ item: SWORD, quantity: 1 }]);
+    expect(await countDeliveries('Alice')).toBe(0);
+    expect(await cancelDelivery((first as { id: string }).id)).toBe(false);
+  });
+});
+
 describe('claimDeliveries', () => {
   it('moves the item into the inventory and clears the row', async () => {
     const alice = await makePlayer('Alice');

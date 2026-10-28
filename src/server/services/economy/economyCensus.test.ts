@@ -230,6 +230,28 @@ describe('takeCensus', () => {
     expect(totalOf(await takeCensus(), SWORD)).toBe(1);
   });
 
+  it('leaves out the receipt a claimed keyed delivery keeps', async () => {
+    const sim = createFixture(0);
+    sim.addItem({
+      id: SWORD,
+      name: 'Sword',
+      description: '',
+      sprite: 0,
+      type: 'weapon',
+    });
+    const alice = await createPlayer('Alice', 'hash');
+    enterWorld(alice);
+    const input = { to: 'Alice', itemId: SWORD, source: 'quest' };
+    await queueDelivery({ ...input, key: 'k' });
+    await claimDeliveries(alice);
+    // A later claim forgets the first id, which then only the receipt holds.
+    await queueDelivery(input);
+    await claimDeliveries(alice);
+
+    expect(await DeliveryModel.countDocuments()).toBe(1);
+    expect(totalOf(await takeCensus(), SWORD)).toBe(2);
+  });
+
   it('counts what is lying on the ground', async () => {
     const sim = createFixture(0);
     sim.map.droppedItems.push({

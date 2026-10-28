@@ -621,6 +621,7 @@ export function buildApi(
         itemId: number;
         quantity?: number;
         meta?: unknown;
+        key?: string;
       }): Promise<QueueResult> =>
         queueDelivery({ ...input, source: scriptName }),
       // Queues this player's item: the debit and the row are one commit, so

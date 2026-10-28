@@ -17,7 +17,18 @@ const DeliverySchema = new mongoose.Schema({
   source: { type: String, required: true },
   /** Payload owned by whoever queued it (sender, message, expiry). */
   meta: { type: mongoose.Schema.Types.Mixed },
+  /**
+   * Set by a sender that must not pay twice. A keyed row stays once claimed,
+   * as the receipt that refuses the key again for that recipient.
+   */
+  key: { type: String },
+  claimedAt: { type: Number },
   createdAt: { type: Number, required: true },
 });
+
+DeliverySchema.index(
+  { to: 1, key: 1 },
+  { unique: true, partialFilterExpression: { key: { $exists: true } } },
+);
 
 export default mongoose.model('Delivery', DeliverySchema);

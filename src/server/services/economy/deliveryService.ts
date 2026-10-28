@@ -80,6 +80,9 @@ function oneSendAtATime<T>(to: string, send: () => Promise<T>): Promise<T> {
 /** Engine-owned key in the player's data bag, not a script's to manage. */
 const CLAIMED_KEY = '__claimedDeliveries';
 
+/** Rows still owed, as opposed to the receipts a claimed keyed row leaves. */
+export const PENDING = { claimedAt: { $exists: false } };
+
 export interface PendingDelivery {
   id: string;
   to: string;
@@ -87,6 +90,7 @@ export interface PendingDelivery {
   quantity: number;
   source: string;
   meta?: unknown;
+  key?: string;
   createdAt: number;
 }
 
@@ -114,6 +118,11 @@ export interface DeliveryInput {
   /** Module or script queueing it; recorded for auditing. */
   source: string;
   meta?: unknown;
+  /**
+   * Queued at most once per recipient, even after its row was claimed: a
+   * repeat answers ok with the first row's id and queues nothing.
+   */
+  key?: string;
 }
 
 /** What the sender pays on top of the item, such as postage. */
@@ -139,6 +148,7 @@ function toRow(doc: PendingDelivery): PendingDelivery {
     quantity: doc.quantity,
     source: doc.source,
     ...(doc.meta !== undefined && { meta: doc.meta }),
+    ...(doc.key !== undefined && { key: doc.key }),
     createdAt: doc.createdAt,
   };
 }
@@ -174,6 +184,7 @@ async function prepareRow(
 
   const pending = await DeliveryModel.countDocuments({
     to: recipientName,
+    ...PENDING,
   }).session(session ?? null);
   if (pending >= MAX_PENDING_PER_PLAYER) return fail('mailbox-full');
 
@@ -188,6 +199,7 @@ async function prepareRow(
       quantity,
       source: String(input.source),
       ...(input.meta !== undefined && { meta: input.meta }),
+      ...(input.key !== undefined && { key: String(input.key) }),
       createdAt: Date.now(),
     },
   };
@@ -202,9 +214,21 @@ export function queueDelivery(
     const prepared = await prepareRow(input, session);
     if (!prepared.ok) return prepared;
 
-    if (session) await DeliveryModel.create([prepared.row], { session });
-    else await DeliveryModel.create(prepared.row);
-    return { ok: true, id: prepared.row.id };
+    const { row } = prepared;
+    try {
+      if (session) await DeliveryModel.create([row], { session });
+      else await DeliveryModel.create(row);
+    } catch (err) {
+      // The key was queued before, so what it pays is waiting or claimed.
+      if (row.key === undefined || (err as { code?: number }).code !== 11000)
+        throw err;
+      const first = await DeliveryModel.findOne({ to: row.to, key: row.key })
+        .lean<PendingDelivery>()
+        .exec();
+      if (!first) throw err;
+      return { ok: true, id: first.id };
+    }
+    return { ok: true, id: row.id };
   });
 }
 
@@ -290,7 +314,7 @@ async function sendHeld(
 
 /** Everything waiting for a player, oldest first. */
 export async function listDeliveries(name: string): Promise<PendingDelivery[]> {
-  const rows = await DeliveryModel.find({ to: String(name) })
+  const rows = await DeliveryModel.find({ to: String(name), ...PENDING })
     .sort({ createdAt: 1 })
     .lean<PendingDelivery[]>()
     .exec();
@@ -298,12 +322,12 @@ export async function listDeliveries(name: string): Promise<PendingDelivery[]> {
 }
 
 export async function countDeliveries(name: string): Promise<number> {
-  return DeliveryModel.countDocuments({ to: String(name) });
+  return DeliveryModel.countDocuments({ to: String(name), ...PENDING });
 }
 
 /** Drops a queued row without delivering it (expiry, return to sender). */
 export async function cancelDelivery(id: string): Promise<boolean> {
-  const result = await DeliveryModel.deleteOne({ id: String(id) });
+  const result = await DeliveryModel.deleteOne({ id: String(id), ...PENDING });
   return result.deletedCount > 0;
 }
 
@@ -321,6 +345,7 @@ export async function sweepUnclaimableDeliveries(): Promise<number> {
 
   const { deletedCount } = await DeliveryModel.deleteMany({
     itemId: { $nin: known },
+    ...PENDING,
   });
   if (deletedCount > 0) {
     logger.warn(
@@ -446,7 +471,13 @@ async function claimHeld(
   }
 
   try {
-    await DeliveryModel.deleteMany({ id: { $in: settled } });
+    const rows = { id: { $in: settled } };
+    await DeliveryModel.deleteMany({ ...rows, key: { $exists: false } });
+    // A keyed row stays, claimed, as the receipt for its key.
+    await DeliveryModel.updateMany(
+      { ...rows, key: { $exists: true } },
+      { $set: { claimedAt: Date.now() } },
+    );
   } catch (err) {
     // The items are already saved, so the claim happened; the rows left behind
     // are skipped by the record above and cleared by the next claim.
