@@ -5,7 +5,15 @@
  * These cover only what unit/sim tests cannot: the round-trip through Mongoose
  * (schema transforms, minimize, $set partial updates) and the ban workflow.
  */
-import { beforeAll, afterAll, beforeEach, describe, it, expect } from 'vitest';
+import {
+  beforeAll,
+  afterAll,
+  beforeEach,
+  describe,
+  it,
+  expect,
+  vi,
+} from 'vitest';
 import mongoose from 'mongoose';
 import type { MongoMemoryServer } from 'mongodb-memory-server';
 import { startMemoryMongo } from '../../test/mongo.js';
@@ -23,10 +31,12 @@ import {
   getPlayerByNameFromDb,
 } from '../services/player/playerService.js';
 import {
+  activeBan,
   banPlayer,
   getBan,
   unbanPlayer,
 } from '../services/player/banService.js';
+import BanModel from '../model/Ban.js';
 
 let mongod: MongoMemoryServer;
 
@@ -295,5 +305,20 @@ describe('ban workflow', () => {
     await banPlayer('Repeat', 'for good');
 
     expect((await getBan('Repeat'))?.until).toBeUndefined();
+  });
+
+  it('clearing an expired ban keeps one renewed since it was read', async () => {
+    await banPlayer('Renewed', 'old', Date.now() - 1000);
+    const deleteOne = BanModel.deleteOne.bind(BanModel);
+    const spy = vi
+      .spyOn(BanModel, 'deleteOne')
+      .mockImplementationOnce((filter) => {
+        const renewedFirst = banPlayer('Renewed', 'new', Date.now() + 60_000);
+        return renewedFirst.then(() => deleteOne(filter)) as never;
+      });
+
+    expect((await activeBan('Renewed'))?.reason).toBe('new');
+    spy.mockRestore();
+    expect((await getBan('Renewed'))?.reason).toBe('new');
   });
 });

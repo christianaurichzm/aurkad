@@ -8,12 +8,17 @@ export async function getBan(username: string) {
  * The ban that holds on `username` at this moment. One whose time ran out
  * is cleared on the way, so the next read finds nothing either.
  */
-export async function activeBan(username: string) {
+export async function activeBan(username: string): ReturnType<typeof getBan> {
   const ban = await getBan(username);
   if (!ban) return null;
   if (!ban.until || Date.now() < ban.until) return ban;
-  await unbanPlayer(username);
-  return null;
+  // Only while the stored row is still the expired one: a ban renewed since
+  // the read holds, so the check runs again on it.
+  const { deletedCount } = await BanModel.deleteOne({
+    username,
+    until: { $lte: Date.now() },
+  });
+  return deletedCount ? null : activeBan(username);
 }
 
 export async function banPlayer(
