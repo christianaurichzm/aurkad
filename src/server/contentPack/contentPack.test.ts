@@ -19,7 +19,7 @@ import { logger } from '../logger.js';
 import { TILE_SIZE } from '../../shared/constants.js';
 import mongoose from 'mongoose';
 import fc from 'fast-check';
-import type { z } from 'zod';
+import { z } from 'zod';
 import type { MongoMemoryServer } from 'mongodb-memory-server';
 import { startMemoryMongo } from '../../test/mongo.js';
 import { importContentPack, exportContentPack, SPECS } from './contentPack.js';
@@ -928,20 +928,27 @@ describe('a generated pack', () => {
     keyType?: z.ZodType;
     valueType?: z.ZodType;
   };
-  type Bag = {
+  type Bounds = {
+    type?: string;
     minimum?: number;
     maximum?: number;
     exclusiveMinimum?: number;
     exclusiveMaximum?: number;
-    format?: string;
-    patterns?: Set<RegExp>;
+    minLength?: number;
+    maxLength?: number;
+    pattern?: string;
+    minItems?: number;
   };
   const inside = (schema: z.ZodType) =>
-    (schema as unknown as { _zod: { def: Def; bag: Bag } })._zod;
+    (schema as unknown as { _zod: { def: Def } })._zod;
+  // The JSON Schema export is the public way to read a schema's checks; zod's
+  // internals that hold them move between minor versions.
+  const bounds = (schema: z.ZodType) =>
+    z.toJSONSchema(schema, { unrepresentable: 'any' }) as Bounds;
 
   /** Values for a schema, kept small so a failure stays readable. */
   function arbitraryOf(schema: z.ZodType): fc.Arbitrary<unknown> {
-    const { def, bag } = inside(schema);
+    const { def } = inside(schema);
     switch (def.type) {
       case 'object': {
         const shape = def.shape!;
@@ -965,27 +972,29 @@ describe('a generated pack', () => {
       case 'nullable':
         return fc.option(arbitraryOf(def.innerType!), { nil: null });
       case 'string': {
-        const min = bag.minimum ?? 0;
-        const patterns = [...(bag.patterns ?? [])];
+        const { minLength: min = 0, maxLength, pattern } = bounds(schema);
         return fc
           .string({
             unit: fc.constantFrom('a', 'b', 'c', '#', '1', ' '),
             minLength: min,
-            maxLength: Math.min(bag.maximum ?? min + 5, min + 5),
+            maxLength: Math.min(maxLength ?? min + 5, min + 5),
           })
-          .filter((v) => patterns.every((p) => p.test(v)));
+          .filter((v) => !pattern || new RegExp(pattern).test(v));
       }
       case 'number': {
-        const int = bag.format?.includes('int');
+        const range = bounds(schema);
+        const int = range.type === 'integer';
         const step = int ? 1 : 0.25;
         const min = Math.max(
-          bag.minimum ?? -3,
-          bag.exclusiveMinimum !== undefined ? bag.exclusiveMinimum + step : -3,
+          range.minimum ?? -3,
+          range.exclusiveMinimum !== undefined
+            ? range.exclusiveMinimum + step
+            : -3,
         );
         const max = Math.min(
-          bag.maximum ?? Infinity,
-          bag.exclusiveMaximum !== undefined
-            ? bag.exclusiveMaximum - step
+          range.maximum ?? Infinity,
+          range.exclusiveMaximum !== undefined
+            ? range.exclusiveMaximum - step
             : Infinity,
           min + 40,
         );
@@ -1004,11 +1013,13 @@ describe('a generated pack', () => {
         return fc.constantFrom(...Object.values(def.entries!));
       case 'literal':
         return fc.constantFrom(...def.values!);
-      case 'array':
+      case 'array': {
+        const { minItems = 0 } = bounds(schema);
         return fc.array(arbitraryOf(def.element!), {
-          minLength: bag.minimum ?? 0,
-          maxLength: Math.max(bag.minimum ?? 0, 2),
+          minLength: minItems,
+          maxLength: Math.max(minItems, 2),
         });
+      }
       case 'union':
         return fc.oneof(...def.options!.map(arbitraryOf));
       case 'record':
