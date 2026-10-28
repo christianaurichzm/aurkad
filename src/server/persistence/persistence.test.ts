@@ -289,4 +289,11 @@ describe('ban workflow', () => {
 
     expect(await getBan('Alice')).toBeNull();
   });
+
+  it('a permanent ban drops the expiry of the temporary one before it', async () => {
+    await banPlayer('Repeat', 'first', Date.now() + 60_000);
+    await banPlayer('Repeat', 'for good');
+
+    expect((await getBan('Repeat'))?.until).toBeUndefined();
+  });
 });

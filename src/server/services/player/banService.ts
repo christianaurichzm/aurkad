@@ -21,7 +21,9 @@ export async function banPlayer(
   reason?: string,
   until?: number,
 ): Promise<void> {
-  await BanModel.findOneAndUpdate(
+  // Replaced whole, so a permanent ban does not keep the expiry of the
+  // temporary one before it.
+  await BanModel.replaceOne(
     { username },
     { username, reason, until },
     { upsert: true },
