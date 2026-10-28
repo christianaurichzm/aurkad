@@ -356,13 +356,16 @@ async function shutdown(signal: string, exitCode = 0) {
     server.close(() => resolve());
     // `close` stops new connections and waits for open ones, and an idle
     // keep-alive socket in a browser is open, so the wait would run to the
-    // force-exit timer before players are written. A request in flight still
-    // gets to finish.
+    // force-exit timer before players are written. A request in flight gets
+    // three seconds to finish and is cut after that: a body that never
+    // arrives would hold the same wait.
     server.closeIdleConnections();
   });
+  const httpGrace = setTimeout(() => server.closeAllConnections(), 3_000);
 
   await stopWebSocketServer();
   await httpClose;
+  clearTimeout(httpGrace);
 
   // A recording that fails to write must not keep the players below from
   // being saved.
