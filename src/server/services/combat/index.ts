@@ -263,9 +263,14 @@ export const resolveDamage = (
   if (damage <= 0) return 0;
 
   // After the clamp, so the ledger holds what was actually dealt rather than
-  // what a beforeDamage handler asked for.
+  // what a beforeDamage handler asked for, and no more than the health left:
+  // an overkill on a sliver would outweigh the fight before it.
   if (attacker?.kind === 'player') {
-    recordDamageContribution(target.id, attacker.id, damage);
+    recordDamageContribution(
+      target.id,
+      attacker.id,
+      Math.min(damage, target.health),
+    );
   }
 
   target.health -= damage;

@@ -193,6 +193,30 @@ describe('damage contribution', () => {
     expect(seen[0]?.[0]?.damage).toBeGreaterThan(seen[0]?.[1]?.damage ?? 0);
   });
 
+  // An overkill is not work: a huge last hit on a sliver of health would
+  // otherwise outweigh the whole fight before it.
+  it('credits a finishing blow only the health it took', () => {
+    const { sim, player } = setupWorld();
+    const bob = sim.addPlayer({ name: 'Bob', position: tile(2, 3) });
+    const npc = sim.addNpc({
+      id: 'g1',
+      position: tile(3, 2),
+      health: 100,
+      maxHealth: 100,
+    });
+
+    const seen: DamageContributor[][] = [];
+    on('npcDeath', ({ contributors }) => seen.push(contributors));
+
+    resolveDamage(npc, 99, { attacker: player, map: sim.map });
+    resolveDamage(npc, 1000, { attacker: bob, map: sim.map });
+
+    expect(seen[0]).toEqual([
+      { playerId: player.id, damage: 99 },
+      { playerId: bob.id, damage: 1 },
+    ]);
+  });
+
   it('starts the next fight from zero after a respawn reuses the id', () => {
     const { sim, player } = setupWorld();
     const npc = sim.addNpc({
