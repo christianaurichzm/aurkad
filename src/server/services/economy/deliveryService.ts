@@ -165,7 +165,8 @@ async function prepareRow(
   input: DeliveryInput,
   session?: ClientSession,
 ): Promise<
-  { ok: true; row: PendingDelivery } | { ok: false; reason: DeliveryFailure }
+  | { ok: true; row: PendingDelivery; existing?: true }
+  | { ok: false; reason: DeliveryFailure }
 > {
   const quantity = Math.floor(Number(input.quantity ?? 1));
   if (!Number.isFinite(quantity) || quantity < 1) return fail('invalid-amount');
@@ -180,6 +181,12 @@ async function prepareRow(
 
   if (input.meta !== undefined && !measureValue(input.meta).ok) {
     return fail('meta-too-large');
+  }
+
+  // Before the cap, so a key already queued is answered with a full mailbox.
+  if (input.key !== undefined) {
+    const first = await keyedRow(recipientName, String(input.key), session);
+    if (first) return { ok: true, row: first, existing: true };
   }
 
   const pending = await DeliveryModel.countDocuments({
@@ -205,6 +212,14 @@ async function prepareRow(
   };
 }
 
+/** The row a key was first queued as, claimed or not. */
+function keyedRow(to: string, key: string, session?: ClientSession) {
+  return DeliveryModel.findOne({ to, key })
+    .session(session ?? null)
+    .lean<PendingDelivery>()
+    .exec();
+}
+
 /** Queues an item for `to`, online or not, out of nowhere (a script grant). */
 export function queueDelivery(
   input: DeliveryInput,
@@ -213,8 +228,9 @@ export function queueDelivery(
   return oneSendAtATime(String(input.to), async () => {
     const prepared = await prepareRow(input, session);
     if (!prepared.ok) return prepared;
-
     const { row } = prepared;
+    if (prepared.existing) return { ok: true, id: row.id };
+
     try {
       if (session) await DeliveryModel.create([row], { session });
       else await DeliveryModel.create(row);
@@ -222,9 +238,7 @@ export function queueDelivery(
       // The key was queued before, so what it pays is waiting or claimed.
       if (row.key === undefined || (err as { code?: number }).code !== 11000)
         throw err;
-      const first = await DeliveryModel.findOne({ to: row.to, key: row.key })
-        .lean<PendingDelivery>()
-        .exec();
+      const first = await keyedRow(row.to, row.key);
       if (!first) throw err;
       return { ok: true, id: first.id };
     }
@@ -254,6 +268,7 @@ async function sendHeld(
   const prepared = await prepareRow(input);
   if (!prepared.ok) return prepared;
   const { row } = prepared;
+  if (prepared.existing) return { ok: true, id: row.id };
   // The queue and the lookups above yield. A logout in between saves `from`
   // and a login loads the account into another object; debiting this one would
   // take the item out of a document the new session then rewrites with it.

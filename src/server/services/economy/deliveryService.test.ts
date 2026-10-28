@@ -379,6 +379,18 @@ describe('a keyed delivery', () => {
     expect(await countDeliveries('Alice')).toBe(0);
     expect(await cancelDelivery((first as { id: string }).id)).toBe(false);
   });
+
+  it('is answered after its claim with the mailbox full', async () => {
+    await DeliveryModel.init();
+    const alice = await makePlayer('Alice');
+    const input = { to: 'Alice', itemId: SWORD, source: 'quest', key: 'k' };
+    const first = await queueDelivery(input);
+    await claimDeliveries(alice);
+    for (let i = 0; i < 100; i++)
+      await queueDelivery({ to: 'Alice', itemId: POTION, source: 'mail' });
+
+    expect(await queueDelivery(input)).toEqual(first);
+  });
 });
 
 describe('claimDeliveries', () => {
