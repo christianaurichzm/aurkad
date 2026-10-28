@@ -164,4 +164,30 @@ describe('write-behind persistence', () => {
     }>();
     expect(doc?.value).toBe(expected);
   });
+
+  it('lands a newer value after an older flush still out', async () => {
+    kvSet('s', 'k', 'old');
+    const write = KvModel.bulkWrite.bind(KvModel);
+    let land = () => {};
+    const bulk = vi
+      .spyOn(KvModel, 'bulkWrite')
+      .mockImplementationOnce(async (ops) => {
+        await new Promise<void>((resolve) => (land = resolve));
+        return write(ops);
+      });
+
+    const older = flushKvStore();
+    await vi.waitFor(() => expect(bulk).toHaveBeenCalledOnce());
+    kvSet('s', 'k', 'new');
+    const newer = flushKvStore();
+    await new Promise((resolve) => setTimeout(resolve, 50));
+    land();
+    await Promise.all([older, newer]);
+    bulk.mockRestore();
+
+    const doc = await KvModel.findOne({ scope: 's', key: 'k' }).lean<{
+      value: unknown;
+    }>();
+    expect(doc?.value).toBe('new');
+  });
 });
