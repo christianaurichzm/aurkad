@@ -174,8 +174,9 @@ servers](ARCHITECTURE.md#multi-instance-sharding).
 
 [CONTRIBUTING.md](.github/CONTRIBUTING.md) covers working on the engine:
 [running it from source](.github/CONTRIBUTING.md#development-setup) or as a
-production build without Docker, the [tests](.github/CONTRIBUTING.md#quality-bar),
-and [replaying what players did](.github/CONTRIBUTING.md#replay).
+production build without Docker, the
+[3,000+ tests](.github/CONTRIBUTING.md#quality-bar), and
+[replaying what players did](.github/CONTRIBUTING.md#replay).
 
 ## Measured
 
