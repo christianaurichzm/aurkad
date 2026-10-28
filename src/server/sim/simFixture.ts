@@ -2,6 +2,7 @@ import { resetClock } from './clock.js';
 import { resetScheduler } from './scheduler.js';
 import { seedRng } from './rng.js';
 import { tickSystems } from './loop.js';
+import { dropQuadtree } from './spatialManager.js';
 import { players, playersByName, runtimeState } from './state.js';
 import { registerPlayer, getPlayerByName } from './world.js';
 import { items } from '../services/content/itemService.js';
@@ -10,6 +11,7 @@ import {
   clearAllPathGoals,
 } from '../services/world/movementService.js';
 import { clearAllAttackCooldowns } from '../services/combat/attackCooldown.js';
+import { clearAllDamageContributions } from '../services/combat/damage.js';
 import { clearAllNpcAiState } from '../services/npc/aiBrain.js';
 import { putNpcInWorld, resetSpawnIds } from '../services/npc/spawn.js';
 import { clearActionQueue, enqueueClientAction } from '../net/transport.js';
@@ -46,13 +48,19 @@ export function createFixture(seed = 0) {
   seedRng(seed);
   _nextId = 1;
 
-  for (const k of Object.keys(runtimeState.maps)) delete runtimeState.maps[k];
+  // A spatial index keeps its branches across rebuilds, and their shape
+  // orders query results, which break ties such as an npc's nearest target.
+  for (const k of Object.keys(runtimeState.maps)) {
+    delete runtimeState.maps[k];
+    dropQuadtree(k);
+  }
   for (const k of Object.keys(players)) delete players[k];
   playersByName.clear();
   pressedKeysMap.clear();
   clearAllPathGoals();
   items.clear();
   clearAllAttackCooldowns();
+  clearAllDamageContributions();
   clearAllNpcAiState();
   resetSpawnIds();
   clearActionQueue();

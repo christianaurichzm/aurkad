@@ -32,6 +32,7 @@ import {
 } from '../services/world/movementService.js';
 import type { ClientAction } from '../engine/actions.js';
 import { createFixture, tile } from './simFixture.js';
+import { queryEntitiesInRect } from './spatialManager.js';
 import { loadModulesForTest } from '../../test/modules.js';
 import { unloadAllModules } from '../engine/modules/moduleLoader.js';
 import { clearProvides } from '../engine/modules/registry.js';
@@ -203,6 +204,17 @@ describe('deterministic replay', () => {
   it('actually moved the player', () => {
     const end = runScript();
     expect(end).not.toEqual({ x: 64, y: 64 });
+  });
+
+  it('starts each world without the spatial index of the last', () => {
+    const crowded = createFixture();
+    for (let i = 0; i < 12; i++) {
+      crowded.addNpc({ position: tile(i % 4, Math.floor(i / 4)) });
+    }
+    crowded.step(1);
+    createFixture();
+    const everywhere = { x: 0, y: 0, width: 1280, height: 1280 };
+    expect(queryEntitiesInRect('map1', everywhere)).toEqual([]);
   });
 });
 
