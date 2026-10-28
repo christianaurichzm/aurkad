@@ -4,7 +4,8 @@
 
 Please report security issues **privately**. Do not open a public GitHub issue.
 
-Email **contact@aurkad.com** with:
+Open a [private vulnerability report](https://github.com/christianaurichzm/aurkad/security/advisories/new)
+or email **contact@aurkad.com** with:
 
 - a description of the issue and its impact,
 - steps to reproduce (a proof of concept if possible),
