@@ -20,7 +20,11 @@ import { loadSpells } from './services/content/spellService.js';
 import { MapStateServer } from '../shared/types.js';
 import { config } from './config.js';
 import { probeTransactionSupport } from './persistence/transactions.js';
-import { checkDatabaseSchemaVersion } from './services/dbService.js';
+import {
+  checkDatabaseSchemaVersion,
+  markBootstrapAdminMade,
+} from './services/dbService.js';
+import { playerRepository } from './persistence/playerRepository.js';
 import PlayerModel from './model/Player.js';
 
 export async function connectToDatabase() {
@@ -51,6 +55,9 @@ export async function loadInitialData() {
     // First, before any world work: a store this build cannot write without
     // losing data has to stop the boot, not be discovered on the first save.
     await checkDatabaseSchemaVersion();
+    // Any admin means the bootstrap grant is spent, whether or not it made
+    // that admin; marked before the first registration can ask.
+    if (await playerRepository.adminExists()) await markBootstrapAdminMade();
 
     const ownedMapIds = config.instance.mapIds;
     let loadedMaps: MapStateServer[] = await listMaps();

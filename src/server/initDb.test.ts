@@ -7,6 +7,8 @@ import { logger } from './logger.js';
 import { connectToDatabase, loadInitialData } from './initDb.js';
 import GameMapModel from './model/Map.js';
 import { runtimeState } from './sim/state.js';
+import { bootstrapAdminMade } from './services/dbService.js';
+import { Access } from '../shared/types.js';
 
 let mongod: MongoMemoryServer;
 
@@ -55,4 +57,14 @@ it('refuses to boot a shard whose maps are not stored, rather than run them all'
 
   expect(Object.keys(runtimeState.maps)).toEqual([]);
   expect(await GameMapModel.countDocuments()).toBe(2);
+});
+
+it('spends the bootstrap grant of a database that already has an admin', async () => {
+  await mongoose.connection
+    .collection('players')
+    .insertOne({ name: 'Founder', access: Access.ADMIN });
+
+  await loadInitialData();
+
+  expect(await bootstrapAdminMade()).toBe(true);
 });
