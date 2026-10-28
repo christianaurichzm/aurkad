@@ -54,7 +54,11 @@ import { pendingSpansForTest, resetTracingForTest } from '../tracing.js';
 import mongoose from 'mongoose';
 import type { MongoMemoryServer } from 'mongodb-memory-server';
 import { startMemoryMongo } from '../../test/mongo.js';
-import { createPlayer } from '../services/player/playerService.js';
+import {
+  createPlayer,
+  enterWorld,
+  getPlayerByNameFromDb,
+} from '../services/player/playerService.js';
 import { banPlayer } from '../services/player/banService.js';
 import { getPlayerByName } from '../sim/world.js';
 import { runtimeState } from '../sim/state.js';
@@ -651,6 +655,30 @@ describe('a socket that comes back without a login', () => {
       expect(ws.readyState).toBe(WebSocket.OPEN);
     } finally {
       query.mockRestore();
+      (config.ws as { heartbeatIntervalMs: number }).heartbeatIntervalMs =
+        interval;
+    }
+  });
+
+  it('takes out a character whose socket never opened after its login', async () => {
+    await stopWebSocketServer();
+    await new Promise<void>((resolve) => http.close(() => resolve()));
+    const interval = config.ws.heartbeatIntervalMs;
+    (config.ws as { heartbeatIntervalMs: number }).heartbeatIntervalMs = 100;
+    http = createServer();
+    await new Promise<void>((resolve) => http.listen(0, resolve));
+    port = (http.address() as AddressInfo).port;
+    startWebSocketServer(http, asSession as never);
+    try {
+      await open();
+      await createPlayer('Ghost', 'hash');
+      // What a login does before the client dials.
+      enterWorld({ ...(await getPlayerByNameFromDb('Ghost'))! });
+
+      await vi.waitFor(() => expect(getPlayerByName('Ghost')).toBeUndefined());
+      await new Promise((r) => setTimeout(r, 300));
+      expect(getPlayerByName('Boss')).toBeDefined();
+    } finally {
       (config.ws as { heartbeatIntervalMs: number }).heartbeatIntervalMs =
         interval;
     }

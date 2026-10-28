@@ -5,7 +5,7 @@ import { logger } from '../logger.js';
 import type { ClientAction } from '../engine/actions.js';
 import { ClientMessageSchema } from './clientMessage.js';
 import type { z } from 'zod';
-import type { Key } from '../../shared/types.js';
+import type { Key, PlayerServer } from '../../shared/types.js';
 import { config } from '../config.js';
 import type { ExtendedRequest } from '../http/session.js';
 import { handleChatAction } from '../services/comms/chatService.js';
@@ -22,6 +22,7 @@ import {
   warpToMap,
 } from '../services/world/movementService.js';
 import { getMap } from '../sim/world.js';
+import { players } from '../sim/state.js';
 import { handleItemAction } from '../services/economy/inventoryService.js';
 import { handleCustomAction } from '../services/comms/customEventService.js';
 import { playersWsMap, socketEpochs } from './connections.js';
@@ -45,6 +46,8 @@ type RateState = {
 let wss: WebSocketServer;
 let shuttingDown = false;
 let heartbeatInterval: IntervalHandle | undefined;
+/** Characters in the world that had no socket at the last heartbeat. */
+let socketless = new Set<PlayerServer>();
 
 let actionQueue: { action: ClientAction; socket?: WebSocket }[] = [];
 let droppedQueuedActions = 0;
@@ -263,6 +266,7 @@ export const startWebSocketServer = (
   if (heartbeatInterval) {
     clearInterval(heartbeatInterval);
   }
+  socketless = new Set();
 
   heartbeatInterval = setInterval(() => {
     let checkFailed = false;
@@ -302,6 +306,26 @@ export const startWebSocketServer = (
         playersWsMap.delete(username);
       }
     }
+
+    // A close is what takes a character out of the world, and a login whose
+    // socket never opens has none. Socketless two beats running, it leaves
+    // as a close would, in the lane a redial waits on.
+    const seen = new Set<PlayerServer>();
+    for (const player of Object.values(players)) {
+      if (playersWsMap.has(player.name)) continue;
+      if (!socketless.has(player)) {
+        seen.add(player);
+        continue;
+      }
+      inLane(player.name, async () => {
+        if (
+          !playersWsMap.has(player.name) &&
+          getPlayerByName(player.name) === player
+        )
+          await disconnectPlayer(player.name);
+      });
+    }
+    socketless = seen;
   }, config.ws.heartbeatIntervalMs);
 
   server.on('upgrade', (request, socket, head) => {
