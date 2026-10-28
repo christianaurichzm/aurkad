@@ -17,6 +17,7 @@ import {
   unequipItem,
 } from './inventoryService.js';
 import { deleteItem } from '../content/itemService.js';
+import { persistDirtyPlayers } from '../../persistence/playerSnapshot.js';
 
 // No database: a connection that reports itself up, and the writes handed to
 // it, for the tests about what is written at once.
@@ -223,6 +224,30 @@ describe('items on the ground', () => {
     expect(countItem(bob.inventory, 70)).toBe(0);
 
     land();
+    await vi.waitFor(() => {
+      pickUpItem(sim.map, bob);
+      expect(countItem(bob.inventory, 70)).toBe(1);
+    });
+  });
+
+  it('stay held after a failed write off the dropper until a retry lands', async () => {
+    const sim = createFixture(0);
+    sim.addItem(item(70, { type: 'consumable' }));
+    const alice = sim.addPlayer({
+      name: 'Alice',
+      inventory: { items: [{ item: 70, quantity: 1 }], maxCapacity: 10 },
+    });
+    const bob = sim.addPlayer({ name: 'Bob', position: { ...alice.position } });
+    const saved = spyOnWrites();
+    saved.mockRejectedValueOnce(new Error('temporary write failure'));
+
+    dropItemFromInventory('Alice', 70);
+    await vi.waitFor(() => expect(saved).toHaveBeenCalledOnce());
+    await new Promise((resolve) => setImmediate(resolve));
+    pickUpItem(sim.map, bob);
+    expect(countItem(bob.inventory, 70)).toBe(0);
+
+    await persistDirtyPlayers();
     await vi.waitFor(() => {
       pickUpItem(sim.map, bob);
       expect(countItem(bob.inventory, 70)).toBe(1);

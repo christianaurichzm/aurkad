@@ -237,6 +237,23 @@ export async function waitForPlayerPersistence(id: string): Promise<void> {
   await Promise.allSettled([...(playerWrites.get(id) ?? [])]);
 }
 
+/**
+ * Who waits for the next write of a live character to land, by the object
+ * written. A write takes them as it starts, when it reads the state, and
+ * hands them back if it fails. One inside a transaction does not count: the
+ * transaction may still abort.
+ */
+const writeWaiters = new WeakMap<PlayerServer, (() => void)[]>();
+
+/** Resolves once a write of `player` starting after this call has landed. */
+export function whenPlayerWritten(player: PlayerServer): Promise<void> {
+  return new Promise((resolve) => {
+    const waiting = writeWaiters.get(player) ?? [];
+    waiting.push(resolve);
+    writeWaiters.set(player, waiting);
+  });
+}
+
 export function persistPlayerSessionState(
   player: PlayerServer,
   session?: ClientSession,
@@ -248,7 +265,21 @@ export function persistPlayerSessionState(
   // older character back over its last save. Waiting also means the state is
   // read when the write starts, so a queued write carries the newest one.
   const pending = Promise.allSettled([...writes])
-    .then(() => writePlayerSessionState(player, session))
+    .then(async () => {
+      const waiting = session ? [] : (writeWaiters.get(player) ?? []);
+      if (!session) writeWaiters.delete(player);
+      try {
+        await writePlayerSessionState(player, session);
+      } catch (err) {
+        if (waiting.length > 0)
+          writeWaiters.set(player, [
+            ...waiting,
+            ...(writeWaiters.get(player) ?? []),
+          ]);
+        throw err;
+      }
+      for (const resolve of waiting) resolve();
+    })
     .finally(() => {
       writes.delete(pending);
       if (!writes.size) playerWrites.delete(player.id);

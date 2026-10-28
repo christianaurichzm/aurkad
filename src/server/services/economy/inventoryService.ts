@@ -14,6 +14,7 @@ import {
   getPlayerByName,
   levelUpPlayer,
   persistPlayersNow,
+  whenPlayerWritten,
 } from '../player/playerService.js';
 import { emit } from '../../engine/hooks.js';
 import { dispatchEntityScript } from '../../engine/scripting/entityScripts.js';
@@ -30,20 +31,22 @@ import { runtimeState } from '../../sim/state.js';
  * how many such writes each waits on. The ground is never saved: picked up
  * before the dropper's document lost the item, the taker can be written
  * first, and a crash in between leaves it in both accounts. A failed write
- * lets go too, since the dirty flag retries it and a pile held for good is
- * one nobody can pick up.
+ * keeps the pile until write-behind or the logout gets one to land, as
+ * until then the item is still in the dropper's document.
  */
 const unsaved = new WeakMap<DroppedItem, number>();
 
 /** Writes `player` off what they dropped, holding the pile until then. */
 function writeOffDrop(player: PlayerServer, pile: DroppedItem | undefined) {
-  if (pile) unsaved.set(pile, (unsaved.get(pile) ?? 0) + 1);
-  void persistPlayersNow([player]).finally(() => {
-    if (!pile) return;
-    const left = (unsaved.get(pile) ?? 1) - 1;
-    if (left > 0) unsaved.set(pile, left);
-    else unsaved.delete(pile);
-  });
+  if (pile) {
+    unsaved.set(pile, (unsaved.get(pile) ?? 0) + 1);
+    void whenPlayerWritten(player).then(() => {
+      const left = (unsaved.get(pile) ?? 1) - 1;
+      if (left > 0) unsaved.set(pile, left);
+      else unsaved.delete(pile);
+    });
+  }
+  void persistPlayersNow([player]);
 }
 
 /**
