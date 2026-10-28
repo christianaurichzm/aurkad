@@ -62,6 +62,7 @@ import { clearPressedKeys, warpToMap } from '../world/movementService.js';
 import { logger } from '../../logger.js';
 import { recordAdminAction } from '../auditService.js';
 import { registerStrings, translate } from '../../engine/i18n.js';
+import { bootstrapAdminMade, markBootstrapAdminMade } from '../dbService.js';
 
 export async function getPlayerForAuthentication(name: string) {
   return playerRepository.findForAuthentication(name);
@@ -116,14 +117,15 @@ export const createPlayer = async (
   username: string,
   password: string,
 ): Promise<PlayerServer> => {
-  // The named account is how a deployment gets its first admin, not a grant
-  // that stands while the variable is set: once one exists, the name
-  // registered again (its account deleted, say) is an ordinary signup, and
-  // whoever claims it first is not handed the server.
+  // The named account is how a deployment gets its first admin, once, not a
+  // grant that stands while the variable is set: the name registered again
+  // (its account deleted, say) is an ordinary signup, and whoever claims it
+  // first is not handed the server.
   const bootstrapAdminUsername = process.env.BOOTSTRAP_ADMIN_USERNAME;
   const isAdmin = bootstrapAdminUsername
     ? bootstrapAdminUsername === username &&
-      !(await playerRepository.adminExists())
+      !(await playerRepository.adminExists()) &&
+      !(await bootstrapAdminMade())
     : process.env.NODE_ENV !== 'production' &&
       !(await playerRepository.anyExists());
 
@@ -180,6 +182,7 @@ export const createPlayer = async (
     password,
     authEpoch: randomInt(1, 2 ** 48),
   });
+  if (isAdmin && bootstrapAdminUsername) await markBootstrapAdminMade();
   return newPlayer;
 };
 

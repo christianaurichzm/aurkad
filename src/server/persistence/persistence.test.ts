@@ -111,6 +111,23 @@ describe('player persistence', () => {
     }
   });
 
+  it('makes the bootstrap admin once, with the last admin deleted too', async () => {
+    const previous = process.env.BOOTSTRAP_ADMIN_USERNAME;
+    process.env.BOOTSTRAP_ADMIN_USERNAME = 'TheOperator';
+    try {
+      const first = await createPlayer('TheOperator', 'hash');
+      await createPlayer('Other', 'hash');
+      await PlayerModel.deleteOne({ name: 'TheOperator' });
+      const again = await createPlayer('TheOperator', 'hash');
+
+      expect(first.access).toBeGreaterThan(0);
+      expect(again.access).toBe(0);
+    } finally {
+      if (previous === undefined) delete process.env.BOOTSTRAP_ADMIN_USERNAME;
+      else process.env.BOOTSTRAP_ADMIN_USERNAME = previous;
+    }
+  });
+
   it('subsequent players get USER access', async () => {
     await createPlayer('First', 'hash');
     const second = await createPlayer('Second', 'hash');

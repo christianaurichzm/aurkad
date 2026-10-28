@@ -85,6 +85,23 @@ export async function storedSessionSecret(): Promise<string> {
 }
 
 /**
+ * Whether BOOTSTRAP_ADMIN_USERNAME has made its admin on this database. Kept
+ * for good, as with that account deleted nothing else would stop the name
+ * registered again from being handed the server.
+ */
+export async function bootstrapAdminMade(): Promise<boolean> {
+  return !!(await Meta.exists({ _id: 'bootstrapAdmin' }));
+}
+
+export async function markBootstrapAdminMade(): Promise<void> {
+  await Meta.updateOne(
+    { _id: 'bootstrapAdmin' },
+    { $set: { value: true } },
+    { upsert: true },
+  );
+}
+
+/**
  * Fingerprints of the content-pack rows as their files held them at the last
  * import (`importContentPack`). One document for the whole pack, replaced on
  * every import, so a row taken out of its file stops being remembered.
