@@ -541,6 +541,7 @@ command(
 //   npcInteract                    { player, npc }         - player pressed F
 //   tileEnter                      { player, tile, map }
 //   itemUse / itemPickup           { player, itemId, quantity? }
+//   inventoryChange                { player }              - the bag changed, by any means; once a tick at most
 //   itemEquip / itemUnequip        { player, itemId, slot }  - a swap fires both
 //   chatMessage                    { player, scope, message }
 //   playerAttack                   { player, handled }     - set handled = true to own the attack

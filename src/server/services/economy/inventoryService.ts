@@ -4,9 +4,15 @@ import {
   EquipmentSlot,
   Effect,
   DroppedItem,
+  InventoryItem,
 } from '../../../shared/types.js';
 import type { ClientItemAction } from '../../engine/actions.js';
-import { getMap, updatePlayer, updateMap } from '../../sim/world.js';
+import {
+  getAllPlayers,
+  getMap,
+  updatePlayer,
+  updateMap,
+} from '../../sim/world.js';
 import { getItemById } from '../content/itemService.js';
 import { logger } from '../../logger.js';
 import { EQUIPMENT_SLOTS } from '../../../shared/constants.js';
@@ -93,6 +99,37 @@ export function sweepExpiredDrops(): void {
 /** Called at boot. Once a second: a drop outliving its time by that is fine. */
 export function startDropSweep(): void {
   scheduleEvery(msToTicks(1_000), sweepExpiredDrops, 'drops');
+}
+
+/** Each player's bag as of the last tick, as [itemId, quantity, ...]. */
+const seenBags = new WeakMap<PlayerServer, number[]>();
+
+/**
+ * Emits `inventoryChange` for each player whose bag differs from the last
+ * tick. Read off the bag rather than reported by each source, as a shop, the
+ * mailbox, a trade, the bank and a script all fill it, some by swapping in a
+ * copy. A player's first tick counts as a change, with nothing before it.
+ */
+export function emitInventoryChanges(): void {
+  for (const player of getAllPlayers()) {
+    const items = player.inventory.items;
+    let seen = seenBags.get(player);
+    if (seen && sameBag(seen, items)) continue;
+    if (!seen) seenBags.set(player, (seen = []));
+    seen.length = 0;
+    for (const entry of items) seen.push(entry.item, entry.quantity);
+    emit('inventoryChange', { player });
+  }
+}
+
+function sameBag(seen: number[], items: InventoryItem[]): boolean {
+  if (seen.length !== items.length * 2) return false;
+  for (let i = 0; i < items.length; i++) {
+    const entry = items[i]!;
+    if (seen[i * 2] !== entry.item || seen[i * 2 + 1] !== entry.quantity)
+      return false;
+  }
+  return true;
 }
 
 export const pickUpItem = (map: MapStateServer, player: PlayerServer) => {

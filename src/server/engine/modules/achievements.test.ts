@@ -156,33 +156,34 @@ describe('collecting an item', () => {
     gameConfig.modules.achievements = saved;
   });
 
-  const pickUp = (player: PlayerServer, quantity: number) => {
+  // Any source: the module reads the bag the tick reports changed.
+  const gain = (player: PlayerServer, quantity: number) => {
     addItem(player.inventory, COIN, quantity);
-    emit('itemPickup', { player, itemId: COIN, quantity });
+    sim.step();
   };
 
   it('counts what the bag holds, so a stack dropped and taken again counts once', () => {
     const player = sim.addPlayer({ name: 'Ana' });
-    pickUp(player, 5);
+    gain(player, 5);
     for (let i = 0; i < 3; i++) {
       removeItem(player.inventory, COIN, 5);
-      pickUp(player, 5);
+      gain(player, 5);
     }
     expect(achievements().has(player, 'hoard')).toBe(false);
 
-    pickUp(player, 5);
+    gain(player, 5);
 
     expect(achievements().has(player, 'hoard')).toBe(true);
   });
 
   it('keeps the progress of a stack since spent', () => {
     const player = sim.addPlayer({ name: 'Ana' });
-    pickUp(player, 8);
+    gain(player, 8);
     removeItem(player.inventory, COIN, 8);
-    pickUp(player, 1);
+    gain(player, 1);
     expect(achievements().has(player, 'hoard')).toBe(false);
 
-    pickUp(player, 9);
+    gain(player, 9);
 
     expect(achievements().has(player, 'hoard')).toBe(true);
   });

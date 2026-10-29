@@ -1,6 +1,6 @@
 // @ts-check
 // Achievements: named milestones counted off npcDeath, playerLevelUp and
-// itemPickup. Anything else a game awards through the provided API.
+// inventoryChange. Anything else a game awards through the provided API.
 //
 // Definitions come from game.json and are validated at boot. Progress lives
 // in `player.data.achievements`, with one counter per rule, so kill 1 and
@@ -169,10 +169,12 @@ on('npcDeath', ({ npc, killer }) => {
 // Counted from the bag, like a quest's collect objective, so a stack dropped
 // and picked up again counts once. The counter keeps the most ever held,
 // since spending the item takes no progress back.
-on('itemPickup', ({ player, itemId }) => {
-  const rule = { kind: 'collect', of: itemId };
-  const counted = Number(stateOf(player).counters[counterKey(rule)]) || 0;
-  bump(player, rule, countItem(player, itemId) - counted);
+on('inventoryChange', ({ player }) => {
+  for (const { rule } of defs) {
+    if (!rule || rule.kind !== 'collect') continue;
+    const counted = Number(stateOf(player).counters[counterKey(rule)]) || 0;
+    bump(player, rule, countItem(player, rule.of) - counted);
+  }
 });
 
 on('playerLevelUp', ({ player, level }) => {

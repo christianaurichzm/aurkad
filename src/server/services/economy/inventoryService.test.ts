@@ -8,7 +8,7 @@ import { EQUIPMENT_SLOTS } from '../../../shared/constants.js';
 import { clearAll, on } from '../../engine/hooks.js';
 import ItemModel from '../../model/Item.js';
 import DeliveryModel from '../../model/Delivery.js';
-import { countItem } from './economyService.js';
+import { addItem, countItem } from './economyService.js';
 import {
   dropItemFromInventory,
   equipItem,
@@ -498,5 +498,30 @@ describe('equipment effects', () => {
     unequipItem(alice, 'weapon');
 
     expect(alice.attack).toBe(10);
+  });
+});
+
+describe('inventory changes', () => {
+  afterEach(() => clearAll());
+
+  it('are told once a tick for whatever changed the bag, and not otherwise', () => {
+    const sim = createFixture(0);
+    const alice = sim.addPlayer({ name: 'Alice' });
+    const told: string[] = [];
+    on('inventoryChange', ({ player }) => told.push(player.name));
+
+    sim.step();
+    expect(told).toEqual(['Alice']);
+
+    sim.step();
+    addItem(alice.inventory, 70, 2);
+    addItem(alice.inventory, 70, 3);
+    sim.step();
+    // A copy swapped in, the way a trade or an auction lands.
+    alice.inventory.items = [{ item: 70, quantity: 1 }];
+    sim.step();
+    sim.step();
+
+    expect(told).toEqual(['Alice', 'Alice', 'Alice']);
   });
 });

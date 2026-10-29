@@ -45,7 +45,8 @@ tick runs an ordered pipeline of systems:
 ```
 advanceTick → rebuildSpatialIndexes → processActions → updateNpcs
   → regenerateHealth → processMovementCompletion → processMovementIntent
-  → runScheduledTasks → tickHook → flushGameEvents → broadcastGameState
+  → inventoryChanges → runScheduledTasks → tickHook → flushGameEvents
+  → broadcastGameState
 ```
 
 Design properties:

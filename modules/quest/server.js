@@ -192,7 +192,10 @@ function start(player, id, from) {
     status: 'active',
     from: typeof from === 'string' ? from : undefined,
   };
-  return save(player, bag);
+  if (!save(player, bag)) return false;
+  // What the bag already holds counts from the start.
+  recount(player);
+  return true;
 }
 
 function advance(player, id, amount) {
@@ -257,19 +260,21 @@ on('npcDeath', ({ npc, killer }) => {
   }
 });
 
-on('itemPickup', ({ player, itemId }) => {
-  // Counted from the inventory, not per pickup, so dropping and picking up
-  // again does not count twice.
+// Counted from the bag, not from what arrived, so a stack dropped and picked
+// up again counts once, and one bought, traded, mailed or crafted counts too.
+function recount(player) {
   for (const { id, objective } of activeObjectives(player, 'collect')) {
-    if (objective.itemId !== itemId) continue;
     const bag = bagOf(player);
     const q = bag[id];
-    if (!q) continue;
-    q.progress = Math.min(q.target, countItem(player, itemId));
+    const held = Math.min(q.target, countItem(player, objective.itemId));
+    if (held === q.progress) continue;
+    q.progress = held;
     if (q.progress >= q.target) finish(player, id, bag);
     else save(player, bag);
   }
-});
+}
+
+on('inventoryChange', ({ player }) => recount(player));
 
 on('tileEnter', ({ player, map }) => {
   const row = Math.round(player.position.y / TILE_SIZE);

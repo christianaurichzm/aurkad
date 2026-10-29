@@ -692,7 +692,7 @@ export interface Dialog {
 
 /**
  * What a quest asks for. A closed union, as each arm is wired to a hook
- * the engine emits (kill to npcDeath, collect to itemPickup, talk to
+ * the engine emits (kill to npcDeath, collect to inventoryChange, talk to
  * npcInteract, reach to tileEnter), so the quest module advances progress
  * with no script. A rule that does not fit belongs in `Quest.reward.script`
  * or a dialog action.

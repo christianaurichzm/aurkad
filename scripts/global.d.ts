@@ -231,6 +231,12 @@ interface HookPayloads {
   tileEnter: { player: PlayerServer; tile: Tile; map: MapState };
   itemUse: { player: PlayerServer; itemId: number };
   itemPickup: { player: PlayerServer; itemId: number; quantity: number };
+  /**
+   * The bag changed since last tick, by any means: a pickup, a shop, mail, a
+   * trade, the bank, a craft, a script. Also on the player's first tick in
+   * the world. Once a tick at most, so count the bag.
+   */
+  inventoryChange: { player: PlayerServer };
   /** Fires after the slot changed. A swap fires unequip, then equip. */
   itemEquip: { player: PlayerServer; itemId: number; slot: EquipmentSlot };
   itemUnequip: { player: PlayerServer; itemId: number; slot: EquipmentSlot };

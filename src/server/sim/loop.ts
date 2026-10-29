@@ -16,6 +16,7 @@ import { getRuntimeState } from './world.js';
 import { processActions, getActionQueueSize } from '../net/transport.js';
 import { updateDueNpcs } from '../services/npc/index.js';
 import { regenerateHealth } from '../services/combat/index.js';
+import { emitInventoryChanges } from '../services/economy/inventoryService.js';
 import { broadcastGameState } from '../net/snapshot.js';
 import { flushGameEvents } from '../net/fanout.js';
 import { advanceTick, getTick } from './clock.js';
@@ -61,6 +62,8 @@ export const tickSystems: readonly TickSystem[] = [
   { name: 'regenerateHealth', run: regenerateHealth },
   { name: 'processMovementCompletion', run: processMovementCompletion },
   { name: 'processMovementIntent', run: processMovementIntent },
+  // After the tick's input, so a handler sees each bag as this tick left it.
+  { name: 'inventoryChanges', run: emitInventoryChanges },
   // Same slot as the tick hook, for the same reason. Runs first so tasks can
   // set up state the tick handlers read.
   { name: 'runScheduledTasks', run: runScheduledTasks },

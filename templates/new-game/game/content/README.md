@@ -182,7 +182,8 @@ hook the objective names, with no script involved.
 
 - `objective.type`: one of:
   - `kill` (`npcId`, `count`): counts on npcDeath, for the killer.
-  - `collect` (`itemId`, `count`): counted from the inventory on pickup, so
+  - `collect` (`itemId`, `count`): counted from the inventory whenever it
+    changes, so an item bought, traded, mailed or crafted counts, and
     dropping and re-taking the same item does not count twice.
   - `talk` (`npcId`): completes on interact.
   - `reach` (`mapId`, `row`, `col`): completes on stepping onto that tile.

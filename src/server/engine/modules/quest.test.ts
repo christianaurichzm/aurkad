@@ -20,6 +20,7 @@ import { clearAll, emit } from '../hooks.js';
 import { drainGameEvents } from '../eventBus.js';
 import { createFixture, tile } from '../../sim/simFixture.js';
 import { warpToMap } from '../../services/world/movementService.js';
+import { addItem, removeItem } from '../../services/economy/economyService.js';
 import { clearInstancesForTest } from '../../services/world/instanceService.js';
 import { Key, type Quest, type PlayerServer } from '../../../shared/types.js';
 
@@ -266,6 +267,70 @@ describe('quest module with authored quests', () => {
 
     expect(quest.get(alice, 'orcs')?.status).toBe('completed');
     expect(alice.experience).toBe(50);
+  });
+
+  describe('a collect objective', () => {
+    const pelts: Quest = {
+      id: 'pelts',
+      name: 'Wolf pelts',
+      objective: { type: 'collect', itemId: 9, count: 3 },
+      reward: { experience: 20 },
+    };
+
+    // A purchase, a trade, the mailbox and a craft fill the bag without a
+    // pickup, some by swapping in a copy, and the bag is what it counts.
+    it('counts items that reach the bag without a pickup', async () => {
+      const quest = await bootWith(pelts);
+      const sim = createFixture(0);
+      const alice = sim.addPlayer({
+        name: 'Alice',
+        experience: 0,
+        experienceToNextLevel: 10000,
+      });
+      quest.start(alice, 'pelts');
+
+      addItem(alice.inventory, 9, 2);
+      sim.step();
+      expect(quest.get(alice, 'pelts')?.progress).toBe(2);
+
+      alice.inventory.items = [{ item: 9, quantity: 3 }];
+      sim.step();
+      expect(quest.get(alice, 'pelts')?.status).toBe('completed');
+      expect(alice.experience).toBe(20);
+    });
+
+    it('counts a stack that leaves the bag and comes back once', async () => {
+      const quest = await bootWith(pelts);
+      const sim = createFixture(0);
+      const alice = sim.addPlayer({ name: 'Alice' });
+      quest.start(alice, 'pelts');
+
+      addItem(alice.inventory, 9, 2);
+      sim.step();
+      removeItem(alice.inventory, 9, 2);
+      sim.step();
+      addItem(alice.inventory, 9, 2);
+      sim.step();
+
+      expect(quest.get(alice, 'pelts')).toMatchObject({
+        progress: 2,
+        status: 'active',
+      });
+    });
+
+    it('counts what the bag already holds when it starts', async () => {
+      const quest = await bootWith(pelts);
+      const sim = createFixture(0);
+      const alice = sim.addPlayer({
+        name: 'Alice',
+        inventory: { items: [{ item: 9, quantity: 2 }], maxCapacity: 10 },
+      });
+      sim.step();
+
+      quest.start(alice, 'pelts');
+
+      expect(quest.get(alice, 'pelts')?.progress).toBe(2);
+    });
   });
 
   describe('an item reward the bag cannot hold', () => {

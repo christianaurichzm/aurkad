@@ -47,6 +47,13 @@ export type HookMap = {
   tileEnter: { player: PlayerServer; tile: Tile; map: MapStateServer };
   itemUse: { player: PlayerServer; itemId: number };
   itemPickup: { player: PlayerServer; itemId: number; quantity: number };
+  /**
+   * The player's bag holds something other than it did last tick, whatever
+   * changed it: a pickup, a shop, the mailbox, a trade, the bank, a craft, a
+   * script. Fired at most once a tick, and on the player's first tick in the
+   * world, so a listener recounts from the bag.
+   */
+  inventoryChange: { player: PlayerServer };
   // Fire on the transition, after the slot already holds the new value. Both
   // fire on a swap, unequip first: that is one click, but two changes to what
   // the player is wearing, and a listener that recomputes from `equipped` has

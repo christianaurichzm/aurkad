@@ -1,5 +1,5 @@
-// Authored quests. Cached: the quest module checks objectives from npcDeath,
-// itemPickup, npcInteract and tileEnter, all of which run inside the tick.
+// Authored quests. Cached: the quest module checks objectives from
+// npcDeath, inventoryChange, npcInteract and tileEnter, all inside the tick.
 
 import { z } from 'zod';
 import QuestModel from '../../model/Quest.js';
