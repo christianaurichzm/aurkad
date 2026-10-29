@@ -1202,7 +1202,11 @@ interface QuestDef {
   description?: string;
   /** Progress goal; defaults to 1 (a do-once quest). */
   target?: number;
-  reward?: (player: PlayerServer) => void;
+  /**
+   * Data rather than a function when it pays items: an item the bag has no
+   * room for is then mailed instead of lost.
+   */
+  reward?: ((player: PlayerServer) => void) | QuestRewardData;
 }
 
 interface QuestState {

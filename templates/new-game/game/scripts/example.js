@@ -24,10 +24,11 @@ if (quest) {
     name: 'Bones in the Meadow',
     description: 'Defeat 3 Skeletons for the Mage.',
     target: 3,
-    reward: (player) => {
-      giveExperience(player, 100);
-      giveItem(player, 1, 2); // 2× Health Potion (item id 1)
-      sendMessage(player, 'The Mage rewards you with potions and experience.');
+    // Data rather than a function: the quest module mails an item the bag has
+    // no room for, which a giveItem call here would just lose.
+    reward: {
+      experience: 100,
+      items: [{ itemId: 1, quantity: 2 }], // 2× Health Potion
     },
   });
 
@@ -36,10 +37,9 @@ if (quest) {
     name: 'The Bone Knight',
     description: 'Defeat the Bone Knight in the far corner of the meadow.',
     target: 1,
-    reward: (player) => {
-      giveExperience(player, 500);
-      giveItem(player, 3, 1); // Short Sword (item id 3)
-      sendMessage(player, 'The Mage gives you a short sword as reward!');
+    reward: {
+      experience: 500,
+      items: [{ itemId: 3, quantity: 1 }], // Short Sword
     },
   });
 }
