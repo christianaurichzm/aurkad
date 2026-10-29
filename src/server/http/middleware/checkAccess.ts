@@ -50,7 +50,9 @@ const checkAccess = (requiredAccess: Access) => {
   return <P>(req: Request<P>, res: Response, next: NextFunction) => {
     const username = req.session.username;
     const accessLevel = req.session.accessLevel;
-    const audited = MUTATING.has(req.method);
+    // A route any player may call is gameplay (a purchase, a point spent), not
+    // a privileged action, and every shop visit would bury the moderation log.
+    const audited = requiredAccess > Access.USER && MUTATING.has(req.method);
 
     const entry = () => ({
       actor: username,

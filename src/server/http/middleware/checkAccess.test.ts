@@ -53,6 +53,9 @@ beforeAll(async () => {
   app.post('/admin/console', checkAccess(Access.MOD), (_req, res) => {
     res.json({ output: [] });
   });
+  app.post('/shop/buy', checkAccess(Access.USER), (_req, res) => {
+    res.json({ success: true });
+  });
 }, 30_000);
 
 afterAll(async () => {
@@ -190,6 +193,21 @@ describe('audit trail', () => {
       .set('x-user', 'owner')
       .set('x-access', String(Access.ADMIN))
       .expect(200);
+    await quiet();
+
+    expect(await listAuditLog()).toEqual([]);
+  });
+
+  // A purchase is the player's own gameplay, and one entry per shop visit would
+  // bury the moderation the trail is kept for.
+  it('ignores writes any player may make', async () => {
+    await request(app)
+      .post('/shop/buy')
+      .set('x-user', 'alice')
+      .set('x-access', String(Access.USER))
+      .send({ shopId: 'smith', itemId: 'sword' })
+      .expect(200);
+    await request(app).post('/shop/buy').expect(401);
     await quiet();
 
     expect(await listAuditLog()).toEqual([]);
@@ -437,29 +455,28 @@ describe('every route crosses the gate', () => {
   // The refusal is only half of it: the level written into the entry is what
   // the route asked for, which pins it exactly without running the handler,
   // and an entry at all is what proves the route went through the gate rather
-  // than a check of its own that the trail never hears about.
-  it.each(gated.filter((r) => r.method !== 'get'))(
-    '$key leaves a trail when it refuses',
-    async (route) => {
-      const required = GATES[route.key] as Access;
-      await call(route);
-      if (required > Access.USER) await call(route, required - 1);
+  // than a check of its own that the trail never hears about. A route any
+  // player may call is left out of the trail, so its 401 above is all it gets.
+  it.each(
+    gated.filter(
+      (r) => r.method !== 'get' && (GATES[r.key] as Access) > Access.USER,
+    ),
+  )('$key leaves a trail when it refuses', async (route) => {
+    const required = GATES[route.key] as Access;
+    await call(route);
+    await call(route, required - 1);
 
-      const refusals = required > Access.USER ? 2 : 1;
-      const entries = await entriesFor(
-        `${route.method.toUpperCase()} ${route.url}`,
-        refusals,
-      );
-      expect(
-        entries.map((e) => [e.status, e.outcome, e.requiredAccess]).sort(),
-      ).toEqual(
-        [
-          [401, 'denied', required],
-          [403, 'denied', required],
-        ].slice(0, refusals),
-      );
-    },
-  );
+    const entries = await entriesFor(
+      `${route.method.toUpperCase()} ${route.url}`,
+      2,
+    );
+    expect(
+      entries.map((e) => [e.status, e.outcome, e.requiredAccess]).sort(),
+    ).toEqual([
+      [401, 'denied', required],
+      [403, 'denied', required],
+    ]);
+  });
 
   // Reads leave no trail to read the level from, but they are safe to run, so
   // a caller at the level is let through to see that the gate is not set
