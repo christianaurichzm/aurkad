@@ -7,12 +7,13 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { runInSandbox, type ScriptHandle } from './sandbox.js';
-import { clearAll } from '../hooks.js';
+import { clearAll, emit } from '../hooks.js';
 import { clearCommands } from '../commands.js';
 import { clearProvides, useApi } from '../modules/registry.js';
 import { unloadAllModules } from '../modules/moduleLoader.js';
 import { loadModulesForTest } from '../../../test/modules.js';
 import { createFixture } from '../../sim/simFixture.js';
+import { countItem } from '../../services/economy/economyService.js';
 import type { Item, PlayerServer } from '../../../shared/types.js';
 
 // No database: the write before a reward is mailed, and the mailbox row.
@@ -65,6 +66,17 @@ afterEach(() => {
   unloadAllModules();
   clearAll();
   clearProvides();
+});
+
+it('hands a new character the starter kit once', () => {
+  const player = sim.addPlayer({ name: 'Alice' });
+  emit('playerJoin', { player });
+  expect(countItem(player.inventory, COIN)).toBe(10);
+
+  // Still level 1 with an empty bag, the way a player farming it would be.
+  player.inventory.items = [];
+  emit('playerJoin', { player });
+  expect(countItem(player.inventory, COIN)).toBe(0);
 });
 
 it('mails a quest reward the bag has no room for', async () => {

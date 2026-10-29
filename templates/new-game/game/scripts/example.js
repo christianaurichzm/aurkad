@@ -52,8 +52,14 @@ on('playerJoin', ({ player }) => {
     `Welcome, ${player.name}! Press F near an NPC to interact.`,
   );
 
-  // Give a starter kit to brand-new players (level 1, empty inventory).
-  if (player.level === 1 && player.inventory.items.length === 0) {
+  // Give a starter kit to brand-new players, once. Marked before it is handed
+  // over: a level 1 player can empty the bag and log in again.
+  if (
+    player.level === 1 &&
+    player.inventory.items.length === 0 &&
+    !getPlayerData(player, 'starterKit') &&
+    setPlayerData(player, 'starterKit', true)
+  ) {
     giveItem(player, 1, 3); // 3× Health Potion
     giveItem(player, 2, 10); // 10 Gold Coins
     sendMessage(
