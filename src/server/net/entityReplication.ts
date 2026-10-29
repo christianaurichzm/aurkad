@@ -150,6 +150,11 @@ export function slotOwnerId(slot: number): string | undefined {
   return slotOwner[slot];
 }
 
+/** Tick the slot's current occupant took it. */
+export function slotBornAt(slot: number): number | undefined {
+  return slotBorn[slot];
+}
+
 /** Upper bound for sizing a per-viewer slot array. */
 export function slotCapacity(): number {
   return slotOwner.length;

@@ -26,6 +26,7 @@ import {
   fragmentAt,
   fullBody,
   gapDelta,
+  slotBornAt,
   slotOwnerId,
   slotCapacity,
   recordEntity,
@@ -269,7 +270,15 @@ function sendWorldUpdate(
     // `slotOwnerId` is what makes recycling safe here: if the slot has been
     // taken over (or freed) since, the sighting recorded in `seen` is not
     // about `id`, and `id` is gone as far as this viewer is concerned.
-    if (slotOwnerId(slot) !== id || seen[slot] !== tick) leaving.push(id);
+    // An id that took its slot after the viewer was last served came back
+    // while it was not looking. It was sent whole above, and leaving it too
+    // makes the client drop the old copy instead of merging into it.
+    if (
+      slotOwnerId(slot) !== id ||
+      seen[slot] !== tick ||
+      slotBornAt(slot)! > lastTick
+    )
+      leaving.push(id);
   }
 
   known.knownIds = knownIds;

@@ -16,7 +16,7 @@ import type {
 // game-state messages: the client compares it and reloads instead of
 // applying a payload it cannot read, where a stale tab after a deploy
 // would corrupt its state silently.
-export const PROTOCOL_VERSION = 4;
+export const PROTOCOL_VERSION = 5;
 
 export interface WsClientKeyboardMessage {
   type: 'keyboard';
@@ -104,6 +104,9 @@ export interface WsServerPlayerStatsMessage {
  * entering the viewport is always sent complete, so the client merges when
  * it knows the id and inserts when it does not, with no full or partial
  * marker. `kind` routes an incoming entity to players or npcs.
+ *
+ * `leave` applies before `entities`: an id in both despawned and came back
+ * while the viewer was not served, and what the client held under it goes.
  *
  * `droppedItems` is sent whole, and only when the viewer's filtered list
  * changed: drops have no stable id to diff against, and the list is small.

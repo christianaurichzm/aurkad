@@ -3,7 +3,16 @@ import fc from 'fast-check';
 import WebSocket from 'ws';
 import { broadcastGameState } from './snapshot.js';
 import { resetPlayerNetState } from './viewerState.js';
-import { resetEntityReplication, slotCapacity } from './entityReplication.js';
+import {
+  forgetReplicatedEntity,
+  resetEntityReplication,
+  slotCapacity,
+} from './entityReplication.js';
+import {
+  placePlayerOnMap,
+  registerPlayer,
+  unregisterPlayer,
+} from '../sim/world.js';
 import { spawnNpc, despawnNpc } from '../services/npc/spawn.js';
 import { playersWsMap } from './connections.js';
 import { createFixture, makeTiles, tile } from '../sim/simFixture.js';
@@ -37,6 +46,10 @@ function makeClient() {
       return droppedItems;
     },
     apply(payload: WorldUpdatePayload) {
+      for (const id of payload.leave ?? []) {
+        delete players[id];
+        delete npcs[id];
+      }
       for (const [id, patch] of Object.entries(payload.entities ?? {})) {
         const p = patch as Record<string, unknown>;
         const existing = players[id] ?? npcs[id];
@@ -48,10 +61,6 @@ function makeClient() {
           }
         } else if (p.kind === 'npc') npcs[id] = { ...p };
         else players[id] = { ...p };
-      }
-      for (const id of payload.leave ?? []) {
-        delete players[id];
-        delete npcs[id];
       }
       if (payload.droppedItems) droppedItems = payload.droppedItems;
     },
@@ -295,6 +304,49 @@ describe('entity replication conserves state', () => {
     // And the one it replaced was retired rather than silently overwritten.
     expect(client.npcs[first.id]).toBeUndefined();
   });
+
+  // A player who logs back in keeps the id, so a viewer congested through the
+  // logout is sent somebody new under an id it still holds. Merged, the old
+  // copy keeps fields the new one lacks, and the `leave` for a slot taken
+  // over meanwhile deletes the new one.
+  it.each([false, true])(
+    'replaces an id that came back while the viewer slept, slot taken: %s',
+    (slotTaken) => {
+      const sim = createFixture(0);
+      const alice = sim.addPlayer({ name: 'Alice', position: tile(2, 2) });
+      const bob = sim.addPlayer({
+        name: 'Bob',
+        position: tile(4, 2),
+        nameTag: 'Old guild',
+      });
+      resetPlayerNetState('Alice');
+      const { ws, setBuffered, worldUpdates } = collectingWs();
+      playersWsMap.set('Alice', ws);
+
+      rebuildQuadtree(sim.mapId, sim.map);
+      broadcastGameState();
+
+      setBuffered(config.ws.maxBufferedBytes + 1);
+      unregisterPlayer(bob.id);
+      forgetReplicatedEntity(bob.id);
+      if (slotTaken) spawnNpc({ mapId: sim.mapId, col: 6, row: 6 });
+      rebuildQuadtree(sim.mapId, sim.map);
+      broadcastGameState();
+
+      delete bob.nameTag;
+      registerPlayer(bob);
+      placePlayerOnMap(bob);
+      setBuffered(0);
+      rebuildQuadtree(sim.mapId, sim.map);
+      broadcastGameState();
+
+      const client = makeClient();
+      for (const p of worldUpdates()) client.apply(p);
+      expect(client.players[bob.id]).toEqual(
+        serverTruth(sim.map, alice).players[bob.id],
+      );
+    },
+  );
 
   // A fragment's delta is shared and covers one tick, so a viewer not served
   // on some tick cannot just get the next delta: what it slept through is in

@@ -244,7 +244,8 @@ function mergeEntity(
 /**
  * Merges one per-tick world update into the local world. An entering
  * entity arrives complete, so known ids merge by field and unknown ones are
- * inserted by `kind`. `dynamic` is reassigned because getGameState()
+ * inserted by `kind`. `leave` goes first, as an id in both is one that came
+ * back as somebody new. `dynamic` is reassigned because getGameState()
  * caches by object identity.
  */
 export const applyWorldUpdate = (payload: WorldUpdatePayload) => {
@@ -254,6 +255,11 @@ export const applyWorldUpdate = (payload: WorldUpdatePayload) => {
     ? { ...base.map.players }
     : {};
   const npcs: Record<string, RuntimeNpc> = base ? { ...base.map.npcs } : {};
+
+  for (const id of payload.leave ?? []) {
+    delete players[id];
+    delete npcs[id];
+  }
 
   for (const [id, patch] of Object.entries(payload.entities ?? {})) {
     if (players[id]) {
@@ -271,11 +277,6 @@ export const applyWorldUpdate = (payload: WorldUpdatePayload) => {
     } else {
       players[id] = patch as PlayerPublic;
     }
-  }
-
-  for (const id of payload.leave ?? []) {
-    delete players[id];
-    delete npcs[id];
   }
 
   dynamic = {
