@@ -16,7 +16,10 @@ import {
 import { getMap } from '../../sim/world.js';
 import checkAccess from '../middleware/checkAccess.js';
 import { broadcast } from '../../net/snapshot.js';
-import { teleportPlayer } from '../../services/world/movementService.js';
+import {
+  teleportPlayer,
+  warpToMap,
+} from '../../services/world/movementService.js';
 import {
   banAccount,
   getPlayerByName,
@@ -146,7 +149,9 @@ export function createModRouter() {
       if (!target) return res.status(404).send('Player not found');
       if (!getMap(mapId)) return res.status(400).send('Map not loaded');
 
-      teleportPlayer(target, mapId, { x: col * TILE_SIZE, y: row * TILE_SIZE });
+      // A dungeon's map is the template its copies are made from, so a warp
+      // there lands in the player's own copy, as through its entrance.
+      warpToMap(target, mapId, { x: col * TILE_SIZE, y: row * TILE_SIZE });
       broadcast();
 
       res.status(200).send('Player warped');

@@ -6,11 +6,22 @@
  * that the refusal says which of the two players is missing, so an operator
  * who is not in the world is not sent looking for a problem with the target.
  */
-import { beforeAll, beforeEach, describe, it, expect } from 'vitest';
+import {
+  beforeAll,
+  beforeEach,
+  describe,
+  it,
+  expect,
+  onTestFinished,
+} from 'vitest';
 import express from 'express';
 import request from 'supertest';
 import { createModRouter } from './modRoutes.js';
 import { createFixture } from '../../sim/simFixture.js';
+import {
+  clearInstancesForTest,
+  isInstanceKey,
+} from '../../services/world/instanceService.js';
 import { Access } from '../../../shared/types.js';
 
 let app: express.Express;
@@ -69,6 +80,22 @@ describe('acting from the operator position', () => {
     await asOperator('Boss').send({ playerName: 'Alice' }).expect(200);
 
     expect(alice.position).toEqual(boss.position);
+  });
+
+  it('warps a player to a dungeon into a copy of it, not its template', async () => {
+    const sim = createFixture(0);
+    sim.addMap({ id: 'crypt', instanced: true });
+    const alice = sim.addPlayer({ name: 'Alice' });
+    onTestFinished(clearInstancesForTest);
+
+    await request(app)
+      .post('/mod/warp')
+      .set('x-user', 'Boss')
+      .send({ playerName: 'Alice', mapId: 'crypt', col: 3, row: 3 })
+      .expect(200);
+
+    expect(alice.mapId).not.toBe('crypt');
+    expect(isInstanceKey(alice.mapId)).toBe(true);
   });
 
   it('refuses changing your own access the same way', async () => {
