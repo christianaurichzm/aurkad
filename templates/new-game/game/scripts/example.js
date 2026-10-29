@@ -596,7 +596,7 @@ command(
 //                                    with it, not npc.id (none on a spawnNpc npc)
 //
 // MAPS
-//   getMapTile(mapId, col, row)    → { blocked, tileIndex, maskIndex?, bank } | null
+//   getMapTile(mapId, col, row)    → { blocked, tileIndex, maskIndex?, bank, scripts } | null
 //   setMapTile(mapId, col, row, { tileIndex?, blocked? }) → boolean
 //                                    a door, a bridge; never saved, fires mapChange
 //   getMapSize(mapId)              → { cols, rows } | undefined   in tiles

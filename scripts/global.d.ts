@@ -640,7 +640,8 @@ declare function getMapSize(
 
 /**
  * Tile info at (col, row), or null out of bounds. `tileIndex` is the ground
- * picture, `maskIndex` the object on it, and `bank` the editor's Bank flag.
+ * picture, `maskIndex` the object on it, `bank` the editor's Bank flag and
+ * `scripts` the behaviour ids its triggers attach (`attach`).
  */
 declare function getMapTile(
   mapId: string,
@@ -651,6 +652,7 @@ declare function getMapTile(
   tileIndex: number;
   maskIndex?: number;
   bank: boolean;
+  scripts: string[];
 } | null;
 
 /**

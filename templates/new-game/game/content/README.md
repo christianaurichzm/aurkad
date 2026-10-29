@@ -213,7 +213,9 @@ of taking the materials.
   "not learned yet" is written without a skill system. A name no script
   registered hides it too.
 - Where players craft: attach the `workbench` behaviour to a tile trigger or an
-  npc. No recipe field points at a place, so one bench serves every recipe.
+  npc. A craft only goes through on that tile or a tile away from that npc, as
+  a shop only sells on its tile. No recipe field points at a place, so one
+  bench serves every recipe.
 
 **shops.json**
 

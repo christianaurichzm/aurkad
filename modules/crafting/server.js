@@ -24,6 +24,7 @@ i18n({
       'A fabricação só funciona dentro do jogo.',
     'You know no recipes.': 'Você não conhece nenhuma receita.',
     'Recipes: {list}': 'Receitas: {list}',
+    'Stand at a workbench to craft.': 'Fique numa bancada para fabricar.',
   },
   es: {
     'No such recipe.': 'Esa receta no existe.',
@@ -37,6 +38,8 @@ i18n({
       'La fabricación solo funciona dentro del juego.',
     'You know no recipes.': 'No conoces ninguna receta.',
     'Recipes: {list}': 'Recetas: {list}',
+    'Stand at a workbench to craft.':
+      'Ponte junto a una mesa de trabajo para fabricar.',
   },
 });
 
@@ -173,6 +176,33 @@ function push(player) {
   );
 }
 
+const WORKBENCH = 'workbench';
+
+/**
+ * Whether the player is where a workbench opens the window: on a tile whose
+ * trigger names it, or a tile away from a living npc carrying it. Re-read on
+ * every craft, as the shop does, so walking away closes it with nothing to
+ * expire. `provide('crafting')` callers are not held to it.
+ */
+function atWorkbench(player) {
+  const { x, y } = player.position;
+  const tile = getMapTile(
+    player.mapId,
+    Math.round(x / TILE_SIZE),
+    Math.round(y / TILE_SIZE),
+  );
+  if (tile && tile.scripts.includes(WORKBENCH)) return true;
+  // The index answers with overlapping boxes, wider than a tile of reach.
+  return getNearbyNpcs(player.mapId, x, y, TILE_SIZE).some(
+    (npc) =>
+      npc.scriptId === WORKBENCH &&
+      Math.abs(npc.position.x - x) <= TILE_SIZE &&
+      Math.abs(npc.position.y - y) <= TILE_SIZE,
+  );
+}
+
+const AWAY = 'Stand at a workbench to craft.';
+
 command(
   'craft',
   { description: 'Crafting: /craft <recipe> or /craft list' },
@@ -188,14 +218,16 @@ command(
         }),
       );
     }
-    reply(craft(player, args[0]));
+    reply(atWorkbench(player) ? craft(player, args[0]) : AWAY);
   },
 );
 
 on('customAction', ({ player, channel, payload }) => {
   const data = /** @type {any} */ (payload);
   if (channel === 'crafting:craft') {
-    const said = craft(player, data && data.recipeId);
+    const said = atWorkbench(player)
+      ? craft(player, data && data.recipeId)
+      : AWAY;
     // The refusal goes to the window, since a full bag is not something the
     // materials list shows.
     sendEvent(player, 'crafting:result', { message: t(player, said) });
@@ -204,7 +236,7 @@ on('customAction', ({ player, channel, payload }) => {
 
 // A workbench is a behaviour attached to a tile trigger or an npc, so the
 // map and npc editors place one without code.
-attach('workbench', {
+attach(WORKBENCH, {
   onEnter({ player }) {
     open(player);
   },

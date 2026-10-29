@@ -11,7 +11,10 @@ import { clearCommands } from '../commands.js';
 import { clearAll } from '../hooks.js';
 import { drainGameEvents } from '../eventBus.js';
 import { handleCustomAction } from '../../services/comms/customEventService.js';
-import { createFixture } from '../../sim/simFixture.js';
+import { createFixture, tile } from '../../sim/simFixture.js';
+import { getMap } from '../../sim/world.js';
+import { rebuildQuadtree } from '../../sim/spatialManager.js';
+import { tileAt } from '../../../shared/mapGeometry.js';
 import type { Item, PlayerServer, Recipe } from '../../../shared/types.js';
 
 // Authored recipes live in the content cache the editor writes to; the model
@@ -64,8 +67,7 @@ async function bootWith(...recipes: Recipe[]): Promise<CraftingApi> {
 }
 
 /** A player holding the sword recipe's materials, and the item catalogue. */
-function smith(capacity = 10) {
-  const sim = createFixture(0);
+function smith(capacity = 10, sim = createFixture(0)) {
   sim.addItem(item(2, 'Hilt'));
   sim.addItem(item(3, 'Iron Ore'));
   sim.addItem(item(8, 'Steel Sword'));
@@ -84,6 +86,22 @@ function smith(capacity = 10) {
 
 const held = (player: PlayerServer, itemId: number) =>
   player.inventory.items.find((slot) => slot.item === itemId)?.quantity ?? 0;
+
+/** Sends Alice's window request and returns what the server pushed back. */
+function ask(channel: string, payload?: unknown) {
+  drainGameEvents();
+  handleCustomAction({ type: 'custom', username: 'Alice', channel, payload });
+  return drainGameEvents().filter((e) => e.type === 'customPlayer') as {
+    channel: string;
+    payload: unknown;
+  }[];
+}
+
+function benchUnder(player: PlayerServer) {
+  tileAt(getMap(player.mapId)!.tiles, player.position)!.triggers = [
+    { action: 'script', scriptId: 'workbench' },
+  ];
+}
 
 beforeEach(() => {
   clearAll();
@@ -164,19 +182,7 @@ describe('crafting module', () => {
     await bootWith(sword);
     const player = smith();
     player.inventory.items = [{ item: 3, quantity: 60 }];
-    const ask = (channel: string, payload?: unknown) => {
-      drainGameEvents();
-      handleCustomAction({
-        type: 'custom',
-        username: 'Alice',
-        channel,
-        payload,
-      });
-      return drainGameEvents().filter((e) => e.type === 'customPlayer') as {
-        channel: string;
-        payload: unknown;
-      }[];
-    };
+    benchUnder(player);
 
     expect(ask('crafting:request')[0]?.payload).toEqual([
       {
@@ -223,6 +229,49 @@ describe('crafting module', () => {
     expect(crafting.craft(player, 'steel-sword')).toBe('Crafted.');
     expect(held(player, 3)).toBe(50);
     expect(held(player, 2)).toBe(1); // no longer part of the recipe
+  });
+});
+
+// The window's craft is judged on where the player stands now, as a shop
+// purchase is: a recipe id in the request says nothing about the place.
+describe('where crafting happens', () => {
+  const craftResult = () =>
+    ask('crafting:craft', { recipeId: 'steel-sword' }).find(
+      (e) => e.channel === 'crafting:result',
+    )?.payload;
+
+  it('crafts on a tile whose trigger is a workbench', async () => {
+    await bootWith(sword);
+    const player = smith();
+    benchUnder(player);
+
+    expect(craftResult()).toEqual({ message: 'Crafted.' });
+    expect(held(player, 8)).toBe(1);
+  });
+
+  it('crafts beside an npc carrying the workbench', async () => {
+    await bootWith(sword);
+    const sim = createFixture(0);
+    const player = smith(10, sim);
+    sim.addNpc({ scriptId: 'workbench', position: tile(2, 1) });
+    rebuildQuadtree(sim.mapId, sim.map);
+
+    expect(craftResult()).toEqual({ message: 'Crafted.' });
+    expect(held(player, 8)).toBe(1);
+  });
+
+  it('refuses anywhere else, taking nothing', async () => {
+    await bootWith(sword);
+    const sim = createFixture(0);
+    const player = smith(10, sim);
+    sim.addNpc({ scriptId: 'workbench', position: tile(3, 1) });
+    rebuildQuadtree(sim.mapId, sim.map);
+
+    expect(craftResult()).toEqual({
+      message: 'Stand at a workbench to craft.',
+    });
+    expect(held(player, 3)).toBe(60);
+    expect(held(player, 8)).toBe(0);
   });
 });
 

@@ -653,6 +653,7 @@ describe('getMapTile', () => {
       maskIndex: 9,
       blocked: true,
       bank: true,
+      triggers: [{ action: 'heal' }, { action: 'script', scriptId: 'forge' }],
     };
     const player = sim.addPlayer({ name: 'Alice' });
 
@@ -673,6 +674,7 @@ describe('getMapTile', () => {
       tileIndex: 5,
       maskIndex: 9,
       bank: true,
+      scripts: ['forge'],
     });
     expect(player.data?.off).toBeNull();
 
