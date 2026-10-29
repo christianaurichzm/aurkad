@@ -182,6 +182,22 @@ def alpha(values):
     return img
 
 
+def join_opacity(frame, mask):
+    # Joined decals share an overlap of 2*M pixels. Split the opacity between
+    # its two (or four at a corner) frames so their rims do not darken there.
+    opacity = frame.getchannel('A')
+    pixels = opacity.load()
+    for y in range(frame.height):
+        vertical = (y < 2 * M and mask & 1) or (y >= C and mask & 4)
+        for x in range(frame.width):
+            horizontal = (x < 2 * M and mask & 8) or (x >= C and mask & 2)
+            copies = (2 if vertical else 1) * (2 if horizontal else 1)
+            if copies > 1:
+                pixels[x, y] = round(255 * (1 - (1 - pixels[x, y] / 255) ** (1 / copies)))
+    frame.putalpha(opacity)
+    return frame
+
+
 def path_frames():
     fill = dirt(C)
     rim_colour = flat('#547830', C + 2 * M).convert('RGBA')
@@ -197,7 +213,7 @@ def path_frames():
         dirt_layer = cut(fill, -M, -M, C + 2 * M).convert('RGBA')
         dirt_layer.putalpha(inside)
         frame.alpha_composite(dirt_layer)
-        frames[mask] = frame
+        frames[mask] = join_opacity(frame, mask)
     return frames
 
 
@@ -217,7 +233,7 @@ def pond_frames():
         deep = cut(fill, -M, -M, C + 2 * M).convert('RGBA')
         deep.putalpha(alpha([smooth(v + 0.07, 0.05) for v in d]))
         frame.alpha_composite(deep)
-        frames[mask] = frame
+        frames[mask] = join_opacity(frame, mask)
     return frames
 
 
@@ -283,18 +299,30 @@ class Atlas:
     def save(self, folder, width=2048):
         # Shelves, tallest first. Pixel (0, 0) stays clear, or the client takes
         # its colour for a key and makes every pixel of it transparent.
+        padding = 2
         x, y, shelf, placed = 4, 0, 0, {}
         for fid, img, _, _ in sorted(self.frames, key=lambda f: -f[1].height):
-            if x + img.width > width:
+            if x + img.width + 2 * padding > width:
                 x, y, shelf = 0, y + shelf, 0
-            placed[fid] = (x, y)
-            x += img.width
-            shelf = max(shelf, img.height)
+            placed[fid] = (x + padding, y + padding)
+            x += img.width + 2 * padding
+            shelf = max(shelf, img.height + 2 * padding)
         sheet = Image.new('RGBA', (width, y + shelf))
         meta = {}
         for fid, img, (ax, ay), piece in self.frames:
             px, py = placed[fid]
             sheet.paste(img, (px, py))
+            # Filtering samples outside the source rectangle; repeat its edge
+            # pixels so it cannot pick up another frame's colour or alpha.
+            for lo, hi, start, end in [(-padding, 0, 0, 1), (0, img.width, 0, img.width),
+                                       (img.width, img.width + padding, img.width - 1, img.width)]:
+                for top, bottom, first, last in [(-padding, 0, 0, 1), (0, img.height, 0, img.height),
+                                                 (img.height, img.height + padding, img.height - 1, img.height)]:
+                    if lo == 0 and top == 0:
+                        continue
+                    edge = img.crop((start, first, end, last)).resize((hi - lo, bottom - top),
+                                                                    Image.Resampling.NEAREST)
+                    sheet.paste(edge, (px + lo, py + top))
             meta[str(fid)] = {'x': px, 'y': py, 'width': img.width, 'height': img.height,
                               'drawWidth': img.width / S, 'drawHeight': img.height / S,
                               'anchorX': ax / S, 'anchorY': ay / S, 'piece': piece}
