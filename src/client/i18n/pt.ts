@@ -258,7 +258,6 @@ export const pt: Record<keyof typeof en, string> = {
   'attr.defense': 'Defesa',
   'attr.agility': 'Agilidade',
   'attr.vitality': 'Vitalidade',
-  'attr.speed': 'Velocidade (movimento)',
   'attr.attackRange': 'Alcance de ataque (corpo a corpo)',
   'attr.experience': 'Experiência',
   'attr.level': 'Nível',

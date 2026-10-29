@@ -114,7 +114,6 @@ const ALL_ATTRIBUTES: {
   { value: 'defense', label: 'attr.defense' },
   { value: 'agility', label: 'attr.agility' },
   { value: 'vitality', label: 'attr.vitality' },
-  { value: 'speed', label: 'attr.speed' },
   { value: 'attackRange', label: 'attr.attackRange', meleeOnly: true },
   { value: 'experience', label: 'attr.experience' },
   { value: 'level', label: 'attr.level' },

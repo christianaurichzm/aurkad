@@ -264,7 +264,6 @@ export const en = {
   'attr.defense': 'Defense',
   'attr.agility': 'Agility',
   'attr.vitality': 'Vitality',
-  'attr.speed': 'Speed (movement)',
   'attr.attackRange': 'Attack Range (melee reach)',
   'attr.experience': 'Experience',
   'attr.level': 'Level',
