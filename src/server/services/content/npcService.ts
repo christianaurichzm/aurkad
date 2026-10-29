@@ -1,10 +1,15 @@
 import { z } from 'zod';
-import { CharacterAction, PersistentNpc } from '../../../shared/types.js';
+import {
+  CharacterAction,
+  PersistentNpc,
+  RuntimeNpc,
+} from '../../../shared/types.js';
 import { runtimeState } from '../../sim/state.js';
 import NpcModel from '../../model/Npc.js';
 import { absentOptionalKeys, getNextNpcId, unsetAbsent } from '../dbService.js';
 import { resetNpcAi } from '../npc/aiBrain.js';
 import { despawnNpc, putNpcInWorld } from '../npc/spawn.js';
+import { awaitingRespawn } from '../npc/index.js';
 import { logger } from '../../logger.js';
 import { ScriptParamsSchema } from '../../../shared/scriptParams.js';
 
@@ -100,28 +105,37 @@ export async function refreshNpcInRuntime(id: string): Promise<void> {
   for (const map of Object.values(runtimeState.maps)) {
     // A map registered before its npcs were built (content import creates the
     // map document first) has no npcs bag yet.
-    for (const [runtimeId, npc] of Object.entries(map.npcs ?? {})) {
+    for (const npc of Object.values(map.npcs ?? {})) {
       if ((npc.templateId ?? npc.id) === id) {
-        const merged = {
-          ...map.npcs[runtimeId]!,
-          ...updated,
-          // The document's id is the template's. The live npc answers to its
-          // own, which is what replication, targeting and despawn know it by.
-          id: npc.id,
-          health: updated.maxHealth,
-          action: CharacterAction.Idle,
-        };
-        // The spread cannot express removal, as with the $unset above: a
-        // field the editor cleared is absent, and the live npc would keep the
-        // old value until the next restart.
-        for (const field of absentOptionalKeys(NpcSchema, updated)) {
-          delete (merged as Record<string, unknown>)[field];
-        }
-        putNpcInWorld(map, merged);
+        putNpcInWorld(map, withDefinition(npc, updated));
         resetNpcAi(npc);
       }
     }
   }
+  for (const entry of awaitingRespawn.values()) {
+    if ((entry.npc.templateId ?? entry.npc.id) === id) {
+      entry.npc = withDefinition(entry.npc, updated);
+    }
+  }
+}
+
+function withDefinition(npc: RuntimeNpc, updated: PersistentNpc): RuntimeNpc {
+  const merged = {
+    ...npc,
+    ...updated,
+    // The document's id is the template's. The live npc answers to its own,
+    // which is what replication, targeting and despawn know it by.
+    id: npc.id,
+    health: updated.maxHealth,
+    action: CharacterAction.Idle,
+  };
+  // The spread cannot express removal, as with the $unset above: a field the
+  // editor cleared is absent, and the npc would keep the old value until the
+  // next restart.
+  for (const field of absentOptionalKeys(NpcSchema, updated)) {
+    delete (merged as Record<string, unknown>)[field];
+  }
+  return merged;
 }
 
 export async function deleteNpc(id: string): Promise<void> {
@@ -129,6 +143,11 @@ export async function deleteNpc(id: string): Promise<void> {
     // Keyed per spawn tile, not by the template they were built from.
     for (const npc of Object.values(map.npcs ?? {})) {
       if ((npc.templateId ?? npc.id) === id) despawnNpc(npc);
+    }
+  }
+  for (const [key, entry] of awaitingRespawn) {
+    if ((entry.npc.templateId ?? entry.npc.id) === id) {
+      awaitingRespawn.delete(key);
     }
   }
   await NpcModel.deleteOne({ id });

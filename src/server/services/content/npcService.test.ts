@@ -14,6 +14,7 @@ import {
   NpcSchema,
   refreshNpcInRuntime,
 } from './npcService.js';
+import { respawnNpc } from '../npc/index.js';
 
 let mongod: MongoMemoryServer;
 let sim: ReturnType<typeof createFixture>;
@@ -98,7 +99,46 @@ describe('deleteNpc', () => {
     expect(replicatedEntityCount()).toBe(2);
     expect(await getNpcById('goblin')).toBeNull();
   });
+
+  it('keeps one killed before the delete from coming back', async () => {
+    const npc = killGoblin();
+
+    await deleteNpc('goblin');
+    sim.step(30);
+
+    expect(sim.map.npcs[npc.id]).toBeUndefined();
+  });
 });
+
+describe('an npc awaiting respawn', () => {
+  it('comes back as the edit made while it was dead', async () => {
+    const npc = killGoblin();
+
+    await createOrUpdateNpc({ ...goblin, name: 'Hobgoblin', maxHealth: 10 });
+    await refreshNpcInRuntime('goblin');
+    sim.step(30);
+
+    expect(sim.map.npcs[npc.id]).toMatchObject({
+      name: 'Hobgoblin',
+      maxHealth: 10,
+      health: 10,
+    });
+  });
+});
+
+/** A goblin on its spawn tile, killed, a second from coming back. */
+function killGoblin() {
+  sim.map.tiles[5]![5]!.npcSpawn = 'goblin';
+  const npc = sim.addNpc({
+    ...goblin,
+    id: `${sim.mapId}:goblin:5:5`,
+    templateId: 'goblin',
+    position: tile(5, 5),
+    respawnMs: 1000,
+  });
+  respawnNpc(sim.mapId, npc);
+  return npc;
+}
 
 describe('NpcSchema', () => {
   it('accepts valid NPC', () => {

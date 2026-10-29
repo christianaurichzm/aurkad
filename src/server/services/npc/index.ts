@@ -158,6 +158,13 @@ function idleStep(npc: RuntimeNpc, ai: NpcAiState, map: MapStateServer) {
 
 // ---- public API ----
 
+/**
+ * The dead awaiting respawn, by map and id. They are on no map, so a content
+ * edit or delete reaches them here: dropping the entry cancels the return,
+ * and replacing `npc` is what comes back.
+ */
+export const awaitingRespawn = new Map<string, { npc: RuntimeNpc }>();
+
 export const respawnNpc = (mapId: string, npc: RuntimeNpc) => {
   // Even an npc with no respawn time is gone for a tick. Moved in place, one
   // that rises a tile from where it fell reads to a viewer as a step, and is
@@ -170,12 +177,17 @@ export const respawnNpc = (mapId: string, npc: RuntimeNpc) => {
   // a returning entity is sent whole, not diffed against the corpse. With no
   // spawn tile, which is every npc a script spawned, it stays gone.
   removeNpcFromWorld(npc, getMap(mapId));
+  const key = `${mapId}\0${npc.id}`;
+  const entry = { npc };
+  awaitingRespawn.set(key, entry);
   scheduleAfter(delay, () => {
+    if (awaitingRespawn.get(key) !== entry) return;
+    awaitingRespawn.delete(key);
     // The map is looked up again: a save in the editor replaces the map
     // object, and can put a new npc on this id's spawn tile meanwhile.
     const current = getMap(mapId);
-    if (!current || current.npcs[npc.id]) return;
-    if (placeAtSpawn(mapId, npc)) putNpcInWorld(current, npc);
+    if (!current || current.npcs[entry.npc.id]) return;
+    if (placeAtSpawn(mapId, entry.npc)) putNpcInWorld(current, entry.npc);
   });
 };
 
