@@ -12,8 +12,8 @@ import { drawSprite } from './spriteDrawing';
 import { characterLayout, getSpriteLayout } from './sprite';
 import { renderItemIcon } from './itemDrawing';
 import { renderHUD, renderHealthBar, renderNpcLabel } from './hud';
-import { worldToView, spritePosition } from './camera';
-import { TILE_SIZE } from '../../shared/constants';
+import { worldToView } from './camera';
+import { ITEM_SIZE, TILE_SIZE } from '../../shared/constants';
 import { itemCtx } from './canvas';
 import { getAnimatedState } from './movementAnimation';
 
@@ -182,9 +182,20 @@ export const renderPlayers = (players: PlayersMap) => {
   });
 };
 
+// A drop lies on its cell, centred on it, where an upright sprite would stand
+// on the middle and on an isometric map reach into the cell behind.
 export const renderDroppedItems = (droppedItems: DroppedItem[]) => {
   droppedItems.forEach((item) => {
-    const at = spritePosition(item.position.x, item.position.y);
-    renderItemIcon(itemCtx, item.sprite, at.x, at.y, false);
+    const centre = worldToView(
+      item.position.x + TILE_SIZE / 2,
+      item.position.y + TILE_SIZE / 2,
+    );
+    renderItemIcon(
+      itemCtx,
+      item.sprite,
+      centre.x - ITEM_SIZE / 2,
+      centre.y - ITEM_SIZE / 2,
+      false,
+    );
   });
 };

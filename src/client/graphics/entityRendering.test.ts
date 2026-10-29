@@ -68,6 +68,31 @@ describe('renderDroppedItems', () => {
       false,
     );
   });
+
+  it('centres a drop on its isometric cell, where the pick-up key reaches it', async () => {
+    const { setStaticMap } = await import('../core/gameState');
+    const { projectPoint } = await import('../../shared/mapGeometry');
+    setStaticMap({
+      id: 'iso',
+      name: 'iso',
+      type: 'normal',
+      orientation: 'isometric',
+      tiles: [],
+    });
+    renderDroppedItems([
+      { itemId: 1, sprite: 7, position: { x: 960, y: 704 }, quantity: 1 },
+    ]);
+    setStaticMap({ id: 'ortho', name: 'ortho', type: 'normal', tiles: [] });
+
+    const centre = projectPoint(960 + 32, 704 + 32, 'isometric');
+    expect(renderItemIcon).toHaveBeenCalledWith(
+      mocks.itemCtx,
+      7,
+      centre.x - 32,
+      centre.y - 32,
+      false,
+    );
+  });
 });
 
 describe('renderEntitiesSorted', () => {
