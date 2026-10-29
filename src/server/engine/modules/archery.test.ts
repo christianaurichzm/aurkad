@@ -207,6 +207,33 @@ describe('archery module', () => {
     expect(enemy.health).toBeLessThan(30);
   });
 
+  it('stops at a wall between the archer and the npc', () => {
+    const sim = createFixture(0);
+    const alice = sim.addPlayer({
+      name: 'Alice',
+      position: tile(5, 5),
+      direction: Direction.Right,
+    });
+    const enemy = sim.addNpc({
+      behavior: 'aggressive',
+      attack: 0,
+      position: tile(8, 5),
+      moveIntervalMs: 60_000,
+    });
+    for (const row of sim.map.tiles) row[6]!.blocked = true;
+    equipTestArrow(alice);
+    sim.step(1);
+    drainGameEvents();
+
+    shoot('Alice');
+    const fired = firedProjectile();
+    const payload = fired?.type === 'customMap' ? fired.payload : undefined;
+    expect((payload as { toX: number }).toX).toBeLessThan(6 * TILE_SIZE);
+    sim.step(20);
+
+    expect(enemy.health).toBe(enemy.maxHealth);
+  });
+
   it('respects the cooldown between shots', () => {
     const sim = createFixture(0);
     const alice = sim.addPlayer({

@@ -26,6 +26,27 @@ function clampEndpoint(mapId, toX, toY) {
   };
 }
 
+// The last point on the line before its first wall tile, or the endpoint
+// itself. The shot ends there, so it neither hits nor is drawn past a wall.
+function stopAtWall(mapId, fromX, fromY, toX, toY) {
+  const dx = toX - fromX;
+  const dy = toY - fromY;
+  const step = TILE_SIZE / 4;
+  const steps = Math.ceil(Math.max(Math.abs(dx), Math.abs(dy)) / step);
+  for (let s = 1; s <= steps; s++) {
+    const x = fromX + (dx * s) / steps;
+    const y = fromY + (dy * s) / steps;
+    const tile = getMapTile(mapId, x / TILE_SIZE, y / TILE_SIZE);
+    if (!tile || tile.blocked) {
+      return {
+        toX: fromX + (dx * (s - 1)) / steps,
+        toY: fromY + (dy * (s - 1)) / steps,
+      };
+    }
+  }
+  return { toX, toY };
+}
+
 function aimEndpoint(player, rangePx) {
   let best = null;
   let bestDist = Infinity;
@@ -83,7 +104,8 @@ on('customAction', ({ player, channel }) => {
 
   const fromX = player.position.x + HALF;
   const fromY = player.position.y + HALF;
-  const { toX, toY } = aimEndpoint(player, rangePx);
+  const aim = aimEndpoint(player, rangePx);
+  const { toX, toY } = stopAtWall(player.mapId, fromX, fromY, aim.toX, aim.toY);
 
   const dx = toX - fromX;
   const dy = toY - fromY;
