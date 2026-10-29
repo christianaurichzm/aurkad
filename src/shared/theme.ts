@@ -103,6 +103,7 @@ export function themeTokens({
   colors = {},
   corners,
   font,
+  art,
   dialogDim,
   background,
 }: Theme): [token: string, value: string][] {
@@ -124,6 +125,9 @@ export function themeTokens({
     );
   }
   if (font) tokens.push(['--font-ui', THEME_FONTS[font]]);
+  // The world's default face is drawn for pixel art; over painted art its
+  // blocky letters are hard to read, so names take the panels' face.
+  if (art === 'smooth') tokens.push(['--font-world', 'var(--font-ui)']);
   if (!dialogDim) tokens.push(['--dialog-dim', 'transparent']);
   if (background)
     tokens.push([

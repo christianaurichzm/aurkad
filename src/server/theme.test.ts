@@ -60,6 +60,16 @@ describe('themeVariables', () => {
     expect(css).toContain('--font-ui: Georgia');
   });
 
+  it('writes names in the text font over smooth art, and keeps pixel art as it is', async () => {
+    write({ art: 'smooth' });
+    expect(themeVariables(await readTheme(dir))).toContain(
+      '--font-world: var(--font-ui);',
+    );
+
+    write({ art: 'pixel' });
+    expect(themeVariables(await readTheme(dir))).toBe('');
+  });
+
   it('leaves the world lit behind a conversation when the game asks', async () => {
     write({ dialogDim: false });
 
