@@ -17,6 +17,9 @@ accounts and edits are gone when the command stops. Server on 8087, client on
 
 ## What to try
 
+- **How to play.** The first time a character comes in, a window lists the
+  controls (the warden's also lists the creator tools); **H**, or Help in the
+  Actions menu, opens it again.
 - **Walking.** Arrows move along the grid, which on this map is turned 45
   degrees: Up goes northeast, Right southeast, Down southwest, Left northwest.
   Or click (tap, on a phone) where to go: the way round walls, and round
@@ -32,16 +35,16 @@ accounts and edits are gone when the command stops. Server on 8087, client on
 - **The siege.** As warden, in the chat:
 
   ```
-  flag siege true for 10            now, for ten minutes
-  flag siege true at 21:00 for 30   tonight at nine
-  flag siege clear                  call it off
+  /flag siege true for 10           now, for ten minutes
+  /flag siege true at 21:00 for 30  tonight at nine
+  /flag siege clear                 call it off
   ```
 
   The night goes black, the bell tolls, and every 30 seconds the dead climb
   out of the woods by both gates (more for every player on the map) until
   wave 6 brings the Ossuary Lord. They hunt the whole map. When the flag ends
   the rest crumble and whoever held the churchyard is paid for each wave.
-  The numbers are in `modules/gravewatch/module.json`; `flag xpMultiplier 2
+  The numbers are in `modules/gravewatch/module.json`; `/flag xpMultiplier 2
   for 60` doubles the experience for the hour.
 - **Editing the map.** As warden, press **Z**. The palette is the kit the map
   is built from (grounds, graves, the crypt, the fence, lanterns, the camp,

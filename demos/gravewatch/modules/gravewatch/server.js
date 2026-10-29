@@ -25,6 +25,49 @@ const cfg = /** @type {{
   maxAlive: number, bossWave: number, gold: number, kinds: Record<string, Kind>,
 }} */ (config);
 
+// The Ossuary Lord keeps his name: names are content, in the language the
+// game was written in.
+i18n({
+  pt: {
+    'The bell of Gravewatch tolls. The dead are rising - hold the churchyard until dawn!':
+      'O sino de Gravewatch dobra. Os mortos se erguem - defenda o cemitério até o amanhecer!',
+    'Wave {wave}: {count} dead claw out of the earth by the gates.':
+      'Onda {wave}: {count} mortos saem da terra junto aos portões.',
+    'The trees part. The Ossuary Lord walks out of the dark.':
+      'As árvores se abrem. O Ossuary Lord sai da escuridão.',
+    'Dawn. The dead crumble where they stand. The churchyard held for one wave.':
+      'Amanhecer. Os mortos se desfazem onde estão. O cemitério resistiu a uma onda.',
+    'Dawn. The dead crumble where they stand. The churchyard held for {wave} waves.':
+      'Amanhecer. Os mortos se desfazem onde estão. O cemitério resistiu a {wave} ondas.',
+    'The bell falls silent.': 'O sino se cala.',
+    'The siege is on - wave {wave}. Get to the gates.':
+      'O cerco começou - onda {wave}. Vá para os portões.',
+  },
+  es: {
+    'The bell of Gravewatch tolls. The dead are rising - hold the churchyard until dawn!':
+      'La campana de Gravewatch dobla. Los muertos se levantan - ¡defiende el cementerio hasta el alba!',
+    'Wave {wave}: {count} dead claw out of the earth by the gates.':
+      'Oleada {wave}: {count} muertos salen de la tierra junto a las puertas.',
+    'The trees part. The Ossuary Lord walks out of the dark.':
+      'Los árboles se apartan. El Ossuary Lord sale de la oscuridad.',
+    'Dawn. The dead crumble where they stand. The churchyard held for one wave.':
+      'Alba. Los muertos se deshacen donde están. El cementerio resistió una oleada.',
+    'Dawn. The dead crumble where they stand. The churchyard held for {wave} waves.':
+      'Alba. Los muertos se deshacen donde están. El cementerio resistió {wave} oleadas.',
+    'The bell falls silent.': 'La campana calla.',
+    'The siege is on - wave {wave}. Get to the gates.':
+      'El asedio está en marcha - oleada {wave}. Ve a las puertas.',
+  },
+});
+
+// To everyone online, each in their own language: `broadcastMessage` is one
+// event for every viewer, so it is never translated.
+function announce(text, params) {
+  for (const player of getPlayers()) {
+    sendMessage(player, t(player, text, params));
+  }
+}
+
 // Which kinds rise, by wave: the early waves are mostly Risen.
 const MIX = [
   ['risen', 'risen', 'risen', 'grave-robber'],
@@ -100,11 +143,12 @@ function nextWave() {
   for (let i = 0; i < count; i++) raise(randomPick(mix) ?? 'risen');
   if (wave === cfg.bossWave) {
     raise('ossuary-lord');
-    broadcastMessage('The trees part. The Ossuary Lord walks out of the dark.');
+    announce('The trees part. The Ossuary Lord walks out of the dark.');
   } else if (count > 0) {
-    broadcastMessage(
-      `Wave ${wave}: ${count} dead claw out of the earth by the gates.`,
-    );
+    announce('Wave {wave}: {count} dead claw out of the earth by the gates.', {
+      wave,
+      count,
+    });
   }
 }
 
@@ -112,7 +156,7 @@ function begin() {
   if (running) return;
   running = true;
   wave = 0;
-  broadcastMessage(
+  announce(
     'The bell of Gravewatch tolls. The dead are rising - hold the churchyard until dawn!',
   );
   const lit = lights();
@@ -136,11 +180,17 @@ function end() {
     if (wave > 0) giveExperience(player, DAWN_XP_PER_WAVE * wave);
   }
   sendMapEvent(cfg.mapId, 'gravewatch:siege', { running: false });
-  broadcastMessage(
-    wave > 0
-      ? `Dawn. The dead crumble where they stand. The churchyard held for ${wave} waves.`
-      : 'The bell falls silent.',
-  );
+  if (wave === 0) announce('The bell falls silent.');
+  else if (wave === 1) {
+    announce(
+      'Dawn. The dead crumble where they stand. The churchyard held for one wave.',
+    );
+  } else {
+    announce(
+      'Dawn. The dead crumble where they stand. The churchyard held for {wave} waves.',
+      { wave },
+    );
+  }
 }
 
 // A raised corpse has no spawn tile to come back to: it pays out and goes.
@@ -164,7 +214,10 @@ on('customAction', ({ player, channel }) => {
   night(player);
   if (running) {
     sendEvent(player, 'gravewatch:siege', { running: true });
-    sendMessage(player, `The siege is on - wave ${wave}. Get to the gates.`);
+    sendMessage(
+      player,
+      t(player, 'The siege is on - wave {wave}. Get to the gates.', { wave }),
+    );
   }
 });
 
