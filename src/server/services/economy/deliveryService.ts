@@ -19,6 +19,7 @@
 import crypto from 'node:crypto';
 import type { ClientSession } from 'mongoose';
 import DeliveryModel from '../../model/Delivery.js';
+import DeliveryGuardModel from '../../model/DeliveryGuard.js';
 import {
   addItem,
   removeItem,
@@ -56,17 +57,36 @@ import {
 const MAX_PENDING_PER_PLAYER = 100;
 
 /**
- * The tail of each recipient's queue of sends.
- *
+ * Sends to one recipient, one after the other from the count to the insert.
  * The cap is a count followed by an insert, so two sends counted before
- * either inserts both fit. Sends to one recipient therefore run one after the
- * other, from the count to the insert.
+ * either inserts would both fit.
  *
- * In-process only: two instances sending to one recipient can still pass the
- * cap together. Closing that across instances takes a per-recipient counter
- * document with a conditional $inc.
+ * In-process, and only up to the insert. Sends inside a transaction are kept
+ * apart by `guardRecipient`, across instances too. A send that counts outside
+ * one (a script grant, `sendDelivery`) can still pass the cap together with a
+ * send on another instance.
  */
 const oneSendAtATime = perKeyQueue();
+
+/**
+ * Writes the recipient's guard document, which every send does before it
+ * counts their rows.
+ *
+ * A transaction counts from the snapshot of its first read, and its insert
+ * stays invisible until it commits, so waiting a turn in the queue does not
+ * show it a row another transaction has added. Writing one document does:
+ * MongoDB aborts the second writer with a write conflict, whether the first
+ * is still open or committed after the second's snapshot, and
+ * `withTransaction` reruns it on a snapshot that holds the first one's row.
+ * A send outside a transaction waits here for an open one to end.
+ */
+function guardRecipient(to: string, session?: ClientSession) {
+  return DeliveryGuardModel.updateOne(
+    { _id: to },
+    { $inc: { sends: 1 } },
+    { upsert: true },
+  ).session(session ?? null);
+}
 
 /** Engine-owned key in the player's data bag, not a script's to manage. */
 const CLAIMED_KEY = '__claimedDeliveries';
@@ -173,6 +193,8 @@ async function prepareRow(
   if (input.meta !== undefined && !measureValue(input.meta).ok) {
     return fail('meta-too-large');
   }
+
+  await guardRecipient(recipientName, session);
 
   // Before the cap, so a key already queued is answered with a full mailbox.
   if (input.key !== undefined) {
