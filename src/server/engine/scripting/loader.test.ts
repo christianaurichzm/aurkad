@@ -3,11 +3,16 @@
  * directory rather than `scripts/`, so the repo's own scripts can change
  * without moving these.
  */
-import { describe, it, expect, beforeEach, afterAll } from 'vitest';
+import { describe, it, expect, beforeEach, afterAll, vi } from 'vitest';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
-import { checkScriptTypes, initTsSupport } from './loader.js';
+import {
+  checkScriptTypes,
+  initTsSupport,
+  loadScripts,
+  unloadAllScripts,
+} from './loader.js';
 import { clearScriptErrors, getScriptErrors } from './scriptErrors.js';
 
 const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'aurkad-scripts-'));
@@ -60,5 +65,21 @@ describe('checkScriptTypes', () => {
 
     expect(getScriptErrors('one.js')).toEqual([]);
     expect(getScriptErrors('two.js')).toEqual([]);
+  });
+});
+
+describe('loadScripts', () => {
+  it('boots without hot reload when scripts/ cannot be watched', () => {
+    const watch = vi.spyOn(fs, 'watch').mockImplementation(() => {
+      throw Object.assign(new Error('EMFILE: too many open files, watch'), {
+        code: 'EMFILE',
+      });
+    });
+    try {
+      expect(() => loadScripts()).not.toThrow();
+    } finally {
+      watch.mockRestore();
+      unloadAllScripts();
+    }
   });
 });

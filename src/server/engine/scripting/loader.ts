@@ -208,17 +208,31 @@ export function loadScripts(): void {
     checkScriptTypes(files.map((f) => path.join(SCRIPTS_DIR, f)));
   }
 
-  // Hot reload: non-persistent watcher so it doesn't block process shutdown
-  watcher = fs.watch(SCRIPTS_DIR, { persistent: false }, (event, filename) => {
-    if (!filename || !isScriptFile(filename)) return;
-    const filePath = path.join(SCRIPTS_DIR, filename);
-    if (fs.existsSync(filePath)) {
-      logger.info(`[scripting] Change detected - reloading: ${filename}`);
-      loadFile(filePath);
-    } else {
-      unloadFile(filename);
-    }
-  });
+  // Hot reload: non-persistent watcher so it doesn't block process shutdown.
+  // The game runs the same without it, so a host out of inotify instances
+  // (EMFILE) or watches (ENOSPC) loses hot reload, not the boot.
+  try {
+    watcher = fs.watch(
+      SCRIPTS_DIR,
+      { persistent: false },
+      (event, filename) => {
+        if (!filename || !isScriptFile(filename)) return;
+        const filePath = path.join(SCRIPTS_DIR, filename);
+        if (fs.existsSync(filePath)) {
+          logger.info(`[scripting] Change detected - reloading: ${filename}`);
+          loadFile(filePath);
+        } else {
+          unloadFile(filename);
+        }
+      },
+    );
+  } catch (e) {
+    logger.warn(
+      '[scripting] Cannot watch scripts/, so changes apply on restart',
+      { err: e },
+    );
+    return;
+  }
 
   // Suppress ENOENT errors if scripts/ is removed while watching
   watcher.on('error', (e: NodeJS.ErrnoException) => {
