@@ -104,6 +104,7 @@ export const Register = ({
               autoComplete="new-password"
               aria-label={t('auth.choosePassword')}
               placeholder={t('auth.choosePassword')}
+              aria-describedby="register-password-rule"
               style={styles.input}
               {...register('password', {
                 required: t('auth.passwordRequired'),
@@ -113,9 +114,13 @@ export const Register = ({
                 },
               })}
             />
-            {errors.password && (
-              <span style={styles.fieldError}>{errors.password.message}</span>
-            )}
+            <span
+              id="register-password-rule"
+              style={errors.password ? styles.fieldError : styles.fieldHint}
+            >
+              {errors.password?.message ??
+                t('auth.passwordTooShort', { min: minPassword })}
+            </span>
           </div>
           <div style={styles.field}>
             <PasswordInput
@@ -177,6 +182,12 @@ const styles: Record<string, React.CSSProperties> = {
     display: 'block',
     marginTop: '4px',
     color: colors.dangerText,
+    fontSize: '0.8rem',
+  },
+  fieldHint: {
+    display: 'block',
+    marginTop: '4px',
+    color: colors.textMuted,
     fontSize: '0.8rem',
   },
   button: {

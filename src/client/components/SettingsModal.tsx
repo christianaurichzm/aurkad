@@ -28,6 +28,7 @@ export const SettingsModal: React.FC = () => {
   const [audio, setAudio] = useState<AudioSettings>(getAudioSettings);
   const [current, setCurrent] = useState('');
   const [next, setNext] = useState('');
+  const [repeat, setRepeat] = useState('');
   const [passwordNote, setPasswordNote] = useState('');
   const [passwordError, setPasswordError] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -87,6 +88,10 @@ export const SettingsModal: React.FC = () => {
       setPasswordError(true);
       return setPasswordNote(t('auth.passwordTooShort', { min }));
     }
+    if (next !== repeat) {
+      setPasswordError(true);
+      return setPasswordNote(t('auth.passwordMismatch'));
+    }
     setSaving(true);
     try {
       await changePassword(current, next);
@@ -94,6 +99,7 @@ export const SettingsModal: React.FC = () => {
       setPasswordNote(t('auth.passwordChanged'));
       setCurrent('');
       setNext('');
+      setRepeat('');
     } catch (e) {
       setPasswordError(true);
       setPasswordNote(httpError(e).message || t('common.error'));
@@ -231,18 +237,27 @@ export const SettingsModal: React.FC = () => {
           onChange={(e) => setNext(e.target.value)}
           style={input}
         />
+        <input
+          type="password"
+          autoComplete="new-password"
+          placeholder={t('auth.repeatPassword')}
+          value={repeat}
+          onChange={(e) => setRepeat(e.target.value)}
+          style={input}
+        />
         <button
           type="button"
-          disabled={saving || !current || !next}
+          disabled={saving || !current || !next || !repeat}
           onClick={() => void submitPassword()}
           className="button-primary"
           style={button}
         >
           {t('auth.changePassword')}
         </button>
-        {passwordNote && (
-          <span style={passwordError ? noteError : note}>{passwordNote}</span>
-        )}
+        <span style={passwordError ? noteError : note}>
+          {passwordNote ||
+            t('auth.passwordTooShort', { min: passwordMinLength() })}
+        </span>
       </div>
     </Modal>
   );

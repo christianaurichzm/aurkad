@@ -59,14 +59,26 @@ describe('Register', () => {
     expect(mocks.register).not.toHaveBeenCalled();
   });
 
+  it('states the password rule before the first try', async () => {
+    render(<Register onSwitch={vi.fn()} />);
+    await screen.findByText('Tandem');
+
+    expect(
+      screen
+        .getByPlaceholderText('Choose a password')
+        .getAttribute('aria-describedby'),
+    ).toBe(screen.getByText('At least 10 characters.').id);
+  });
+
   it('refuses a short password and a repeat that does not match', async () => {
     render(<Register onSwitch={vi.fn()} />);
     await screen.findByText('Tandem');
 
     await signUp('alice', 'short', 'shorter');
 
-    expect(await screen.findByText('At least 10 characters.')).toBeTruthy();
-    expect(screen.getByText('The two passwords do not match.')).toBeTruthy();
+    expect(
+      await screen.findByText('The two passwords do not match.'),
+    ).toBeTruthy();
     expect(mocks.register).not.toHaveBeenCalled();
   });
 

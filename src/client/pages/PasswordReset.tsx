@@ -76,10 +76,14 @@ export const PasswordReset = ({
               autoFocus
               aria-label={t('auth.newPassword')}
               placeholder={t('auth.newPassword')}
+              aria-describedby="reset-password-rule"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               style={styles.input}
             />
+            <span id="reset-password-rule" style={styles.hint}>
+              {t('auth.passwordTooShort', { min: passwordMinLength() })}
+            </span>
             <PasswordInput
               aria-label={t('auth.repeatPassword')}
               placeholder={t('auth.repeatPassword')}
@@ -108,6 +112,7 @@ export const PasswordReset = ({
 
 const styles: Record<string, React.CSSProperties> = {
   form: { display: 'flex', flexDirection: 'column', gap: 14 },
+  hint: { marginTop: -8, color: colors.textMuted, fontSize: '0.8rem' },
   input: {
     width: '100%',
     padding: '12px',

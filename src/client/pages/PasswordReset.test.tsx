@@ -68,7 +68,9 @@ describe('the screen a reset link opens', () => {
     await fill('short', 'short');
 
     expect(mocks.confirmPasswordReset).not.toHaveBeenCalled();
-    expect(screen.getByText(/at least 8 characters/i)).toBeInTheDocument();
+    expect(screen.getByRole('alert')).toHaveTextContent(
+      /at least 8 characters/i,
+    );
   });
 
   it('shows what the server said when the link is spent', async () => {

@@ -1,9 +1,15 @@
 import { act, fireEvent, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { beforeEach, describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { getAudioSettings, setAudioSettings } from '../audio';
+import { changePassword } from '../io/network';
 import { useEscapeClose } from '../hooks/useEscapeClose';
 import { SettingsModal } from './SettingsModal';
+
+vi.mock('../io/network', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('../io/network')>()),
+  changePassword: vi.fn(),
+}));
 
 const open = () => {
   render(<SettingsModal />);
@@ -44,6 +50,29 @@ describe('SettingsModal', () => {
 
     expect(getAudioSettings().muted).toBe(true);
     expect(screen.getByLabelText('Music')).toBeDisabled();
+  });
+
+  it('asks for the new password twice before changing it', async () => {
+    open();
+
+    await userEvent.type(
+      screen.getByPlaceholderText('Current password'),
+      'old',
+    );
+    await userEvent.type(
+      screen.getByPlaceholderText('New password'),
+      'longenough1',
+    );
+    await userEvent.type(
+      screen.getByPlaceholderText('Repeat the new password'),
+      'longenough2',
+    );
+    await userEvent.click(
+      screen.getByRole('button', { name: 'Change password' }),
+    );
+
+    expect(screen.getByText('The two passwords do not match.')).toBeTruthy();
+    expect(changePassword).not.toHaveBeenCalled();
   });
 
   it('stays closed on the Escape that closes another panel', async () => {
