@@ -70,6 +70,14 @@ registerStrings({
     [nameChars]: 'Esse nome tem caracteres que este jogo não aceita',
     [nameReserved]: 'Esse nome é reservado',
   },
+  es: {
+    [passwordShort]: `Las contraseñas tienen al menos ${account.passwordMinLength} caracteres`,
+    [passwordLong]: 'Esa contraseña es demasiado larga',
+    [nameShort]: `Los nombres tienen al menos ${account.usernameMinLength} caracteres`,
+    [nameLong]: `Los nombres tienen como máximo ${account.usernameMaxLength} caracteres`,
+    [nameChars]: 'Ese nombre tiene caracteres que este juego no acepta',
+    [nameReserved]: 'Ese nombre está reservado',
+  },
 });
 
 // bcrypt reads no further than 72 bytes. Past them two passwords are the same

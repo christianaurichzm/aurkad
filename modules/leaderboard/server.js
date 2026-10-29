@@ -13,6 +13,12 @@ i18n({
     '#{rank} {name} - level {level}': '#{rank} {name} - nível {level}',
     'No such board.': 'Esse placar não existe.',
   },
+  es: {
+    'Top {count} by level:': 'Top {count} por nivel:',
+    'The board is empty.': 'La tabla está vacía.',
+    '#{rank} {name} - level {level}': '#{rank} {name} - nivel {level}',
+    'No such board.': 'Esa tabla no existe.',
+  },
 });
 
 const size = Math.max(1, Math.min(500, Number((config && config.size) || 100)));

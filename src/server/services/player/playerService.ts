@@ -205,6 +205,17 @@ registerStrings({
     'Your last session is still being saved. Try again in a moment.':
       'Sua última sessão ainda está sendo salva. Tente de novo em instantes.',
   },
+  es: {
+    'You are banned from this game.': 'Estás baneado de este juego.',
+    'Reason: {reason}': 'Motivo: {reason}',
+    'Until: {until}': 'Hasta: {until}',
+    'Server is under maintenance. Please try again later.':
+      'El servidor está en mantenimiento. Inténtalo de nuevo más tarde.',
+    'Server is currently restricted to GMs only.':
+      'Por ahora el servidor está abierto solo para GMs.',
+    'Your last session is still being saved. Try again in a moment.':
+      'Tu última sesión aún se está guardando. Inténtalo de nuevo en un momento.',
+  },
 });
 
 // The access level each player in the world entered with or was given by

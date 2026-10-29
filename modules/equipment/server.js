@@ -9,6 +9,12 @@ i18n({
     'No active equipment sets.': 'Nenhum conjunto ativo.',
     'Active sets: {sets}': 'Conjuntos ativos: {sets}',
   },
+  es: {
+    'Set commands must be used in-game.':
+      'Los comandos de conjuntos solo funcionan dentro del juego.',
+    'No active equipment sets.': 'No hay conjuntos activos.',
+    'Active sets: {sets}': 'Conjuntos activos: {sets}',
+  },
 });
 
 const dataKey = 'equipmentSetBonuses';

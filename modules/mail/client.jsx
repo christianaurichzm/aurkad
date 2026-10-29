@@ -38,6 +38,38 @@ engine.i18n({
     'Send to {player}': 'Enviar para {player}',
     'Postage: {cost} {item}': 'Postagem: {cost} {item}',
   },
+  es: {
+    Mail: 'Correo',
+    'Mail sections': 'Secciones del correo',
+    Inbox: 'Entrada',
+    Send: 'Enviar',
+    '{count} waiting': '{count} esperando',
+    'From {player}': 'De {player}',
+    Collect: 'Recibir',
+    'Collect mail from {player}': 'Recibir el correo de {player}',
+    'Collect all': 'Recibir todo',
+    'Collect all ({count})': 'Recibir todo ({count})',
+    'Your inbox is empty.': 'Tu bandeja está vacía.',
+    'Items other players send you arrive here.':
+      'Los objetos que te envían otros jugadores llegan aquí.',
+    Recipient: 'Destinatario',
+    'Player name': 'Nombre del jugador',
+    Item: 'Objeto',
+    pick: 'elige',
+    'Pick from the bag': 'Elige de la bolsa',
+    '{slot}: {item} x{count}': '{slot}: {item} x{count}',
+    '{slot}: empty': '{slot}: vacío',
+    'Note (optional)': 'Nota (opcional)',
+    'Your bag - click to attach': 'Tu bolsa - pulsa para adjuntar',
+    '{count} in bag': '{count} en la bolsa',
+    'Nothing to send.': 'Nada que enviar.',
+    'Items you can mail show up here.':
+      'Los objetos que puedes enviar aparecen aquí.',
+    'Add a recipient': 'Indica el destinatario',
+    'Pick an item': 'Elige un objeto',
+    'Send to {player}': 'Enviar a {player}',
+    'Postage: {cost} {item}': 'Envío: {cost} {item}',
+  },
 });
 
 const { useState } = React;

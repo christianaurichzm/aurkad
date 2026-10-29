@@ -20,6 +20,20 @@ engine.i18n({
     'Withdraw {count}': 'Sacar {count}',
     Cancel: 'Cancelar',
   },
+  es: {
+    Bank: 'Banco',
+    Bag: 'Bolsa',
+    Vault: 'Cámara',
+    'in the vault': 'en la cámara',
+    'in the bag': 'en la bolsa',
+    bound: 'vinculado',
+    'Click an item to move it to the other side. A stack asks how many.':
+      'Pulsa un objeto para pasarlo al otro lado. Una pila pregunta cuántos.',
+    'How many {item}': 'Cuántos {item}',
+    'Deposit {count}': 'Depositar {count}',
+    'Withdraw {count}': 'Retirar {count}',
+    Cancel: 'Cancelar',
+  },
 });
 
 const { useState } = React;

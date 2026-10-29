@@ -175,4 +175,5 @@ engine.registerOverlay((ctx, cam) => {
 
 engine.i18n({
   pt: { 'click or Enter': 'clique ou Enter' },
+  es: { 'click or Enter': 'clic o Enter' },
 });

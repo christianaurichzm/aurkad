@@ -33,6 +33,36 @@ i18n({
     'Usage: /trade offer <player> <item> <qty> [wantItem] [wantQty] | accept|cancel <player>':
       'Uso: /trade offer <jogador> <item> <qtd> [itemDesejado] [qtdDesejada] | accept|cancel <jogador>',
   },
+  es: {
+    'Player not found.': 'Jugador no encontrado.',
+    'You cannot trade with yourself.': 'No puedes intercambiar contigo mismo.',
+    'You must be in the same map to trade.':
+      'Tienen que estar en el mismo mapa para intercambiar.',
+    'You do not have that item quantity.': 'No tienes esa cantidad.',
+    'That item is bound and cannot be traded.':
+      'Ese objeto está vinculado y no se puede intercambiar.',
+    'Invalid requested item.': 'El objeto pedido no es válido.',
+    'The requested item is bound and cannot be traded.':
+      'El objeto pedido está vinculado y no se puede intercambiar.',
+    "{player}'s inventory is full.": 'El inventario de {player} está lleno.',
+    'Trade offered to {player}.': 'Intercambio ofrecido a {player}.',
+    'No trade offer from that player.': 'No hay ninguna oferta de ese jugador.',
+    'Trade partner is offline.': 'El otro jugador está fuera de línea.',
+    'Offer is no longer valid.': 'La oferta ya no es válida.',
+    'You do not have the requested item quantity.':
+      'No tienes la cantidad pedida.',
+    'Your inventory is full.': 'Tu inventario está lleno.',
+    'Trade completed.': 'Intercambio completado.',
+    'The trade could not be saved. Try again.':
+      'No se pudo guardar el intercambio. Inténtalo de nuevo.',
+    'Trade cancelled.': 'Intercambio cancelado.',
+    'No trade to cancel.': 'No hay ningún intercambio que cancelar.',
+    'Trade commands must be used in-game.':
+      'Los comandos de intercambio solo funcionan dentro del juego.',
+    'Trades: {count}': 'Intercambios: {count}',
+    'Usage: /trade offer <player> <item> <qty> [wantItem] [wantQty] | accept|cancel <player>':
+      'Uso: /trade offer <jugador> <objeto> <cant> [objetoPedido] [cantPedida] | accept|cancel <jugador>',
+  },
 });
 
 const offers = new Map(); // "from->to" -> offer

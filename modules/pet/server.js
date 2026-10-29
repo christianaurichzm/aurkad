@@ -8,6 +8,11 @@ i18n({
     'Pet dismissed.': 'Bicho dispensado.',
     'Pet summoned.': 'Bicho invocado.',
   },
+  es: {
+    'In-game only.': 'Solo dentro del juego.',
+    'Pet dismissed.': 'Mascota despedida.',
+    'Pet summoned.': 'Mascota invocada.',
+  },
 });
 
 const petSprite = Number((config && config.sprite) || 0);

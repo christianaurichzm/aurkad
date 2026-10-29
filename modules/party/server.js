@@ -23,6 +23,27 @@ i18n({
     'Usage: /party create|invite|accept|leave|list [player]':
       'Uso: /party create|invite|accept|leave|list [jogador]',
   },
+  es: {
+    'Player not found.': 'Jugador no encontrado.',
+    'You cannot invite yourself.': 'No puedes invitarte a ti mismo.',
+    'That player is already in a party.': 'Ese jugador ya está en un grupo.',
+    'Only the party leader can invite.':
+      'Solo el líder del grupo puede invitar.',
+    'Your party is full.': 'Tu grupo está lleno.',
+    'Invited {player}.': 'Invitaste a {player}.',
+    'No pending party invite.': 'No hay invitaciones de grupo pendientes.',
+    'Leave your current party first.': 'Primero sal de tu grupo actual.',
+    'That party is full.': 'Ese grupo está lleno.',
+    "Joined {leader}'s party.": 'Entraste en el grupo de {leader}.',
+    'You are not in a party.': 'No estás en un grupo.',
+    'Left party.': 'Saliste del grupo.',
+    'Party commands must be used in-game.':
+      'Los comandos de grupo solo funcionan dentro del juego.',
+    'Party ready.': 'Grupo listo.',
+    "{leader}'s party: {members}": 'Grupo de {leader}: {members}',
+    'Usage: /party create|invite|accept|leave|list [player]':
+      'Uso: /party create|invite|accept|leave|list [jugador]',
+  },
 });
 
 const maxMembers = Math.max(2, Number((config && config.maxMembers) || 5));

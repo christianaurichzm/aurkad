@@ -14,6 +14,11 @@ engine.i18n({
     Conversation: 'Conversa',
     'Leave the conversation': 'Sair da conversa',
   },
+  es: {
+    Continue: 'Continuar',
+    Conversation: 'Conversación',
+    'Leave the conversation': 'Salir de la conversación',
+  },
 });
 
 const { useCallback, useEffect, useId, useRef, useState } = React;

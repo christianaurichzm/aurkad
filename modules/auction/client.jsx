@@ -24,6 +24,25 @@ engine.i18n({
     'Fee: {percent}%': 'Taxa: {percent}%',
     'You get {payout}': 'Você recebe {payout}',
   },
+  es: {
+    Auction: 'Subasta',
+    'Auction ({count})': 'Subasta ({count})',
+    Browse: 'Explorar',
+    Mine: 'Míos',
+    Sell: 'Vender',
+    Buy: 'Comprar',
+    Cancel: 'Cancelar',
+    List: 'Anunciar',
+    Item: 'Objeto',
+    Quantity: 'Cantidad',
+    Price: 'Precio',
+    'Nothing is up for auction.': 'No hay nada en subasta.',
+    'You have nothing up.': 'No tienes nada anunciado.',
+    'Nothing you can sell.': 'No tienes nada que puedas vender.',
+    'by {seller}': 'de {seller}',
+    'Fee: {percent}%': 'Comisión: {percent}%',
+    'You get {payout}': 'Recibes {payout}',
+  },
 });
 
 const { useState } = React;

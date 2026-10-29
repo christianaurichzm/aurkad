@@ -21,6 +21,21 @@ engine.i18n({
     'Your rank': 'Sua posição',
     'You are not on this board yet.': 'Você ainda não está neste placar.',
   },
+  es: {
+    Leaderboard: 'Clasificación',
+    Boards: 'Tablas',
+    level: 'nivel',
+    'Nobody has ranked yet.': 'Aún no hay nadie en la clasificación.',
+    'Standings appear as players earn them.':
+      'Las posiciones aparecen a medida que los jugadores las ganan.',
+    Rank: 'Pos.',
+    Player: 'Jugador',
+    Score: 'Puntos',
+    Level: 'Nivel',
+    you: 'tú',
+    'Your rank': 'Tu posición',
+    'You are not on this board yet.': 'Aún no estás en esta tabla.',
+  },
 });
 
 const ui = engine.ui;

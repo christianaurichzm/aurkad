@@ -104,6 +104,12 @@ registerStrings({
     "You don't have permission to use /{name}.":
       'Você não tem permissão para usar /{name}.',
   },
+  es: {
+    'Command error.': 'Error en el comando.',
+    'Unknown command: /{name}': 'Comando desconocido: /{name}',
+    "You don't have permission to use /{name}.":
+      'No tienes permiso para usar /{name}.',
+  },
 });
 
 const commands = new Map<string, CommandDef>();

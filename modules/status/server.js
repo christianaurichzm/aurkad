@@ -14,6 +14,17 @@ i18n({
     'Usage: /status apply|clear|list <player> [effect]':
       'Uso: /status apply|clear|list <jogador> [efeito]',
   },
+  es: {
+    'Player not found.': 'Jugador no encontrado.',
+    'Status applied.': 'Estado aplicado.',
+    'Unknown status.': 'Estado desconocido.',
+    'Status cleared.': 'Estado quitado.',
+    'Status not found.': 'Estado no encontrado.',
+    'Statuses: {list}': 'Estados: {list}',
+    none: 'ninguno',
+    'Usage: /status apply|clear|list <player> [effect]':
+      'Uso: /status apply|clear|list <jugador> [efecto]',
+  },
 });
 
 const dataKey = 'statusEffects';

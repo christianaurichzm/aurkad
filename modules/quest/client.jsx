@@ -26,6 +26,26 @@ engine.i18n({
     'Quest started: {quest}': 'Missão iniciada: {quest}',
     'New quest: {quest}': 'Nova missão: {quest}',
   },
+  es: {
+    Quests: 'Misiones',
+    '{count} active': '{count} activas',
+    'No quests yet.': 'Aún no hay misiones.',
+    'Talk to the people you meet to pick one up.':
+      'Habla con la gente que encuentres para conseguir una.',
+    'Quest list': 'Lista de misiones',
+    Active: 'Activas',
+    Completed: 'Completadas',
+    None: 'Ninguna',
+    'From {giver}': 'De {giver}',
+    Progress: 'Progreso',
+    Rewards: 'Recompensas',
+    '{quest} progress': 'Progreso de {quest}',
+    'Completed - rewards claimed.': 'Completada - recompensas recibidas.',
+    'Quest completed: {quest}': 'Misión completada: {quest}',
+    '✓ Quest complete: {quest}': '✓ Misión completada: {quest}',
+    'Quest started: {quest}': 'Misión iniciada: {quest}',
+    'New quest: {quest}': 'Nueva misión: {quest}',
+  },
 });
 
 const ui = engine.ui;

@@ -27,6 +27,12 @@ registerStrings({
     'You cannot afford that.': 'Você não tem o suficiente para isso.',
     'This shop does not sell that.': 'Esta loja não vende isso.',
   },
+  es: {
+    'You are not at this shop.': 'No estás en esta tienda.',
+    'Your bag is full.': 'Tu bolsa está llena.',
+    'You cannot afford that.': 'No te alcanza para eso.',
+    'This shop does not sell that.': 'Esta tienda no vende eso.',
+  },
 });
 
 /**

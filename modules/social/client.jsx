@@ -28,6 +28,30 @@ engine.i18n({
     'Lv {level}': 'Nv {level}',
     'Messages hidden': 'Mensagens ocultas',
   },
+  es: {
+    Social: 'Social',
+    Friends: 'Amigos',
+    Ignored: 'Ignorados',
+    'Friends lists': 'Listas de amigos',
+    '{online}/{total} online': '{online}/{total} en línea',
+    "Friend's name": 'Nombre del amigo',
+    'Player to ignore': 'Jugador a ignorar',
+    Add: 'Añadir',
+    Remove: 'Quitar',
+    'Remove {player}': 'Quitar a {player}',
+    'Stop ignoring {player}': 'Dejar de ignorar a {player}',
+    'Add friend': 'Añadir amigo',
+    Ignore: 'Ignorar',
+    'No friends yet.': 'Aún no tienes amigos.',
+    'Add a player by name below.': 'Añade a un jugador por su nombre abajo.',
+    'Nobody is ignored.': 'No ignoras a nadie.',
+    "Ignored players can't message you.":
+      'Los jugadores ignorados no pueden escribirte.',
+    Online: 'En línea',
+    Offline: 'Fuera de línea',
+    'Lv {level}': 'Nv {level}',
+    'Messages hidden': 'Mensajes ocultos',
+  },
 });
 
 const { useState } = React;

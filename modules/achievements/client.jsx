@@ -16,6 +16,16 @@ engine.i18n({
     '{achievement} progress': 'Progresso de {achievement}',
     'Achievement unlocked': 'Conquista desbloqueada',
   },
+  es: {
+    Achievements: 'Logros',
+    'Nothing defined yet.': 'Aún no hay nada definido.',
+    'This game has no achievements to earn.':
+      'Este juego no tiene logros que ganar.',
+    'Unlocked {date}': 'Desbloqueado el {date}',
+    Unlocked: 'Desbloqueado',
+    '{achievement} progress': 'Progreso de {achievement}',
+    'Achievement unlocked': 'Logro desbloqueado',
+  },
 });
 
 const ui = engine.ui;

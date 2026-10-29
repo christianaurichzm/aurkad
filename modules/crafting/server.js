@@ -25,6 +25,19 @@ i18n({
     'You know no recipes.': 'Você não conhece nenhuma receita.',
     'Recipes: {list}': 'Receitas: {list}',
   },
+  es: {
+    'No such recipe.': 'Esa receta no existe.',
+    'You have not learned that recipe.': 'Aún no has aprendido esa receta.',
+    'Your bag is too full to hold that.':
+      'Tu bolsa está demasiado llena para eso.',
+    'You are missing materials.': 'Te faltan materiales.',
+    'You crafted {item}.': 'Fabricaste {item}.',
+    'Crafted.': 'Fabricado.',
+    'Crafting must be used in-game.':
+      'La fabricación solo funciona dentro del juego.',
+    'You know no recipes.': 'No conoces ninguna receta.',
+    'Recipes: {list}': 'Recetas: {list}',
+  },
 });
 
 const defs = new Map();

@@ -22,6 +22,12 @@ registerStrings({
     'That character is playing on another server':
       'Esse personagem está jogando em outro servidor',
   },
+  es: {
+    'No points assigned': 'No se asignó ningún punto',
+    'Not enough unspent points': 'No hay suficientes puntos sin gastar',
+    'That character is playing on another server':
+      'Ese personaje está jugando en otro servidor',
+  },
 });
 
 // What a player asks about themselves and about who else is here. Gameplay

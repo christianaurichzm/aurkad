@@ -17,6 +17,10 @@ i18n({
     'Your bag is full - the reward was mailed to you.':
       'Sua bolsa está cheia - a recompensa foi enviada pelo correio.',
   },
+  es: {
+    'Your bag is full - the reward was mailed to you.':
+      'Tu bolsa está llena - la recompensa te llegó por correo.',
+  },
 });
 
 const defs = new Map(); // define()d by scripts

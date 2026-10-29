@@ -38,6 +38,36 @@ i18n({
     'Usage: /ignore add|remove|list [player]':
       'Uso: /ignore add|remove|list [jogador]',
   },
+  es: {
+    'Player not found.': 'Jugador no encontrado.',
+    'You cannot add yourself.': 'No puedes añadirte a ti mismo.',
+    '{player} is already on your friends list.':
+      '{player} ya está en tu lista de amigos.',
+    'Your friends list is full.': 'Tu lista de amigos está llena.',
+    'Added {player} to your friends.': 'Añadiste a {player} a tus amigos.',
+    '{player} is not on your friends list.':
+      '{player} no está en tu lista de amigos.',
+    'Removed {player} from your friends.': 'Quitaste a {player} de tus amigos.',
+    'Friends ({online} online): {names}': 'Amigos ({online} en línea): {names}',
+    'You have no friends listed.': 'Tu lista de amigos está vacía.',
+    'You cannot ignore yourself.': 'No puedes ignorarte a ti mismo.',
+    'Your ignore list is full.': 'Tu lista de ignorados está llena.',
+    'You are now ignoring {player}.': 'Ahora ignoras a {player}.',
+    '{player} is not on your ignore list.':
+      '{player} no está en tu lista de ignorados.',
+    'You are no longer ignoring {player}.': 'Ya no ignoras a {player}.',
+    'Ignoring: {names}': 'Ignorando: {names}',
+    'You are not ignoring anyone.': 'No ignoras a nadie.',
+    'Could not save your list.': 'No se pudo guardar tu lista.',
+    '{player} logged in.': '{player} entró.',
+    '{player} logged out.': '{player} salió.',
+    'Social commands must be used in-game.':
+      'Los comandos sociales solo funcionan dentro del juego.',
+    'Usage: /friend add|remove|list [player]':
+      'Uso: /friend add|remove|list [jugador]',
+    'Usage: /ignore add|remove|list [player]':
+      'Uso: /ignore add|remove|list [jugador]',
+  },
 });
 
 const maxFriends = Math.max(1, Number((config && config.maxFriends) || 100));

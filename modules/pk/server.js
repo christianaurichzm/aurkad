@@ -39,6 +39,12 @@ i18n({
       'Você está marcado como PK ({kills} mortes).',
     'Not flagged. Kills: {kills}.': 'Sem marca. Mortes: {kills}.',
   },
+  es: {
+    'In-game only.': 'Solo dentro del juego.',
+    'You are flagged as a PK ({kills} kills).':
+      'Estás marcado como PK ({kills} muertes).',
+    'Not flagged. Kills: {kills}.': 'Sin marca. Muertes: {kills}.',
+  },
 });
 
 on('playerDeath', ({ player, killer }) => {

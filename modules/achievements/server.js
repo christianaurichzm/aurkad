@@ -14,6 +14,13 @@ i18n({
     'Achievement commands must be used in-game.':
       'Os comandos de conquista só funcionam dentro do jogo.',
   },
+  es: {
+    'Achievement unlocked: {name}': 'Logro desbloqueado: {name}',
+    'Achievements: {earned}/{total}': 'Logros: {earned}/{total}',
+    'No achievements defined.': 'No hay logros definidos.',
+    'Achievement commands must be used in-game.':
+      'Los comandos de logros solo funcionan dentro del juego.',
+  },
 });
 
 const KEY = 'achievements';

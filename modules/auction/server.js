@@ -38,6 +38,40 @@ i18n({
     '#{id} {quantity}x {item} - {price} (by {seller})':
       '#{id} {quantity}x {item} - {price} (de {seller})',
   },
+  es: {
+    'Auction commands must be used in-game.':
+      'Los comandos de subasta solo funcionan dentro del juego.',
+    'Usage: /auction list <itemId> <quantity> <price> | cancel <id> | mine':
+      'Uso: /auction list <itemId> <cantidad> <precio> | cancel <id> | mine',
+    'No such item.': 'Ese objeto no existe.',
+    'That item cannot be sold.': 'Ese objeto no se puede vender.',
+    'You do not have that many.': 'No tienes tantos.',
+    'The price has to be at least 1.': 'El precio tiene que ser al menos 1.',
+    'You already have {count} listings.': 'Ya tienes {count} anuncios.',
+    'Could not take the item, so nothing was listed.':
+      'No se pudo retirar el objeto, así que no se anunció nada.',
+    'Listed {quantity}x {item} for {price}.':
+      'Anunciado {quantity}x {item} por {price}.',
+    'No such listing.': 'Ese anuncio no existe.',
+    'That listing is not yours.': 'Ese anuncio no es tuyo.',
+    'Cancelled, and the item is in your mailbox.':
+      'Cancelado, y el objeto está en tu buzón.',
+    'Your mailbox has no room for it, so the listing stays up.':
+      'Tu buzón no tiene sitio para él, así que el anuncio sigue en pie.',
+    'You cannot buy your own listing.': 'No puedes comprar tu propio anuncio.',
+    'You need {price} to buy that.': 'Necesitas {price} para comprar eso.',
+    'Your bag is full.': 'Tu bolsa está llena.',
+    'Bought {quantity}x {item} for {price}.':
+      'Compraste {quantity}x {item} por {price}.',
+    '{buyer} bought your {quantity}x {item} for {price}.':
+      '{buyer} compró tus {quantity}x {item} por {price}.',
+    'Your listing of {quantity}x {item} expired.':
+      'Tu anuncio de {quantity}x {item} caducó.',
+    'Nothing is up for auction.': 'No hay nada en subasta.',
+    'You have no listings.': 'No tienes anuncios.',
+    '#{id} {quantity}x {item} - {price} (by {seller})':
+      '#{id} {quantity}x {item} - {price} (de {seller})',
+  },
 });
 
 const num = (value, fallback) =>

@@ -28,6 +28,10 @@ i18n({
     'You learned {spell}.': 'Você aprendeu {spell}.',
     'You already know {spell}.': 'Você já conhece {spell}.',
   },
+  es: {
+    'You learned {spell}.': 'Aprendiste {spell}.',
+    'You already know {spell}.': 'Ya conoces {spell}.',
+  },
 });
 
 const spells = new Map();

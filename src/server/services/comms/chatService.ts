@@ -22,6 +22,12 @@ registerStrings({
     'You are sending messages too fast.':
       'Você está enviando mensagens rápido demais.',
   },
+  es: {
+    'You are muted and cannot send messages.':
+      'Estás silenciado y no puedes enviar mensajes.',
+    'You are sending messages too fast.':
+      'Estás enviando mensajes demasiado rápido.',
+  },
 });
 
 // A few lines at once, then one a second. The socket's own limit is far

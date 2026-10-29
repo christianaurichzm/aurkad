@@ -56,6 +56,40 @@ i18n({
     'You have {waiting} item(s) waiting in the mail. Open Mail to collect.':
       'Você tem {waiting} item(ns) esperando no correio. Abra o Correio para receber.',
   },
+  es: {
+    'That is not a valid quantity.': 'Esa cantidad no es válida.',
+    'That item does not exist.': 'Ese objeto no existe.',
+    'No player by that name.': 'No hay ningún jugador con ese nombre.',
+    'That player has too much mail waiting.':
+      'Ese jugador tiene demasiado correo esperando.',
+    'That note is too long.': 'Esa nota es demasiado larga.',
+    'You do not have that item quantity.': 'No tienes esa cantidad.',
+    'Could not send that; nothing was taken. Try again.':
+      'No se pudo enviar; no se quitó nada. Inténtalo de nuevo.',
+    'Could not send that.': 'No se pudo enviar.',
+    'Usage: /mail send <player> <itemId> [qty] [message]':
+      'Uso: /mail send <jugador> <idDelObjeto> [cant] [nota]',
+    'You cannot send mail to yourself.':
+      'No puedes enviarte correo a ti mismo.',
+    'That item is bound and cannot be mailed.':
+      'Ese objeto está vinculado y no se puede enviar.',
+    'Postage costs {cost}.': 'El envío cuesta {cost}.',
+    'You have mail from {player}.': 'Tienes correo de {player}.',
+    'Sent {quantity}x {item} to {player}.':
+      'Enviado {quantity}x {item} a {player}.',
+    'Nothing waiting for you.': 'No hay nada esperándote.',
+    'Your inventory is full.': 'Tu inventario está lleno.',
+    'Collected {taken} item(s).': 'Recibiste {taken} objeto(s).',
+    'Collected {taken} item(s). {left} left waiting.':
+      'Recibiste {taken} objeto(s). Quedan {left} esperando.',
+    'Mail commands must be used in-game.':
+      'Los comandos de correo solo funcionan dentro del juego.',
+    'Your mailbox is empty.': 'Tu buzón está vacío.',
+    'Usage: /mail send <player> <itemId> [qty] [message] | /mail list | /mail claim':
+      'Uso: /mail send <jugador> <idDelObjeto> [cant] [nota] | /mail list | /mail claim',
+    'You have {waiting} item(s) waiting in the mail. Open Mail to collect.':
+      'Tienes {waiting} objeto(s) esperando en el correo. Abre el Correo para recibirlos.',
+  },
 });
 
 const FAILURE_TEXT = {

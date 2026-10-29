@@ -31,6 +31,32 @@ engine.i18n({
     'Out of sight': 'Fora de vista',
     "{player}'s health": 'Vida de {player}',
   },
+  es: {
+    Party: 'Grupo',
+    "You're not in a party.": 'No estás en un grupo.',
+    'Fight together and share experience.':
+      'Luchen juntos y compartan experiencia.',
+    'Stay together to share experience.':
+      'Manténganse cerca para compartir experiencia.',
+    'Create party': 'Crear grupo',
+    'Invite a player': 'Invita a un jugador',
+    Invite: 'Invitar',
+    'Party is full.': 'El grupo está lleno.',
+    'Only the leader can invite.': 'Solo el líder puede invitar.',
+    'Party members': 'Miembros del grupo',
+    'Leave party': 'Salir del grupo',
+    Accept: 'Aceptar',
+    Decline: 'Rechazar',
+    'Invite to Party': 'Invitar al grupo',
+    'Party invite from {player}': 'Invitación de grupo de {player}',
+    'Join to fight together and share experience.':
+      'Únete para luchar juntos y compartir experiencia.',
+    Leader: 'Líder',
+    'Lv {level}': 'Nv {level}',
+    '{health}/{max} HP': '{health}/{max} PV',
+    'Out of sight': 'Fuera de vista',
+    "{player}'s health": 'Vida de {player}',
+  },
 });
 
 const { useEffect, useState } = React;

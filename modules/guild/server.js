@@ -56,6 +56,61 @@ i18n({
     'Usage: /guild create|join|invite|accept|leave|promote|demote|kick|privacy|info [arg]':
       'Uso: /guild create|join|invite|accept|leave|promote|demote|kick|privacy|info [arg]',
   },
+  es: {
+    'Provide a guild name.': 'Indica un nombre de gremio.',
+    'Guild names are 3 to 24 letters and numbers, with one space or dash between words.':
+      'Los nombres de gremio tienen de 3 a 24 letras y números, con un espacio o guion entre las palabras.',
+    'Leave your current guild first.': 'Primero sal de tu gremio actual.',
+    'That guild name is taken.': 'Ese nombre de gremio ya existe.',
+    'The guild could not be saved.': 'No se pudo guardar el gremio.',
+    'Guild "{name}" created ({privacy}).':
+      'Gremio "{name}" creado ({privacy}).',
+    'You are not in a guild.': 'No estás en un gremio.',
+    'Only officers and the owner can invite.':
+      'Solo los oficiales y el dueño pueden invitar.',
+    'Player not found or not online.':
+      'Jugador no encontrado o fuera de línea.',
+    'That player is already in a guild.': 'Ese jugador ya está en un gremio.',
+    'Your guild is full.': 'Tu gremio está lleno.',
+    'Invited {player} to {guild}.': 'Invitaste a {player} a {guild}.',
+    'No such guild.': 'Ese gremio no existe.',
+    'That guild is invite-only. Ask a member to invite you.':
+      'Ese gremio es solo por invitación. Pide a un miembro que te invite.',
+    'That guild is full.': 'Ese gremio está lleno.',
+    'Joined "{name}".': 'Entraste en "{name}".',
+    'No pending invite from that guild.':
+      'No hay invitaciones pendientes de ese gremio.',
+    'Only the owner can promote members.':
+      'Solo el dueño puede ascender miembros.',
+    'That player is not in your guild.': 'Ese jugador no está en tu gremio.',
+    'Cannot promote the owner.': 'No se puede ascender al dueño.',
+    '{player} is already a moderator.': '{player} ya es moderador.',
+    '{player} promoted to moderator.': '{player} ascendido a moderador.',
+    'Only the owner can demote members.':
+      'Solo el dueño puede degradar miembros.',
+    'Cannot demote the owner.': 'No se puede degradar al dueño.',
+    '{player} is already a member.': '{player} ya es miembro.',
+    '{player} demoted to member.': '{player} degradado a miembro.',
+    'Only officers and the owner can kick.':
+      'Solo los oficiales y el dueño pueden expulsar.',
+    'You cannot kick yourself.': 'No puedes expulsarte a ti mismo.',
+    'Cannot kick the owner.': 'No se puede expulsar al dueño.',
+    'Only the owner can kick officers.':
+      'Solo el dueño puede expulsar oficiales.',
+    '{player} was kicked.': '{player} fue expulsado.',
+    'Only the owner can change guild privacy.':
+      'Solo el dueño puede cambiar la privacidad del gremio.',
+    'Guild is now {privacy}.': 'El gremio ahora es {privacy}.',
+    'You left "{name}" (guild disbanded).':
+      'Saliste de "{name}" (gremio disuelto).',
+    'You left "{name}".': 'Saliste de "{name}".',
+    'Guild commands must be used in-game.':
+      'Los comandos de gremio solo funcionan dentro del juego.',
+    '[{privacy}] {name} ({size}/{max}): {members}':
+      '[{privacy}] {name} ({size}/{max}): {members}',
+    'Usage: /guild create|join|invite|accept|leave|promote|demote|kick|privacy|info [arg]':
+      'Uso: /guild create|join|invite|accept|leave|promote|demote|kick|privacy|info [arg]',
+  },
 });
 
 const maxMembers = Number((config && config.maxMembers) || 50);

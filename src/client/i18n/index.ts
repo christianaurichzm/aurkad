@@ -1,5 +1,6 @@
 import { useSyncExternalStore } from 'react';
 import { en, type TranslationKey } from './en';
+import { es } from './es';
 import { pt } from './pt';
 
 /**
@@ -8,11 +9,19 @@ import { pt } from './pt';
  * are what matter. `Intl` covers numbers and dates.
  */
 
-export const LANGUAGES = { en: 'English', pt: 'Português' } as const;
+export const LANGUAGES = {
+  en: 'English',
+  es: 'Español',
+  pt: 'Português',
+} as const;
 
 export type Language = keyof typeof LANGUAGES;
 
-const TABLES: Record<Language, Record<TranslationKey, string>> = { en, pt };
+const TABLES: Record<Language, Record<TranslationKey, string>> = {
+  en,
+  es,
+  pt,
+};
 
 const STORAGE_KEY = 'engine.language';
 
@@ -81,6 +90,7 @@ export function t(
  */
 const moduleTables: Record<Language, Record<string, string>> = {
   en: {},
+  es: {},
   pt: {},
 };
 

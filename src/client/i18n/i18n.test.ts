@@ -2,6 +2,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { en } from './en';
+import { es } from './es';
 import { pt } from './pt';
 import {
   getLanguage,
@@ -22,13 +23,13 @@ describe('translation tables', () => {
   it('every language answers every key English declares', () => {
     const keys = Object.keys(en);
 
-    for (const [code, table] of Object.entries({ en, pt })) {
+    for (const [code, table] of Object.entries({ en, es, pt })) {
       expect(Object.keys(table).sort(), code).toEqual(keys.sort());
     }
   });
 
   it('carries no empty string, which would render as a blank label', () => {
-    for (const [code, table] of Object.entries({ en, pt })) {
+    for (const [code, table] of Object.entries({ en, es, pt })) {
       for (const [key, value] of Object.entries(table)) {
         expect(value.trim(), `${code}:${key}`).not.toBe('');
       }
@@ -42,12 +43,13 @@ describe('translation tables', () => {
       (text.match(/\{(\w+)\}/g) ?? []).sort().join(',');
 
     for (const key of Object.keys(en) as (keyof typeof en)[]) {
+      expect(holders(es[key]), key).toBe(holders(en[key]));
       expect(holders(pt[key]), key).toBe(holders(en[key]));
     }
   });
 
   it('offers a table for every language it lists', () => {
-    expect(Object.keys(LANGUAGES).sort()).toEqual(['en', 'pt']);
+    expect(Object.keys(LANGUAGES).sort()).toEqual(['en', 'es', 'pt']);
   });
 });
 

@@ -17,6 +17,17 @@ engine.i18n({
     'Craft {item}': 'Fabricar {item}',
     'Missing {items}': 'Falta {items}',
   },
+  es: {
+    Crafting: 'Fabricación',
+    Recipes: 'Recetas',
+    'You know no recipes.': 'No conoces ninguna receta.',
+    'Recipes you learn show up here.':
+      'Las recetas que aprendas aparecen aquí.',
+    Materials: 'Materiales',
+    '{item}: {held} of {needed}': '{item}: {held} de {needed}',
+    'Craft {item}': 'Fabricar {item}',
+    'Missing {items}': 'Falta {items}',
+  },
 });
 
 const ui = engine.ui;

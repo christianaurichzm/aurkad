@@ -13,6 +13,13 @@ engine.i18n({
     '{cost} MP': '{cost} MP',
     '{seconds}s cooldown': 'Recarga de {seconds}s',
   },
+  es: {
+    Spells: 'Hechizos',
+    'Mana: {mana}/{max}': 'Maná: {mana}/{max}',
+    Ready: 'Listo',
+    '{cost} MP': '{cost} PM',
+    '{seconds}s cooldown': 'Recarga de {seconds}s',
+  },
 });
 
 const ui = engine.ui;

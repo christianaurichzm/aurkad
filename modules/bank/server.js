@@ -23,6 +23,24 @@ i18n({
     'Usage: /bank deposit|withdraw <item> [qty] or /bank list':
       'Uso: /bank deposit|withdraw <item> [qtd] ou /bank list',
   },
+  es: {
+    'You do not have that item quantity.': 'No tienes esa cantidad.',
+    'That item is bound and cannot be banked.':
+      'Ese objeto está vinculado y no se puede guardar en el banco.',
+    'Deposited.': 'Depositado.',
+    'Your bank is full.': 'Tu banco está lleno.',
+    'That item is not in your bank.': 'Ese objeto no está en tu banco.',
+    'Withdrew.': 'Retirado.',
+    'The bank cannot be saved.': 'No se pudo guardar el banco.',
+    'Your inventory is full.': 'Tu inventario está lleno.',
+    'Bank commands must be used in-game.':
+      'Los comandos de banco solo funcionan dentro del juego.',
+    'Stand at a bank to use it.': 'Ponte en un banco para usarlo.',
+    'Bank: {summary}': 'Banco: {summary}',
+    empty: 'vacío',
+    'Usage: /bank deposit|withdraw <item> [qty] or /bank list':
+      'Uso: /bank deposit|withdraw <objeto> [cant] o /bank list',
+  },
 });
 
 const maxSlots = Math.max(

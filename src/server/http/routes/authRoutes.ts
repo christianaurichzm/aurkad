@@ -72,6 +72,23 @@ registerStrings({
     'Address confirmed. You can close this tab.':
       'Endereço confirmado. Pode fechar esta aba.',
   },
+  es: {
+    'Invalid username or password': 'Usuario o contraseña no válidos',
+    'This account needs its authentication code.':
+      'Esta cuenta necesita su código de autenticación.',
+    'That code is wrong or already used.':
+      'Ese código es incorrecto o ya se usó.',
+    'This account is already logged in from another session.':
+      'Esta cuenta ya está conectada en otra sesión.',
+    'Username already taken': 'Ese nombre de usuario ya está en uso',
+    'Not logged in': 'No has iniciado sesión',
+    'No such account': 'Esa cuenta no existe',
+    'Current password is wrong': 'La contraseña actual es incorrecta',
+    'That link is no longer valid': 'Ese enlace ya no es válido',
+    'That link is no longer valid.': 'Ese enlace ya no es válido.',
+    'Address confirmed. You can close this tab.':
+      'Dirección confirmada. Puedes cerrar esta pestaña.',
+  },
 });
 
 /** Matches the session store's TTL in http/session.ts. */
