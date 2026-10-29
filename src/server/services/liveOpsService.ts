@@ -15,6 +15,7 @@ import { scheduleEvery } from '../sim/scheduler.js';
 import { publishToInstances } from '../persistence/instanceBus.js';
 import { msToTicks } from '../sim/clock.js';
 import { logger } from '../logger.js';
+import { perKeyQueue } from '../../shared/utils.js';
 
 /** Scalars only: a flag comes in as a command argument and is stored. */
 export type FlagValue = boolean | number | string;
@@ -161,7 +162,20 @@ export function sweepLiveOpsFlags(): void {
   }
 }
 
-export async function setFlag(
+/**
+ * Changes to one flag run in call order. Two in flight could reach the
+ * database either way round, and the one answering last would announce an
+ * edge from a flag the other had already replaced.
+ */
+const oneChangeAtATime = perKeyQueue();
+
+export function setFlag(
+  ...args: Parameters<typeof writeFlag>
+): Promise<LiveOpsFlag> {
+  return oneChangeAtATime(args[0], () => writeFlag(...args));
+}
+
+async function writeFlag(
   name: string,
   value: FlagValue,
   options: {
@@ -246,7 +260,11 @@ export function forgetFlagFromInstance(name: string): void {
 }
 
 /** Returns false when there was nothing to clear. */
-export async function clearFlag(name: string): Promise<boolean> {
+export function clearFlag(name: string): Promise<boolean> {
+  return oneChangeAtATime(name, () => removeFlag(name));
+}
+
+async function removeFlag(name: string): Promise<boolean> {
   const flag = flags.get(name);
   flags.delete(name);
   try {

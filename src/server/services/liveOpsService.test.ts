@@ -275,6 +275,30 @@ describe('scheduling', () => {
     ]);
   });
 
+  // Two changes in flight with the first answered last: it must neither undo
+  // the second in the database nor announce the end of the event it started.
+  it('applies overlapping changes to one flag in the order they were made', async () => {
+    const seen = watchEdges();
+    let answer!: () => void;
+    const held = new Promise<void>((resolve) => (answer = resolve));
+    const replaceOne = LiveOpsFlagModel.replaceOne.bind(LiveOpsFlagModel);
+    const spy = vi
+      .spyOn(LiveOpsFlagModel, 'replaceOne')
+      .mockImplementationOnce(((...args: Parameters<typeof replaceOne>) =>
+        held.then(() => replaceOne(...args))) as never);
+
+    const scheduled = setFlag('event', true, { startsAt: Date.now() + 60_000 });
+    const now = setFlag('event', true);
+    answer();
+    await Promise.all([scheduled, now]);
+    spy.mockRestore();
+
+    expect(flagEnabled('event')).toBe(true);
+    const row = await LiveOpsFlagModel.findOne({ name: 'event' }).lean();
+    expect(row?.startsAt).toBeUndefined();
+    expect(seen).toEqual([{ name: 'event', active: true }]);
+  });
+
   it('registers the sweep on the tick clock, not on a wall-clock timer', async () => {
     const { scheduledTaskCount } = await import('../sim/scheduler.js');
     startLiveOps();
