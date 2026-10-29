@@ -51,7 +51,7 @@ export const en = {
   // HUD
   'hud.level': 'Level {level}',
   'hud.hp': 'HP',
-  'hud.xp': 'XP {current}/{max}',
+  'hud.xp': 'XP',
   'hud.disconnected': 'Disconnected',
 
   // Actions menu

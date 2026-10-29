@@ -55,7 +55,7 @@ export const pt: Record<keyof typeof en, string> = {
 
   'hud.level': 'Nível {level}',
   'hud.hp': 'HP',
-  'hud.xp': 'XP {current}/{max}',
+  'hud.xp': 'XP',
   'hud.disconnected': 'Desconectado',
 
   'actions.title': 'Ações',

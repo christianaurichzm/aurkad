@@ -62,12 +62,12 @@ describe('t', () => {
 
   it('fills placeholders', () => {
     expect(t('hud.level', { level: 7 })).toBe('Level 7');
-    expect(t('hud.xp', { current: 30, max: 100 })).toBe('XP 30/100');
+    expect(t('quest.progress', { current: 30, target: 100 })).toBe('30/100');
   });
 
   it('leaves a placeholder alone when nothing was passed for it', () => {
     expect(t('hud.level')).toBe('Level {level}');
-    expect(t('hud.xp', { current: 5 })).toBe('XP 5/{max}');
+    expect(t('quest.progress', { current: 5 })).toBe('5/{target}');
   });
 
   it('remembers the language across calls', () => {

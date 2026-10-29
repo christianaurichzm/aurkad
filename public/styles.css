@@ -366,7 +366,8 @@ body {
 }
 
 #hud-row,
-.hud-resource-row {
+.hud-resource-row,
+#xp-bar-container {
   grid-column: 1 / -1;
   display: grid;
   grid-template-columns: subgrid;
@@ -412,6 +413,7 @@ body {
 
 #hud-hp-label,
 .hud-resource-label,
+#hud-xp-label,
 #hud-hp-values,
 .hud-resource-values,
 #xp-bar-text {
@@ -423,11 +425,12 @@ body {
 }
 #hud-hp-label,
 .hud-resource-label,
-#xp-bar-text {
+#hud-xp-label {
   color: var(--color-text-muted);
 }
 #hud-hp-values,
-.hud-resource-values {
+.hud-resource-values,
+#xp-bar-text {
   text-align: right;
 }
 
@@ -473,13 +476,6 @@ body {
   background: var(--color-info);
 }
 
-#xp-bar-container {
-  grid-column: 1 / -1;
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  align-items: center;
-  gap: 6px;
-}
 .xp-track {
   height: 8px;
   border-width: 1px;
@@ -2931,7 +2927,8 @@ body:has(.npc-dialog) .hotbar {
   }
   #hud-portrait,
   #hud-hp-values,
-  .hud-resource-values {
+  .hud-resource-values,
+  #xp-bar-text {
     display: none;
   }
   .player-controls {

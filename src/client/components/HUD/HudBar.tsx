@@ -104,12 +104,16 @@ export const HudBar = () => {
           </div>
         )}
         {levels && (
-          <div id="xp-bar-container" title={`${xp.current}/${xp.max} XP`}>
+          <div
+            id="xp-bar-container"
+            title={`${t('hud.xp')} ${xp.current}/${xp.max}`}
+          >
+            <span id="hud-xp-label">{t('hud.xp')}</span>
             <div className="xp-track">
               <div id="xp-bar" style={{ width: `${xpPercentage * 100}%` }} />
             </div>
             <span id="xp-bar-text">
-              {t('hud.xp', { current: xp.current, max: xp.max })}
+              {xp.current}/{xp.max}
             </span>
           </div>
         )}

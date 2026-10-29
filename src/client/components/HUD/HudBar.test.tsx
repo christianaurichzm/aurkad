@@ -177,7 +177,8 @@ describe('HudBar Component', () => {
 
     render(<HudBar />);
 
-    expect(screen.getByText('XP 40/160')).toBeInTheDocument();
+    expect(document.getElementById('hud-xp-label')).toHaveTextContent('XP');
+    expect(document.getElementById('xp-bar-text')).toHaveTextContent('40/160');
     const xpBar = document.getElementById('xp-bar');
     expect(xpBar).toBeInTheDocument();
     expect(xpBar).toHaveStyle({ width: '25%' });
