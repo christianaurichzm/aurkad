@@ -207,6 +207,45 @@ describe('attack sounds from other entities', () => {
   });
 });
 
+describe('an entity that leaves and comes back under its id', () => {
+  const update = (bob: Position | null) =>
+    enqueueGameStateMessage({
+      v: 1,
+      type: 'worldUpdate',
+      payload: {
+        entities: bob
+          ? {
+              bob: {
+                id: 'bob',
+                kind: 'player',
+                position: bob,
+                direction: Direction.Right,
+                action: CharacterAction.Walk,
+              },
+            }
+          : {},
+        leave: bob ? [] : ['bob'],
+        self: hotPlayer({ x: 0, y: 0 }),
+      },
+    } as never);
+
+  it('appears where it returns, not partway through the step it left in', () => {
+    update({ x: 128, y: 0 });
+    updateWebSocket();
+    update({ x: 192, y: 0 });
+    updateWebSocket();
+    now += 10;
+    expect(animatedPos('bob', { x: 192, y: 0 }).x).toBeLessThan(192);
+
+    update(null);
+    updateWebSocket();
+    update({ x: 128, y: 64 });
+    updateWebSocket();
+
+    expect(animatedPos('bob', { x: 128, y: 64 })).toEqual({ x: 128, y: 64 });
+  });
+});
+
 describe('floating numbers', () => {
   it('rise over the middle of a big npc, not the corner its position names', () => {
     enqueueGameStateMessage({

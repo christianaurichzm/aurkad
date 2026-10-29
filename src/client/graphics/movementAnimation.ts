@@ -38,6 +38,12 @@ export function clearMovementQueues() {
   lastSettle.clear();
 }
 
+/** Drops an entity's slides when it leaves: one back under its id arrives. */
+export function forgetMovement(id: string) {
+  movementQueues.delete(id);
+  lastSettle.delete(id);
+}
+
 export function onServerPositionUpdate(
   playerId: string,
   from: Position,

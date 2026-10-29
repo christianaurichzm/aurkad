@@ -17,6 +17,7 @@ import {
 } from '../../../core/gameState';
 import {
   clearMovementQueues,
+  forgetMovement,
   onServerPositionUpdate,
 } from '../../../graphics/movementAnimation';
 import { useUIStore } from '../../../stores/uiStore';
@@ -186,8 +187,12 @@ function trackEntities(
     });
   }
 
+  // A slide left from before it went would otherwise draw an entity that
+  // comes back under its id (an npc's respawn) walking out of where it fell.
   for (const id of store.keys()) {
-    if (!entities[id]) store.delete(id);
+    if (entities[id]) continue;
+    store.delete(id);
+    forgetMovement(id);
   }
 }
 

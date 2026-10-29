@@ -436,6 +436,10 @@ describe('combat', () => {
     );
     expect(drop?.itemId).toBe(1);
     expect(drop?.quantity).toBe(1);
+    expect(sim.map.npcs[npcId]).toBeUndefined();
+
+    sim.step(1);
+    expect(sim.map.npcs[npcId]).toBe(npc);
     expect(npc.health).toBe(npc.maxHealth);
     expect(npc.position).toEqual({ x: 10 * TILE_SIZE, y: 10 * TILE_SIZE });
   });

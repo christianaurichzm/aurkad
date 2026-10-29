@@ -419,10 +419,29 @@ describe('respawnNpc', () => {
     transitionNpcAi(ai, 'chase');
 
     respawnNpc(sim.mapId, npc);
+    sim.step(1);
 
+    expect(sim.map.npcs[npc.id]).toBe(npc);
     expect(npc.health).toBe(30);
     expect(npc.action).toBe(CharacterAction.Idle);
     expect(getOrInitNpcAi(npc).state).toBe('idle');
+  });
+
+  it('keeps an npc with no respawn time off the map for a tick, so it arrives instead of stepping', () => {
+    const npc = sim.addNpc({
+      id: 'goblin',
+      maxHealth: 30,
+      health: 0,
+      position: tile(3, 4),
+    });
+    sim.map.tiles[3]![3]!.npcSpawn = npc.id;
+
+    respawnNpc(sim.mapId, npc);
+    expect(sim.map.npcs[npc.id]).toBeUndefined();
+
+    sim.step(1);
+    expect(sim.map.npcs[npc.id]).toBe(npc);
+    expect(npc.position).toEqual(tile(3, 3));
   });
 
   it('takes an npc with no spawn tile out of the world', () => {
