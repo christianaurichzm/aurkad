@@ -77,10 +77,17 @@ function main(): void {
     process.exit(1);
   }
   writeGame(dir, name, values.isometric ? 'isometric' : 'orthogonal');
+  // Under compose.game.yml GAME_DIR already names this folder, and ADMIN in
+  // .env is what reaches BOOTSTRAP_ADMIN_USERNAME.
+  const compose =
+    !!process.env.GAME_DIR && path.resolve(process.env.GAME_DIR) === dir;
   console.log(
     `Created ${arg}: a meadow, seven kinds of npc, five items, a script to start from, and art to build on (KayKit, CC0).\n` +
-      `Run the engine with GAME_DIR pointing at it; its name and logo are brand in game.json.\n` +
-      `In development the first account registered is the admin; in production, the one named by BOOTSTRAP_ADMIN_USERNAME.`,
+      (compose
+        ? `Start it with \`docker compose up -d\`; its name and logo are brand in game.json.\n` +
+          `The account named by ADMIN in .env is the admin.`
+        : `Run the engine with GAME_DIR pointing at it; its name and logo are brand in game.json.\n` +
+          `In development the first account registered is the admin; in production, the one named by BOOTSTRAP_ADMIN_USERNAME.`),
   );
 }
 
