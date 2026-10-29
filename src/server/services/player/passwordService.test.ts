@@ -388,6 +388,20 @@ describe('address tokens', () => {
     expect(await canLogInWith('old-password')).toBe(true);
   });
 
+  // A typo the owner corrected is still in a stranger's inbox, and spent
+  // after the right address it would send them the next reset link.
+  it('dies once a newer one is minted', async () => {
+    const typo = await createEmailToken(
+      'Alice',
+      'stranger@example.com',
+      await epoch(),
+    );
+    await confirm('alice@example.com');
+
+    expect(await confirmEmailToken(typo.token)).toBe('invalid-token');
+    expect(await address()).toBe('alice@example.com');
+  });
+
   // The address is read before the generation, and the owner can move both
   // in between: the link then carries the new generation to the old inbox.
   it('kills a reset link minted across an address change', async () => {

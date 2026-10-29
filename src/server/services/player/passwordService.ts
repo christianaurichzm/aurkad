@@ -159,12 +159,20 @@ export async function createResetToken(username: string): Promise<{
  * dies with any password change after it, so somebody who had the
  * account cannot point its recovery at their own inbox while the owner is
  * taking it back.
+ *
+ * Only the newest address link works. One left in another inbox, a typo
+ * the owner corrected or an address they moved away from, would otherwise
+ * overwrite the address confirmed after it and receive the next reset link.
  */
 export async function createEmailToken(
   username: string,
   email: string,
   authEpoch: number,
 ): Promise<{ token: string; expiresAt: Date }> {
+  await PasswordResetModel.deleteMany({
+    username,
+    email: { $exists: true },
+  }).exec();
   return mintToken(username, { email, authEpoch });
 }
 
