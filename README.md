@@ -23,8 +23,9 @@ again; Caddy fetches a real certificate.
 
 The first `up` writes a small playable game into `game/`: a map, a few
 monsters and items, a `game.json` with the name the login screen shows and
-every official module switched off, and art rendered from Kay Lousberg's KayKit
-models (CC0; `templates/new-game/build` makes it). For another name, or a map
+every official module listed, only dialog, quest and mail on for the Mage's
+quest, and art rendered from Kay Lousberg's KayKit models (CC0;
+`templates/new-game/build` makes it). For another name, or a map
 drawn in 2:1 diamonds, make it yourself before that first `up` with
 `docker compose run --rm new-game "My Game" --isometric`; the map editor then
 starts new maps the same way. The folder is yours to edit on the host: the

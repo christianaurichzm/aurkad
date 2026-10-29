@@ -5,5 +5,16 @@
       "col": 15,
       "row": 11
     }
+  },
+  "modules": {
+    "dialog": {
+      "enabled": true
+    },
+    "mail": {
+      "enabled": true
+    },
+    "quest": {
+      "enabled": true
+    }
   }
 }

@@ -3,8 +3,9 @@
 // API reference is at the bottom; the full one, typed, is the engine's
 // scripts/global.d.ts (`npm run docs:api` renders it).
 //
-// A new game starts with every module off, so `use('dialog')` and
-// `use('quest')` below are undefined until you turn them on in game.json.
+// A new game turns on only the modules this file leans on: dialog, quest,
+// and mail for a quest reward the bag has no room for. game.json lists the
+// rest, switched off.
 
 // ─── MODULES ─────────────────────────────────────────────────────────────────
 // Grab module APIs once at load time. They are undefined if the module is

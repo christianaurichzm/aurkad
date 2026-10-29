@@ -16,8 +16,8 @@ modules/
 
 The bundled modules are below. **Default** is what a game whose `game.json`
 does not name a module gets; `new-game` writes one that names them all,
-switched off. Each is built on the script API and hooks; none of them live
-in the core.
+switched off but for dialog, quest and mail, which its starter game needs.
+Each is built on the script API and hooks; none of them live in the core.
 
 | Module         | Default | What it does                                                          |
 | -------------- | ------- | --------------------------------------------------------------------- |

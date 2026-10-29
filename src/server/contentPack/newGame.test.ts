@@ -164,7 +164,10 @@ describe('writeGame', () => {
 
   // game.json is where an operator reads what this game is made of. A module
   // missing from it runs on whatever its manifest says, on or off by accident.
-  it('lists every official module, switched off', () => {
+  // The starter's script talks through dialog and hands out quest. With them
+  // off, its npcs offer to talk and say nothing. Quest mails a reward the bag
+  // has no room for, and with mail off nobody can collect it.
+  it('lists every official module, on only for what the starter script uses', () => {
     dir = fs.mkdtempSync(path.join(os.tmpdir(), 'new-game-'));
     writeGame(dir);
     const installed = fs
@@ -172,8 +175,10 @@ describe('writeGame', () => {
       .filter((id) => fs.existsSync(path.join('modules', id, 'module.json')));
     const { modules } = loadGameConfig(dir);
     expect(Object.keys(modules).sort()).toEqual(installed.sort());
-    for (const entry of Object.values(modules))
-      expect(entry.enabled).toBe(false);
+    const on = Object.entries(modules)
+      .filter(([, entry]) => entry.enabled)
+      .map(([id]) => id);
+    expect(on.sort()).toEqual(['dialog', 'mail', 'quest']);
   });
 
   it('takes the name the login screen shows, when given one', () => {

@@ -26,9 +26,10 @@ const titleCase = (folder: string) =>
     .trim()
     .slice(0, 40);
 
-// Every official module, switched off: the game starts as the engine alone,
-// and its game.json lists what there is to turn on. Read from the engine's
-// modules/ as the loader finds it, so a module added later is listed too.
+// Every official module, switched off: the game starts as the engine and the
+// few modules its own game.json turns on, and lists what else there is. Read
+// from the engine's modules/ as the loader finds it, so a module added later
+// is listed too.
 function modulesOff(): Record<string, { enabled: false }> {
   const dir = process.env.MODULES_PATH ?? 'modules';
   if (!fs.existsSync(dir)) return {};
@@ -48,10 +49,13 @@ export function writeGame(
   fs.cpSync(path.join(TEMPLATE, 'game'), dir, { recursive: true });
   fs.cpSync(path.join(TEMPLATE, orientation), dir, { recursive: true });
   const file = path.join(dir, 'game.json');
-  const template = JSON.parse(fs.readFileSync(file, 'utf8')) as object;
+  const template = JSON.parse(fs.readFileSync(file, 'utf8')) as {
+    modules?: Record<string, { enabled: boolean }>;
+  };
+  const modules = { ...modulesOff(), ...template.modules };
   fs.writeFileSync(
     file,
-    `${JSON.stringify({ brand: { name }, ...template, modules: modulesOff() }, null, 2)}\n`,
+    `${JSON.stringify({ brand: { name }, ...template, modules }, null, 2)}\n`,
   );
 }
 
