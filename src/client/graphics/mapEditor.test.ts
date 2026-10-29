@@ -29,6 +29,7 @@ const mocks = vi.hoisted(() => {
     };
   return {
     calls,
+    frames: {},
     cam: { x: 0, y: 0 },
     canvas: {
       width: 128,
@@ -74,7 +75,9 @@ vi.mock('./canvas', () => ({
 vi.mock('../io/assets', () => ({
   tileset: { width: 256, height: 256 },
   tilesetAlpha: { width: 256, height: 256 },
-  isometricFrames: {},
+  get isometricFrames() {
+    return mocks.frames;
+  },
   isometricReach: 64,
   tileAnimations: {},
 }));
@@ -554,5 +557,25 @@ describe('a kit atlas', () => {
     ])
       placePiece(tiles, kit, fence, row, col);
     expect((tiles[2][2].maskIndex ?? 10) - 10).toBe(2 | 4);
+  });
+
+  it('fills with a ground before the palette is touched', () => {
+    document.body.innerHTML =
+      '<canvas id="tilesetCanvas"></canvas><canvas id="gridCanvas"></canvas>';
+    vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockReturnValue(
+      mocks.ctx,
+    );
+    initMapEditor();
+    mocks.frames = frames;
+    setEditorTiles(mapOf(0));
+
+    fillMap();
+
+    expect(
+      getEditorTiles()
+        .flat()
+        .every((t) => t.tileIndex > 0),
+    ).toBe(true);
+    mocks.frames = {};
   });
 });

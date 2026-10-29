@@ -357,14 +357,19 @@ export const placePiece = (
   }
 };
 
+let selectedPiece: Piece | 'erase' | null = null;
+
 let kitMemo: { frames: typeof isometricFrames; kit: Kit } | null = null;
 const activeKit = (): Kit | null => {
-  if (kitMemo?.frames !== isometricFrames)
+  if (kitMemo?.frames !== isometricFrames) {
     kitMemo = { frames: isometricFrames, kit: readKit(isometricFrames) };
+    // A ground piece from the start, as a tileset starts on its first tile,
+    // so Fill and paint do something before the palette is touched.
+    selectedPiece =
+      kitMemo.kit.pieces.find((p) => p.layer === 'ground') ?? null;
+  }
   return kitMemo.kit.pieces.length ? kitMemo.kit : null;
 };
-
-let selectedPiece: Piece | 'erase' | null = null;
 
 // The kit palette: an eraser, then each group under its name, a box a piece.
 const PALETTE_WIDTH = 512;
