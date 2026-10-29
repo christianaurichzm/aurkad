@@ -199,7 +199,7 @@ test.describe('touch layout', () => {
       uniqueUsername(),
       'e2e-password',
     );
-    await expect(page.getByRole('progressbar', { name: 'Mana' })).toBeVisible();
+    await expect(page.getByRole('progressbar', { name: 'HP' })).toBeVisible();
     await page.getByRole('button', { name: 'Settings', exact: true }).click();
     const settings = page.getByRole('dialog', { name: 'Settings' });
     await expect(settings).toBeVisible();
@@ -224,16 +224,17 @@ test.describe('touch layout', () => {
       height: 844,
     });
     await inventory.getByRole('button', { name: 'Close', exact: true }).click();
-    await page.getByRole('button', { name: /Spells/ }).click();
-    const spells = page.getByRole('dialog', { name: 'Spells', exact: true });
-    await expect(spells).toBeVisible();
-    expect(await spells.boundingBox()).toEqual({
+    // A module's window, from quest: on in the default game and in a new one.
+    await page.getByRole('button', { name: /Quests/ }).click();
+    const quests = page.getByRole('dialog', { name: 'Quests', exact: true });
+    await expect(quests).toBeVisible();
+    expect(await quests.boundingBox()).toEqual({
       x: 0,
       y: 0,
       width: 390,
       height: 844,
     });
-    await spells.getByRole('button', { name: 'Close', exact: true }).click();
+    await quests.getByRole('button', { name: 'Close', exact: true }).click();
     await page.getByRole('button', { name: 'Close game menu' }).click();
 
     const actions: Array<{ key: string; type: string }> = [];
