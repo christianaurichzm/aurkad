@@ -138,3 +138,29 @@ describe('a socket replaced by a redirect', () => {
     vi.unstubAllGlobals();
   });
 });
+
+describe('the connection status on open', () => {
+  it('says Connected only when coming back from a drop', async () => {
+    vi.resetModules();
+    vi.useFakeTimers();
+    vi.stubGlobal('WebSocket', FakeSocket);
+    const { initializeWebSocket } = await import('./wsManager');
+    const { useUIStore } = await import('../../stores/uiStore');
+    const status = () => useUIStore.getState().connectionStatus;
+    const open = () => {
+      FakeSocket.last.readyState = FakeSocket.OPEN;
+      FakeSocket.last.onopen?.();
+    };
+
+    initializeWebSocket('ws://test/ws');
+    open();
+    expect(status().visible).toBe(false);
+
+    FakeSocket.last.onclose?.();
+    vi.runOnlyPendingTimers();
+    open();
+    expect(status()).toMatchObject({ visible: true, message: 'Connected' });
+    vi.useRealTimers();
+    vi.unstubAllGlobals();
+  });
+});

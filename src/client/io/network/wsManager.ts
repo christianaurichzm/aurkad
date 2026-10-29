@@ -90,10 +90,16 @@ export const initializeWebSocket = (url = currentWsUrl) => {
       return;
     }
     console.log('Connected to WebSocket server');
+    // On entry the world appearing says it, and a toast would sit over the
+    // map's banner. After a drop it answers the "Reconnecting" shown.
+    if (reconnectAttempts > 0) {
+      showConnectionStatus(t('net.connected'));
+      setTimeout(hideConnectionStatus, 2000);
+    } else {
+      hideConnectionStatus();
+    }
     reconnectAttempts = 0;
     startOverOnNewSocket();
-    showConnectionStatus(t('net.connected'));
-    setTimeout(hideConnectionStatus, 2000);
     // On every open: the server keeps this on the session, so a reconnect or a
     // cross-map warp to another instance would answer in English until told.
     sendAction({ type: 'language', language: getLanguage() });
