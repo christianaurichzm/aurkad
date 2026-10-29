@@ -40,6 +40,7 @@ import {
 import { measureValue } from '../../persistence/dataLimits.js';
 import { logger } from '../../logger.js';
 import type { PlayerServer } from '../../../shared/types.js';
+import { perKeyQueue } from '../../../shared/utils.js';
 import {
   beginPlayerCommit,
   endPlayerCommit,
@@ -65,17 +66,7 @@ const MAX_PENDING_PER_PLAYER = 100;
  * cap together. Closing that across instances takes a per-recipient counter
  * document with a conditional $inc.
  */
-const recipientTails = new Map<string, Promise<unknown>>();
-
-function oneSendAtATime<T>(to: string, send: () => Promise<T>): Promise<T> {
-  const result = (recipientTails.get(to) ?? Promise.resolve()).then(send, send);
-  const tail = result.catch(() => undefined);
-  recipientTails.set(to, tail);
-  void tail.then(() => {
-    if (recipientTails.get(to) === tail) recipientTails.delete(to);
-  });
-  return result;
-}
+const oneSendAtATime = perKeyQueue();
 
 /** Engine-owned key in the player's data bag, not a script's to manage. */
 const CLAIMED_KEY = '__claimedDeliveries';

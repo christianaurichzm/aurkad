@@ -68,6 +68,7 @@ import { logger } from '../../logger.js';
 import { recordAdminAction } from '../auditService.js';
 import { registerStrings, translate } from '../../engine/i18n.js';
 import { bootstrapAdminMade, markBootstrapAdminMade } from '../dbService.js';
+import { perKeyQueue } from '../../../shared/utils.js';
 
 export async function getPlayerForAuthentication(name: string) {
   return playerRepository.findForAuthentication(name);
@@ -704,20 +705,7 @@ async function discardEconomicSessions(
  * One entry or departure per account at a time: each takes or lets go of the
  * one lease this process holds, and interleaved, one lets go under another.
  */
-const accountTurns = new Map<string, Promise<unknown>>();
-
-export function inAccountTurn<T>(
-  id: string,
-  run: () => Promise<T>,
-): Promise<T> {
-  const result = (accountTurns.get(id) ?? Promise.resolve()).then(run, run);
-  const tail = result.catch(() => undefined);
-  accountTurns.set(id, tail);
-  void tail.then(() => {
-    if (accountTurns.get(id) === tail) accountTurns.delete(id);
-  });
-  return result;
-}
+export const inAccountTurn = perKeyQueue();
 
 /**
  * Departures under way, by player id. A logout or a kick ends the character

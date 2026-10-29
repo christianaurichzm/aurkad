@@ -107,3 +107,20 @@ export function percentile(sorted: readonly number[], p: number): number {
 }
 
 export const round2 = (n: number) => Math.round(n * 100) / 100;
+
+/**
+ * Calls under one key run one after another, each once the one before it
+ * has settled either way. A key with nothing pending holds no entry.
+ */
+export function perKeyQueue() {
+  const tails = new Map<string, Promise<unknown>>();
+  return <T>(key: string, run: () => Promise<T>): Promise<T> => {
+    const result = (tails.get(key) ?? Promise.resolve()).then(run, run);
+    const tail = result.catch(() => undefined);
+    tails.set(key, tail);
+    void tail.then(() => {
+      if (tails.get(key) === tail) tails.delete(key);
+    });
+    return result;
+  };
+}
