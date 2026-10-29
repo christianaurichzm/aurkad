@@ -1,8 +1,8 @@
 {
-  "width": 192,
-  "height": 192,
-  "anchorX": 96,
-  "anchorY": 164,
+  "width": 256,
+  "height": 256,
+  "anchorX": 128,
+  "anchorY": 212,
   "scale": 0.5,
   "columns": 6,
   "idleColumn": 4,

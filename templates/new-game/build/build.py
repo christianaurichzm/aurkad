@@ -20,6 +20,7 @@ import math
 import os
 import random
 from collections import deque
+from functools import lru_cache
 
 from PIL import Image, ImageChops, ImageDraw, ImageFilter
 
@@ -87,17 +88,19 @@ def grass(size):
     # stands out from the meadow instead of melting into it.
     blot = stretch(octaves(size, (size // 256, 1, 0), (size // 128, 2, 0.4), (size // 40, 3, 0.2)), 70, 190)
     out = Image.composite(flat('#90b854', size), flat('#709940', size), blot)
-    light = specks(size, size // 3, 4, lambda v: 255 if v > 200 else 0, 0.6)
-    out = Image.composite(flat('#aacc66', size), out, light.point(lambda v: v // 3))
-    dark = specks(size, size // 4, 5, lambda v: 255 if v < 50 else 0, 0.6)
-    return Image.composite(flat('#507a31', size), out, dark.point(lambda v: v // 3))
+    # Faint and soft: at half size a crisp speck is one bright pixel, and a
+    # field of them reads as grain.
+    light = specks(size, size // 3, 4, lambda v: 255 if v > 200 else 0, 1.4)
+    out = Image.composite(flat('#a2c463', size), out, light.point(lambda v: v // 8))
+    dark = specks(size, size // 4, 5, lambda v: 255 if v < 50 else 0, 1.4)
+    return Image.composite(flat('#5a8236', size), out, dark.point(lambda v: v // 8))
 
 
 def dirt(size):
     base = stretch(octaves(size, (size // 30, 7, 0), (size // 8, 8, 0.4)), 80, 180)
     out = Image.composite(flat('#cfa66b', size), flat('#b18752', size), base)
-    pebble = specks(size, size // 3, 9, lambda v: 255 if v > 215 else 0, 0.7)
-    return Image.composite(flat('#8f6a3e', size), out, pebble.point(lambda v: v // 2))
+    pebble = specks(size, size // 3, 9, lambda v: 255 if v > 215 else 0, 1.0)
+    return Image.composite(flat('#8f6a3e', size), out, pebble.point(lambda v: v // 3))
 
 
 def water(size):
@@ -105,8 +108,8 @@ def water(size):
     # one shows the grid.
     base = stretch(octaves(size, (size // 32, 12, 0), (size // 10, 13, 0.35)), 60, 200)
     out = Image.composite(flat('#3784cc', size), flat('#2f78c2', size), base)
-    glint = specks(size, size // 5, 14, lambda v: 255 if v > 232 else 0, 0.8)
-    return Image.composite(flat('#8fc8ee', size), out, glint.point(lambda v: v // 3))
+    glint = specks(size, size // 5, 14, lambda v: 255 if v > 232 else 0, 1.2)
+    return Image.composite(flat('#8fc8ee', size), out, glint.point(lambda v: v // 6))
 
 
 def cut(texture, x, y, size):
@@ -248,11 +251,11 @@ def prop_frame(view, name, foot):
     # see-through fade tests against the player. Only what is darker is shadow.
     # Tinted and kept under the client's SOLID_ALPHA, which marks the prop
     # itself; a black shadow at full strength reads as a hole in the grass.
-    a =shadow.getchannel('A').point(lambda v: 0 if v < 20 else round((v - 20) * SHADOW_ALPHA / 235))
-    a = ImageChops.multiply(a, fade).filter(ImageFilter.GaussianBlur(5))
+    a = shadow.getchannel('A').point(lambda v: 0 if v < 20 else round((v - 20) * SHADOW_ALPHA / 235))
+    a = ImageChops.multiply(a, fade).filter(ImageFilter.GaussianBlur(2))
     shadow = Image.new('RGBA', shadow.size, SHADOW)
     shadow.putalpha(a)
-    img = Image.alpha_composite(shadow, obj)
+    img = Image.alpha_composite(shadow, sharpened(obj))
     box = img.getchannel('A').point(lambda v: 255 if v > 3 else 0).getbbox()
     return img.crop(box), (fx - box[0], fy - box[1])
 
@@ -299,10 +302,17 @@ class Atlas:
         write_json(f'{folder}/assets/tiles.json', meta)
 
 
-def save_png(img, path, quantize=True):
+def sharpened(img):
+    """Blender's filter softens edges that the client halves again on screen."""
+    out = img.convert('RGB').filter(ImageFilter.UnsharpMask(radius=1.6, percent=60, threshold=2)).convert('RGBA')
+    out.putalpha(img.getchannel('A'))
+    return out
+
+
+def save_png(img, path):
+    # Full colour, at several times the bytes: a 256-colour palette dithers
+    # every shaded surface into grain and every soft edge into a jagged one.
     os.makedirs(os.path.dirname(path), exist_ok=True)
-    if quantize:
-        img = img.quantize(256, method=Image.Quantize.LIBIMAGEQUANT, dither=Image.Dither.FLOYDSTEINBERG)
     img.save(path, optimize=True)
 
 
@@ -365,6 +375,7 @@ SPAWNS = {'skeleton': [(23, 3), (24, 15), (25, 10), (6, 13)], 'bone-knight': [(2
           'skeleton-rogue': [(5, 18), (27, 17)], 'skeleton-mage': [(11, 3), (23, 18)],
           'mage': [(13, 10)], 'barbarian': [(17, 9)], 'hunter': [(10, 8)]}
 CAMP = [('barrel', 12, 10), ('crates', 13, 9)]
+GROVES, CLUMPS = 10, 10
 
 
 def path_cells():
@@ -439,22 +450,38 @@ def lay_out(ids):
                 put(c, r, 'tree', True)
             elif rnd.random() < 0.5:
                 put(c, r, 'bush', True)
-    trees = set()
-    for r in range(2, ROWS - 2):
-        for c in range(2, COLS - 2):
-            if (c, r) in taken or near_spawn(c, r):
-                continue
-            roll = rnd.random()
-            crowded = any((c + dc, r + dr) in trees for dc in (-1, 0, 1) for dr in (-1, 0, 1))
-            if roll < 0.07 and not crowded:
-                put(c, r, 'tree', True)
-                trees.add((c, r))
-            elif roll < 0.10:
-                put(c, r, 'bush', True)
-            elif roll < 0.13:
+    # Inside, trees stand in groves and grass in clumps: a wood reads as one,
+    # and the meadow between stays open to walk and fight in. Every npc keeps
+    # the cells round its spawn.
+    around = {(c + dc, r + dr) for c, r in taken - path - pond for dc in (-1, 0, 1) for dr in (-1, 0, 1)}
+    free = lambda c, r: not border(c, r) and (c, r) not in taken | around and not near_spawn(c, r) \
+        and 'maskIndex' not in tiles[r][c]
+    for _ in range(GROVES):
+        gc, gr = rnd.uniform(3, COLS - 3), rnd.uniform(3, ROWS - 3)
+        while not free(int(gc), int(gr)):
+            gc, gr = rnd.uniform(3, COLS - 3), rnd.uniform(3, ROWS - 3)
+        size = rnd.uniform(1.6, 2.8)
+        for r in range(ROWS):
+            for c in range(COLS):
+                d = math.hypot(c + 0.5 - gc, r + 0.5 - gr) / size + rnd.uniform(-0.2, 0.2)
+                if d > 1.8 or not free(c, r):
+                    continue
+                if d < 0.8 and (c + r) % 2 == 0:
+                    put(c, r, 'tree', True)
+                elif d < 1.0 and rnd.random() < 0.6:
+                    put(c, r, 'bush', True)
+                elif d > 1.0 and rnd.random() < 0.45:
+                    put(c, r, 'tall grass', False)
+    for _ in range(CLUMPS):
+        gc, gr = rnd.uniform(2, COLS - 2), rnd.uniform(2, ROWS - 2)
+        for r in range(ROWS):
+            for c in range(COLS):
+                if math.hypot(c + 0.5 - gc, r + 0.5 - gr) < 1.6 and free(c, r) and rnd.random() < 0.6:
+                    put(c, r, 'tall grass', False)
+    for r in range(ROWS):
+        for c in range(COLS):
+            if free(c, r) and rnd.random() < 0.025:
                 put(c, r, 'rock', True)
-            elif roll < 0.25:
-                put(c, r, 'tall grass', False)
     for name, c, r in CAMP:
         put(c, r, name, True)
     for npc, cells in SPAWNS.items():
@@ -482,21 +509,59 @@ SPRITE = {name: i for i, name in enumerate(CHARACTERS)}
 PER_ROW = 3
 
 
+def ease(lo, hi, v):
+    t = min(1.0, max(0.0, (v - lo) / (hi - lo)))
+    return t * t * (3 - 2 * t)
+
+
+def character_frame(path, f):
+    """A character as rendered, with its shadow kept inside the frame.
+
+    The shadow comes out of the same render as the body, so only darkness tells
+    them apart: the shadow is pure black, and even the ink line round the body,
+    or a crossbow's dark limbs, are well above it. Blender's veil of shadow covers the whole frame and reads as a
+    box on grass, and the shadow falling to the lower right reaches the frame's
+    edge and ends there on a straight line: the faintest alpha goes, and what is
+    dark fades out over the last cells before the edge.
+    """
+    r, g, b, a = Image.open(path).convert('RGBA').split()
+    a = a.point([round(v * ease(6, 28, v)) for v in range(256)])
+    dark = ImageChops.lighter(r, ImageChops.lighter(g, b)).point([round(255 * (1 - ease(2, 12, v))) for v in range(256)])
+    a = ImageChops.multiply(a, ImageChops.invert(ImageChops.multiply(dark, ImageChops.invert(inside_frame(f)))))
+    return sharpened(Image.merge('RGBA', (r, g, b, a)))
+
+
+@lru_cache(maxsize=None)
+def inside_frame(f):
+    """255 in the frame, falling to 0 at its edges: slowly at the sides, where a
+    shadow runs long and a short fade still ends on a visible line."""
+    side, top, bottom = f * 2 // 5, f // 8, f // 5
+    img = Image.new('L', (f, f))
+    img.putdata([round(255 * min(ease(0, side, x), ease(0, side, f - 1 - x), ease(0, top, y), ease(0, bottom, f - 1 - y)))
+                 for y in range(f) for x in range(f)])
+    return img
+
+
 def character_sheet(view):
-    f = 224 if view == 'ortho' else 192
-    sheet = Image.new('RGBA', (PER_ROW * 6 * f, -(-len(CHARACTERS) // PER_ROW) * 4 * f))
+    # The client stacks every sheet into one canvas, and iOS draws none over
+    # 16.7 megapixels: the orthogonal frames are rendered at 288 and shrunk
+    # to 252, and drawn that much larger, so they cover the same ground.
+    f, cell = (288, 252) if view == 'ortho' else (256, 256)
+    sheet = Image.new('RGBA', (PER_ROW * 6 * cell, -(-len(CHARACTERS) // PER_ROW) * 4 * cell))
     for i, name in enumerate(CHARACTERS):
-        bx, by = (i % PER_ROW) * 6 * f, (i // PER_ROW) * 4 * f
+        bx, by = (i % PER_ROW) * 6 * cell, (i // PER_ROW) * 4 * cell
         for d in range(4):
             cells = [('walk', k) for k in range(4)] + [('idle', 0), ('attack', 0)]
             for col, (anim, k) in enumerate(cells):
-                im = Image.open(f'{CACHE}/{view}/chars/{name}/{anim}_{d}_{k}.png').convert('RGBA')
-                sheet.alpha_composite(im, (bx + col * f, by + d * f))
+                im = character_frame(f'{CACHE}/{view}/chars/{name}/{anim}_{d}_{k}.png', f)
+                if cell != f:
+                    im = im.resize((cell, cell), Image.LANCZOS)
+                sheet.alpha_composite(im, (bx + col * cell, by + d * cell))
     # The foot is on the cell's middle, which on an orthogonal map is half a
     # cell above the bottom of the box the client places a character by.
-    anchor = (112, 192 + C // 2) if view == 'ortho' else (96, 164)
-    layout = {'width': f, 'height': f, 'anchorX': anchor[0], 'anchorY': anchor[1], 'scale': 1 / S,
-              'columns': 6, 'idleColumn': 4, 'attackColumn': 5}
+    foot = (144, 224 + C // 2) if view == 'ortho' else (128, 212)
+    layout = {'width': cell, 'height': cell, 'anchorX': foot[0] * cell // f, 'anchorY': foot[1] * cell // f,
+              'scale': f / cell / S, 'columns': 6, 'idleColumn': 4, 'attackColumn': 5}
     return sheet, layout
 
 
@@ -635,10 +700,10 @@ def main():
     write_json(f'{shared}/content/npcs.json', NPCS, 2)
     write_json(f'{shared}/content/items.json', ITEMS, 2)
     write_json(f'{shared}/theme/theme.json', {'art': 'smooth'}, 2)
-    save_png(item_sheet(), f'{shared}/assets/items.png', quantize=False)
-    save_png(spell_sheet(), f'{shared}/assets/spells.png', quantize=False)
-    save_png(arrow_sheet(), f'{shared}/assets/arrows.png', quantize=False)
-    save_png(attack_sheet(), f'{shared}/assets/attackeffect.png', quantize=False)
+    save_png(item_sheet(), f'{shared}/assets/items.png')
+    save_png(spell_sheet(), f'{shared}/assets/spells.png')
+    save_png(arrow_sheet(), f'{shared}/assets/arrows.png')
+    save_png(attack_sheet(), f'{shared}/assets/attackeffect.png')
 
     for view, folder, orientation in [('ortho', 'orthogonal', 'orthogonal'), ('iso', 'isometric', 'isometric')]:
         out = os.path.join(ROOT, folder)

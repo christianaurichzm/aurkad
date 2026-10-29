@@ -88,6 +88,21 @@ describe.each(['orthogonal', 'isometric'] as const)(
       }
     });
 
+    // The client stacks the characters and every effect sheet into one canvas
+    // (graphics/atlas.ts), and iOS Safari draws nothing on a canvas past
+    // 4096 x 4096 pixels of area.
+    it('fits its characters and effects in one canvas iOS will draw', () => {
+      const stacked = [
+        sheet,
+        ...['items', 'spells', 'arrows', 'attackeffect'].map((name) =>
+          pngSize('game', 'assets', `${name}.png`),
+        ),
+      ];
+      const width = Math.max(...stacked.map((s) => s.width));
+      const height = stacked.reduce((sum, s) => sum + s.height, 0);
+      expect(width * height).toBeLessThanOrEqual(4096 * 4096);
+    });
+
     it('gives every npc a character the sheet has, and spawns only those npcs', () => {
       const perRow = Math.floor(sheet.width / (layout.columns * layout.width));
       const rows = Math.floor(sheet.height / (4 * layout.height));

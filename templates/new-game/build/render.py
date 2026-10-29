@@ -41,8 +41,10 @@ SKEL = KK + '/KayKit-Character-Pack-Skeletons-1.0-main/addons/kaykit_character_p
 CAM_ROT = (math.radians(60), 0.0, math.radians(45 if VIEW == 'iso' else 0))
 PPU = 2 * (32 if VIEW == 'ortho' else 64 / (2 * math.sqrt(2)))
 CHAR_PPU = PPU * 1.25
-CHAR_FRAME = 224 if VIEW == 'ortho' else 192
-FOOT = (CHAR_FRAME // 2, CHAR_FRAME - 32 if VIEW == 'ortho' else 164)
+# Room for the tallest hat, the longest blade and the shadow: what the frame
+# cuts off ends on a straight edge in the game.
+CHAR_FRAME = 288 if VIEW == 'ortho' else 256
+FOOT = (CHAR_FRAME // 2, CHAR_FRAME - 64 if VIEW == 'ortho' else 212)
 SUN = (-0.7, -0.45, 1.1)  # toward the sun: the shadows fall to the lower right
 
 GRIPS = {
@@ -100,6 +102,12 @@ CHARS = {  # name: (model, meshes shown, held, walk, attack, the attack's hit at
                       'Walking_D_Skeletons', 'Spellcast_Shoot', 0.3),
 }
 
+# The shadow catcher hides whatever dips below the ground. The hunter's Idle
+# points the crossbow into it, and so does its stride at mid-step: it rests
+# with the crossbow at its waist, and its steps are taken an eighth later.
+IDLE = {'hunter': 'Unarmed_Idle'}
+STEPS = {'hunter': [0.125, 0.375, 0.625, 0.875]}
+
 ITEMS = {  # name: (model, rotation in degrees, only this mesh, hue)
     'potion': (DUNGEON + 'bottle_A_labeled_brown.gltf.glb', (0, 0, 20), None, 0.47),
     'coin': (DUNGEON + 'coin_stack_small.gltf.glb', (0, 0, 0), None, None),
@@ -133,8 +141,22 @@ def reset(sun_toward=SUN, rot=CAM_ROT):
     w = bpy.data.worlds.new('w')
     w.use_nodes = True
     w.node_tree.nodes['Background'].inputs[0].default_value = lin('#b4d2ff')
-    w.node_tree.nodes['Background'].inputs[1].default_value = 0.9
+    w.node_tree.nodes['Background'].inputs[1].default_value = 0.5
     scene.world = w
+    # An ink line round each silhouette only: the creases inside a character
+    # turn to mud at the size the game draws it. Freestyle reads the colour
+    # as linear, so this is a near black, and a quarter see-through: solid,
+    # it reads as a cartoon; at half, it is lost on screen.
+    scene.render.use_freestyle = True
+    scene.render.line_thickness_mode = 'ABSOLUTE'
+    lines = scene.view_layers[0].freestyle_settings.linesets.new('ink')
+    lines.select_by_visibility = lines.select_by_edge_types = True
+    lines.select_silhouette = lines.select_external_contour = True
+    lines.select_border = lines.select_crease = False
+    lines.linestyle = bpy.data.linestyles.new('ink')
+    lines.linestyle.color = (0.018, 0.011, 0.014)
+    lines.linestyle.thickness = 3.0
+    lines.linestyle.alpha = 0.75
     cam = bpy.data.objects.new('cam', bpy.data.cameras.new('cam'))
     cam.data.type = 'ORTHO'
     cam.data.clip_end = 400
@@ -143,11 +165,18 @@ def reset(sun_toward=SUN, rot=CAM_ROT):
     scene.collection.objects.link(cam)
     scene.camera = cam
     sun = bpy.data.objects.new('sun', bpy.data.lights.new('sun', 'SUN'))
-    sun.data.energy = 3.2
+    sun.data.energy = 4.2
     sun.data.color = lin('#fff1dc')[:3]
     sun.data.angle = math.radians(4)
     sun.rotation_euler = (-Vector(sun_toward).normalized()).to_track_quat('-Z', 'Y').to_euler()
     scene.collection.objects.link(sun)
+    # A cool light from behind picks out the edges a camera looking north
+    # sees face on, where the sun alone lights every side the same.
+    rim = bpy.data.objects.new('rim', bpy.data.lights.new('rim', 'SUN'))
+    rim.data.energy = 1.6
+    rim.data.color = lin('#cfe2ff')[:3]
+    rim.rotation_euler = (-Vector((0.6, 0.8, 0.5)).normalized()).to_track_quat('-Z', 'Y').to_euler()
+    scene.collection.objects.link(rim)
     bpy.ops.mesh.primitive_plane_add(size=60)
     catcher = bpy.context.object
     catcher.is_shadow_catcher = True
@@ -163,7 +192,8 @@ def frame(scene, cam, size, anchor, ppu):
     cam.data.shift_y = (anchor[1] - h / 2) / max(w, h)
 
 
-def render_to(scene, path):
+def render_to(scene, path, ink=True):
+    scene.render.use_freestyle = ink
     scene.render.filepath = path
     bpy.ops.render.render(write_still=True)
 
@@ -189,11 +219,14 @@ def props():
         foot = (-min(xs) + 8, -min(ys) + 8)
         frame(scene, cam, size, foot, PPU)
         catcher.hide_render = True
-        render_to(scene, f'{OUT}/props/{name}_object.png')
+        # A blade of grass is thinner than the line round it.
+        render_to(scene, f'{OUT}/props/{name}_object.png', ink=not name.startswith('grass'))
         catcher.hide_render = False
         for o in objs:
             o.visible_camera = False
-        render_to(scene, f'{OUT}/props/{name}_shadow.png')
+        # The prop is hidden from the camera here, which Freestyle does not
+        # honour: it would still ink the prop.
+        render_to(scene, f'{OUT}/props/{name}_shadow.png', ink=False)
         feet[name] = foot
     with open(f'{OUT}/props.json', 'w') as f:
         json.dump(feet, f)
@@ -219,8 +252,8 @@ def characters():
                 o.matrix_parent_inverse = Matrix.Identity(4)
                 o.matrix_basis = GRIPS[h['grip']]
         frame(scene, cam, (CHAR_FRAME, CHAR_FRAME), FOOT, CHAR_PPU)
-        for anim, action_name, at in [('walk', walk, [0, 0.25, 0.5, 0.75]), ('idle', 'Idle', [0]),
-                                      ('attack', attack, [hit])]:
+        for anim, action_name, at in [('walk', walk, STEPS.get(name, [0, 0.25, 0.5, 0.75])),
+                                      ('idle', IDLE.get(name, 'Idle'), [0]), ('attack', attack, [hit])]:
             action = bpy.data.actions[action_name]
             rig.animation_data_create()
             rig.animation_data.action = action
