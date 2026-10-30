@@ -15,6 +15,21 @@ echo "ADMIN=yourname" > .env      # registering this username makes you admin
 docker compose up -d
 ```
 
+On Windows, with Docker Desktop, the same in PowerShell:
+
+```powershell
+curl.exe -LO https://github.com/christianaurichzm/aurkad/releases/latest/download/compose.yml
+Set-Content .env "ADMIN=yourname"
+docker compose up -d
+```
+
+A folder on the Windows drive plays, but scripts do not hot-reload there
+(Docker only passes file changes to the container from the Linux side), and
+the backup commands under [Upgrading](#upgrading) need a Unix shell. For both,
+type the Linux lines in a WSL terminal instead (`wsl --install` sets up
+Ubuntu), in a folder of the Linux home such as `~/mygame`. `explorer.exe .`
+opens it in Explorer.
+
 Open https://localhost. The browser warns once about the certificate: logins
 only travel over HTTPS, so Caddy sits in front even on your own computer and
 signs `localhost` itself. On a server, point a domain at it, add
