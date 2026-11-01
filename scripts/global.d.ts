@@ -1079,7 +1079,7 @@ declare function t(
 /**
  * Play a sound for one player or a whole map on the `sound:play` channel:
  * `{ file }` plays flat, `{ file, x, y }` fades with distance and goes
- * silent past about twelve tiles. Files live in `public/audio`.
+ * silent past about twelve tiles. Files live in the game's `assets/`.
  *
  *     sendEvent(player, 'sound:play', { file: 'chest.mp3' });
  *     sendMapEvent(npc.mapId, 'sound:play', {

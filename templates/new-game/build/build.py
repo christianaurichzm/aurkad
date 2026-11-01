@@ -739,7 +739,8 @@ def main():
         atlas.save(out)
         tiles = lay_out(ids)
         write_json(f'{out}/content/maps.json',
-                   [{'id': '1', 'name': 'Meadow', 'type': 'normal', 'orientation': orientation, 'tiles': tiles}])
+                   [{'id': '1', 'name': 'Meadow', 'type': 'normal', 'orientation': orientation,
+                     'music': 'music.mp3', 'tiles': tiles}])
         sheet, layout = character_sheet(view)
         save_png(sheet, f'{out}/assets/sprites.png')
         write_json(f'{out}/assets/sprites.json', layout, 2)

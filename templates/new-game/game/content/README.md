@@ -246,5 +246,5 @@ Tile fields: `tileIndex` (required), `maskIndex`, `fringeIndex`, `blocked`,
 `avoidNpc`, `warp`, `npcSpawn`, `item`, `shop`, `bank`, `door`,
 `conditionalBlock`, `triggers`.
 `triggers[].action`: `heal | kill | message` (also takes `text`), `sound`
-(`file`), `changeSprite` (`spriteId`), `script` (`scriptId`, naming a behavior
-a script registered with `attach()`).
+(`file`, in `assets/`), `changeSprite` (`spriteId`), `script` (`scriptId`,
+naming a behavior a script registered with `attach()`).
