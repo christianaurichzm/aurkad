@@ -30,6 +30,7 @@ import { publishToInstances } from '../persistence/instanceBus.js';
 import { leaseHolderOf } from '../persistence/presence.js';
 import { lookupInstanceUrl } from '../persistence/instanceRegistry.js';
 import {
+  accountName,
   banAccount,
   deletePlayer,
   disconnectPlayer,
@@ -86,6 +87,15 @@ function parseNonNegativeInt(value: string | undefined): number | null {
 
 function onlinePlayers(): PlayerServer[] {
   return getAllPlayers().sort((a, b) => a.name.localeCompare(b.name));
+}
+
+/**
+ * The spelling bans, mutes and sockets are keyed by, which is the account's,
+ * so `alice` reaches Alice. A name with no account stays as typed, since a ban
+ * outlives the account it was put on.
+ */
+async function keyedName(typed: string): Promise<string> {
+  return (await accountName(typed)) ?? typed;
 }
 
 /** The named player, or null with the refusal already replied. */
@@ -303,8 +313,13 @@ export function registerPlayerCommands(): void {
     'kick',
     { access: Access.MOD, description: 'Disconnect a player' },
     async ({ args, reply, style }) => {
-      const username = args[0];
-      if (!username) return reply('Usage: kick <username>');
+      const typed = args[0];
+      if (!typed) return reply('Usage: kick <username>');
+      const username = await keyedName(typed);
+      // The lease is asked too: kickPlayer reaches another instance's socket.
+      if (!getPlayerByName(username) && !(await leaseHolderOf(username))) {
+        return reply(style.error(`Player not online: ${username}`));
+      }
       await kickPlayer(username, 'You were kicked by a server administrator.');
       reply(style.ok(`Kicked ${username}.`));
     },
@@ -543,9 +558,14 @@ export function registerPlayerCommands(): void {
       const username = args[0];
       if (!username) return reply('Usage: ban <username> [reason] [hours]');
 
-      const hoursArg = args[args.length - 1];
+      // Never the name itself: a player called 123 is not a ban of 123 hours.
+      const hoursArg = args.length > 1 ? args[args.length - 1] : undefined;
       const hours =
         hoursArg && !isNaN(Number(hoursArg)) ? Number(hoursArg) : undefined;
+      // A ban ending now or earlier throws the player out and lifts itself.
+      if (hours !== undefined && !(hours > 0 && Number.isFinite(hours))) {
+        return reply(style.error('Hours must be a positive number.'));
+      }
       const reasonParts =
         hours !== undefined ? args.slice(1, -1) : args.slice(1);
       const reason = reasonParts.length > 0 ? reasonParts.join(' ') : undefined;
@@ -565,9 +585,12 @@ export function registerPlayerCommands(): void {
     'unban',
     { access: Access.ADMIN, description: 'Remove a ban' },
     async ({ args, reply, style }) => {
-      const username = args[0];
-      if (!username) return reply('Usage: unban <username>');
-      await unbanPlayer(username);
+      const typed = args[0];
+      if (!typed) return reply('Usage: unban <username>');
+      const username = await keyedName(typed);
+      if (!(await unbanPlayer(username))) {
+        return reply(style.warn(`${username} is not banned.`));
+      }
       reply(style.ok(`Unbanned ${username}.`));
     },
   );
@@ -576,8 +599,9 @@ export function registerPlayerCommands(): void {
     'baninfo',
     { access: Access.MOD, description: 'Check whether a player is banned' },
     async ({ args, reply, style }) => {
-      const username = args[0];
-      if (!username) return reply('Usage: baninfo <username>');
+      const typed = args[0];
+      if (!typed) return reply('Usage: baninfo <username>');
+      const username = await keyedName(typed);
       const ban = await getBan(username);
       if (!ban) return reply(style.ok(`${username} is not banned.`));
 
@@ -598,9 +622,11 @@ export function registerPlayerCommands(): void {
       access: Access.ADMIN,
       description: 'Mute a player: mute <name> [minutes]',
     },
-    ({ args, reply, style }) => {
-      const username = args[0];
-      if (!username) return reply('Usage: mute <username> [minutes]');
+    async ({ args, reply, style }) => {
+      const typed = args[0];
+      if (!typed) return reply('Usage: mute <username> [minutes]');
+      const username = await accountName(typed);
+      if (!username) return reply(style.error(`No account named ${typed}.`));
       const minutes = parsePositiveInt(args[1]);
       // Zero is the stored form of "no expiry", not a duration of none.
       const expiry = minutes !== null ? Date.now() + minutes * 60_000 : 0;
@@ -619,9 +645,13 @@ export function registerPlayerCommands(): void {
   registerCommand(
     'unmute',
     { access: Access.ADMIN, description: 'Remove a mute' },
-    ({ args, reply, style }) => {
-      const username = args[0];
-      if (!username) return reply('Usage: unmute <username>');
+    async ({ args, reply, style }) => {
+      const typed = args[0];
+      if (!typed) return reply('Usage: unmute <username>');
+      const username = await keyedName(typed);
+      if (!isMuted(username)) {
+        return reply(style.warn(`${username} is not muted.`));
+      }
       serverState.mutes.delete(username);
       publishToInstances('mute', { username, expiry: null });
       reply(style.ok(`Unmuted ${username}.`));
@@ -631,9 +661,10 @@ export function registerPlayerCommands(): void {
   registerCommand(
     'muteinfo',
     { access: Access.MOD, description: 'Check whether a player is muted' },
-    ({ args, reply, style }) => {
-      const username = args[0];
-      if (!username) return reply('Usage: muteinfo <username>');
+    async ({ args, reply, style }) => {
+      const typed = args[0];
+      if (!typed) return reply('Usage: muteinfo <username>');
+      const username = await keyedName(typed);
       if (!isMuted(username))
         return reply(style.ok(`${username} is not muted.`));
 

@@ -28,9 +28,10 @@ vi.mock('../services/auditService.js', () => ({
   summarizeDetails: () => undefined,
 }));
 // Bans live in Mongo; what matters here is that the command reaches them.
+const bans = new Map<string, { until?: number; reason?: string }>();
 vi.mock('../services/player/banService.js', () => ({
-  unbanPlayer: () => Promise.resolve(),
-  getBan: () => Promise.resolve(null),
+  unbanPlayer: (name: string) => Promise.resolve(bans.delete(name)),
+  getBan: (name: string) => Promise.resolve(bans.get(name) ?? null),
 }));
 // The second factor is its own collection; the commands only have to reach it.
 const disableTwoFactor = vi.fn().mockResolvedValue(true);
@@ -49,20 +50,26 @@ vi.mock('../services/analyticsService.js', () => ({
 const stored = new Map<string, Record<string, unknown>>();
 const deletePlayer = vi.fn();
 const disconnectPlayer = vi.fn().mockResolvedValue(undefined);
+const kickPlayer = vi.fn().mockResolvedValue(undefined);
 // The account's own spelling, as the real one reads it from Mongo.
 const banAccount = vi.fn((name: string) =>
   Promise.resolve(name === 'alice' ? 'Alice' : null),
 );
+const accounts = ['Alice', 'Bob'];
 vi.mock('../services/player/playerService.js', async () => {
   const world = await import('../sim/world.js');
   return {
+    accountName: (name: string) =>
+      Promise.resolve(
+        accounts.find((a) => a.toLowerCase() === name.toLowerCase()) ?? null,
+      ),
     banAccount: (...args: [string]) => banAccount(...args),
     getPlayerByName: world.getPlayerByName,
     getPlayerByNameFromDb: (name: string) =>
       Promise.resolve(stored.get(name) ?? null),
     deletePlayer: (id: string) => deletePlayer(id),
     disconnectPlayer: (name: string) => disconnectPlayer(name),
-    kickPlayer: () => Promise.resolve(),
+    kickPlayer: (...args: unknown[]) => kickPlayer(...args),
     levelUpPlayer: () => {},
     respawnPlayer: (p: { health: number; maxHealth: number }) => {
       p.health = p.maxHealth;
@@ -112,8 +119,10 @@ beforeEach(() => {
   clearCommands();
   registerPlayerCommands();
   serverState.mutes.clear();
+  bans.clear();
   recordAdminAction.mockClear();
   banAccount.mockClear();
+  kickPlayer.mockClear();
   deletePlayer.mockClear();
   disconnectPlayer.mockClear();
   cancelDelivery.mockClear();
@@ -198,6 +207,73 @@ describe('acting on a player', () => {
     expect((await run('ban Ghost')).out).toContain('No account named Ghost');
   });
 
+  it('reads a name made of digits as a name, not as hours', async () => {
+    createFixture(0);
+
+    await run('ban 123');
+
+    expect(banAccount).toHaveBeenCalledWith('123', undefined, undefined);
+  });
+
+  it.each(['-5', '0', 'Infinity'])('refuses a ban of %s hours', async (h) => {
+    createFixture(0);
+
+    const { out } = await run(`ban alice ${h}`);
+
+    expect(out).toContain('Hours must be a positive number');
+    expect(banAccount).not.toHaveBeenCalled();
+  });
+
+  it('finds a ban under the account name, whatever case is typed', async () => {
+    createFixture(0);
+    bans.set('Alice', {});
+
+    expect((await run('baninfo alice')).out).toContain('Alice is banned');
+    expect((await run('unban alice')).out).toContain('Unbanned Alice');
+    expect(bans.size).toBe(0);
+  });
+
+  it('says so when there is no ban to lift', async () => {
+    createFixture(0);
+
+    expect((await run('unban alice')).out).toContain('Alice is not banned');
+  });
+
+  it('lifts the ban of an account that is gone, as typed', async () => {
+    createFixture(0);
+    bans.set('Ghost', {});
+
+    expect((await run('unban Ghost')).out).toContain('Unbanned Ghost');
+  });
+
+  it('kicks the account, whatever case is typed', async () => {
+    const sim = createFixture(0);
+    sim.addPlayer({ name: 'Alice' });
+
+    const { out } = await run('kick alice');
+
+    expect(kickPlayer).toHaveBeenCalledWith('Alice', expect.any(String));
+    expect(out).toContain('Kicked Alice');
+  });
+
+  it('kicks a player another instance holds', async () => {
+    createFixture(0);
+    leaseHolderOf.mockResolvedValue('ws://beta:8080');
+
+    await run('kick Alice');
+
+    expect(kickPlayer).toHaveBeenCalledWith('Alice', expect.any(String));
+  });
+
+  it('kicks nobody and says so when that player is not online', async () => {
+    createFixture(0);
+
+    const { out } = await run('kick Alice');
+
+    expect(kickPlayer).not.toHaveBeenCalled();
+    expect(out).toContain('Player not online: Alice');
+  });
+
   it('mutes for minutes, and permanently when none are given', async () => {
     createFixture(0);
 
@@ -210,6 +286,35 @@ describe('acting on a player', () => {
     // would read as one that already ended.
     expect(serverState.mutes.get('Bob')).toBe(0);
     expect((await run('muteinfo Bob')).out).toContain('permanent');
+  });
+
+  it('mutes under the account name, the one chat checks', async () => {
+    createFixture(0);
+
+    await run('mute alice');
+    expect(serverState.mutes.get('Alice')).toBe(0);
+    expect((await run('muteinfo alice')).out).toContain('Alice is muted');
+
+    await run('unmute alice');
+    expect(serverState.mutes.has('Alice')).toBe(false);
+    expect(publishToInstances).toHaveBeenLastCalledWith('mute', {
+      username: 'Alice',
+      expiry: null,
+    });
+  });
+
+  it('mutes nobody for a name with no account', async () => {
+    createFixture(0);
+
+    expect((await run('mute Ghost')).out).toContain('No account named Ghost');
+    expect(serverState.mutes.size).toBe(0);
+  });
+
+  it('says so when there is no mute to lift', async () => {
+    createFixture(0);
+
+    expect((await run('unmute alice')).out).toContain('Alice is not muted');
+    expect(publishToInstances).not.toHaveBeenCalled();
   });
 });
 

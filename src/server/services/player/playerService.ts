@@ -119,6 +119,11 @@ export async function nameTaken(name: string): Promise<boolean> {
   return playerRepository.nameTaken(name);
 }
 
+/** The account's own spelling of `name`, or null when there is no account. */
+export async function accountName(name: string): Promise<string | null> {
+  return playerRepository.nameOf(name);
+}
+
 export const createPlayer = async (
   username: string,
   password: string,

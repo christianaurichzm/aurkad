@@ -35,6 +35,8 @@ export async function banPlayer(
   );
 }
 
-export async function unbanPlayer(username: string): Promise<void> {
-  await BanModel.deleteOne({ username });
+/** Whether there was a ban to lift. */
+export async function unbanPlayer(username: string): Promise<boolean> {
+  const { deletedCount } = await BanModel.deleteOne({ username });
+  return deletedCount > 0;
 }
