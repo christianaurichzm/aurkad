@@ -102,13 +102,15 @@ export const httpClient = async <T>(
       typeof data === 'object' && data !== null
         ? (data as {
             message?: string;
-            error?: string;
+            error?: unknown;
             twoFactorRequired?: boolean;
           })
         : null;
+    // Text only, since it goes straight to the screen: `error` is an object of
+    // field errors on a refused body, and React throws on an object child.
     const message =
       body?.message ||
-      body?.error ||
+      (typeof body?.error === 'string' && body.error) ||
       (typeof data === 'string' && data) ||
       `Request failed (${response.status})`;
     const failure: HttpError = {

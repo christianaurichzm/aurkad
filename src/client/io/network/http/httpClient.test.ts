@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, afterEach } from 'vitest';
-import { friendlyHttpError, httpClient } from './httpClient';
+import { friendlyHttpError, httpClient, type HttpError } from './httpClient';
 
 // What a player may read when a call fails. A 4xx explains what the caller
 // did; a 5xx is the server saying it broke, in words meant for its operator.
@@ -44,6 +44,50 @@ describe('friendlyHttpError', () => {
     expect(friendlyHttpError(new TypeError('Failed to fetch'))).toMatch(
       /went wrong on our side/i,
     );
+  });
+});
+
+// What every screen reads off a refused call and renders as it comes. React
+// throws on an object child, which takes the whole page down.
+describe('the message of a refused call', () => {
+  afterEach(() => vi.unstubAllGlobals());
+
+  const refusedWith = (body: unknown) => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue({
+        ok: false,
+        status: 400,
+        headers: new Headers({ 'Content-Type': 'application/json' }),
+        json: () => Promise.resolve(body),
+      }),
+    );
+    return httpClient<never>('/x', { method: 'POST' }).catch(
+      (e: unknown) => e as HttpError,
+    );
+  };
+
+  const fieldErrors = { formErrors: [], fieldErrors: { email: ['Invalid'] } };
+
+  it('is the sentence the server wrote beside the field errors', async () => {
+    const failure = await refusedWith({
+      message: 'Not an address',
+      error: fieldErrors,
+    });
+
+    expect(failure?.message).toBe('Not an address');
+  });
+
+  it('is never the field errors themselves', async () => {
+    const failure = await refusedWith({ error: fieldErrors });
+
+    expect(failure?.message).toBe('Request failed (400)');
+  });
+
+  it('reads a refusal that spells its error as text', async () => {
+    const failure = await refusedWith({ error: 'Player not found' });
+
+    expect(failure?.message).toBe('Player not found');
   });
 });
 

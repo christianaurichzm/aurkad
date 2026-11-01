@@ -3,7 +3,7 @@ import type { Response } from 'express';
 import { Access } from '../../shared/types.js';
 import { USERNAME_MAX_LENGTH } from '../../shared/constants.js';
 import { gameConfig } from '../gameConfig.js';
-import { registerStrings } from '../engine/i18n.js';
+import { registerStrings, translateFor } from '../engine/i18n.js';
 import {
   BorderLinksSchema,
   MapTypeSchema,
@@ -17,7 +17,8 @@ const AccessSchema = z.nativeEnum(Access);
 // A second factor: an authenticator's six digits or a printed recovery
 // code. Named `totpToken`, not `code`, so the audit trail's redaction of
 // `token` catches it; `code` is what a script body calls its source.
-const TotpToken = z.string().min(6).max(32);
+const codeRefused = 'That code is wrong or already used.';
+const TotpToken = z.string().min(6, codeRefused).max(32, codeRefused);
 
 export const LoginBodySchema = z.object({
   username: z.string().min(1),
@@ -51,9 +52,9 @@ export const TwoFactorDisableBodySchema = z.object({
 });
 
 // A new password, wherever it is being set, under the game's rule (game.json
-// `account`). The messages are sentences because the sign-up form shows them
-// as they come, translated by the route; the numbers are fixed at boot, so the
-// table can hold the sentences whole.
+// `account`). The messages are sentences because a form shows them as they
+// come, translated by parseBody. The numbers are fixed at boot, so the table
+// can hold the sentences whole.
 const { account } = gameConfig;
 const passwordShort = `Passwords are at least ${account.passwordMinLength} characters`;
 const passwordLong = 'That password is too long';
@@ -61,6 +62,7 @@ const nameShort = `Names are at least ${account.usernameMinLength} characters`;
 const nameLong = `Names are at most ${account.usernameMaxLength} characters`;
 const nameChars = 'That name has characters this game does not allow';
 const nameReserved = 'That name is reserved';
+const addressRefused = 'That is not a valid email address';
 registerStrings({
   pt: {
     [passwordShort]: `Senhas têm pelo menos ${account.passwordMinLength} caracteres`,
@@ -69,6 +71,7 @@ registerStrings({
     [nameLong]: `Nomes têm no máximo ${account.usernameMaxLength} caracteres`,
     [nameChars]: 'Esse nome tem caracteres que este jogo não aceita',
     [nameReserved]: 'Esse nome é reservado',
+    [addressRefused]: 'Esse endereço de e-mail não é válido',
   },
   es: {
     [passwordShort]: `Las contraseñas tienen al menos ${account.passwordMinLength} caracteres`,
@@ -77,6 +80,7 @@ registerStrings({
     [nameLong]: `Los nombres tienen como máximo ${account.usernameMaxLength} caracteres`,
     [nameChars]: 'Ese nombre tiene caracteres que este juego no acepta',
     [nameReserved]: 'Ese nombre está reservado',
+    [addressRefused]: 'Esa dirección de correo no es válida',
   },
 });
 
@@ -113,7 +117,7 @@ export const ResetRequestBodySchema = z.object({
 // not be enough to send somebody's account recovery to a new inbox.
 export const SetEmailBodySchema = z.object({
   currentPassword: z.string().min(1),
-  email: z.email().max(200),
+  email: z.email(addressRefused).max(200, addressRefused),
 });
 
 export const ResetConfirmBodySchema = z.object({
@@ -131,7 +135,13 @@ export const ChangeSpriteBodySchema = z.object({
 export const BanBodySchema = z.object({
   playerName: z.string().min(1),
   reason: z.string().optional(),
-  until: z.number().int().positive().optional(),
+  // A moment already gone would throw the player out and lift the ban at once,
+  // with the panel reporting a ban.
+  until: z
+    .number()
+    .int()
+    .refine((until) => until > Date.now(), 'A ban has to end in the future')
+    .optional(),
 });
 
 export const SetSpriteBodySchema = z.object({
@@ -236,7 +246,11 @@ export function parseBody<S extends z.ZodType>(
 ): z.output<S> | null {
   const result = schema.safeParse(body);
   if (!result.success) {
-    res.status(400).json({ error: result.error.flatten() });
+    // `message` is the first rule broken, as the sentence a form shows.
+    res.status(400).json({
+      message: translateFor(res.req, result.error.issues[0]!.message),
+      error: result.error.flatten(),
+    });
     return null;
   }
   return result.data;

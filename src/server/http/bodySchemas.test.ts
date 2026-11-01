@@ -87,17 +87,16 @@ describe('BanBodySchema', () => {
     const result = BanBodySchema.safeParse({
       playerName: 'alice',
       reason: 'cheating',
-      until: 9999999999,
+      until: Date.now() + 60_000,
     });
     expect(result.success).toBe(true);
   });
-  it('rejects non-positive until', () => {
-    expect(
-      BanBodySchema.safeParse({ playerName: 'alice', until: 0 }).success,
-    ).toBe(false);
-    expect(
-      BanBodySchema.safeParse({ playerName: 'alice', until: -1 }).success,
-    ).toBe(false);
+  it('rejects an until that is not ahead of now', () => {
+    for (const until of [0, -1, Date.now() - 60_000]) {
+      expect(
+        BanBodySchema.safeParse({ playerName: 'alice', until }).success,
+      ).toBe(false);
+    }
   });
   it('rejects empty playerName', () => {
     expect(BanBodySchema.safeParse({ playerName: '' }).success).toBe(false);

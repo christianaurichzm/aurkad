@@ -55,6 +55,25 @@ describe('PlayerModeration', () => {
     expect(screen.getByText('Set access')).toBeDisabled();
   });
 
+  it('offers no ban that would end before it starts', async () => {
+    render(
+      <PlayerModeration
+        access={Access.ADMIN}
+        self="Rowan"
+        onResult={vi.fn()}
+      />,
+    );
+
+    fireEvent.click(await screen.findByText('Alice'));
+    expect(screen.getByRole('button', { name: 'Ban' })).toBeEnabled();
+
+    fireEvent.change(screen.getByLabelText('Minutes (0 = permanent)'), {
+      target: { value: '-5' },
+    });
+
+    expect(screen.getByRole('button', { name: 'Ban' })).toBeDisabled();
+  });
+
   it('sets the operator’s own access without ending their session', async () => {
     render(
       <PlayerModeration

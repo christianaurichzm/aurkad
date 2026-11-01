@@ -310,12 +310,14 @@ export const PlayerModeration: React.FC<{
                       <input
                         style={input}
                         type="number"
+                        min={0}
                         value={banDuration}
                         onChange={(e) => setBanDuration(+e.target.value)}
                       />
                     </Field>
                     <button
                       style={dangerBtn}
+                      disabled={banDuration < 0}
                       onClick={() =>
                         run(
                           () =>

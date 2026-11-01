@@ -50,6 +50,19 @@ beforeEach(() => {
 const asOperator = (name: string) =>
   request(app).post('/mod/bring').set('x-user', name).set('x-access', '2');
 
+describe('banning', () => {
+  it('refuses a ban ending in the past with a sentence to show', async () => {
+    const res = await request(app)
+      .post('/mod/ban')
+      .set('x-user', 'Boss')
+      .set('x-access', '2')
+      .send({ playerName: 'Alice', until: Date.now() - 60_000 });
+
+    expect(res.status).toBe(400);
+    expect(res.body.message).toBe('A ban has to end in the future');
+  });
+});
+
 describe('acting from the operator position', () => {
   it('refuses with the reason when the operator is not in the world', async () => {
     const sim = createFixture(0);

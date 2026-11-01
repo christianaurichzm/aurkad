@@ -266,16 +266,11 @@ export function createAuthRouter() {
     '/register',
     authLimiter,
     async (req: ExtendedRequest, res: Response) => {
-      // The first rule broken, as the sentence the form shows. The form checks
-      // the same game.json rules before sending, so this is mostly read by a
-      // client that does not.
-      const parsed = RegisterBodySchema.safeParse(req.body);
-      if (!parsed.success) {
-        return res.status(400).json({
-          message: translateFor(req, parsed.error.issues[0]!.message),
-        });
-      }
-      const { username, password } = parsed.data;
+      // The form checks the same game.json rules before sending, so a refusal
+      // here is mostly read by a client that does not.
+      const body = parseBody(RegisterBodySchema, req.body, res);
+      if (!body) return;
+      const { username, password } = body;
 
       if (await nameTaken(username))
         return res

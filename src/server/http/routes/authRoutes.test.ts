@@ -269,6 +269,16 @@ describe('POST /login', () => {
     expect(res.status).toBe(400);
   });
 
+  it('refuses a short code with a sentence in the language asked', async () => {
+    const res = await request(app)
+      .post('/login')
+      .set('Accept-Language', 'pt')
+      .send({ username: 'x', password: 'y', totpToken: '123' });
+
+    expect(res.status).toBe(400);
+    expect(res.body.message).toBe('Esse código está errado ou já foi usado.');
+  });
+
   it('rejects a login for an account another instance is holding', async () => {
     await createPlayer('Alice', await hashPw('correcthorse'));
     presence.answer = { ok: false, owner: 'ws://beta:8080' };
@@ -686,6 +696,18 @@ describe('the address a reset link goes to', () => {
       .send({ currentPassword: 'correcthorse', email: 'alice@example.com' });
 
     expect(res.status).toBe(401);
+  });
+
+  it('refuses what is no address with a sentence to show', async () => {
+    const agent = await loggedIn();
+
+    const res = await agent
+      .post('/email')
+      .send({ currentPassword: 'correcthorse', email: 'alice@example' });
+
+    expect(res.status).toBe(400);
+    expect(res.body.message).toBe('That is not a valid email address');
+    expect(sent).toHaveLength(0);
   });
 
   it('counts from the moment the mailed link is opened', async () => {
