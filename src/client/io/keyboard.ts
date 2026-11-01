@@ -109,18 +109,27 @@ export const releaseKey = (key: Key, source: KeySource) => {
   });
 };
 
+// CapsLock and a held Shift, which runs, report a letter as its capital.
+const unshifted = (key: string) => (key.length === 1 ? key.toLowerCase() : key);
+
+// Copy, find and the inspector. Arrows stay the game's with anything held, as
+// Cmd+Left would leave the page.
+const isBrowserShortcut = (e: KeyboardEvent) =>
+  e.key.length === 1 && (e.metaKey || (e.ctrlKey && e.shiftKey));
+
 // Kept out of the listener because an async listener hands its rejection to
 // the DOM, which drops it.
 const onKeyDown = async (e: KeyboardEvent) => {
-  if (e.defaultPrevented || isInputActive()) return;
+  if (e.defaultPrevented || isInputActive() || isBrowserShortcut(e)) return;
   if (!document.hasFocus()) return;
-  if (e.key in keyRecord) e.preventDefault();
+  const key = unshifted(e.key);
+  if (key in keyRecord) e.preventDefault();
   // OS auto-repeat is ignored: the server keeps moving while a key is held,
   // and repeats would trip the rate limit, which drops releases too.
   if (e.repeat) return;
-  if (!isValidKey(e.key)) return;
+  if (!isValidKey(key)) return;
 
-  await pressKey(e.key, 'keyboard');
+  await pressKey(key, 'keyboard');
 };
 
 export const handleInput = () => {
@@ -129,7 +138,8 @@ export const handleInput = () => {
   });
 
   window.addEventListener('keyup', (e) => {
-    if (isValidKey(e.key)) releaseKey(e.key, 'keyboard');
+    const key = unshifted(e.key);
+    if (isValidKey(key)) releaseKey(key, 'keyboard');
   });
 
   // A key released while the window is unfocused fires no keyup, so blur

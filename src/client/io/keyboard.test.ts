@@ -88,6 +88,63 @@ it('keeps a key down while another device still holds it', async () => {
   expect(sentKeyActions()).toEqual(['press', 'release']);
 });
 
+// CapsLock and a held Shift, which runs, report a letter as its capital, and
+// Shift can land between the press and the release.
+it('takes a capital for its letter, on the press and on the release', () => {
+  vi.spyOn(document, 'hasFocus').mockReturnValue(true);
+  document.body.innerHTML = '';
+  vi.mocked(sendAction).mockClear();
+
+  window.dispatchEvent(
+    new KeyboardEvent('keydown', { key: 'e', cancelable: true }),
+  );
+  window.dispatchEvent(new KeyboardEvent('keyup', { key: 'E' }));
+  window.dispatchEvent(
+    new KeyboardEvent('keydown', { key: 'E', cancelable: true }),
+  );
+  window.dispatchEvent(new KeyboardEvent('keyup', { key: 'e' }));
+
+  expect(sentKeyActions()).toEqual(['press', 'release', 'press', 'release']);
+});
+
+it('leaves the browser its Cmd and Ctrl+Shift shortcuts', () => {
+  vi.spyOn(document, 'hasFocus').mockReturnValue(true);
+  document.body.innerHTML = '';
+  vi.mocked(sendAction).mockClear();
+
+  for (const init of [
+    { key: 'f', metaKey: true },
+    { key: 'c', metaKey: true },
+    { key: 'C', ctrlKey: true, shiftKey: true },
+  ]) {
+    const event = new KeyboardEvent('keydown', { ...init, cancelable: true });
+    window.dispatchEvent(event);
+    expect(event.defaultPrevented).toBe(false);
+  }
+
+  expect(sendAction).not.toHaveBeenCalled();
+});
+
+// Arrows move whatever is held with them: running and attacking are Shift and
+// Control, and Cmd+Left would leave the game.
+it('still takes an arrow with a modifier held', () => {
+  vi.spyOn(document, 'hasFocus').mockReturnValue(true);
+  document.body.innerHTML = '';
+  vi.mocked(sendAction).mockClear();
+
+  const event = new KeyboardEvent('keydown', {
+    key: 'ArrowLeft',
+    ctrlKey: true,
+    shiftKey: true,
+    cancelable: true,
+  });
+  window.dispatchEvent(event);
+  window.dispatchEvent(new KeyboardEvent('keyup', { key: 'ArrowLeft' }));
+
+  expect(event.defaultPrevented).toBe(true);
+  expect(sentKeyActions()).toEqual(['press', 'release']);
+});
+
 it('lets go only of what the keyboard held when the window loses focus', async () => {
   vi.mocked(sendAction).mockClear();
 
