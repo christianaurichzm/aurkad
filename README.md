@@ -6,8 +6,8 @@ content, and define your own rules.
 
 ## Quick start
 
-Requires Docker with the Compose plugin; there is nothing to clone. In an
-empty folder:
+Requires Docker 25 or newer with the Compose plugin; there is nothing to clone.
+In an empty folder:
 
 ```bash
 curl -LO https://github.com/christianaurichzm/aurkad/releases/latest/download/compose.yml
@@ -30,11 +30,13 @@ type the Linux lines in a WSL terminal instead (`wsl --install` sets up
 Ubuntu), in a folder of the Linux home such as `~/mygame`. `explorer.exe .`
 opens it in Explorer.
 
-Open https://localhost. The browser warns once about the certificate: logins
-only travel over HTTPS, so Caddy sits in front even on your own computer and
-signs `localhost` itself. On a server, point a domain at it, add
-`PUBLIC_URL=https://your.domain` to `.env` and run `docker compose up -d`
-again; Caddy fetches a real certificate.
+Open https://localhost. The browser warns about the certificate, and can warn
+again after Caddy renews it, which happens within a day: logins only travel
+over HTTPS, so Caddy sits in front even on your own computer and signs
+`localhost` itself. Safari may keep refusing the game's connection after you
+accept the warning ([WebKit bug 145819](https://bugs.webkit.org/show_bug.cgi?id=145819)):
+if the game does not open after login, use Chrome or Firefox on `localhost`.
+To let others in, see [Inviting players](#inviting-players).
 
 The first `up` writes a small playable game into `game/`: a map, a few
 monsters and items, a `game.json` with the name the login screen shows and
@@ -64,6 +66,41 @@ bigger than a cell:
 | `spells.png`       | 32px | a spell's frames side by side                                    |
 | `arrows.png`       | 32px | four per arrow: down, up, right, left                            |
 | `attackeffect.png` | 64px | six frames of the melee swing                                    |
+
+### Inviting players
+
+Players need only a browser: they open your address and register. Put that
+address in `.env` as `PUBLIC_URL`, with no slash at the end, and run
+`docker compose up -d`. It has to be a name, not an IP address. Register the
+`ADMIN` username first: whoever takes it first is the admin.
+
+- **A server or your own computer**: point a domain at it and open ports 80 and
+  443, forwarding them on the router at home. A free dynamic DNS name replaces
+  a fixed IP. Behind CGNAT no forwarded port reaches you, so use a tunnel.
+- **A tunnel**: no open ports and no domain. Run
+  `cloudflared tunnel --url http://app:8080` on the compose network and use the
+  address it gives you, which can change on every start. Caddy logs certificate
+  errors for it, which do no harm.
+- **Your own network**: `PUBLIC_URL=https://yourcomputer.local`. Every player
+  accepts a certificate warning, and the Safari limit above applies.
+
+### If it does not start
+
+`docker compose logs` says why. The usual causes:
+
+- **`require Docker Engine v25 or later`**: upgrade Docker.
+- **Port 80 or 443 is taken** by another program: in `compose.yml`, change the
+  `ports:` lines to `'8080:80'` and `'8443:8443'`, add
+  `PUBLIC_URL=https://localhost:8443` to `.env`, run `docker compose up -d` and
+  open that address.
+- **`mongo` never becomes healthy**: MongoDB 7 needs a processor with AVX
+  (x86-64) or ARMv8.2 (arm64). A Raspberry Pi 4 cannot run it, and neither can
+  a virtual machine whose CPU type hides AVX.
+- **`paths are not allowed`** from `caddy`: `PUBLIC_URL` ends with a slash.
+- **A secure connection error in the browser**: `PUBLIC_URL` is an IP address.
+  Browsers send no name to an IP, so Caddy has no certificate to answer with.
+- **`project name must not be empty`**: the folder name has no Latin letter or
+  digit. Add `COMPOSE_PROJECT_NAME=mygame` to `.env`.
 
 ## Upgrading
 

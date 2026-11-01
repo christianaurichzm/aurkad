@@ -11,12 +11,16 @@ very welcome: open an issue.
 
 ## Development setup
 
+Needs Node 22.12 or newer and Docker.
+
 ```bash
 npm install
 npm run db:up                        # MongoDB only, in Docker
 npm run new-game -- games/my-game    # named after the folder, or pass "A Name"; --isometric
 GAME_DIR=games/my-game npm run dev   # server (8080) + client dev server with HMR
 ```
+
+In PowerShell, the last line is `$env:GAME_DIR="games/my-game"; npm run dev`.
 
 In development the first account registered becomes the admin.
 `npm run docker:up` runs your changes the way a release runs: it builds an
