@@ -38,7 +38,7 @@
     "typecheck:modules": "tsc -p modules/tsconfig.json --noEmit --incremental --tsBuildInfoFile node_modules/.cache/tsc/modules.tsbuildinfo",
     "typecheck:e2e": "tsc -p e2e/tsconfig.json --noEmit --incremental --tsBuildInfoFile node_modules/.cache/tsc/e2e.tsbuildinfo",
     "e2e": "playwright test",
-    "e2e:production": "cross-env E2E_PRODUCTION=true playwright test",
+    "e2e:production": "npm run build && cross-env E2E_PRODUCTION=true playwright test",
     "lint": "eslint src bench tools e2e modules templates/new-game/game/scripts",
     "format:check": "prettier --check \"{src,bench,tools,e2e}/**/*.{ts,tsx}\" \"modules/**/*.{js,jsx}\" \"templates/new-game/game/scripts/*.js\"",
     "format:write": "prettier --write \"{src,bench,tools,e2e}/**/*.{ts,tsx}\" \"modules/**/*.{js,jsx}\" \"templates/new-game/game/scripts/*.js\"",

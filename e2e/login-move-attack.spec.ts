@@ -45,6 +45,25 @@ async function registerAndLogin(
   return login(page, username, password);
 }
 
+/**
+ * What the page itself reports as broken. The engine catches what a module or
+ * the render loop throws, so those arrive as console errors, not page errors.
+ */
+function watchErrors(page: import('@playwright/test').Page): string[] {
+  const errors: string[] = [];
+  // The dev run plays the repository root, which has no art to load.
+  const reported =
+    process.env.E2E_PRODUCTION === 'true'
+      ? /\[assets\]|\[gameLoop\]|\[modules?[\]:]/
+      : /\[gameLoop\]|\[modules?[\]:]/;
+  page.on('pageerror', (error) => errors.push(error.message));
+  page.on('console', (message) => {
+    if (message.type() === 'error' && reported.test(message.text()))
+      errors.push(message.text());
+  });
+  return errors;
+}
+
 /** Signs in from the login form, and follows the socket the game opens. */
 async function login(
   page: import('@playwright/test').Page,
@@ -76,6 +95,13 @@ interface SelfState {
   lastProcessedSeq?: number;
 }
 
+/** Another player, as the worldUpdate diffs have built it up so far. */
+interface OtherPlayer {
+  name: string;
+  position: { x: number; y: number };
+  action: string;
+}
+
 /**
  * Follows the `self` the server publishes from the moment the socket
  * exists. The server sends a worldUpdate only on change, so a late
@@ -83,17 +109,29 @@ interface SelfState {
  */
 function trackSelf(ws: WebSocket) {
   let latest: SelfState | undefined;
+  const others = new Map<string, Partial<OtherPlayer>>();
   const waiters: Array<(self: SelfState) => void> = [];
 
   ws.on('framereceived', (frame) => {
     if (typeof frame.payload !== 'string') return;
-    let msg: { type?: string; payload?: { self?: SelfState } };
+    let msg: {
+      type?: string;
+      payload?: {
+        self?: SelfState;
+        entities?: Record<string, Partial<OtherPlayer>>;
+        leave?: string[];
+      };
+    };
     try {
       msg = JSON.parse(frame.payload) as typeof msg;
     } catch {
       return;
     }
-    const self = msg.type === 'worldUpdate' ? msg.payload?.self : undefined;
+    const update = msg.type === 'worldUpdate' ? msg.payload : undefined;
+    for (const id of update?.leave ?? []) others.delete(id);
+    for (const [id, entity] of Object.entries(update?.entities ?? {}))
+      others.set(id, { ...others.get(id), ...entity });
+    const self = update?.self;
     if (!self) return;
     latest = self;
     for (const notify of waiters.splice(0)) notify(self);
@@ -133,34 +171,74 @@ function trackSelf(ws: WebSocket) {
     });
   }
 
-  return { current, waitUntil };
+  /** What the server last said about a player in view, if one is. */
+  const other = (name: string) =>
+    [...others.values()].find((entity) => entity.name === name);
+
+  return { current, waitUntil, other };
+}
+
+/**
+ * Whether the client's own world holds a player. Vite serves each source file
+ * at its path, so this import is the module the running game uses. A build has
+ * only hashed chunks, and the socket is all a test can read there.
+ */
+async function expectInClient(
+  page: import('@playwright/test').Page,
+  name: string,
+  present: boolean,
+) {
+  if (process.env.E2E_PRODUCTION === 'true') return;
+  await expect
+    .poll(() =>
+      page.evaluate(async (wanted) => {
+        const url = '/src/client/core/gameState.ts';
+        const { getGameState } = (await import(url)) as {
+          getGameState: () => { players: Record<string, { name: string }> };
+        };
+        return Object.values(getGameState().players).some(
+          (player) => player.name === wanted,
+        );
+      }, name),
+    )
+    .toBe(present);
+}
+
+/** Holds `key` until the server reports the player elsewhere. */
+async function walk(
+  page: import('@playwright/test').Page,
+  self: ReturnType<typeof trackSelf>,
+  key: string,
+) {
+  const start = await self.current('a starting position');
+  const moved = self.waitUntil(
+    'the player to move',
+    (s) =>
+      s.position.x !== start.position.x || s.position.y !== start.position.y,
+  );
+  await page.keyboard.down(key);
+  const end = await moved;
+  await page.keyboard.up(key);
+  return { start, end };
 }
 
 test('register, log in, move, and attack over the real stack', async ({
   page,
 }) => {
+  const errors = watchErrors(page);
   const username = uniqueUsername();
   const { ws, self } = await registerAndLogin(page, username, 'e2e-password');
 
   // Clear the form's focus through the HUD before sending movement keys.
   await page.locator('#hud-level').click();
 
-  const start = await self.current('a starting position');
-
   // The server owns the position, so wait for it to report the player
   // elsewhere: input, queue and collision all passed.
-  const movedPromise = self.waitUntil(
-    'the player to move',
-    (s) =>
-      s.position.x !== start.position.x || s.position.y !== start.position.y,
-  );
-  await page.keyboard.down('ArrowDown');
-  const moved = await movedPromise;
-  await page.keyboard.up('ArrowDown');
+  const { start, end } = await walk(page, self, 'ArrowDown');
 
   // Down specifically, since canvas y grows downward and any move would
   // change the position.
-  expect(moved.position.y).toBeGreaterThan(start.position.y);
+  expect(end.position.y).toBeGreaterThan(start.position.y);
 
   // The server echoing Attack proves the attack happened, not just the
   // client thinking it did.
@@ -180,6 +258,51 @@ test('register, log in, move, and attack over the real stack', async ({
   await expect(page.locator('#hud')).toBeVisible();
   await expect(page.locator('#sidePanel')).toBeVisible();
   await expect(page.locator('.panel-toggle')).toBeHidden();
+  expect(errors).toEqual([]);
+});
+
+test('two players see each other move, attack, chat, and leave', async ({
+  page,
+  browser,
+}) => {
+  const first = uniqueUsername();
+  const second = uniqueUsername();
+  const secondContext = await browser.newContext();
+  const secondPage = await secondContext.newPage();
+  const errors = watchErrors(page);
+  const secondErrors = watchErrors(secondPage);
+  const a = await registerAndLogin(page, first, 'e2e-password');
+  const b = await registerAndLogin(secondPage, second, 'e2e-password');
+
+  // One arrived in view of the other, and one was already there on arrival.
+  await expect.poll(() => a.self.other(second)?.name).toBe(second);
+  await expect.poll(() => b.self.other(first)?.name).toBe(first);
+  await expectInClient(page, second, true);
+  await expectInClient(secondPage, first, true);
+
+  await secondPage.locator('#hud-level').click();
+  const { start } = await walk(secondPage, b.self, 'ArrowDown');
+  await expect
+    .poll(async () => {
+      const { x, y } = (await b.self.current()).position;
+      const seen = a.self.other(second)?.position;
+      return seen?.x === x && seen.y === y && y > start.position.y;
+    })
+    .toBe(true);
+
+  await secondPage.keyboard.down('Control');
+  await expect.poll(() => a.self.other(second)?.action).toBe('Attack');
+  await secondPage.keyboard.up('Control');
+
+  const line = `hello from ${first}`;
+  await page.locator('#chatInput').fill(line);
+  await page.locator('#chatInput').press('Enter');
+  await expect(secondPage.locator('#chatBox')).toContainText(line);
+
+  await secondContext.close();
+  await expect.poll(() => a.self.other(second)).toBeUndefined();
+  await expectInClient(page, second, false);
+  expect([...errors, ...secondErrors]).toEqual([]);
 });
 
 test.describe('touch layout', () => {
@@ -192,8 +315,7 @@ test.describe('touch layout', () => {
   test('fits player panels and changes direction without lifting the thumb', async ({
     page,
   }) => {
-    const errors: string[] = [];
-    page.on('pageerror', (error) => errors.push(error.message));
+    const errors = watchErrors(page);
     const { ws } = await registerAndLogin(
       page,
       uniqueUsername(),
@@ -307,15 +429,7 @@ test('creates, edits, crosses, resizes, and reconnects on small maps', async ({
     'Requires the isolated admin fixture',
   );
   test.setTimeout(60_000);
-  const errors: string[] = [];
-  page.on('pageerror', (error) => errors.push(error.message));
-  page.on('console', (message) => {
-    if (
-      message.type() === 'error' &&
-      /\[assets\]|\[gameLoop\]/.test(message.text())
-    )
-      errors.push(message.text());
-  });
+  const errors = watchErrors(page);
   // The fixture makes this one name the admin, so a retry against the same
   // server finds the account the attempt before it registered: 409 is fine.
   const registered = await page.request.post('/register', {
@@ -374,11 +488,12 @@ test('creates, edits, crosses, resizes, and reconnects on small maps', async ({
   await gm.getByRole('button', { name: 'Warp', exact: true }).click();
   await onSmallMap;
   await gm.getByRole('button', { name: 'Close', exact: true }).click();
-  // The cover is drawn on the fringe canvas, above the character and tiles.
+  // The cover is drawn on the text canvas too, the top layer, and there no
+  // module tints this corner as lighting and daynight do on the fringe canvas.
   await expect
     .poll(() =>
       page
-        .locator('#fringeCanvas')
+        .locator('#textCanvas')
         .evaluate(
           (canvas) =>
             (canvas as HTMLCanvasElement)
@@ -488,7 +603,7 @@ test('creates, edits, crosses, resizes, and reconnects on small maps', async ({
   await expect
     .poll(() =>
       page
-        .locator('#fringeCanvas')
+        .locator('#textCanvas')
         .evaluate(
           (canvas) =>
             (canvas as HTMLCanvasElement)
@@ -562,4 +677,75 @@ test('production uses a secure session through TLS and revokes a live socket', a
   expect(resumed.isClosed()).toBe(true);
   const account = await page.request.get('/email');
   expect(account.status()).toBe(401);
+});
+
+test('the built client credits the engine and carries its NOTICE', async ({
+  page,
+}) => {
+  test.skip(
+    process.env.E2E_PRODUCTION !== 'true',
+    'Only a build writes NOTICE into the bundle',
+  );
+  await page.goto('/');
+  await expect(
+    page.getByRole('link', { name: /Powered by Aurkad/ }),
+  ).toHaveAttribute('href', 'https://github.com/christianaurichzm/aurkad');
+
+  const entry = await page
+    .locator('script[type="module"][src^="/assets/"]')
+    .getAttribute('src');
+  const bundle = await page.request.get(entry!);
+  expect(await bundle.text()).toContain(
+    'software developed by Christian Aurich Zanettini Martins',
+  );
+});
+
+test('every client module loads in the built game', async ({ page }) => {
+  test.skip(
+    process.env.E2E_PRODUCTION !== 'true',
+    'Only the production fixture turns them all on',
+  );
+  const errors = watchErrors(page);
+  const loaded: string[] = [];
+  page.on('console', (message) => {
+    const id = /\[modules\] client loaded: (\S+)/.exec(message.text())?.[1];
+    if (id) loaded.push(id);
+  });
+  await registerAndLogin(page, uniqueUsername(), 'e2e-password');
+  const modules = (await (await page.request.get('/modules')).json()) as {
+    id: string;
+  }[];
+  expect(modules.length).toBeGreaterThanOrEqual(20);
+  await expect
+    .poll(() => loaded.toSorted())
+    .toEqual(modules.map((module) => module.id).toSorted());
+  // A module's own drawing runs with the frame, after it has loaded.
+  await page.evaluate(() => new Promise(requestAnimationFrame));
+  expect(errors).toEqual([]);
+});
+
+test.describe('Gravewatch', () => {
+  test.use({ baseURL: 'https://localhost:8444' });
+
+  test('shows a newcomer how to play and walks the isometric map', async ({
+    page,
+  }) => {
+    test.skip(
+      process.env.E2E_PRODUCTION !== 'true',
+      'Only the production fixture serves the demo',
+    );
+    const errors = watchErrors(page);
+    const { self } = await registerAndLogin(
+      page,
+      uniqueUsername(),
+      'e2e-password',
+    );
+    const help = page.getByRole('dialog', { name: 'How to play' });
+    await expect(help).toBeVisible();
+    await help.getByRole('button', { name: 'Close', exact: true }).click();
+
+    await page.locator('#hud-level').click();
+    await walk(page, self, 'ArrowUp');
+    expect(errors).toEqual([]);
+  });
 });

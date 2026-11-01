@@ -1,6 +1,14 @@
 import { spawn, execFileSync } from 'node:child_process';
 import { randomBytes } from 'node:crypto';
-import { mkdtemp, mkdir, readFile, writeFile, rm } from 'node:fs/promises';
+import {
+  cp,
+  mkdtemp,
+  mkdir,
+  readdir,
+  readFile,
+  writeFile,
+  rm,
+} from 'node:fs/promises';
 import { request as httpRequest } from 'node:http';
 import { createServer as createHttpsServer } from 'node:https';
 import { connect } from 'node:net';
@@ -10,6 +18,9 @@ import { MongoMemoryReplSet } from 'mongodb-memory-server';
 
 // A built app behind TLS termination, using its own disposable game and DB.
 // Ports differ from development so the smoke run never replaces a dev server.
+// An argument names a shipped game folder to play a copy of instead.
+const shippedGame = process.argv[2];
+const [appPort, tlsPort] = shippedGame ? [8082, 8444] : [8081, 8443];
 const directory = await mkdtemp(path.join(tmpdir(), 'aurkad-production-'));
 const mongo = await MongoMemoryReplSet.create({ replSet: { count: 1 } });
 await mkdir(path.join(directory, 'content'));
@@ -29,10 +40,20 @@ for (const name of [
   'attackeffect',
 ])
   await writeFile(path.join(directory, 'assets', `${name}.png`), sheet);
+// Every module with a browser half, so one that fails to load fails the suite.
+const modules: Record<string, { enabled: boolean }> = {};
+for (const id of await readdir('modules')) {
+  const manifest = await readFile(`modules/${id}/module.json`, 'utf8').catch(
+    () => '{}',
+  );
+  if ((JSON.parse(manifest) as { client?: string }).client)
+    modules[id] = { enabled: true };
+}
 await writeFile(
   path.join(directory, 'game.json'),
   JSON.stringify({
     world: { startMapId: '1', respawnTile: { col: 5, row: 5 } },
+    modules,
   }),
 );
 await writeFile(
@@ -48,6 +69,13 @@ await writeFile(
     },
   ]),
 );
+// Over the generated game, whose files a shipped one replaces. .cache is what a
+// demo's build keeps between runs, not part of the game.
+if (shippedGame)
+  await cp(shippedGame, directory, {
+    recursive: true,
+    filter: (source) => path.basename(source) !== '.cache',
+  });
 execFileSync(
   'openssl',
   [
@@ -77,11 +105,11 @@ const app = spawn(
     env: {
       ...process.env,
       NODE_ENV: 'production',
-      PORT: '8081',
+      PORT: String(appPort),
       MONGO_URI: mongo.getUri('production_smoke'),
       SESSION_SECRET: randomBytes(32).toString('hex'),
       BOOTSTRAP_ADMIN_USERNAME: 'e2e-map-admin',
-      CORS_ALLOWED_ORIGINS: 'https://localhost:8443',
+      CORS_ALLOWED_ORIGINS: `https://localhost:${tlsPort}`,
       TRUST_PROXY: '1',
       USE_SECURE_COOKIES: 'true',
       GAME_DIR: directory,
@@ -103,7 +131,7 @@ const proxy = createHttpsServer(
     const upstream = httpRequest(
       {
         hostname: '127.0.0.1',
-        port: 8081,
+        port: appPort,
         path: req.url,
         method: req.method,
         headers: {
@@ -125,7 +153,7 @@ const proxy = createHttpsServer(
   },
 );
 proxy.on('upgrade', (req, socket, head) => {
-  const upstream = connect(8081, '127.0.0.1', () => {
+  const upstream = connect(appPort, '127.0.0.1', () => {
     const headers = {
       ...req.headers,
       'x-forwarded-proto': 'https',
@@ -146,7 +174,9 @@ proxy.on('upgrade', (req, socket, head) => {
   upstream.on('error', () => socket.destroy());
   socket.on('error', () => upstream.destroy());
 });
-await new Promise<void>((resolve) => proxy.listen(8443, '127.0.0.1', resolve));
+await new Promise<void>((resolve) =>
+  proxy.listen(tlsPort, '127.0.0.1', resolve),
+);
 let stopping = false;
 async function stop() {
   if (stopping) return;
