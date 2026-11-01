@@ -274,6 +274,25 @@ describe('a drag in a toggle mode', () => {
     expect(getEditorTiles()[0]?.[0]).toEqual({ tileIndex: 2 });
   });
 
+  // Shift reports the letter as a capital.
+  it.each([
+    { name: 'Ctrl', modifier: { ctrlKey: true } },
+    { name: 'Cmd', modifier: { metaKey: true } },
+  ])('undoes on $name+Z and redoes on $name+Shift+Z', ({ modifier }) => {
+    const press = (init: KeyboardEventInit) =>
+      document.dispatchEvent(
+        new KeyboardEvent('keydown', { ...modifier, ...init }),
+      );
+    mouse('mousedown', 10);
+    mouse('mouseup', 10);
+
+    press({ key: 'z' });
+    expect(blocked(0)[0]).toBe(false);
+
+    press({ key: 'Z', shiftKey: true });
+    expect(blocked(0)[0]).toBe(true);
+  });
+
   // A snapshot's tile copy shares its triggers with the tile, so removing one
   // in place would reach the snapshot.
   it('brings a removed trigger back on undo, and on discard', () => {

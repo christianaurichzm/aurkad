@@ -995,12 +995,13 @@ export const toggleConditionalBlock = () => toggleMode('conditionalBlock');
 
 const handleKeyDown = (e: KeyboardEvent) => {
   // Ctrl+Z in a text field undoes the typing, not the map.
-  if (isInputActive()) return;
-  if (e.ctrlKey && e.key === 'z' && !e.shiftKey) {
+  if (isInputActive() || !(e.ctrlKey || e.metaKey)) return;
+  const key = e.key.toLowerCase();
+  if (key === 'z' && !e.shiftKey) {
     e.preventDefault();
     undo();
   }
-  if (e.ctrlKey && (e.key === 'y' || (e.shiftKey && e.key === 'z'))) {
+  if (key === 'y' || (key === 'z' && e.shiftKey)) {
     e.preventDefault();
     redo();
   }
