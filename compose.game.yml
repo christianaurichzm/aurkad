@@ -21,9 +21,11 @@
 #
 # The login cookie is only ever sent over HTTPS (USE_SECURE_COOKIES), so Caddy
 # sits in front even on your own computer. There it signs localhost with an
-# authority of its own, and the browser warns once. On a server, point a domain
-# at it and add PUBLIC_URL=https://your.domain to .env; Caddy fetches a real
-# certificate for it.
+# authority of its own, and the browser warns about it. To let others in, point
+# a domain at this machine and add PUBLIC_URL=https://your.domain to .env. Caddy
+# fetches a real certificate for it. It has to be a name: a browser sends none
+# to an IP address, and behind Docker's port mapping Caddy then has no
+# certificate to answer with.
 services:
   # A replica set of one node, for transactions: a trade or a mailed item
   # writes two documents, and only a replica set writes them together. The
@@ -64,6 +66,7 @@ services:
       SESSION_SECRET: ${SESSION_SECRET:-}
       BOOTSTRAP_ADMIN_USERNAME: ${ADMIN:-}
       CORS_ALLOWED_ORIGINS: ${PUBLIC_URL:-https://localhost}
+      PUBLIC_BASE_URL: ${PUBLIC_URL:-https://localhost}
       USE_SECURE_COOKIES: 'true'
       TRUST_PROXY: '1'
     volumes:
