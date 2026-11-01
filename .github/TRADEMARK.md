@@ -16,7 +16,15 @@ it does not grant any right to the project name or logo.
 - Register the name, or anything confusingly similar, as a trademark or domain.
 
 A modified version must be distributed under a different name. This keeps the
-name meaningful as a signal of what the official project actually is, which is
-the only thing Apache-2.0 leaves the author.
+name meaningful as a signal of what the official project actually is.
+
+## Credit
+
+Apache-2.0 section 4 requires any copy or modified version you distribute to
+keep the attribution in [NOTICE](../NOTICE). That includes the client your
+players download, so the build writes NOTICE at the top of its bundle.
+
+The "Powered by Aurkad" line on the login screen is not a license condition,
+but it is how players find the project. Please keep it.
 
 Questions: contact@aurkad.com

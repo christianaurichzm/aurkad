@@ -9,7 +9,7 @@ COPY package*.json ./
 # downloads on install for the test suite.
 RUN MONGOMS_DISABLE_POSTINSTALL=1 npm ci
 
-COPY tsconfig*.json vite.config.* index.html ./
+COPY tsconfig*.json vite.config.* index.html NOTICE ./
 COPY src ./src
 COPY public ./public
 RUN npm run build
@@ -23,6 +23,9 @@ COPY package*.json ./
 RUN npm ci --omit=dev && npm cache clean --force
 
 COPY --from=builder /app/dist ./dist
+
+# Whoever takes the image takes the license and attribution with it.
+COPY LICENSE NOTICE ./
 
 # Read from disk at runtime rather than compiled in: the official modules,
 # the game new-game copies, and the scripting API's declarations that game

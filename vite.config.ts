@@ -20,6 +20,16 @@ export default defineConfig({
   build: {
     outDir: "dist/client",
     emptyOutDir: true,
+    rolldownOptions: {
+      output: {
+        // Every player downloads this bundle, so it carries NOTICE like any
+        // other copy. Added after minification so nothing strips it.
+        postBanner: (chunk) =>
+          chunk.isEntry
+            ? `/*!\n${readFileSync(new URL("./NOTICE", import.meta.url), "utf8")}*/`
+            : "",
+      },
+    },
   },
 
   server: {

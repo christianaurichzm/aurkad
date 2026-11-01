@@ -117,6 +117,19 @@ describe('the second factor', () => {
   });
 });
 
+describe('the engine credit', () => {
+  it('links to the project', () => {
+    render(<Login onSwitch={vi.fn()} />);
+
+    const credit = screen.getByRole('link', { name: /Powered by Aurkad/ });
+
+    expect(credit).toHaveAttribute(
+      'href',
+      'https://github.com/christianaurichzm/aurkad',
+    );
+  });
+});
+
 describe('the password field', () => {
   it('shows what was typed while the eye is pressed, and still sends it', async () => {
     render(<Login onSwitch={vi.fn()} />);

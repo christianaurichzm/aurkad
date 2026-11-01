@@ -1038,6 +1038,9 @@ body {
   color: var(--color-text-muted);
   text-align: center;
 }
+.engine-credit a {
+  color: inherit;
+}
 #gameMain {
   grid-area: main;
   position: relative;

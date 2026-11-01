@@ -43,7 +43,15 @@ export function AuthLayout({
           <h1>{title}</h1>
         </header>
         {children}
-        <p className="engine-credit">{t('app.poweredBy', { version })}</p>
+        <p className="engine-credit">
+          <a
+            href="https://github.com/christianaurichzm/aurkad"
+            target="_blank"
+            rel="noreferrer"
+          >
+            {t('app.poweredBy', { version })}
+          </a>
+        </p>
       </section>
     </main>
   );

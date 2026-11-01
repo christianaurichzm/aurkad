@@ -3,7 +3,7 @@
   "version": "1.0.1",
   "private": true,
   "license": "Apache-2.0",
-  "author": "Christian Aurich",
+  "author": "Christian Aurich Zanettini Martins",
   "type": "module",
   "scripts": {
     "prepare": "git config core.hooksPath .githooks || true",
