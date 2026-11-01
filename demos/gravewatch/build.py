@@ -1097,7 +1097,7 @@ def main():
     Image.new('RGBA', (32, 32)).save(os.path.join(assets, 'arrows.png'))
 
     game_map = {'id': '1', 'name': 'Gravewatch', 'type': 'normal', 'orientation': 'isometric',
-                'tiles': tiles, 'droppedItems': []}
+                'music': 'music.mp3', 'tiles': tiles, 'droppedItems': []}
     write_json(os.path.join(content, 'maps.json'), [game_map], compact=True)
     write_json(os.path.join(content, 'npcs.json'), NPCS)
     write_json(os.path.join(content, 'items.json'), [dict(item, sprite=i) for i, (item, _) in enumerate(ITEMS)])

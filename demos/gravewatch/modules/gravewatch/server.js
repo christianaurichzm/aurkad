@@ -159,6 +159,7 @@ function begin() {
   announce(
     'The bell of Gravewatch tolls. The dead are rising - hold the churchyard until dawn!',
   );
+  sendMapEvent(cfg.mapId, 'sound:play', { file: 'bell.mp3' });
   const lit = lights();
   for (const player of onMap()) night(player, lit);
   sendMapEvent(cfg.mapId, 'gravewatch:siege', { running: true });
