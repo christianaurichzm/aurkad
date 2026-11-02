@@ -4,6 +4,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { getAudioSettings, setAudioSettings } from '../audio';
 import { changePassword } from '../io/network';
 import { useEscapeClose } from '../hooks/useEscapeClose';
+import { useUIStore } from '../stores/uiStore';
 import { SettingsModal } from './SettingsModal';
 
 vi.mock('../io/network', async (importOriginal) => ({
@@ -19,6 +20,21 @@ const open = () => {
 };
 
 describe('SettingsModal', () => {
+  // DialogHost closes the dialog on the same press, listening after this.
+  it('leaves Escape to an open dialog', () => {
+    render(<SettingsModal />);
+    useUIStore.setState((state) => ({
+      dialog: { ...state.dialog, visible: true },
+    }));
+
+    fireEvent.keyDown(window, { key: 'Escape' });
+
+    expect(screen.queryByText('Settings')).not.toBeInTheDocument();
+    useUIStore.setState((state) => ({
+      dialog: { ...state.dialog, visible: false },
+    }));
+  });
+
   beforeEach(() => {
     localStorage.clear();
     setAudioSettings({ music: 0.4, effects: 0.6, muted: false });

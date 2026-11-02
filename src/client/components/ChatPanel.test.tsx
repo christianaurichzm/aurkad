@@ -15,6 +15,16 @@ describe('ChatPanel Component', () => {
     });
   });
 
+  it('gives the keyboard back to the game on Escape, keeping the line', async () => {
+    render(<ChatPanel />);
+    const input = screen.getByRole('textbox');
+
+    await userEvent.type(input, 'half a thought{Escape}');
+
+    expect(input).not.toHaveFocus();
+    expect(input).toHaveValue('half a thought');
+  });
+
   // An empty log says so instead of showing a blank panel.
   it('says the log is empty instead of rendering nothing', () => {
     render(<ChatPanel />);

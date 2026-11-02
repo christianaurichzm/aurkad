@@ -2,10 +2,12 @@ import { useEffect, useRef } from 'react';
 import { useUIStore } from '../stores/uiStore';
 
 // A listener here owns Escape while open, so the settings shortcut only
-// opens on an empty screen. Claims stack; one Escape closes the newest.
+// opens on an empty screen. Claims stack; one Escape closes the newest. An
+// open dialog comes before them all and answers Escape itself (DialogHost).
 const claims: Array<() => void | Promise<void>> = [];
 
-export const escapeClaimed = () => claims.length > 0;
+export const escapeClaimed = () =>
+  claims.length > 0 || useUIStore.getState().dialog.visible;
 
 export function claimEscape(onClose: () => void | Promise<void>) {
   const close = () => onClose();

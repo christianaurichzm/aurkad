@@ -62,7 +62,7 @@ type ItemLook = Pick<ItemData, 'name' | 'sprite' | 'type'> & {
 interface ModuleUi {
   /** Focus and contain Tab within a dialog; cleanup restores the opener. */
   focusDialog(element: HTMLElement): () => void;
-  /** Whether keyboard focus is inside an editable field. */
+  /** Whether game keys stand down: a field has focus or a modal is open. */
   isInputActive(): boolean;
   panel(options?: { title?: string }): PanelApi;
   button(label: string, onClick?: () => void): HTMLButtonElement;

@@ -145,6 +145,54 @@ it('still takes an arrow with a modifier held', () => {
   expect(sentKeyActions()).toEqual(['press', 'release']);
 });
 
+it('holds the game back while a modal dialog is open, wherever the focus is', () => {
+  vi.spyOn(document, 'hasFocus').mockReturnValue(true);
+  document.body.innerHTML = '<div role="dialog" aria-modal="true"></div>';
+  vi.mocked(sendAction).mockClear();
+
+  window.dispatchEvent(
+    new KeyboardEvent('keydown', { key: 'ArrowRight', cancelable: true }),
+  );
+  expect(sendAction).not.toHaveBeenCalled();
+
+  document.body.innerHTML = '<div role="dialog"></div>';
+  window.dispatchEvent(
+    new KeyboardEvent('keydown', { key: 'ArrowRight', cancelable: true }),
+  );
+  window.dispatchEvent(new KeyboardEvent('keyup', { key: 'ArrowRight' }));
+  expect(sentKeyActions()).toEqual(['press', 'release']);
+});
+
+it('leaves Tab to the page', () => {
+  vi.spyOn(document, 'hasFocus').mockReturnValue(true);
+  document.body.innerHTML = '';
+  vi.mocked(sendAction).mockClear();
+
+  const event = new KeyboardEvent('keydown', { key: 'Tab', cancelable: true });
+  window.dispatchEvent(event);
+
+  expect(event.defaultPrevented).toBe(false);
+  expect(sendAction).not.toHaveBeenCalled();
+});
+
+// macOS swallows the keyup of whatever is let go under Cmd.
+it('lets go of the keyboard when Cmd comes up', () => {
+  vi.spyOn(document, 'hasFocus').mockReturnValue(true);
+  document.body.innerHTML = '';
+  vi.mocked(sendAction).mockClear();
+
+  window.dispatchEvent(
+    new KeyboardEvent('keydown', {
+      key: 'ArrowLeft',
+      metaKey: true,
+      cancelable: true,
+    }),
+  );
+  window.dispatchEvent(new KeyboardEvent('keyup', { key: 'Meta' }));
+
+  expect(sentKeyActions()).toEqual(['press', 'release']);
+});
+
 it('lets go only of what the keyboard held when the window loses focus', async () => {
   vi.mocked(sendAction).mockClear();
 

@@ -3,6 +3,7 @@
 
 window.addEventListener('keydown', (e) => {
   if (e.key !== 'r' && e.key !== 'R') return;
-  if (e.repeat || engine.ui.isInputActive()) return;
+  if (e.defaultPrevented || e.repeat) return;
+  if (e.ctrlKey || e.altKey || e.metaKey || engine.ui.isInputActive()) return;
   engine.sendServerEvent('shoot');
 });

@@ -132,6 +132,10 @@ const onKeyDown = async (e: KeyboardEvent) => {
   await pressKey(key, 'keyboard');
 };
 
+const releaseKeyboard = () => {
+  for (const key of [...holders.keys()]) releaseKey(key, 'keyboard');
+};
+
 export const handleInput = () => {
   window.addEventListener('keydown', (e) => {
     void onKeyDown(e);
@@ -140,13 +144,14 @@ export const handleInput = () => {
   window.addEventListener('keyup', (e) => {
     const key = unshifted(e.key);
     if (isValidKey(key)) releaseKey(key, 'keyboard');
+    // macOS fires no keyup for a key let go while Cmd is down, so Cmd coming
+    // up is the last word on all of them.
+    if (e.key === 'Meta') releaseKeyboard();
   });
 
   // A key released while the window is unfocused fires no keyup, so blur
   // lets go of every keyboard key. The gamepad says each frame what it holds.
-  window.addEventListener('blur', () => {
-    for (const key of [...holders.keys()]) releaseKey(key, 'keyboard');
-  });
+  window.addEventListener('blur', releaseKeyboard);
 
   // A new socket, after a reconnect or a warp to another instance, starts
   // with no keys down while the hand still holds them, and the browser sends

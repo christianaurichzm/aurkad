@@ -17,6 +17,7 @@ import { ChatPanel, ChatPeek } from './components/ChatPanel';
 import { ActionPanel, CreatorTools } from './components/ActionPanel';
 import { useGame } from './GameContext';
 import { useGameBrand } from './components/common/AuthLayout';
+import { useEscapeClose } from './hooks/useEscapeClose';
 import { useMediaQuery } from './hooks/useMediaQuery';
 import { useT } from './i18n';
 import { AttributeDistributorModal } from './components/AttributeDistributorModal';
@@ -45,6 +46,7 @@ function App() {
   // it starts closed.
   const [panelCollapsed, setPanelCollapsed] = useState(true);
   const togglePanel = () => setPanelCollapsed((collapsed) => !collapsed);
+  useEscapeClose(!panelCollapsed, () => setPanelCollapsed(true));
   // A reset link arrives as `/?reset=<token>`, read once on mount and dropped
   // from the address bar when the screen closes.
   const [resetToken, setResetToken] = useState(() =>

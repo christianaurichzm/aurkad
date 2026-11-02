@@ -1,8 +1,13 @@
 import { capitalizeFirst } from '../../shared/utils';
 
+// Game input stands down while the player types and while a modal dialog waits
+// for an answer. The dialog is looked up rather than found from the focus,
+// which a click on its backdrop moves out of it.
 export function isInputActive(): boolean {
-  return !!document.activeElement?.closest(
-    'input, textarea, select, [contenteditable]:not([contenteditable="false"]), [role="textbox"]',
+  return (
+    !!document.activeElement?.closest(
+      'input, textarea, select, [contenteditable]:not([contenteditable="false"]), [role="textbox"]',
+    ) || !!document.querySelector('[aria-modal="true"]')
   );
 }
 

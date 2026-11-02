@@ -75,11 +75,14 @@ interface PlayerAction {
 
 const playerActions: PlayerAction[] = [];
 let contextMenu: HTMLElement | null = null;
+let releaseMenuEscape: (() => void) | undefined;
 let canvasClickInstalled = false;
 
 function hideContextMenu() {
   contextMenu?.remove();
   contextMenu = null;
+  releaseMenuEscape?.();
+  releaseMenuEscape = undefined;
 }
 
 function showContextMenu(name: string, x: number, y: number) {
@@ -109,6 +112,7 @@ function showContextMenu(name: string, x: number, y: number) {
 
   document.body.appendChild(menu);
   contextMenu = menu;
+  releaseMenuEscape = claimEscape(hideContextMenu);
   setTimeout(() => {
     const close = (e: MouseEvent) => {
       if (!menu.contains(e.target as Node)) {

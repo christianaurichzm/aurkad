@@ -53,10 +53,13 @@ export const pollGamepad = (): void => {
   const pads = navigator.getGamepads?.() ?? [];
   const pad = pads.find((candidate) => candidate?.connected);
 
-  // As with the keyboard, typing in a field or another window in front reads
-  // as nothing held, so a held direction stops and resumes with the focus.
-  const playing = document.hasFocus() && !isInputActive();
-  const next = pad && playing ? readPad(pad) : new Set<Key>();
+  // As with the keyboard, typing in a field, a modal dialog or another window
+  // in front reads as nothing held, so a held direction stops and resumes with
+  // the focus.
+  const next =
+    pad && document.hasFocus() && !isInputActive()
+      ? readPad(pad)
+      : new Set<Key>();
 
   for (const key of held) if (!next.has(key)) releaseKey(key, 'gamepad');
   for (const key of next) if (!held.has(key)) void pressKey(key, 'gamepad');

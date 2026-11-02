@@ -88,6 +88,11 @@ export const ChatPanel: React.FC<{ shown?: boolean }> = ({ shown = true }) => {
     if (e.key === 'Enter') {
       e.preventDefault();
       sendChatMessage();
+    } else if (e.key === 'Escape') {
+      // Back to the game with the line kept. Prevented, so the same press
+      // does not also close a window underneath.
+      e.preventDefault();
+      e.currentTarget.blur();
     }
   };
 

@@ -46,6 +46,7 @@ export const OnlinePlayersModal: React.FC = () => {
 
   return (
     <Modal
+      floating
       title={t('online.title')}
       onClose={() => setVisible(false)}
       width={380}

@@ -37,6 +37,12 @@ const serve = (code: string | ((engine: Record<string, unknown>) => void)) => {
   }));
 };
 
+let worldState: unknown = null;
+vi.mock('../../core/gameState', async (importOriginal) => ({
+  ...(await importOriginal<object>()),
+  getGameState: () => worldState,
+}));
+
 beforeEach(() => {
   setLanguage('en');
   document.body.innerHTML = '';
@@ -48,6 +54,32 @@ afterEach(() => {
     .forEach((b) => b.click());
   vi.unstubAllGlobals();
   vi.restoreAllMocks();
+});
+
+describe('the player menu', () => {
+  it('takes Escape for itself while open', async () => {
+    document.body.innerHTML =
+      '<div id="canvasStack"><canvas id="playerCanvas"></canvas></div>';
+    const stack = document.getElementById('canvasStack')!;
+    document.getElementById('playerCanvas')!.getBoundingClientRect = () =>
+      ({ left: 0, top: 0, width: 1280, height: 896 }) as DOMRect;
+    worldState = {
+      players: { bob: { name: 'Bob', position: { x: 0, y: 0 } } },
+    };
+    serve(`engine.registerPlayerAction('Trade', () => {});`);
+    await loadClientModules();
+
+    stack.dispatchEvent(
+      new MouseEvent('click', { clientX: 10, clientY: 10, bubbles: true }),
+    );
+    expect(document.querySelector('.player-menu')).not.toBeNull();
+    expect(escapeClaimed()).toBe(true);
+
+    window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }));
+
+    expect(document.querySelector('.player-menu')).toBeNull();
+    expect(escapeClaimed()).toBe(false);
+  });
 });
 
 describe('module panels', () => {
