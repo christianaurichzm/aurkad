@@ -25,7 +25,7 @@ import { useItem } from '../../services/economy/inventoryService.js';
 import { items } from '../../services/content/itemService.js';
 import { registeredBehaviors } from '../scripting/entityScripts.js';
 import type { PlayerServer, Spell } from '../../../shared/types.js';
-import { TILE_SIZE } from '../../../shared/constants.js';
+import { NOTICE_CHANNEL, TILE_SIZE } from '../../../shared/constants.js';
 
 // What the module reads back as the database's spells. Empty, it seeds and
 // casts its built-ins, and the seed lands in `saved` with the id the database
@@ -61,6 +61,14 @@ function castVia(action: string, username: string, id: string) {
     payload: { id },
   });
 }
+
+// What the module told a player over the world, as sendNotice sends it.
+const notices = () =>
+  drainGameEvents().flatMap((e) =>
+    e.type === 'customPlayer' && e.channel === NOTICE_CHANNEL
+      ? [e.payload]
+      : [],
+  );
 
 beforeEach(() => {
   clearAll();
@@ -181,6 +189,7 @@ describe('magic module', () => {
 
     expect(caster.health).toBe(10); // not healed again
     expect(caster.data?.mana).toBe(75); // no extra mana spent
+    expect(notices()).toEqual(['Heal is not ready yet.']);
   });
 
   it('refuses to cast without enough mana', () => {
@@ -193,6 +202,31 @@ describe('magic module', () => {
 
     expect(caster.health).toBe(40); // not healed
     expect(caster.data?.mana).toBe(5); // unchanged
+    expect(notices()).toEqual(['Not enough mana for Heal.']);
+  });
+
+  it('keeps the mana and the cooldown of a blast with nobody in range', () => {
+    const sim = createFixture(0);
+    const caster = sim.addPlayer({ name: 'Alice', position: tile(5, 5) });
+    sim.step(1);
+
+    castVia('spell:cast', 'Alice', BLAST);
+
+    expect(caster.data?.mana).toBe(100);
+    expect(notices()).toEqual(['No enemies in range.']);
+
+    const goblin = sim.addNpc({
+      name: 'Goblin',
+      behavior: 'aggressive',
+      position: tile(6, 5),
+      maxHealth: 30,
+      health: 30,
+    });
+    sim.step(1);
+    castVia('spell:cast', 'Alice', BLAST);
+
+    expect(goblin.health).toBeLessThan(30);
+    expect(caster.data?.mana).toBe(70);
   });
 
   it('refuses to cast when the mana it costs cannot be stored', () => {
@@ -524,11 +558,12 @@ describe('learning spells', () => {
 
     try {
       expect(useItem('Alice', 90)).toBe(true);
+      expect(said()).toEqual(['You learned Heal.']);
       expect(useItem('Alice', 90)).toBe(false);
+      expect(notices()).toEqual(['You already know Heal.']);
 
       expect(alice.data?.spells).toEqual([BLAST, HEAL]);
       expect(alice.inventory.items).toEqual([{ item: 90, quantity: 1 }]);
-      expect(said()).toEqual(['You learned Heal.', 'You already know Heal.']);
     } finally {
       items.delete(90);
     }

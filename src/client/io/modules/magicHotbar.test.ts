@@ -94,7 +94,8 @@ describe('spell hotbar', () => {
     );
   });
 
-  it('casts from a slot, unless the spell is cooling down or unaffordable', () => {
+  // A refused cast is the server's to explain, so every slot asks it.
+  it('asks the server from every slot, ready or not', () => {
     push({
       mana: 20,
       manaMax: 100,
@@ -109,6 +110,8 @@ describe('spell hotbar', () => {
 
     expect(sent().filter(([channel]) => channel === 'spell:cast')).toEqual([
       ['spell:cast', { id: 'arcane' }],
+      ['spell:cast', { id: 'late' }],
+      ['spell:cast', { id: 'dear' }],
     ]);
   });
 });

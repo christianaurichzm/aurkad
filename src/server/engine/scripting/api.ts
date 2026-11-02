@@ -33,6 +33,7 @@ import {
 import {
   sendCustomEvent,
   sendMapCustomEvent,
+  sendNotice,
   broadcastCustomEvent,
 } from '../../services/comms/customEventService.js';
 import { registerCommand } from '../commands.js';
@@ -836,6 +837,13 @@ export function buildApi(
         },
       });
     },
+    /**
+     * Why something the player tried did not happen, over the world for a
+     * moment and never in the chat. Translated like `sendMessage`, so a refusal
+     * that repeats on every press scrolls nothing away.
+     */
+    sendNotice: (player: PlayerServer, message: string): void =>
+      sendNotice(player, message),
     /**
      * One line to everyone. Not translated: it is one event for every viewer,
      * so a game loops `sendMessage` per player to say it in each language.

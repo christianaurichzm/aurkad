@@ -77,6 +77,7 @@ const scriptGlobals = [
   'flags',
   'teleportPlayer',
   'sendMessage',
+  'sendNotice',
   'broadcastMessage',
   'setChatIgnored',
   'i18n',

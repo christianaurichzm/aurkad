@@ -100,7 +100,7 @@ describe('the spells window', () => {
     expect(sent()).toContainEqual(['spell:cast', { id: 'heal' }]);
   });
 
-  it('disables a spell on cooldown or beyond the mana held', () => {
+  it('greys a spell on cooldown or beyond the mana held, and says which', () => {
     openWindow();
     update({
       ...STATE,
@@ -108,20 +108,32 @@ describe('the spells window', () => {
       spells: [spell({ readyAt: NOW + 2000 }), spell({ id: 'heal', cost: 30 })],
     });
 
-    for (const b of spellButtons()) {
-      expect(b).toHaveProperty('disabled', true);
-    }
+    const [cooling, poor] = spellButtons();
+    expect(cooling).toHaveAttribute('aria-disabled', 'true');
+    expect(cooling).toHaveTextContent('2s');
+    expect(poor).toHaveAttribute('aria-disabled', 'true');
+    expect(poor).toHaveTextContent('Not enough mana');
   });
 
-  it('enables a spell again when its cooldown ends between server pushes', () => {
+  // The server is the one that knows, and its answer is what explains it.
+  it('asks the server even for a spell it shows as unavailable', () => {
+    openWindow();
+    update({ ...STATE, spells: [spell({ readyAt: NOW + 2000 })] });
+
+    fireEvent.click(spellButton(/Arcane/));
+
+    expect(sent()).toContainEqual(['spell:cast', { id: 'arcane' }]);
+  });
+
+  it('offers a spell again when its cooldown ends between server pushes', () => {
     openWindow();
     update({ ...STATE, spells: [spell({ readyAt: NOW + 1200 })] });
-    expect(spellButton(/Arcane/)).toHaveProperty('disabled', true);
+    expect(spellButton(/Arcane/)).toHaveAttribute('aria-disabled', 'true');
 
     act(() => {
       vi.advanceTimersByTime(1500);
     });
 
-    expect(spellButton(/Arcane/)).toHaveProperty('disabled', false);
+    expect(spellButton(/Arcane/)).toHaveAttribute('aria-disabled', 'false');
   });
 });

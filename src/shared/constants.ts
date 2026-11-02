@@ -21,6 +21,8 @@ export const DEFAULT_PLAYER_SPEED = 1;
 export const MOVEMENT_DURATION = 248;
 export const RUN_MOVEMENT_DURATION = 148;
 export const TICK_RATE = 20;
+// The custom event a server notice travels on (sendNotice).
+export const NOTICE_CHANNEL = 'engine:notice';
 export const GAME_WIDTH = 1280;
 export const GAME_HEIGHT = 896;
 export const CHUNK_SIZE = 16;

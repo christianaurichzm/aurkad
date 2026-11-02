@@ -26,7 +26,12 @@ import {
 import { getGameState, getPlayer } from '../../core/gameState';
 import { usePlayerForceUpdate } from '../../hooks/usePlayerForceUpdate';
 import { enqueueChatMessage } from '../network/sync/chatSync';
-import { GAME_WIDTH, GAME_HEIGHT, TILE_SIZE } from '../../../shared/constants';
+import {
+  GAME_WIDTH,
+  GAME_HEIGHT,
+  NOTICE_CHANNEL,
+  TILE_SIZE,
+} from '../../../shared/constants';
 import {
   getCamera,
   screenToWorld,
@@ -208,20 +213,63 @@ function placeToasts(): void {
   stack.style.top = `${box.top + 44}px`;
 }
 
-function toast(el: HTMLElement, ms = 3000, fallback: HTMLElement): void {
+function toastStack(): HTMLElement | null {
   const frame = document.getElementById('canvasFrame');
   let stack = document.querySelector<HTMLElement>('body > .module-toasts');
   if (frame && !stack) {
     stack = document.createElement('div');
     stack.className = 'module-toasts';
+    stack.setAttribute('role', 'status');
     document.body.append(stack);
     // A phone turned while a notice is up moves the frame under it.
     window.addEventListener('resize', placeToasts);
   }
+  return stack;
+}
+
+function toast(el: HTMLElement, ms = 3000, fallback: HTMLElement): void {
+  const stack = toastStack();
   placeToasts();
   (stack ?? fallback).append(el);
   setTimeout(() => (el.style.opacity = '0'), ms);
   setTimeout(() => el.remove(), ms + 400);
+}
+
+interface NoticeOptions {
+  tone?: 'primary' | 'danger' | 'warning' | 'highlight';
+  label?: string;
+  detail?: string;
+  ms?: number;
+}
+
+function notice(
+  text: string,
+  opts: NoticeOptions,
+  fallback: HTMLElement,
+): void {
+  const el = document.createElement('div');
+  el.className = 'notice';
+  if (opts.tone) el.dataset.tone = opts.tone;
+  const line = (className: string, source: string) => {
+    const d = document.createElement('div');
+    d.className = className;
+    d.textContent = moduleText(source);
+    return d;
+  };
+  if (opts.label) el.append(line('notice-label', opts.label));
+  el.append(moduleText(text));
+  if (opts.detail) el.append(line('notice-detail', opts.detail));
+  toast(el, opts.ms, fallback);
+}
+
+// The server's word on an action that did not happen (sendNotice). It answers
+// every attempt, and a key is pressed faster than a notice fades, so a line
+// that is already up stands for the new one.
+function showRefusal(text: unknown): void {
+  if (typeof text !== 'string') return;
+  const shown = document.querySelectorAll('body > .module-toasts > .notice');
+  if ([...shown].some((el) => el.textContent === text)) return;
+  notice(text, { tone: 'warning', ms: 2000 }, document.body);
 }
 
 // A small UI toolkit so module code doesn't hand-roll CSS. It styles nothing
@@ -380,29 +428,8 @@ function makeUi(id: string, container: HTMLElement) {
     toast: (el: HTMLElement, ms?: number) => toast(el, ms, container),
     // The same, in the stylesheet's look: the tone picks the paint, and a
     // theme restyles every module's notices through .notice at once.
-    notice: (
-      text: string,
-      opts: {
-        tone?: 'primary' | 'danger' | 'warning' | 'highlight';
-        label?: string;
-        detail?: string;
-        ms?: number;
-      } = {},
-    ) => {
-      const el = document.createElement('div');
-      el.className = 'notice';
-      if (opts.tone) el.dataset.tone = opts.tone;
-      const line = (className: string, source: string) => {
-        const d = document.createElement('div');
-        d.className = className;
-        d.textContent = moduleText(source);
-        return d;
-      };
-      if (opts.label) el.append(line('notice-label', opts.label));
-      el.append(moduleText(text));
-      if (opts.detail) el.append(line('notice-detail', opts.detail));
-      toast(el, opts.ms, container);
-    },
+    notice: (text: string, opts: NoticeOptions = {}) =>
+      notice(text, opts, container),
     // A tile in the in-game Actions menu, e.g. to toggle a panel. A one-char
     // hotkey adds a key badge and global shortcut like the built-ins; an icon
     // name draws on the tile; an order places it among the others.
@@ -560,6 +587,12 @@ function makeEngineApi(id: string) {
 }
 
 export async function loadClientModules(): Promise<void> {
+  // Up before the first notice: a live region announces what changes in it,
+  // not what it is born with.
+  toastStack();
+  // Not at the top of the file: customEvents and wsManager import each other,
+  // so what a module's top can call depends on who was imported first.
+  onServerEvent(NOTICE_CHANNEL, showRefusal);
   let modules: ClientModule[];
   try {
     modules = (await (await fetch('/modules')).json()) as ClientModule[];

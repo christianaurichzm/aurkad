@@ -12,6 +12,7 @@ engine.i18n({
     Ready: 'Disponível',
     '{cost} MP': '{cost} MP',
     '{seconds}s cooldown': 'Recarga de {seconds}s',
+    'Not enough mana': 'Sem mana',
   },
   es: {
     Spells: 'Hechizos',
@@ -19,6 +20,7 @@ engine.i18n({
     Ready: 'Listo',
     '{cost} MP': '{cost} PM',
     '{seconds}s cooldown': 'Recarga de {seconds}s',
+    'Not enough mana': 'No hay maná',
   },
 });
 
@@ -57,12 +59,9 @@ function toggle() {
 
 ui.actionButton('Spells', toggle, 's', 'spellbook', 30); // S opens/closes
 
-// Casts only when off cooldown and affordable; the spellbook and the
-// hotbar share this gate.
+// Asked of the server even when this state says no: only the server's answer
+// is true, and it is what tells the player why.
 function tryCast(spell) {
-  if (!spell) return;
-  if (spell.readyAt > Date.now()) return; // on cooldown
-  if (state.mana < spell.cost) return; // not enough mana
   engine.sendServerEvent('spell:cast', { id: spell.id });
 }
 
@@ -100,6 +99,7 @@ function SpellsWindow({ s }) {
               <li key={spell.id}>
                 <button
                   type="button"
+                  className="spell-row"
                   style={{
                     width: '100%',
                     display: 'grid',
@@ -108,7 +108,9 @@ function SpellsWindow({ s }) {
                     gap: 10,
                     textAlign: 'left',
                   }}
-                  disabled={spell.readyAt > now || s.mana < spell.cost}
+                  // aria-disabled, not disabled: a click and the focus still
+                  // get here, so the reason can be asked for and read.
+                  aria-disabled={spell.readyAt > now || s.mana < spell.cost}
                   onClick={() => tryCast(spell)}
                 >
                   <span
@@ -157,11 +159,13 @@ function SpellsWindow({ s }) {
                     >
                       {spell.readyAt > now
                         ? `${Math.ceil((spell.readyAt - now) / 1000)}s`
-                        : spell.cooldownMs
-                          ? t('{seconds}s cooldown', {
-                              seconds: spell.cooldownMs / 1000,
-                            })
-                          : t('Ready')}
+                        : s.mana < spell.cost
+                          ? t('Not enough mana')
+                          : spell.cooldownMs
+                            ? t('{seconds}s cooldown', {
+                                seconds: spell.cooldownMs / 1000,
+                              })
+                            : t('Ready')}
                     </span>
                     {i < HOTBAR_SLOTS && (
                       <span

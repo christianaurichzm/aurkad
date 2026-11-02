@@ -9,6 +9,11 @@ const cooldowns = {};
 const isEnemy = (n) => n.behavior === 'aggressive' || n.behavior === 'hostile';
 const projectiles = [];
 
+i18n({
+  pt: { 'Equip a ranged weapon to shoot.': 'Equipe uma arma à distância.' },
+  es: { 'Equip a ranged weapon to shoot.': 'Equipa un arma a distancia.' },
+});
+
 function getEquippedArrow(player) {
   const weaponId = player.equipped && player.equipped.weapon;
   if (!weaponId) return undefined;
@@ -94,7 +99,7 @@ on('customAction', ({ player, channel }) => {
   if (cooldowns[player.name]) return;
 
   const arrow = getEquippedArrow(player);
-  if (!arrow) return;
+  if (!arrow) return sendNotice(player, 'Equip a ranged weapon to shoot.');
 
   cooldowns[player.name] = cooldownTicks;
 

@@ -43,13 +43,14 @@ interface BehaviorEvents extends Record<ScriptBehaviorEvent, object> {
   /**
    * A player consumed an item carrying this behaviour. `refuse()` keeps the
    * item: nothing is spent, its effects do not apply and `itemUse` does not
-   * fire, as for a tome offered to someone who already knows its spell.
+   * fire, as for a tome offered to someone who already knows its spell. A
+   * reason reaches the player as a notice.
    */
   onUse: {
     player: PlayerServer;
     item: Item;
     itemId: number;
-    refuse: () => void;
+    refuse: (reason?: string) => void;
   };
   /**
    * A player put on equipment carrying this behaviour.

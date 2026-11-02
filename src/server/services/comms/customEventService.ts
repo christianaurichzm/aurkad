@@ -1,6 +1,8 @@
 import { emitGameEvent } from '../../engine/eventBus.js';
 import { emit } from '../../engine/hooks.js';
+import { translate } from '../../engine/i18n.js';
 import { getPlayerByName } from '../player/playerService.js';
+import { NOTICE_CHANNEL } from '../../../shared/constants.js';
 import type { ClientCustomAction } from '../../engine/actions.js';
 import type { PlayerServer } from '../../../shared/types.js';
 
@@ -21,6 +23,15 @@ export function sendCustomEvent(
     channel,
     payload,
   });
+}
+
+/**
+ * Why an action did not happen, over the world for a moment. Not a chat line:
+ * a key pressed against a full bag answers every press, and the log would fill
+ * with them. The client shows one copy however many arrive.
+ */
+export function sendNotice(player: PlayerServer, text: string): void {
+  sendCustomEvent(player, NOTICE_CHANNEL, translate(player, text));
 }
 
 export function sendMapCustomEvent(

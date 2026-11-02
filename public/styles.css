@@ -1634,7 +1634,8 @@ button.item-slot:hover::after {
 .shop-buy > button {
   width: 100%;
 }
-.shop-buy > [aria-disabled='true'] {
+.shop-buy > [aria-disabled='true'],
+.spell-row[aria-disabled='true'] {
   opacity: 0.5;
   filter: none;
   cursor: not-allowed;

@@ -8,6 +8,8 @@ import ts from 'typescript';
 // first; a test importing moduleClient alone would hit a TDZ error.
 import '../network/wsManager';
 import { loadClientModules } from './moduleClient';
+import { dispatchServerEvent } from '../network/customEvents';
+import { NOTICE_CHANNEL } from '../../../shared/constants';
 import { setLanguage } from '../../i18n';
 import { escapeClaimed } from '../../hooks/useEscapeClose';
 
@@ -153,6 +155,33 @@ describe('module toasts', () => {
     window.dispatchEvent(new Event('resize'));
 
     expect(stack.style.left).toBe('200px');
+  });
+
+  it('shows a refusal from the server once, however many arrive, and announces it', async () => {
+    const frame = document.createElement('div');
+    frame.id = 'canvasFrame';
+    document.body.append(frame);
+    serve('');
+    await loadClientModules();
+    const stack = document.querySelector('.module-toasts')!;
+    expect(stack.getAttribute('role')).toBe('status');
+    vi.useFakeTimers();
+    try {
+      dispatchServerEvent(NOTICE_CHANNEL, 'Your bag is full.');
+      dispatchServerEvent(NOTICE_CHANNEL, 'Your bag is full.');
+      dispatchServerEvent(NOTICE_CHANNEL, 'Not enough mana for Heal.');
+      expect([...stack.children].map((c) => c.textContent)).toEqual([
+        'Your bag is full.',
+        'Not enough mana for Heal.',
+      ]);
+
+      vi.advanceTimersByTime(2400);
+      expect(stack.children).toHaveLength(0);
+      dispatchServerEvent(NOTICE_CHANNEL, 'Your bag is full.');
+      expect(stack.children).toHaveLength(1);
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it('draws a notice in the stylesheet look, painted by its tone and translated', async () => {

@@ -430,13 +430,14 @@ interface EntityBehavior<
   /**
    * A player consumed an item carrying this behavior; equipment gets
    * onEquip/onUnequip instead. `refuse()` keeps the item: nothing is spent,
-   * no effects apply and `itemUse` does not fire.
+   * no effects apply and `itemUse` does not fire. A reason reaches the player
+   * as `sendNotice` does.
    */
   onUse?(ctx: {
     player: PlayerServer;
     item: { id: number; name: string; type: string; scriptId?: string };
     itemId: number;
-    refuse(): void;
+    refuse(reason?: string): void;
     params: ScriptParamsOf<P>;
   }): void;
   /**
@@ -1042,6 +1043,15 @@ declare function teleportPlayer(
 
 /** Send a private message to one player. */
 declare function sendMessage(player: PlayerServer, message: string): void;
+
+/**
+ * Tell one player why what they tried did not happen, over the world for a
+ * moment and never in the chat, so a refusal that repeats scrolls nothing away.
+ * Translated like `sendMessage`.
+ *
+ *     if (player.level < 5) return sendNotice(player, 'You must be level 5.');
+ */
+declare function sendNotice(player: PlayerServer, message: string): void;
 
 /** Send a message to all online players, untranslated. */
 declare function broadcastMessage(message: string): void;

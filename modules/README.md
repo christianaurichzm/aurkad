@@ -113,6 +113,10 @@ are answering: a handler written in plain English needs no change to be
 translatable. `t` is for the sentences that carry a value, which a template
 literal would otherwise weld into a string no table can key.
 
+`sendNotice` is the same line over the world for a moment, never in the chat:
+it answers an action that did not happen, which can repeat on every press. A
+consumable script gets the same thing from `refuse('Why not.')`.
+
 `broadcastMessage` is **not** translated: it is one event fanned out to every
 viewer, so there is no single language to write it in. A game that wants a
 broadcast in each player's language loops with `sendMessage` instead.

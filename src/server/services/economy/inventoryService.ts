@@ -23,8 +23,10 @@ import {
   whenPlayerWritten,
 } from '../player/playerService.js';
 import { emit } from '../../engine/hooks.js';
+import { registerStrings } from '../../engine/i18n.js';
 import { dispatchEntityScript } from '../../engine/scripting/entityScripts.js';
 import { addItem, canFit, removeItem } from './economyService.js';
+import { sendNotice } from '../comms/customEventService.js';
 import { isPlayerCommitting } from '../../persistence/dirtyPlayers.js';
 import { recordHealthChange } from '../../net/viewerState.js';
 import { gameConfig } from '../../gameConfig.js';
@@ -41,6 +43,12 @@ import { runtimeState } from '../../sim/state.js';
  * until then the item is still in the dropper's document.
  */
 const unsaved = new WeakMap<DroppedItem, number>();
+
+const BAG_FULL = 'Your bag is full.';
+registerStrings({
+  pt: { [BAG_FULL]: 'Sua bolsa está cheia.' },
+  es: { [BAG_FULL]: 'Tu bolsa está llena.' },
+});
 
 /** Writes `player` off what they dropped, holding the pile until then. */
 function writeOffDrop(player: PlayerServer, pile: DroppedItem | undefined) {
@@ -147,7 +155,10 @@ export const pickUpItem = (map: MapStateServer, player: PlayerServer) => {
   const drop = map.droppedItems[dropIndex]!;
 
   // Leave it on the ground rather than deleting it when there is no room.
-  if (!addItem(player.inventory, drop.itemId, drop.quantity).ok) return;
+  if (!addItem(player.inventory, drop.itemId, drop.quantity).ok) {
+    sendNotice(player, BAG_FULL);
+    return;
+  }
 
   map.droppedItems.splice(dropIndex, 1);
   emit('itemPickup', { player, itemId: drop.itemId, quantity: drop.quantity });
@@ -227,7 +238,15 @@ export function useItem(username: string, itemId: number): boolean {
     dispatchEntityScript(
       item.scriptId,
       'onUse',
-      { player, item, itemId, refuse: () => void (refused = true) },
+      {
+        player,
+        item,
+        itemId,
+        refuse: (reason) => {
+          refused = true;
+          if (reason) sendNotice(player, reason);
+        },
+      },
       item.scriptParams,
     );
     if (refused) return false;
@@ -314,7 +333,10 @@ export function unequipItem(player: PlayerServer, slot: EquipmentSlot): void {
   // A bound item may never hit the ground: with no stack and no free slot the
   // fallback below would drop it, so refuse the unequip instead.
   const unequipped = getItemById(itemId);
-  if (unequipped?.bound && !canFit(player.inventory, itemId)) return;
+  if (unequipped?.bound && !canFit(player.inventory, itemId)) {
+    sendNotice(player, BAG_FULL);
+    return;
+  }
 
   // A slot with no record was filled without equipItem (a script, an admin
   // edit) since the player entered the world, which records the rest, so the

@@ -7,6 +7,9 @@
 //   magic.defineSpell({ id, name, cost, cooldownMs, cast(caster) { ... } });
 //   magic.setSpells(player, ['fireball', 'frost']); // undefined: all again
 //
+// A cast that returns text did nothing: the mana stays with the caster, no
+// cooldown starts and they read the text as a notice.
+//
 // Spells from SpellEditor load at startup with a default cast by `target`:
 // 'enemies' damages npcs in range, 'self' heals the caster, 'party' and
 // 'guild' heal allies in range. With manualVisual:true the cast function
@@ -27,10 +30,16 @@ i18n({
   pt: {
     'You learned {spell}.': 'Você aprendeu {spell}.',
     'You already know {spell}.': 'Você já conhece {spell}.',
+    '{spell} is not ready yet.': '{spell} ainda não está disponível.',
+    'Not enough mana for {spell}.': 'Sem mana para {spell}.',
+    'No enemies in range.': 'Nenhum inimigo ao alcance.',
   },
   es: {
     'You learned {spell}.': 'Aprendiste {spell}.',
     'You already know {spell}.': 'Ya conoces {spell}.',
+    '{spell} is not ready yet.': '{spell} aún no está disponible.',
+    'Not enough mana for {spell}.': 'No hay maná para {spell}.',
+    'No enemies in range.': 'Ningún enemigo al alcance.',
   },
 });
 
@@ -94,6 +103,12 @@ function defineSpell(spell) {
   if (tomeAttached) attachTome();
 }
 
+// False, like every cast that did not happen, once the caster knows why.
+function refuse(player, text, spell) {
+  sendNotice(player, t(player, text, { spell: spell.name }));
+  return false;
+}
+
 function cast(player, spellId) {
   const spell = spells.get(spellId);
   if (!spell) return false;
@@ -101,20 +116,27 @@ function cast(player, spellId) {
   if (book && !book.has(spellId)) return false; // not one of theirs
 
   const cd = cooldowns[player.name] || (cooldowns[player.name] = {});
-  if ((cd[spellId] || 0) > tickNow) return false; // on cooldown
+  if ((cd[spellId] || 0) > tickNow)
+    return refuse(player, '{spell} is not ready yet.', spell);
 
   const mana = getMana(player);
-  if (mana < spell.cost) return false; // not enough mana
+  if (mana < spell.cost)
+    return refuse(player, 'Not enough mana for {spell}.', spell);
   // Paid before the effect, since player data can refuse the write and the
   // spell would then be free.
   if (!setMana(player, mana - spell.cost)) return false;
 
+  let refusal;
   try {
-    spell.cast(player);
+    refusal = spell.cast(player);
   } catch (e) {
     error('spell "' + spellId + '" threw: ' + e);
     setMana(player, mana);
     return false;
+  }
+  if (typeof refusal === 'string') {
+    setMana(player, mana);
+    return refuse(player, refusal, spell);
   }
 
   // Spells that manage their own per-target visuals set manualVisual:true.
@@ -186,6 +208,7 @@ function makeCast(s) {
       ).filter(
         (npc) => npc.behavior === 'aggressive' || npc.behavior === 'hostile',
       );
+      if (affected.length === 0) return 'No enemies in range.';
       for (const npc of affected) dealDamage(npc, s.damage, caster);
     } else {
       affected = target === 'self' ? [caster] : alliesAround(caster, target);
@@ -349,12 +372,11 @@ function attachTome() {
         if (!learn(player, spell.id)) refuse();
         return;
       }
-      refuse();
-      if (!spell) throw new Error('tome names no spell: ' + params.spell);
-      sendMessage(
-        player,
-        t(player, 'You already know {spell}.', { spell: spell.name }),
-      );
+      if (!spell) {
+        refuse();
+        throw new Error('tome names no spell: ' + params.spell);
+      }
+      refuse(t(player, 'You already know {spell}.', { spell: spell.name }));
     },
   });
   tomeAttached = true;

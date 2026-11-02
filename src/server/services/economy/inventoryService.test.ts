@@ -4,8 +4,9 @@ import { playerRepository } from '../../persistence/playerRepository.js';
 import fc from 'fast-check';
 import { createFixture } from '../../sim/simFixture.js';
 import type { Item, PlayerServer } from '../../../shared/types.js';
-import { EQUIPMENT_SLOTS } from '../../../shared/constants.js';
+import { EQUIPMENT_SLOTS, NOTICE_CHANNEL } from '../../../shared/constants.js';
 import { clearAll, on } from '../../engine/hooks.js';
+import { drainGameEvents } from '../../engine/eventBus.js';
 import ItemModel from '../../model/Item.js';
 import DeliveryModel from '../../model/Delivery.js';
 import { addItem, countItem } from './economyService.js';
@@ -56,6 +57,13 @@ const item = (id: number, overrides: Partial<Item> = {}): Item => ({
   type: 'weapon',
   ...overrides,
 });
+
+const notices = () =>
+  drainGameEvents().flatMap((e) =>
+    e.type === 'customPlayer' && e.channel === NOTICE_CHANNEL
+      ? [e.payload]
+      : [],
+  );
 
 describe('bound items', () => {
   it('cannot be dropped; unbound items can', () => {
@@ -155,6 +163,28 @@ describe('bound items', () => {
 });
 
 describe('items on the ground', () => {
+  it('stays there, and the player hears why, when the bag is full', () => {
+    const sim = createFixture(0);
+    sim.addItem(item(70, { type: 'consumable' }));
+    sim.addItem(item(71, { type: 'consumable' }));
+    const bob = sim.addPlayer({
+      name: 'Bob',
+      inventory: { items: [{ item: 71, quantity: 1 }], maxCapacity: 1 },
+    });
+    sim.map.droppedItems.push({
+      itemId: 70,
+      sprite: 0,
+      position: { ...bob.position },
+      quantity: 1,
+    });
+    drainGameEvents();
+
+    pickUpItem(sim.map, bob);
+
+    expect(sim.map.droppedItems).toHaveLength(1);
+    expect(notices()).toEqual(['Your bag is full.']);
+  });
+
   it('pile up as one entry per item and tile', () => {
     const sim = createFixture(0);
     sim.addItem(item(70, { type: 'consumable' }));
