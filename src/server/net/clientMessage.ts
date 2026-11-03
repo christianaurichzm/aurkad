@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { MAX_CHAT_LENGTH } from '../../shared/constants.js';
 import { Key } from '../../shared/types.js';
 
 const KeySchema = z.enum(Object.values(Key) as [Key, ...Key[]]);
@@ -18,8 +19,6 @@ const ItemMessageSchema = z.object({
   action: z.enum(['use', 'drop']),
   quantity: z.number().int().positive().optional(),
 });
-
-const MAX_CHAT_LENGTH = 200;
 
 const ChatMessageSchema = z.object({
   type: z.literal('chat'),

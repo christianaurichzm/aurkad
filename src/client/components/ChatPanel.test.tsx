@@ -101,6 +101,15 @@ describe('ChatPanel Component', () => {
     expect(useUIStore.getState().chat.inputValue).toBe('Hello');
   });
 
+  it('stops typing at the longest line the server takes', async () => {
+    const user = userEvent.setup();
+    render(<ChatPanel />);
+
+    await user.type(screen.getByRole('textbox'), 'x'.repeat(205));
+
+    expect(useUIStore.getState().chat.inputValue).toHaveLength(200);
+  });
+
   it('should update scope when changed', async () => {
     const user = userEvent.setup();
     render(<ChatPanel />);

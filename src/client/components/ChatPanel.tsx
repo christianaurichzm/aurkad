@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
+import { MAX_CHAT_LENGTH } from '../../shared/constants';
 import { ChatMessagePayload, ChatScope } from '../../shared/types';
 import { httpError, sendChatMessage } from '../io/network';
 import { useUIStore } from '../stores/uiStore';
@@ -140,6 +141,7 @@ export const ChatPanel: React.FC<{ shown?: boolean }> = ({ shown = true }) => {
           id="chatInput"
           type="text"
           placeholder={t('chat.placeholder')}
+          maxLength={MAX_CHAT_LENGTH}
           value={inputValue}
           onChange={(e) => setChatInput(e.target.value)}
           onKeyDown={handleKeyDown}
