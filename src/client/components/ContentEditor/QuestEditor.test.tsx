@@ -18,8 +18,6 @@ vi.mock('../../io/network', () => ({
   deleteQuest: mocks.deleteQuest,
 }));
 
-vi.mock('../ChatPanel', () => ({ chatResultMsg: vi.fn() }));
-
 const setup = (quests: Quest[] = []) => {
   render(
     <QuestEditor

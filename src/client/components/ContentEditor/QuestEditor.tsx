@@ -2,7 +2,7 @@ import React from 'react';
 import { Controller, useFieldArray, useForm } from 'react-hook-form';
 import { Quest, QuestObjective } from '../../../shared/types';
 import { saveQuest, deleteQuest } from '../../io/network';
-import { chatResultMsg } from '../ChatPanel';
+import { chatResultMsg, chatSaveResult } from '../ChatPanel';
 import { AsyncSelect } from '../common/Select/AsyncSelect';
 import { Select } from '../common/Select/Select';
 import { editorStyles } from '../../theme';
@@ -197,8 +197,11 @@ export const QuestEditor: React.FC<QuestEditorProps> = ({
       objective: buildObjective(values),
       ...(Object.keys(reward).length > 0 ? { reward } : {}),
     };
-    const result = await saveQuest(quest).catch(() => null);
-    chatResultMsg(!!result, t('questEditor.saved'), t('questEditor.saveError'));
+    const result = await chatSaveResult(
+      saveQuest(quest),
+      t('questEditor.saved'),
+      t('questEditor.saveError'),
+    );
     for (const warning of result?.warnings ?? []) {
       chatResultMsg(false, '', warning);
     }

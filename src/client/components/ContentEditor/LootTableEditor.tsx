@@ -2,7 +2,7 @@ import React from 'react';
 import { Controller, useFieldArray, useForm } from 'react-hook-form';
 import { LootQuantity, LootTable } from '../../../shared/types';
 import { saveLootTable, deleteLootTable } from '../../io/network';
-import { chatResultMsg } from '../ChatPanel';
+import { chatResultMsg, chatSaveResult } from '../ChatPanel';
 import { AsyncSelect } from '../common/Select/AsyncSelect';
 import { colors, editorStyles } from '../../theme';
 import {
@@ -164,8 +164,11 @@ export const LootTableEditor: React.FC<LootTableEditorProps> = ({
       rolls: { min: Number(values.minRolls), max: Number(values.maxRolls) },
       emptyWeight: Number(values.emptyWeight),
     };
-    const result = await saveLootTable(table).catch(() => null);
-    chatResultMsg(!!result, t('loot.saved'), t('loot.saveError'));
+    const result = await chatSaveResult(
+      saveLootTable(table),
+      t('loot.saved'),
+      t('loot.saveError'),
+    );
     for (const warning of result?.warnings ?? []) {
       chatResultMsg(false, '', warning);
     }

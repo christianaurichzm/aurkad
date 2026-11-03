@@ -8,7 +8,7 @@ import {
 } from 'react-hook-form';
 import { Dialog } from '../../../shared/types';
 import { saveDialog, deleteDialog, fetchDialogRefs } from '../../io/network';
-import { chatResultMsg } from '../ChatPanel';
+import { chatResultMsg, chatSaveResult } from '../ChatPanel';
 import { AsyncSelect } from '../common/Select/AsyncSelect';
 import { Select } from '../common/Select/Select';
 import { colors, radius, editorStyles } from '../../theme';
@@ -318,8 +318,11 @@ export const DialogEditor: React.FC<DialogEditorProps> = ({
           : {}),
       })),
     };
-    const result = await saveDialog(dialog).catch(() => null);
-    chatResultMsg(!!result, t('dialog.saved'), t('dialog.saveError'));
+    const result = await chatSaveResult(
+      saveDialog(dialog),
+      t('dialog.saved'),
+      t('dialog.saveError'),
+    );
     for (const warning of result?.warnings ?? []) {
       chatResultMsg(false, '', warning);
     }

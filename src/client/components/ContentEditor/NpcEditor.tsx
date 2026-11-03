@@ -2,7 +2,7 @@ import React from 'react';
 import { Controller, useForm } from 'react-hook-form';
 import { RuntimeNpc, NpcBehavior } from '../../../shared/types';
 import { updateNpc, createNpc, deleteNpc } from '../../io/network';
-import { chatResultMsg } from '../ChatPanel';
+import { chatResultMsg, chatSaveResult } from '../ChatPanel';
 import { AsyncSelect } from '../common/Select/AsyncSelect';
 import { SpritePreview } from '../common/SpritePreview';
 import { ScriptBehaviorFields } from './ScriptBehaviorFields';
@@ -188,10 +188,11 @@ export const NpcEditor: React.FC<NpcEditorProps> = ({
       moveIntervalMs: optionalNumber(moveIntervalMs),
       respawnMs: optionalNumber(respawnMs),
     };
-    const result = selectedId
-      ? await updateNpc(selectedId, data).catch(() => null)
-      : await createNpc(data).catch(() => null);
-    chatResultMsg(!!result, t('npc.saved'), t('npc.saveError'));
+    const result = await chatSaveResult(
+      selectedId ? updateNpc(selectedId, data) : createNpc(data),
+      t('npc.saved'),
+      t('npc.saveError'),
+    );
     // Dangling references never block a save, so this is where their author
     // hears about them.
     for (const warning of result?.warnings ?? []) {
@@ -264,6 +265,7 @@ export const NpcEditor: React.FC<NpcEditorProps> = ({
             <label style={label}>{t('editor.name')}</label>
             <input
               style={input}
+              required
               {...register('name')}
               placeholder={t('npc.namePlaceholder')}
             />

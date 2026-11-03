@@ -6,7 +6,7 @@ import {
   updateSpell,
   deleteSpell,
 } from '../../io/network';
-import { chatResultMsg } from '../ChatPanel';
+import { chatResultMsg, chatSaveResult } from '../ChatPanel';
 import { AsyncSelect } from '../common/Select/AsyncSelect';
 import { SpritePreview } from '../common/SpritePreview';
 import { spellSheet } from '../../io/assets';
@@ -97,12 +97,14 @@ export const SpellEditor: React.FC<EditorGuardProps> = (guard) => {
   };
 
   const handleSave = async (data: SpellForm) => {
-    const result = selectedId
-      ? await updateSpell(Number(selectedId), data)
-          .then(() => true)
-          .catch(() => false)
-      : !!(await createSpell(data).catch(() => null));
-    chatResultMsg(!!result, t('spell.saved'), t('spell.saveError'));
+    const result = await chatSaveResult(
+      (selectedId
+        ? updateSpell(Number(selectedId), data)
+        : createSpell(data)
+      ).then(() => true),
+      t('spell.saved'),
+      t('spell.saveError'),
+    );
     if (!result) return;
     clear();
   };

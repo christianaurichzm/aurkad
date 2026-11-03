@@ -23,8 +23,6 @@ vi.mock('../../io/network', () => ({
 
 vi.mock('../Inventory/ItemIcon', () => ({ ItemIcon: () => null }));
 
-vi.mock('../ChatPanel', () => ({ chatResultMsg: vi.fn() }));
-
 const bow: Item = {
   id: 7,
   name: 'Bow',
@@ -80,5 +78,19 @@ describe('fields owned by a disabled module', () => {
         selected: true,
       }),
     ).toBeInTheDocument();
+  });
+});
+
+describe('a required field', () => {
+  it('sends no item without a name', async () => {
+    const user = userEvent.setup();
+    setup([]);
+
+    await screen.findByRole('option', { name: '7 - Bow' });
+    await user.selectOptions(screen.getAllByRole('combobox')[0], '7');
+    await user.clear(screen.getByPlaceholderText('Item name'));
+    await user.click(screen.getByRole('button', { name: 'Save Item' }));
+
+    expect(mocks.updateItem).not.toHaveBeenCalled();
   });
 });

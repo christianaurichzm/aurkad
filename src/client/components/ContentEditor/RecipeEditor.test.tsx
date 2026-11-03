@@ -6,6 +6,7 @@ import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { Recipe } from '../../../shared/types';
+import { useUIStore } from '../../stores/uiStore';
 import { RecipeEditor } from './RecipeEditor';
 
 const mocks = vi.hoisted(() => ({
@@ -13,12 +14,11 @@ const mocks = vi.hoisted(() => ({
   deleteRecipe: vi.fn(),
 }));
 
-vi.mock('../../io/network', () => ({
+vi.mock('../../io/network', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('../../io/network')>()),
   saveRecipe: mocks.saveRecipe,
   deleteRecipe: mocks.deleteRecipe,
 }));
-
-vi.mock('../ChatPanel', () => ({ chatResultMsg: vi.fn() }));
 
 const setup = (recipes: Recipe[] = []) => {
   render(
@@ -115,8 +115,9 @@ describe('authoring a recipe', () => {
     await waitFor(() => expect(screen.getAllByText('dup')).toHaveLength(2));
   });
 
-  // What was typed is the work to fix and send again.
-  it('keeps the form when the server refuses the save', async () => {
+  // What was typed is the work to fix and send again, and the reason is what
+  // to fix.
+  it('keeps the form and says why when the server refuses the save', async () => {
     const user = userEvent.setup();
     mocks.saveRecipe.mockRejectedValue({ status: 400, message: 'Invalid' });
     setup();
@@ -126,6 +127,9 @@ describe('authoring a recipe', () => {
     await saved();
 
     expect(screen.getByPlaceholderText('steel-sword')).toHaveValue('sword');
+    expect(useUIStore.getState().chat.messages.at(-1)?.message).toBe(
+      'Error saving recipe: Invalid',
+    );
   });
 });
 

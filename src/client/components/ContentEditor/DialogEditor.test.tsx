@@ -20,8 +20,6 @@ vi.mock('../../io/network', () => ({
   fetchDialogRefs: mocks.fetchDialogRefs,
 }));
 
-vi.mock('../ChatPanel', () => ({ chatResultMsg: vi.fn() }));
-
 const setup = (dialogs: Dialog[] = []) => {
   render(
     <DialogEditor

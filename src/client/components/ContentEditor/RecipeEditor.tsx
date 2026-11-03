@@ -2,7 +2,7 @@ import React from 'react';
 import { Controller, useFieldArray, useForm } from 'react-hook-form';
 import { Recipe } from '../../../shared/types';
 import { saveRecipe, deleteRecipe } from '../../io/network';
-import { chatResultMsg } from '../ChatPanel';
+import { chatResultMsg, chatSaveResult } from '../ChatPanel';
 import { AsyncSelect } from '../common/Select/AsyncSelect';
 import { colors, editorStyles } from '../../theme';
 import {
@@ -117,8 +117,11 @@ export const RecipeEditor: React.FC<RecipeEditorProps> = ({
         ? { condition: values.condition.trim() }
         : {}),
     };
-    const result = await saveRecipe(recipe).catch(() => null);
-    chatResultMsg(!!result, t('recipe.saved'), t('recipe.saveError'));
+    const result = await chatSaveResult(
+      saveRecipe(recipe),
+      t('recipe.saved'),
+      t('recipe.saveError'),
+    );
     for (const warning of result?.warnings ?? []) {
       chatResultMsg(false, '', warning);
     }

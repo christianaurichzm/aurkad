@@ -2,7 +2,7 @@ import React from 'react';
 import { Controller, useFieldArray, useForm } from 'react-hook-form';
 import { Item, ProductRaw, Shop } from '../../../shared/types';
 import { createShop, updateShop, deleteShop } from '../../io/network';
-import { chatResultMsg } from '../ChatPanel';
+import { chatResultMsg, chatSaveResult } from '../ChatPanel';
 import { AsyncSelect } from '../common/Select/AsyncSelect';
 import { editorStyles } from '../../theme';
 import {
@@ -84,14 +84,14 @@ export const ShopEditor: React.FC<ShopEditorProps> = ({
   };
 
   const saveShop = async ({ id, name, products }: ShopFormValues) => {
-    const ok = selectedId
-      ? await updateShop(selectedId, { id, name, products })
-          .then(() => true)
-          .catch(() => false)
-      : await createShop({ id, name, products })
-          .then((r) => !!r)
-          .catch(() => false);
-    chatResultMsg(ok, t('shopEditor.saved'), t('shopEditor.saveError'));
+    const ok = await chatSaveResult(
+      (selectedId
+        ? updateShop(selectedId, { id, name, products })
+        : createShop({ id, name, products })
+      ).then(() => true),
+      t('shopEditor.saved'),
+      t('shopEditor.saveError'),
+    );
     if (!ok) return;
     refreshData();
     clear();
@@ -137,6 +137,7 @@ export const ShopEditor: React.FC<ShopEditorProps> = ({
           <label style={label}>{t('editor.id')}</label>
           <input
             style={{ ...input, ...(selectedId ? { opacity: 0.5 } : {}) }}
+            required
             {...register('id')}
             placeholder={t('shopEditor.idPlaceholder')}
             readOnly={!!selectedId}
@@ -146,6 +147,7 @@ export const ShopEditor: React.FC<ShopEditorProps> = ({
           <label style={label}>{t('editor.name')}</label>
           <input
             style={input}
+            required
             {...register('name')}
             placeholder={t('shopEditor.namePlaceholder')}
           />

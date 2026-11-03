@@ -32,10 +32,6 @@ vi.mock('../Inventory/ItemIcon', () => ({
   ),
 }));
 
-vi.mock('../ChatPanel', () => ({
-  chatResultMsg: vi.fn(),
-}));
-
 vi.mock('../../io/network', () => ({
   fetchNpcs: mocks.fetchNpcs,
   fetchItems: mocks.fetchItems,

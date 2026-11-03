@@ -8,7 +8,7 @@ import {
   type Position,
 } from '../../../shared/types';
 import { AsyncSelect } from '../common/Select/AsyncSelect';
-import { chatResultMsg } from '../ChatPanel';
+import { chatSaveResult } from '../ChatPanel';
 import { updateMap, createMap, resizeMap } from '../../io/network';
 import { colors, radius, editorStyles } from '../../theme';
 import { TILE_SIZE } from '../../../shared/constants';
@@ -176,7 +176,7 @@ export const MapEditor: React.FC<MapEditorProps> = ({
       left: buildLink(borderLeft),
       right: buildLink(borderRight),
     };
-    const result = await (
+    const result = await chatSaveResult(
       selectedId
         ? updateMap(selectedId, {
             name,
@@ -188,9 +188,10 @@ export const MapEditor: React.FC<MapEditorProps> = ({
             instanced,
             borderLinks,
           })
-        : createMap({ name, type, orientation, cols, rows })
-    ).catch(() => null);
-    chatResultMsg(!!result, t('map.saved'), t('map.saveError'));
+        : createMap({ name, type, orientation, cols, rows }),
+      t('map.saved'),
+      t('map.saveError'),
+    );
     if (!result) return;
     refreshData();
     setShowResize(false);
@@ -199,8 +200,11 @@ export const MapEditor: React.FC<MapEditorProps> = ({
 
   const handleResize = async () => {
     if (!selectedId) return;
-    const result = await resizeMap(selectedId, resizeCols, resizeRows);
-    chatResultMsg(!!result?.success, t('map.resized'), t('map.resizeError'));
+    const result = await chatSaveResult(
+      resizeMap(selectedId, resizeCols, resizeRows),
+      t('map.resized'),
+      t('map.resizeError'),
+    );
     if (result?.success) {
       setShowResize(false);
       refreshData();

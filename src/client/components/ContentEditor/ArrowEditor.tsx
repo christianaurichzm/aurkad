@@ -6,7 +6,7 @@ import {
   updateArrow,
   deleteArrow,
 } from '../../io/network';
-import { chatResultMsg } from '../ChatPanel';
+import { chatResultMsg, chatSaveResult } from '../ChatPanel';
 import { AsyncSelect } from '../common/Select/AsyncSelect';
 import { SpritePreview } from '../common/SpritePreview';
 import { arrowSheet } from '../../io/assets';
@@ -86,12 +86,14 @@ export const ArrowEditor: React.FC<EditorGuardProps> = (guard) => {
       rangeTiles: data.rangeTiles,
       tileSpeed: data.tileSpeed,
     };
-    const result = selectedId
-      ? await updateArrow(Number(selectedId), payload)
-          .then(() => true)
-          .catch(() => false)
-      : !!(await createArrow(payload).catch(() => null));
-    chatResultMsg(!!result, t('arrow.saved'), t('arrow.saveError'));
+    const result = await chatSaveResult(
+      (selectedId
+        ? updateArrow(Number(selectedId), payload)
+        : createArrow(payload)
+      ).then(() => true),
+      t('arrow.saved'),
+      t('arrow.saveError'),
+    );
     if (!result) return;
     clear();
   };

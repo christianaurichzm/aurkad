@@ -8,19 +8,25 @@ import {
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { MapOrientation, MapStateClient } from '../../../shared/types';
 import { MapEditor } from './MapEditor';
-import { createMap, updateMap } from '../../io/network';
+import { createMap, resizeMap, updateMap } from '../../io/network';
 import { TILE_SIZE } from '../../../shared/constants';
-import { chatResultMsg } from '../ChatPanel';
+import { useUIStore } from '../../stores/uiStore';
 
-vi.mock('../../io/network', () => ({
+vi.mock('../../io/network', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('../../io/network')>()),
   updateMap: vi.fn(),
   createMap: vi.fn(),
   resizeMap: vi.fn(),
 }));
 
-vi.mock('../ChatPanel', () => ({ chatResultMsg: vi.fn() }));
+beforeEach(() => {
+  vi.resetAllMocks();
+  useUIStore.setState({
+    chat: { messages: [], inputValue: '', scope: 'map' },
+  });
+});
 
-beforeEach(() => vi.resetAllMocks());
+const lastChatLine = () => useUIStore.getState().chat.messages.at(-1)?.message;
 
 const map = (orientation?: MapOrientation) =>
   ({ id: '1', name: 'm', type: 'normal', orientation }) as MapStateClient;
@@ -129,13 +135,7 @@ describe('saving a map', () => {
       );
       const button = operation === 'create' ? 'Create Map' : 'Save Map';
       fireEvent.click(screen.getByRole('button', { name: button }));
-      await waitFor(() =>
-        expect(chatResultMsg).toHaveBeenCalledWith(
-          false,
-          expect.any(String),
-          expect.any(String),
-        ),
-      );
+      await waitFor(() => expect(lastChatLine()).toMatch(/^Error saving map/));
 
       await waitFor(() =>
         expect(
@@ -149,6 +149,42 @@ describe('saving a map', () => {
       await waitFor(() => expect(refreshData).toHaveBeenCalledTimes(1));
     },
   );
+});
+
+describe('resizing a map', () => {
+  it('says why the server refused the size', async () => {
+    vi.mocked(resizeMap).mockRejectedValueOnce({
+      status: 400,
+      message: 'Too small: expected number to be >=1',
+    });
+    const refreshData = vi.fn();
+    const { container } = render(
+      <MapEditor
+        maps={[map()]}
+        loadMaps={() => Promise.resolve([{ value: '1', label: '1 - m' }])}
+        refreshData={refreshData}
+        onDirtyChange={vi.fn()}
+        requestDiscard={() => Promise.resolve(true)}
+      />,
+    );
+    await screen.findByRole('option', { name: '1 - m' });
+    fireEvent.change(container.querySelector('select')!, {
+      target: { value: '1' },
+    });
+    fireEvent.click(await screen.findByRole('button', { name: 'Resize' }));
+    fireEvent.change(screen.getByPlaceholderText('Cols'), {
+      target: { value: '' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Apply' }));
+
+    await waitFor(() =>
+      expect(lastChatLine()).toBe(
+        'Error resizing map: Too small: expected number to be >=1',
+      ),
+    );
+    expect(resizeMap).toHaveBeenCalledWith('1', 0, 14);
+    expect(refreshData).not.toHaveBeenCalled();
+  });
 });
 
 describe('border links', () => {

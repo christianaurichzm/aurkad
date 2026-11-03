@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { ChatMessagePayload, ChatScope } from '../../shared/types';
-import { sendChatMessage } from '../io/network';
+import { httpError, sendChatMessage } from '../io/network';
 import { useUIStore } from '../stores/uiStore';
 import { useT, type TranslationKey } from '../i18n';
 
@@ -171,4 +171,26 @@ export function chatResultMsg(
     scope: 'player',
     type: 'chat',
   });
+}
+
+/**
+ * Says in the chat how an editor's save went, and resolves to null when it
+ * failed. A refused body comes back naming the rule it broke (parseBody), the
+ * one thing the author needs to fix the form.
+ */
+export async function chatSaveResult<T>(
+  save: Promise<T>,
+  okMsg: string,
+  failMsg: string,
+): Promise<T | null> {
+  try {
+    // httpClient's null is an answer with nothing saved in it.
+    const result = await save;
+    chatResultMsg(result !== null, okMsg, failMsg);
+    return result;
+  } catch (e) {
+    const { message } = httpError(e);
+    chatResultMsg(false, okMsg, message ? `${failMsg}: ${message}` : failMsg);
+    return null;
+  }
 }

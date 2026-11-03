@@ -7,7 +7,7 @@ import {
   deleteItem,
   fetchArrows,
 } from '../../io/network';
-import { chatResultMsg } from '../ChatPanel';
+import { chatResultMsg, chatSaveResult } from '../ChatPanel';
 import { AsyncSelect } from '../common/Select/AsyncSelect';
 import { ItemIcon } from '../Inventory/ItemIcon';
 import { ScriptBehaviorFields } from './ScriptBehaviorFields';
@@ -202,10 +202,11 @@ export const ItemEditor: React.FC<ItemEditorProps> = ({
           ? scriptParams
           : undefined,
     };
-    const result = selectedId
-      ? await updateItem(Number(selectedId), data).catch(() => null)
-      : await createItem(data).catch(() => null);
-    chatResultMsg(!!result, t('item.saved'), t('item.saveError'));
+    const result = await chatSaveResult(
+      selectedId ? updateItem(Number(selectedId), data) : createItem(data),
+      t('item.saved'),
+      t('item.saveError'),
+    );
     // Dangling references never block a save, so this is where their author
     // hears about them.
     for (const warning of result?.warnings ?? []) {
@@ -280,6 +281,7 @@ export const ItemEditor: React.FC<ItemEditorProps> = ({
             <label style={label}>{t('editor.name')}</label>
             <input
               style={input}
+              required
               {...register('name')}
               placeholder={t('item.namePlaceholder')}
             />
