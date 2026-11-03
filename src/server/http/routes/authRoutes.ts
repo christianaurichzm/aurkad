@@ -67,7 +67,8 @@ registerStrings({
     'Not logged in': 'Você não está conectado',
     'No such account': 'Essa conta não existe',
     'Current password is wrong': 'A senha atual está errada',
-    'That link is no longer valid': 'Esse link não vale mais',
+    'That link is no longer valid. Ask for a new one.':
+      'Esse link não vale mais. Peça um novo.',
     'That link is no longer valid.': 'Esse link não vale mais.',
     'Address confirmed. You can close this tab.':
       'Endereço confirmado. Pode fechar esta aba.',
@@ -84,7 +85,8 @@ registerStrings({
     'Not logged in': 'No has iniciado sesión',
     'No such account': 'Esa cuenta no existe',
     'Current password is wrong': 'La contraseña actual es incorrecta',
-    'That link is no longer valid': 'Ese enlace ya no es válido',
+    'That link is no longer valid. Ask for a new one.':
+      'Ese enlace ya no es válido. Pide uno nuevo.',
     'That link is no longer valid.': 'Ese enlace ya no es válido.',
     'Address confirmed. You can close this tab.':
       'Dirección confirmada. Puedes cerrar esta pestaña.',
@@ -459,9 +461,12 @@ export function createAuthRouter() {
 
       const result = await consumeResetToken(body.token, body.newPassword);
       if (result === 'invalid-token') {
-        return res
-          .status(400)
-          .json({ message: translateFor(req, 'That link is no longer valid') });
+        return res.status(400).json({
+          message: translateFor(
+            req,
+            'That link is no longer valid. Ask for a new one.',
+          ),
+        });
       }
       res.json({ success: true });
     },

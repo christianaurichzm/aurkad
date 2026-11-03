@@ -31,7 +31,6 @@ export const pt: Record<keyof typeof en, string> = {
     'Se essa conta existir, um link de redefinição está a caminho.',
   'auth.resetTitle': 'Escolha uma nova senha',
   'auth.resetDone': 'Sua senha está definida. Já pode entrar.',
-  'auth.resetFailed': 'Esse link não vale mais. Peça um novo.',
   'auth.backToLogin': 'Voltar para o login',
   'auth.currentPassword': 'Senha atual',
   'auth.newPassword': 'Nova senha',

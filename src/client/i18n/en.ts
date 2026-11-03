@@ -30,7 +30,6 @@ export const en = {
   'auth.resetSent': 'If that account exists, a reset link is on its way.',
   'auth.resetTitle': 'Choose a new password',
   'auth.resetDone': 'Your password is set. You can log in now.',
-  'auth.resetFailed': 'That link is no longer valid. Ask for a new one.',
   'auth.backToLogin': 'Back to login',
   'auth.currentPassword': 'Current password',
   'auth.newPassword': 'New password',

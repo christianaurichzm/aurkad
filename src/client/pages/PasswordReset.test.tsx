@@ -76,13 +76,29 @@ describe('the screen a reset link opens', () => {
   it('shows what the server said when the link is spent', async () => {
     mocks.confirmPasswordReset.mockRejectedValue({
       status: 400,
-      message: 'That link is no longer valid',
+      message: 'That link is no longer valid. Ask for a new one.',
     });
     render(<PasswordReset token="old" onDone={vi.fn()} />);
 
     await fill('long-enough-password', 'long-enough-password');
 
     expect(screen.getByText(/no longer valid/i)).toBeInTheDocument();
+  });
+
+  // Past 72 bytes is the server's to refuse, and the link is still good.
+  it('blames the password, not the link, when the server refuses it', async () => {
+    mocks.confirmPasswordReset.mockRejectedValue({
+      status: 400,
+      message: 'That password is too long',
+    });
+    render(<PasswordReset token="tok-123" onDone={vi.fn()} />);
+
+    await fill('é'.repeat(40), 'é'.repeat(40));
+
+    expect(screen.getByRole('alert')).toHaveTextContent(
+      /password is too long/i,
+    );
+    expect(screen.queryByText(/no longer valid/i)).not.toBeInTheDocument();
   });
 
   // "Internal server error" is the server talking to its operator. A player

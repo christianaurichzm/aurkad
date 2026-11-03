@@ -30,7 +30,6 @@ export const es: Record<keyof typeof en, string> = {
   'auth.resetSent': 'Si esa cuenta existe, el enlace ya va en camino.',
   'auth.resetTitle': 'Elige una contraseña nueva',
   'auth.resetDone': 'Tu contraseña está lista. Ya puedes entrar.',
-  'auth.resetFailed': 'Ese enlace ya no es válido. Pide uno nuevo.',
   'auth.backToLogin': 'Volver al inicio de sesión',
   'auth.currentPassword': 'Contraseña actual',
   'auth.newPassword': 'Contraseña nueva',
