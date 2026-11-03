@@ -210,6 +210,9 @@ export const config = {
   },
   http: {
     jsonBodyLimit: '1mb',
+    // The map editor saves the whole grid in one body (mapRoutes). A 200x200
+    // map painted on every layer runs past 2 MB, more with triggers and doors.
+    mapSaveBodyLimit: '8mb',
     // What Express believes about X-Forwarded-For, which keys every rate limit
     // for callers with no session. Off by default, since with nobody in front
     // the header is the caller's to write. Behind a proxy it must be set, or

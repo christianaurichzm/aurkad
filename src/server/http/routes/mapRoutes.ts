@@ -1,5 +1,11 @@
-import { Router, type Request, type Response } from 'express';
+import express, {
+  Router,
+  type Request,
+  type RequestHandler,
+  type Response,
+} from 'express';
 import { Access } from '../../../shared/types.js';
+import { config } from '../../config.js';
 import { logger } from '../../logger.js';
 import {
   parseBody,
@@ -28,6 +34,16 @@ import { registeredBehaviors } from '../../engine/scripting/entityScripts.js';
 // content catalog, in contentRoutes.
 export function createMapRouter() {
   const router = Router();
+
+  // The grid outgrows the 1 MB app.ts gives every other body. Read before the
+  // gate so the audit entry names the map, and only for an admin session, so
+  // nobody else has 8 MB read.
+  const gridJson = express.json({ limit: config.http.mapSaveBodyLimit });
+  const readGrid: RequestHandler = (req, res, next) => {
+    if ((req.session.accessLevel ?? Access.USER) < Access.ADMIN) return next();
+    gridJson(req, res, next);
+  };
+  router.use('/saveMap', readGrid);
 
   router.post('/saveMap', checkAccess(Access.ADMIN), async (req, res) => {
     const body = parseBody(SaveMapBodySchema, req.body, res);

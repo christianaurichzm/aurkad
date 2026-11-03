@@ -21,6 +21,7 @@ vi.mock('../../services/auditService.js', () => ({
   summarizeDetails: () => undefined,
 }));
 
+import { createApp, handleRouteError } from '../../app.js';
 import { createMapRouter } from './mapRoutes.js';
 import GameMapModel from '../../model/Map.js';
 import { runtimeState } from '../../sim/state.js';
@@ -139,5 +140,78 @@ describe('POST /maps/:id/resize', () => {
     expect(res.status).toBe(500);
     const stored = await GameMapModel.findOne({ id: 'elsewhere' }).lean();
     expect(stored?.tiles).toHaveLength(sim.map.tiles.length);
+  });
+});
+
+describe('POST /saveMap', () => {
+  // With the parsers the server mounts: app.ts's 1 MB one ahead of the route's.
+  const serverApp = (accessLevel: Access) => {
+    const app = createApp();
+    app.use((req: ExtendedRequest, _res: Response, next: NextFunction) => {
+      req.session = {
+        username: 'op',
+        accessLevel,
+      } as ExtendedRequest['session'];
+      next();
+    });
+    app.use(createMapRouter());
+    app.use(handleRouteError);
+    return app;
+  };
+
+  const grid = (cols: number, rows: number) =>
+    Array.from({ length: rows }, () =>
+      Array.from({ length: cols }, () => ({
+        tileIndex: 1234,
+        blocked: true,
+        fringeIndex: 321,
+        maskIndex: 45,
+      })),
+    );
+
+  const save = (
+    sim: Awaited<ReturnType<typeof storedMap>>,
+    tiles: unknown,
+    access = Access.ADMIN,
+  ) =>
+    request(serverApp(access)).post('/saveMap').send({
+      mapId: sim.mapId,
+      name: sim.map.name,
+      type: sim.map.type,
+      tiles,
+    });
+
+  it('saves a grid painted on every layer at the largest size a map can have', async () => {
+    const sim = await storedMap();
+
+    const res = await save(sim, grid(200, 200));
+
+    expect(res.status).toBe(200);
+    const stored = await GameMapModel.findOne({ id: sim.mapId }).lean();
+    expect(stored?.tiles).toHaveLength(200);
+    expect(stored?.tiles[199]).toHaveLength(200);
+  });
+
+  it.each([
+    ['no rows', []],
+    ['an empty row', [[]]],
+    ['too many rows', grid(1, 201)],
+    ['too many columns', grid(201, 1)],
+  ])('refuses a grid with %s', async (_, tiles) => {
+    const sim = await storedMap();
+
+    const res = await save(sim, tiles);
+
+    expect(res.status).toBe(400);
+    const stored = await GameMapModel.findOne({ id: sim.mapId }).lean();
+    expect(stored?.tiles).toHaveLength(sim.map.tiles.length);
+  });
+
+  it('reads no grid for an account that may not save one', async () => {
+    const sim = await storedMap();
+
+    const res = await save(sim, grid(200, 200), Access.MOD);
+
+    expect(res.status).toBe(403);
   });
 });

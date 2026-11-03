@@ -19,7 +19,12 @@ export function createApp() {
 
   app.use(helmet());
   app.use(requestLoggerMiddleware);
-  app.use(express.json({ limit: config.http.jsonBodyLimit }));
+  // /saveMap carries a whole tile grid and reads it under its own, larger
+  // limit (mapRoutes).
+  const json = express.json({ limit: config.http.jsonBodyLimit });
+  app.use((req, res, next) =>
+    req.path === '/saveMap' ? next() : json(req, res, next),
+  );
   app.use(cors(config.cors.options));
 
   return app;

@@ -164,9 +164,16 @@ export const WarpPlayerBodySchema = z.object({
 export const SetMyAccessBodySchema = z.object({ accessLevel: AccessSchema });
 
 // Content
+// Either side of a map, for creating, resizing and saving alike, so a grid the
+// editor can make is one it can save.
+const MAP_MAX_SIDE = 200;
+
 export const SaveMapBodySchema = z.object({
   mapId: z.string().min(1),
-  tiles: z.array(z.array(TileSchema)),
+  tiles: z
+    .array(z.array(TileSchema).min(1).max(MAP_MAX_SIDE))
+    .min(1)
+    .max(MAP_MAX_SIDE),
   name: z.string().min(1),
   type: MapTypeSchema,
   orientation: z.enum(['orthogonal', 'isometric']).optional(),
@@ -193,8 +200,8 @@ export const CreateMapBodySchema = z.object({
   name: z.string().min(1),
   type: MapTypeSchema,
   orientation: z.enum(['orthogonal', 'isometric']).optional(),
-  cols: z.number().int().min(1).max(200).optional(),
-  rows: z.number().int().min(1).max(200).optional(),
+  cols: z.number().int().min(1).max(MAP_MAX_SIDE).optional(),
+  rows: z.number().int().min(1).max(MAP_MAX_SIDE).optional(),
 });
 
 export const UpdateMapBodySchema = z.object({
@@ -208,8 +215,8 @@ export const UpdateMapBodySchema = z.object({
 });
 
 export const ResizeMapBodySchema = z.object({
-  cols: z.number().int().min(1).max(200),
-  rows: z.number().int().min(1).max(200),
+  cols: z.number().int().min(1).max(MAP_MAX_SIDE),
+  rows: z.number().int().min(1).max(MAP_MAX_SIDE),
 });
 
 export const BuyShopItemBodySchema = z.object({

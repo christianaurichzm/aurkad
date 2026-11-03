@@ -86,7 +86,12 @@ describe('regenerating the script constants after a content edit', () => {
   it('follows a content path onto whichever router serves it', async () => {
     await request(app)
       .post('/saveMap')
-      .send({ mapId: 'map1', tiles: [], name: 'Town', type: 'normal' })
+      .send({
+        mapId: 'map1',
+        tiles: [[{ tileIndex: 0 }]],
+        name: 'Town',
+        type: 'normal',
+      })
       .expect(200);
 
     expect(scheduleContentRefresh).toHaveBeenCalledOnce();
