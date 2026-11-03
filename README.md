@@ -116,8 +116,9 @@ an upgrade never writes to `game/`.
 3. Change the version on the `image:` lines of `compose.yml` and run
    `docker compose up -d`.
 
-Players' browsers pick up the new client on their next load, and a tab whose
-client no longer matches the server reloads by itself.
+Players' browsers pick up the new client on their next load. A tab left open
+across the upgrade shows "Update available" and loads the new client when the
+player clicks Reload.
 
 Version numbers are measured against games that already exist:
 
