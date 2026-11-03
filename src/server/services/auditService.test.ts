@@ -232,6 +232,20 @@ describe('listAuditLog', () => {
     expect(rows.length).toBeLessThanOrEqual(200);
   });
 
+  // Mongo reads `.limit(NaN)` as no limit at all, past the cap.
+  it('reads a limit that is not a number as no limit given', async () => {
+    await AuditLogModel.insertMany(
+      Array.from({ length: 60 }, (_, i) => ({
+        at: new Date(i),
+        actor: 'gm',
+        action: 'command who',
+        outcome: 'allowed',
+        source: 'chat',
+      })),
+    );
+    expect(await listAuditLog({ limit: NaN })).toHaveLength(50);
+  });
+
   // Otherwise a filter of "gm.*" or similar would be a regex the caller wrote
   // into our query.
   it('treats a filter as text, not as a pattern', async () => {

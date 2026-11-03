@@ -2,6 +2,7 @@ import ReactDOM from 'react-dom/client';
 import App from './App';
 import { GameProvider } from './GameContext';
 import { AdminApp } from './pages/AdminApp';
+import { ErrorBoundary } from './components/common/ErrorBoundary';
 import { installErrorReporter } from './io/network/http/errorReporter';
 import { fetchGameBrand } from './io/network';
 import { t } from './i18n';
@@ -16,13 +17,15 @@ const isAdminPanel = window.location.pathname.startsWith('/admin');
 const root = ReactDOM.createRoot(document.getElementById('root')!);
 const render = () =>
   root.render(
-    isAdminPanel ? (
-      <AdminApp />
-    ) : (
-      <GameProvider>
-        <App />
-      </GameProvider>
-    ),
+    <ErrorBoundary>
+      {isAdminPanel ? (
+        <AdminApp />
+      ) : (
+        <GameProvider>
+          <App />
+        </GameProvider>
+      )}
+    </ErrorBoundary>,
   );
 
 const serverUp = () =>

@@ -224,6 +224,15 @@ describe('acting on a player', () => {
     expect(banAccount).not.toHaveBeenCalled();
   });
 
+  it.each(['10m', '2h', '1d'])('refuses %s as the hours', async (h) => {
+    createFixture(0);
+
+    const { out } = await run(`ban alice spamming ${h}`);
+
+    expect(out).toContain('Hours are a plain number');
+    expect(banAccount).not.toHaveBeenCalled();
+  });
+
   it('finds a ban under the account name, whatever case is typed', async () => {
     createFixture(0);
     bans.set('Alice', {});
@@ -287,6 +296,18 @@ describe('acting on a player', () => {
     expect(serverState.mutes.get('Bob')).toBe(0);
     expect((await run('muteinfo Bob')).out).toContain('permanent');
   });
+
+  it.each(['10m', '0', '-5', '1.5'])(
+    'refuses a mute of %s minutes',
+    async (m) => {
+      createFixture(0);
+
+      const { out } = await run(`mute alice ${m}`);
+
+      expect(out).toContain('Minutes must be a positive whole number');
+      expect(serverState.mutes.size).toBe(0);
+    },
+  );
 
   it('mutes under the account name, the one chat checks', async () => {
     createFixture(0);

@@ -560,6 +560,12 @@ export function registerPlayerCommands(): void {
 
       // Never the name itself: a player called 123 is not a ban of 123 hours.
       const hoursArg = args.length > 1 ? args[args.length - 1] : undefined;
+      // Read as the reason's last word, `10m` would ban for good.
+      if (hoursArg && /^\d+(\.\d+)?(s|m|min|h|d|w)$/i.test(hoursArg)) {
+        return reply(
+          style.error(`Hours are a plain number (3, not ${hoursArg}).`),
+        );
+      }
       const hours =
         hoursArg && !isNaN(Number(hoursArg)) ? Number(hoursArg) : undefined;
       // A ban ending now or earlier throws the player out and lifts itself.
@@ -628,6 +634,9 @@ export function registerPlayerCommands(): void {
       const username = await accountName(typed);
       if (!username) return reply(style.error(`No account named ${typed}.`));
       const minutes = parsePositiveInt(args[1]);
+      if (args[1] !== undefined && minutes === null) {
+        return reply(style.error('Minutes must be a positive whole number.'));
+      }
       // Zero is the stored form of "no expiry", not a duration of none.
       const expiry = minutes !== null ? Date.now() + minutes * 60_000 : 0;
       serverState.mutes.set(username, expiry);

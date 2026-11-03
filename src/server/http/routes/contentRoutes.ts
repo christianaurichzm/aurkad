@@ -80,6 +80,13 @@ import {
  * `contentRefresh` middleware the app mounts.
  */
 
+// Item, spell and arrow ids count up from 1. The PUT routes upsert, so a `-1`
+// or `1.5` let through here would be stored as a new record.
+function contentId(raw: string): number | null {
+  const id = Number(raw);
+  return Number.isSafeInteger(id) && id > 0 ? id : null;
+}
+
 /**
  * The loot table, dialog and quest ids that exist, for resolving what an npc
  * points at. Ids only, from the boot caches: with full documents, saving one
@@ -196,8 +203,8 @@ export function createContentRouter() {
   });
 
   router.put('/items/:id', checkAccess(Access.ADMIN), async (req, res) => {
-    const id = Number(req.params.id);
-    if (Number.isNaN(id)) {
+    const id = contentId(req.params.id);
+    if (id === null) {
       return res.status(400).json({ error: 'Invalid item id.' });
     }
     const body = parseBody(ItemSchema, req.body, res);
@@ -215,8 +222,8 @@ export function createContentRouter() {
   });
 
   router.delete('/items/:id', checkAccess(Access.ADMIN), async (req, res) => {
-    const id = Number(req.params.id);
-    if (Number.isNaN(id)) {
+    const id = contentId(req.params.id);
+    if (id === null) {
       return res.status(400).json({ error: 'Invalid item id.' });
     }
     try {
@@ -398,8 +405,8 @@ export function createContentRouter() {
   });
 
   router.put('/spells/:id', checkAccess(Access.ADMIN), async (req, res) => {
-    const id = Number(req.params.id);
-    if (Number.isNaN(id)) return res.status(400).json({ error: 'Invalid id.' });
+    const id = contentId(req.params.id);
+    if (id === null) return res.status(400).json({ error: 'Invalid id.' });
     const body = parseBody(SpellSchema, req.body, res);
     if (!body) return;
     try {
@@ -411,8 +418,8 @@ export function createContentRouter() {
   });
 
   router.delete('/spells/:id', checkAccess(Access.ADMIN), async (req, res) => {
-    const id = Number(req.params.id);
-    if (Number.isNaN(id)) return res.status(400).json({ error: 'Invalid id.' });
+    const id = contentId(req.params.id);
+    if (id === null) return res.status(400).json({ error: 'Invalid id.' });
     try {
       await deleteSpell(id);
       res.status(204).send();
@@ -441,8 +448,8 @@ export function createContentRouter() {
   });
 
   router.put('/arrows/:id', checkAccess(Access.ADMIN), async (req, res) => {
-    const id = Number(req.params.id);
-    if (Number.isNaN(id)) return res.status(400).json({ error: 'Invalid id.' });
+    const id = contentId(req.params.id);
+    if (id === null) return res.status(400).json({ error: 'Invalid id.' });
     const body = parseBody(ArrowSchema, req.body, res);
     if (!body) return;
     try {
@@ -454,8 +461,8 @@ export function createContentRouter() {
   });
 
   router.delete('/arrows/:id', checkAccess(Access.ADMIN), async (req, res) => {
-    const id = Number(req.params.id);
-    if (Number.isNaN(id)) return res.status(400).json({ error: 'Invalid id.' });
+    const id = contentId(req.params.id);
+    if (id === null) return res.status(400).json({ error: 'Invalid id.' });
     try {
       await deleteArrow(id);
       res.status(204).send();

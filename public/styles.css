@@ -1023,7 +1023,8 @@ body {
 .engine-brand[data-engine-mark] > img {
   height: 56px;
 }
-/* What the page shows until the server behind it answers (main.tsx). */
+/* What the page shows in place of the client: until the server behind it
+   answers, or after a render threw (main.tsx, ErrorBoundary). */
 .server-wait {
   position: absolute;
   inset: 0;

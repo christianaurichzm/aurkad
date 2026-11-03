@@ -113,7 +113,9 @@ export async function listAuditLog(
   if (query.outcome) filter['outcome'] = query.outcome;
   if (query.before) filter['at'] = { $lt: new Date(query.before) };
 
-  const limit = Math.min(Math.max(Math.floor(query.limit ?? 50), 1), MAX_PAGE);
+  // `?limit=abc` arrives as NaN, which every clamp passes along.
+  const limit =
+    Math.min(Math.max(Math.floor(query.limit ?? 50), 1), MAX_PAGE) || 50;
 
   const rows = await AuditLogModel.find(filter)
     // Explicit projection: spreading the document would put mongo's _id and
