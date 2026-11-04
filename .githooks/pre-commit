@@ -1,6 +1,6 @@
 #!/bin/sh
 # The format and lint gates CI enforces, before the commit rather than after
-# the push. Tests run in CI, not here.
+# the push. Typecheck and tests run in pre-push, not here.
 #
 # Both keep a cache under node_modules/.cache and re-check only files whose
 # content changed. Lint uses type information, so an edit to one file can

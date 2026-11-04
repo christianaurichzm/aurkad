@@ -1,0 +1,9 @@
+#!/bin/sh
+# What CI's check job runs, before the push rather than after it: commits go
+# straight to main, with no pull request to stop them on the way.
+#
+# It checks the working tree, so uncommitted changes count as well. The
+# property tests draw a new seed on every run, so a rare case CI draws can
+# still slip past. `git push --no-verify` skips it.
+
+npm run --silent check

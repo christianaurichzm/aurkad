@@ -46,8 +46,9 @@ npm run typecheck      # tsc over every tsconfig in the repo, in parallel, no em
 npm run test:run       # vitest single run
 ```
 
-`npm test` runs vitest in watch mode while you work. A pre-commit hook
-(`.githooks/`) runs prettier + eslint automatically.
+`npm test` runs vitest in watch mode while you work. The hooks in
+`.githooks/` run prettier + eslint before a commit and `npm run check` before
+a push.
 
 Guidelines:
 
