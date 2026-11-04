@@ -367,6 +367,10 @@ export async function persistPlayersOnShutdown(
   connected: PlayerServer[],
   concurrency = 32,
 ): Promise<{ saved: number; failed: number }> {
+  // A departure under way is out of every list too, with its write in
+  // flight. Awaited before the leases and the connection go, and one that
+  // fails lands in unsavedDepartures for the sweep below.
+  await Promise.allSettled(departures.values());
   const playersToSave = [...connected, ...unsavedDepartures.values()];
   let cursor = 0;
   let failed = 0;
@@ -716,8 +720,9 @@ export const inAccountTurn = perKeyQueue();
  * Departures under way, by player id. A logout or a kick ends the character
  * and closes the socket, whose close asks for the same departure again. Run
  * twice, the second would write and let go of the lease after the first, by
- * when a new session may hold both; so it waits on the first instead, and
- * refuseEntry keeps a new session out until it is done.
+ * when a new session may hold both. So it waits on the first while the
+ * character is still here, finds nobody once it has left, and refuseEntry
+ * keeps a new session out until the write and release are done.
  */
 const departures = new Map<string, Promise<void>>();
 
@@ -761,6 +766,12 @@ export function isCurrentSession(player: PlayerServer): boolean {
 
 async function depart(player: PlayerServer): Promise<void> {
   await waitForPlayerCommit(player.id);
+  // Out of the world before the last write reads it: a blow, a pet's kill or
+  // a script landing after the read would be lost with the dirty flag. The
+  // way out of a dungeon copy is taken first, as leaving the world forgets it.
+  const location = persistedLocation(player);
+  removePlayerSessionState(player);
+  Object.assign(player, location);
   try {
     await persistPlayerSessionState(player);
   } catch (err) {
@@ -769,26 +780,18 @@ async function depart(player: PlayerServer): Promise<void> {
         player: player.name,
         err,
       });
-      // Taken while the way out of a dungeon copy is still known: leaving the
-      // world forgets it, and the retry would write the respawn point instead.
-      const location = persistedLocation(player);
-      removePlayerSessionState(player);
-      retryDeparture(Object.assign(player, location));
+      retryDeparture(player);
       return;
     }
   }
   // After the last write of this session, never before: the lease makes that
-  // write land, and the next instance reads the document as soon as it takes
-  // over. A failed release still leaves the world, since the lease is out of
-  // `held` and a character kept here would be saved with no fence, over
-  // whoever takes the account when the lease expires.
+  // write land, and the next instance reads the document once it takes over.
   await releasePresence(player.id).catch((err) =>
     logger.error('[presence] release after logout failed', {
       player: player.name,
       err,
     }),
   );
-  removePlayerSessionState(player);
 }
 
 /**

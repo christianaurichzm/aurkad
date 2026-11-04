@@ -667,6 +667,59 @@ describe('a departure asked for twice', () => {
   });
 });
 
+describe('the last write of a departure', () => {
+  function holdSave() {
+    const held = { land: () => {}, inWorld: undefined as boolean | undefined };
+    const save = vi
+      .spyOn(playerRepository, 'save')
+      .mockImplementationOnce(() => {
+        held.inWorld = getPlayerByName('Alice') !== undefined;
+        return new Promise((resolve) => (held.land = () => resolve(true)));
+      });
+    onTestFinished(() => {
+      held.land();
+      save.mockRestore();
+    });
+    return { held, save };
+  }
+
+  it('reads a character nothing in the world can reach any more', async () => {
+    const sim = createFixture(0);
+    const alice = sim.addPlayer({ name: 'Alice' });
+    const { held, save } = holdSave();
+
+    const leaving = disconnectPlayer('Alice');
+    await vi.waitFor(() => expect(save).toHaveBeenCalled());
+
+    expect(held.inWorld).toBe(false);
+    expect(await refuseEntry({ ...alice, password: 'hash' })).toMatchObject({
+      status: 503,
+    });
+    held.land();
+    await leaving;
+  });
+
+  it('is awaited by the shutdown sweep', async () => {
+    const sim = createFixture(0);
+    sim.addPlayer({ name: 'Alice' });
+    const { held, save } = holdSave();
+
+    const leaving = disconnectPlayer('Alice');
+    await vi.waitFor(() => expect(save).toHaveBeenCalled());
+    let swept = false;
+    const shutdown = persistPlayersOnShutdown([]).then((result) => {
+      swept = true;
+      return result;
+    });
+    await new Promise((resolve) => setTimeout(resolve, 0));
+
+    expect(swept).toBe(false);
+    held.land();
+    expect(await shutdown).toEqual({ saved: 0, failed: 0 });
+    await leaving;
+  });
+});
+
 describe('a departure the database cannot take', () => {
   it('leaves the world anyway and is written once the database is back', async () => {
     vi.useFakeTimers();
