@@ -7,11 +7,23 @@
     }
   },
   "modules": {
+    "auction": {
+      "enabled": false,
+      "config": {
+        "currencyItemId": 2
+      }
+    },
     "dialog": {
       "enabled": true
     },
     "mail": {
       "enabled": true
+    },
+    "pet": {
+      "enabled": false,
+      "config": {
+        "sprite": 2
+      }
     },
     "quest": {
       "enabled": true

@@ -19,6 +19,19 @@ const pngSize = (...parts: string[]) => {
   return { width: png.readUInt32BE(16), height: png.readUInt32BE(20) };
 };
 
+// How many characters a view's sheet holds: each is `columns` frames across
+// and a row per facing down.
+const characters = (orientation: string) => {
+  const layout = read<{ width: number; height: number; columns: number }>(
+    orientation,
+    'assets',
+    'sprites.json',
+  );
+  const sheet = pngSize(orientation, 'assets', 'sprites.png');
+  const perRow = Math.floor(sheet.width / (layout.columns * layout.width));
+  return perRow * Math.floor(sheet.height / (4 * layout.height));
+};
+
 type Frame = {
   x: number;
   y: number;
@@ -34,7 +47,7 @@ type Frame = {
 const npcs = read<
   { id: string; sprite: number; itemsToDrop?: { itemId: number }[] }[]
 >('game', 'content', 'npcs.json');
-const items = read<{ id: number; sprite: number }[]>(
+const items = read<{ id: number; sprite: number; type: string }[]>(
   'game',
   'content',
   'items.json',
@@ -58,11 +71,6 @@ describe.each(['orthogonal', 'isometric'] as const)(
       'tiles.json',
     );
     const atlas = pngSize(orientation, 'assets', 'tiles.png');
-    const layout = read<{ width: number; height: number; columns: number }>(
-      orientation,
-      'assets',
-      'sprites.json',
-    );
     const sheet = pngSize(orientation, 'assets', 'sprites.png');
 
     it('is a map of its own projection', () => {
@@ -104,9 +112,8 @@ describe.each(['orthogonal', 'isometric'] as const)(
     });
 
     it('gives every npc a character the sheet has, and spawns only those npcs', () => {
-      const perRow = Math.floor(sheet.width / (layout.columns * layout.width));
-      const rows = Math.floor(sheet.height / (4 * layout.height));
-      for (const npc of npcs) expect(npc.sprite).toBeLessThan(perRow * rows);
+      for (const npc of npcs)
+        expect(npc.sprite).toBeLessThan(characters(orientation));
       const ids = new Set(npcs.map((n) => n.id));
       for (const tile of tiles.flat())
         if (tile.npcSpawn) expect(ids).toContain(tile.npcSpawn);
@@ -195,6 +202,24 @@ describe('writeGame', () => {
       .map(([id]) => id);
     expect(on.sort()).toEqual(['dialog', 'mail', 'quest']);
   });
+
+  // Off like the rest, but set for this game, so turning them on is all they
+  // need: their manifests trade in item 3, a sword here, and draw the pet
+  // past the end of the sheet.
+  it.each(['orthogonal', 'isometric'] as const)(
+    'sets the auction to trade in money and the pet to a character in the %s sheet',
+    (orientation) => {
+      dir = fs.mkdtempSync(path.join(os.tmpdir(), 'new-game-'));
+      writeGame(dir, undefined, orientation);
+      const { auction, pet } = loadGameConfig(dir).modules;
+      const currency = items.find(
+        (i) => i.id === auction?.config?.currencyItemId,
+      );
+      expect(currency?.type).toBe('money');
+      expect(pet?.config?.sprite).toBeTypeOf('number');
+      expect(pet!.config!.sprite).toBeLessThan(characters(orientation));
+    },
+  );
 
   it('takes the name the login screen shows, when given one', () => {
     dir = fs.mkdtempSync(path.join(os.tmpdir(), 'new-game-'));

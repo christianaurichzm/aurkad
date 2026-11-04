@@ -52,8 +52,8 @@ made in the map editor (Z in game) or the content editor (C):
 
 - `archery`: an arrow (content, Arrows) and an equipped weapon whose
   "Arrow (ranged)" names it.
-- `auction`: `currencyItemId` in its config set to the game's money. The
-  default is item 3, which in the starter game is a sword.
+- `auction`: `currencyItemId` in its config set to the game's money (item 3
+  by default). The starter game sets its Gold Coin.
 - `bank`: a Bank tile on a map.
 - `crafting`: recipes (content, Recipes) and a workbench to craft at: a tile
   with the `workbench` script, or an npc carrying it.
@@ -63,7 +63,7 @@ made in the map editor (Z in game) or the content editor (C):
   Quests). The starter game has the Mage's.
 - `equipment`: `sets` in its config.
 - `pet`: `/pet` calls it, drawn with `sprite` from its config (11), which
-  has to be a character in the game's sheet. The starter sheet holds 0 to 8.
+  has to be a character in the game's sheet. The starter game sets one.
 - `pk`: a map with `"pvp": "normal"` in `content/maps.json`. A map the
   editors mark PvP has no penalty, so nobody is flagged on it.
 - `status`: a script (`use('status').apply`) or a moderator's

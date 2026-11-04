@@ -720,10 +720,14 @@ def main():
     shared = os.path.join(ROOT, 'game')
     # scripts/example.js talks through dialog and hands out a quest, and quest
     # mails a reward the bag has no room for, which only mail lets a player
-    # collect.
+    # collect. The auction and the pet stay off, configured for this game so
+    # that turning them on is all they need: their manifests trade in item 3,
+    # a sword here, and draw a pet past the end of this sheet.
     write_json(f'{shared}/game.json',
                {'world': {'startMapId': '1', 'respawnTile': {'col': RESPAWN[0], 'row': RESPAWN[1]}},
-                'modules': {'dialog': {'enabled': True}, 'mail': {'enabled': True},
+                'modules': {'auction': {'enabled': False, 'config': {'currencyItemId': 2}},
+                            'dialog': {'enabled': True}, 'mail': {'enabled': True},
+                            'pet': {'enabled': False, 'config': {'sprite': SPRITE['rogue']}},
                             'quest': {'enabled': True}}}, 2)
     write_json(f'{shared}/content/npcs.json', NPCS, 2)
     write_json(f'{shared}/content/items.json', ITEMS, 2)
