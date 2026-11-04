@@ -47,6 +47,28 @@ Each is built on the script API and hooks; none of them live in the core.
 | `trade`        | on      | Item swaps between online players                                     |
 | `weather`      | off     | Rain and snow over the world                                          |
 
+Most of them work as soon as they are on. These wait for something first,
+made in the map editor (Z in game) or the content editor (C):
+
+- `archery`: an arrow (content, Arrows) and an equipped weapon whose
+  "Arrow (ranged)" names it.
+- `auction`: `currencyItemId` in its config set to the game's money. The
+  default is item 3, which in the starter game is a sword.
+- `bank`: a Bank tile on a map.
+- `crafting`: recipes (content, Recipes) and a workbench to craft at: a tile
+  with the `workbench` script, or an npc carrying it.
+- `cutscene`: a script that plays one. `lighting` darkens the world around
+  the player by itself, and a script places the other lights.
+- `dialog` and `quest`: conversations and quests (content, Dialogs and
+  Quests). The starter game has the Mage's.
+- `equipment`: `sets` in its config.
+- `pet`: `/pet` calls it, drawn with `sprite` from its config (11), which
+  has to be a character in the game's sheet. The starter sheet holds 0 to 8.
+- `pk`: a map with `"pvp": "normal"` in `content/maps.json`. A map the
+  editors mark PvP has no penalty, so nobody is flagged on it.
+- `status`: a script (`use('status').apply`) or a moderator's
+  `/status apply` to put an effect on a player.
+
 ## Manifest (`module.json`)
 
 ```json
@@ -83,7 +105,9 @@ client-only module keeps its settings as constants in its own file.
 ```
 
 `enabled` overrides `enabledByDefault`. `config` is shallow-merged over the
-manifest defaults and injected into the entry as a `config` global.
+manifest defaults and injected into the entry as a `config` global. Modules
+load at boot, so a change here applies on a restart
+(`docker compose restart app`).
 
 ## Writing a module
 

@@ -67,6 +67,32 @@ bigger than a cell:
 | `arrows.png`       | 32px | four per arrow: down, up, right, left                            |
 | `attackeffect.png` | 64px | six frames of the melee swing                                    |
 
+### In the game
+
+Register the `ADMIN` username and log in. The arrows move and Shift runs, Ctrl
+attacks, E picks up an item and F talks to the npc you face. A click walks
+there, or acts on the npc beside you. The menu beside the world opens the
+panels, each tile showing its key: I inventory, V attributes, O who is online,
+and one for each module that has a panel (Q quests).
+
+**Creator tools**, folded at the foot of the menu, holds the map editor (Z),
+the content editor (C) for npcs, items, shops, spells, dialogs, quests and the
+rest, and the GM panel (X). The map editor paints tiles picked from the
+tileset and marks what a tile does by mode (block, warp, npc, shop, bank,
+script and more). Ctrl+Z undoes, Ctrl+Y redoes, and a saved map is live at
+once.
+
+Creator tools also opens the admin panel at `/admin`, which works from any
+browser without playing: the players online and their moderation, a command
+console and two-factor sign-in, and for the admin the audit trail, Appearance
+(colours, fonts, logo), Art (the sheets above) and Scripts.
+
+Modules are switched in `game/game.json`, which lists every official one, off
+but for dialog, quest and mail. Set `enabled` to `true` and run
+`docker compose restart app`. Some wait for something first, such as a Bank
+tile for the bank: [modules/README.md](modules/README.md) says what each does
+and needs.
+
 ### Inviting players
 
 Players need only a browser: they open your address and register. Put that
@@ -194,8 +220,10 @@ with `templates/new-game` in the release if you want them.
   });
   ```
 
-- **Maps, NPCs, items, shops**: edited in-game via the admin tools, or managed
-  through the admin REPL (console attached to the running server).
+- **Maps, NPCs, items, shops**: edited in game with the map editor (Z) and the
+  content editor (C), or as files (see [Content packs](#content-packs)).
+  Server commands run from the console in `/admin`, or from the terminal when
+  the server was started in one (`npm run dev`).
 - **`GAME_DIR`**: the whole game in one folder. With `GAME_DIR=games/my-game`
   the engine reads `game.json`, `theme/`, `assets/`, `scripts/`, `content/` and
   the game's own `modules/` from there instead of the repository root, so
