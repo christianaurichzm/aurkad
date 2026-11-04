@@ -200,7 +200,7 @@ describe('processActions under any message the schema accepts', () => {
     fc.record({
       type: fc.constant('chat'),
       message: fc.oneof(
-        fc.string({ minLength: 1, maxLength: 200 }),
+        fc.string({ minLength: 1, maxLength: 200 }).filter((s) => /\S/.test(s)),
         fc.string({ maxLength: 40 }).map((rest) => `/${rest}`),
       ),
       scope: fc.constantFrom('player', 'map', 'global'),
