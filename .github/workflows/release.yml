@@ -121,7 +121,9 @@ jobs:
             printf '\nSee the [known limitations](%s/%s/blob/%s/README.md#known-limitations).\n' \
               "$GITHUB_SERVER_URL" "$GITHUB_REPOSITORY" "$GITHUB_REF_NAME"
             printf '\n## Changes\n\n'
-            git log --no-merges --pretty='- %s' ${PREV:+"$PREV.."}"$GITHUB_REF_NAME"
+            git log --no-merges \
+              --pretty="- %s ([%h]($GITHUB_SERVER_URL/$GITHUB_REPOSITORY/commit/%H))" \
+              ${PREV:+"$PREV.."}"$GITHUB_REF_NAME"
           } > notes.md
           sed "s|ghcr.io/christianaurichzm/aurkad:latest|$IMAGE:${GITHUB_REF_NAME#v}|" compose.game.yml > compose.yml
           gh release create "$GITHUB_REF_NAME" --title "$GITHUB_REF_NAME" --notes-file notes.md compose.yml
