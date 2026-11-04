@@ -2821,6 +2821,7 @@ body:has(.npc-dialog) .hotbar {
   min-height: 30px;
   padding: 4px 8px 4px 4px;
   gap: 6px;
+  text-decoration: none;
 }
 
 /* A small screen has no width to spare for the column: the menu becomes a

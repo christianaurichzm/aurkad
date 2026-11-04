@@ -141,6 +141,17 @@ describe('ActionPanel', () => {
     expect(screen.getByRole('button', { name: /gm/i })).toBeInTheDocument();
   });
 
+  it('links a moderator to the admin panel in a new tab', async () => {
+    setAccess(Access.MOD);
+
+    render(<CreatorTools />);
+    await userEvent.click(screen.getByText('Creator tools'));
+
+    const link = screen.getByRole('link', { name: 'Admin panel' });
+    expect(link).toHaveAttribute('href', '/admin');
+    expect(link).toHaveAttribute('target', '_blank');
+  });
+
   it('dispatches a protected panel event only after authorization succeeds', async () => {
     const user = userEvent.setup();
     const onToggle = vi.fn();

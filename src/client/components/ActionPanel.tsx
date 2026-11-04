@@ -245,6 +245,15 @@ export const CreatorTools: React.FC = () => {
               </span>
             </button>
           ))}
+        {/* A new tab, so the game keeps running beside the panel. */}
+        <a
+          className="action-button"
+          href="/admin"
+          target="_blank"
+          rel="noreferrer"
+        >
+          <span>{t('admin.title')}</span>
+        </a>
       </div>
     </details>
   );
