@@ -22,7 +22,7 @@ const ItemMessageSchema = z.object({
 
 const ChatMessageSchema = z.object({
   type: z.literal('chat'),
-  message: z.string().min(1).max(MAX_CHAT_LENGTH),
+  message: z.string().max(MAX_CHAT_LENGTH).regex(/\S/),
   scope: z.enum(['player', 'map', 'global']),
 });
 

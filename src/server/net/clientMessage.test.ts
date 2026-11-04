@@ -117,6 +117,15 @@ describe('ClientMessageSchema', () => {
       expect(result.success).toBe(false);
     });
 
+    it('rejects a message of only whitespace', () => {
+      const result = ClientMessageSchema.safeParse({
+        type: 'chat',
+        message: ' \t\n ',
+        scope: 'map',
+      });
+      expect(result.success).toBe(false);
+    });
+
     it('rejects a message over 200 chars', () => {
       const result = ClientMessageSchema.safeParse({
         type: 'chat',
@@ -235,7 +244,9 @@ describe('ClientMessageSchema under arbitrary input', () => {
     }),
     fc.record({
       type: fc.constant('chat'),
-      message: fc.string({ minLength: 1, maxLength: 200 }),
+      message: fc
+        .string({ minLength: 1, maxLength: 200 })
+        .filter((m) => m.trim() !== ''),
       scope: fc.constantFrom('player', 'map', 'global'),
     }),
     fc.record({ type: fc.constant('custom'), channel: fc.constant('c') }),
@@ -340,7 +351,7 @@ describe('ClientMessageSchema under arbitrary input', () => {
           const result = ClientMessageSchema.safeParse(candidate);
 
           const valid =
-            candidate.message.length >= 1 &&
+            candidate.message.trim() !== '' &&
             candidate.message.length <= 200 &&
             ['player', 'map', 'global'].includes(candidate.scope);
           expect(result.success).toBe(valid);
