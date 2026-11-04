@@ -39,8 +39,10 @@ import {
 import { AsyncSelect } from '../common/Select/AsyncSelect';
 import { Select } from '../common/Select/Select';
 import { ScriptBehaviorFields } from '../ContentEditor/ScriptBehaviorFields';
+import { pvpLabels } from '../ContentEditor/MapEditor';
 import type { ScriptParams } from '../../../shared/scriptParams';
-import { MapType, RuntimeNpc, TileEditMode } from '../../../shared/types';
+import { PvpMorale, RuntimeNpc, TileEditMode } from '../../../shared/types';
+import { mapPvpMorale } from '../../../shared/utils';
 import { getGameState } from '../../core/gameState';
 import { SpritePreview } from '../common/SpritePreview';
 import { colors, radius } from '../../theme';
@@ -130,7 +132,7 @@ const MapEditorToolsComponent: React.FC = () => {
   const [scriptId, setScriptId] = useState<string>('');
   const [scriptParams, setScriptParams] = useState<ScriptParams>({});
   const [npcList, setNpcList] = useState<RuntimeNpc[]>([]);
-  const [mapType, setMapType] = useState<MapType>('normal');
+  const [mapPvp, setMapPvp] = useState<PvpMorale>('safe');
   const [mapName, setMapName] = useState<string>('');
   const [mapMusic, setMapMusic] = useState<string>('');
 
@@ -146,14 +148,14 @@ const MapEditorToolsComponent: React.FC = () => {
     if (getGameState()?.id !== mapId) return;
     setEditorMapId(mapId);
     if (map) {
-      setMapType(map.type);
+      setMapPvp(mapPvpMorale(map));
       setMapName(map.name);
       const music = map.music ?? '';
       setMapMusic(music);
       setEditorMusic(music);
       setEditorTiles(map.tiles, music);
     } else {
-      setMapType('normal');
+      setMapPvp('safe');
       setMapName(t('mapEditor.newMap'));
       setMapMusic('');
       setEditorMusic('');
@@ -209,7 +211,7 @@ const MapEditorToolsComponent: React.FC = () => {
     if (!mapEdited) return;
     setEditorSaving(true);
     try {
-      const result = await saveCurrentMap(mapName, mapType);
+      const result = await saveCurrentMap(mapName, mapPvp);
       if (!result?.success) {
         const body = result as unknown as { errors?: string[] };
         await useUIStore.getState().showDialog({
@@ -331,18 +333,17 @@ const MapEditorToolsComponent: React.FC = () => {
           />
         </div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
-          <label style={labelStyle}>{translate('editor.type')}</label>
+          <label style={labelStyle}>{translate('map.pvp')}</label>
           <Select
-            options={[
-              { value: 'pvp', label: translate('map.typePvp') },
-              { value: 'normal', label: translate('map.typeNormal') },
-            ]}
-            value={mapType}
+            options={Object.entries(pvpLabels).map(([value, label]) => ({
+              value,
+              label: translate(label),
+            }))}
+            value={mapPvp}
             onChange={(value) => {
-              if (value === 'pvp' || value === 'normal') {
-                setMapType(value);
-                if (value !== mapType) setMapEdited(true);
-              }
+              const pvp = value as PvpMorale;
+              setMapPvp(pvp);
+              if (pvp !== mapPvp) setMapEdited(true);
             }}
           />
         </div>

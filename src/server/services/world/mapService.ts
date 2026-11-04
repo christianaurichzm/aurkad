@@ -5,6 +5,7 @@ import {
   MapStateServer,
   MapType,
   MapOrientation,
+  PvpMorale,
   DroppedItem,
   PlayerServer,
   RuntimeNpc,
@@ -305,6 +306,7 @@ export const mapSave = async (
   type: MapType,
   music?: string,
   orientation?: MapOrientation,
+  pvp?: PvpMorale,
 ) => {
   const spawned: Partial<MapStateServer> = {};
   await insertNpcs(spawned, mapId, tiles);
@@ -320,7 +322,7 @@ export const mapSave = async (
     id: mapId,
     name,
     type,
-    pvp: before.pvp,
+    pvp: pvp ?? before.pvp,
     orientation: orientation || before.orientation,
     tiles,
     music,

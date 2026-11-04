@@ -1,12 +1,13 @@
 import React, { useEffect, useState } from 'react';
-import { Controller, useForm } from 'react-hook-form';
+import { useForm } from 'react-hook-form';
 import {
   MapStateClient,
-  MapType,
   MapOrientation,
+  PvpMorale,
   type BorderLink,
   type Position,
 } from '../../../shared/types';
+import { mapPvpMorale, mapTypeForMorale } from '../../../shared/utils';
 import { AsyncSelect } from '../common/Select/AsyncSelect';
 import { chatSaveResult } from '../ChatPanel';
 import { updateMap, createMap, resizeMap } from '../../io/network';
@@ -32,7 +33,7 @@ interface MapEditorProps extends EditorGuardProps {
 type BorderLinkForm = { mapId: string; offset: number; position?: Position };
 type MapFormValues = {
   name: string;
-  type: MapType;
+  pvp: PvpMorale;
   orientation: MapOrientation;
   cols: number;
   rows: number;
@@ -46,6 +47,12 @@ type MapFormValues = {
 
 const emptyBorder: BorderLinkForm = { mapId: '', offset: 0 };
 
+export const pvpLabels: Record<PvpMorale, TranslationKey> = {
+  safe: 'map.pvpSafe',
+  normal: 'map.pvpNormal',
+  'no-penalty': 'map.pvpFree',
+};
+
 const BORDER_LABEL: Record<string, TranslationKey> = {
   borderUp: 'map.borderUp',
   borderDown: 'map.borderDown',
@@ -55,7 +62,7 @@ const BORDER_LABEL: Record<string, TranslationKey> = {
 
 const defaultValues: MapFormValues = {
   name: '',
-  type: 'normal',
+  pvp: 'safe',
   orientation: 'orthogonal',
   cols: 20,
   rows: 14,
@@ -87,7 +94,7 @@ function linkToForm(link?: BorderLink): BorderLinkForm {
 
 const mapToFormValues = (map: MapStateClient): MapFormValues => ({
   name: map.name ?? '',
-  type: map.type ?? 'normal',
+  pvp: mapPvpMorale(map),
   orientation: map.orientation ?? 'orthogonal',
   cols: map.tiles?.[0]?.length ?? 20,
   rows: map.tiles?.length ?? 14,
@@ -110,7 +117,6 @@ export const MapEditor: React.FC<MapEditorProps> = ({
   const [resizeRows, setResizeRows] = useState(14);
   const [showResize, setShowResize] = useState(false);
   const {
-    control,
     formState: { isDirty },
     handleSubmit,
     register,
@@ -130,11 +136,6 @@ export const MapEditor: React.FC<MapEditorProps> = ({
   useEffect(() => {
     if (!selectedId && !isDirty) resetForm(newMapValues(maps));
   }, [maps, selectedId, isDirty, resetForm]);
-
-  const mapTypeOptions: { value: MapType; label: string }[] = [
-    { value: 'normal', label: t('map.typeNormal') },
-    { value: 'pvp', label: t('map.typePvp') },
-  ];
 
   const handleSelect = async (mapId: string) => {
     if (!(await open(mapId))) return;
@@ -159,7 +160,7 @@ export const MapEditor: React.FC<MapEditorProps> = ({
 
   const handleSave = async ({
     name,
-    type,
+    pvp,
     orientation,
     cols,
     rows,
@@ -170,6 +171,7 @@ export const MapEditor: React.FC<MapEditorProps> = ({
     borderLeft,
     borderRight,
   }: MapFormValues) => {
+    const type = mapTypeForMorale(pvp);
     const borderLinks = {
       up: buildLink(borderUp),
       down: buildLink(borderDown),
@@ -181,6 +183,7 @@ export const MapEditor: React.FC<MapEditorProps> = ({
         ? updateMap(selectedId, {
             name,
             type,
+            pvp,
             orientation,
             // Sent even when empty: the server keeps what a request leaves out,
             // and '' means no music.
@@ -188,7 +191,7 @@ export const MapEditor: React.FC<MapEditorProps> = ({
             instanced,
             borderLinks,
           })
-        : createMap({ name, type, orientation, cols, rows }),
+        : createMap({ name, type, pvp, orientation, cols, rows }),
       t('map.saved'),
       t('map.saveError'),
     );
@@ -245,18 +248,16 @@ export const MapEditor: React.FC<MapEditorProps> = ({
       </div>
 
       <div style={field}>
-        <label style={label}>{t('map.type')}</label>
-        <Controller
-          control={control}
-          name="type"
-          render={({ field }) => (
-            <AsyncSelect<MapType>
-              loadOptions={() => Promise.resolve(mapTypeOptions)}
-              value={field.value}
-              onChange={field.onChange}
-            />
-          )}
-        />
+        <label style={label} htmlFor="mapPvp">
+          {t('map.pvp')}
+        </label>
+        <select id="mapPvp" style={input} {...register('pvp')}>
+          {Object.entries(pvpLabels).map(([value, key]) => (
+            <option key={value} value={value}>
+              {t(key)}
+            </option>
+          ))}
+        </select>
       </div>
 
       <div style={field}>

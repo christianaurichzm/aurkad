@@ -200,6 +200,7 @@ export const CreateMapBodySchema = z.object({
   name: z.string().min(1),
   type: MapTypeSchema,
   orientation: z.enum(['orthogonal', 'isometric']).optional(),
+  pvp: PvpMoraleSchema.optional(),
   cols: z.number().int().min(1).max(MAP_MAX_SIDE).optional(),
   rows: z.number().int().min(1).max(MAP_MAX_SIDE).optional(),
 });

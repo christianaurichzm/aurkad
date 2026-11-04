@@ -2,7 +2,9 @@ import type {
   MapStateClient,
   MapType,
   MapOrientation,
+  PvpMorale,
 } from '../../../../shared/types';
+import { mapTypeForMorale } from '../../../../shared/utils';
 import { httpClient } from './httpClient';
 import { silentAction } from './authClient';
 import { getGameState } from '../../../core/gameState';
@@ -36,7 +38,7 @@ export interface SaveMapResponse {
 export const saveMap = async (
   newMapTiles: MapStateClient['tiles'],
   name: string,
-  type: MapType,
+  pvp: PvpMorale,
   music?: string,
   mapId?: string,
 ): Promise<SaveMapResponse | null> => {
@@ -44,7 +46,8 @@ export const saveMap = async (
     mapId: mapId ?? getGameState()?.id,
     tiles: newMapTiles,
     name,
-    type,
+    type: mapTypeForMorale(pvp),
+    pvp,
     music,
   };
 
@@ -79,6 +82,7 @@ export const updateMap = async (
 export const createMap = async (data: {
   name: string;
   type: MapType;
+  pvp?: PvpMorale;
   orientation?: MapOrientation;
   cols?: number;
   rows?: number;

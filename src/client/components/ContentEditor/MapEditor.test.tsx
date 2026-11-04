@@ -259,3 +259,57 @@ describe('the music field', () => {
     );
   });
 });
+
+describe('the PvP field', () => {
+  it('shows what a map typed PvP plays as and saves the chosen morale with the type', async () => {
+    vi.mocked(updateMap).mockResolvedValueOnce(map());
+    const { container } = render(
+      <MapEditor
+        maps={[{ ...map(), type: 'pvp' }]}
+        loadMaps={() => Promise.resolve([{ value: '1', label: '1 - m' }])}
+        refreshData={vi.fn()}
+        onDirtyChange={vi.fn()}
+        requestDiscard={() => Promise.resolve(true)}
+      />,
+    );
+    await screen.findByRole('option', { name: '1 - m' });
+    fireEvent.change(container.querySelector('select')!, {
+      target: { value: '1' },
+    });
+    const pvp = container.querySelector<HTMLSelectElement>('#mapPvp')!;
+    await waitFor(() => expect(pvp).toHaveValue('no-penalty'));
+    fireEvent.change(pvp, { target: { value: 'normal' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Save Map' }));
+
+    await waitFor(() =>
+      expect(updateMap).toHaveBeenCalledWith(
+        '1',
+        expect.objectContaining({ type: 'pvp', pvp: 'normal' }),
+      ),
+    );
+  });
+
+  it('saves a safe map as a normal one', async () => {
+    vi.mocked(createMap).mockResolvedValueOnce(map());
+    const { container } = render(
+      <MapEditor
+        maps={[]}
+        loadMaps={() => Promise.resolve([])}
+        refreshData={vi.fn()}
+        onDirtyChange={vi.fn()}
+        requestDiscard={() => Promise.resolve(true)}
+      />,
+    );
+    expect(container.querySelector('#mapPvp')).toHaveValue('safe');
+    fireEvent.change(screen.getByPlaceholderText('Map name', { exact: true }), {
+      target: { value: 'Town' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Create Map' }));
+
+    await waitFor(() =>
+      expect(createMap).toHaveBeenCalledWith(
+        expect.objectContaining({ type: 'normal', pvp: 'safe' }),
+      ),
+    );
+  });
+});

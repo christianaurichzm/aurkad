@@ -64,8 +64,9 @@ made in the map editor (Z in game) or the content editor (C):
 - `equipment`: `sets` in its config.
 - `pet`: `/pet` calls it, drawn with `sprite` from its config (11), which
   has to be a character in the game's sheet. The starter game sets one.
-- `pk`: a map with `"pvp": "normal"` in `content/maps.json`. A map the
-  editors mark PvP has no penalty, so nobody is flagged on it.
+- `pk`: a map whose PvP is "On, killers flagged", set in the map editor or
+  the content editor's Maps tab. On a map with PvP "On, no penalty" nobody is
+  flagged.
 - `status`: a script (`use('status').apply`) or a moderator's
   `/status apply` to put an effect on a player.
 

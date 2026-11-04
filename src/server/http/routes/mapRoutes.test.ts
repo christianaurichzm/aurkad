@@ -207,6 +207,40 @@ describe('POST /saveMap', () => {
     expect(stored?.tiles).toHaveLength(sim.map.tiles.length);
   });
 
+  // The pk module flags a kill only where the morale is `normal`, which the
+  // map editor sets alongside the grid.
+  it('saves the morale it is sent, for everyone already on the map', async () => {
+    const sim = await storedMap();
+    const revision = sim.map.tilesRevision ?? 0;
+
+    const res = await request(serverApp(Access.ADMIN)).post('/saveMap').send({
+      mapId: sim.mapId,
+      name: sim.map.name,
+      type: 'pvp',
+      pvp: 'normal',
+      tiles: sim.map.tiles,
+    });
+
+    expect(res.status).toBe(200);
+    const live = runtimeState.maps[sim.mapId];
+    expect(live?.pvp).toBe('normal');
+    expect(live?.tilesRevision).toBe(revision + 1);
+    const stored = await GameMapModel.findOne({ id: sim.mapId }).lean();
+    expect(stored?.pvp).toBe('normal');
+    const loaded = await request(app()).get(`/maps/${sim.mapId}`);
+    expect(loaded.body.pvp).toBe('normal');
+  });
+
+  it('keeps the morale when a save leaves it out', async () => {
+    const sim = await storedMap();
+    sim.map.pvp = 'normal';
+
+    const res = await save(sim, sim.map.tiles);
+
+    expect(res.status).toBe(200);
+    expect(runtimeState.maps[sim.mapId]?.pvp).toBe('normal');
+  });
+
   it('reads no grid for an account that may not save one', async () => {
     const sim = await storedMap();
 

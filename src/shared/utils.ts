@@ -16,6 +16,10 @@ export const mapAllowsPvp = (map: {
   pvp?: PvpMorale;
 }): boolean => mapPvpMorale(map) !== 'safe';
 
+// The `type` an editor saves with a morale, so a reader of `type` alone agrees.
+export const mapTypeForMorale = (pvp: PvpMorale): MapType =>
+  pvp === 'safe' ? 'normal' : 'pvp';
+
 type Placed = { position: { x: number; y: number } };
 
 /** Whether `target` lies on the side `from` is facing, at any distance. */

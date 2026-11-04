@@ -9,7 +9,7 @@ import {
   removeEvent,
 } from '../utils/domHelpers';
 import { TILE_SIZE } from '../../shared/constants';
-import { MapType, Tile, TileAction, TileEditMode } from '../../shared/types';
+import { PvpMorale, Tile, TileAction, TileEditMode } from '../../shared/types';
 import type { ScriptParams } from '../../shared/scriptParams';
 import {
   tileset,
@@ -1255,14 +1255,14 @@ export const setEditorMusic = (music: string): void => {
 
 export const saveCurrentMap = async (
   name: string,
-  type: MapType,
+  pvp: PvpMorale,
 ): Promise<SaveMapResponse | null> => {
   let result: SaveMapResponse | null = null;
   await withLoading('saveButton', async () => {
     result = await saveMap(
       map,
       name,
-      type,
+      pvp,
       // Sent even when empty: the server keeps the music unless told, and ''
       // means no music.
       editorMusic,
