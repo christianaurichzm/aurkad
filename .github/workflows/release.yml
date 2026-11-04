@@ -109,7 +109,8 @@ jobs:
             -t "$IMAGE:${GITHUB_REF_NAME#v}" -t "$IMAGE:latest" .
 
       # Conventional-commit subjects are already the changelog; the release page
-      # is where it lives, so there is no CHANGELOG.md to keep in sync.
+      # is where it lives, so there is no CHANGELOG.md to keep in sync. The
+      # known limitations live in the README, linked at this tag.
       # compose.yml is how a creator installs the engine, so it goes out pinned
       # to this release's image: releases/latest/download/compose.yml is always
       # the newest, and one already downloaded keeps running what it names.
@@ -117,6 +118,8 @@ jobs:
         run: |
           {
             cat upgrade.md
+            printf '\nSee the [known limitations](%s/%s/blob/%s/README.md#known-limitations).\n' \
+              "$GITHUB_SERVER_URL" "$GITHUB_REPOSITORY" "$GITHUB_REF_NAME"
             printf '\n## Changes\n\n'
             git log --no-merges --pretty='- %s' ${PREV:+"$PREV.."}"$GITHUB_REF_NAME"
           } > notes.md

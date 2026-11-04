@@ -219,6 +219,40 @@ With Docker, run the same two from the folder `compose.yml` is in: `docker compo
 
 The server also imports `content/` on every boot, but only the rows that changed in their files since the last import or `content:export`: those win over the database for the ids they define, and the rest leave it alone, so what the admin tools changed survives a restart. `content:import` writes every row, putting the database back to the files. A pack goes in whole or not at all: if any file or entry is invalid, nothing is written, the log lists every problem, and the server runs on the content the database already had (`content:import` exits with an error).
 
+## Known limitations
+
+- **Standalone MongoDB has no transactions.** A trade or a mailed item then
+  moves with separate writes, and a crash between them can duplicate or lose
+  the item. Without them the auction module refuses every listing and bid. The
+  compose install runs MongoDB as a one-node replica set and is not affected.
+  See [Atomic economy writes](ARCHITECTURE.md#atomic-economy-writes-replica-set).
+- **Multi-instance is experimental.** Each map has one owner: an instance
+  refuses to boot onto a map another live instance serves, and stops if its
+  maps were taken while it was paused. But a warp to a map on another instance
+  redirects the player even if saving them failed, and the script `store`,
+  where the guild module keeps its guilds, is cached per process and read at
+  boot only: two instances do not see each other's writes, and the last write
+  to a key wins. Run one instance unless you are testing.
+- **A slow connection can miss chat lines and module events.** While a socket
+  is more than `WS_MAX_BUFFERED_BYTES` behind, the server sends it nothing
+  until it drains. The world then catches up by itself, but chat and
+  `sendEvent` / `sendMapEvent` messages sent meanwhile are dropped, so a panel
+  a module keeps up to date from events can show stale data until the next one.
+- **Scripts and modules are not sandboxed.** They run in `node:vm`, which is
+  not a security boundary, and a script can reach the server process. Run only
+  code you trust. The script editor in the admin panel is off by default for
+  the same reason (`SCRIPT_EDITOR_ENABLED`). See [SECURITY.md](.github/SECURITY.md).
+- **The admin name is first come, first served.** Until you register the
+  `ADMIN` username, anyone who guesses it can take it and become admin.
+  Register it right after the first `docker compose up`.
+- **MongoDB needs an ARMv8.2 processor on ARM.** A Raspberry Pi 4 cannot run
+  it. A Raspberry Pi 5 runs it, and so do Oracle's and Hetzner's ARM servers.
+- **The bundled script editor still carries DOMPurify audit alerts.** Monaco
+  0.57.0 pins and bundles DOMPurify 3.4.15. The installed sanitizer does not
+  enable the `SAFE_FOR_TEMPLATES`, `IN_PLACE`, or XHTML modes required by the
+  reported issues, and the server dependency audit (`npm audit --omit=dev`) is
+  clean.
+
 ## More
 
 How the engine is put together is in [ARCHITECTURE.md](ARCHITECTURE.md),
